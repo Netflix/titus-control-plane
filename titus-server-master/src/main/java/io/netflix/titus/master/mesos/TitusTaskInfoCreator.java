@@ -71,15 +71,24 @@ public class TitusTaskInfoCreator {
 
     public Protos.TaskInfo createTitusTaskInfo(Protos.SlaveID slaveID, List<Parameter> parameters,
                                                TitusQueuableTask<V2JobMetadata, V2WorkerMetadata> fenzoTask, List<Integer> portsAssigned,
-                                               String taskInstanceId) {
+                                               String taskInstanceId, boolean executorPerTask) {
         final WorkerNaming.JobWorkerIdPair jobAndWorkerId = WorkerNaming.getJobAndWorkerId(fenzoTask.getId());
         String _taskId = fenzoTask.getId();
         Protos.TaskID taskId = Protos.TaskID.newBuilder()
                 .setValue(_taskId).build();
         Protos.CommandInfo commandInfo = Protos.CommandInfo.newBuilder().setValue(config.pathToTitusExecutor()).build();
-        Protos.ExecutorInfo executorInfo = Protos.ExecutorInfo.newBuilder()
-                .setExecutorId(Protos.ExecutorID.newBuilder().setValue("docker-executor").build())
-                .setName("docker-executor")
+        final Protos.ExecutorInfo executorInfo;
+        String executorName = "docker-executor";
+        String executorId = "docker-executor";
+
+        if (executorPerTask) {
+            executorName = "docker-per-task-executor";
+            executorId = "docker-per-task-executor-" + _taskId;
+        }
+
+        executorInfo = Protos.ExecutorInfo.newBuilder()
+                .setExecutorId(Protos.ExecutorID.newBuilder().setValue(executorId).build())
+                .setName(executorName)
                 .setCommand(commandInfo)
                 .build();
         Protos.TaskInfo.Builder taskInfoBuilder = Protos.TaskInfo.newBuilder();
