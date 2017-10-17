@@ -1,0 +1,4 @@
+dependencies {
+    compile project(':titus-ext-cassandra')
+    compile "org.cassandraunit:cassandra-unit:3.1.1.0"
+}

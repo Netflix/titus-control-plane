@@ -1,0 +1,12 @@
+[
+  {
+    "asgName": "titusagent-simulated-m4.4xlarge-v001",
+    "instanceType": "m4.4xlarge",
+    "desired": 10
+  },
+  {
+    "asgName": "titusagent-simulated-r3.8xlarge-v001",
+    "instanceType": "r3.8xlarge",
+    "desired": 5
+  }
+]

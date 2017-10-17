@@ -1,0 +1,14 @@
+dependencies {
+    compile project(':titus-common')
+    compile project(':titus-api')
+    compile project(':titus-grpc-api')
+
+    compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
+    compile "com.netflix.governator:governator-core:${governatorVersion}"
+    compile "com.netflix.governator:governator-servlet:${governatorVersion}"
+    compile "com.netflix.governator:governator-jersey:${governatorVersion}"
+    compile "javax.servlet:javax.servlet-api:${servletVersion}"
+    compile "org.hibernate:hibernate-validator:${hibernateValidatorVersion}"
+
+    testCompile project(':titus-testkit')
+}

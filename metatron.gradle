@@ -1,0 +1,23 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "netflix:metatron-gradle-plugin:latest.release"
+    }
+}
+
+apply plugin: 'metatron-gradle-plugin'
+
+metatronDecrypt {
+    metatronDir = "root/metatron"
+}
+
+tasks.create(name: 'decrypt') {
+}
+tasks.decrypt.dependsOn metatronDecrypt
+
+
+tasks.create(name: 'clean') {
+}
+tasks.clean.dependsOn metatronCleanup

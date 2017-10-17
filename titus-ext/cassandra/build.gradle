@@ -1,0 +1,13 @@
+dependencies {
+    compile project(':titus-common')
+    compile project(':titus-api')
+
+    compile "commons-cli:commons-cli:${commonsCliVersion}"
+    compile("com.datastax.cassandra:cassandra-driver-core:${cassandraDriverVersion}") {
+        exclude group: "io.netty"
+    }
+    compile "com.datastax.cassandra:cassandra-driver-extras:${cassandraDriverVersion}"
+
+    testCompile project(':titus-testkit')
+    testCompile "org.cassandraunit:cassandra-unit:${cassandraUnitVersion}"
+}

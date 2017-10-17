@@ -1,0 +1,37 @@
+/*
+ * Copyright 2017 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.netflix.titus.common.data.generator.internal;
+
+import java.util.List;
+
+import io.netflix.titus.common.data.generator.DataGenerator;
+import org.junit.Test;
+
+import static java.util.Arrays.asList;
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class LimitDataGeneratorTest {
+
+    @Test
+    public void testLimit() throws Exception {
+        DataGenerator<Long> genWithLimit = DataGenerator.range(0, 9).limit(2);
+        DataGenerator<List<Long>> batchGen = genWithLimit.batch(2);
+
+        assertThat(batchGen.getValue()).isEqualTo(asList(0L, 1L));
+        assertThat(batchGen.apply().isClosed()).isTrue();
+    }
+}

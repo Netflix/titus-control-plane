@@ -1,0 +1,16 @@
+rootProject.name = 'titus'
+include 'titus-api',\
+        'titus-common',\
+        'titus-grpc-api',\
+        'titus-server-gateway',\
+        'titus-server-master',\
+        'titus-server-runtime',\
+        'titus-testkit'
+
+['aws', 'cassandra', 'cassandra-testkit', 'elasticsearch'].each {
+    def projectName = "titus-ext-$it"
+    include projectName
+
+    def extRoot = new File(rootProject.projectDir, "titus-ext")
+    project(":$projectName").projectDir = new File(extRoot, "$it")
+}

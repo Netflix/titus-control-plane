@@ -1,0 +1,31 @@
+apply plugin: 'application'
+apply plugin: 'nebula.ospackage-application'
+
+mainClassName = 'io.netflix.titus.gateway.startup.TitusGateway'
+
+dependencies {
+    compile project(':titus-server-runtime')
+    compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
+    // Governator wires up all of our dependencies in dependency injection fashion.
+    compile "com.netflix.governator:governator-core:${governatorVersion}"
+    compile "com.netflix.governator:governator-servlet:${governatorVersion}"
+    compile "com.netflix.governator:governator-jersey:${governatorVersion}"
+    compile("com.netflix.governator:governator-jetty:${governatorVersion}") { transitive = false }
+    compile "org.eclipse.jetty:jetty-servlet:${jettyVersion}"
+    compile "org.eclipse.jetty:jetty-webapp:${jettyVersion}"
+    compile "javax.servlet:javax.servlet-api:${servletVersion}"
+
+    // gRPC dependencies
+    compile "io.grpc:grpc-netty:${grpcVersion}"
+
+    compile "io.swagger:swagger-jaxrs:${swaggerVersion}"
+
+    testCompile project(':titus-testkit')
+    testCompile "com.netflix.governator:governator-test-junit:${governatorVersion}"
+}
+
+ospackage {
+    version = '0.0.1'
+    release = '1'
+}
+

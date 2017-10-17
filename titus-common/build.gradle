@@ -1,0 +1,31 @@
+dependencies {
+    compile "com.google.guava:guava:${guavaVersion}"
+    compile "io.reactivex:rxjava:${rxJava}"
+    compile("io.reactivex:rxnetty:${rxnettyVersion}") {
+        exclude module: 'rxjava-core' // netty was pinned to rxjava-core 0.19.1
+    }
+    compile "org.hdrhistogram:HdrHistogram:${hdrhistogramVersion}"
+
+    compile "com.netflix.spectator:spectator-api:${spectatorVersion}"
+    compile "com.netflix.numerus:numerus:${numerusVersion}"
+    compile "com.netflix.archaius:archaius2-core:${archaius2Version}"
+    compile "org.xerial.snappy:snappy-java:${snappyVersion}"
+    compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
+    compile "com.google.protobuf:protobuf-java:${protobufVersion}"
+    compile "com.netflix.governator:governator-core:${governatorVersion}"
+    compile "com.squareup.okhttp3:okhttp:${okHttpVersion}"
+
+    // Java Bean validation/EL and SpEL
+    compile "javax.el:javax.el-api:${javaxElVersion}"
+    compile "org.glassfish:javax.el:${javaxElVersion}"
+    compile "org.springframework:spring-expression:${springVersion}"
+    compile "org.hibernate:hibernate-validator:${hibernateValidatorVersion}"
+
+    // gRPC dependencies
+    compile "io.grpc:grpc-netty:${grpcVersion}"
+    compile "io.grpc:grpc-stub:${grpcVersion}"
+
+    testCompile project(':titus-testkit')
+    testCompile "com.squareup.okhttp3:mockwebserver:${okHttpVersion}"
+}

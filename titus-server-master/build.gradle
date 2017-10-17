@@ -1,0 +1,50 @@
+apply plugin: 'application'
+apply plugin: 'nebula.ospackage-application'
+
+mainClassName = 'io.netflix.titus.master.TitusMaster'
+
+dependencies {
+    compile project(':titus-server-runtime')
+    compile "com.netflix.fenzo:fenzo-core:${fenzoVersion}"
+    compile "com.netflix.fenzo:fenzo-triggers:${fenzoVersion}"
+    compile "org.apache.mesos:mesos:${mesosVersion}"
+    compile "com.google.protobuf:protobuf-java:${protobufVersion}"
+    compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
+    compile "org.apache.curator:curator-framework:${curatorVersion}"
+    compile "org.apache.curator:curator-recipes:${curatorVersion}"
+    compile("io.reactivex:rxnetty:${rxnettyVersion}") {
+        exclude module: 'rxjava-core' // netty was pinned to rxjava-core 0.19.1
+    }
+    compile "com.netflix.numerus:numerus:${numerusVersion}"
+    compile "com.google.inject:guice:${guiceVersion}"
+    compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
+
+    // Governator wires up all of our dependencies in dependency injection fashion.
+    compile "com.netflix.governator:governator-core:${governatorVersion}"
+    compile "com.netflix.governator:governator-servlet:${governatorVersion}"
+    compile "com.netflix.governator:governator-jersey:${governatorVersion}"
+    compile("com.netflix.governator:governator-jetty:${governatorVersion}") { transitive = false }
+    compile "org.eclipse.jetty:jetty-servlet:${jettyVersion}"
+    compile "org.eclipse.jetty:jetty-webapp:${jettyVersion}"
+    compile "javax.servlet:javax.servlet-api:${servletVersion}"
+
+    // Swagger Core for generating swagger.json
+    compile "io.swagger:swagger-jaxrs:${swaggerVersion}"
+    // Static HTML/css/js resources for the pretty Swagger UI that get injected into the war by Servlet 3.
+    compile "org.webjars:swagger-ui:${swaggerUiVersion}"
+
+    compile "org.json:json:${jsonVersion}"
+    compile "javax.inject:javax.inject:${javaxInjectVersion}"
+    compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
+    compile "org.apache.curator:curator-framework:${curatorVersion}"
+    compile "org.apache.curator:curator-recipes:${curatorVersion}"
+    compile "com.netflix.runtime:health-guice:${runtimeHealthVersion}"
+
+    testCompile project(':titus-testkit')
+    testCompile "com.101tec:zkclient:${zkVersion}"
+}
+
+ospackage {
+    version = '0.0.1'
+    release = '1'
+}
