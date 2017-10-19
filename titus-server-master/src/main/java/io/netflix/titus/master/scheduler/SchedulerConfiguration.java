@@ -45,7 +45,6 @@ public interface SchedulerConfiguration {
 
     /**
      * TODO: Remove this property once optimizing shortfall evaluator stabilizes
-     * <p>
      * Use the aggressive shortfall evaluator by default.
      */
     @DefaultValue("false")
@@ -56,4 +55,10 @@ public interface SchedulerConfiguration {
 
     @DefaultValue("0")
     int getDelayAutoScaleDownBySecs();
+
+    /**
+     * Return the attribute name to use from the agent when comparing against instance groups
+     */
+    @DefaultValue("asg")
+    String getInstanceGroupAttributeName();
 }

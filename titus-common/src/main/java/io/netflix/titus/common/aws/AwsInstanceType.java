@@ -222,9 +222,17 @@ public enum AwsInstanceType {
     public static final String R3_4XLARGE_ID = "r3.4xlarge";
     public static final String R3_8XLARGE_ID = "r3.8xlarge";
 
+    public static final String R4_2XLARGE_ID = "r4.2xlarge";
+    public static final String R4_4XLARGE_ID = "r4.4xlarge";
+    public static final String R4_8XLARGE_ID = "r4.8xlarge";
+
     public static final String G2_XLARGE_ID = "g2.xlarge";
     public static final String G2_2XLARGE_ID = "g2.2xlarge";
     public static final String G2_8XLARGE_ID = "g2.8xlarge";
+
+    public static final String P2_XLARGE_ID = "p2.xlarge";
+    public static final String P2_2XLARGE_ID = "p2.2xlarge";
+    public static final String P2_8XLARGE_ID = "p2.8xlarge";
 
     private static final Map<String, AwsInstanceType> INSTANCES_BY_MODEL = createInstanceByModelMap();
 

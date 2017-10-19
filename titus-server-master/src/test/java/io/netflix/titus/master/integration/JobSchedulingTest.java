@@ -62,10 +62,14 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     public final TitusMasterResource titusMasterResource = new TitusMasterResource(
             EmbeddedTitusMaster.testTitusMaster()
                     .withProperty("mantis.worker.state.launched.timeout.millis", "30")
+                    .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "30")
+                    .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "30")
+                    .withProperty("titusMaster.jobManager.serviceTaskInStartInitiatedStateTimeoutMs", "30")
                     .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
                     .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
                     .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(2).withInstanceType(AwsInstanceType.M3_XLARGE))
                     .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
+                    .withAgentCluster(aTitusAgentCluster("gpuCluster", 1).withSize(2).withInstanceType(AwsInstanceType.G2_2XLarge))
                     .build()
     );
 
@@ -133,12 +137,6 @@ public class JobSchedulingTest extends BaseIntegrationTest {
 
     @Test(timeout = 30000)
     public void submitGpuBatchJob() throws Exception {
-        titusMaster.addAgentCluster(
-                aTitusAgentCluster("gpuAgentCluster", 2)
-                        .withComputeResources(titusMaster.getSimulatedCloud().getComputeResources())
-                        .withInstanceType(AwsInstanceType.G2_2XLarge)
-                        .build()
-        );
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.batch, "myjob")).gpu(1).build();
         TaskExecutorHolder taskHolder = runBatchJob(jobSpec);
 

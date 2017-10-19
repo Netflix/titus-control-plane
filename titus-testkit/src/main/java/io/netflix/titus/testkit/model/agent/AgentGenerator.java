@@ -17,6 +17,7 @@
 package io.netflix.titus.testkit.model.agent;
 
 import java.util.Collections;
+import java.util.List;
 
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -73,12 +74,16 @@ public final class AgentGenerator {
     }
 
     public static DataGenerator<AgentInstanceGroup> agentServerGroups(Tier tier, int desiredSize) {
+        return agentServerGroups(tier, desiredSize, instanceTypes().toList());
+    }
+
+    public static DataGenerator<AgentInstanceGroup> agentServerGroups(Tier tier, int desiredSize, List<String> instanceTypes) {
         return DataGenerator.bindBuilder(AgentInstanceGroup::newBuilder)
                 .bind(range(0), (builder, idx) -> {
                     builder.withId("AgentInstanceGroup#" + idx);
                     builder.withAttributes(Collections.singletonMap(ATTR_SUBNET, idx + ".0.0.0/8"));
                 })
-                .bind(instanceTypes(), AgentInstanceGroup.Builder::withInstanceType)
+                .bind(DataGenerator.items(instanceTypes), AgentInstanceGroup.Builder::withInstanceType)
                 .bind(autoScaleRules(), AgentInstanceGroup.Builder::withAutoScaleRule)
                 .map(builder -> builder
                         .withTier(tier)
