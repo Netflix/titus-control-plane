@@ -83,7 +83,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
         ResourceDimension left = computeTierResourceDimension(tier, capacityRequirements);
 
         List<AgentInstanceGroup> instanceGroups = agentManagementService.getInstanceGroups().stream()
-                .filter(instanceGroup -> instanceGroup.getTier() == tier)
+                .filter(instanceGroup -> instanceGroup.getTier() == tier && instanceGroup.getResourceDimension().getGpu() == 0)
                 .sorted(Comparator.comparing(AgentInstanceGroup::getId))
                 .collect(Collectors.toList());
 

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.model.AutoScaleRule;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.ResourceDimension;
@@ -270,10 +271,14 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     private AgentInstanceGroup getInstanceGroup(Tier tier, String instanceType, int min, int max) {
+        AutoScaleRule autoScaleRule = AutoScaleRule.newBuilder()
+                .withMin(min)
+                .build();
         return AgentGenerator.agentServerGroups(tier, 0, singletonList(instanceType)).getValue()
                 .toBuilder()
-                .withMin(min)
+                .withMin(0)
                 .withMax(max)
+                .withAutoScaleRule(autoScaleRule)
                 .build();
     }
 }
