@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.protobuf.Empty;
+import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -52,7 +53,7 @@ public class DefaultAutoScalingServiceGrpcTest {
     private final AppScalePolicyStore appScalePolicyStore = new InMemoryPolicyStore();
     private final AppScaleManager appScaleManager = new DefaultAppScaleManager(appScalePolicyStore,
             new AutoScalingPolicyTests.MockAlarmClient(),
-            new AutoScalingPolicyTests.MockAppAutoScalingClient(), null, null, null);
+            new AutoScalingPolicyTests.MockAppAutoScalingClient(), null, null, null, new DefaultRegistry());
     private final SessionContext sessionContext = mock(SessionContext.class);
     private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager);
 

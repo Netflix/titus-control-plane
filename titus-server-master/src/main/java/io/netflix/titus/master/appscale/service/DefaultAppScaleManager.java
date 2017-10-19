@@ -29,6 +29,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.appscale.model.AutoScalableTarget;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
@@ -73,15 +75,19 @@ public class DefaultAppScaleManager implements AppScaleManager {
     private V2JobOperations v2JobOperations;
     private RxEventBus rxEventBus;
     private V3JobOperations v3JobOperations;
+    private Registry registry;
+    private final Id errorMetricId;
 
     private Map<String, AutoScalableTarget> scalableTargets;
     private Subscription pendingPoliciesSub;
     private Subscription deletingPoliciesSub;
     private Subscription reconcileFinishedJobsSub;
     private Subscription reconcileScalableTargetsSub;
+    private Subscription reportPolicyMetricsSub;
 
 
     public static final String DEFAULT_JOB_GROUP_SEQ = "v000";
+    public static final String METRIC_APPSCALE_ERRORS = "titus.appscale.errors";
 
     public static class JobScalingConstraints {
         private int minCapacity;
@@ -106,14 +112,17 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   AppAutoScalingClient applicationAutoScalingClient,
                                   V2JobOperations v2JobOperations,
                                   V3JobOperations v3JobOperations,
-                                  RxEventBus rxEventBus) {
+                                  RxEventBus rxEventBus,
+                                  Registry registry) {
         this.appScalePolicyStore = appScalePolicyStore;
         this.cloudAlarmClient = cloudAlarmClient;
         this.appAutoScalingClient = applicationAutoScalingClient;
         this.v2JobOperations = v2JobOperations;
         this.rxEventBus = rxEventBus;
         this.v3JobOperations = v3JobOperations;
+        this.registry = registry;
         this.scalableTargets = new ConcurrentHashMap<>();
+        errorMetricId = registry.createId(METRIC_APPSCALE_ERRORS);
     }
 
     @Activator
@@ -149,6 +158,15 @@ public class DefaultAppScaleManager implements AppScaleManager {
                         e -> log.error("Error in reconciliation (jobStatus) stream", e),
                         () -> log.info("Reconciliation (jobStatus) stream closed"));
 
+
+        reportPolicyMetricsSub = Observable.interval(60, 60, TimeUnit.SECONDS)
+                .observeOn(Schedulers.io())
+                .flatMapCompletable(ignored -> appScalePolicyStore.reportPolicyMetrics())
+                .subscribe(ignored -> log.debug("Policy metrics reported"),
+                        e -> log.error("Error in reporting policy metrics", e),
+                        () -> log.info("Report policy metrics stream closed ?"));
+
+
         v2LiveStreamPolicyCleanup()
                 .subscribe(autoScalingPolicy -> log.info("(V2) AutoScalingPolicy {} removed", autoScalingPolicy),
                         e -> log.error("Error in V2 job state change event stream", e),
@@ -178,6 +196,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
         ObservableExt.safeUnsubscribe(deletingPoliciesSub);
         ObservableExt.safeUnsubscribe(reconcileFinishedJobsSub);
         ObservableExt.safeUnsubscribe(reconcileScalableTargetsSub);
+        ObservableExt.safeUnsubscribe(reportPolicyMetricsSub);
     }
 
 
@@ -432,8 +451,9 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
         if (autoScalePolicyException != null) {
             if (autoScalePolicyException.getPolicyRefId() != null && !autoScalePolicyException.getPolicyRefId().isEmpty()) {
-                String statusMessage = String.format("%s - %s", autoScalePolicyException.getErrorCode(), autoScalePolicyException.getMessage());
+                registry.counter(errorMetricId.withTag("errorCode", autoScalePolicyException.getErrorCode().name())).increment();
 
+                String statusMessage = String.format("%s - %s", autoScalePolicyException.getErrorCode(), autoScalePolicyException.getMessage());
                 if (autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.UnknownScalingPolicy ||
                         autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.InvalidScalingPolicy ||
                         autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.JobManagerError) {

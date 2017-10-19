@@ -42,6 +42,12 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
     }
 
     @Override
+    public Completable reportPolicyMetrics() {
+        log.info("Reporting #policies {} ", policyMap.size());
+        return Completable.complete();
+    }
+
+    @Override
     public Observable<AutoScalingPolicy> retrievePolicies() {
         return Observable.from(
                 policyMap.values().stream()

@@ -16,8 +16,6 @@
 
 package io.netflix.titus.api.appscale.store;
 
-import java.util.List;
-
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
 import rx.Completable;
@@ -29,6 +27,8 @@ public interface AppScalePolicyStore {
      * Initialize the store.
      */
     Completable init();
+
+    Completable reportPolicyMetrics();
 
     /**
      * Retrieve all policies
