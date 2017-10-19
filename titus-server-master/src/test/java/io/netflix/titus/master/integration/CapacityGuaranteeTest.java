@@ -19,6 +19,9 @@ package io.netflix.titus.master.integration;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState;
+import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
+import com.netflix.titus.grpc.protogen.TierUpdate;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
@@ -82,6 +85,28 @@ public class CapacityGuaranteeTest {
 
         taskExecutorHolders = new ExtTestSubscriber<>();
         titusMaster.observeLaunchedTasks().subscribe(taskExecutorHolders);
+
+        // Configure Clusters
+        titusMasterResource.getOperations().getV3BlockingGrpcAgentClient().updateInstanceGroupTier(
+                TierUpdate.newBuilder()
+                        .setInstanceGroupId("criticalAgentCluster")
+                        .setTier(com.netflix.titus.grpc.protogen.Tier.Critical)
+                        .build()
+        );
+        titusMasterResource.getOperations().getV3BlockingGrpcAgentClient().updateInstanceGroupLifecycleState(
+                InstanceGroupLifecycleStateUpdate.newBuilder()
+                        .setInstanceGroupId("criticalAgentCluster")
+                        .setDetail("activate")
+                        .setLifecycleState(InstanceGroupLifecycleState.Active)
+                        .build()
+        );
+        titusMasterResource.getOperations().getV3BlockingGrpcAgentClient().updateInstanceGroupLifecycleState(
+                InstanceGroupLifecycleStateUpdate.newBuilder()
+                        .setInstanceGroupId("flexAgentCluster")
+                        .setDetail("activate")
+                        .setLifecycleState(InstanceGroupLifecycleState.Active)
+                        .build()
+        );
 
         // Setup capacity guarantees for tiers
         client.addApplicationSLA(asRepresentation(CRITICAL1_GUARANTEE)).toBlocking().first();

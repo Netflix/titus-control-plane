@@ -16,11 +16,13 @@
 
 package io.netflix.titus.master.service.management.internal;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
@@ -28,90 +30,102 @@ import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.agent.service.server.ServerInfoResolvers;
 import io.netflix.titus.master.endpoint.v2.rest.ApplicationSlaManagementEndpoint;
 import io.netflix.titus.master.service.management.BeanCapacityManagementConfiguration;
-import io.netflix.titus.master.service.management.BeanTierConfig;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityAllocations;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityRequirements;
-import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.InstanceTypeLimit;
 import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import io.netflix.titus.testkit.data.core.ApplicationSlaSample;
+import io.netflix.titus.testkit.model.agent.AgentGenerator;
 import org.junit.Test;
 
-import static io.netflix.titus.common.aws.AwsInstanceType.G2_8XLARGE_ID;
-import static io.netflix.titus.common.aws.AwsInstanceType.M4_2XLARGE_ID;
+import static io.netflix.titus.common.aws.AwsInstanceType.M4_4XLARGE_ID;
 import static io.netflix.titus.common.aws.AwsInstanceType.M4_XLARGE_ID;
-import static io.netflix.titus.common.aws.AwsInstanceType.R3_4XLARGE_ID;
-import static io.netflix.titus.common.aws.AwsInstanceType.R3_8XLARGE_ID;
-import static io.netflix.titus.common.util.CollectionsExt.asSet;
-import static io.netflix.titus.common.util.CollectionsExt.merge;
+import static io.netflix.titus.common.aws.AwsInstanceType.P2_8XLARGE_ID;
+import static io.netflix.titus.common.aws.AwsInstanceType.R4_4XLARGE_ID;
+import static io.netflix.titus.common.aws.AwsInstanceType.R4_8XLARGE_ID;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SimpleCapacityGuaranteeStrategyTest {
 
-    private static Set<String> CRITICAL_INSTANCE_TYPES = asSet(M4_XLARGE_ID, M4_2XLARGE_ID, G2_8XLARGE_ID);
-    private static Set<String> FLEX_INSTANCE_TYPES = asSet(R3_8XLARGE_ID, R3_4XLARGE_ID, G2_8XLARGE_ID);
-    private static Set<String> ALL_INSTANCE_TYPES = merge(CRITICAL_INSTANCE_TYPES, FLEX_INSTANCE_TYPES);
-
-    private static final CapacityManagementConfiguration CONFIGURATION = BeanCapacityManagementConfiguration.newBuilder()
-            .withCriticalTier(BeanTierConfig.newBuilder()
-                    .withBuffer(0.1)
-                    .withInstanceTypes(M4_XLARGE_ID, M4_2XLARGE_ID, G2_8XLARGE_ID)
-            )
-            .withFlexTier(BeanTierConfig.newBuilder()
-                    .withBuffer(0.1)
-                    .withInstanceTypes(R3_8XLARGE_ID, R3_4XLARGE_ID, G2_8XLARGE_ID)
-            )
+    private static final CapacityManagementConfiguration configuration = BeanCapacityManagementConfiguration.newBuilder()
+            .withCriticalTierBuffer(0.1)
+            .withFlexTierBuffer(0.1)
             .build();
 
-    private static final InstanceTypeLimit DEFAULT_INSTANCE_TYPE_LIMIT = new InstanceTypeLimit(0, 1);
-    private static final Map<String, InstanceTypeLimit> DEFAULT_LIMITS = CollectionsExt.<String, InstanceTypeLimit>newHashMap()
-            .entry(M4_XLARGE_ID, DEFAULT_INSTANCE_TYPE_LIMIT)
-            .entry(M4_2XLARGE_ID, DEFAULT_INSTANCE_TYPE_LIMIT)
-            .entry(R3_4XLARGE_ID, DEFAULT_INSTANCE_TYPE_LIMIT)
-            .entry(R3_8XLARGE_ID, DEFAULT_INSTANCE_TYPE_LIMIT)
-            .entry(G2_8XLARGE_ID, DEFAULT_INSTANCE_TYPE_LIMIT)
-            .toMap();
+    private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
 
     private final CapacityGuaranteeStrategy strategy = new SimpleCapacityGuaranteeStrategy(
-            CONFIGURATION,
+            configuration,
+            agentManagementService,
             ServerInfoResolvers.fromAwsInstanceTypes()
     );
 
     @Test
     public void testSingleInstanceFitsAll() throws Exception {
-        ApplicationSLA smallSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(1).build();
-        CapacityRequirements requirements = new CapacityRequirements(
-                singletonMap(Tier.Critical, singletonList(smallSLA)),
-                updateLimit(M4_XLARGE_ID, 2)
+        List<AgentInstanceGroup> instanceGroups = asList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 2),
+                getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, R4_8XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, P2_8XLARGE_ID, 0, 0)
         );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        ApplicationSLA smallSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(1).build();
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Critical, singletonList(smallSLA)));
         CapacityAllocations allocations = strategy.compute(requirements);
 
-        assertThat(allocations.getInstanceTypes()).containsOnlyElementsOf(CRITICAL_INSTANCE_TYPES);
-        assertThat(allocations.getExpectedMinSize(M4_XLARGE_ID)).isEqualTo(1);
-        assertThat(allocations.getExpectedMinSize(M4_2XLARGE_ID)).isEqualTo(0);
-        assertThat(allocations.getExpectedMinSize(G2_8XLARGE_ID)).isEqualTo(0);
+        allocations.getInstanceGroups().forEach(instanceGroup -> {
+            assertThat(instanceGroup.getTier()).isEqualTo(Tier.Critical);
+        });
+
+        AgentInstanceGroup m4xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(m4xlInstanceGroup)).isEqualTo(1);
+
+        AgentInstanceGroup m44xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_4XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(m44xlInstanceGroup)).isEqualTo(0);
     }
 
     @Test
     public void testLargeAllocation() throws Exception {
-        ApplicationSLA largeSLA = ApplicationSlaSample.CriticalLarge.builder().withInstanceCount(10).build(); // 2 * 10 CPUs
-        CapacityRequirements requirements = new CapacityRequirements(
-                singletonMap(Tier.Critical, singletonList(largeSLA)),
-                updateLimit(M4_XLARGE_ID, 10) // 4 CPUs
+        List<AgentInstanceGroup> instanceGroups = asList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 10),
+                getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, R4_8XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, P2_8XLARGE_ID, 0, 0)
         );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        ApplicationSLA largeSLA = ApplicationSlaSample.CriticalLarge.builder().withInstanceCount(10).build(); // 2 * 10 CPUs
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Critical, singletonList(largeSLA)));
         CapacityAllocations allocations = strategy.compute(requirements);
 
-        assertThat(allocations.getInstanceTypes()).containsOnlyElementsOf(CRITICAL_INSTANCE_TYPES);
-        assertThat(allocations.getExpectedMinSize(M4_XLARGE_ID)).isEqualTo(6);
-        assertThat(allocations.getExpectedMinSize(M4_2XLARGE_ID)).isEqualTo(0);
-        assertThat(allocations.getExpectedMinSize(G2_8XLARGE_ID)).isEqualTo(0);
+        allocations.getInstanceGroups().forEach(instanceGroup -> {
+            assertThat(instanceGroup.getTier()).isEqualTo(Tier.Critical);
+        });
+
+        AgentInstanceGroup m4xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(m4xlInstanceGroup)).isEqualTo(6);
+
+        AgentInstanceGroup m44xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_4XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(m44xlInstanceGroup)).isEqualTo(0);
     }
 
     @Test
     public void testFlexTierMultiInstanceAllocation() throws Exception {
+        List<AgentInstanceGroup> instanceGroups = asList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, R4_8XLARGE_ID, 0, 5),
+                getInstanceGroup(Tier.Flex, R4_4XLARGE_ID, 0, 5),
+                getInstanceGroup(Tier.Flex, P2_8XLARGE_ID, 0, 5)
+        );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
         ApplicationSLA defaultSLA = ApplicationSLA.newBuilder()
                 .withAppName(ApplicationSlaManagementEndpoint.DEFAULT_APPLICATION)
                 .withTier(Tier.Flex)
@@ -122,124 +136,144 @@ public class SimpleCapacityGuaranteeStrategyTest {
                 .build();
         ApplicationSLA flexAppSLA = ApplicationSLA.newBuilder(defaultSLA).withInstanceCount(40).build();
 
-        Map<String, InstanceTypeLimit> instanceTypeLimits = CollectionsExt.newHashMap(DEFAULT_LIMITS)
-                .entry(R3_8XLARGE_ID, new InstanceTypeLimit(0, 5)) // 32 CPUs
-                .entry(R3_4XLARGE_ID, new InstanceTypeLimit(0, 5)) // 16 CPUs
-                .entry(G2_8XLARGE_ID, new InstanceTypeLimit(0, 5)) // 32 CPUs
-                .toMap();
-
-        CapacityRequirements requirements = new CapacityRequirements(
-                singletonMap(Tier.Flex, asList(defaultSLA, flexAppSLA)),
-                instanceTypeLimits
-        );
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Flex, asList(defaultSLA, flexAppSLA)));
 
         CapacityAllocations allocations = strategy.compute(requirements);
 
-        assertThat(allocations.getInstanceTypes()).containsOnlyElementsOf(FLEX_INSTANCE_TYPES);
-        assertThat(allocations.getExpectedMinSize(R3_8XLARGE_ID)).isEqualTo(5);
-        assertThat(allocations.getExpectedMinSize(R3_4XLARGE_ID)).isEqualTo(4);
-        assertThat(allocations.getExpectedMinSize(G2_8XLARGE_ID)).isEqualTo(0);
+        allocations.getInstanceGroups().forEach(instanceGroup -> {
+            assertThat(instanceGroup.getTier()).isEqualTo(Tier.Flex);
+        });
+
+        AgentInstanceGroup r48xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), R4_8XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(r48xlInstanceGroup)).isEqualTo(5);
+
+        AgentInstanceGroup r44xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), R4_4XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(r44xlInstanceGroup)).isEqualTo(4);
+
+        AgentInstanceGroup p28xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), P2_8XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(p28xlInstanceGroup)).isEqualTo(0);
     }
 
     @Test
     public void testTierSharedInstanceAllocation() throws Exception {
+        List<AgentInstanceGroup> instanceGroups = asList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, R4_4XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, R4_8XLARGE_ID, 0, 0),
+                getInstanceGroup(Tier.Flex, P2_8XLARGE_ID, 0, 3)
+        );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
         ApplicationSLA criticalSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(20).build(); // 1 * 20 CPUs
         ApplicationSLA flexSLA = ApplicationSlaSample.FlexSmall.builder().withInstanceCount(20).build(); // 1 * 20 CPUs
         ApplicationSLA defaultFlexSLA = ApplicationSlaSample.DefaultFlex.builder().withInstanceCount(1).build(); // 2 * 1 CPUs
-
-        Map<String, InstanceTypeLimit> instanceTypeLimits = CollectionsExt.<String, InstanceTypeLimit>newHashMap()
-                .entry(M4_XLARGE_ID, new InstanceTypeLimit(0, 0))
-                .entry(M4_2XLARGE_ID, new InstanceTypeLimit(0, 0))
-                .entry(R3_4XLARGE_ID, new InstanceTypeLimit(0, 0))
-                .entry(R3_8XLARGE_ID, new InstanceTypeLimit(0, 0))
-                .entry(G2_8XLARGE_ID, new InstanceTypeLimit(0, 3)) // 32 CPUs
-                .toMap();
 
         Map<Tier, List<ApplicationSLA>> tierSLAs = CollectionsExt.<Tier, List<ApplicationSLA>>newHashMap()
                 .entry(Tier.Critical, singletonList(criticalSLA))
                 .entry(Tier.Flex, asList(defaultFlexSLA, flexSLA))
                 .toMap();
 
-        CapacityRequirements requirements = new CapacityRequirements(tierSLAs, instanceTypeLimits);
+        CapacityRequirements requirements = new CapacityRequirements(tierSLAs);
 
         CapacityAllocations allocations = strategy.compute(requirements);
 
-        assertThat(allocations.getInstanceTypes()).containsOnlyElementsOf(ALL_INSTANCE_TYPES);
-        assertThat(allocations.getExpectedMinSize(G2_8XLARGE_ID)).isEqualTo(2);
+        AgentInstanceGroup p28xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), P2_8XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(p28xlInstanceGroup)).isEqualTo(1);
     }
 
     @Test
     public void testBuffer() throws Exception {
-        ApplicationSLA smallSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(4).build(); // 4 CPUs
-        CapacityRequirements requirements = new CapacityRequirements(
-                singletonMap(Tier.Critical, singletonList(smallSLA)),
-                updateLimit(M4_XLARGE_ID, 2)
+        List<AgentInstanceGroup> instanceGroups = singletonList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 2)
         );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        ApplicationSLA smallSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(4).build(); // 4 CPUs
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Critical, singletonList(smallSLA)));
 
         // Our SLA allocation requires 1 instance, but buffer goes over it, so we require 2
         CapacityAllocations allocations = strategy.compute(requirements);
 
-        assertThat(allocations.getInstanceTypes()).containsOnlyElementsOf(CRITICAL_INSTANCE_TYPES);
-        assertThat(allocations.getExpectedMinSize(M4_XLARGE_ID)).isEqualTo(2);
+        allocations.getInstanceGroups().forEach(instanceGroup -> {
+            assertThat(instanceGroup.getTier()).isEqualTo(Tier.Critical);
+        });
 
+        AgentInstanceGroup r48xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(r48xlInstanceGroup)).isEqualTo(2);
     }
 
     @Test
     public void testAllocationNotChangedIfNoAppInTier() throws Exception {
-        CapacityRequirements requirements = new CapacityRequirements(
-                Collections.emptyMap(),
-                DEFAULT_LIMITS
+        List<AgentInstanceGroup> instanceGroups = singletonList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 1)
         );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        CapacityRequirements requirements = new CapacityRequirements(Collections.emptyMap());
         CapacityAllocations allocations = strategy.compute(requirements);
-        assertThat(allocations.getInstanceTypes()).isEmpty();
+        assertThat(allocations.getInstanceGroups()).isEmpty();
     }
 
     @Test
     public void testAllocationNotChangedIfOnlyDefaultAppInFlexTier() throws Exception {
-        CapacityRequirements requirements = new CapacityRequirements(
-                Collections.singletonMap(Tier.Flex, singletonList(ApplicationSlaSample.DefaultFlex.build())),
-                DEFAULT_LIMITS
+        List<AgentInstanceGroup> instanceGroups = singletonList(
+                getInstanceGroup(Tier.Flex, R4_8XLARGE_ID, 0, 1)
         );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Flex, singletonList(ApplicationSlaSample.DefaultFlex.build())));
         CapacityAllocations allocations = strategy.compute(requirements);
-        assertThat(allocations.getInstanceTypes()).isEmpty();
+        assertThat(allocations.getInstanceGroups()).isEmpty();
     }
 
     @Test
     public void testAllocationsMinLimitsAreApplied() throws Exception {
+        List<AgentInstanceGroup> instanceGroups = asList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 2, 10),
+                getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 3, 10),
+                getInstanceGroup(Tier.Critical, P2_8XLARGE_ID, 5, 10)
+        );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
         ApplicationSLA smallSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(1).build();
 
-        Map<String, InstanceTypeLimit> limits = CollectionsExt.newHashMap(DEFAULT_LIMITS)
-                .entry(M4_XLARGE_ID, new InstanceTypeLimit(2, 10))
-                .entry(M4_2XLARGE_ID, new InstanceTypeLimit(3, 10))
-                .entry(G2_8XLARGE_ID, new InstanceTypeLimit(5, 10))
-                .toMap();
-
-        CapacityRequirements requirements = new CapacityRequirements(
-                singletonMap(Tier.Critical, singletonList(smallSLA)),
-                limits
-        );
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Critical, singletonList(smallSLA)));
         CapacityAllocations allocations = strategy.compute(requirements);
 
-        assertThat(allocations.getInstanceTypes()).containsOnlyElementsOf(CRITICAL_INSTANCE_TYPES);
-        assertThat(allocations.getExpectedMinSize(M4_XLARGE_ID)).isEqualTo(2);
-        assertThat(allocations.getExpectedMinSize(M4_2XLARGE_ID)).isEqualTo(3);
-        assertThat(allocations.getExpectedMinSize(G2_8XLARGE_ID)).isEqualTo(5);
+        AgentInstanceGroup m4xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(m4xlInstanceGroup)).isEqualTo(2);
+
+        AgentInstanceGroup m44xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_4XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(m44xlInstanceGroup)).isEqualTo(3);
+
+        AgentInstanceGroup p28xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), P2_8XLARGE_ID);
+        assertThat(allocations.getExpectedMinSize(p28xlInstanceGroup)).isEqualTo(5);
     }
 
     @Test
     public void testResourceShortageReporting() throws Exception {
-        ApplicationSLA veryBigSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(100).build();
-        CapacityRequirements requirements = new CapacityRequirements(
-                singletonMap(Tier.Critical, singletonList(veryBigSLA)),
-                updateLimit(M4_XLARGE_ID, 2)
+        List<AgentInstanceGroup> instanceGroups = singletonList(
+                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 2)
         );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        ApplicationSLA veryBigSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(100).build();
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Critical, singletonList(veryBigSLA)));
 
         CapacityAllocations allocations = strategy.compute(requirements);
         assertThat(allocations.getTiersWithResourceShortage()).containsExactly(Tier.Critical);
-
     }
 
-    private Map<String, InstanceTypeLimit> updateLimit(String instanceType, int maxLimit) {
-        return CollectionsExt.newHashMap(DEFAULT_LIMITS).entry(instanceType, new InstanceTypeLimit(0, maxLimit)).toMap();
+    private AgentInstanceGroup findInstanceGroupByInstanceType(Collection<AgentInstanceGroup> instanceGroups, String instanceType) {
+        return instanceGroups.stream().filter(instanceGroup -> instanceGroup.getInstanceType().equals(instanceType)).findFirst().orElse(null);
+    }
+
+    private AgentInstanceGroup getInstanceGroup(Tier tier, String instanceType, int min, int max) {
+        return AgentGenerator.agentServerGroups(tier, 0, singletonList(instanceType)).getValue()
+                .toBuilder()
+                .withMin(min)
+                .withMax(max)
+                .build();
     }
 }

@@ -16,8 +16,6 @@
 
 package io.netflix.titus.master.service.management;
 
-import java.util.Map;
-
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
@@ -40,42 +38,6 @@ public interface CapacityManagementConfiguration {
         int getNetworkMbs();
     }
 
-    interface InstanceTypeConfig {
-        /**
-         * Instance type name.
-         */
-        String name();
-
-        /**
-         * Minimum server group size.
-         */
-        int minSize();
-    }
-
-    interface TierConfig {
-        /**
-         * AWS instance types that can be used by this tier.
-         */
-        String[] getInstanceTypes();
-
-        /**
-         * Additional resource allocation (ratio) on top of the requested amount.
-         * For example, given instance count 100 and buffer 0.1, the actual allocation amount will be 110.
-         */
-        double getBuffer();
-    }
-
-    /**
-     * Instance types configuration. The {@link #DEFAULT_INSTANCE_TYPE} name is reserved, and is used to set
-     * a default configuration.
-     */
-    Map<String, InstanceTypeConfig> getInstanceTypes();
-
-    /**
-     * Configuration for tiers. A position in the list denotes tier priority level.
-     */
-    Map<String, TierConfig> getTiers();
-
     /**
      * If 'default' application is not defined, it will be transparently created with the configured resource
      * dimensions.
@@ -93,4 +55,16 @@ public interface CapacityManagementConfiguration {
      */
     @DefaultValue("30000")
     long getAvailableCapacityUpdateIntervalMs();
+
+    /**
+     * The buffer percentage size of the critical tier
+     */
+    @DefaultValue("0.05")
+    double getCriticalTierBuffer();
+
+    /**
+     * The buffer percentage size of the flex tier
+     */
+    @DefaultValue("0.05")
+    double getFlexTierBuffer();
 }

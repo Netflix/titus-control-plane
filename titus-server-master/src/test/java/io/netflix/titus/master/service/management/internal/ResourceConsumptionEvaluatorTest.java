@@ -28,7 +28,6 @@ import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.model.ResourceDimensions;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.master.service.management.BeanCapacityManagementConfiguration;
-import io.netflix.titus.master.service.management.BeanTierConfig;
 import io.netflix.titus.master.service.management.CompositeResourceConsumption;
 import io.netflix.titus.master.service.management.ResourceConsumption;
 import io.netflix.titus.testkit.model.runtime.RuntimeModelGenerator;
@@ -51,8 +50,8 @@ public class ResourceConsumptionEvaluatorTest {
     private static final double BUFFER = 0.5;
 
     private final BeanCapacityManagementConfiguration config = BeanCapacityManagementConfiguration.newBuilder()
-            .withCriticalTier(BeanTierConfig.newBuilder().withBuffer(BUFFER).withInstanceTypes("m4.4xlarge"))
-            .withFlexTier(BeanTierConfig.newBuilder().withBuffer(BUFFER).withInstanceTypes("r3.4xlarge"))
+            .withCriticalTierBuffer(BUFFER)
+            .withFlexTierBuffer(BUFFER)
             .build();
 
     private final ApplicationSlaManagementService applicationSlaManagementService = mock(ApplicationSlaManagementService.class);

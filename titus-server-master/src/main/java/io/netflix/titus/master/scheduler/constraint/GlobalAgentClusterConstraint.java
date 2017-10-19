@@ -16,19 +16,19 @@
 
 package io.netflix.titus.master.scheduler.constraint;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QueuableTask;
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.Tier;
-import io.netflix.titus.master.config.MasterConfiguration;
-import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
+import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,17 +45,19 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
     private static final Logger logger = LoggerFactory.getLogger(GlobalAgentClusterConstraint.class);
-    private final Map<Integer, String[]> tierInstancesMap;
-    private final MasterConfiguration config;
-    private final String agentInstanceTypeAttrName;
-    private final CapacityManagementConfiguration capacityManagementConfiguration;
+
+    private final SchedulerConfiguration schedulerConfiguration;
+    private final AgentManagementService agentManagementService;
+
+    private final String instanceGroupAttributeName;
 
     @Inject
-    public GlobalAgentClusterConstraint(MasterConfiguration config, CapacityManagementConfiguration capacityManagementConfiguration) {
-        this.capacityManagementConfiguration = capacityManagementConfiguration;
-        tierInstancesMap = new HashMap<>();
-        this.config = config;
-        agentInstanceTypeAttrName = config.getInstanceTypeAttributeName();
+    public GlobalAgentClusterConstraint(SchedulerConfiguration schedulerConfiguration,
+                                        AgentManagementService agentManagementService) {
+        this.schedulerConfiguration = schedulerConfiguration;
+        this.agentManagementService = agentManagementService;
+
+        this.instanceGroupAttributeName = schedulerConfiguration.getInstanceGroupAttributeName();
     }
 
     @Override
@@ -63,53 +65,13 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
         return GlobalAgentClusterConstraint.class.getSimpleName();
     }
 
-    // Expected to be not called concurrently with evaluate().
-    // Capacity management config can change dynamically. Setting up this configuration for our use involves a small
-    // cost of setting a new map. We want to do that once for a scheduling iteration and refer to it for all invocations
-    // of this constraint from within the iteration. Therefore, we expect this prepare() method to be called before the
-    // start of the next scheduling iteration.
     @Override
     public void prepare() {
-        try {
-            Map<Integer, String[]> map = new HashMap<>();
-            for (Tier t : Tier.values()) {
-                final CapacityManagementConfiguration.TierConfig tierConfig =
-                        capacityManagementConfiguration.getTiers().get(Integer.toString(t.ordinal()));
-                map.put(t.ordinal(),
-                        tierConfig == null || tierConfig.getInstanceTypes() == null || tierConfig.getInstanceTypes().length == 0 ?
-                                new String[]{} :
-                                tierConfig.getInstanceTypes()
-                );
-            }
-            tierInstancesMap.clear();
-            tierInstancesMap.putAll(map);
-        } catch (Throwable t) {
-            // In case there are problems getting tier config, leave tierInstancesMap as it was before
-            logger.error("Unexpected error preparing global constraint: " + t.getMessage(), t);
-        }
     }
 
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        return config.getMultiAgentClusterPinningEnabled() && !tierInstancesMap.isEmpty() ?
-                evaluateGpuAndCapacityTierPinning(taskRequest, targetVM) :
-                evaluateGpuOnly(taskRequest, targetVM);
-    }
-
-    private Result evaluateGpuOnly(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {
-        Double gpu = targetVM.getCurrAvailableResources().getScalarValue("gpu");
-        if (gpu == null) {
-            gpu = 0.0;
-        }
-        final boolean taskRequestsGpu = taskRequestsGpu(taskRequest);
-        return taskRequestsGpu == gpu > 0.0 ?
-                new Result(true, null) :
-                new Result(
-                        false,
-                        taskRequestsGpu ?
-                                "No GPU on agent" :
-                                "Agent does not run non-GPU tasks"
-                );
+        return evaluateGpuAndCapacityTierPinning(taskRequest, targetVM);
     }
 
     private Result evaluateGpuAndCapacityTierPinning(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {
@@ -126,27 +88,29 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
         }
         // Since we moved to using Fenzo queues, we know the task request will be of this type.
         QueuableTask qt = (QueuableTask) taskRequest;
-        final String[] instanceTypes = tierInstancesMap.get(qt.getQAttributes().getTierNumber());
-        if (instanceTypes == null || instanceTypes.length == 0) {
-            return new Result(true, null); // no pinning
+        Tier tier = Tier.Flex;
+        if (qt.getQAttributes().getTierNumber() == 0) {
+            tier = Tier.Critical;
         }
-        final String agentInstTypeValue = getAgentAttrValue(targetVM, agentInstanceTypeAttrName);
-        if (agentInstTypeValue == null) {
-            return new Result(false, "No info for agent instance type attribute, " + agentInstanceTypeAttrName);
+
+        String instanceGroupId = getAgentAttributeValue(targetVM, instanceGroupAttributeName);
+        if (Strings.isNullOrEmpty(instanceGroupId)) {
+            return new Result(false, "No info for agent instance type attribute: " + instanceGroupAttributeName);
         }
-        for (String it : instanceTypes) {
-            if (agentInstTypeValue.equals(it)) {
+        try {
+            AgentInstanceGroup instanceGroup = agentManagementService.getInstanceGroup(instanceGroupId);
+            if (instanceGroup.getTier() == tier) {
                 return new Result(true, null);
             }
+        } catch (Exception ignored) {
         }
-        return new Result(false, "Only runs on agent clusters: " + Arrays.toString(instanceTypes));
+
+        return new Result(false, "Only runs on tier: " + tier.name());
     }
 
-    private String getAgentAttrValue(VirtualMachineCurrentState targetVM, String attrName) {
-        Protos.Attribute attribute = targetVM.getCurrAvailableResources().getAttributeMap().get(attrName);
-        return attribute == null ?
-                null :
-                attribute.getText().getValue();
+    private String getAgentAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
+        Protos.Attribute attribute = targetVM.getCurrAvailableResources().getAttributeMap().get(attributeName);
+        return Strings.nullToEmpty(attribute.getText().getValue());
     }
 
     private boolean taskRequestsGpu(TaskRequest taskRequest) {

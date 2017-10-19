@@ -33,7 +33,6 @@ import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.GlobalInactiveClusterConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.GlobalTaskLaunchingConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.GlobalTaskResubmitConstraintEvaluator;
-import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
 
 import static java.util.Arrays.asList;
 
@@ -41,8 +40,8 @@ import static java.util.Arrays.asList;
 public class TitusGlobalConstraintEvaluator implements GlobalConstraintEvaluator {
 
     private final MasterConfiguration config;
+    private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
-    private final CapacityManagementConfiguration capacityManagementConfig;
     private final TitusRuntime titusRuntime;
     private final GlobalTaskLaunchingConstraintEvaluator globalTaskLaunchingConstraintEvaluator;
 
@@ -50,13 +49,13 @@ public class TitusGlobalConstraintEvaluator implements GlobalConstraintEvaluator
 
     @Inject
     public TitusGlobalConstraintEvaluator(MasterConfiguration config,
+                                          SchedulerConfiguration schedulerConfiguration,
                                           AgentManagementService agentManagementService,
-                                          CapacityManagementConfiguration capacityManagementConfig,
                                           TitusRuntime titusRuntime,
                                           GlobalTaskLaunchingConstraintEvaluator globalTaskLaunchingConstraintEvaluator) {
         this.config = config;
+        this.schedulerConfiguration = schedulerConfiguration;
         this.agentManagementService = agentManagementService;
-        this.capacityManagementConfig = capacityManagementConfig;
         this.titusRuntime = titusRuntime;
         this.globalTaskLaunchingConstraintEvaluator = globalTaskLaunchingConstraintEvaluator;
     }
@@ -65,7 +64,7 @@ public class TitusGlobalConstraintEvaluator implements GlobalConstraintEvaluator
     public void enterActiveMode() {
         this.delegate = new CompositeGlobalConstraintEvaluator(asList(
                 new GlobalInactiveClusterConstraintEvaluator(config, agentManagementService, titusRuntime),
-                new GlobalAgentClusterConstraint(config, capacityManagementConfig),
+                new GlobalAgentClusterConstraint(schedulerConfiguration, agentManagementService),
                 new GlobalTaskResubmitConstraintEvaluator(),
                 globalTaskLaunchingConstraintEvaluator
         ));

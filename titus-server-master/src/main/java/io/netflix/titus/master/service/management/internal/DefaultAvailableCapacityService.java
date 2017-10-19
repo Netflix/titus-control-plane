@@ -18,7 +18,6 @@ package io.netflix.titus.master.service.management.internal;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -26,7 +25,11 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -36,7 +39,6 @@ import io.netflix.titus.master.agent.ServerInfo;
 import io.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import io.netflix.titus.master.model.ResourceDimensions;
 import io.netflix.titus.master.service.management.AvailableCapacityService;
-import io.netflix.titus.master.service.management.CapacityAllocationService;
 import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,31 +53,31 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
     private static final String METRIC_AVAILABLE_CAPACITY_UPDATE = MetricConstants.METRIC_CAPACITY_MANAGEMENT + "availableCapacityUpdate";
 
     private final CapacityManagementConfiguration configuration;
-    private final CapacityAllocationService capacityAllocationService;
     private final ServerInfoResolver serverInfoResolver;
 
     private final Scheduler.Worker worker;
     private final ExecutionMetrics metrics;
+    private final AgentManagementService agentManagementService;
 
     private volatile Map<Tier, ResourceDimension> availableCapacity = Collections.emptyMap();
 
     @Inject
     public DefaultAvailableCapacityService(CapacityManagementConfiguration configuration,
-                                           CapacityAllocationService capacityAllocationService,
                                            ServerInfoResolver serverInfoResolver,
+                                           AgentManagementService agentManagementService,
                                            Registry registry) {
-        // FIXME This class contains blocking call, which have to be converted into proper observable chain.
-        this(configuration, capacityAllocationService, serverInfoResolver, registry, Schedulers.io());
+        this(configuration, serverInfoResolver, agentManagementService, registry, Schedulers.io());
     }
 
-    /* Visible for testing */ DefaultAvailableCapacityService(CapacityManagementConfiguration configuration,
-                                                              CapacityAllocationService capacityAllocationService,
-                                                              ServerInfoResolver serverInfoResolver,
-                                                              Registry registry,
-                                                              Scheduler scheduler) {
+    @VisibleForTesting
+    DefaultAvailableCapacityService(CapacityManagementConfiguration configuration,
+                                    ServerInfoResolver serverInfoResolver,
+                                    AgentManagementService agentManagementService,
+                                    Registry registry,
+                                    Scheduler scheduler) {
         this.configuration = configuration;
-        this.capacityAllocationService = capacityAllocationService;
         this.serverInfoResolver = serverInfoResolver;
+        this.agentManagementService = agentManagementService;
         this.worker = scheduler.createWorker();
         this.metrics = new ExecutionMetrics(METRIC_AVAILABLE_CAPACITY_UPDATE, DefaultAvailableCapacityService.class, registry);
     }
@@ -121,17 +123,13 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
     }
 
     private ResourceDimension resolveCapacityOf(Tier tier) {
-        List<String> tierInstanceTypes = ConfigUtil.getTierInstanceTypes(tier, configuration);
-
-        List<Integer> limits = capacityAllocationService.limits(tierInstanceTypes)
-                .timeout(60, TimeUnit.SECONDS)
-                .toBlocking()
-                .first();
         ResourceDimension total = ResourceDimension.empty();
-        for (int i = 0; i < limits.size(); i++) {
-            Optional<ServerInfo> serverInfo = serverInfoResolver.resolve(tierInstanceTypes.get(i));
-            if (serverInfo.isPresent()) {
-                total = ResourceDimensions.add(total, toResourceDimension(serverInfo.get(), limits.get(i)));
+        for (AgentInstanceGroup instanceGroup : agentManagementService.getInstanceGroups()) {
+            if (instanceGroup.getTier() == tier && instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active) {
+                Optional<ServerInfo> serverInfo = serverInfoResolver.resolve(instanceGroup.getInstanceType());
+                if (serverInfo.isPresent()) {
+                    total = ResourceDimensions.add(total, toResourceDimension(serverInfo.get(), instanceGroup.getMax()));
+                }
             }
         }
         return total;

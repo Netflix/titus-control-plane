@@ -62,7 +62,6 @@ public class ConfigurationMockSamples {
     public static MasterConfiguration withAutoScaleClusterInfo(MasterConfiguration mock) {
         when(mock.getActiveSlaveAttributeName()).thenReturn("cluster");
         when(mock.getAutoscaleByAttributeName()).thenReturn(agentClusterAttributeName);
-        when(mock.getMultiAgentClusterPinningEnabled()).thenReturn(true);
         when(mock.getInstanceTypeAttributeName()).thenReturn("itype");
         return mock;
     }

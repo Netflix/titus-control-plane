@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
@@ -33,33 +34,12 @@ import io.netflix.titus.api.model.Tier;
  * The {@link Tier#Flex} is not scaled if only one application is left, which is assumed to be the default application.
  */
 public interface CapacityGuaranteeStrategy {
-
-    class InstanceTypeLimit {
-        private final int minSize;
-        private final int maxSize;
-
-        public InstanceTypeLimit(int minSize, int maxSize) {
-            this.minSize = minSize;
-            this.maxSize = maxSize;
-        }
-
-        public int getMinSize() {
-            return minSize;
-        }
-
-        public int getMaxSize() {
-            return maxSize;
-        }
-    }
-
     class CapacityRequirements {
 
         private final Map<Tier, List<ApplicationSLA>> tierRequirements;
-        private final Map<String, InstanceTypeLimit> instanceTypeLimits;
 
-        public CapacityRequirements(Map<Tier, List<ApplicationSLA>> tierRequirements, Map<String, InstanceTypeLimit> instanceTypeLimits) {
+        public CapacityRequirements(Map<Tier, List<ApplicationSLA>> tierRequirements) {
             this.tierRequirements = tierRequirements;
-            this.instanceTypeLimits = instanceTypeLimits;
         }
 
         public Set<Tier> getTiers() {
@@ -69,28 +49,24 @@ public interface CapacityGuaranteeStrategy {
         public List<ApplicationSLA> getTierRequirements(Tier tier) {
             return tierRequirements.get(tier);
         }
-
-        public InstanceTypeLimit getLimit(String instanceType) {
-            return instanceTypeLimits.get(instanceType);
-        }
     }
 
     class CapacityAllocations {
 
-        private final Map<String, Integer> instanceAllocations;
+        private final Map<AgentInstanceGroup, Integer> instanceAllocations;
         private final Map<Tier, ResourceDimension> resourceShortage;
 
-        public CapacityAllocations(Map<String, Integer> instanceAllocations, Map<Tier, ResourceDimension> resourceShortage) {
+        public CapacityAllocations(Map<AgentInstanceGroup, Integer> instanceAllocations, Map<Tier, ResourceDimension> resourceShortage) {
             this.instanceAllocations = instanceAllocations;
             this.resourceShortage = resourceShortage;
         }
 
-        public Set<String> getInstanceTypes() {
+        public Set<AgentInstanceGroup> getInstanceGroups() {
             return instanceAllocations.keySet();
         }
 
-        public int getExpectedMinSize(String instanceType) {
-            return instanceAllocations.get(instanceType);
+        public int getExpectedMinSize(AgentInstanceGroup instanceGroup) {
+            return instanceAllocations.get(instanceGroup);
         }
 
         public Set<Tier> getTiersWithResourceShortage() {

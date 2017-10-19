@@ -18,24 +18,26 @@ package io.netflix.titus.master.service.management.internal;
 
 import java.util.Optional;
 
-import com.google.common.collect.ImmutableMap;
 import com.netflix.spectator.api.DefaultRegistry;
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.aws.AwsInstanceDescriptor;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import io.netflix.titus.master.agent.service.server.ServerInfoResolvers;
-import io.netflix.titus.master.service.management.CapacityAllocationService;
 import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
-import io.netflix.titus.master.service.management.CapacityManagementConfiguration.TierConfig;
+import io.netflix.titus.testkit.model.agent.AgentGenerator;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static io.netflix.titus.common.aws.AwsInstanceType.M4_XLARGE_ID;
+import static io.netflix.titus.common.aws.AwsInstanceType.R4_8XLARGE_ID;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -53,45 +55,41 @@ public class DefaultAvailableCapacityServiceTest {
 
     private final CapacityManagementConfiguration configuration = mock(CapacityManagementConfiguration.class);
 
-    private final CapacityAllocationService capacityAllocationService = mock(CapacityAllocationService.class);
+    private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
 
     private final ServerInfoResolver serverInfoResolver = mock(ServerInfoResolver.class);
 
     private final DefaultAvailableCapacityService availableCapacityService = new DefaultAvailableCapacityService(
             configuration,
-            capacityAllocationService,
             serverInfoResolver,
+            agentManagementService,
             new DefaultRegistry(),
             testScheduler
     );
 
     @Before
     public void setUp() throws Exception {
-        TierConfig critical = mock(TierConfig.class);
-        when(critical.getInstanceTypes()).thenReturn(new String[]{AwsInstanceType.M4_XLARGE_ID});
-
-        TierConfig flex = mock(TierConfig.class);
-        when(flex.getInstanceTypes()).thenReturn(new String[]{AwsInstanceType.R3_4XLARGE_ID});
-
-        when(configuration.getTiers()).thenReturn(
-                ImmutableMap.<String, TierConfig>builder().put("0", critical).put("1", flex).build()
-        );
         when(configuration.getAvailableCapacityUpdateIntervalMs()).thenReturn(30000L);
 
-        when(capacityAllocationService.limits(singletonList(AwsInstanceType.M4_XLARGE_ID))).thenReturn(
-                Observable.just(singletonList(CRITICAL_INSTANCE_COUNT))
+        ServerInfoResolver resolver = ServerInfoResolvers.fromAwsInstanceTypes();
+        when(this.serverInfoResolver.resolve(M4_XLARGE_ID)).thenReturn(
+                resolver.resolve(M4_XLARGE_ID)
         );
-        when(capacityAllocationService.limits(singletonList(AwsInstanceType.R3_4XLARGE_ID))).thenReturn(
-                Observable.just(singletonList(FLEX_INSTANCE_COUNT))
+        when(this.serverInfoResolver.resolve(R4_8XLARGE_ID)).thenReturn(
+                resolver.resolve(R4_8XLARGE_ID)
         );
 
-        ServerInfoResolver resolver = ServerInfoResolvers.fromAwsInstanceTypes();
-        when(this.serverInfoResolver.resolve(AwsInstanceType.M4_XLARGE_ID)).thenReturn(
-                resolver.resolve(AwsInstanceType.M4_XLARGE_ID)
-        );
-        when(this.serverInfoResolver.resolve(AwsInstanceType.R3_4XLARGE_ID)).thenReturn(
-                resolver.resolve(AwsInstanceType.R3_4XLARGE_ID)
-        );
+        AgentInstanceGroup criticalInstanceGroup = AgentGenerator.agentServerGroups(Tier.Critical, 0, singletonList(M4_XLARGE_ID)).getValue()
+                .toBuilder()
+                .withMax(CRITICAL_INSTANCE_COUNT)
+                .build();
+
+        AgentInstanceGroup flexInstanceGroup = AgentGenerator.agentServerGroups(Tier.Flex, 0, singletonList(R4_8XLARGE_ID)).getValue()
+                .toBuilder()
+                .withMax(FLEX_INSTANCE_COUNT)
+                .build();
+
+        when(agentManagementService.getInstanceGroups()).thenReturn(asList(criticalInstanceGroup, flexInstanceGroup));
 
         availableCapacityService.enterActiveMode();
     }

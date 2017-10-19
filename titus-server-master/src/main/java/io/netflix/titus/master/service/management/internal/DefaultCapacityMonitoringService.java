@@ -18,16 +18,17 @@ package io.netflix.titus.master.service.management.internal;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.util.guice.ProxyType;
@@ -35,11 +36,9 @@ import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.rx.ComputationTaskInvoker;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.service.management.CapacityAllocationService;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityAllocations;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityRequirements;
-import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.InstanceTypeLimit;
 import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import io.netflix.titus.master.service.management.CapacityMonitoringService;
 import io.netflix.titus.master.store.ApplicationSlaStore;
@@ -51,8 +50,6 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
-import static io.netflix.titus.common.util.CollectionsExt.zipToMap;
-
 @Singleton
 @ProxyConfiguration(types = ProxyType.ActiveGuard)
 public class DefaultCapacityMonitoringService implements CapacityMonitoringService {
@@ -60,48 +57,50 @@ public class DefaultCapacityMonitoringService implements CapacityMonitoringServi
     private static final Logger logger = LoggerFactory.getLogger(DefaultCapacityMonitoringService.class);
 
     // An upper bound on the update execution time.
-    /* Visible for testing */ static final long UPDATE_TIMEOUT_MS = 30 * 1000;
+    @VisibleForTesting
+    static final long UPDATE_TIMEOUT_MS = 30 * 1000;
 
     /**
      * Schedule periodically capacity dimensioning updates, to override any changes made by external actors.
      * (for example, a user doing manual override).
      */
-    /* Visible for testing */ static final long PERIODIC_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
+    @VisibleForTesting
+    static final long PERIODIC_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
 
-    private final CapacityAllocationService capacityAllocationService;
     private final CapacityManagementConfiguration configuration;
     private final CapacityGuaranteeStrategy strategy;
 
     private final ApplicationSlaStore storage;
 
     private final Scheduler scheduler;
+    private final AgentManagementService agentManagementService;
     private final ComputationTaskInvoker<Void> invoker;
     private final DefaultCapacityMonitoringServiceMetrics metrics;
 
     private Subscription periodicUpdateSubscription;
 
-    public DefaultCapacityMonitoringService(CapacityAllocationService capacityAllocationService,
-                                            CapacityManagementConfiguration configuration,
+    public DefaultCapacityMonitoringService(CapacityManagementConfiguration configuration,
                                             CapacityGuaranteeStrategy strategy,
                                             ApplicationSlaStore storage,
+                                            AgentManagementService agentManagementService,
                                             Registry registry,
                                             Scheduler scheduler) {
-        this.capacityAllocationService = capacityAllocationService;
         this.configuration = configuration;
         this.strategy = strategy;
         this.storage = storage;
-        this.invoker = new ComputationTaskInvoker<>(Observable.create(subscriber -> updateAction(subscriber)), scheduler);
+        this.agentManagementService = agentManagementService;
+        this.invoker = new ComputationTaskInvoker<>(Observable.unsafeCreate((Observable.OnSubscribe<Void>) this::updateAction), scheduler);
         this.scheduler = scheduler;
         this.metrics = new DefaultCapacityMonitoringServiceMetrics(registry);
     }
 
     @Inject
-    public DefaultCapacityMonitoringService(CapacityAllocationService capacityAllocationService,
-                                            CapacityManagementConfiguration configuration,
+    public DefaultCapacityMonitoringService(CapacityManagementConfiguration configuration,
                                             CapacityGuaranteeStrategy strategy,
                                             ApplicationSlaStore storage,
+                                            AgentManagementService agentManagementService,
                                             Registry registry) {
-        this(capacityAllocationService, configuration, strategy, storage, registry, Schedulers.computation());
+        this(configuration, strategy, storage, agentManagementService, registry, Schedulers.computation());
     }
 
     @PreDestroy
@@ -140,23 +139,10 @@ public class DefaultCapacityMonitoringService implements CapacityMonitoringServi
         try {
             long startTime = scheduler.now();
 
-            List<String> instanceTypes = ConfigUtil.getAllInstanceTypes(configuration);
-            List<String> scalableInstanceTypes = ConfigUtil.getTierInstanceTypes(Tier.Critical, configuration);
-
-            Observable<Map<String, InstanceTypeLimit>> instanceTypeLimits = capacityAllocationService.limits(instanceTypes)
-                    .map(maxLimits -> buildInstanceTypeLimits(instanceTypes, maxLimits))
-                    .map(limits -> zipToMap(instanceTypes, limits));
-
             // Compute capacity allocations for all tiers, and for those tiers that are scaled (now only Critical).
             // We need full capacity allocation for alerting.
-            Observable<Pair<CapacityAllocations, CapacityAllocations>> allocationsObservable = Observable.zip(
-                    storage.findAll().toList(),
-                    instanceTypeLimits,
-                    (allSLAs, limits) -> new Pair<>(
-                            recompute(allSLAs, limits),
-                            recompute(scalableSLAs(allSLAs), scalableInstanceTypeLimits(limits, scalableInstanceTypes))
-                    )
-            );
+            Observable<Pair<CapacityAllocations, CapacityAllocations>> allocationsObservable = storage.findAll().toList()
+                    .map(allSlas -> Pair.of(recompute(allSlas), recompute(scalableSLAs(allSlas))));
 
             Observable<Void> updateStatus = allocationsObservable.flatMap(allocationPair -> {
                 CapacityAllocations allTiersAllocation = allocationPair.getLeft();
@@ -165,9 +151,9 @@ public class DefaultCapacityMonitoringService implements CapacityMonitoringServi
                 metrics.recordResourceShortage(allTiersAllocation);
 
                 List<Observable<Void>> updates = new ArrayList<>();
-                scaledAllocations.getInstanceTypes().forEach(instanceType -> {
-                            int minSize = scaledAllocations.getExpectedMinSize(instanceType);
-                            updates.add(capacityAllocationService.allocate(instanceType, minSize));
+                scaledAllocations.getInstanceGroups().forEach(instanceGroup -> {
+                            int minSize = scaledAllocations.getExpectedMinSize(instanceGroup);
+                            updates.add(agentManagementService.updateCapacity(instanceGroup.getId(), Optional.of(minSize), Optional.empty()).toObservable());
                         }
                 );
                 return Observable.merge(updates);
@@ -195,37 +181,17 @@ public class DefaultCapacityMonitoringService implements CapacityMonitoringServi
         }
     }
 
-    private Map<String, InstanceTypeLimit> scalableInstanceTypeLimits(Map<String, InstanceTypeLimit> limits,
-                                                                      List<String> scalableInstanceTypes) {
-        HashMap<String, InstanceTypeLimit> result = new HashMap<>(limits);
-        result.keySet().retainAll(scalableInstanceTypes);
-        return result;
-    }
-
     private List<ApplicationSLA> scalableSLAs(List<ApplicationSLA> allSLAs) {
         return allSLAs.stream().filter(sla -> sla.getTier() == Tier.Critical).collect(Collectors.toList());
     }
 
-    private List<InstanceTypeLimit> buildInstanceTypeLimits(List<String> instanceTypes, List<Integer> maxLimits) {
-        List<InstanceTypeLimit> limits = new ArrayList<>(instanceTypes.size());
-        for (int i = 0; i < instanceTypes.size(); i++) {
-            int minSize = ConfigUtil.getInstanceTypeMinSize(configuration, instanceTypes.get(i));
-            limits.add(new InstanceTypeLimit(minSize, maxLimits.get(i)));
-        }
-        return limits;
-    }
-
-    private CapacityAllocations recompute(List<ApplicationSLA> allSLAs, Map<String, InstanceTypeLimit> limits) {
+    private CapacityAllocations recompute(List<ApplicationSLA> allSLAs) {
         EnumMap<Tier, List<ApplicationSLA>> tiers = new EnumMap<>(Tier.class);
         allSLAs.forEach(sla -> {
-                    List<ApplicationSLA> tierSLAs = tiers.get(sla.getTier());
-                    if (tierSLAs == null) {
-                        tiers.put(sla.getTier(), tierSLAs = new ArrayList<>());
-                    }
-                    tierSLAs.add(sla);
-                }
-        );
-        CapacityAllocations allocations = strategy.compute(new CapacityRequirements(tiers, limits));
+            List<ApplicationSLA> tierSLAs = tiers.computeIfAbsent(sla.getTier(), k -> new ArrayList<>());
+            tierSLAs.add(sla);
+        });
+        CapacityAllocations allocations = strategy.compute(new CapacityRequirements(tiers));
         logger.debug("Recomputed resource dimensions: {}", allocations);
 
         return allocations;

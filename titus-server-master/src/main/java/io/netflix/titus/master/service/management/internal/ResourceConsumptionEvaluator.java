@@ -28,6 +28,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
@@ -101,7 +102,7 @@ class ResourceConsumptionEvaluator {
         capacityGroupConsumptionMap.forEach((capacityGroup, appConsumptions) -> {
 
             ApplicationSLA sla = applicationSlaMap.get(capacityGroup);
-            double buffer = ConfigUtil.getTierBuffer(sla.getTier(), config);
+            double buffer = getBuffer(sla.getTier());
             ResourceDimension allowedConsumption = ResourceDimensions.multiply(sla.getResourceDimension(), sla.getInstanceCount() * (1 + buffer));
             ResourceDimension maxConsumption = ResourceConsumptions.addMaxConsumptions(appConsumptions.values());
 
@@ -187,10 +188,7 @@ class ResourceConsumptionEvaluator {
                 capacityGroup = DEFAULT_APPLICATION;
             }
 
-            Map<String, ResourceConsumption> capacityGroupAllocation = consumptionMap.get(capacityGroup);
-            if (capacityGroupAllocation == null) {
-                consumptionMap.put(capacityGroup, capacityGroupAllocation = new HashMap<>());
-            }
+            Map<String, ResourceConsumption> capacityGroupAllocation = consumptionMap.computeIfAbsent(capacityGroup, k -> new HashMap<>());
 
             String effectiveAppName = appName == null ? DEFAULT_APPLICATION : appName;
             ResourceConsumption appAllocation = capacityGroupAllocation.get(effectiveAppName);
@@ -222,7 +220,7 @@ class ResourceConsumptionEvaluator {
         };
     }
 
-    /* Visible for testing */
+    @VisibleForTesting
     static ResourceDimension toResourceDimension(V2StageMetadata stageMetadata) {
         MachineDefinition machineDefinition = stageMetadata.getMachineDefinition();
         double gpu;
@@ -238,5 +236,15 @@ class ResourceConsumptionEvaluator {
                 (int) machineDefinition.getDiskMB(),
                 (int) machineDefinition.getNetworkMbps()
         );
+    }
+
+    private double getBuffer(Tier tier) {
+        double buffer = 0.0;
+        if (tier == Tier.Critical) {
+            buffer = config.getCriticalTierBuffer();
+        } else if (tier == Tier.Flex) {
+            buffer = config.getFlexTierBuffer();
+        }
+        return buffer;
     }
 }

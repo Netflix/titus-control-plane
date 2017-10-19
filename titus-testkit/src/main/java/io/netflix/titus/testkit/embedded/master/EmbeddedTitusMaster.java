@@ -50,6 +50,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
+import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.model.event.AutoScaleEvent;
@@ -63,7 +64,6 @@ import io.netflix.titus.master.TitusMaster;
 import io.netflix.titus.master.TitusMasterModule;
 import io.netflix.titus.master.TitusRuntimeModule;
 import io.netflix.titus.master.VirtualMachineMasterService;
-import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.master.cluster.LeaderActivator;
 import io.netflix.titus.master.cluster.LeaderElector;
 import io.netflix.titus.master.endpoint.common.SchedulerUtil;
@@ -74,7 +74,6 @@ import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import io.netflix.titus.master.scheduler.AutoScaleController;
 import io.netflix.titus.master.scheduler.SchedulingService;
-import io.netflix.titus.master.service.management.CapacityAllocationService;
 import io.netflix.titus.master.store.V2StorageProvider;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import io.netflix.titus.testkit.client.DefaultTitusMasterClient;
@@ -161,8 +160,6 @@ public class EmbeddedTitusMaster {
                                       if (store != null) {
                                           bind(JobStore.class).toInstance(store);
                                       }
-
-                                      bind(CapacityAllocationService.class).toInstance(new EmbeddedCapacityAllocationService());
 
                                       bind(VirtualMachineMasterService.class).to(EmbeddedVirtualMachineMasterService.class);
 
@@ -333,7 +330,6 @@ public class EmbeddedTitusMaster {
         }
 
         cluster.getAgents().forEach(driver::addAgent);
-        ((EmbeddedCapacityAllocationService) injector.getInstance(CapacityAllocationService.class)).addAgentCluster(cluster);
     }
 
     public List<TaskAssignmentResult> reportForTask(String taskId) {

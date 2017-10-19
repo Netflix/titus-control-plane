@@ -16,13 +16,17 @@
 
 package io.netflix.titus.master.service.management.internal;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.master.agent.ServerInfo;
@@ -44,18 +48,21 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
     private static final Logger logger = LoggerFactory.getLogger(SimpleCapacityGuaranteeStrategy.class);
 
     private final CapacityManagementConfiguration configuration;
+    private final AgentManagementService agentManagementService;
     private final ServerInfoResolver serverInfoResolver;
 
     @Inject
     public SimpleCapacityGuaranteeStrategy(CapacityManagementConfiguration configuration,
+                                           AgentManagementService agentManagementService,
                                            ServerInfoResolver serverInfoResolver) {
         this.configuration = configuration;
+        this.agentManagementService = agentManagementService;
         this.serverInfoResolver = serverInfoResolver;
     }
 
     @Override
     public CapacityAllocations compute(CapacityRequirements capacityRequirements) {
-        Map<String, Integer> instanceAllocations = new HashMap<>();
+        Map<AgentInstanceGroup, Integer> instanceAllocations = new HashMap<>();
         Map<Tier, ResourceDimension> resourceShortage = new HashMap<>();
         for (Tier tier : capacityRequirements.getTiers()) {
             // In Flex tier we have always 'DEFAULT' app, and if it is the only one, we should not scale the cluster
@@ -64,20 +71,25 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
                     || (tier != Tier.Flex && capacityRequirements.getTierRequirements(tier).size() > 0);
             if (hasEnoughApps) {
                 Optional<ResourceDimension> left = allocate(tier, capacityRequirements, instanceAllocations);
-                if (left.isPresent()) {
-                    resourceShortage.put(tier, left.get());
-                }
+                left.ifPresent(resourceDimension -> resourceShortage.put(tier, resourceDimension));
             }
         }
-        return new CapacityAllocations(applyMinSizeLimits(instanceAllocations, capacityRequirements), resourceShortage);
+        return new CapacityAllocations(applyMinSizeLimits(instanceAllocations), resourceShortage);
     }
 
-    private Optional<ResourceDimension> allocate(Tier tier, CapacityRequirements capacityRequirements, Map<String, Integer> instanceAllocations) {
+    private Optional<ResourceDimension> allocate(Tier tier,
+                                                 CapacityRequirements capacityRequirements,
+                                                 Map<AgentInstanceGroup, Integer> instanceAllocations) {
         ResourceDimension left = computeTierResourceDimension(tier, capacityRequirements);
 
-        List<String> instanceTypes = ConfigUtil.getTierInstanceTypes(tier, configuration);
-        for (int i = 0; i < instanceTypes.size(); i++) {
-            String instanceType = instanceTypes.get(i);
+        List<AgentInstanceGroup> instanceGroups = agentManagementService.getInstanceGroups().stream()
+                .filter(instanceGroup -> instanceGroup.getTier() == tier)
+                .sorted(Comparator.comparing(AgentInstanceGroup::getId))
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < instanceGroups.size(); i++) {
+            AgentInstanceGroup instanceGroup = instanceGroups.get(i);
+            String instanceType = instanceGroup.getInstanceType();
             Optional<ServerInfo> agentServerInfo = serverInfoResolver.resolve(instanceType);
             if (!agentServerInfo.isPresent()) {
                 logger.warn("Unrecognized server type {}; ignoring it", instanceType);
@@ -85,20 +97,20 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
             }
             ResourceDimension instanceResources = ResourceDimensions.fromServerInfo(agentServerInfo.get());
 
-            int instancesUsed = getInstancesUsed(instanceAllocations, instanceType);
-            int instancesAvailable = capacityRequirements.getLimit(instanceType).getMaxSize() - instancesUsed;
+            int instancesUsed = getInstancesUsed(instanceAllocations, instanceGroup);
+            int instancesAvailable = instanceGroup.getMax() - instancesUsed;
 
             if (instancesAvailable > 0) {
                 int instanceRequired = ResourceDimensions.divideAndRoundUp(left, instanceResources);
                 if (instanceRequired <= instancesAvailable) {
-                    instanceAllocations.put(instanceType, instancesUsed + instanceRequired);
-                    // Make sure all instance types in a tier have value defined
-                    while (++i < instanceTypes.size()) {
-                        getInstancesUsed(instanceAllocations, instanceTypes.get(i));
+                    instanceAllocations.put(instanceGroup, instancesUsed + instanceRequired);
+                    // Make sure all instance groups in a tier have a value defined
+                    while (++i < instanceGroups.size()) {
+                        getInstancesUsed(instanceAllocations, instanceGroups.get(i));
                     }
                     return Optional.empty();
                 }
-                instanceAllocations.put(instanceType, instancesUsed + instancesAvailable);
+                instanceAllocations.put(instanceGroup, instancesUsed + instancesAvailable);
                 left = ResourceDimensions.subtractPositive(left, ResourceDimensions.multiply(instanceResources, instancesAvailable));
             }
         }
@@ -109,13 +121,12 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
     /**
      * Enforce min of min constraint (if calculated min level is lower than configured min, enforce the latter).
      */
-    private Map<String, Integer> applyMinSizeLimits(Map<String, Integer> instanceAllocations,
-                                                    CapacityRequirements capacityRequirements) {
-        Map<String, Integer> result = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : instanceAllocations.entrySet()) {
-            String instanceType = entry.getKey();
-            int minSize = capacityRequirements.getLimit(instanceType).getMinSize();
-            result.put(instanceType, Math.max(entry.getValue(), minSize));
+    private Map<AgentInstanceGroup, Integer> applyMinSizeLimits(Map<AgentInstanceGroup, Integer> instanceAllocations) {
+        Map<AgentInstanceGroup, Integer> result = new HashMap<>();
+        for (Map.Entry<AgentInstanceGroup, Integer> entry : instanceAllocations.entrySet()) {
+            AgentInstanceGroup instanceGroup = entry.getKey();
+            int minSize = instanceGroup.getAutoScaleRule().getMin();
+            result.put(instanceGroup, Math.max(entry.getValue(), minSize));
         }
         return result;
     }
@@ -125,16 +136,22 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
                 .map(sla -> ResourceDimensions.multiply(sla.getResourceDimension(), sla.getInstanceCount()))
                 .reduce(ResourceDimension.empty(), (acc, item) -> ResourceDimensions.add(acc, item));
 
-        double buffer = ConfigUtil.getTierBuffer(tier, configuration);
+        double buffer = 0.0;
+        if (tier == Tier.Critical) {
+            buffer = configuration.getCriticalTierBuffer();
+        } else if (tier == Tier.Flex) {
+            buffer = configuration.getFlexTierBuffer();
+        }
+
         return ResourceDimensions.multiply(total, 1 + buffer);
     }
 
-    private int getInstancesUsed(Map<String, Integer> instanceAllocations, String instanceType) {
+    private int getInstancesUsed(Map<AgentInstanceGroup, Integer> instanceAllocations, AgentInstanceGroup instanceGroup) {
         int instancesUsed;
-        if (!instanceAllocations.containsKey(instanceType)) {
-            instanceAllocations.put(instanceType, instancesUsed = 0);
+        if (!instanceAllocations.containsKey(instanceGroup)) {
+            instanceAllocations.put(instanceGroup, instancesUsed = 0);
         } else {
-            instancesUsed = instanceAllocations.get(instanceType);
+            instancesUsed = instanceAllocations.get(instanceGroup);
         }
         return instancesUsed;
     }

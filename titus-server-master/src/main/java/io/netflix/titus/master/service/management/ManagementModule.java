@@ -25,7 +25,6 @@ import io.netflix.titus.master.service.management.internal.DefaultApplicationSla
 import io.netflix.titus.master.service.management.internal.DefaultAvailableCapacityService;
 import io.netflix.titus.master.service.management.internal.DefaultCapacityMonitoringService;
 import io.netflix.titus.master.service.management.internal.DefaultResourceConsumptionService;
-import io.netflix.titus.master.service.management.internal.NoOpCapacityAllocationService;
 import io.netflix.titus.master.service.management.internal.ResourceConsumptionLog;
 import io.netflix.titus.master.service.management.internal.SimpleCapacityGuaranteeStrategy;
 
@@ -37,7 +36,6 @@ public class ManagementModule extends AbstractModule {
 
         // Capacity management
         bind(CapacityGuaranteeStrategy.class).to(SimpleCapacityGuaranteeStrategy.class);
-        bind(CapacityAllocationService.class).to(NoOpCapacityAllocationService.class);
         bind(ApplicationSlaManagementService.class).to(DefaultApplicationSlaManagementService.class);
         bind(CapacityMonitoringService.class).to(DefaultCapacityMonitoringService.class).asEagerSingleton();
         bind(AvailableCapacityService.class).to(DefaultAvailableCapacityService.class);

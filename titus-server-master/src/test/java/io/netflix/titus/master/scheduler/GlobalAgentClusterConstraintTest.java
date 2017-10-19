@@ -16,11 +16,12 @@
 
 package io.netflix.titus.master.scheduler;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
@@ -31,134 +32,128 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
-import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.service.AgentManagementService;
+import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.ConfigurationMockSamples;
-import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.scheduler.constraint.GlobalAgentClusterConstraint;
-import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
+import io.netflix.titus.testkit.model.agent.AgentGenerator;
 import org.apache.mesos.Protos;
 import org.eclipse.jetty.util.HostMap;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static io.netflix.titus.common.aws.AwsInstanceType.M4_4XLARGE_ID;
+import static io.netflix.titus.common.aws.AwsInstanceType.P2_8XLARGE_ID;
+import static io.netflix.titus.common.aws.AwsInstanceType.R4_8XLARGE_ID;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class GlobalAgentClusterConstraintTest {
 
     private static final String agentClusterAttributeName = ConfigurationMockSamples.agentClusterAttributeName;
 
-    private CapacityManagementConfiguration getCapMgmtConfig(String... instanceTypes) {
-        return new CapacityManagementConfiguration() {
-
-            @Override
-            public Map<String, InstanceTypeConfig> getInstanceTypes() {
-                return Collections.emptyMap();
-            }
-
-            @Override
-            public Map<String, TierConfig> getTiers() {
-                Map<String, TierConfig> tiers = new HashMap<>();
-                int i = 0;
-                for (String s : instanceTypes) {
-                    tiers.put(
-                            Integer.toString(i++),
-                            new TierConfig() {
-                                @Override
-                                public String[] getInstanceTypes() {
-                                    return new String[]{s};
-                                }
-
-                                @Override
-                                public double getBuffer() {
-                                    return 0.25;
-                                }
-                            }
-                    );
-                }
-                return tiers;
-            }
-
-            @Override
-            public ResourceDimensionConfiguration getDefaultApplicationResourceDimension() {
-                return null;
-            }
-
-            @Override
-            public int getDefaultApplicationInstanceCount() {
-                return 0;
-            }
-
-            @Override
-            public long getAvailableCapacityUpdateIntervalMs() {
-                return 30000;
-            }
-        };
-    }
-
-    private GlobalAgentClusterConstraint createGlobalConstraint(CapacityManagementConfiguration config) {
-        return new GlobalAgentClusterConstraint(
-                ConfigurationMockSamples.withAutoScaleClusterInfo(mock(MasterConfiguration.class)),
-                config
-        );
-    }
-
     @Test
-    public void testGpuTaskWithM3AndG2Clusters() {
-        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(getCapMgmtConfig(AwsInstanceType.M4_4XLARGE_ID, AwsInstanceType.G2_2XLARGE_ID));
+    public void testGpuTaskWithM4AndP2Clusters() {
+        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(Arrays.asList(
+                Pair.of(Tier.Critical, M4_4XLARGE_ID),
+                Pair.of(Tier.Flex, P2_8XLARGE_ID)
+        ));
         globalConstraint.prepare();
         final TaskRequest task = createGpuTaskRequest();
-        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createGpuAgentCurrentState("hostA", AwsInstanceType.G2_2XLARGE_ID), null);
+        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createGpuAgentCurrentState("hostA", P2_8XLARGE_ID), null);
         Assert.assertTrue(result.isSuccessful());
     }
 
     @Test
-    public void testNonGpuTaskWithM3AndG2Clusters() {
-        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(getCapMgmtConfig(AwsInstanceType.M4_4XLARGE_ID, AwsInstanceType.G2_2XLARGE_ID));
+    public void testNonGpuTaskWithM4AndP2Clusters() {
+        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(Arrays.asList(
+                Pair.of(Tier.Critical, M4_4XLARGE_ID),
+                Pair.of(Tier.Flex, P2_8XLARGE_ID)
+        ));
         globalConstraint.prepare();
         final TaskRequest task = createNonGpuTaskRequest();
-        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createGpuAgentCurrentState("hostA", AwsInstanceType.G2_2XLARGE_ID), null);
+        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createGpuAgentCurrentState("hostA", P2_8XLARGE_ID), null);
         Assert.assertFalse(result.isSuccessful());
     }
 
     @Test
-    public void testGpuTaskWithM3Cluster() {
-        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(getCapMgmtConfig(AwsInstanceType.M4_4XLARGE_ID));
+    public void testGpuTaskWithM4Cluster() {
+        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(Collections.singletonList(
+                Pair.of(Tier.Critical, M4_4XLARGE_ID)
+        ));
         globalConstraint.prepare();
         final TaskRequest task = createGpuTaskRequest();
-        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("hostB", AwsInstanceType.M4_4XLARGE_ID), null);
+        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("hostB", M4_4XLARGE_ID), null);
         Assert.assertFalse(result.isSuccessful());
     }
 
     @Test
-    public void testNonGpuTaskWithM3Cluster() {
-        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(getCapMgmtConfig(AwsInstanceType.M4_4XLARGE_ID));
+    public void testNonGpuTaskWithM4Cluster() {
+        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(Collections.singletonList(
+                Pair.of(Tier.Flex, M4_4XLARGE_ID)
+        ));
         globalConstraint.prepare();
         final TaskRequest task = createNonGpuTaskRequest();
-        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("hostB", AwsInstanceType.M4_4XLARGE_ID), null);
+        final ConstraintEvaluator.Result result;
+        result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("hostB", M4_4XLARGE_ID), null);
         Assert.assertTrue(result.isSuccessful());
     }
 
     @Test
-    public void testGpuTaskWithG2Cluster() {
-        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(getCapMgmtConfig(AwsInstanceType.G2_2XLARGE_ID));
+    public void testGpuTaskWithP2Cluster() {
+        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(Collections.singletonList(
+                Pair.of(Tier.Flex, P2_8XLARGE_ID)
+        ));
         globalConstraint.prepare();
         final TaskRequest task = createGpuTaskRequest();
-        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createGpuAgentCurrentState("hostB", AwsInstanceType.G2_2XLARGE_ID), null);
+        final ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createGpuAgentCurrentState("hostB", P2_8XLARGE_ID), null);
         Assert.assertTrue(result.isSuccessful());
     }
 
     @Test
-    public void testNonGpuTaskWithM3C3G2Clusters() {
-        final GlobalAgentClusterConstraint globalConstraint =
-                createGlobalConstraint(getCapMgmtConfig(AwsInstanceType.M4_4XLARGE_ID, AwsInstanceType.R3_4XLARGE_ID, AwsInstanceType.G2_2XLARGE_ID));
+    public void testNonGpuTaskWithM4R4P2Clusters() {
+        final GlobalAgentClusterConstraint globalConstraint = createGlobalConstraint(Arrays.asList(
+                Pair.of(Tier.Critical, M4_4XLARGE_ID),
+                Pair.of(Tier.Flex, R4_8XLARGE_ID),
+                Pair.of(Tier.Flex, P2_8XLARGE_ID)
+        ));
         globalConstraint.prepare();
-        // task uses tier 1, so it will expect to land on c3s.
+        // task uses tier 1, so it will expect to land on r4.
         final TaskRequest task = createNonGpuTaskRequest();
-        ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("C3HostA", AwsInstanceType.R3_4XLARGE_ID), null);
+        ConstraintEvaluator.Result result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("R4HostA", R4_8XLARGE_ID), null);
         Assert.assertTrue(result.isSuccessful());
-        // since tier 1 is set to go to vc3s, the following will fail for m3s.
-        result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("M3HostX", AwsInstanceType.M4_4XLARGE_ID), null);
+        // since tier 1 is set to go to m4, the following will fail for m3s.
+        result = globalConstraint.evaluate(task, createNonGpuAgentCurrentState("M4HostX", M4_4XLARGE_ID), null);
         Assert.assertFalse(result.isSuccessful());
+    }
+
+    private GlobalAgentClusterConstraint createGlobalConstraint(List<Pair<Tier, String>> instanceTypePairs) {
+        SchedulerConfiguration schedulerConfiguration = mock(SchedulerConfiguration.class);
+        when(schedulerConfiguration.getInstanceGroupAttributeName()).thenReturn("asg");
+
+        AgentManagementService agentManagementService = mock(AgentManagementService.class);
+        when(agentManagementService.getInstanceGroup(anyString())).thenAnswer(argument -> getInstanceGroups(instanceTypePairs).stream()
+                .filter(instanceGroup -> instanceGroup.getId().equals(argument.getArgument(0)))
+                .findFirst()
+                .orElse(null));
+        return new GlobalAgentClusterConstraint(schedulerConfiguration, agentManagementService);
+    }
+
+    private List<AgentInstanceGroup> getInstanceGroups(List<Pair<Tier, String>> instanceTypePairs) {
+        return instanceTypePairs.stream()
+                .map(instanceTypePair -> {
+                    String instanceType = instanceTypePair.getRight();
+                    String id = instanceType + "-v000";
+                    return AgentGenerator.agentServerGroups(instanceTypePair.getLeft(), 1).getValue()
+                            .toBuilder()
+                            .withId(id)
+                            .withInstanceType(instanceType)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
     private VirtualMachineCurrentState createGpuAgentCurrentState(final String hostname, final String clusterAttrVal) {
@@ -167,11 +162,14 @@ public class GlobalAgentClusterConstraintTest {
         attributeMap.put(agentClusterAttributeName, Protos.Attribute.newBuilder().setName(agentClusterAttributeName)
                 .setType(Protos.Value.Type.TEXT)
                 .setText(Protos.Value.Text.newBuilder().setValue(clusterAttrVal)).build());
+        attributeMap.put("asg", Protos.Attribute.newBuilder().setName("asg")
+                .setType(Protos.Value.Type.TEXT)
+                .setText(Protos.Value.Text.newBuilder().setValue(P2_8XLARGE_ID + "-v000")).build());
         attributeMap.put(
                 "itype",
                 Protos.Attribute.newBuilder().setName("itype")
                         .setType(Protos.Value.Type.TEXT)
-                        .setText(Protos.Value.Text.newBuilder().setValue(AwsInstanceType.G2_2XLARGE_ID))
+                        .setText(Protos.Value.Text.newBuilder().setValue(P2_8XLARGE_ID))
                         .build()
         );
         final Map<String, Double> scalars = new HostMap<>();
@@ -286,6 +284,9 @@ public class GlobalAgentClusterConstraintTest {
         attributeMap.put(agentClusterAttributeName, Protos.Attribute.newBuilder().setName(agentClusterAttributeName)
                 .setType(Protos.Value.Type.TEXT)
                 .setText(Protos.Value.Text.newBuilder().setValue(clusterAttrVal)).build());
+        attributeMap.put("asg", Protos.Attribute.newBuilder().setName("asg")
+                .setType(Protos.Value.Type.TEXT)
+                .setText(Protos.Value.Text.newBuilder().setValue(clusterAttrVal + "-v000")).build());
         attributeMap.put(
                 "itype",
                 Protos.Attribute.newBuilder().setName("itype")

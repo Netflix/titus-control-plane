@@ -122,10 +122,6 @@ public interface MasterConfiguration extends CoreConfiguration {
     @DefaultValue("itype")
     String getInstanceTypeAttributeName();
 
-    @PropertyName(name = "mantis.agent.cluster.pinning.enabled")
-    @DefaultValue("true")
-    boolean getMultiAgentClusterPinningEnabled();
-
     @PropertyName(name = "mantis.master.store.worker.writes.batch.size")
     @DefaultValue("100")
     int getWorkerWriteBatchSize();

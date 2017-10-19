@@ -28,6 +28,7 @@ import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import io.netflix.titus.testkit.client.TitusMasterClient;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.JobObserver;
 import io.netflix.titus.testkit.junit.master.TitusMasterResource;
 import io.netflix.titus.testkit.model.v2.TitusV2ModelGenerator;
@@ -36,10 +37,12 @@ import org.apache.mesos.Protos;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Category(IntegrationTest.class)
 public class ResourceSchedulingTest extends BaseIntegrationTest {
 
     @Rule
@@ -74,6 +77,7 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
      */
     @Test(timeout = 30_000)
     public void checkIpPerEniLimitIsPreserved() throws Exception {
+        Thread.sleep(1000);
         // FIXME Remove this once we have notification mechanism
         Thread.sleep(500);
 

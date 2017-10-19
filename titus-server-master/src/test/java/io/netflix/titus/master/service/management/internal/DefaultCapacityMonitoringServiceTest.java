@@ -17,16 +17,17 @@
 package io.netflix.titus.master.service.management.internal;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.service.management.BeanCapacityManagementConfiguration;
-import io.netflix.titus.master.service.management.BeanTierConfig;
-import io.netflix.titus.master.service.management.CapacityAllocationService;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityAllocations;
 import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityRequirements;
@@ -35,16 +36,14 @@ import io.netflix.titus.master.store.ApplicationSlaStore;
 import io.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;
+import rx.Completable;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -56,27 +55,27 @@ public class DefaultCapacityMonitoringServiceTest {
     private static final ApplicationSLA CRITICAL_APP = ApplicationSlaSample.CriticalSmall.build();
     private static final ApplicationSLA FLEX_APP = ApplicationSlaSample.FlexSmall.build();
 
-    private static final String CRITICAL_INSTANCE = AwsInstanceType.M4_4XLARGE_ID;
-    private static final String FLEX_INSTANCE = AwsInstanceType.R3_8XLARGE_ID;
+    private static final String CRITICAL_INSTANCE_GROUP_ID = "Critical#0";
+    private static final String FLEX_INSTANCE_GROUP_ID = "Flex#0";
 
     private final TestScheduler testScheduler = Schedulers.test();
 
     private final CapacityManagementConfiguration configuration = BeanCapacityManagementConfiguration.newBuilder()
-            .withCriticalTier(BeanTierConfig.newBuilder().withBuffer(0.1).withInstanceTypes(CRITICAL_INSTANCE))
-            .withFlexTier(BeanTierConfig.newBuilder().withBuffer(0.1).withInstanceTypes(FLEX_INSTANCE))
+            .withCriticalTierBuffer(0.1)
+            .withFlexTierBuffer(0.1)
             .build();
 
-    private final CapacityAllocationService capacityAllocationService = mock(CapacityAllocationService.class);
+    private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
 
     private final ApplicationSlaStore storage = mock(ApplicationSlaStore.class);
 
     private final CapacityGuaranteeStrategy capacityGuaranteeStrategy = mock(CapacityGuaranteeStrategy.class);
 
     private final DefaultCapacityMonitoringService capacityMonitoringService = new DefaultCapacityMonitoringService(
-            capacityAllocationService,
             configuration,
             capacityGuaranteeStrategy,
             storage,
+            agentManagementService,
             new DefaultRegistry(),
             testScheduler
     );
@@ -89,10 +88,12 @@ public class DefaultCapacityMonitoringServiceTest {
         ExtTestSubscriber<Void> replySubscriber = new ExtTestSubscriber<>();
         capacityMonitoringService.refresh().subscribe(replySubscriber);
 
-        // Check that capacityAllocationService is triggered correctly
+        // Check that agentManagementService is triggered correctly
         testScheduler.triggerActions();
-        verify(capacityAllocationService, times(1)).allocate(CRITICAL_INSTANCE, 1);
-        verify(capacityAllocationService, times(0)).allocate(FLEX_INSTANCE, 1);
+        verify(agentManagementService, times(1))
+                .updateCapacity(CRITICAL_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
+        verify(agentManagementService, times(0))
+                .updateCapacity(FLEX_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
 
         replySubscriber.assertOnCompleted();
     }
@@ -104,75 +105,85 @@ public class DefaultCapacityMonitoringServiceTest {
         capacityMonitoringService.enterActiveMode();
 
         testScheduler.triggerActions();
-        verify(capacityAllocationService, times(1)).allocate(CRITICAL_INSTANCE, 1);
-        verify(capacityAllocationService, times(0)).allocate(FLEX_INSTANCE, 1);
+        verify(agentManagementService, times(1))
+                .updateCapacity(CRITICAL_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
+        verify(agentManagementService, times(0))
+                .updateCapacity(FLEX_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
 
         // Next refresh round
-        CapacityAllocations allocations = new CapacityAllocations(singletonMap(CRITICAL_INSTANCE, 2), emptyMap());
+        AgentInstanceGroup criticalInstanceGroup = getCriticalInstanceGroup(2, 2);
+        CapacityAllocations allocations = new CapacityAllocations(singletonMap(criticalInstanceGroup, 2), emptyMap());
         when(capacityGuaranteeStrategy.compute(any())).thenReturn(allocations);
 
-        when(capacityAllocationService.allocate(CRITICAL_INSTANCE, 2)).thenReturn(Observable.empty());
+        when(agentManagementService.updateCapacity(any(), any(), any())).thenReturn(Completable.complete());
 
         testScheduler.advanceTimeBy(DefaultCapacityMonitoringService.PERIODIC_UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        verify(capacityAllocationService, times(1)).allocate(CRITICAL_INSTANCE, 2);
+        verify(agentManagementService, times(1))
+                .updateCapacity(CRITICAL_INSTANCE_GROUP_ID, Optional.of(2), Optional.empty());
     }
 
     @Test
     public void testScheduledRefreshRecoversFromError() throws Exception {
-        when(capacityAllocationService.limits(any())).thenReturn(Observable.empty());
         when(storage.findAll()).thenReturn(Observable.error(new IOException("simulated storage error")));
 
         capacityMonitoringService.enterActiveMode();
         testScheduler.triggerActions();
-        verify(capacityAllocationService, times(0)).allocate(anyString(), anyInt());
+        verify(agentManagementService, times(0)).updateCapacity(any(), any(), any());
 
         // Next refresh round
         setupMocksForApp(1, 1, CRITICAL_APP, FLEX_APP);
 
         testScheduler.advanceTimeBy(DefaultCapacityMonitoringService.PERIODIC_UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        verify(capacityAllocationService, times(1)).allocate(CRITICAL_INSTANCE, 1);
-        verify(capacityAllocationService, times(0)).allocate(FLEX_INSTANCE, 1);
+        verify(agentManagementService, times(1))
+                .updateCapacity(CRITICAL_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
+        verify(agentManagementService, times(0))
+                .updateCapacity(FLEX_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
     }
 
     @Test
     public void testScheduledRefreshRecoversFromTimeout() throws Exception {
         setupMocksForApp(1, 1, CRITICAL_APP, FLEX_APP);
 
-        reset(capacityAllocationService);
-        when(capacityAllocationService.limits(any())).thenReturn(Observable.never());
-        when(capacityAllocationService.allocate(any(), anyInt())).thenReturn(Observable.never());
+        reset(agentManagementService);
+        when(agentManagementService.updateCapacity(any(), any(), any())).thenReturn(Completable.never());
 
         capacityMonitoringService.enterActiveMode();
         testScheduler.triggerActions(); // This triggers immediately the periodically scheduled refresh
 
-        // Test we are stuck in not completing limits call
+        // Test we are stuck in not completing update capacity call
         capacityMonitoringService.refresh().subscribe();
 
         testScheduler.advanceTimeBy(DefaultCapacityMonitoringService.UPDATE_TIMEOUT_MS - 1, TimeUnit.MILLISECONDS);
-        verify(capacityAllocationService, times(1)).limits(any());
-        verify(capacityAllocationService, times(0)).allocate(any(), anyInt());
 
-        // Now fix the limits, and force timeout to trigger
-        when(capacityAllocationService.limits(any())).thenReturn(Observable.just(asList(1, 1)));
-        when(capacityAllocationService.allocate(any(), anyInt())).thenReturn(Observable.empty());
+        // Force timeout to trigger
+        when(agentManagementService.updateCapacity(any(), any(), any())).thenReturn(Completable.complete());
 
         testScheduler.advanceTimeBy(1, TimeUnit.MILLISECONDS);
-        verify(capacityAllocationService, times(1)).allocate(CRITICAL_INSTANCE, 1);
-        verify(capacityAllocationService, times(0)).allocate(FLEX_INSTANCE, 1);
+
+        // Verify that the first time that blocked and the second time occurred
+        verify(agentManagementService, times(2))
+                .updateCapacity(CRITICAL_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
+        verify(agentManagementService, times(0))
+                .updateCapacity(FLEX_INSTANCE_GROUP_ID, Optional.of(1), Optional.empty());
     }
 
     private void setupMocksForApp(int criticalInstances, int flexInstances, ApplicationSLA... apps) {
         when(storage.findAll()).thenReturn(Observable.from(apps));
 
-        CapacityAllocations allAllocations = new CapacityAllocations(CollectionsExt.<String, Integer>newHashMap()
-                .entry(CRITICAL_INSTANCE, criticalInstances)
-                .entry(FLEX_INSTANCE, flexInstances)
+        AgentInstanceGroup criticalInstanceGroup = getCriticalInstanceGroup(criticalInstances, 1);
+        AgentInstanceGroup flexInstanceGroup = getFlexInstanceGroup(flexInstances, 1);
+
+        CapacityAllocations allAllocations = new CapacityAllocations(CollectionsExt.<AgentInstanceGroup, Integer>newHashMap()
+                .entry(criticalInstanceGroup, criticalInstances)
+                .entry(flexInstanceGroup, flexInstances)
                 .toMap()
                 , emptyMap());
-        CapacityAllocations scalableAllocations = new CapacityAllocations(CollectionsExt.<String, Integer>newHashMap()
-                .entry(CRITICAL_INSTANCE, criticalInstances)
+
+        CapacityAllocations scalableAllocations = new CapacityAllocations(CollectionsExt.<AgentInstanceGroup, Integer>newHashMap()
+                .entry(criticalInstanceGroup, criticalInstances)
                 .toMap()
                 , emptyMap());
+
         when(capacityGuaranteeStrategy.compute(any())).thenAnswer(i -> {
             if (i.getArguments()[0] == null) { // mock setup
                 return null;
@@ -181,8 +192,26 @@ public class DefaultCapacityMonitoringServiceTest {
             return req.getTiers().contains(Tier.Flex) ? allAllocations : scalableAllocations;
         });
 
-        when(capacityAllocationService.limits(any())).thenReturn(Observable.just(asList(1, 1)));
-        when(capacityAllocationService.allocate(CRITICAL_INSTANCE, criticalInstances)).thenReturn(Observable.empty());
-        when(capacityAllocationService.allocate(CRITICAL_INSTANCE, flexInstances)).thenReturn(Observable.empty());
+        when(agentManagementService.updateCapacity(any(), any(), any())).thenReturn(Completable.complete());
+    }
+
+    private AgentInstanceGroup getCriticalInstanceGroup(int min, int max) {
+        return AgentInstanceGroup.newBuilder()
+                .withId(CRITICAL_INSTANCE_GROUP_ID)
+                .withTier(Tier.Critical)
+                .withInstanceType(AwsInstanceType.M4_4XLARGE_ID)
+                .withMin(min)
+                .withMax(max)
+                .build();
+    }
+
+    private AgentInstanceGroup getFlexInstanceGroup(int min, int max) {
+        return AgentInstanceGroup.newBuilder()
+                .withId(FLEX_INSTANCE_GROUP_ID)
+                .withTier(Tier.Flex)
+                .withInstanceType(AwsInstanceType.R4_8XLARGE_ID)
+                .withMin(min)
+                .withMax(max)
+                .build();
     }
 }

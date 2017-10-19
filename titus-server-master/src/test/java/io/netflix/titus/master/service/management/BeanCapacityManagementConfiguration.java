@@ -16,37 +16,24 @@
 
 package io.netflix.titus.master.service.management;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * {@link CapacityManagementConfiguration} is complex enough, to be worth having Java Bean implementation
  * for testing purposes.
  */
 public class BeanCapacityManagementConfiguration implements CapacityManagementConfiguration {
 
-    private final Map<String, InstanceTypeConfig> instanceTypes;
-    private final Map<String, TierConfig> tiers;
     private final ResourceDimensionConfiguration defaultApplicationResourceDimension;
     private final int defaultApplicationInstanceCount;
     private final long availableCapacityUpdateIntervalMs;
+    private final double criticalTierBuffer;
+    private final double flexTierBuffer;
 
     public BeanCapacityManagementConfiguration(Builder builder) {
-        this.instanceTypes = builder.instanceTypes;
-        this.tiers = builder.tiers;
         this.defaultApplicationResourceDimension = builder.defaultApplicationResourceDimension;
         this.defaultApplicationInstanceCount = builder.defaultApplicationInstanceCount;
         this.availableCapacityUpdateIntervalMs = builder.availableCapacityUpdateIntervalMs;
-    }
-
-    @Override
-    public Map<String, InstanceTypeConfig> getInstanceTypes() {
-        return instanceTypes;
-    }
-
-    @Override
-    public Map<String, TierConfig> getTiers() {
-        return tiers;
+        this.criticalTierBuffer = builder.criticalTierBuffer;
+        this.flexTierBuffer = builder.flexTierBuffer;
     }
 
     @Override
@@ -64,33 +51,32 @@ public class BeanCapacityManagementConfiguration implements CapacityManagementCo
         return availableCapacityUpdateIntervalMs;
     }
 
+    @Override
+    public double getCriticalTierBuffer() {
+        return criticalTierBuffer;
+    }
+
+    @Override
+    public double getFlexTierBuffer() {
+        return flexTierBuffer;
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }
 
     public static final class Builder {
 
-        private Map<String, InstanceTypeConfig> instanceTypes = new HashMap<>();
-        private Map<String, TierConfig> tiers = new HashMap<>();
         private ResourceDimensionConfiguration defaultApplicationResourceDimension;
         private int defaultApplicationInstanceCount;
         private long availableCapacityUpdateIntervalMs;
+        private double criticalTierBuffer;
+        private double flexTierBuffer;
 
         private Builder() {
         }
 
         public Builder withInstanceType(String name, int minSize) {
-            instanceTypes.put(name, new BeanInstanceTypeConfig(name, minSize));
-            return this;
-        }
-
-        public Builder withCriticalTier(BeanTierConfig.Builder tierConfig) {
-            tiers.put("0", tierConfig.build());
-            return this;
-        }
-
-        public Builder withFlexTier(BeanTierConfig.Builder tierConfig) {
-            tiers.put("1", tierConfig.build());
             return this;
         }
 
@@ -106,6 +92,16 @@ public class BeanCapacityManagementConfiguration implements CapacityManagementCo
 
         public Builder withAvailableCapacityUpdateIntervalMs(int availableCapacityUpdateIntervalMs) {
             this.availableCapacityUpdateIntervalMs = availableCapacityUpdateIntervalMs;
+            return this;
+        }
+
+        public Builder withCriticalTierBuffer(double criticalTierBuffer) {
+            this.criticalTierBuffer = criticalTierBuffer;
+            return this;
+        }
+
+        public Builder withFlexTierBuffer(double flexTierBuffer) {
+            this.flexTierBuffer = flexTierBuffer;
             return this;
         }
 
