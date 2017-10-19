@@ -16,6 +16,7 @@
 
 package io.netflix.titus.master.service.management.internal;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +84,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
 
         List<AgentInstanceGroup> instanceGroups = agentManagementService.getInstanceGroups().stream()
                 .filter(instanceGroup -> instanceGroup.getTier() == tier)
+                .sorted(Comparator.comparing(AgentInstanceGroup::getId))
                 .collect(Collectors.toList());
 
         for (int i = 0; i < instanceGroups.size(); i++) {

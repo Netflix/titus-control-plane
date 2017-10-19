@@ -28,6 +28,7 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
@@ -124,7 +125,7 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
     private ResourceDimension resolveCapacityOf(Tier tier) {
         ResourceDimension total = ResourceDimension.empty();
         for (AgentInstanceGroup instanceGroup : agentManagementService.getInstanceGroups()) {
-            if (instanceGroup.getTier() == tier) {
+            if (instanceGroup.getTier() == tier && instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active) {
                 Optional<ServerInfo> serverInfo = serverInfoResolver.resolve(instanceGroup.getInstanceType());
                 if (serverInfo.isPresent()) {
                     total = ResourceDimensions.add(total, toResourceDimension(serverInfo.get(), instanceGroup.getMax()));
