@@ -16,7 +16,11 @@
 
 package io.netflix.titus.gateway.service.v3;
 
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
 import io.netflix.titus.gateway.service.v3.internal.DefaultAgentManagementService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultAutoScalingService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultJobManagementService;
@@ -29,5 +33,11 @@ public class V3ServiceModule extends AbstractModule {
         bind(AutoScalingService.class).to(DefaultAutoScalingService.class);
         bind(TitusManagementService.class).to(DefaultTitusManagementService.class);
         bind(AgentManagementService.class).to(DefaultAgentManagementService.class);
+    }
+
+    @Provides
+    @Singleton
+    public GrpcClientConfiguration getGrpcClientConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(GrpcClientConfiguration.class);
     }
 }

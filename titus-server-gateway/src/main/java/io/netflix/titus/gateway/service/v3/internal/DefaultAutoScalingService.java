@@ -17,6 +17,10 @@
 package io.netflix.titus.gateway.service.v3.internal;
 
 
+import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
@@ -25,66 +29,81 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import io.grpc.stub.StreamObserver;
+import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.gateway.service.v3.AutoScalingService;
+import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import rx.functions.Action1;
 
 @Singleton
 public class DefaultAutoScalingService implements AutoScalingService {
-    private static Logger log = LoggerFactory.getLogger(DefaultAutoScalingService.class);
+
+    private static Logger logger = LoggerFactory.getLogger(DefaultAutoScalingService.class);
+
+    private final GrpcClientConfiguration configuration;
     private AutoScalingServiceGrpc.AutoScalingServiceStub client;
 
-
     @Inject
-    public DefaultAutoScalingService(AutoScalingServiceGrpc.AutoScalingServiceStub client) {
+    public DefaultAutoScalingService(GrpcClientConfiguration configuration,
+                                     AutoScalingServiceGrpc.AutoScalingServiceStub client) {
+        this.configuration = configuration;
         this.client = client;
     }
 
     @Override
     public Observable<GetPolicyResult> getJobScalingPolicies(JobId request) {
-        log.info("Getting policy for JobId {}", request);
-        return Observable.create(emitter -> {
-            StreamObserver<GetPolicyResult> simpleStreamObserver = StreamObserverHelper.createSimpleStreamObserver(emitter);
+        logger.info("Getting policy for JobId {}", request);
+        return toObservable(emitter -> {
+            StreamObserver<GetPolicyResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.getJobScalingPolicies(request, simpleStreamObserver);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
-    public  Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request) {
-        log.info("Setting policy request {}", request);
-        return Observable.create(emitter -> {
-            StreamObserver<ScalingPolicyID> simpleStreamObserver = StreamObserverHelper.createSimpleStreamObserver(emitter);
+    public Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request) {
+        logger.info("Setting policy request {}", request);
+        return toObservable(emitter -> {
+            StreamObserver<ScalingPolicyID> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.setAutoScalingPolicy(request, simpleStreamObserver);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
     public Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request) {
-        return Observable.create(emitter -> {
-            StreamObserver<GetPolicyResult> simpleStreamObserver = StreamObserverHelper.createSimpleStreamObserver(emitter);
+        return toObservable(emitter -> {
+            StreamObserver<GetPolicyResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.getScalingPolicy(request, simpleStreamObserver);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
     public Observable<GetPolicyResult> getAllScalingPolicies() {
-        return Observable.create(emitter -> {
-            StreamObserver<GetPolicyResult> simpleStreamObserver = StreamObserverHelper.createSimpleStreamObserver(emitter);
+        return toObservable(emitter -> {
+            StreamObserver<GetPolicyResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.getAllScalingPolicies(Empty.newBuilder().build(), simpleStreamObserver);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
     public Completable deleteAutoScalingPolicy(DeletePolicyRequest request) {
-        return Observable.<Empty>create(emitter -> {
-            StreamObserver<Empty> simpleStreamObserver = StreamObserverHelper.createSimpleStreamObserver(emitter);
+        return toCompletable(emitter -> {
+            StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.deleteAutoScalingPolicy(request, simpleStreamObserver);
-        }, Emitter.BackpressureMode.NONE).toCompletable();
+        });
+    }
+
+    private Completable toCompletable(Action1<Emitter<Empty>> emitter) {
+        return toObservable(emitter).toCompletable();
+    }
+
+    private <T> Observable<T> toObservable(Action1<Emitter<T>> emitter) {
+        return Observable.create(
+                emitter,
+                Emitter.BackpressureMode.NONE
+        ).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 }

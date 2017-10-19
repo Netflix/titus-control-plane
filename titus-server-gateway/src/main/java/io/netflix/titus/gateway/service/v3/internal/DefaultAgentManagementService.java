@@ -17,6 +17,7 @@
 package io.netflix.titus.gateway.service.v3.internal;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -45,10 +46,12 @@ import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.gateway.service.v3.AgentManagementService;
+import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
+import rx.functions.Action1;
 
 import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_FIND_AGENT_INSTANCES;
 import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_GET_AGENT_INSTANCE;
@@ -62,14 +65,17 @@ import static io.netflix.titus.runtime.TitusEntitySanitizerModule.AGENT_SANITIZE
 @Singleton
 public class DefaultAgentManagementService implements AgentManagementService {
 
+    private final GrpcClientConfiguration configuration;
     private final AgentManagementServiceStub client;
     private final SessionContext sessionContext;
     private final EntitySanitizer entitySanitizer;
 
     @Inject
-    public DefaultAgentManagementService(AgentManagementServiceStub client,
+    public DefaultAgentManagementService(GrpcClientConfiguration configuration,
+                                         AgentManagementServiceStub client,
                                          SessionContext sessionContext,
                                          @Named(AGENT_SANITIZER) EntitySanitizer entitySanitizer) {
+        this.configuration = configuration;
         this.client = client;
         this.sessionContext = sessionContext;
         this.entitySanitizer = entitySanitizer;
@@ -77,20 +83,20 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Observable<AgentInstanceGroups> getInstanceGroups() {
-        return Observable.create(emitter -> {
+        return toObservable(emitter -> {
             StreamObserver<AgentInstanceGroups> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             ClientCall clientCall = call(AgentManagementServiceGrpc.METHOD_GET_INSTANCE_GROUPS, Empty.getDefaultInstance(), streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
     public Observable<AgentInstanceGroup> getInstanceGroup(String id) {
-        return Observable.create(emitter -> {
+        return toObservable(emitter -> {
             StreamObserver<AgentInstanceGroup> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             ClientCall clientCall = call(AgentManagementServiceGrpc.METHOD_GET_INSTANCE_GROUP, Id.newBuilder().setId(id).build(), streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
@@ -104,21 +110,20 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Observable<AgentInstances> findAgentInstances(AgentQuery query) {
-        return Observable.create(emitter -> {
+        return toObservable(emitter -> {
             StreamObserver<AgentInstances> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_FIND_AGENT_INSTANCES, query, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
     public Completable updateInstanceGroupTier(TierUpdate tierUpdate) {
-        Observable<Empty> observable = Observable.create(emitter -> {
+        return toCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_UPDATE_INSTANCE_GROUP_TIER, tierUpdate, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        });
     }
 
     @Override
@@ -129,32 +134,29 @@ public class DefaultAgentManagementService implements AgentManagementService {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        Observable<Empty> observable = Observable.create(emitter -> {
+        return toCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_UPDATE_AUTO_SCALING_RULE, autoScalingRuleUpdate, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        });
     }
 
     @Override
     public Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
-        Observable<Empty> observable = Observable.create(emitter -> {
+        return toCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_UPDATE_INSTANCE_GROUP_LIFECYCLE_STATE, lifecycleStateUpdate, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        });
     }
 
     @Override
     public Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate) {
-        Observable<Empty> observable = Observable.create(emitter -> {
+        return toCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_UPDATE_INSTANCE_OVERRIDE_STATE, overrideStateUpdate, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        });
     }
 
     @Override
@@ -172,5 +174,16 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     private <ReqT, RespT> ClientCall callStreaming(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
         return GrpcUtil.callStreaming(sessionContext, client, methodDescriptor, request, responseObserver);
+    }
+
+    private Completable toCompletable(Action1<Emitter<Empty>> emitter) {
+        return toObservable(emitter).toCompletable();
+    }
+
+    private <T> Observable<T> toObservable(Action1<Emitter<T>> emitter) {
+        return Observable.create(
+                emitter,
+                Emitter.BackpressureMode.NONE
+        ).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 }
