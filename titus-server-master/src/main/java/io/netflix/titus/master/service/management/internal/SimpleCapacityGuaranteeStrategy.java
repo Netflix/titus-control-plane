@@ -123,7 +123,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
         Map<AgentInstanceGroup, Integer> result = new HashMap<>();
         for (Map.Entry<AgentInstanceGroup, Integer> entry : instanceAllocations.entrySet()) {
             AgentInstanceGroup instanceGroup = entry.getKey();
-            int minSize = instanceGroup.getMin();
+            int minSize = instanceGroup.getAutoScaleRule().getMin();
             result.put(instanceGroup, Math.max(entry.getValue(), minSize));
         }
         return result;
