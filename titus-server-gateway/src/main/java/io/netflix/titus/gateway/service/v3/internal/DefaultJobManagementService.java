@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -61,6 +62,7 @@ import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.gateway.service.v3.JobManagementService;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -89,6 +91,7 @@ public class DefaultJobManagementService implements JobManagementService {
 
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
 
+    private final GrpcClientConfiguration configuration;
     private final JobManagementServiceStub client;
     private final SessionContext sessionContext;
     private final JobStore store;
@@ -96,11 +99,13 @@ public class DefaultJobManagementService implements JobManagementService {
     private final EntitySanitizer entitySanitizer;
 
     @Inject
-    public DefaultJobManagementService(JobManagementServiceStub client,
+    public DefaultJobManagementService(GrpcClientConfiguration configuration,
+                                       JobManagementServiceStub client,
                                        SessionContext sessionContext,
                                        JobStore store,
                                        LogStorageInfo<io.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                        @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer) {
+        this.configuration = configuration;
         this.client = client;
         this.sessionContext = sessionContext;
         this.store = store;
@@ -117,32 +122,31 @@ public class DefaultJobManagementService implements JobManagementService {
         if (!violations.isEmpty()) {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
-        return Observable.create(emitter -> {
+        return toObservable(emitter -> {
             final Action1<? super JobId> onNext = value -> emitter.onNext(value.getId());
             StreamObserver<JobId> streamObserver = GrpcUtil.createStreamObserver(onNext, emitter::onError, emitter::onCompleted);
             ClientCall clientCall = call(METHOD_CREATE_JOB, jobDescriptor, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
-        Observable<Empty> observable = Observable.create(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_UPDATE_JOB_CAPACITY, jobCapacityUpdate, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        return toCompletable(
+                emitter -> {
+                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
+                    ClientCall clientCall = call(METHOD_UPDATE_JOB_CAPACITY, jobCapacityUpdate, streamObserver);
+                    GrpcUtil.attachCancellingCallback(emitter, clientCall);
+                });
     }
 
     @Override
     public Completable changeJobInServiceStatus(JobStatusUpdate statusUpdate) {
-        Observable<Empty> observable = Observable.create(emitter -> {
+        return toCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_UPDATE_JOB_STATUS, statusUpdate, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        });
     }
 
     @Override
@@ -162,16 +166,16 @@ public class DefaultJobManagementService implements JobManagementService {
             }
         });
 
-        return observable;
+        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
-        return Observable.create(emitter -> {
+        return toObservable(emitter -> {
             StreamObserver<JobQueryResult> streamObserver = createSimpleStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_FIND_JOBS, jobQuery, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        });
     }
 
     @Override
@@ -194,12 +198,11 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @Override
     public Completable killJob(String jobId) {
-        Observable<Empty> observable = Observable.create(emitter -> {
+        return toCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_KILL_JOB, JobId.newBuilder().setId(jobId).build(), streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        });
     }
 
     @Override
@@ -219,7 +222,7 @@ public class DefaultJobManagementService implements JobManagementService {
             }
         });
 
-        return observable;
+        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -244,17 +247,16 @@ public class DefaultJobManagementService implements JobManagementService {
             }
         });
 
-        return observable;
+        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Completable killTask(TaskKillRequest taskKillRequest) {
-        Observable<Empty> observable = Observable.create(emitter -> {
+        return toCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
             ClientCall clientCall = call(METHOD_KILL_TASK, taskKillRequest, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-        return observable.toCompletable();
+        });
     }
 
     private Observable<Job> retrieveArchivedJob(String jobId) {
@@ -310,5 +312,16 @@ public class DefaultJobManagementService implements JobManagementService {
 
     private <ReqT, RespT> ClientCall callStreaming(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
         return GrpcUtil.callStreaming(sessionContext, client, methodDescriptor, request, responseObserver);
+    }
+
+    private Completable toCompletable(Action1<Emitter<Empty>> emitter) {
+        return toObservable(emitter).toCompletable();
+    }
+
+    private <T> Observable<T> toObservable(Action1<Emitter<T>> emitter) {
+        return Observable.create(
+                emitter,
+                Emitter.BackpressureMode.NONE
+        ).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 }

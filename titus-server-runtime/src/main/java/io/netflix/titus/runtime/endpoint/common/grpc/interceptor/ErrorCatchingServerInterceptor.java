@@ -60,6 +60,7 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                 @Override
                 public void close(Status status, Metadata trailers) {
                     if (status.getCode() != Status.Code.OK) {
+                        logger.info("Returning exception to the client: {}", status.toString());
                         Pair<Status, Metadata> pair = ErrorResponses.of(status, trailers, debug);
                         safeClose(() -> super.close(pair.getLeft(), pair.getRight()));
                     }
