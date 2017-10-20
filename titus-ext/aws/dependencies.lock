@@ -7,22 +7,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -305,7 +305,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -381,7 +381,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -445,22 +445,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -743,7 +743,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -819,7 +819,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -883,22 +883,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -1181,7 +1181,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1257,7 +1257,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1358,22 +1358,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -1656,7 +1656,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1732,7 +1732,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1797,22 +1797,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -2095,7 +2095,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -2171,7 +2171,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2242,22 +2242,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -2544,7 +2544,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -2655,7 +2655,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2736,22 +2736,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -3038,7 +3038,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -3149,7 +3149,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3230,22 +3230,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -3532,7 +3532,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -3643,7 +3643,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3725,22 +3725,22 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.215",
+            "locked": "1.11.217",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2"
@@ -4027,7 +4027,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -4138,7 +4138,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]

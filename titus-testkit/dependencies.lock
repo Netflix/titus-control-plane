@@ -495,7 +495,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -714,7 +714,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -1313,7 +1313,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -1532,7 +1532,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -2131,7 +2131,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -2350,7 +2350,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -2986,7 +2986,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -3205,7 +3205,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -3805,7 +3805,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -4024,7 +4024,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -4634,7 +4634,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -4878,7 +4878,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -5498,7 +5498,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -5742,7 +5742,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -6362,7 +6362,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -6606,7 +6606,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
@@ -7227,7 +7227,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.2",
+            "locked": "1.3.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -7471,7 +7471,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.1.Final",
+            "locked": "5.4.2.Final",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-runtime"
