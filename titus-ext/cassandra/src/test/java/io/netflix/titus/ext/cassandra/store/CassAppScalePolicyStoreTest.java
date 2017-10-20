@@ -72,23 +72,23 @@ public class CassAppScalePolicyStoreTest {
 
     private void loadTestData() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        String insertStmt = "INSERT INTO app_scale_policy(ref_id, status, value) VALUES(?, ?, ?);";
+        String insertStmt = "INSERT INTO app_scale_policy(ref_id, job_id, status, value) VALUES(?, ?, ?, ?);";
         PreparedStatement stmt = session.prepare(insertStmt);
 
         // record 1
         String jobId = "job-1";
         String serializedValue = ObjectMappers.appScalePolicyMapper().writeValueAsString(buildAutoScalingPolicy(jobId).getPolicyConfiguration());
-        BoundStatement boundStatement = stmt.bind(UUID.fromString(POLICY_1_ID), PolicyStatus.Pending.name(), serializedValue);
+        BoundStatement boundStatement = stmt.bind(UUID.fromString(POLICY_1_ID), jobId, PolicyStatus.Pending.name(), serializedValue);
         session.execute(boundStatement);
 
         // record 2
         String jobIdTwo = "job-2";
         String serializedValueTwo = ObjectMappers.appScalePolicyMapper().writeValueAsString(buildAutoScalingPolicy(jobIdTwo).getPolicyConfiguration());
-        boundStatement = stmt.bind(UUID.fromString(POLICY_2_ID), PolicyStatus.Pending.name(), serializedValueTwo);
+        boundStatement = stmt.bind(UUID.fromString(POLICY_2_ID), jobIdTwo, PolicyStatus.Pending.name(), serializedValueTwo);
         session.execute(boundStatement);
 
         // record 3
-        boundStatement = stmt.bind(UUID.fromString(POLICY_3_ID), PolicyStatus.Pending.name(), serializedValue);
+        boundStatement = stmt.bind(UUID.fromString(POLICY_3_ID), jobId, PolicyStatus.Pending.name(), serializedValue);
         session.execute(boundStatement);
 
         // insert job-policy relationship

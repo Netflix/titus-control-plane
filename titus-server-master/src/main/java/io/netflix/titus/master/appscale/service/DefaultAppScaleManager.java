@@ -83,7 +83,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
     private Subscription deletingPoliciesSub;
     private Subscription reconcileFinishedJobsSub;
     private Subscription reconcileScalableTargetsSub;
-    private Subscription reportPolicyMetricsSub;
 
 
     public static final String DEFAULT_JOB_GROUP_SEQ = "v000";
@@ -159,14 +158,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
                         () -> log.info("Reconciliation (jobStatus) stream closed"));
 
 
-        reportPolicyMetricsSub = Observable.interval(60, 60, TimeUnit.SECONDS)
-                .observeOn(Schedulers.io())
-                .flatMapCompletable(ignored -> appScalePolicyStore.reportPolicyMetrics())
-                .subscribe(ignored -> log.debug("Policy metrics reported"),
-                        e -> log.error("Error in reporting policy metrics", e),
-                        () -> log.info("Report policy metrics stream closed ?"));
-
-
         v2LiveStreamPolicyCleanup()
                 .subscribe(autoScalingPolicy -> log.info("(V2) AutoScalingPolicy {} removed", autoScalingPolicy),
                         e -> log.error("Error in V2 job state change event stream", e),
@@ -196,7 +187,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
         ObservableExt.safeUnsubscribe(deletingPoliciesSub);
         ObservableExt.safeUnsubscribe(reconcileFinishedJobsSub);
         ObservableExt.safeUnsubscribe(reconcileScalableTargetsSub);
-        ObservableExt.safeUnsubscribe(reportPolicyMetricsSub);
     }
 
 

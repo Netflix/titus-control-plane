@@ -28,8 +28,6 @@ public interface AppScalePolicyStore {
      */
     Completable init();
 
-    Completable reportPolicyMetrics();
-
     /**
      * Retrieve all policies
      *
