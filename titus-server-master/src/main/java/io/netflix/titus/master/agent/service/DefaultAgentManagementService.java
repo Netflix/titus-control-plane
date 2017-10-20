@@ -30,6 +30,7 @@ import javax.inject.Singleton;
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
 import io.netflix.titus.api.agent.model.AutoScaleRule;
+import io.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import io.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import io.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import io.netflix.titus.api.agent.model.event.AgentEvent;
@@ -122,24 +123,28 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable updateInstanceGroupLifecycle(String instanceGroupId, InstanceGroupLifecycleStatus instanceGroupLifecycleStatus) {
-        return updateServerGroupInStore(
-                instanceGroupId,
-                instanceGroup -> instanceGroup.toBuilder().withLifecycleStatus(instanceGroupLifecycleStatus).build()
-        );
+        return Observable.fromCallable(() -> getInstanceGroup(instanceGroupId))
+                .flatMap(instanceGroup -> {
+                    AgentInstanceGroup newInstanceGroup = instanceGroup.toBuilder().withLifecycleStatus(instanceGroupLifecycleStatus).build();
+                    Completable updateStoreCompletable = agentCache.updateInstanceGroupStore(newInstanceGroup);
+
+                    if (instanceGroupLifecycleStatus.getState() == InstanceGroupLifecycleState.Removable) {
+                        // Force the min to 0 when we change the state to Removable
+                        return updateStoreCompletable.andThen(internalUpdateCapacity(newInstanceGroup, Optional.of(0), Optional.empty())).toObservable();
+                    } else {
+                        return updateStoreCompletable.toObservable();
+                    }
+                }).toCompletable();
     }
 
     @Override
     public Completable updateCapacity(String agentServerGroupId, Optional<Integer> min, Optional<Integer> desired) {
         return Observable.fromCallable(() -> agentCache.getInstanceGroup(agentServerGroupId))
                 .flatMap(instanceGroup -> {
-                            Completable cloudUpdate = instanceCloudConnector.updateCapacity(agentServerGroupId, min, desired);
-
-                            AgentInstanceGroup.Builder builder = instanceGroup.toBuilder();
-                            min.ifPresent(builder::withMin);
-                            desired.ifPresent(builder::withDesired);
-                            Completable cacheUpdate = agentCache.updateInstanceGroupStoreAndSyncCloud(builder.build());
-
-                            return cloudUpdate.concatWith(cacheUpdate).toObservable();
+                            if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable && min.isPresent()) {
+                                return Observable.error(AgentManagementException.invalidArgument("Min cannot be set in the Removable state"));
+                            }
+                            return internalUpdateCapacity(instanceGroup, min, desired).toObservable();
                         }
                 )
                 .toCompletable();
@@ -227,5 +232,16 @@ public class DefaultAgentManagementService implements AgentManagementService {
                 "Instances %s belong to different instance groups: %s", instanceIds, instanceGroupIds
         );
         return CollectionsExt.first(instanceGroupIds);
+    }
+
+    private Completable internalUpdateCapacity(AgentInstanceGroup instanceGroup, Optional<Integer> min, Optional<Integer> desired) {
+        Completable cloudUpdate = instanceCloudConnector.updateCapacity(instanceGroup.getId(), min, desired);
+
+        AgentInstanceGroup.Builder builder = instanceGroup.toBuilder();
+        min.ifPresent(builder::withMin);
+        desired.ifPresent(builder::withDesired);
+        Completable cacheUpdate = agentCache.updateInstanceGroupStoreAndSyncCloud(builder.build());
+
+        return cloudUpdate.concatWith(cacheUpdate);
     }
 }

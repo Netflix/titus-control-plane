@@ -57,6 +57,10 @@ public class AgentManagementException extends RuntimeException {
         return new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s is not found", null, agentInstanceId);
     }
 
+    public static AgentManagementException invalidArgument(String message, Object... args) {
+        throw new AgentManagementException(ErrorCode.InvalidArgument, message, null, args);
+    }
+
     public static AgentInstance checkAgentFound(AgentInstance agentInstance, String agentInstanceId) {
         if (agentInstance == null) {
             throw new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s is not found", null, agentInstanceId);
