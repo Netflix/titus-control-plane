@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
@@ -83,7 +84,9 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
         ResourceDimension left = computeTierResourceDimension(tier, capacityRequirements);
 
         List<AgentInstanceGroup> instanceGroups = agentManagementService.getInstanceGroups().stream()
-                .filter(instanceGroup -> instanceGroup.getTier() == tier && instanceGroup.getResourceDimension().getGpu() == 0)
+                .filter(instanceGroup -> instanceGroup.getTier() == tier &&
+                        instanceGroup.getResourceDimension().getGpu() == 0 &&
+                        instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active)
                 .sorted(Comparator.comparing(AgentInstanceGroup::getId))
                 .collect(Collectors.toList());
 
