@@ -40,13 +40,14 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
     }
 
     @Override
-    public Observable<AutoScalingPolicy> retrievePolicies() {
+    public Observable<AutoScalingPolicy> retrievePolicies(boolean includeArchived) {
         return Observable.from(
                 policyMap.values().stream()
                         .filter(autoScalingPolicy ->
                                 autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
                                         autoScalingPolicy.getStatus() == PolicyStatus.Applied ||
-                                        autoScalingPolicy.getStatus() == PolicyStatus.Deleting)
+                                        autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
+                                        (includeArchived && autoScalingPolicy.getStatus() == PolicyStatus.Deleted))
                         .collect(Collectors.toList()));
     }
 

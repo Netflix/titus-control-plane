@@ -33,7 +33,7 @@ public interface AppScalePolicyStore {
      *
      * @return Observable for AutoScalingPolicy
      */
-    Observable<AutoScalingPolicy> retrievePolicies();
+    Observable<AutoScalingPolicy> retrievePolicies(boolean includeArchived);
 
     Observable<String> storePolicy(AutoScalingPolicy autoScalingPolicy);
 

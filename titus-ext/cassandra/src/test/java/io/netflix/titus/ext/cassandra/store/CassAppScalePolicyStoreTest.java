@@ -111,7 +111,7 @@ public class CassAppScalePolicyStoreTest {
         CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, new DefaultRegistry());
         store.init().await();
 
-        List<AutoScalingPolicy> allPolicies = store.retrievePolicies().toList().toBlocking().first();
+        List<AutoScalingPolicy> allPolicies = store.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(allPolicies.size()).isEqualTo(3);
 
         List<AutoScalingPolicy> jobOnePolicies = store.retrievePoliciesForJob("job-1").toList().toBlocking().first();

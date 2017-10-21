@@ -20,10 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -32,20 +30,17 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyConfiguration;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import io.netflix.titus.api.json.ObjectMappers;
-import io.netflix.titus.common.util.spectator.SpectatorExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
-
-import static io.netflix.titus.common.util.CollectionsExt.asSet;
 
 @Singleton
 public class CassAppScalePolicyStore implements AppScalePolicyStore {
@@ -58,8 +53,9 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
     public static final String COLUMN_STATUS = "status";
     public static final String COLUMN_STATUS_MESSAGE = "status_message";
 
-    public static final String METRIC_TITUS_APPSCALE_NUM_TARGETS = "titus.appScale.numTargets";
-    public static final String METRIC_TITUS_APPSCALE_POLICY = "titus.appScale.policy.";
+
+    public static final String METRIC_APP_SCALE_STORE_CREATE_POLICY = "titus.appscale.store.create.policy";
+    public static final String METRIC_APP_SCALE_STORE_UPDATE_POLICY = "titus.appscale.store.update.policy";
 
     private final CassStoreHelper storeHelper;
     private final PreparedStatement insertNewPolicyStmt;
@@ -71,8 +67,9 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
     private final PreparedStatement updatePolicyStatusStmt;
     private final PreparedStatement updateStatusMessageStmt;
     private final PreparedStatement getAllJobIdsStmt;
-    private final AtomicInteger numTargets;
     private final Registry registry;
+    private final Counter createPolicyCounter;
+    private final Counter updatePolicyCounter;
 
     private Session session;
 
@@ -89,14 +86,6 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
     private volatile Map<String, AutoScalingPolicy> policies;
     private volatile Map<String, List<String>> policyRefIdsForJob;
-    private volatile Map<String, SpectatorExt.FsmMetrics<PolicyStatus>> fsmMetricsMap;
-
-    private final Set<PolicyStatus> TRACKED_STATES = asSet(
-            PolicyStatus.Pending,
-            PolicyStatus.Deleting,
-            PolicyStatus.Applied,
-            PolicyStatus.Deleted
-    );
 
 
     @Inject
@@ -117,9 +106,9 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
         this.storeHelper = new CassStoreHelper(session);
         this.policies = new ConcurrentHashMap<>();
         this.policyRefIdsForJob = new ConcurrentHashMap<>();
-        this.fsmMetricsMap = new ConcurrentHashMap<>();
 
-        numTargets = registry.gauge(METRIC_TITUS_APPSCALE_NUM_TARGETS, new AtomicInteger(0));
+        createPolicyCounter = registry.counter(METRIC_APP_SCALE_STORE_CREATE_POLICY);
+        updatePolicyCounter = registry.counter(METRIC_APP_SCALE_STORE_UPDATE_POLICY);
     }
 
     @Override
@@ -136,21 +125,19 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                 .flatMap(stmt -> storeHelper.execute(stmt))
                 .flatMap(rs -> Observable.from(rs.all()))
                 .map(row -> buildAutoScalingPolicyFromRow(row))
-                .map(autoScalingPolicy -> {
-                    reportPolicyStatusTransition(autoScalingPolicy);
-                    return policies.putIfAbsent(autoScalingPolicy.getRefId(), autoScalingPolicy);
-                })
+                .map(autoScalingPolicy -> policies.putIfAbsent(autoScalingPolicy.getRefId(), autoScalingPolicy))
                 .toCompletable();
 
     }
 
     @Override
-    public Observable<AutoScalingPolicy> retrievePolicies() {
+    public Observable<AutoScalingPolicy> retrievePolicies(boolean includeArchived) {
         List<AutoScalingPolicy> validPolicies = policies.values().stream()
                 .filter(autoScalingPolicy ->
                         autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
                                 autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
-                                autoScalingPolicy.getStatus() == PolicyStatus.Applied)
+                                autoScalingPolicy.getStatus() == PolicyStatus.Applied ||
+                                (includeArchived && autoScalingPolicy.getStatus() == PolicyStatus.Deleted))
                 .collect(Collectors.toList());
         log.info("Retrieving {} valid policies", validPolicies.size());
         return Observable.from(validPolicies);
@@ -171,8 +158,8 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                     .withAutoScalingPolicy(autoScalingPolicy)
                     .withStatus(PolicyStatus.Pending)
                     .withRefId(refId.toString()).build();
-            reportPolicyStatusTransition(updatedPolicy);
             policies.putIfAbsent(refId.toString(), updatedPolicy);
+            createPolicyCounter.increment();
             return refId.toString();
         }).map(refId -> {
             updatePolicyRefIdsForJobMap(autoScalingPolicy.getJobId(), refId);
@@ -189,6 +176,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             return storeHelper.execute(statement);
         }).map(storeUpdated -> {
             policies.put(autoScalingPolicy.getRefId(), autoScalingPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -203,6 +191,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy autoScalingPolicy = policies.get(policyRefId);
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy).withPolicyId(policyId).build();
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -218,6 +207,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy)
                     .withAlarmId(alarmId).build();
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -232,9 +222,8 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy autoScalingPolicy = policies.get(policyRefId);
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy)
                     .withStatus(policyStatus).build();
-
-            reportPolicyStatusTransition(updatedPolicy);
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -249,6 +238,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy)
                     .withStatusMessage(statusMessage).build();
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -306,11 +296,6 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
     private void updatePolicyRefIdsForJobMap(String jobId, String refId) {
         List<String> existingValue = policyRefIdsForJob.putIfAbsent(jobId, new ArrayList<>(Arrays.asList(refId)));
-        if (existingValue == null) {
-            numTargets.incrementAndGet();
-        }
-
-
         if (existingValue != null) {
             policyRefIdsForJob.computeIfPresent(jobId, (jid, currentList) -> {
                 currentList.add(refId);
@@ -318,19 +303,4 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             });
         }
     }
-
-    private Id stateIdOf(AutoScalingPolicy autoScalingPolicy) {
-        return registry.createId(METRIC_TITUS_APPSCALE_POLICY, "t.jobId", autoScalingPolicy.getJobId());
-    }
-
-    private SpectatorExt.FsmMetrics<PolicyStatus> getFsmMetricsForPolicy(AutoScalingPolicy autoScalingPolicy) {
-        return fsmMetricsMap.computeIfAbsent(autoScalingPolicy.getRefId(), fsmMetrics ->
-                SpectatorExt.fsmMetrics(TRACKED_STATES, stateIdOf(autoScalingPolicy), policyStatus -> false, registry));
-    }
-
-    private void reportPolicyStatusTransition(AutoScalingPolicy autoScalingPolicy) {
-        SpectatorExt.FsmMetrics<PolicyStatus> fsmMetricsForPolicy = getFsmMetricsForPolicy(autoScalingPolicy);
-        fsmMetricsForPolicy.transition(autoScalingPolicy.getStatus());
-    }
-
 }
