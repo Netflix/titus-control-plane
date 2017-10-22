@@ -20,7 +20,6 @@ import java.net.URI;
 
 import io.grpc.Attributes;
 import io.grpc.NameResolver;
-import io.grpc.internal.GrpcUtil;
 
 public final class LeaderNameResolverFactory extends NameResolver.Factory {
 
@@ -36,7 +35,7 @@ public final class LeaderNameResolverFactory extends NameResolver.Factory {
     @Override
     public LeaderNameResolver newNameResolver(URI targetUri, Attributes params) {
         if (SCHEME.equals(targetUri.getScheme())) {
-            return new LeaderNameResolver(targetUri, leaderResolver, port, GrpcUtil.TIMER_SERVICE, GrpcUtil.SHARED_CHANNEL_EXECUTOR);
+            return new LeaderNameResolver(targetUri, leaderResolver, port);
         } else {
             return null;
         }

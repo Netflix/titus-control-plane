@@ -18,11 +18,18 @@ package io.netflix.titus.gateway.connector.titusmaster;
 
 import java.util.Optional;
 
+import rx.Observable;
+
 public interface LeaderResolver {
 
     /**
      * @return {@link Address} of the leader
      */
     Optional<Address> resolve();
+
+    /**
+     * @return an observable that emits {@link Address} of the leader
+     */
+    Observable<Optional<Address>> observeLeader();
 
 }

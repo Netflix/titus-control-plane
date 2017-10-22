@@ -25,6 +25,7 @@ import io.netflix.titus.gateway.connector.titusmaster.LeaderResolver;
 import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Observable;
 
 @Singleton
 public class ConfigurationLeaderResolver implements LeaderResolver {
@@ -40,5 +41,10 @@ public class ConfigurationLeaderResolver implements LeaderResolver {
 
     public Optional<Address> resolve() {
         return Optional.of(leaderAddress);
+    }
+
+    @Override
+    public Observable<Optional<Address>> observeLeader() {
+        return Observable.empty();
     }
 }

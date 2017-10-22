@@ -18,12 +18,9 @@ package io.netflix.titus.gateway.connector.titusmaster;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.base.Preconditions;
@@ -31,40 +28,31 @@ import io.grpc.Attributes;
 import io.grpc.EquivalentAddressGroup;
 import io.grpc.NameResolver;
 import io.grpc.Status;
-import io.grpc.internal.LogExceptionRunnable;
-import io.grpc.internal.SharedResourceHolder;
+import io.netflix.titus.common.util.rx.ObservableExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Subscription;
 
 public class LeaderNameResolver extends NameResolver {
-    private static final int DELAY_MS = 5_000;
+    private static final Logger logger = LoggerFactory.getLogger(LeaderNameResolver.class);
 
     private final String authority;
     private final LeaderResolver leaderResolver;
     private final int port;
-    private final SharedResourceHolder.Resource<ScheduledExecutorService> timerServiceResource;
-    private final SharedResourceHolder.Resource<ExecutorService> executorResource;
+
     @GuardedBy("this")
     private boolean shutdown;
     @GuardedBy("this")
-    private ScheduledExecutorService timerService;
-    @GuardedBy("this")
-    private ExecutorService executor;
-    @GuardedBy("this")
-    private ScheduledFuture<?> resolutionTask;
-    @GuardedBy("this")
-    private boolean resolving;
-    @GuardedBy("this")
     private Listener listener;
+    @GuardedBy("this")
+    private Subscription leaderSubscription;
 
     public LeaderNameResolver(URI targetUri,
                               LeaderResolver leaderResolver,
-                              int port,
-                              SharedResourceHolder.Resource<ScheduledExecutorService> timerServiceResource,
-                              SharedResourceHolder.Resource<ExecutorService> executorResource) {
+                              int port) {
 
         this.leaderResolver = leaderResolver;
         this.port = port;
-        this.timerServiceResource = timerServiceResource;
-        this.executorResource = executorResource;
 
         if (targetUri.getAuthority() != null) {
             this.authority = targetUri.getAuthority();
@@ -79,96 +67,54 @@ public class LeaderNameResolver extends NameResolver {
     }
 
     @Override
-    public final synchronized void start(Listener listener) {
+    public void start(Listener listener) {
         Preconditions.checkState(this.listener == null, "already started");
-        timerService = SharedResourceHolder.get(timerServiceResource);
-        executor = SharedResourceHolder.get(executorResource);
         this.listener = Preconditions.checkNotNull(listener, "listener");
-        resolve();
+
+        try {
+            Optional<Address> leaderAddressOpt = leaderResolver.resolve();
+            refreshServers(listener, leaderAddressOpt);
+        } catch (Exception e) {
+            logger.error("Unable to resolve leader on start with error: ", e);
+            listener.onError(Status.UNAVAILABLE.withCause(e));
+        }
+
+        leaderSubscription = leaderResolver.observeLeader().subscribe(
+                leaderAddressOpt -> refreshServers(listener, leaderAddressOpt),
+                e -> {
+                    logger.error("Unable to observe leader with error: ", e);
+                    listener.onError(Status.UNAVAILABLE.withCause(e));
+                },
+                () -> {
+                }
+        );
     }
 
-    @Override
-    public final synchronized void refresh() {
-        Preconditions.checkState(listener != null, "not started");
-        resolve();
+    private void refreshServers(Listener listener, Optional<Address> leaderAddressOpt) {
+        List<EquivalentAddressGroup> servers = new ArrayList<>();
+        try {
+            if (leaderAddressOpt.isPresent()) {
+                Address address = leaderAddressOpt.get();
+                EquivalentAddressGroup server = new EquivalentAddressGroup(new InetSocketAddress(address.getHost(), port));
+                servers.add(server);
+            }
+        } catch (Exception e) {
+            logger.error("Unable to create server with error: ", e);
+            listener.onError(Status.UNAVAILABLE.withCause(e));
+        }
+
+        if (servers.isEmpty()) {
+            listener.onError(Status.UNAVAILABLE.withDescription("Unable to resolve leader server. Refreshing."));
+        } else {
+            logger.debug("Refreshing servers: {}", servers);
+            listener.onAddresses(servers, Attributes.EMPTY);
+        }
     }
 
-    private final Runnable resolutionRunnable = new Runnable() {
-        @Override
-        public void run() {
-            Listener savedListener;
-            synchronized (LeaderNameResolver.this) {
-                // If this task is started by refresh(), there might already be a scheduled task.
-                if (resolutionTask != null) {
-                    resolutionTask.cancel(false);
-                    resolutionTask = null;
-                }
-                if (shutdown) {
-                    return;
-                }
-                savedListener = listener;
-                resolving = true;
-            }
-            try {
-                Optional<Address> leaderOptional = leaderResolver.resolve();
-                if (!leaderOptional.isPresent()) {
-                    synchronized (LeaderNameResolver.this) {
-                        if (shutdown) {
-                            return;
-                        }
-                        // Because timerService is the single-threaded GrpcUtil.TIMER_SERVICE in production,
-                        // we need to delegate the blocking work to the executor
-                        resolutionTask = timerService.schedule(new LogExceptionRunnable(resolutionRunnableOnExecutor),
-                                DELAY_MS, TimeUnit.MILLISECONDS);
-                    }
-                    savedListener.onError(Status.UNAVAILABLE.withDescription("No server returned from leader resolver"));
-                    return;
-                }
-
-                Address address = leaderOptional.get();
-                EquivalentAddressGroup servers = new EquivalentAddressGroup(new InetSocketAddress(address.getHost(), port));
-                savedListener.onAddresses(Collections.singletonList(servers), Attributes.EMPTY);
-            } finally {
-                synchronized (LeaderNameResolver.this) {
-                    resolving = false;
-                }
-            }
-        }
-    };
-
-    private final Runnable resolutionRunnableOnExecutor = new Runnable() {
-        @Override
-        public void run() {
-            synchronized (LeaderNameResolver.this) {
-                if (!shutdown) {
-                    executor.execute(resolutionRunnable);
-                }
-            }
-        }
-    };
-
-    @GuardedBy("this")
-    private void resolve() {
-        if (resolving || shutdown) {
-            return;
-        }
-        executor.execute(resolutionRunnable);
-    }
-
-    @Override
     public final synchronized void shutdown() {
-        if (shutdown) {
-            return;
-        }
-        shutdown = true;
-        if (resolutionTask != null) {
-            resolutionTask.cancel(false);
-        }
-        if (timerService != null) {
-            timerService = SharedResourceHolder.release(timerServiceResource, timerService);
-        }
-        if (executor != null) {
-            executor = SharedResourceHolder.release(executorResource, executor);
+        if (!this.shutdown) {
+            this.shutdown = true;
+            ObservableExt.safeUnsubscribe(leaderSubscription);
         }
     }
 }
