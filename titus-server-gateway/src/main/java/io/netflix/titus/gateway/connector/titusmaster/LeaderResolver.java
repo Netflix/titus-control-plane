@@ -28,7 +28,8 @@ public interface LeaderResolver {
     Optional<Address> resolve();
 
     /**
-     * @return an observable that emits {@link Address} of the leader
+     * @return a persistent observable that emits the {@link Address} of the leader at some interval. The consumer should be able to handle
+     * duplicates.
      */
     Observable<Optional<Address>> observeLeader();
 

@@ -28,6 +28,7 @@ import io.grpc.Attributes;
 import io.grpc.EquivalentAddressGroup;
 import io.grpc.NameResolver;
 import io.grpc.Status;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ public class LeaderNameResolver extends NameResolver {
     private final String authority;
     private final LeaderResolver leaderResolver;
     private final int port;
+    private final TitusRuntime titusRuntime;
 
     @GuardedBy("this")
     private boolean shutdown;
@@ -49,10 +51,12 @@ public class LeaderNameResolver extends NameResolver {
 
     public LeaderNameResolver(URI targetUri,
                               LeaderResolver leaderResolver,
-                              int port) {
+                              int port,
+                              TitusRuntime titusRuntime) {
 
         this.leaderResolver = leaderResolver;
         this.port = port;
+        this.titusRuntime = titusRuntime;
 
         if (targetUri.getAuthority() != null) {
             this.authority = targetUri.getAuthority();
@@ -79,14 +83,13 @@ public class LeaderNameResolver extends NameResolver {
             listener.onError(Status.UNAVAILABLE.withCause(e));
         }
 
-        leaderSubscription = leaderResolver.observeLeader().subscribe(
+        leaderSubscription = titusRuntime.persistentStream(leaderResolver.observeLeader()).subscribe(
                 leaderAddressOpt -> refreshServers(listener, leaderAddressOpt),
                 e -> {
                     logger.error("Unable to observe leader with error: ", e);
                     listener.onError(Status.UNAVAILABLE.withCause(e));
                 },
-                () -> {
-                }
+                () -> logger.debug("Completed the leader resolver observable")
         );
     }
 
