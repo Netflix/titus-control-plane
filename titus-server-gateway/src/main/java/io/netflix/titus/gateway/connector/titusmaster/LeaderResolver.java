@@ -32,5 +32,4 @@ public interface LeaderResolver {
      * duplicates.
      */
     Observable<Optional<Address>> observeLeader();
-
 }

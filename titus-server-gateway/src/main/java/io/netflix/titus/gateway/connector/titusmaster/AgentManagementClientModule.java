@@ -25,6 +25,7 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 
 public class AgentManagementClientModule extends AbstractModule {
@@ -38,10 +39,10 @@ public class AgentManagementClientModule extends AbstractModule {
     @Provides
     @Singleton
     @Named(NAME)
-    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver) {
+    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
         return NettyChannelBuilder
                 .forTarget("leader://titusmaster")
-                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort()))
+                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
                 .usePlaintext(true)
                 .maxHeaderListSize(65536)
                 .build();
