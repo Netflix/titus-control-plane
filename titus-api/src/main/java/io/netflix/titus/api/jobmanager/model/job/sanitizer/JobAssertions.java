@@ -24,8 +24,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Strings;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import io.netflix.titus.api.jobmanager.model.job.Image;
 import io.netflix.titus.api.model.ResourceDimension;
 
 /**
@@ -33,6 +35,9 @@ import io.netflix.titus.api.model.ResourceDimension;
 public class JobAssertions {
 
     private static final Pattern SG_PATTERN = Pattern.compile("sg-.*");
+    private static final Pattern IMAGE_NAME_PATTERN = Pattern.compile("[a-zA-Z0-9\\.\\\\/_-]+");
+    private static final Pattern IMAGE_DIGEST_PATTERN = Pattern.compile("^sha256:[0-9].+");
+    private static final Pattern IMAGE_TAG_PATTERN = Pattern.compile("[a-zA-Z0-9\\._-]+");
 
     private final Function<String, ResourceDimension> maxContainerSizeResolver;
 
@@ -42,6 +47,26 @@ public class JobAssertions {
 
     public boolean isValidSyntax(List<String> securityGroups) {
         return securityGroups.stream().allMatch(sg -> SG_PATTERN.matcher(sg).matches());
+    }
+
+    public Map<String, String> validateImage(Image image) {
+        Map<String, String> violations = new HashMap<>();
+        if (!IMAGE_NAME_PATTERN.matcher(image.getName()).matches()) {
+            violations.put("name", "image name is not valid");
+        }
+
+        boolean validDigest = !Strings.isNullOrEmpty(image.getDigest()) && IMAGE_DIGEST_PATTERN.matcher(image.getDigest()).matches();
+        boolean validTag = !Strings.isNullOrEmpty(image.getTag()) && IMAGE_TAG_PATTERN.matcher(image.getTag()).matches();
+
+        if (!validDigest && !validTag) {
+            violations.put("", "must specify a valid digest or tag");
+        }
+
+        if (validDigest && validTag) {
+            violations.put("", "must specify only a valid digest or tag and not both");
+        }
+
+        return violations;
     }
 
     public Map<String, String> notExceedsComputeResources(String capacityGroup, Container container) {

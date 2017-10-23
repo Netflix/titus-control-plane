@@ -147,6 +147,10 @@ public class TitusTaskInfoCreator {
         }
         final TitanProtos.ContainerInfo.Builder cInfoBuilder = TitanProtos.ContainerInfo.newBuilder();
 
+        String imageDigest = Parameters.getImageDigest(parameters);
+        if (imageDigest != null) {
+            cInfoBuilder.setImageDigest(imageDigest);
+        }
         String version = Parameters.getVersion(parameters);
         if (version != null) {
             cInfoBuilder.setVersion(version);

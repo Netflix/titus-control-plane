@@ -126,6 +126,7 @@ public final class V2GrpcModelConverters {
         applyNotNull(jobMetadata.getUser(), v -> descriptorBuilder.setOwner(Owner.newBuilder().setTeamEmail(v)));
         Image.Builder imageBuilder = Image.newBuilder();
         applyNotNull(Parameters.getImageName(parameters), imageBuilder::setName);
+        applyNotNull(Parameters.getImageDigest(parameters), imageBuilder::setDigest);
         applyNotNull(Parameters.getVersion(parameters), imageBuilder::setTag);
         containerBuilder.setImage(imageBuilder);
 
@@ -561,8 +562,8 @@ public final class V2GrpcModelConverters {
         parameters.add(Parameters.newCapacityGroup(jobDescriptor.getCapacityGroup()));
 
         Image image = container.getImage();
-        Preconditions.checkArgument(StringExt.isEmpty(image.getDigest()), "Image digests not supported yet");
         parameters.add(Parameters.newImageNameParameter(image.getName()));
+        parameters.add(Parameters.newImageDigestParameter(image.getDigest()));
         parameters.add(Parameters.newVersionParameter(image.getTag()));
 
         // EFS

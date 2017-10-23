@@ -95,7 +95,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         // Docker Values (Image and Entrypoint)
         Image image = container.getImage();
         containerInfoBuilder.setImageName(image.getName());
-        containerInfoBuilder.setVersion(image.getTag());
+        applyNotNull(image.getDigest(), containerInfoBuilder::setImageDigest);
+        applyNotNull(image.getTag(), containerInfoBuilder::setVersion);
         containerInfoBuilder.setEntrypointStr(StringExt.concatenate(container.getEntryPoint(), " "));
 
         // Netflix Values
@@ -112,10 +113,10 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         String metatronAppMetadata = v3SecurityProfile.getAttributes().get("metatronAppMetadata");
         String metatronAppSignature = v3SecurityProfile.getAttributes().get("metatronAppSignature");
         if (metatronAppMetadata != null && metatronAppSignature != null) {
-            TitanProtos.ContainerInfo.MetatronCreds.Builder metatronBldr = TitanProtos.ContainerInfo.MetatronCreds.newBuilder()
+            TitanProtos.ContainerInfo.MetatronCreds.Builder metatronBuilder = TitanProtos.ContainerInfo.MetatronCreds.newBuilder()
                     .setAppMetadata(metatronAppMetadata)
                     .setMetadataSig(metatronAppSignature);
-            containerInfoBuilder.setMetatronCreds(metatronBldr.build());
+            containerInfoBuilder.setMetatronCreds(metatronBuilder.build());
         }
 
         // Configure Environment Variables
