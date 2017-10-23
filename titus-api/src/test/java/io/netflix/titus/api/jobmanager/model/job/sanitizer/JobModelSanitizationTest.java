@@ -17,12 +17,16 @@
 package io.netflix.titus.api.jobmanager.model.job.sanitizer;
 
 import java.util.Collections;
+import java.util.Set;
+
+import javax.validation.ConstraintViolation;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.DefaultDecoder;
 import com.netflix.archaius.DefaultPropertyFactory;
 import com.netflix.archaius.config.MapConfig;
+import io.netflix.titus.api.jobmanager.model.job.Image;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
@@ -87,6 +91,25 @@ public class JobModelSanitizationTest {
         // Now do cleanup
         Job<BatchJobExt> sanitized = entitySanitizer.sanitize(job).get();
         assertThat(entitySanitizer.validate(sanitized)).isEmpty();
+    }
+
+    @Test
+    public void testBatchJobWithMissingImageTagAndDigest() throws Exception {
+        JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor();
+        JobDescriptor<BatchJobExt> noImageTagAndDigestDescriptor = JobModel.newJobDescriptor(jobDescriptor)
+                .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
+                        .withImage(Image.newBuilder()
+                                .withName("imageName")
+                                .build()
+                        )
+                        .build()
+                ).build();
+        Job<BatchJobExt> job = JobGenerator.batchJobs(noImageTagAndDigestDescriptor).getValue();
+
+        // Image digest and tag violation expected
+        Set<ConstraintViolation<Job<BatchJobExt>>> violations = entitySanitizer.validate(job);
+        assertThat(violations).hasSize(1);
+        assertThat(violations.iterator().next().getMessage().contains("must specify a valid digest or tag"));
     }
 
     @Test
