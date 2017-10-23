@@ -80,7 +80,7 @@ public class DefaultAppScaleManagerTest {
         checkCreatePolicyFlow(PolicyType.StepScaling);
     }
 
-    public void checkCreatePolicyFlow(PolicyType policyType) {
+    private void checkCreatePolicyFlow(PolicyType policyType) {
         // create instance of DefaultAppScaleManager
         AutoScalingPolicyTests.MockAlarmClient mockAlarmClient = new AutoScalingPolicyTests.MockAlarmClient();
         AutoScalingPolicyTests.MockAppAutoScalingClient mockAppAutoScalingClient = new AutoScalingPolicyTests.MockAppAutoScalingClient();
@@ -111,7 +111,7 @@ public class DefaultAppScaleManagerTest {
         Assertions.assertThat(refIdsCreated.size()).isEqualTo(2);
 
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
-        List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies().toList().toBlocking().first();
+        List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(policiesStored.size()).isEqualTo(2);
         Assertions.assertThat(mockAppAutoScalingClient.getNumPolicies()).isEqualTo(2);
         Assertions.assertThat(mockAppAutoScalingClient.getNumScalableTargets()).isEqualTo(2);
@@ -125,7 +125,7 @@ public class DefaultAppScaleManagerTest {
         Assertions.assertThat(refIdsDeleted.size()).isEqualTo(1);
 
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
-        policiesStored = policyStore.retrievePolicies().toList().toBlocking().first();
+        policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(policiesStored.size()).isEqualTo(1);
         Assertions.assertThat(mockAppAutoScalingClient.getNumPolicies()).isEqualTo(1);
         Assertions.assertThat(mockAppAutoScalingClient.getNumScalableTargets()).isEqualTo(1);
@@ -302,7 +302,6 @@ public class DefaultAppScaleManagerTest {
         JobDescriptor jobDescriptorTwo = mock(JobDescriptor.class);
         ServiceJobExt serviceJobExtTwo = mock(ServiceJobExt.class);
         Capacity capacityJobTwo = mock(Capacity.class);
-        JobGroupInfo jobGroupInfoTwo = buildMockJobGroupInfo(jobIdTwo);
         when(capacityJobTwo.getMin())
                 .thenAnswer(new Answer<Integer>() {
                     private int count = 0;
@@ -478,7 +477,7 @@ public class DefaultAppScaleManagerTest {
 
         Map<String, DefaultAppScaleManager.JobScalingConstraints> scalingPolicyConstraints;
 
-        public AppScaleClientWithScalingPolicyConstraints() {
+        AppScaleClientWithScalingPolicyConstraints() {
             scalingPolicyConstraints = new ConcurrentHashMap<>();
         }
 
@@ -504,7 +503,7 @@ public class DefaultAppScaleManagerTest {
             return super.getScalableTargetsForJob(jobId);
         }
 
-        public DefaultAppScaleManager.JobScalingConstraints getJobScalingPolicyConstraintsForJob(String jobId) {
+        DefaultAppScaleManager.JobScalingConstraints getJobScalingPolicyConstraintsForJob(String jobId) {
             return scalingPolicyConstraints.get(jobId);
         }
     }
