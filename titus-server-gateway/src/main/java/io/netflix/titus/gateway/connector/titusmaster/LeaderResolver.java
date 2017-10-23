@@ -18,6 +18,8 @@ package io.netflix.titus.gateway.connector.titusmaster;
 
 import java.util.Optional;
 
+import rx.Observable;
+
 public interface LeaderResolver {
 
     /**
@@ -25,4 +27,9 @@ public interface LeaderResolver {
      */
     Optional<Address> resolve();
 
+    /**
+     * @return a persistent observable that emits the {@link Address} of the leader at some interval. The consumer should be able to handle
+     * duplicates.
+     */
+    Observable<Optional<Address>> observeLeader();
 }

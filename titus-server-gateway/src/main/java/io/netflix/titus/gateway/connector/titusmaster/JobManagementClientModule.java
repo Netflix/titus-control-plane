@@ -25,6 +25,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 
 public class JobManagementClientModule extends AbstractModule {
@@ -38,10 +39,10 @@ public class JobManagementClientModule extends AbstractModule {
     @Provides
     @Singleton
     @Named(NAME)
-    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver) {
+    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
         return NettyChannelBuilder
                 .forTarget("leader://titusmaster")
-                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort()))
+                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
                 .usePlaintext(true)
                 .maxHeaderListSize(65536)
                 .build();

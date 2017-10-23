@@ -17,22 +17,20 @@
 package io.netflix.titus.gateway.connector.titusmaster;
 
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
 
 
 public class AutoScalingClientModule extends AbstractModule {
-    private static Logger log = LoggerFactory.getLogger(AutoScalingClientModule.class);
     public static final String NAME = "titusAutoScalingService";
 
     @Override
@@ -42,15 +40,14 @@ public class AutoScalingClientModule extends AbstractModule {
     @Provides
     @Singleton
     @Named(NAME)
-    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver) {
+    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
         return NettyChannelBuilder
                 .forTarget("leader://titusmaster")
-                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort()))
+                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
                 .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
                 .usePlaintext(true)
                 .maxHeaderListSize(65536)
                 .build();
-
     }
 
 
