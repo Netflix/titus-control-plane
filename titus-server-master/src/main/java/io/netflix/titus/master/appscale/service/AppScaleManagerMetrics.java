@@ -58,7 +58,6 @@ public class AppScaleManagerMetrics {
     public void reportPolicyStatusTransition(AutoScalingPolicy autoScalingPolicy, PolicyStatus targetStatus) {
         SpectatorExt.FsmMetrics<PolicyStatus> fsmMetricsForPolicy = getFsmMetricsForPolicy(autoScalingPolicy);
         fsmMetricsForPolicy.transition(targetStatus);
-        logger.info("AMIT Reporting transition {} -> {}", autoScalingPolicy.getRefId(), targetStatus);
     }
 
     public void reportNewScalableTarget() {
