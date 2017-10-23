@@ -16,8 +16,6 @@
 
 package io.netflix.titus.api.appscale.store;
 
-import java.util.List;
-
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
 import rx.Completable;
@@ -35,7 +33,7 @@ public interface AppScalePolicyStore {
      *
      * @return Observable for AutoScalingPolicy
      */
-    Observable<AutoScalingPolicy> retrievePolicies();
+    Observable<AutoScalingPolicy> retrievePolicies(boolean includeArchived);
 
     Observable<String> storePolicy(AutoScalingPolicy autoScalingPolicy);
 

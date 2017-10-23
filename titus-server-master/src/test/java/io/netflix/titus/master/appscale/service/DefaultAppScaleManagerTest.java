@@ -16,13 +16,27 @@
 
 package io.netflix.titus.master.appscale.service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.appscale.model.AutoScalableTarget;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyType;
 import io.netflix.titus.api.jobmanager.model.event.JobUpdateEvent;
-import io.netflix.titus.api.jobmanager.model.job.*;
+import io.netflix.titus.api.jobmanager.model.job.Capacity;
+import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
@@ -48,15 +62,9 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 
 
 public class DefaultAppScaleManagerTest {
@@ -72,7 +80,7 @@ public class DefaultAppScaleManagerTest {
         checkCreatePolicyFlow(PolicyType.StepScaling);
     }
 
-    public void checkCreatePolicyFlow(PolicyType policyType) {
+    private void checkCreatePolicyFlow(PolicyType policyType) {
         // create instance of DefaultAppScaleManager
         AutoScalingPolicyTests.MockAlarmClient mockAlarmClient = new AutoScalingPolicyTests.MockAlarmClient();
         AutoScalingPolicyTests.MockAppAutoScalingClient mockAppAutoScalingClient = new AutoScalingPolicyTests.MockAppAutoScalingClient();
@@ -82,7 +90,7 @@ public class DefaultAppScaleManagerTest {
         V3JobOperations v3JobOperations = mockV3Operations(jobIdOne, jobIdTwo);
 
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                null, v3JobOperations, null);
+                null, v3JobOperations, null, new DefaultRegistry());
 
         AutoScalingPolicy autoScalingPolicyOne;
         AutoScalingPolicy autoScalingPolicyTwo;
@@ -103,7 +111,7 @@ public class DefaultAppScaleManagerTest {
         Assertions.assertThat(refIdsCreated.size()).isEqualTo(2);
 
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
-        List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies().toList().toBlocking().first();
+        List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(policiesStored.size()).isEqualTo(2);
         Assertions.assertThat(mockAppAutoScalingClient.getNumPolicies()).isEqualTo(2);
         Assertions.assertThat(mockAppAutoScalingClient.getNumScalableTargets()).isEqualTo(2);
@@ -117,7 +125,7 @@ public class DefaultAppScaleManagerTest {
         Assertions.assertThat(refIdsDeleted.size()).isEqualTo(1);
 
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
-        policiesStored = policyStore.retrievePolicies().toList().toBlocking().first();
+        policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(policiesStored.size()).isEqualTo(1);
         Assertions.assertThat(mockAppAutoScalingClient.getNumPolicies()).isEqualTo(1);
         Assertions.assertThat(mockAppAutoScalingClient.getNumScalableTargets()).isEqualTo(1);
@@ -136,7 +144,7 @@ public class DefaultAppScaleManagerTest {
 
 
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                mockV2Operations(), null, eventBus);
+                mockV2Operations(), null, eventBus, registry);
 
         // call - createAutoScalingPolicy
         String jobIdOne = "Titus-1";
@@ -190,7 +198,7 @@ public class DefaultAppScaleManagerTest {
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore,
                 new AutoScalingPolicyTests.MockAlarmClient(),
                 appScalingClient,
-                v2JobOperations, null, eventBus);
+                v2JobOperations, null, eventBus, registry);
 
         // call - createAutoScalingPolicy
         String jobIdOne = "Titus-1";
@@ -245,7 +253,7 @@ public class DefaultAppScaleManagerTest {
                 new AutoScalingPolicyTests.MockAlarmClient(),
                 appScalingClient,
                 null,
-                v3JobOperations, null);
+                v3JobOperations, null, new DefaultRegistry());
 
         List<String> refIds = submitTwoJobs(appScaleManager, jobIdOne, jobIdTwo);
         Assertions.assertThat(refIds.size()).isEqualTo(2);
@@ -294,7 +302,6 @@ public class DefaultAppScaleManagerTest {
         JobDescriptor jobDescriptorTwo = mock(JobDescriptor.class);
         ServiceJobExt serviceJobExtTwo = mock(ServiceJobExt.class);
         Capacity capacityJobTwo = mock(Capacity.class);
-        JobGroupInfo jobGroupInfoTwo = buildMockJobGroupInfo(jobIdTwo);
         when(capacityJobTwo.getMin())
                 .thenAnswer(new Answer<Integer>() {
                     private int count = 0;
@@ -468,11 +475,9 @@ public class DefaultAppScaleManagerTest {
 
     public static class AppScaleClientWithScalingPolicyConstraints extends AutoScalingPolicyTests.MockAppAutoScalingClient {
 
-        private V2JobOperations v2JobOperations;
-        private V3JobOperations v3JobOperations;
         Map<String, DefaultAppScaleManager.JobScalingConstraints> scalingPolicyConstraints;
 
-        public AppScaleClientWithScalingPolicyConstraints() {
+        AppScaleClientWithScalingPolicyConstraints() {
             scalingPolicyConstraints = new ConcurrentHashMap<>();
         }
 
@@ -498,7 +503,7 @@ public class DefaultAppScaleManagerTest {
             return super.getScalableTargetsForJob(jobId);
         }
 
-        public DefaultAppScaleManager.JobScalingConstraints getJobScalingPolicyConstraintsForJob(String jobId) {
+        DefaultAppScaleManager.JobScalingConstraints getJobScalingPolicyConstraintsForJob(String jobId) {
             return scalingPolicyConstraints.get(jobId);
         }
     }
