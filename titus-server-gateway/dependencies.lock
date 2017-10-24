@@ -4068,7 +4068,8 @@
             "locked": "2.11.0",
             "requested": "2.+",
             "transitive": [
-                "com.netflix.governator:governator-test-junit"
+                "com.netflix.governator:governator-test-junit",
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.objenesis:objenesis": {
@@ -4999,7 +5000,8 @@
             "locked": "2.11.0",
             "requested": "2.+",
             "transitive": [
-                "com.netflix.governator:governator-test-junit"
+                "com.netflix.governator:governator-test-junit",
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.objenesis:objenesis": {
@@ -5930,7 +5932,8 @@
             "locked": "2.11.0",
             "requested": "2.+",
             "transitive": [
-                "com.netflix.governator:governator-test-junit"
+                "com.netflix.governator:governator-test-junit",
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.objenesis:objenesis": {
@@ -6862,7 +6865,8 @@
             "locked": "2.11.0",
             "requested": "2.+",
             "transitive": [
-                "com.netflix.governator:governator-test-junit"
+                "com.netflix.governator:governator-test-junit",
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.objenesis:objenesis": {

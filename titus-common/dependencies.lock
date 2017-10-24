@@ -2484,7 +2484,10 @@
         },
         "org.mockito:mockito-core": {
             "locked": "2.11.0",
-            "requested": "2.+"
+            "requested": "2.+",
+            "transitive": [
+                "io.netflix.titus:titus-testkit"
+            ]
         },
         "org.objenesis:objenesis": {
             "locked": "2.6",
@@ -3401,7 +3404,10 @@
         },
         "org.mockito:mockito-core": {
             "locked": "2.11.0",
-            "requested": "2.+"
+            "requested": "2.+",
+            "transitive": [
+                "io.netflix.titus:titus-testkit"
+            ]
         },
         "org.objenesis:objenesis": {
             "locked": "2.6",
@@ -4318,7 +4324,10 @@
         },
         "org.mockito:mockito-core": {
             "locked": "2.11.0",
-            "requested": "2.+"
+            "requested": "2.+",
+            "transitive": [
+                "io.netflix.titus:titus-testkit"
+            ]
         },
         "org.objenesis:objenesis": {
             "locked": "2.6",
@@ -5236,7 +5245,10 @@
         },
         "org.mockito:mockito-core": {
             "locked": "2.11.0",
-            "requested": "2.+"
+            "requested": "2.+",
+            "transitive": [
+                "io.netflix.titus:titus-testkit"
+            ]
         },
         "org.objenesis:objenesis": {
             "locked": "2.6",

@@ -1,5 +1,12 @@
 {
     "compile": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -13,9 +20,11 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -26,13 +35,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -57,9 +70,23 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
@@ -70,20 +97,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -97,6 +129,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -137,16 +173,17 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
@@ -157,13 +194,13 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -171,6 +208,13 @@
             "locked": "3.3.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -188,19 +232,27 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -211,25 +263,27 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-providers": {
             "locked": "1.15.11",
@@ -239,16 +293,28 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.runtime:health-api": {
@@ -265,7 +331,22 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
+            ]
         },
         "com.netflix.spectator:spectator-api": {
             "locked": "0.53.0",
@@ -286,15 +367,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -311,9 +407,41 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -376,8 +504,14 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
-        "io.netflix.titus:titus-server-runtime": {
+        "io.netflix.titus:titus-server-master": {
             "project": true
+        },
+        "io.netflix.titus:titus-server-runtime": {
+            "project": true,
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.netty:netty": {
             "locked": "3.7.0.Final",
@@ -473,9 +607,9 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "io.swagger:swagger-annotations": {
@@ -492,7 +626,9 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.swagger:swagger-models": {
             "locked": "1.5.12",
@@ -508,7 +644,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -517,13 +652,14 @@
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.netflix.runtime:health-core",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "org.eclipse.jetty:jetty-server"
             ]
@@ -538,6 +674,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -551,7 +688,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "log4j:log4j": {
@@ -561,11 +699,29 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -576,26 +732,47 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
         },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
                 "org.apache.curator:curator-client"
+            ]
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -624,8 +801,8 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
@@ -639,7 +816,9 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.eclipse.jetty:jetty-xml": {
             "locked": "9.2.12.v20150709",
@@ -680,9 +859,9 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -701,14 +880,20 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -725,6 +910,7 @@
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
@@ -742,7 +928,9 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.4",
@@ -754,10 +942,35 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
     "compileClasspath": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -771,9 +984,11 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -784,13 +999,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -815,9 +1034,23 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
@@ -828,20 +1061,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -855,6 +1093,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -895,16 +1137,17 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
@@ -915,13 +1158,13 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -929,6 +1172,13 @@
             "locked": "3.3.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -946,19 +1196,27 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -969,25 +1227,27 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-providers": {
             "locked": "1.15.11",
@@ -997,16 +1257,28 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.runtime:health-api": {
@@ -1023,7 +1295,22 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
+            ]
         },
         "com.netflix.spectator:spectator-api": {
             "locked": "0.53.0",
@@ -1044,15 +1331,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -1069,9 +1371,41 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -1134,8 +1468,14 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
-        "io.netflix.titus:titus-server-runtime": {
+        "io.netflix.titus:titus-server-master": {
             "project": true
+        },
+        "io.netflix.titus:titus-server-runtime": {
+            "project": true,
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.netty:netty": {
             "locked": "3.7.0.Final",
@@ -1231,9 +1571,9 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "io.swagger:swagger-annotations": {
@@ -1250,7 +1590,9 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.swagger:swagger-models": {
             "locked": "1.5.12",
@@ -1266,7 +1608,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -1275,13 +1616,14 @@
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.netflix.runtime:health-core",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "org.eclipse.jetty:jetty-server"
             ]
@@ -1296,6 +1638,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -1309,7 +1652,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "log4j:log4j": {
@@ -1319,11 +1663,29 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -1334,26 +1696,47 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
         },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
                 "org.apache.curator:curator-client"
+            ]
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -1382,8 +1765,8 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
@@ -1397,7 +1780,9 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.eclipse.jetty:jetty-xml": {
             "locked": "9.2.12.v20150709",
@@ -1438,9 +1823,9 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -1459,14 +1844,20 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -1483,6 +1874,7 @@
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
@@ -1500,7 +1892,9 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.4",
@@ -1512,10 +1906,35 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
     "default": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -1529,9 +1948,11 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -1542,13 +1963,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -1573,9 +1998,23 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
@@ -1586,20 +2025,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -1613,6 +2057,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -1653,16 +2101,17 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
@@ -1673,13 +2122,13 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -1687,6 +2136,13 @@
             "locked": "3.3.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -1704,19 +2160,27 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -1727,25 +2191,27 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-providers": {
             "locked": "1.15.11",
@@ -1755,16 +2221,28 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.runtime:health-api": {
@@ -1781,7 +2259,22 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
+            ]
         },
         "com.netflix.spectator:spectator-api": {
             "locked": "0.53.0",
@@ -1802,15 +2295,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -1827,9 +2335,41 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -1892,8 +2432,14 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
-        "io.netflix.titus:titus-server-runtime": {
+        "io.netflix.titus:titus-server-master": {
             "project": true
+        },
+        "io.netflix.titus:titus-server-runtime": {
+            "project": true,
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.netty:netty": {
             "locked": "3.7.0.Final",
@@ -1989,9 +2535,9 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "io.swagger:swagger-annotations": {
@@ -2008,7 +2554,9 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.swagger:swagger-models": {
             "locked": "1.5.12",
@@ -2024,7 +2572,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -2033,13 +2580,14 @@
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.netflix.runtime:health-core",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "org.eclipse.jetty:jetty-server"
             ]
@@ -2054,6 +2602,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -2067,7 +2616,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "log4j:log4j": {
@@ -2077,11 +2627,29 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -2092,26 +2660,47 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
         },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
                 "org.apache.curator:curator-client"
+            ]
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -2140,8 +2729,8 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
@@ -2155,7 +2744,9 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.eclipse.jetty:jetty-xml": {
             "locked": "9.2.12.v20150709",
@@ -2196,9 +2787,9 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -2217,14 +2808,20 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -2242,6 +2839,7 @@
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
@@ -2259,7 +2857,9 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.4",
@@ -2271,6 +2871,24 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
@@ -2311,6 +2929,13 @@
         }
     },
     "runtime": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -2324,9 +2949,11 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -2337,13 +2964,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -2368,9 +2999,23 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
@@ -2381,20 +3026,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -2408,6 +3058,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -2448,16 +3102,17 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
@@ -2468,13 +3123,13 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -2482,6 +3137,13 @@
             "locked": "3.3.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -2499,19 +3161,27 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -2522,25 +3192,27 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-providers": {
             "locked": "1.15.11",
@@ -2550,16 +3222,28 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.runtime:health-api": {
@@ -2576,7 +3260,22 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
+            ]
         },
         "com.netflix.spectator:spectator-api": {
             "locked": "0.53.0",
@@ -2597,15 +3296,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -2622,9 +3336,41 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -2687,8 +3433,14 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
-        "io.netflix.titus:titus-server-runtime": {
+        "io.netflix.titus:titus-server-master": {
             "project": true
+        },
+        "io.netflix.titus:titus-server-runtime": {
+            "project": true,
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.netty:netty": {
             "locked": "3.7.0.Final",
@@ -2784,9 +3536,9 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "io.swagger:swagger-annotations": {
@@ -2803,7 +3555,9 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.swagger:swagger-models": {
             "locked": "1.5.12",
@@ -2819,7 +3573,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -2828,13 +3581,14 @@
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.netflix.runtime:health-core",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "org.eclipse.jetty:jetty-server"
             ]
@@ -2849,6 +3603,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -2862,7 +3617,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "log4j:log4j": {
@@ -2872,11 +3628,29 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -2887,26 +3661,47 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
         },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
                 "org.apache.curator:curator-client"
+            ]
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -2935,8 +3730,8 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
@@ -2950,7 +3745,9 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.eclipse.jetty:jetty-xml": {
             "locked": "9.2.12.v20150709",
@@ -2991,9 +3788,9 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -3012,14 +3809,20 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -3037,6 +3840,7 @@
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
@@ -3054,7 +3858,9 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.4",
@@ -3066,10 +3872,35 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
     "runtimeClasspath": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -3083,9 +3914,11 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -3096,13 +3929,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -3127,9 +3964,23 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
@@ -3140,20 +3991,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -3167,6 +4023,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -3207,16 +4067,17 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
@@ -3227,13 +4088,13 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -3241,6 +4102,13 @@
             "locked": "3.3.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -3258,19 +4126,27 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -3281,25 +4157,27 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "com.netflix.governator:governator-providers": {
             "locked": "1.15.11",
@@ -3309,16 +4187,28 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.runtime:health-api": {
@@ -3335,7 +4225,22 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
+            ]
         },
         "com.netflix.spectator:spectator-api": {
             "locked": "0.53.0",
@@ -3356,15 +4261,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -3381,9 +4301,41 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -3446,8 +4398,14 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
-        "io.netflix.titus:titus-server-runtime": {
+        "io.netflix.titus:titus-server-master": {
             "project": true
+        },
+        "io.netflix.titus:titus-server-runtime": {
+            "project": true,
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.netty:netty": {
             "locked": "3.7.0.Final",
@@ -3543,9 +4501,9 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "io.swagger:swagger-annotations": {
@@ -3562,7 +4520,9 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "io.swagger:swagger-models": {
             "locked": "1.5.12",
@@ -3578,7 +4538,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -3587,13 +4546,14 @@
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.netflix.runtime:health-core",
-                "com.sun.jersey.contribs:jersey-guice"
+                "com.sun.jersey.contribs:jersey-guice",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "org.eclipse.jetty:jetty-server"
             ]
@@ -3608,6 +4568,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -3621,7 +4582,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "log4j:log4j": {
@@ -3631,11 +4593,29 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -3646,26 +4626,47 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
         },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
                 "org.apache.curator:curator-client"
+            ]
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -3694,8 +4695,8 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
+                "io.netflix.titus:titus-server-master",
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
@@ -3709,7 +4710,9 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.eclipse.jetty:jetty-xml": {
             "locked": "9.2.12.v20150709",
@@ -3750,9 +4753,9 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
-                "com.netflix.fenzo:fenzo-core"
+                "com.netflix.fenzo:fenzo-core",
+                "io.netflix.titus:titus-server-master"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -3771,14 +4774,20 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -3796,6 +4805,7 @@
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api",
+                "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
@@ -3813,7 +4823,9 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4"
+            "transitive": [
+                "io.netflix.titus:titus-server-master"
+            ]
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.4",
@@ -3825,10 +4837,35 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
     "testCompile": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -3847,14 +4884,12 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -3865,13 +4900,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -3896,11 +4935,22 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
@@ -3912,20 +4962,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -3939,6 +4994,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -3979,13 +5038,13 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.sun.jersey.contribs:jersey-guice",
@@ -4000,7 +5059,6 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
@@ -4021,6 +5079,13 @@
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.1.13",
             "transitive": [
@@ -4036,7 +5101,6 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -4044,16 +5108,18 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -4067,7 +5133,6 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
@@ -4080,7 +5145,6 @@
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -4089,7 +5153,6 @@
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -4104,16 +5167,26 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -4133,9 +5206,21 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
             ]
         },
         "com.netflix.spectator:spectator-api": {
@@ -4157,15 +5242,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -4182,15 +5282,47 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
             ]
         },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -4370,7 +5502,6 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -4390,7 +5521,6 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
@@ -4410,7 +5540,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -4425,7 +5554,6 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -4444,6 +5572,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -4457,13 +5586,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
-        "junit:junit": {
-            "locked": "3.8.1",
-            "transitive": [
-                "jline:jline"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "junit:junit-dep": {
@@ -4476,7 +5600,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -4493,11 +5616,29 @@
                 "org.mockito:mockito-core"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -4508,7 +5649,6 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
@@ -4516,14 +5656,25 @@
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -4532,13 +5683,18 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -4566,7 +5722,6 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -4584,7 +5739,6 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -4645,7 +5799,6 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -4681,10 +5834,15 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
@@ -4711,8 +5869,7 @@
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
-                "io.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
@@ -4729,7 +5886,6 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -4744,10 +5900,35 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
     "testCompileClasspath": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -4766,14 +5947,12 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -4784,13 +5963,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -4815,11 +5998,22 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
@@ -4831,20 +6025,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -4858,6 +6057,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -4898,13 +6101,13 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.sun.jersey.contribs:jersey-guice",
@@ -4919,7 +6122,6 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
@@ -4940,6 +6142,13 @@
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.1.13",
             "transitive": [
@@ -4955,7 +6164,6 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -4963,16 +6171,18 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -4986,7 +6196,6 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
@@ -4999,7 +6208,6 @@
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -5008,7 +6216,6 @@
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -5023,16 +6230,26 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -5052,9 +6269,21 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
             ]
         },
         "com.netflix.spectator:spectator-api": {
@@ -5076,15 +6305,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -5101,15 +6345,47 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
             ]
         },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -5289,7 +6565,6 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -5309,7 +6584,6 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
@@ -5329,7 +6603,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -5344,7 +6617,6 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -5363,6 +6635,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -5376,13 +6649,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
-        "junit:junit": {
-            "locked": "3.8.1",
-            "transitive": [
-                "jline:jline"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "junit:junit-dep": {
@@ -5395,7 +6663,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -5412,11 +6679,29 @@
                 "org.mockito:mockito-core"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -5427,7 +6712,6 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
@@ -5435,14 +6719,25 @@
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -5451,13 +6746,18 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -5485,7 +6785,6 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -5503,7 +6802,6 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -5564,7 +6862,6 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -5600,10 +6897,15 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
@@ -5630,8 +6932,7 @@
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
-                "io.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
@@ -5648,7 +6949,6 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -5663,10 +6963,35 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
     "testRuntime": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -5685,14 +7010,12 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -5703,13 +7026,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -5734,11 +7061,22 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
@@ -5750,20 +7088,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -5777,6 +7120,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -5817,13 +7164,13 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.sun.jersey.contribs:jersey-guice",
@@ -5838,7 +7185,6 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
@@ -5859,6 +7205,13 @@
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.1.13",
             "transitive": [
@@ -5874,7 +7227,6 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -5882,16 +7234,18 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -5905,7 +7259,6 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
@@ -5918,7 +7271,6 @@
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -5927,7 +7279,6 @@
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -5942,16 +7293,26 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -5971,9 +7332,21 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
             ]
         },
         "com.netflix.spectator:spectator-api": {
@@ -5995,15 +7368,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -6020,15 +7408,47 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
             ]
         },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -6208,7 +7628,6 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -6228,7 +7647,6 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
@@ -6248,7 +7666,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -6263,7 +7680,6 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -6282,6 +7698,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -6295,13 +7712,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
-        "junit:junit": {
-            "locked": "3.8.1",
-            "transitive": [
-                "jline:jline"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "junit:junit-dep": {
@@ -6314,7 +7726,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -6331,11 +7742,29 @@
                 "org.mockito:mockito-core"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -6346,7 +7775,6 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
@@ -6354,14 +7782,25 @@
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -6370,13 +7809,18 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -6404,7 +7848,6 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -6422,7 +7865,6 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -6483,7 +7925,6 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -6519,10 +7960,15 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
@@ -6550,8 +7996,7 @@
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
-                "io.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
@@ -6568,7 +8013,6 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -6583,10 +8027,35 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     },
     "testRuntimeClasspath": {
+        "antlr:antlr": {
+            "locked": "2.7.7",
+            "transitive": [
+                "org.antlr:antlr-runtime",
+                "org.antlr:stringtemplate"
+            ]
+        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -6605,14 +8074,12 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models"
@@ -6623,13 +8090,17 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.8.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
@@ -6654,11 +8125,22 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.andrewoma.dexx:dexx-collections": {
+            "locked": "0.2",
+            "transitive": [
+                "com.github.vlsi.compactmap:compactmap"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
-            "requested": "1.1.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.github.vlsi.compactmap:compactmap": {
+            "locked": "1.2.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
@@ -6670,20 +8152,25 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "org.reflections:reflections"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.1",
             "transitive": [
                 "com.google.instrumentation:instrumentation-api",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
@@ -6697,6 +8184,10 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.netflix.archaius:archaius-core",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -6737,13 +8228,13 @@
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
-            "requested": "4.1.+",
             "transitive": [
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
                 "com.google.inject.extensions:guice-servlet",
                 "com.netflix.archaius:archaius2-guice",
+                "com.netflix.eureka:eureka-client",
                 "com.netflix.governator:governator-core",
                 "com.netflix.governator:governator-providers",
                 "com.sun.jersey.contribs:jersey-guice",
@@ -6758,7 +8249,6 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
             "transitive": [
                 "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
@@ -6779,6 +8269,13 @@
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.1.13",
             "transitive": [
@@ -6794,7 +8291,6 @@
         },
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.1.13",
-            "requested": "2.1.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -6802,16 +8298,18 @@
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.8.4",
+            "requested": "1.+"
+        },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
             "locked": "1.0.0",
-            "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -6825,7 +8323,6 @@
         },
         "com.netflix.governator:governator-core": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "com.netflix.governator:governator-jersey",
                 "com.netflix.governator:governator-servlet",
@@ -6838,7 +8335,6 @@
         },
         "com.netflix.governator:governator-jersey": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -6847,7 +8343,6 @@
         },
         "com.netflix.governator:governator-jetty": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -6862,16 +8357,26 @@
         },
         "com.netflix.governator:governator-servlet": {
             "locked": "1.15.11",
-            "requested": "1.15.+",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.netflix-commons:netflix-eventbus": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
+        "com.netflix.netflix-commons:netflix-infix": {
+            "locked": "0.3.0",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
-            "requested": "1.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -6891,9 +8396,21 @@
         },
         "com.netflix.runtime:health-guice": {
             "locked": "1.1.3",
-            "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.servo:servo-core": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.netflix.netflix-commons:netflix-eventbus"
+            ]
+        },
+        "com.netflix.servo:servo-internal": {
+            "locked": "0.10.1",
+            "transitive": [
+                "com.netflix.servo:servo-core"
             ]
         },
         "com.netflix.spectator:spectator-api": {
@@ -6915,15 +8432,30 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.sun.jersey.contribs:jersey-apache-client4": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "com.sun.jersey.contribs:jersey-guice": {
             "locked": "1.19",
             "transitive": [
                 "com.netflix.governator:governator-jersey"
             ]
         },
-        "com.sun.jersey:jersey-core": {
-            "locked": "1.19",
+        "com.sun.jersey:jersey-client": {
+            "locked": "1.19.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "com.sun.jersey:jersey-core": {
+            "locked": "1.19.1",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey:jersey-client",
                 "com.sun.jersey:jersey-server"
             ]
         },
@@ -6940,15 +8472,47 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.thoughtworks.xstream:xstream": {
+            "locked": "1.4.10",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
+        },
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
             ]
         },
+        "commons-codec:commons-codec": {
+            "locked": "1.6",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8",
+            "transitive": [
+                "com.netflix.archaius:archaius-core"
+            ]
+        },
+        "commons-jxpath:commons-jxpath": {
+            "locked": "1.3",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "transitive": [
+                "commons-configuration:commons-configuration"
+            ]
+        },
         "commons-logging:commons-logging": {
             "locked": "1.2",
             "transitive": [
+                "commons-configuration:commons-configuration",
+                "org.apache.httpcomponents:httpclient",
                 "org.springframework:spring-core"
             ]
         },
@@ -7128,7 +8692,6 @@
         },
         "io.reactivex:rxnetty": {
             "locked": "0.4.20",
-            "requested": "0.4.+",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-server-master"
@@ -7148,7 +8711,6 @@
         },
         "io.swagger:swagger-jaxrs": {
             "locked": "1.5.12",
-            "requested": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
@@ -7168,7 +8730,6 @@
         },
         "javax.inject:javax.inject": {
             "locked": "1",
-            "requested": "1",
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
@@ -7183,7 +8744,6 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
-            "requested": "3.1.0",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -7202,6 +8762,7 @@
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
             "transitive": [
+                "com.netflix.eureka:eureka-client",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -7215,13 +8776,8 @@
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
-        "junit:junit": {
-            "locked": "3.8.1",
-            "transitive": [
-                "jline:jline"
+                "com.netflix.fenzo:fenzo-triggers",
+                "com.netflix.netflix-commons:netflix-infix"
             ]
         },
         "junit:junit-dep": {
@@ -7234,7 +8790,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -7251,11 +8806,29 @@
                 "org.mockito:mockito-core"
             ]
         },
+        "org.antlr:antlr-runtime": {
+            "locked": "3.4",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-infix"
+            ]
+        },
+        "org.antlr:stringtemplate": {
+            "locked": "3.2.1",
+            "transitive": [
+                "org.antlr:antlr-runtime"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "io.swagger:swagger-core"
+            ]
+        },
+        "org.apache.commons:commons-math": {
+            "locked": "2.2",
+            "transitive": [
+                "com.netflix.netflix-commons:netflix-eventbus"
             ]
         },
         "org.apache.curator:curator-client": {
@@ -7266,7 +8839,6 @@
         },
         "org.apache.curator:curator-framework": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
@@ -7274,14 +8846,25 @@
         },
         "org.apache.curator:curator-recipes": {
             "locked": "2.11.0",
-            "requested": "2.11.0",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.httpcomponents:httpclient": {
+            "locked": "4.3.4",
+            "transitive": [
+                "com.netflix.eureka:eureka-client",
+                "com.sun.jersey.contribs:jersey-apache-client4"
+            ]
+        },
+        "org.apache.httpcomponents:httpcore": {
+            "locked": "4.3.2",
+            "transitive": [
+                "org.apache.httpcomponents:httpclient"
+            ]
+        },
         "org.apache.mesos:mesos": {
             "locked": "1.1.3",
-            "requested": "1.1.3",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -7290,13 +8873,18 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
+        },
+        "org.codehaus.jettison:jettison": {
+            "locked": "1.3.7",
+            "transitive": [
+                "com.netflix.eureka:eureka-client"
+            ]
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -7324,7 +8912,6 @@
         },
         "org.eclipse.jetty:jetty-servlet": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -7342,7 +8929,6 @@
         },
         "org.eclipse.jetty:jetty-webapp": {
             "locked": "9.2.12.v20150709",
-            "requested": "9.2.12.v20150709",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
@@ -7403,7 +8989,6 @@
         },
         "org.json:json": {
             "locked": "20140107",
-            "requested": "20140107",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
@@ -7439,10 +9024,15 @@
             "locked": "1.7.21",
             "requested": "1.7.0",
             "transitive": [
+                "com.netflix.archaius:archaius-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
+                "com.netflix.netflix-commons:netflix-eventbus",
+                "com.netflix.netflix-commons:netflix-infix",
+                "com.netflix.servo:servo-core",
+                "com.netflix.servo:servo-internal",
                 "com.netflix.spectator:spectator-api",
                 "io.netflix.titus:titus-api",
                 "io.netflix.titus:titus-common",
@@ -7470,8 +9060,7 @@
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
                 "io.netflix.titus:titus-server-runtime",
-                "io.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "io.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
@@ -7488,7 +9077,6 @@
         },
         "org.webjars:swagger-ui": {
             "locked": "2.1.4",
-            "requested": "2.1.4",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -7503,6 +9091,24 @@
             "locked": "1.15",
             "transitive": [
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+            ]
+        },
+        "stax:stax-api": {
+            "locked": "1.0.1",
+            "transitive": [
+                "org.codehaus.jettison:jettison"
+            ]
+        },
+        "xmlpull:xmlpull": {
+            "locked": "1.1.3.1",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
+            ]
+        },
+        "xpp3:xpp3_min": {
+            "locked": "1.1.4c",
+            "transitive": [
+                "com.thoughtworks.xstream:xstream"
             ]
         }
     }
