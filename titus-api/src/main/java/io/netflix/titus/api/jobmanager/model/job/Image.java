@@ -16,25 +16,19 @@
 
 package io.netflix.titus.api.jobmanager.model.job;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-
 import io.netflix.titus.common.model.sanitizer.ClassInvariant;
 
 /**
  * Image reference.
  */
-@ClassInvariant(condition = "tag != null || digest != null", message = "Both tag and digest missing")
+@ClassInvariant(expr = "@asserts.validateImage(#this)")
 public class Image {
 
-    @NotNull
-    @Pattern(regexp = "[a-zA-Z0-9\\.\\\\/_-]+", message = "'#{#root}' is not valid docker image name")
     private final String name;
 
-    @Pattern(regexp = "[a-zA-Z0-9\\._-]+", message = "'#{#root}' is not valid docker image tag")
-    private final String tag;
-
     private final String digest;
+
+    private final String tag;
 
     public Image(String name, String tag, String digest) {
         this.name = name;
@@ -129,8 +123,7 @@ public class Image {
         }
 
         public Image build() {
-            Image image = new Image(name, tag, digest);
-            return image;
+            return new Image(name, tag, digest);
         }
     }
 }

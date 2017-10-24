@@ -16,8 +16,29 @@
 
 package io.netflix.titus.ext.cassandra.store;
 
-import com.datastax.driver.core.*;
-import io.netflix.titus.api.appscale.model.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.netflix.spectator.api.DefaultRegistry;
+import io.netflix.titus.api.appscale.model.AlarmConfiguration;
+import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
+import io.netflix.titus.api.appscale.model.ComparisonOperator;
+import io.netflix.titus.api.appscale.model.MetricAggregationType;
+import io.netflix.titus.api.appscale.model.PolicyConfiguration;
+import io.netflix.titus.api.appscale.model.PolicyStatus;
+import io.netflix.titus.api.appscale.model.PolicyType;
+import io.netflix.titus.api.appscale.model.Statistic;
+import io.netflix.titus.api.appscale.model.StepAdjustment;
+import io.netflix.titus.api.appscale.model.StepAdjustmentType;
+import io.netflix.titus.api.appscale.model.StepScalingPolicyConfiguration;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.assertj.core.api.Assertions;
@@ -29,12 +50,6 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Category(IntegrationTest.class)
 public class CassAppScalePolicyStoreTest {
@@ -57,23 +72,23 @@ public class CassAppScalePolicyStoreTest {
 
     private void loadTestData() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        String insertStmt = "INSERT INTO app_scale_policy(ref_id, status, value) VALUES(?, ?, ?);";
+        String insertStmt = "INSERT INTO app_scale_policy(ref_id, job_id, status, value) VALUES(?, ?, ?, ?);";
         PreparedStatement stmt = session.prepare(insertStmt);
 
         // record 1
         String jobId = "job-1";
         String serializedValue = ObjectMappers.appScalePolicyMapper().writeValueAsString(buildAutoScalingPolicy(jobId).getPolicyConfiguration());
-        BoundStatement boundStatement = stmt.bind(UUID.fromString(POLICY_1_ID), PolicyStatus.Pending.name(), serializedValue);
+        BoundStatement boundStatement = stmt.bind(UUID.fromString(POLICY_1_ID), jobId, PolicyStatus.Pending.name(), serializedValue);
         session.execute(boundStatement);
 
         // record 2
         String jobIdTwo = "job-2";
         String serializedValueTwo = ObjectMappers.appScalePolicyMapper().writeValueAsString(buildAutoScalingPolicy(jobIdTwo).getPolicyConfiguration());
-        boundStatement = stmt.bind(UUID.fromString(POLICY_2_ID), PolicyStatus.Pending.name(), serializedValueTwo);
+        boundStatement = stmt.bind(UUID.fromString(POLICY_2_ID), jobIdTwo, PolicyStatus.Pending.name(), serializedValueTwo);
         session.execute(boundStatement);
 
         // record 3
-        boundStatement = stmt.bind(UUID.fromString(POLICY_3_ID), PolicyStatus.Pending.name(), serializedValue);
+        boundStatement = stmt.bind(UUID.fromString(POLICY_3_ID), jobId, PolicyStatus.Pending.name(), serializedValue);
         session.execute(boundStatement);
 
         // insert job-policy relationship
@@ -93,10 +108,10 @@ public class CassAppScalePolicyStoreTest {
         Session session = cassandraCQLUnit.getSession();
         loadTestData();
 
-        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session);
+        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, new DefaultRegistry());
         store.init().await();
 
-        List<AutoScalingPolicy> allPolicies = store.retrievePolicies().toList().toBlocking().first();
+        List<AutoScalingPolicy> allPolicies = store.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(allPolicies.size()).isEqualTo(3);
 
         List<AutoScalingPolicy> jobOnePolicies = store.retrievePoliciesForJob("job-1").toList().toBlocking().first();
@@ -122,7 +137,7 @@ public class CassAppScalePolicyStoreTest {
     @Test
     public void checkStoreAndRetrieve() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session);
+        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, new DefaultRegistry());
 
         String jobId = UUID.randomUUID().toString();
         Observable<String> respRefId = store.storePolicy(buildAutoScalingPolicy(jobId));
@@ -154,7 +169,7 @@ public class CassAppScalePolicyStoreTest {
     @Test
     public void checkUpdates() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session);
+        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, new DefaultRegistry());
 
         String jobId = UUID.randomUUID().toString();
         Observable<String> respRefId = store.storePolicy(buildAutoScalingPolicy(jobId));

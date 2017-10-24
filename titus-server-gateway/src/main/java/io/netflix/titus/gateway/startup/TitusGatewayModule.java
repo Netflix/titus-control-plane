@@ -26,6 +26,8 @@ import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import io.netflix.titus.gateway.connector.titusmaster.TitusMasterConnectorModule;
 import io.netflix.titus.gateway.endpoint.common.grpc.GrpcModule;
@@ -56,6 +58,7 @@ public final class TitusGatewayModule extends AbstractModule {
 
         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
         bind(Registry.class).toInstance(new DefaultRegistry());
+        bind(TitusRuntime.class).to(DefaultTitusRuntime.class);
 
         install(new TitusEntitySanitizerModule());
 

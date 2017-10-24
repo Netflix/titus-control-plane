@@ -30,6 +30,8 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyConfiguration;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
@@ -51,6 +53,10 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
     public static final String COLUMN_STATUS = "status";
     public static final String COLUMN_STATUS_MESSAGE = "status_message";
 
+
+    public static final String METRIC_APP_SCALE_STORE_CREATE_POLICY = "titus.appscale.store.create.policy";
+    public static final String METRIC_APP_SCALE_STORE_UPDATE_POLICY = "titus.appscale.store.update.policy";
+
     private final CassStoreHelper storeHelper;
     private final PreparedStatement insertNewPolicyStmt;
     private final PreparedStatement insertJobIdWithPolicyRefStmt;
@@ -61,6 +67,9 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
     private final PreparedStatement updatePolicyStatusStmt;
     private final PreparedStatement updateStatusMessageStmt;
     private final PreparedStatement getAllJobIdsStmt;
+    private final Registry registry;
+    private final Counter createPolicyCounter;
+    private final Counter updatePolicyCounter;
 
     private Session session;
 
@@ -80,8 +89,10 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
 
     @Inject
-    public CassAppScalePolicyStore(Session session) {
+    public CassAppScalePolicyStore(Session session, Registry registry) {
+
         this.session = session;
+        this.registry = registry;
         this.insertNewPolicyStmt = this.session.prepare(INSERT_NEW_POLICY);
         this.insertJobIdWithPolicyRefStmt = this.session.prepare(INSERT_JOB_ID_WITH_POLICY_REF_ID);
         this.getPolicyByRefIdStmt = this.session.prepare(GET_POLICY_BY_ID);
@@ -95,6 +106,9 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
         this.storeHelper = new CassStoreHelper(session);
         this.policies = new ConcurrentHashMap<>();
         this.policyRefIdsForJob = new ConcurrentHashMap<>();
+
+        createPolicyCounter = registry.counter(METRIC_APP_SCALE_STORE_CREATE_POLICY);
+        updatePolicyCounter = registry.counter(METRIC_APP_SCALE_STORE_UPDATE_POLICY);
     }
 
     @Override
@@ -113,15 +127,17 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                 .map(row -> buildAutoScalingPolicyFromRow(row))
                 .map(autoScalingPolicy -> policies.putIfAbsent(autoScalingPolicy.getRefId(), autoScalingPolicy))
                 .toCompletable();
+
     }
 
     @Override
-    public Observable<AutoScalingPolicy> retrievePolicies() {
+    public Observable<AutoScalingPolicy> retrievePolicies(boolean includeArchived) {
         List<AutoScalingPolicy> validPolicies = policies.values().stream()
                 .filter(autoScalingPolicy ->
                         autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
                                 autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
-                                autoScalingPolicy.getStatus() == PolicyStatus.Applied)
+                                autoScalingPolicy.getStatus() == PolicyStatus.Applied ||
+                                (includeArchived && autoScalingPolicy.getStatus() == PolicyStatus.Deleted))
                 .collect(Collectors.toList());
         log.info("Retrieving {} valid policies", validPolicies.size());
         return Observable.from(validPolicies);
@@ -143,6 +159,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                     .withStatus(PolicyStatus.Pending)
                     .withRefId(refId.toString()).build();
             policies.putIfAbsent(refId.toString(), updatedPolicy);
+            createPolicyCounter.increment();
             return refId.toString();
         }).map(refId -> {
             updatePolicyRefIdsForJobMap(autoScalingPolicy.getJobId(), refId);
@@ -159,6 +176,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             return storeHelper.execute(statement);
         }).map(storeUpdated -> {
             policies.put(autoScalingPolicy.getRefId(), autoScalingPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -166,7 +184,6 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
     @Override
     public Completable updatePolicyId(String policyRefId, String policyId) {
-        log.debug("Updating in-memory policy {} in to status {}", policyRefId, policyId);
         return Observable.fromCallable(() -> {
             BoundStatement statement = updatePolicyIdStmt.bind(policyId, UUID.fromString(policyRefId));
             return storeHelper.execute(statement);
@@ -174,6 +191,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy autoScalingPolicy = policies.get(policyRefId);
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy).withPolicyId(policyId).build();
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -189,6 +207,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy)
                     .withAlarmId(alarmId).build();
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -196,7 +215,6 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
     @Override
     public Completable updatePolicyStatus(String policyRefId, PolicyStatus policyStatus) {
-        log.debug("Updating in-memory policy {} in to status {}", policyRefId, policyStatus);
         return Observable.fromCallable(() -> {
             BoundStatement statement = updatePolicyStatusStmt.bind(policyStatus.name(), UUID.fromString(policyRefId));
             return storeHelper.execute(statement);
@@ -205,6 +223,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy)
                     .withStatus(policyStatus).build();
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -219,6 +238,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
             AutoScalingPolicy updatedPolicy = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy)
                     .withStatusMessage(statusMessage).build();
             policies.put(policyRefId, updatedPolicy);
+            updatePolicyCounter.increment();
             return storeUpdated;
         }).toCompletable();
     }
@@ -244,7 +264,6 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
     @Override
     public Observable<AutoScalingPolicy> retrievePolicyForRefId(String policyRefId) {
-        log.debug("Retrieving in-memory policy for {} with policy {} ", policyRefId, policies.get(policyRefId));
         return Observable.just(policies.get(policyRefId));
     }
 
@@ -276,12 +295,12 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
     }
 
     private void updatePolicyRefIdsForJobMap(String jobId, String refId) {
-        if (policyRefIdsForJob.putIfAbsent(jobId, new ArrayList<>(Arrays.asList(refId))) != null) {
+        List<String> existingValue = policyRefIdsForJob.putIfAbsent(jobId, new ArrayList<>(Arrays.asList(refId)));
+        if (existingValue != null) {
             policyRefIdsForJob.computeIfPresent(jobId, (jid, currentList) -> {
                 currentList.add(refId);
                 return currentList;
             });
         }
     }
-
 }

@@ -16,7 +16,11 @@
 
 package io.netflix.titus.runtime.store.v3.memory;
 
-import io.netflix.titus.api.appscale.model.AutoScalableTarget;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
@@ -25,16 +29,10 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
 public class InMemoryPolicyStore implements AppScalePolicyStore {
     private static Logger log = LoggerFactory.getLogger(InMemoryPolicyStore.class);
 
     private final Map<String, AutoScalingPolicy> policyMap = new ConcurrentHashMap<>();
-    private final Map<String, AutoScalableTarget> scalableTargetMap = new ConcurrentHashMap<>();
 
     @Override
     public Completable init() {
@@ -42,13 +40,14 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
     }
 
     @Override
-    public Observable<AutoScalingPolicy> retrievePolicies() {
+    public Observable<AutoScalingPolicy> retrievePolicies(boolean includeArchived) {
         return Observable.from(
                 policyMap.values().stream()
                         .filter(autoScalingPolicy ->
                                 autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
                                         autoScalingPolicy.getStatus() == PolicyStatus.Applied ||
-                                        autoScalingPolicy.getStatus() == PolicyStatus.Deleting)
+                                        autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
+                                        (includeArchived && autoScalingPolicy.getStatus() == PolicyStatus.Deleted))
                         .collect(Collectors.toList()));
     }
 

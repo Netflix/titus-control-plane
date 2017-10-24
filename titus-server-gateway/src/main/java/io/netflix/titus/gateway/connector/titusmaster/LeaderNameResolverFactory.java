@@ -20,23 +20,25 @@ import java.net.URI;
 
 import io.grpc.Attributes;
 import io.grpc.NameResolver;
-import io.grpc.internal.GrpcUtil;
+import io.netflix.titus.common.runtime.TitusRuntime;
 
 public final class LeaderNameResolverFactory extends NameResolver.Factory {
 
     private static final String SCHEME = "leader";
     private final LeaderResolver leaderResolver;
     private final int port;
+    private final TitusRuntime titusRuntime;
 
-    public LeaderNameResolverFactory(LeaderResolver leaderResolver, int port) {
+    public LeaderNameResolverFactory(LeaderResolver leaderResolver, int port, TitusRuntime titusRuntime) {
         this.leaderResolver = leaderResolver;
         this.port = port;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
     public LeaderNameResolver newNameResolver(URI targetUri, Attributes params) {
         if (SCHEME.equals(targetUri.getScheme())) {
-            return new LeaderNameResolver(targetUri, leaderResolver, port, GrpcUtil.TIMER_SERVICE, GrpcUtil.SHARED_CHANNEL_EXECUTOR);
+            return new LeaderNameResolver(targetUri, leaderResolver, port, titusRuntime);
         } else {
             return null;
         }

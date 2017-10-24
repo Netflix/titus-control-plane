@@ -43,11 +43,12 @@ public final class Parameters {
     public static final String CMD_TYPE = "type";
 
     public static final String IMAGE_NAME = "imageName";
+    public static final String IMAGE_DIGEST = "imageDigest";
+    public static final String VERSION = "version";
 
     public static final String NAME = "name";
     public static final String APP_NAME = "appName";
     public static final String JOB_TYPE = "jobType";
-    public static final String VERSION = "version";
     public static final String IAM_PROFILE = "iamProfile";
 
     public static final String LABELS = "labels";
@@ -105,6 +106,14 @@ public final class Parameters {
 
     public static Parameter newAppNameParameter(String appName) {
         return new Parameter(APP_NAME, appName);
+    }
+
+    public static String getImageDigest(List<Parameter> parameters) {
+        return findParameter(parameters, IMAGE_DIGEST);
+    }
+
+    public static Parameter newImageDigestParameter(String imageDigest) {
+        return new Parameter(IMAGE_DIGEST, imageDigest);
     }
 
     public static String getImageName(List<Parameter> parameters) {
