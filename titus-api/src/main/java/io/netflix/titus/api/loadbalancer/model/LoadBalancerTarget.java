@@ -34,6 +34,10 @@ public class LoadBalancerTarget {
         this.state = state;
     }
 
+    public JobLoadBalancer getJobLoadBalancer() {
+        return jobLoadBalancer;
+    }
+
     public String getLoadBalancerId() {
         return jobLoadBalancer.getLoadBalancerId();
     }
@@ -52,6 +56,16 @@ public class LoadBalancerTarget {
 
     public State getState() {
         return state;
+    }
+
+    @Override
+    public String toString() {
+        return "LoadBalancerTarget{" +
+                "jobLoadBalancer=" + jobLoadBalancer +
+                ", taskId='" + taskId + '\'' +
+                ", ipAddress='" + ipAddress + '\'' +
+                ", state=" + state +
+                '}';
     }
 
     @Override

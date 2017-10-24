@@ -16,6 +16,8 @@
 
 package io.netflix.titus.api.loadbalancer.store;
 
+import java.util.Collection;
+
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import rx.Completable;
@@ -30,5 +32,8 @@ public interface LoadBalancerStore {
 
     Observable<LoadBalancerTarget> retrieveTargets(JobLoadBalancer jobLoadBalancer);
 
-    Completable updateTargets(Iterable<LoadBalancerTarget> targets);
+    /**
+     * @param targets may be null or empty, in which case this is a noop
+     */
+    Completable updateTargets(Collection<LoadBalancerTarget> targets);
 }

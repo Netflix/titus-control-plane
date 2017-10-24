@@ -37,6 +37,14 @@ public class JobLoadBalancer {
     }
 
     @Override
+    public String toString() {
+        return "JobLoadBalancer{" +
+                "jobId='" + jobId + '\'' +
+                ", loadBalancerId='" + loadBalancerId + '\'' +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
