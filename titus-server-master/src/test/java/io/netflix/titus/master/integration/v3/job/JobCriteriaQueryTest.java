@@ -42,6 +42,7 @@ import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -535,6 +536,7 @@ public class JobCriteriaQueryTest {
     }
 
     @Test
+    @Ignore
     public void testPagination() throws Exception {
         // Create a mix of V2/V3 jobs.
         jobsScenarioBuilder.schedule(baseBatchJobDescriptor(true).build(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(startJob(TaskStatus.TaskState.Started)));

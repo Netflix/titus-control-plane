@@ -7,7 +7,7 @@ include 'titus-api',\
         'titus-server-runtime',\
         'titus-testkit'
 
-['aws', 'cassandra', 'cassandra-testkit', 'elasticsearch'].each {
+['aws', 'cassandra', 'cassandra-testkit', 'elasticsearch', 'eureka'].each {
     def projectName = "titus-ext-$it"
     include projectName
 

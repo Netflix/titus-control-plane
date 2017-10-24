@@ -20,12 +20,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
+import io.netflix.titus.api.agent.model.monitor.AgentStatus.AgentStatusCode;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import org.slf4j.Logger;
@@ -43,19 +44,31 @@ public class OnOffStatusMonitor implements AgentStatusMonitor {
 
     static final long CHECK_INTERVAL_MS = 1_000;
 
+    private static final String SOURCE_ID = "onOffStatusMonitor";
+
+    private final AgentManagementService agentManagementService;
     private final AgentStatusMonitor delegate;
     private final Supplier<Boolean> isOn;
+    private final String offMessage;
     private final Scheduler scheduler;
 
-    public OnOffStatusMonitor(AgentStatusMonitor delegate, Supplier<Boolean> isOn, Scheduler scheduler) {
+    public OnOffStatusMonitor(AgentManagementService agentManagementService,
+                              AgentStatusMonitor delegate,
+                              Supplier<Boolean> isOn,
+                              Scheduler scheduler) {
+        this.agentManagementService = agentManagementService;
         this.delegate = delegate;
         this.isOn = isOn;
+        this.offMessage = "Disabled downstream status monitor " + delegate.getClass().getSimpleName();
         this.scheduler = scheduler;
     }
 
     @Override
-    public Optional<AgentStatus> getCurrent(String agentInstanceId) {
-        return isOn.get() ? delegate.getCurrent(agentInstanceId) : delegate.getCurrent(agentInstanceId).map(AgentStatus::healthy);
+    public AgentStatus getStatus(String agentInstanceId) {
+        if (isOn.get()) {
+            return delegate.getStatus(agentInstanceId);
+        }
+        return AgentStatus.healthy(SOURCE_ID, agentManagementService.getAgentInstance(agentInstanceId), offMessage, scheduler.now());
     }
 
     @Override
@@ -86,13 +99,19 @@ public class OnOffStatusMonitor implements AgentStatusMonitor {
     private Observable<AgentStatus> doTurnOff(StateCache stateCache) {
         logger.info("Disabling agent status monitor {}", delegate.getClass().getSimpleName());
         stateCache.setOn(false);
-        List<AgentStatus> good = stateCache.getAll().stream().map(AgentStatus::healthy).collect(Collectors.toList());
+        List<AgentStatus> good = stateCache.getAll().stream()
+                .map(status -> {
+                    if (status.getStatusCode() == AgentStatusCode.Healthy) {
+                        return status;
+                    }
+                    return AgentStatus.healthy(status.getSourceId(), status.getAgentInstance(), offMessage, status.getEmitTime(), status.getComponents());
+                }).collect(Collectors.toList());
         return Observable.from(good);
     }
 
     private Observable<AgentStatus> handleStatus(StateCache stateCache, AgentStatus status) {
-        if (status.getStatusCode() == AgentStatus.AgentStatusCode.Healthy) {
-            stateCache.remove(status.getInstance().getId());
+        if (status.getStatusCode() == AgentStatusCode.Healthy) {
+            stateCache.remove(status.getAgentInstance().getId());
         } else {
             stateCache.replace(status);
         }
@@ -124,7 +143,7 @@ public class OnOffStatusMonitor implements AgentStatusMonitor {
         }
 
         void replace(AgentStatus status) {
-            badAgents.put(status.getInstance().getId(), status);
+            badAgents.put(status.getAgentInstance().getId(), status);
         }
     }
 }

@@ -17,31 +17,37 @@
 package io.netflix.titus.master.agent.service.monitor;
 
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
+import java.util.function.Function;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.base.Preconditions;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.agent.model.AgentInstance;
+import io.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import io.netflix.titus.api.agent.service.AgentManagementException;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
+import io.netflix.titus.common.util.guice.annotation.Activator;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.job.worker.WorkerStateMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
-import rx.observables.GroupedObservable;
 import rx.schedulers.Schedulers;
 
 import static io.netflix.titus.api.model.v2.V2JobState.isErrorState;
 import static io.netflix.titus.api.model.v2.V2JobState.isOnSlaveState;
+import static io.netflix.titus.common.util.rx.ObservableExt.mapWithState;
 
 /**
  * Monitor job statuses, to isolate nodes that frequently fail the submitted jobs.
@@ -60,141 +66,188 @@ public class V2JobStatusMonitor implements AgentStatusMonitor {
 
     private static final Logger logger = LoggerFactory.getLogger(V2JobStatusMonitor.class);
 
-    static final String SOURCE_ID = "jobStatus";
+    static final String SOURCE_ID = "v2JobStatusMonitor";
 
-    private final WorkerStateMonitor workerStateMonitor;
-    private final AgentMonitorConfiguration config;
-    private final AgentStatusMonitorMetrics metrics;
-    private final Scheduler scheduler;
+    static final String HEALTHY_MESSAGE = "No task failures registered.";
+    static final String UNHEALTHY_MESSAGE = "Multiple task failures registered";
+    static final String TERMINATED_MESSAGE = "Agent terminated";
+
+    private final AgentMonitorConfiguration agentMonitorConfiguration;
     private final AgentManagementService agentManagementService;
+    private final WorkerStateMonitor workerStateMonitor;
+    private final Registry registry;
+    private final Scheduler scheduler;
+
+    private StreamStatusMonitor delegate;
 
     @Inject
-    public V2JobStatusMonitor(AgentManagementService agentManagementService,
+    public V2JobStatusMonitor(AgentMonitorConfiguration agentMonitorConfiguration,
+                              AgentManagementService agentManagementService,
                               WorkerStateMonitor workerStateMonitor,
-                              AgentMonitorConfiguration config,
                               Registry registry) {
-        this(agentManagementService, workerStateMonitor, config, registry, Schedulers.computation());
+        this(agentMonitorConfiguration, agentManagementService, workerStateMonitor, registry, Schedulers.computation());
     }
 
-    public V2JobStatusMonitor(AgentManagementService agentManagementService,
-                              WorkerStateMonitor workerStateMonitor,
-                              AgentMonitorConfiguration config,
-                              Registry registry,
-                              Scheduler scheduler) {
+    V2JobStatusMonitor(AgentMonitorConfiguration agentMonitorConfiguration,
+                       AgentManagementService agentManagementService,
+                       WorkerStateMonitor workerStateMonitor,
+                       Registry registry,
+                       Scheduler scheduler) {
+
+        this.agentMonitorConfiguration = agentMonitorConfiguration;
         this.agentManagementService = agentManagementService;
         this.workerStateMonitor = workerStateMonitor;
-        this.config = config;
-        this.metrics = new AgentStatusMonitorMetrics("v2JobStatusMonitor", registry);
+        this.registry = registry;
         this.scheduler = scheduler;
+    }
+
+    @Activator
+    public void enterActiveMode() {
+        this.delegate = new StreamStatusMonitor(
+                SOURCE_ID,
+                new JobStatusEvaluator(workerStateMonitor, agentMonitorConfiguration, agentManagementService, scheduler).getAgentStatusObservable(),
+                registry,
+                scheduler
+        );
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        if (delegate != null) {
+            delegate.shutdown();
+        }
+    }
+
+    @Override
+    public AgentStatus getStatus(String agentInstanceId) {
+        Preconditions.checkState(delegate != null, "V2JobStatusMonitor not activated yet");
+        try {
+            return delegate.getStatus(agentInstanceId);
+        } catch (AgentManagementException e) {
+            // If no data present, assume it is healthy
+            AgentInstance agentInstance = agentManagementService.getAgentInstance(agentInstanceId);
+            return AgentStatus.healthy(SOURCE_ID, agentInstance, "Setting default status to healthy", scheduler.now());
+        }
     }
 
     @Override
     public Observable<AgentStatus> monitor() {
-        return workerStateMonitor.getAllStatusObservable()
-                .filter(this::isActionableStatus)
-                .groupBy(Status::getInstanceId)
-                .flatMap(groupedObservable -> monitorAgent(groupedObservable, groupedObservable.getKey()));
-    }
-
-    private Observable<? extends AgentStatus> monitorAgent(GroupedObservable<String, Status> groupedObservable, String instanceId) {
-        final HostErrors hostErrors = new HostErrors();
-
-        return groupedObservable
-                .timeout(config.getDeadAgentTimeout(), TimeUnit.MILLISECONDS, scheduler)
-                .flatMap(status -> {
-                    HostStatus hostStatus = hostErrors.addAndGetCurrentHostStatus(status);
-
-                    AgentInstance instance;
-                    try {
-                        instance = agentManagementService.getAgentInstance(instanceId);
-                    } catch (AgentManagementException e) {
-                        logger.warn("Received job status update for agent {} witch is unknown to agent management subsystem", e);
-                        return Observable.empty();
-                    }
-
-                    logger.debug("[{}] evaluated job status={}", instanceId, hostStatus);
-                    switch (hostStatus) {
-                        case Ok:
-                            AgentStatus okStatus = AgentStatus.healthy(SOURCE_ID, instance);
-                            metrics.statusChanged(okStatus);
-                            return Observable.just(okStatus);
-                        case Bad:
-                            AgentStatus badStatus = AgentStatus.unhealthy(
-                                    SOURCE_ID, instance,
-                                    config.getFailingAgentIsolationTime(), scheduler.now()
-                            );
-                            metrics.statusChanged(badStatus);
-                            return Observable.just(badStatus);
-                    }
-                    return Observable.empty();
-                })
-                .materialize()
-                .map(notification -> {
-                    switch (notification.getKind()) {
-                        case OnNext:
-                            return notification.getValue();
-                        case OnError:
-                            // We do not care about this error. Usually this will be timeout for an agent that was terminated.
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("Agent {} groupedObservable terminated due to an error", notification.getThrowable());
-                            }
-                            break;
-                        case OnCompleted:
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("Agent {} groupedObservable completed");
-                            }
-                            break;
-                    }
-                    return null;
-                })
-                .filter(Objects::nonNull)
-                .doOnSubscribe(() -> metrics.agentAdded(instanceId))
-                .doOnUnsubscribe(() -> {
-                    metrics.agentRemoved(instanceId);
-                    agentDisconnected(instanceId);
-                });
-    }
-
-    private boolean isActionableStatus(Status status) {
-        return status.getInstanceId() != null && (isOnSlaveState(status.getState()) || isErrorState(status.getState()));
-    }
-
-    protected void agentDisconnected(String hostname) {
-        logger.info("Lack of activity detected from agent {}; disconnecting", hostname);
+        return delegate.monitor();
     }
 
     private enum HostStatus {Ok, Bad, Undecided}
 
-    private class HostErrors {
+    private static class JobStatusEvaluator {
 
-        private final Deque<Long> errorTimestamps = new LinkedList<>();
+        private final Observable<AgentStatus> agentStatusObservable;
+        private final AgentMonitorConfiguration config;
+        private final AgentManagementService agentManagementService;
+        private final Scheduler scheduler;
 
-        HostStatus addAndGetCurrentHostStatus(Status status) {
-            if (status.getState() == V2JobState.Started) {
-                if (!errorTimestamps.isEmpty()) {
-                    errorTimestamps.clear();
-                }
-                return HostStatus.Ok;
-            }
-            long now = scheduler.now();
-            if (isAgentAtFault(status)) {
-                errorTimestamps.add(now);
-            }
-            final long checkpoint = now - config.getFailingAgentErrorCheckWindow();
-            while (!errorTimestamps.isEmpty() && errorTimestamps.peekFirst() < checkpoint) {
-                errorTimestamps.removeFirst();
-            }
-            return errorTimestamps.size() > config.getFailingAgentErrorCheckCount()
-                    ? HostStatus.Bad
-                    : HostStatus.Undecided;
+        private JobStatusEvaluator(WorkerStateMonitor workerStateMonitor,
+                                   AgentMonitorConfiguration config,
+                                   AgentManagementService agentManagementService,
+                                   Scheduler scheduler) {
+            this.config = config;
+            this.agentManagementService = agentManagementService;
+            this.scheduler = scheduler;
+
+            this.agentStatusObservable = workerStateMonitor.getAllStatusObservable()
+                    .filter(this::isActionableStatus)
+                    .compose(mapWithState(new HashMap<>(), this::toAgentStatusUpdate, cleanupActions()))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get);
         }
 
-        private boolean isAgentAtFault(Status status) {
-            V2JobState state = status.getState();
-            if (state != V2JobState.Failed) {
-                return false;
+        private Observable<AgentStatus> getAgentStatusObservable() {
+            return agentStatusObservable;
+        }
+
+        private Observable<Function<HashMap<String, HostErrors>, Pair<Optional<AgentStatus>, HashMap<String, HostErrors>>>> cleanupActions() {
+            return agentManagementService.events(true)
+                    .filter(event -> event instanceof AgentInstanceRemovedEvent)
+                    .map(event -> {
+                        return hostErrors -> {
+                            HostErrors removed = hostErrors.remove(((AgentInstanceRemovedEvent) event).getAgentInstanceId());
+                            if (removed != null) {
+                                AgentStatus terminatedStatus = AgentStatus.terminated(SOURCE_ID, removed.getAgentInstance(), TERMINATED_MESSAGE, scheduler.now());
+                                return Pair.of(Optional.of(terminatedStatus), hostErrors);
+                            }
+                            return Pair.of(Optional.empty(), hostErrors);
+                        };
+                    });
+        }
+
+        private Pair<Optional<AgentStatus>, HashMap<String, HostErrors>> toAgentStatusUpdate(Status taskStatus, HashMap<String, HostErrors> hostErrorMap) {
+            String instanceId = taskStatus.getInstanceId();
+            AgentInstance instance;
+            try {
+                instance = agentManagementService.getAgentInstance(instanceId);
+            } catch (AgentManagementException e) {
+                logger.warn("Received job status update for agent {} witch is unknown to agent management subsystem", e);
+                hostErrorMap.remove(instanceId);
+                return Pair.of(Optional.empty(), hostErrorMap);
             }
-            return status.getReason() != null && status.getReason() == JobCompletedReason.Lost;
+
+            HostErrors hostErrors = hostErrorMap.get(instanceId);
+            if (hostErrors == null) {
+                hostErrorMap.put(instanceId, hostErrors = new HostErrors());
+            }
+            HostStatus hostStatus = hostErrors.addAndGetCurrentHostStatus(instance, taskStatus);
+
+            logger.debug("[{}] evaluated job status={}", instanceId, hostStatus);
+            switch (hostStatus) {
+                case Ok:
+                    AgentStatus okStatus = AgentStatus.healthy(SOURCE_ID, instance, HEALTHY_MESSAGE, scheduler.now());
+                    return Pair.of(Optional.of(okStatus), hostErrorMap);
+                case Bad:
+                    AgentStatus badStatus = AgentStatus.unhealthy(SOURCE_ID, instance, UNHEALTHY_MESSAGE, scheduler.now());
+                    return Pair.of(Optional.of(badStatus), hostErrorMap);
+            }
+            return Pair.of(Optional.empty(), hostErrorMap);
+        }
+
+        private boolean isActionableStatus(Status status) {
+            return status.getInstanceId() != null && (isOnSlaveState(status.getState()) || isErrorState(status.getState()));
+        }
+
+        private class HostErrors {
+
+            private final Deque<Long> errorTimestamps = new LinkedList<>();
+            private AgentInstance agentInstance;
+
+            HostStatus addAndGetCurrentHostStatus(AgentInstance instance, Status status) {
+                this.agentInstance = instance;
+                if (status.getState() == V2JobState.Started) {
+                    if (!errorTimestamps.isEmpty()) {
+                        errorTimestamps.clear();
+                    }
+                    return HostStatus.Ok;
+                }
+                long now = scheduler.now();
+                if (isAgentAtFault(status)) {
+                    errorTimestamps.add(now);
+                }
+                final long checkpoint = now - config.getFailingAgentErrorCheckWindow();
+                while (!errorTimestamps.isEmpty() && errorTimestamps.peekFirst() < checkpoint) {
+                    errorTimestamps.removeFirst();
+                }
+                return errorTimestamps.size() > config.getFailingAgentErrorCheckCount()
+                        ? HostStatus.Bad
+                        : HostStatus.Undecided;
+            }
+
+            AgentInstance getAgentInstance() {
+                return agentInstance;
+            }
+
+            private boolean isAgentAtFault(Status status) {
+                V2JobState state = status.getState();
+                if (state != V2JobState.Failed) {
+                    return false;
+                }
+                return status.getReason() != null && status.getReason() == JobCompletedReason.Lost;
+            }
         }
     }
 }

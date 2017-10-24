@@ -17,11 +17,17 @@
 package io.netflix.titus.common.util.rx;
 
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;
 import rx.Observable;
+import rx.subjects.PublishSubject;
 
 import static io.netflix.titus.common.util.rx.ObservableExt.mapWithState;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,5 +40,32 @@ public class MapWithStateTransformerTest {
                 .compose(mapWithState("START", (next, state) -> Pair.of(state + " -> " + next, next)))
                 .toList().toBlocking().first();
         assertThat(all).contains("START -> a", "a -> b");
+    }
+
+    @Test
+    public void testStatePropagationWithCleanup() throws Exception {
+        PublishSubject<String> source = PublishSubject.create();
+        PublishSubject<Function<List<String>, Pair<String, List<String>>>> cleanupActions = PublishSubject.create();
+
+        ExtTestSubscriber<String> testSubscriber = new ExtTestSubscriber<>();
+        source.compose(mapWithState(new ArrayList<>(),
+                (next, state) -> Pair.of(
+                        state.stream().collect(Collectors.joining(",")) + " + " + next,
+                        CollectionsExt.copyAndAdd(state, next)
+                ),
+                cleanupActions
+        )).subscribe(testSubscriber);
+
+        source.onNext("a");
+        assertThat(testSubscriber.takeNext()).isEqualTo(" + a");
+
+        source.onNext("b");
+        assertThat(testSubscriber.takeNext()).isEqualTo("a + b");
+
+        cleanupActions.onNext(list -> Pair.of("removed " + list.get(0), list.subList(1, list.size())));
+        assertThat(testSubscriber.takeNext()).isEqualTo("removed a");
+
+        source.onNext("c");
+        assertThat(testSubscriber.takeNext()).isEqualTo("b + c");
     }
 }

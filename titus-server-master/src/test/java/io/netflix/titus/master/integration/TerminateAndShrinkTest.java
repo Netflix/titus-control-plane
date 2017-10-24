@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 import org.apache.mesos.Protos;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -238,6 +239,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testScalingUpWithMultipleTombstones() throws Exception {
         TitusJobSpec largeTaskSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
                 .instancesMin(0).instancesDesired(1).instancesMax(100)

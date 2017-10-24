@@ -129,10 +129,11 @@ public class EmbeddedTitusMaster {
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
 
-        Properties jettyConfig = new Properties();
-        jettyConfig.put("governator.jetty.embedded.port", apiPort);
-        jettyConfig.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
-        config.setProperties(jettyConfig);
+        Properties embeddedProperties = new Properties();
+        embeddedProperties.put("governator.jetty.embedded.port", apiPort);
+        embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
+        embeddedProperties.put("mantis.agent.cluster.autoscaler.map.hostname.attribute.name", "id");
+        config.setProperties(embeddedProperties);
 
         this.simulatedCloud = builder.simulatedCloud == null ? new SimulatedCloud() : builder.simulatedCloud;
         builder.agentClusters.forEach(simulatedCloud::addInstanceGroup);

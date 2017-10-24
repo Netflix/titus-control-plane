@@ -23,8 +23,6 @@ import rx.Scheduler;
 
 final class AgentStatusSamples {
 
-    public static final long DEFAULT_DISABLE_TIME = 60 * 1000;
-
     private static final AgentInstance AGENT = AgentGenerator.agentInstances().getValue();
 
     private final String sourceId;
@@ -34,18 +32,18 @@ final class AgentStatusSamples {
     public AgentStatusSamples(String sourceId, Scheduler scheduler) {
         this.sourceId = sourceId;
         this.scheduler = scheduler;
-        this.ok = AgentStatus.healthy(sourceId, AGENT);
+        this.ok = AgentStatus.healthy(sourceId, AGENT, "Sample", scheduler.now());
     }
 
     public AgentStatus getOk() {
         return ok;
     }
 
-    public AgentStatus getBad() {
-        return getBad(DEFAULT_DISABLE_TIME);
+    public AgentStatus getTerminated() {
+        return AgentStatus.terminated(sourceId, AGENT, "Sample", scheduler.now());
     }
 
-    public AgentStatus getBad(long disableTime) {
-        return AgentStatus.unhealthy(sourceId, AGENT, disableTime, scheduler.now());
+    public AgentStatus getBad() {
+        return AgentStatus.unhealthy(sourceId, AGENT, "Sample", scheduler.now());
     }
 }

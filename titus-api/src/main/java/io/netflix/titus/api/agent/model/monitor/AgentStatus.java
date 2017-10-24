@@ -16,6 +16,9 @@
 
 package io.netflix.titus.api.agent.model.monitor;
 
+import java.util.Collections;
+import java.util.List;
+
 import io.netflix.titus.api.agent.model.AgentInstance;
 
 /**
@@ -24,7 +27,7 @@ import io.netflix.titus.api.agent.model.AgentInstance;
  */
 public final class AgentStatus {
 
-    public enum AgentStatusCode {Healthy, Unhealthy}
+    public enum AgentStatusCode {Healthy, Unhealthy, Terminated}
 
     /**
      * A unique id of source providing status value.
@@ -42,9 +45,10 @@ public final class AgentStatus {
     private final AgentStatusCode statusCode;
 
     /**
-     * Amount of time in milliseconds the node should be taken out of service if in unhealthy state.
+     * Additional information about the current state. In case of unhealthy or unknown states, it should indicate the
+     * root cause of it.
      */
-    private final long disableTime;
+    private final String description;
 
     /**
      * Time when agent status information was issued. The effective agent disable time must be compensated by the
@@ -52,19 +56,30 @@ public final class AgentStatus {
      */
     private final long emitTime;
 
-    private AgentStatus(String sourceId, AgentInstance agentInstance, AgentStatusCode statusCode, long disableTime, long emitTime) {
+    /**
+     * For agent status evaluators aggregating other evaluators, provides the underlying results.
+     */
+    private final List<AgentStatus> components;
+
+    private AgentStatus(String sourceId,
+                        AgentInstance agentInstance,
+                        AgentStatusCode statusCode,
+                        String description,
+                        long emitTime,
+                        List<AgentStatus> components) {
         this.sourceId = sourceId;
         this.agentInstance = agentInstance;
         this.statusCode = statusCode;
-        this.disableTime = disableTime;
+        this.description = description;
         this.emitTime = emitTime;
+        this.components = components;
     }
 
     public String getSourceId() {
         return sourceId;
     }
 
-    public AgentInstance getInstance() {
+    public AgentInstance getAgentInstance() {
         return agentInstance;
     }
 
@@ -72,12 +87,16 @@ public final class AgentStatus {
         return statusCode;
     }
 
-    public long getDisableTime() {
-        return disableTime;
+    public String getDescription() {
+        return description;
     }
 
     public long getEmitTime() {
         return emitTime;
+    }
+
+    public List<AgentStatus> getComponents() {
+        return components;
     }
 
     @Override
@@ -91,9 +110,6 @@ public final class AgentStatus {
 
         AgentStatus that = (AgentStatus) o;
 
-        if (disableTime != that.disableTime) {
-            return false;
-        }
         if (emitTime != that.emitTime) {
             return false;
         }
@@ -103,7 +119,13 @@ public final class AgentStatus {
         if (agentInstance != null ? !agentInstance.equals(that.agentInstance) : that.agentInstance != null) {
             return false;
         }
-        return statusCode == that.statusCode;
+        if (statusCode != that.statusCode) {
+            return false;
+        }
+        if (description != null ? !description.equals(that.description) : that.description != null) {
+            return false;
+        }
+        return components != null ? components.equals(that.components) : that.components == null;
     }
 
     @Override
@@ -111,8 +133,9 @@ public final class AgentStatus {
         int result = sourceId != null ? sourceId.hashCode() : 0;
         result = 31 * result + (agentInstance != null ? agentInstance.hashCode() : 0);
         result = 31 * result + (statusCode != null ? statusCode.hashCode() : 0);
-        result = 31 * result + (int) (disableTime ^ (disableTime >>> 32));
+        result = 31 * result + (description != null ? description.hashCode() : 0);
         result = 31 * result + (int) (emitTime ^ (emitTime >>> 32));
+        result = 31 * result + (components != null ? components.hashCode() : 0);
         return result;
     }
 
@@ -122,23 +145,33 @@ public final class AgentStatus {
                 "sourceId='" + sourceId + '\'' +
                 ", agentInstance=" + agentInstance +
                 ", statusCode=" + statusCode +
-                ", disableTime=" + disableTime +
+                ", description='" + description + '\'' +
                 ", emitTime=" + emitTime +
+                ", components=" + components +
                 '}';
     }
 
-    public static AgentStatus healthy(String sourceId, AgentInstance agentInstance) {
-        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Healthy, -1, -1);
+    public static AgentStatus healthy(String sourceId, AgentInstance agentInstance, String description, long emitTime) {
+        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Healthy, description, emitTime, Collections.emptyList());
     }
 
-    public static AgentStatus healthy(AgentStatus status) {
-        if (status.getStatusCode() == AgentStatusCode.Healthy) {
-            return status;
-        }
-        return healthy(status.getSourceId(), status.getInstance());
+    public static AgentStatus healthy(String sourceId, AgentInstance agentInstance, String description, long emitTime, List<AgentStatus> components) {
+        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Healthy, description, emitTime, components);
     }
 
-    public static AgentStatus unhealthy(String sourceId, AgentInstance agentInstance, long disableTime, long emitTime) {
-        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Unhealthy, disableTime, emitTime);
+    public static AgentStatus unhealthy(String sourceId, AgentInstance agentInstance, String description, long emitTime) {
+        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Unhealthy, description, emitTime, Collections.emptyList());
+    }
+
+    public static AgentStatus unhealthy(String sourceId, AgentInstance agentInstance, String description, long emitTime, List<AgentStatus> components) {
+        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Unhealthy, description, emitTime, components);
+    }
+
+    public static AgentStatus terminated(String sourceId, AgentInstance agentInstance, String description, long emitTime) {
+        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Terminated, description, emitTime, Collections.emptyList());
+    }
+
+    public static AgentStatus terminated(String sourceId, AgentInstance agentInstance, String description, long emitTime, List<AgentStatus> components) {
+        return new AgentStatus(sourceId, agentInstance, AgentStatusCode.Terminated, description, emitTime, components);
     }
 }

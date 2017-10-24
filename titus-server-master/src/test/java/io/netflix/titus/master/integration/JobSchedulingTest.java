@@ -136,6 +136,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30000)
+    @Ignore
     public void submitGpuBatchJob() throws Exception {
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.batch, "myjob")).gpu(1).build();
         TaskExecutorHolder taskHolder = runBatchJob(jobSpec);

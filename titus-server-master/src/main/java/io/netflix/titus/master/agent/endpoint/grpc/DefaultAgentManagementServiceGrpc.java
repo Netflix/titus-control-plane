@@ -17,7 +17,6 @@
 package io.netflix.titus.master.agent.endpoint.grpc;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -39,12 +38,15 @@ import com.netflix.titus.grpc.protogen.TierUpdate;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import io.netflix.titus.api.agent.model.InstanceOverrideStatus;
+import io.netflix.titus.api.agent.model.event.AgentEvent;
+import io.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
+import rx.Observable;
 
 import static io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcAgentInstance;
 import static io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcAgentInstanceGroup;
@@ -87,7 +89,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     public void getAgentInstance(Id request, StreamObserver<AgentInstance> responseObserver) {
         execute(responseObserver, user -> {
             io.netflix.titus.api.agent.model.AgentInstance instance = agentManagementService.getAgentInstance(request.getId());
-            Optional<AgentStatus> status = agentStatusMonitor.getCurrent(request.getId());
+            AgentStatus status = agentStatusMonitor.getStatus(request.getId());
             AgentInstance grpcEntity = toGrpcAgentInstance(instance, status);
             responseObserver.onNext(grpcEntity);
         });
@@ -98,7 +100,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
         execute(responseObserver, user -> {
             List<AgentInstance> all = AgentQueryExecutor.findAgentInstances(query, agentManagementService).stream()
                     .map(coreAgentInstance -> {
-                        Optional<AgentStatus> status = agentStatusMonitor.getCurrent(coreAgentInstance.getId());
+                        AgentStatus status = agentStatusMonitor.getStatus(coreAgentInstance.getId());
                         return GrpcAgentModelConverters.toGrpcAgentInstance(coreAgentInstance, status);
                     })
                     .collect(Collectors.toList());
@@ -168,7 +170,14 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     @Override
     public void observeAgents(Empty request, StreamObserver<AgentChangeEvent> responseObserver) {
-        agentManagementService.events(true).map(agentEvent -> GrpcAgentModelConverters.toGrpcEvent(agentEvent, agentStatusMonitor)).subscribe(
+        Observable<AgentEvent> statusUpdateEvents = agentStatusMonitor.monitor().flatMap(update -> {
+            if (update.getStatusCode() != AgentStatus.AgentStatusCode.Terminated) {
+                return Observable.just(new AgentInstanceUpdateEvent(update.getAgentInstance()));
+            }
+            return Observable.empty();
+        });
+        Observable.merge(agentManagementService.events(true), statusUpdateEvents)
+                .map(agentEvent -> GrpcAgentModelConverters.toGrpcEvent(agentEvent, agentStatusMonitor)).subscribe(
                 event -> event.ifPresent(responseObserver::onNext),
                 responseObserver::onError,
                 responseObserver::onCompleted

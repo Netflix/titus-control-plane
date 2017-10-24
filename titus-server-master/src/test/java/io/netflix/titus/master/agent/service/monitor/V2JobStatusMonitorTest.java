@@ -17,9 +17,10 @@
 package io.netflix.titus.master.agent.service.monitor;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import io.netflix.titus.api.agent.model.event.AgentEvent;
+import io.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.master.Status;
@@ -37,19 +38,19 @@ import static io.netflix.titus.master.StatusSamples.SAMPLE_AGENT_1;
 import static io.netflix.titus.master.StatusSamples.SAMPLE_AGENT_2;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class V2JobStatusMonitorTest {
 
-    private static final AgentStatus JOB_STATUS_OK = AgentStatus.healthy(V2JobStatusMonitor.SOURCE_ID, SAMPLE_AGENT_1);
-    private static final AgentStatus JOB2_STATUS_OK = AgentStatus.healthy(V2JobStatusMonitor.SOURCE_ID, SAMPLE_AGENT_2);
+    private static final AgentStatus JOB_STATUS_OK = AgentStatus.healthy(V2JobStatusMonitor.SOURCE_ID, SAMPLE_AGENT_1, V2JobStatusMonitor.HEALTHY_MESSAGE, 0);
+    private static final AgentStatus JOB2_STATUS_OK = AgentStatus.healthy(V2JobStatusMonitor.SOURCE_ID, SAMPLE_AGENT_2, V2JobStatusMonitor.HEALTHY_MESSAGE, 0);
 
     private static final AgentStatus JOB_STATUS_BAD = AgentStatus.unhealthy(
-            V2JobStatusMonitor.SOURCE_ID, StatusSamples.SAMPLE_AGENT_1, DefaultConfiguration.CONFIG.getFailingAgentIsolationTime(), 0
+            V2JobStatusMonitor.SOURCE_ID, StatusSamples.SAMPLE_AGENT_1, V2JobStatusMonitor.UNHEALTHY_MESSAGE, 0
     );
+    private static final AgentStatus JOB_STATUS_TERMINATED = AgentStatus.terminated(V2JobStatusMonitor.SOURCE_ID, StatusSamples.SAMPLE_AGENT_1,V2JobStatusMonitor.TERMINATED_MESSAGE,  0);
 
     private final TestScheduler testScheduler = Schedulers.test();
     private final MonitorTestSubscriber monitorSubscriber = new MonitorTestSubscriber();
@@ -58,9 +59,8 @@ public class V2JobStatusMonitorTest {
 
     private final WorkerStateMonitor workerStateMonitor = mock(WorkerStateMonitor.class);
 
+    private final PublishSubject<AgentEvent> agentUpdateSubject = PublishSubject.create();
     private final PublishSubject<Status> statusObservable = PublishSubject.create();
-
-    private final AtomicReference<String> disconnectedHostRef = new AtomicReference<>();
 
     private Subscription monitorSubscription;
 
@@ -68,15 +68,13 @@ public class V2JobStatusMonitorTest {
     public void setUp() throws Exception {
         when(agentManagementService.getAgentInstance(SAMPLE_AGENT_1.getId())).thenReturn(SAMPLE_AGENT_1);
         when(agentManagementService.getAgentInstance(SAMPLE_AGENT_2.getId())).thenReturn(SAMPLE_AGENT_2);
+        when(agentManagementService.events(true)).thenReturn(agentUpdateSubject);
 
         when(workerStateMonitor.getAllStatusObservable()).thenReturn(statusObservable);
-        monitorSubscription = new V2JobStatusMonitor(agentManagementService, workerStateMonitor, DefaultConfiguration.CONFIG, new DefaultRegistry(), testScheduler) {
-            @Override
-            protected void agentDisconnected(String hostname) {
-                super.agentDisconnected(hostname);
-                disconnectedHostRef.set(hostname);
-            }
-        }.monitor().subscribe(monitorSubscriber);
+        V2JobStatusMonitor monitor = new V2JobStatusMonitor(DefaultConfiguration.CONFIG, agentManagementService, workerStateMonitor, new DefaultRegistry(), testScheduler);
+        monitor.enterActiveMode();
+
+        monitorSubscription = monitor.monitor().subscribe(monitorSubscriber);
     }
 
     @After
@@ -135,22 +133,11 @@ public class V2JobStatusMonitorTest {
     public void testDeadNodeSubscriptionIsTerminated() throws Exception {
         statusObservable.onNext(StatusSamples.STATUS_STARTED);
         statusObservable.onNext(StatusSamples.STATUS_2_STARTED);
-
-        // Advance time, just before timeout, and push update for second agent
-        testScheduler.advanceTimeBy(DefaultConfiguration.CONFIG.getDeadAgentTimeout() - 1, TimeUnit.MILLISECONDS);
-        statusObservable.onNext(StatusSamples.STATUS_2_STARTED);
-
-        // Cross the timeout of first agent
-        testScheduler.advanceTimeBy(2, TimeUnit.MILLISECONDS);
-
-        assertThat(disconnectedHostRef.get(), is(notNullValue()));
-        assertThat(monitorSubscriber.isUnsubscribed(), is(false));
-
-        // Now emit one more event for second agent
-        statusObservable.onNext(StatusSamples.STATUS_2_STARTED);
         testScheduler.triggerActions();
+        monitorSubscriber.verifyEmitted(JOB_STATUS_OK, JOB2_STATUS_OK);
 
-        monitorSubscriber.verifyEmitted(JOB_STATUS_OK, JOB2_STATUS_OK, JOB2_STATUS_OK, JOB2_STATUS_OK);
+        agentUpdateSubject.onNext(new AgentInstanceRemovedEvent(StatusSamples.STATUS_STARTED.getInstanceId()));
+        monitorSubscriber.verifyEmitted(JOB_STATUS_TERMINATED);
     }
 
     private void runTimes(int count, Runnable runnable) {

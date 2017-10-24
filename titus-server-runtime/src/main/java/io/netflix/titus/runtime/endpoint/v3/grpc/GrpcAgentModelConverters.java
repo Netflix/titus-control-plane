@@ -16,10 +16,11 @@
 
 package io.netflix.titus.runtime.endpoint.v3.grpc;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
-import com.netflix.titus.grpc.protogen.HealthState;
 import com.netflix.titus.grpc.protogen.HealthStatus;
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -42,12 +43,6 @@ import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 
 public class GrpcAgentModelConverters {
-
-    private static final HealthStatus HEALTH_STATUS_UNKNOWN = HealthStatus.newBuilder()
-            .setState(HealthState.Unknown)
-            .setDetail("Health status not determined yet")
-            .setTimestamp(System.currentTimeMillis())
-            .build();
 
     public static com.netflix.titus.grpc.protogen.AgentInstanceGroup toGrpcAgentInstanceGroup(AgentInstanceGroup coreAgentGroup) {
         return com.netflix.titus.grpc.protogen.AgentInstanceGroup.newBuilder()
@@ -78,9 +73,8 @@ public class GrpcAgentModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.grpc.protogen.AgentInstance toGrpcAgentInstance(AgentInstance coreAgentInstance, Optional<AgentStatus> agentStatus) {
-        com.netflix.titus.grpc.protogen.HealthStatus healthStatus =
-                agentStatus.map(GrpcAgentModelConverters::toGrpcHealthStatus).orElse(HEALTH_STATUS_UNKNOWN);
+    public static com.netflix.titus.grpc.protogen.AgentInstance toGrpcAgentInstance(AgentInstance coreAgentInstance, AgentStatus agentStatus) {
+        com.netflix.titus.grpc.protogen.HealthStatus healthStatus = toGrpcHealthStatus(agentStatus);
 
         return com.netflix.titus.grpc.protogen.AgentInstance.newBuilder()
                 .setId(coreAgentInstance.getId())
@@ -214,11 +208,20 @@ public class GrpcAgentModelConverters {
     }
 
     public static com.netflix.titus.grpc.protogen.HealthStatus toGrpcHealthStatus(AgentStatus agentStatus) {
-        return com.netflix.titus.grpc.protogen.HealthStatus.newBuilder()
+        HealthStatus.Builder builder = HealthStatus.newBuilder()
+                .setSourceId(agentStatus.getSourceId())
                 .setState(toGrpcHealthState(agentStatus.getStatusCode()))
-                .setDetail(agentStatus.toString())
-                .setTimestamp(agentStatus.getEmitTime())
-                .build();
+                .setDetail(agentStatus.getDescription())
+                .setTimestamp(agentStatus.getEmitTime());
+
+        if (!agentStatus.getComponents().isEmpty()) {
+            List<HealthStatus> components = agentStatus.getComponents().stream()
+                    .map(GrpcAgentModelConverters::toGrpcHealthStatus)
+                    .collect(Collectors.toList());
+            builder.addAllComponents(components);
+        }
+
+        return builder.build();
     }
 
     public static Tier toCoreTier(com.netflix.titus.grpc.protogen.Tier grpcTier) {
@@ -258,7 +261,7 @@ public class GrpcAgentModelConverters {
                     .build();
         } else if (agentEvent instanceof AgentInstanceUpdateEvent) {
             AgentInstance instance = ((AgentInstanceUpdateEvent) agentEvent).getAgentInstance();
-            Optional<AgentStatus> status = agentStatusMonitor.getCurrent(instance.getId());
+            AgentStatus status = agentStatusMonitor.getStatus(instance.getId());
             com.netflix.titus.grpc.protogen.AgentInstance agentInstance = toGrpcAgentInstance(instance, status);
 
             event = AgentChangeEvent.newBuilder()

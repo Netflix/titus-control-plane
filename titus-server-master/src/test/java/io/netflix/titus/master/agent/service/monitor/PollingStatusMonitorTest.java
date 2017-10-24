@@ -18,6 +18,7 @@ package io.netflix.titus.master.agent.service.monitor;
 
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Preconditions;
 import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -38,30 +39,36 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class HealthStatusMonitorTest {
+public class PollingStatusMonitorTest {
+
+    private static final String MY_SOURCE_ID = "TEST";
 
     private final TestScheduler testScheduler = Schedulers.test();
+
     private final MonitorTestSubscriber monitorSubscriber = new MonitorTestSubscriber();
 
     private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
-    private final HealthStatusMonitor.AgentHealthResolver healthResolver = mock(HealthStatusMonitor.AgentHealthResolver.class);
 
     private AgentInstanceGroup instanceGroup;
     private AgentInstance agentInstance;
+
     private AgentStatus statusOk;
+    private AgentStatus statusBad;
+
+    private AgentStatus currentAgentStatus;
 
     @Before
     public void setUp() throws Exception {
         this.instanceGroup = AgentGenerator.agentServerGroups().getValue();
         this.agentInstance = agentInstances(instanceGroup).getValue();
-        this.statusOk = AgentStatus.healthy(HealthStatusMonitor.SOURCE_ID, agentInstance);
+        this.statusOk = AgentStatus.healthy(MY_SOURCE_ID, agentInstance, "Ok", 0);
+        this.statusBad = AgentStatus.unhealthy(MY_SOURCE_ID, agentInstance, "Bad", 0);
+
+        this.currentAgentStatus = statusOk;
 
         when(agentManagementService.findAgentInstances(any())).thenReturn(singletonList(Pair.of(instanceGroup, singletonList(agentInstance))));
-        when(healthResolver.isHealthy(statusOk.getInstance().getId())).thenReturn(true);
 
-        new HealthStatusMonitor(agentManagementService, healthResolver, DefaultConfiguration.CONFIG, new DefaultRegistry(), testScheduler)
-                .monitor()
-                .subscribe(monitorSubscriber);
+        new MyPollingStatusMonitor().monitor().subscribe(monitorSubscriber);
     }
 
     @Test
@@ -69,41 +76,33 @@ public class HealthStatusMonitorTest {
         // Immediate check at the subscription time
         testScheduler.triggerActions();
         verify(agentManagementService, times(1)).findAgentInstances(any());
-        verify(healthResolver, times(1)).isHealthy(statusOk.getInstance().getId());
         monitorSubscriber.verifyEmitted(statusOk);
 
         // Next healthy check
         testScheduler.advanceTimeBy(DefaultConfiguration.CONFIG.getHealthPollingInterval(), TimeUnit.MILLISECONDS);
         verify(agentManagementService, times(2)).findAgentInstances(any());
-        verify(healthResolver, times(2)).isHealthy(statusOk.getInstance().getId());
-        monitorSubscriber.verifyEmitted(statusOk);
+        monitorSubscriber.verifyNothingEmitted();
 
         // Next unhealthy check
-        when(healthResolver.isHealthy(statusOk.getInstance().getId())).thenReturn(false);
-
+        currentAgentStatus = statusBad;
         testScheduler.advanceTimeBy(DefaultConfiguration.CONFIG.getHealthPollingInterval(), TimeUnit.MILLISECONDS);
         verify(agentManagementService, times(3)).findAgentInstances(any());
-        verify(healthResolver, times(3)).isHealthy(statusOk.getInstance().getId());
-        monitorSubscriber.verifyEmitted(badFor(agentInstance));
+        monitorSubscriber.verifyEmitted(statusBad);
     }
 
     @Test
     public void testExceptionInHealthCheckResolverDoesNotBreakMonitor() throws Exception {
-        when(healthResolver.isHealthy(statusOk.getInstance().getId()))
-                .thenThrow(new RuntimeException("simulated healthcheck error"))
-                .thenReturn(true);
-
         // First healthcheck is failing
+        currentAgentStatus = null;
         testScheduler.triggerActions();
         verify(agentManagementService, times(1)).findAgentInstances(any());
-        verify(healthResolver, times(1)).isHealthy(statusOk.getInstance().getId());
         monitorSubscriber.assertNoValues();
         monitorSubscriber.assertNoTerminalEvent();
 
         // Next healthcheck is healthy
+        currentAgentStatus = statusOk;
         testScheduler.advanceTimeBy(DefaultConfiguration.CONFIG.getHealthPollingInterval(), TimeUnit.MILLISECONDS);
         verify(agentManagementService, times(2)).findAgentInstances(any());
-        verify(healthResolver, times(2)).isHealthy(statusOk.getInstance().getId());
         monitorSubscriber.verifyEmitted(statusOk);
     }
 
@@ -116,18 +115,25 @@ public class HealthStatusMonitorTest {
         // First agent resolve is failing
         testScheduler.triggerActions();
         verify(agentManagementService, times(1)).findAgentInstances(any());
-        verify(healthResolver, times(0)).isHealthy(statusOk.getInstance().getId());
         monitorSubscriber.assertNoValues();
         monitorSubscriber.assertNoTerminalEvent();
 
         // Next agent resolve is healthy
         testScheduler.advanceTimeBy(DefaultConfiguration.CONFIG.getHealthPollingInterval(), TimeUnit.MILLISECONDS);
         verify(agentManagementService, times(2)).findAgentInstances(any());
-        verify(healthResolver, times(1)).isHealthy(statusOk.getInstance().getId());
         monitorSubscriber.verifyEmitted(statusOk);
     }
 
-    private AgentStatus badFor(AgentInstance agentInstance) {
-        return AgentStatus.unhealthy(HealthStatusMonitor.SOURCE_ID, agentInstance, HealthStatusMonitor.UNHEALTHY_NODE_DISABLE_TIME, testScheduler.now());
+    private class MyPollingStatusMonitor extends PollingStatusMonitor {
+
+        MyPollingStatusMonitor() {
+            super(MY_SOURCE_ID, agentManagementService, DefaultConfiguration.CONFIG, new DefaultRegistry(), testScheduler);
+        }
+
+        @Override
+        protected AgentStatus resolve(AgentInstance agentInstance) {
+            Preconditions.checkNotNull(currentAgentStatus, "Agent status not available");
+            return currentAgentStatus;
+        }
     }
 }

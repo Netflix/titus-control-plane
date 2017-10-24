@@ -17,23 +17,19 @@
 package io.netflix.titus.master.agent.service.monitor;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
-import io.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus.AgentStatusCode;
+import io.netflix.titus.api.agent.service.AgentManagementException;
+import io.netflix.titus.api.agent.service.AgentManagementFunctions;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -45,12 +41,9 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
 
-import static io.netflix.titus.api.agent.model.monitor.AgentStatusExt.evaluateEffectiveStatus;
-import static io.netflix.titus.api.agent.model.monitor.AgentStatusExt.isDifferent;
-import static io.netflix.titus.api.agent.model.monitor.AgentStatusExt.isExpired;
 import static io.netflix.titus.common.util.guice.ProxyType.ActiveGuard;
 import static io.netflix.titus.common.util.guice.ProxyType.Logging;
 import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
@@ -67,53 +60,38 @@ public class AggregatingAgentStatusMonitor implements AgentStatusMonitor {
 
     private static final Logger logger = LoggerFactory.getLogger(AggregatingAgentStatusMonitor.class);
 
-    /**
-     * A marker state, that replaces timeout exception for dead agents.
-     */
-    private static final AgentStatus TIMED_OUT_MARKER = AgentStatus.healthy(null, null);
-    private static final Observable<AgentStatus> TIMED_OUT_OBSERVER = Observable.just(TIMED_OUT_MARKER);
+    private static final String SOURCE_ID = "aggregatingStatusMonitor";
 
     static long INITIAL_RETRY_INTERVAL_MS = 1_000;
     static long MAX_RETRY_INTERVAL_MS = 10_000;
 
-    private final Observable<AgentStatus> aggregatedStatus;
-    private final AgentMonitorConfiguration config;
-    private final AgentManagementService agentManagementService;
     private final Registry registry;
-    private final AgentStatusMonitorMetrics metrics;
     private final Scheduler scheduler;
 
-    private final Func1<Observable<? extends Throwable>, Observable<?>> retryHandler;
+    private final AgentManagementService agentManagementService;
+    private final AgentStatusMonitorMetrics metrics;
+    private final Set<AgentStatusMonitor> delegates;
 
-    private final ConcurrentMap<String, AgentStatus> lastKnownStatusByAgentId = new ConcurrentHashMap<>();
+    private final PublishSubject<AgentStatus> statusUpdateSubject = PublishSubject.create();
 
-    private Subscription lastKnownStatusSubscription;
-    private Subscription agentEventStreamSubscription;
+    private Subscription downstreamUpdatesSubscription;
 
     public AggregatingAgentStatusMonitor(Set<AgentStatusMonitor> delegates,
-                                         AgentMonitorConfiguration config,
                                          AgentManagementService agentManagementService,
                                          Registry registry,
                                          Scheduler scheduler) {
-        this.config = config;
+        this.delegates = delegates;
         this.agentManagementService = agentManagementService;
+        this.metrics = new AgentStatusMonitorMetrics(SOURCE_ID, registry);
         this.registry = registry;
-        this.metrics = new AgentStatusMonitorMetrics("aggregatingStatusMonitor", registry);
         this.scheduler = scheduler;
-        this.retryHandler = failures -> failures.flatMap(f -> {
-                    logger.warn("Agent status monitor error", f);
-                    return Observable.timer(MAX_RETRY_INTERVAL_MS, TimeUnit.MILLISECONDS, scheduler);
-                }
-        );
-        this.aggregatedStatus = order(merge(delegates)).share();
     }
 
     @Inject
     public AggregatingAgentStatusMonitor(Set<AgentStatusMonitor> delegates,
-                                         AgentMonitorConfiguration config,
                                          AgentManagementService agentManagementService,
                                          Registry registry) {
-        this(delegates, config, agentManagementService, registry, Schedulers.computation());
+        this(delegates, agentManagementService, registry, Schedulers.computation());
     }
 
     @Activator
@@ -123,102 +101,87 @@ public class AggregatingAgentStatusMonitor implements AgentStatusMonitor {
                 .withDelay(INITIAL_RETRY_INTERVAL_MS, MAX_RETRY_INTERVAL_MS, TimeUnit.MILLISECONDS)
                 .withScheduler(scheduler);
 
-        this.lastKnownStatusSubscription = aggregatedStatus
+        Observable<AgentStatus> downstreamUpdates = Observable.merge(merge(delegates))
                 .compose(subscriptionMetrics(METRIC_AGENT_MONITOR + "monitorSubscription", AggregatingAgentStatusMonitor.class, registry))
                 .retryWhen(
                         retryTemplate.but().withTitle("agent status monitor").buildExponentialBackoff()
-                ).subscribe(agentStatus -> lastKnownStatusByAgentId.put(agentStatus.getInstance().getId(), agentStatus));
+                );
+        this.downstreamUpdatesSubscription = downstreamUpdates
+                .compose(ObservableExt.head(this::getAllStatuses))
+                .subscribe(update -> {
+                    AgentStatus aggregatedStatus;
+                    try {
+                        try {
+                            aggregatedStatus = getStatusInternal(update.getAgentInstance().getId());
+                        } catch (AgentManagementException e) {
+                            if (e.getErrorCode() != AgentManagementException.ErrorCode.AgentNotFound) {
+                                throw e;
+                            }
+                            aggregatedStatus = AgentStatus.terminated(SOURCE_ID, update.getAgentInstance(), "Terminated", scheduler.now());
+                        }
 
-        this.agentEventStreamSubscription = agentManagementService.events(false)
-                .compose(subscriptionMetrics(METRIC_AGENT_MONITOR + "agentEventsSubscription", AggregatingAgentStatusMonitor.class, registry))
-                .retryWhen(
-                        retryTemplate.but().withTitle("agent update monitor").buildExponentialBackoff()
-                ).subscribe(event -> {
-                    if (event instanceof AgentInstanceRemovedEvent) {
-                        lastKnownStatusByAgentId.remove(((AgentInstanceRemovedEvent) event).getAgentInstanceId());
+                        logger.info(AgentMonitorUtil.toStatusUpdateSummary(aggregatedStatus));
+                        metrics.statusChanged(aggregatedStatus);
+                        statusUpdateSubject.onNext(aggregatedStatus);
+                    } catch (Exception e) {
+                        logger.warn("Agent status update error", e);
                     }
                 });
     }
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(lastKnownStatusSubscription, agentEventStreamSubscription);
+        ObservableExt.safeUnsubscribe(downstreamUpdatesSubscription);
     }
 
     @Override
-    public Optional<AgentStatus> getCurrent(String agentInstanceId) {
-        return Optional.ofNullable(lastKnownStatusByAgentId.get(agentInstanceId));
+    public AgentStatus getStatus(String agentInstanceId) {
+        return getStatusInternal(agentInstanceId);
     }
 
     @Override
     public Observable<AgentStatus> monitor() {
-        return aggregatedStatus.doOnNext(metrics::statusChanged);
+        return statusUpdateSubject.asObservable();
     }
 
-    protected void agentDisconnected(String hostname) {
-        logger.info("Lack of activity detected from agent {}; disconnecting", hostname);
+    // Public method is guarded by activation framework, and we need to call it before it completes
+    private AgentStatus getStatusInternal(String agentInstanceId) {
+        List<AgentStatus> statuses = delegates.stream()
+                .map(d -> d.getStatus(agentInstanceId))
+                .collect(Collectors.toList());
+
+        AgentStatus unhealthy = null;
+        for (AgentStatus status : statuses) {
+            if (status.getStatusCode() == AgentStatusCode.Terminated) {
+                return AgentStatus.terminated(status.getSourceId(), status.getAgentInstance(), "Agent terminated", status.getEmitTime(), statuses);
+            }
+            if (status.getStatusCode() == AgentStatusCode.Unhealthy) {
+                unhealthy = status;
+            }
+        }
+        if (unhealthy != null) {
+            return AgentStatus.unhealthy(unhealthy.getSourceId(), unhealthy.getAgentInstance(), unhealthy.getSourceId() + " returned unhealthy status", unhealthy.getEmitTime(), statuses);
+        }
+
+        AgentStatus first = statuses.get(0);
+        return AgentStatus.healthy(first.getSourceId(), first.getAgentInstance(), "All downstream monitors return status healthy", scheduler.now(), statuses);
+    }
+
+    private List<AgentStatus> getAllStatuses() {
+        List<AgentStatus> result = new ArrayList<>();
+        AgentManagementFunctions.getAllInstances(agentManagementService).forEach(instance -> {
+            try {
+                result.add(getStatusInternal(instance.getId()));
+            } catch (Exception ignore) {
+                logger.warn("Expected agent instance {} not found: {}", instance.getId(), ignore.getMessage());
+            }
+        });
+        return result;
     }
 
     private List<Observable<AgentStatus>> merge(Set<AgentStatusMonitor> delegates) {
         List<Observable<AgentStatus>> sourceObservables = new ArrayList<>(delegates.size());
-        delegates.forEach(d -> sourceObservables.add(d.monitor().retryWhen(retryHandler)));
+        delegates.forEach(d -> sourceObservables.add(d.monitor()));
         return sourceObservables;
-    }
-
-    private Observable<AgentStatus> order(List<Observable<AgentStatus>> sourceObservables) {
-        return Observable.merge(sourceObservables)
-                .groupBy(status -> status.getInstance().getId())
-                .flatMap(agentGroupedObservable -> {
-                            String agentId = agentGroupedObservable.getKey();
-                            return mergeAgentStatusUpdates(
-                                    agentId,
-                                    agentGroupedObservable.timeout(config.getDeadAgentTimeout(), TimeUnit.MILLISECONDS, TIMED_OUT_OBSERVER, scheduler)
-                            )
-                                    .doOnSubscribe(() -> metrics.agentAdded(agentId))
-                                    .doOnUnsubscribe(() -> {
-                                        metrics.agentRemoved(agentId);
-                                        agentDisconnected(agentId);
-                                    });
-                        }
-                );
-    }
-
-    private Observable<AgentStatus> mergeAgentStatusUpdates(String agentId, Observable<AgentStatus> agentStatusUpdates) {
-        return Observable.unsafeCreate(subscriber -> {
-            Map<String, AgentStatus> statusBySource = new HashMap<>();
-            AtomicReference<AgentStatus> lastEmitted = new AtomicReference<>();
-            agentStatusUpdates.subscribe(
-                    next -> {
-                        if (next == TIMED_OUT_MARKER) {
-                            logger.info("Agent {} status stream closed due to long inactivity", agentId);
-                            return;
-                        }
-                        statusBySource.put(next.getSourceId(), next);
-                        AgentStatus newStatus = evaluateEffectiveStatus(statusBySource.values(), scheduler);
-                        if (isExpired(newStatus, scheduler)) {
-                            AgentStatus forceOk = AgentStatus.healthy(newStatus);
-                            subscriber.onNext(forceOk);
-                            lastEmitted.set(forceOk);
-                            logger.info("[{}->{}] effective new status is forced healthy (update={}, effective={})", agentId, AgentStatusCode.Healthy, next, newStatus);
-                        } else {
-                            if (isDifferent(newStatus, lastEmitted.get(), scheduler)) {
-                                subscriber.onNext(newStatus);
-                                logger.info("[{}->{}] changing agent state (update={}, effective={})", agentId, next.getStatusCode(), next, newStatus);
-                            } else {
-                                logger.debug("[{}->{}] effective new identical to the previous value (update={}, effective={})", agentId, next.getStatusCode(), next, newStatus);
-                            }
-                            lastEmitted.set(newStatus);
-                        }
-                    },
-                    e -> {
-                        logger.error("Agent {} status stream terminated with an error", agentId, e);
-                        subscriber.onCompleted();
-                    },
-                    () -> {
-                        logger.info("Agent {} status monitoring onCompleted", agentId);
-                        subscriber.onCompleted();
-                    }
-            );
-        });
     }
 }

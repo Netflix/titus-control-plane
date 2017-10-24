@@ -70,7 +70,6 @@ import io.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import io.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import io.netflix.titus.api.agent.service.AgentManagementFunctions;
 import io.netflix.titus.api.agent.service.AgentManagementService;
-import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
@@ -83,7 +82,6 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.common.runtime.TitusRuntime;
-import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
@@ -185,7 +183,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
     private final DefaultAutoScaleController autoScaleController;
-    private final AgentStatusMonitor agentStatusMonitor;
     private final TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory;
     private Subscription vmStateUpdateSubscription;
 
@@ -194,7 +191,6 @@ public class DefaultSchedulingService implements SchedulingService {
                                     V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
                                     DefaultAutoScaleController autoScaleController,
-                                    AgentStatusMonitor agentStatusMonitor,
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
@@ -208,7 +204,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime) {
-        this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, agentStatusMonitor, v3TaskInfoFactory, vmOps,
+        this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, config, schedulerConfiguration,
                 globalConstraintsEvaluator, constraintsEvaluators,
                 Schedulers.computation(),
@@ -221,7 +217,6 @@ public class DefaultSchedulingService implements SchedulingService {
                                     V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
                                     DefaultAutoScaleController autoScaleController,
-                                    AgentStatusMonitor agentStatusMonitor,
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
@@ -240,7 +235,6 @@ public class DefaultSchedulingService implements SchedulingService {
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.autoScaleController = autoScaleController;
-        this.agentStatusMonitor = agentStatusMonitor;
         this.v3TaskInfoFactory = v3TaskInfoFactory;
         this.vmOps = vmOps;
         this.virtualMachineService = virtualMachineService;
@@ -760,38 +754,8 @@ public class DefaultSchedulingService implements SchedulingService {
         }
 
         setupVmStatesUpdate();
-        activateAgentStatusMonitoring();
 
         return Observable.empty();
-    }
-
-    private void activateAgentStatusMonitoring() {
-        agentStatusMonitor.monitor().subscribe(
-                status -> {
-                    // Update enable/disable information only for agents known to Fenzo
-                    List<VirtualMachineCurrentState> vmsList = getVmCurrentStates();
-                    if (CollectionsExt.isNullOrEmpty(vmsList)) {
-                        return;
-                    }
-                    for (VirtualMachineCurrentState vms : vmsList) {
-                        String agentHostname = status.getInstance().getIpAddress();
-                        if (vms.getHostname().equals(agentHostname)) {
-                            switch (status.getStatusCode()) {
-                                case Healthy:
-                                    logger.info("Enabling agent {}", agentHostname);
-                                    taskScheduler.enableVM(agentHostname);
-                                    break;
-                                case Unhealthy:
-                                    logger.info("Disabling agent {} for {}ms", agentHostname, status.getDisableTime());
-                                    taskScheduler.disableVM(agentHostname, status.getDisableTime());
-                                    break;
-                            }
-                        }
-                    }
-                },
-                e -> logger.error("Agent status monitoring stream terminated with an error", e),
-                () -> logger.info("Agent status monitoring stream onCompleted")
-        );
     }
 
     public List<VirtualMachineCurrentState> getVmCurrentStates() {

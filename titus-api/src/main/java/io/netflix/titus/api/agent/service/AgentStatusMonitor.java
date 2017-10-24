@@ -16,8 +16,6 @@
 
 package io.netflix.titus.api.agent.service;
 
-import java.util.Optional;
-
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import rx.Observable;
 
@@ -30,19 +28,12 @@ public interface AgentStatusMonitor {
     /**
      * Return current health status for an agent with the given id.
      *
-     * @return {@link Optional#empty()} if status is not known
      * @throws AgentManagementException {@link AgentManagementException.ErrorCode#AgentNotFound} if the agent instance is not found
      */
-    default Optional<AgentStatus> getCurrent(String agentInstanceId) {
-        return Optional.empty();
-    }
+    AgentStatus getStatus(String agentInstanceId);
 
     /**
-     * Observable that emits {@link AgentStatus}es. If {@link AgentStatus.AgentStatusCode#Healthy} is emitted, the agent
-     * is perceived as healthy, and good to use. If {@link AgentStatus.AgentStatusCode#Unhealthy} is emitted, the agent
-     * should not be used for the amount of time indicated by the {@link AgentStatus#getDisableTime()} value. If
-     * 'healthy' status is received within disable period, it invalidates it. If disable period expires, the agent is
-     * assumed to be good again, even if no {@link AgentStatus.AgentStatusCode#Healthy} was received.
+     * Observable that emits {@link AgentStatus}es.
      */
     Observable<AgentStatus> monitor();
 }

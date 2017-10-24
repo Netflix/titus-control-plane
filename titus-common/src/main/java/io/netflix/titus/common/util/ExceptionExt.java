@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 public class ExceptionExt {
 
     public interface RunnableWithExceptions {
-
         void run() throws Exception;
     }
 
@@ -83,6 +82,14 @@ public class ExceptionExt {
                 throw (TimeoutException) cause;
             }
             throw e;
+        }
+    }
+
+    public static <T> Optional<T> doTry(Callable<T> callable) {
+        try {
+            return Optional.ofNullable(callable.call());
+        } catch (Exception e) {
+            return Optional.empty();
         }
     }
 

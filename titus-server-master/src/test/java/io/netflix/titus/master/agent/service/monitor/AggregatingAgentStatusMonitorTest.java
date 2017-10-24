@@ -18,7 +18,6 @@ package io.netflix.titus.master.agent.service.monitor;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
@@ -33,8 +32,8 @@ import rx.schedulers.TestScheduler;
 
 import static io.netflix.titus.common.util.CollectionsExt.asSet;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -43,25 +42,15 @@ public class AggregatingAgentStatusMonitorTest {
     private final TestScheduler testScheduler = Schedulers.test();
     private final MonitorTestSubscriber monitorSubscriber = new MonitorTestSubscriber();
 
-    private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
-
     private final MockedDelegate delegate1 = new MockedDelegate("delegate1");
     private final MockedDelegate delegate2 = new MockedDelegate("delegate2");
 
-    private final AtomicReference<String> disconnectedHostRef = new AtomicReference<>();
+    private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
 
     @Before
     public void setUp() throws Exception {
-        when(agentManagementService.events(false)).thenReturn(Observable.never());
-        
         Set<AgentStatusMonitor> delegates = asSet(delegate1.delegate, delegate2.delegate);
-        AggregatingAgentStatusMonitor monitor = new AggregatingAgentStatusMonitor(delegates, DefaultConfiguration.CONFIG, agentManagementService, new DefaultRegistry(), testScheduler) {
-            @Override
-            protected void agentDisconnected(String hostname) {
-                super.agentDisconnected(hostname);
-                disconnectedHostRef.set(hostname);
-            }
-        };
+        AggregatingAgentStatusMonitor monitor = new AggregatingAgentStatusMonitor(delegates, agentManagementService, new DefaultRegistry(), testScheduler);
         monitor.enterActiveMode();
         monitor.monitor().subscribe(monitorSubscriber);
     }
@@ -72,7 +61,7 @@ public class AggregatingAgentStatusMonitorTest {
         monitorSubscriber.verifyEmittedOk();
 
         delegate2.nextOk();
-        monitorSubscriber.verifyNothingEmitted();
+        monitorSubscriber.verifyEmittedOk();
     }
 
     @Test
@@ -81,26 +70,7 @@ public class AggregatingAgentStatusMonitorTest {
         monitorSubscriber.verifyEmittedBad();
 
         delegate2.nextOk();
-        monitorSubscriber.verifyNothingEmitted();
-    }
-
-    @Test
-    public void testBadStatusesResultInBadStatusWithBiggestEffectiveDisableTime() throws Exception {
-        delegate1.nextBad();
         monitorSubscriber.verifyEmittedBad();
-
-        testScheduler.advanceTimeBy(1, TimeUnit.MILLISECONDS);
-        delegate2.nextBad();
-        monitorSubscriber.verifyEmittedBad();
-    }
-
-    @Test
-    public void testBadStatusWithShortDelayDoesNotInvalidatePendingBadStatusWithLongerDelay() {
-        delegate1.nextBad();
-        monitorSubscriber.verifyEmittedBad();
-
-        delegate2.nextBad(AgentStatusSamples.DEFAULT_DISABLE_TIME / 2);
-        monitorSubscriber.verifyNothingEmitted();
     }
 
     @Test
@@ -122,12 +92,12 @@ public class AggregatingAgentStatusMonitorTest {
     @Test
     public void testDeadNodeSubscriptionIsTerminated() throws Exception {
         delegate1.nextOk();
+        monitorSubscriber.verifyEmittedOk();
         delegate2.nextOk();
+        monitorSubscriber.verifyEmittedOk();
 
-        // Advance time, to cross the timeout
-        testScheduler.advanceTimeBy(DefaultConfiguration.CONFIG.getDeadAgentTimeout(), TimeUnit.MILLISECONDS);
-
-        assertThat(disconnectedHostRef.get(), is(notNullValue()));
+        delegate1.nextTerminate();
+        monitorSubscriber.verifyEmittedTerminated();
         assertThat(monitorSubscriber.isUnsubscribed(), is(false));
     }
 
@@ -136,7 +106,7 @@ public class AggregatingAgentStatusMonitorTest {
 
         volatile Subscriber<? super AgentStatus> currentSubscriber;
 
-        Observable<AgentStatus> monitorObservable = Observable.create(subscriber -> {
+        Observable<AgentStatus> monitorObservable = Observable.unsafeCreate(subscriber -> {
             if (currentSubscriber != null) {
                 currentSubscriber.onError(new IllegalStateException("Unexpected subsequent subscription"));
             } else {
@@ -149,24 +119,31 @@ public class AggregatingAgentStatusMonitorTest {
         MockedDelegate(String delegateId) {
             samples = new AgentStatusSamples(delegateId, testScheduler);
             when(delegate.monitor()).thenReturn(monitorObservable);
+            when(delegate.getStatus(anyString())).thenReturn(samples.getOk());
         }
 
         void nextOk() {
             if (currentSubscriber != null) {
-                currentSubscriber.onNext(samples.getOk());
+                AgentStatus ok = samples.getOk();
+                when(delegate.getStatus(ok.getAgentInstance().getId())).thenReturn(ok);
+                currentSubscriber.onNext(ok);
             }
         }
 
         void nextBad() {
             if (currentSubscriber != null) {
-                currentSubscriber.onNext(samples.getBad());
+                AgentStatus bad = samples.getBad();
+                when(delegate.getStatus(bad.getAgentInstance().getId())).thenReturn(bad);
+                currentSubscriber.onNext(bad);
                 currentSubscriber = null;
             }
         }
 
-        void nextBad(long disableTime) {
+        void nextTerminate() {
             if (currentSubscriber != null) {
-                currentSubscriber.onNext(samples.getBad(disableTime));
+                AgentStatus terminated = samples.getTerminated();
+                when(delegate.getStatus(terminated.getAgentInstance().getId())).thenReturn(terminated);
+                currentSubscriber.onNext(terminated);
                 currentSubscriber = null;
             }
         }
