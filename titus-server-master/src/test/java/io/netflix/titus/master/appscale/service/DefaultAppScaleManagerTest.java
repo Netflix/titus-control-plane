@@ -32,6 +32,7 @@ import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.appscale.model.AutoScalableTarget;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyType;
+import io.netflix.titus.api.appscale.service.AutoScalePolicyException;
 import io.netflix.titus.api.jobmanager.model.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
@@ -469,8 +470,22 @@ public class DefaultAppScaleManagerTest {
                 .withJobGroupInfo(jobGroupInfoFour).build();
         autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorFour);
         Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-v000");
+    }
 
+    @Test
+    public void checkNestedExceptionHandling() {
+        RuntimeException exceptionContainingUnknownPolicy =
+                new RuntimeException
+                        (new RuntimeException(
+                                new RuntimeException(
+                                        new RuntimeException(AutoScalePolicyException.unknownScalingPolicy("policyId", "Not found")))));
+        Optional<AutoScalePolicyException> autoScalePolicyException = DefaultAppScaleManager.extractAutoScalePolicyException(exceptionContainingUnknownPolicy);
+        Assertions.assertThat(autoScalePolicyException.isPresent()).isTrue();
+        Assertions.assertThat(autoScalePolicyException.get().getErrorCode()).isEqualTo(AutoScalePolicyException.ErrorCode.UnknownScalingPolicy);
 
+        RuntimeException runtimeException = new RuntimeException(new RuntimeException(new Exception("Bad input")));
+        Optional<AutoScalePolicyException> notAutoScalePolicyException = DefaultAppScaleManager.extractAutoScalePolicyException(runtimeException);
+        Assertions.assertThat(notAutoScalePolicyException.isPresent()).isFalse();
     }
 
     public static class AppScaleClientWithScalingPolicyConstraints extends AutoScalingPolicyTests.MockAppAutoScalingClient {

@@ -84,7 +84,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
     private Subscription reconcileScalableTargetsSub;
 
 
-
     public static final String DEFAULT_JOB_GROUP_SEQ = "v000";
 
     public static class JobScalingConstraints {
@@ -464,33 +463,27 @@ public class DefaultAppScaleManager implements AppScaleManager {
     }
 
     private Completable saveStatusOnError(Throwable e) {
-        AutoScalePolicyException autoScalePolicyException = null;
-        if (AutoScalePolicyException.class.isAssignableFrom(e.getClass())) {
-            autoScalePolicyException = (AutoScalePolicyException) e;
-        } else if (AutoScalePolicyException.class.isAssignableFrom(e.getCause().getClass())) {
-            autoScalePolicyException = (AutoScalePolicyException) e.getCause();
+        Optional<AutoScalePolicyException> autoScalePolicyExceptionOpt = extractAutoScalePolicyException(e);
+        if (!autoScalePolicyExceptionOpt.isPresent()) {
+            return Completable.complete();
         }
 
-        if (autoScalePolicyException != null) {
-            if (autoScalePolicyException.getPolicyRefId() != null && !autoScalePolicyException.getPolicyRefId().isEmpty()) {
-                metrics.reportErrorForException(autoScalePolicyException);
-                String statusMessage = String.format("%s - %s", autoScalePolicyException.getErrorCode(), autoScalePolicyException.getMessage());
-                if (autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.UnknownScalingPolicy ||
-                        autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.InvalidScalingPolicy ||
-                        autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.JobManagerError) {
+        AutoScalePolicyException autoScalePolicyException = autoScalePolicyExceptionOpt.get();
+        if (autoScalePolicyException.getPolicyRefId() != null && !autoScalePolicyException.getPolicyRefId().isEmpty()) {
+            metrics.reportErrorForException(autoScalePolicyException);
+            String statusMessage = String.format("%s - %s", autoScalePolicyException.getErrorCode(), autoScalePolicyException.getMessage());
+            if (autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.UnknownScalingPolicy ||
+                    autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.InvalidScalingPolicy ||
+                    autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.JobManagerError) {
 
+                AutoScalingPolicy autoScalingPolicy = AutoScalingPolicy.newBuilder().withRefId(autoScalePolicyException.getPolicyRefId()).build();
+                metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleted);
 
-                    AutoScalingPolicy autoScalingPolicy = AutoScalingPolicy.newBuilder().withRefId(autoScalePolicyException.getPolicyRefId()).build();
-                    metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleted);
-
-                    // no need to keep retrying
-                    return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage)
-                            .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Deleted));
-                } else {
-                    return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage);
-                }
+                // no need to keep retrying
+                return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage)
+                        .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Deleted));
             } else {
-                return Completable.complete();
+                return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage);
             }
         } else {
             return Completable.complete();
@@ -577,6 +570,19 @@ public class DefaultAppScaleManager implements AppScaleManager {
             AutoScalableTarget autoScalableTarget = AutoScalableTarget.newBuilder().build();
             scalableTargets.put(jobId, autoScalableTarget);
         }
+    }
+
+    static Optional<AutoScalePolicyException> extractAutoScalePolicyException(Throwable exception) {
+        Throwable e = exception;
+
+        while (e != null) {
+            if (AutoScalePolicyException.class.isAssignableFrom(e.getClass())) {
+                return Optional.of((AutoScalePolicyException) e);
+            }
+            e = e.getCause();
+        }
+
+        return Optional.empty();
     }
 
 }
