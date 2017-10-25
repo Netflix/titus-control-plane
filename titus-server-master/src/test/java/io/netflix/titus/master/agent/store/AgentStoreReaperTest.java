@@ -45,7 +45,7 @@ public class AgentStoreReaperTest {
         when(agentStore.retrieveAgentInstanceGroups()).thenReturn(Observable.just(instanceGroup));
         when(agentStore.retrieveAgentInstances()).thenReturn(Observable.just(instance));
 
-        testScheduler.advanceTimeBy(AgentStoreReaper.EXPIRED_DATA_RETENCY_PERIOD_MS - 1, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(AgentStoreReaper.EXPIRED_DATA_RETENTION_PERIOD_MS - 1, TimeUnit.MILLISECONDS);
         verify(agentStore, times(0)).removeAgentInstanceGroups(Collections.singletonList(instanceGroup.getId()));
         verify(agentStore, times(0)).removeAgentInstances(Collections.singletonList(instance.getId()));
 

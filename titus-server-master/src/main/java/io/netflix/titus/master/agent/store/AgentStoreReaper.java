@@ -51,7 +51,7 @@ public class AgentStoreReaper {
     public static final String ATTR_REMOVED = "instanceGroupRemoved";
 
     @VisibleForTesting
-    static final long EXPIRED_DATA_RETENCY_PERIOD_MS = 3600_000;
+    static final long EXPIRED_DATA_RETENTION_PERIOD_MS = 3600_000;
 
     private static final long STORAGE_GC_INTERVAL_MS = 600_000;
 
@@ -103,7 +103,7 @@ public class AgentStoreReaper {
         }
         try {
             long removedTimestamp = Long.parseLong(removedTimestampStr);
-            return (removedTimestamp + EXPIRED_DATA_RETENCY_PERIOD_MS) <= scheduler.now();
+            return (removedTimestamp + EXPIRED_DATA_RETENTION_PERIOD_MS) <= scheduler.now();
         } catch (Exception e) {
             logger.warn("Invalid {} value={} found for instance group record {}", ATTR_REMOVED, removedTimestampStr, sg.getId());
             return true;
@@ -123,10 +123,10 @@ public class AgentStoreReaper {
         List<String> instanceIdsToRemove = instancesToRemove.stream().map(AgentInstance::getId).collect(Collectors.toList());
 
         if (!instanceGroupIdsToRemove.isEmpty()) {
-            logger.info("Removing records of non-existing instance groups: {}", instanceGroupIdsToRemove);
+            logger.info("Removing records of non-existent instance groups: {}", instanceGroupIdsToRemove);
         }
         if (!instanceIdsToRemove.isEmpty()) {
-            logger.info("Removing agent instance records of non-existing instance groups: {}", instanceIdsToRemove);
+            logger.info("Removing agent instance records of non-existent instance groups: {}", instanceIdsToRemove);
         }
 
         return Pair.of(instanceGroupIdsToRemove, instanceIdsToRemove);

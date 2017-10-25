@@ -92,7 +92,7 @@ public class NamedJobsTest extends TestCase {
     public void testUpdateNonExistingJob() throws Exception {
         try {
             namedJobs.updateNamedJob(new NamedJobDefinition(new V2JobDefinition("notthere", "spo", null, null, null, null, 0, null, 1, 1, null, null), null), false);
-            Assert.fail("Unexpected to update non-existing named job");
+            Assert.fail("Unexpected to update non-existent named job");
         } catch (InvalidNamedJobException e) {
         }
     }
