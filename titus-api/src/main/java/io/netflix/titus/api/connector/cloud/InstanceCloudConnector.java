@@ -40,7 +40,8 @@ public interface InstanceCloudConnector {
     Observable<List<InstanceGroup>> getInstanceGroups();
 
     /**
-     * Get instance group by name.
+     * Get instance groups by id. The result contains all instance groups that exist. Non-existent instance groups
+     * are silently ignored.
      */
     Observable<List<InstanceGroup>> getInstanceGroups(List<String> instanceGroupIds);
 

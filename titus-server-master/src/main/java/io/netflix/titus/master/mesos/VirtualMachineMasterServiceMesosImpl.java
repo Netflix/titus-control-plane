@@ -34,16 +34,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
 import com.netflix.spectator.api.Registry;
-import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.config.MasterConfiguration;
-import io.netflix.titus.master.master.MasterDescription;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.netflix.titus.master.scheduler.SchedulingService;
-import io.netflix.titus.master.zookeeper.ZookeeperPaths;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Protos.TaskID;
@@ -56,6 +53,10 @@ import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
 import static io.netflix.titus.common.util.LoggingExt.timed;
+import static io.netflix.titus.master.mesos.MesosTracer.toLeaseIds;
+import static io.netflix.titus.master.mesos.MesosTracer.toTaskIds;
+import static io.netflix.titus.master.mesos.MesosTracer.traceMesosRequest;
+import static io.netflix.titus.master.mesos.MesosTracer.traceMesosVoidRequest;
 
 @Singleton
 public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMasterService {
@@ -63,22 +64,16 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     private static final Logger logger = LoggerFactory.getLogger(VirtualMachineMasterServiceMesosImpl.class);
 
     private final MasterConfiguration config;
-    private final SchedulerConfiguration schedulerConfiguration;
-    private final JobConfiguration jobConfiguration;
-    private final MasterDescription masterDescription;
 
     private SchedulerDriver mesosDriver;
     private MesosSchedulerCallbackHandler mesosCallbackHandler;
     private ExecutorService executor;
-    private final ZookeeperPaths zkPaths;
     private MesosMasterResolver mesosMasterResolver;
     private Subject<String, String> vmLeaseRescindedObserver;
     private Subject<Status, Status> vmTaskStatusObserver;
     private ObjectMapper mapper = new ObjectMapper();
     private Func0<List<V2WorkerMetadata>> runningWorkersGetter;
     private final AtomicBoolean initializationDone = new AtomicBoolean(false);
-    private final String activeAgentAttributeName;
-    private final TitusTaskInfoCreator titusTaskInfoCreator;
     private double offerSecDelayInterval = 5;
     private Action1<List<? extends VirtualMachineLease>> leaseHandler = null;
     private final MesosSchedulerDriverFactory mesosDriverFactory;
@@ -89,30 +84,21 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     @Inject
     public VirtualMachineMasterServiceMesosImpl(MasterConfiguration config,
                                                 SchedulerConfiguration schedulerConfiguration,
-                                                JobConfiguration jobConfiguration,
-                                                MasterDescription masterDescription,
-                                                ZookeeperPaths zkPaths,
                                                 MesosMasterResolver mesosMasterResolver,
                                                 MesosSchedulerDriverFactory mesosDriverFactory,
                                                 Registry metricsRegistry) {
         this.config = config;
-        this.schedulerConfiguration = schedulerConfiguration;
-        this.jobConfiguration = jobConfiguration;
-        this.masterDescription = masterDescription;
-        this.zkPaths = zkPaths;
         this.mesosMasterResolver = mesosMasterResolver;
         this.mesosDriverFactory = mesosDriverFactory;
         this.metricsRegistry = metricsRegistry;
         this.vmLeaseRescindedObserver = PublishSubject.create();
         this.vmTaskStatusObserver = PublishSubject.create();
-        this.titusTaskInfoCreator = new TitusTaskInfoCreator(config, jobConfiguration);
         executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "vm_master_mesos_scheduler_thread");
             t.setDaemon(true);
             return t;
         });
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        activeAgentAttributeName = config.getActiveSlaveAttributeName();
         // Set the offer delay to match the scheduling loop interval so that offers are returned at
         // the next scheduling interval.
         offerSecDelayInterval = schedulerConfiguration.getSchedulerIterationIntervalMs() / (double) 1000;
@@ -142,10 +128,16 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
             offerIDs.add((vml).getOffer().getId());
         }
         if (!taskInfos.isEmpty()) {
-            mesosDriver.launchTasks(offerIDs, taskInfos, (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build());
+            traceMesosVoidRequest(
+                    "Launching tasks: " + toTaskIds(taskInfos) + " with leases: " + toLeaseIds(leases),
+                    () -> mesosDriver.launchTasks(offerIDs, taskInfos, (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build())
+            );
         } else { // reject offers to prevent offer leak, but shouldn't happen
             for (VirtualMachineLease l : leases) {
-                mesosDriver.declineOffer((l).getOffer().getId());
+                traceMesosVoidRequest(
+                        "Declining offer " + l.getId(),
+                        () -> mesosDriver.declineOffer((l).getOffer().getId())
+                );
             }
         }
     }
@@ -157,7 +149,10 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
             return;
         }
         if (lease.getOffer() != null) {
-            mesosDriver.declineOffer(lease.getOffer().getId(), (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build());
+            traceMesosVoidRequest(
+                    "Declining offer " + lease.getId(),
+                    () -> mesosDriver.declineOffer(lease.getOffer().getId(), (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build())
+            );
         } else {
             logger.warn("Got invalid lease to reject with null offer for host " + lease.hostname());
         }
@@ -170,7 +165,6 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
             return;
         }
         drainKillTaskQueue();
-        logger.info("Calling mesos to kill " + taskId);
         callMesosToKillTask(taskId);
     }
 
@@ -184,10 +178,10 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     }
 
     private void callMesosToKillTask(String taskId) {
-        Protos.Status status = mesosDriver.killTask(
-                TaskID.newBuilder()
-                        .setValue(taskId)
-                        .build());
+        Protos.Status status = traceMesosRequest(
+                "Calling Mesos to kill task " + taskId,
+                () -> mesosDriver.killTask(TaskID.newBuilder().setValue(taskId).build())
+        );
         logger.info("Kill status = " + status);
         switch (status) {
             case DRIVER_ABORTED:

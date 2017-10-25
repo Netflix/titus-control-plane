@@ -59,6 +59,13 @@ public class ObservableExt {
     }
 
     /**
+     * Invokes the completable supplier on each subscription, and connects a client subscription to it.
+     */
+    public static Completable fromCallableSupplier(Callable<Completable> completableSupplier) {
+        return Observable.fromCallable(completableSupplier).flatMap(Completable::toObservable).toCompletable();
+    }
+
+    /**
      * Default RxJava future wrapper is blocking. Here we provide polling version.
      */
     public static <T> Observable<T> toObservable(Future<T> future, Scheduler scheduler) {

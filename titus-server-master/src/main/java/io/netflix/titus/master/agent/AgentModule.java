@@ -35,6 +35,7 @@ import io.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import io.netflix.titus.master.agent.service.server.ServerInfoResolvers;
 import io.netflix.titus.master.agent.service.vm.AgentCache;
 import io.netflix.titus.master.agent.service.vm.DefaultAgentCache;
+import io.netflix.titus.master.agent.store.AgentStoreReaper;
 import io.netflix.titus.master.agent.store.InMemoryAgentStore;
 import rx.schedulers.Schedulers;
 
@@ -47,6 +48,7 @@ public class AgentModule extends AbstractModule {
         bind(AgentCache.class).to(DefaultAgentCache.class);
 
         bind(AgentStore.class).to(InMemoryAgentStore.class);
+        bind(AgentStoreReaper.class).asEagerSingleton();
     }
 
     @Provides
