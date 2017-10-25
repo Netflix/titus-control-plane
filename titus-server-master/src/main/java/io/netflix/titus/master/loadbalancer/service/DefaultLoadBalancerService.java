@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
@@ -57,6 +58,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private final LoadBalancerStore loadBalancerStore;
     private final V3JobOperations v3JobOperations;
 
+    private final Scheduler scheduler;
+
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingAssociations;
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations;
     private Subscription loadBalancerBatches;
@@ -66,10 +69,19 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                       LoadBalancerClient loadBalancerClient,
                                       LoadBalancerStore loadBalancerStore,
                                       V3JobOperations v3JobOperations) {
+        this(configuration, loadBalancerClient, loadBalancerStore, v3JobOperations, Schedulers.computation());
+    }
+
+    public DefaultLoadBalancerService(LoadBalancerConfiguration configuration,
+                                      LoadBalancerClient loadBalancerClient,
+                                      LoadBalancerStore loadBalancerStore,
+                                      V3JobOperations v3JobOperations,
+                                      Scheduler scheduler) {
         this.configuration = configuration;
         this.loadBalancerClient = loadBalancerClient;
         this.loadBalancerStore = loadBalancerStore;
         this.v3JobOperations = v3JobOperations;
+        this.scheduler = scheduler;
     }
 
     @Override
@@ -102,13 +114,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
         final Observable<LoadBalancerTarget> toRegister = targetsToRegister(pendingAssociations);
         final Observable<LoadBalancerTarget> toDeregister = targetsToDeregister(pendingDissociations);
-        return loadBalancerBatchCalls(toRegister, toDeregister);
+        return batchLoadBalancerChanges(toRegister, toDeregister);
     }
 
     @Activator
     public void activate() {
         loadBalancerBatches = buildStream()
-                .subscribeOn(Schedulers.computation())
+                .observeOn(scheduler)
+                .subscribeOn(scheduler)
                 .subscribe(
                         batch -> logger.info("Load balancer batch completed. Registered {}, deregistered {}",
                                 batch.getStateRegister().size(), batch.getStateDeregister().size()),
@@ -132,34 +145,29 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     }
 
     @VisibleForTesting
-    Observable<Batch> loadBalancerBatchCalls(Observable<LoadBalancerTarget> targetsToRegister, Observable<LoadBalancerTarget> targetsToDeregister) {
+    Observable<Batch> batchLoadBalancerChanges(Observable<LoadBalancerTarget> targetsToRegister, Observable<LoadBalancerTarget> targetsToDeregister) {
         return Observable.merge(targetsToRegister, targetsToDeregister)
                 .doOnNext(e -> logger.debug("Buffering load balancer target {}", e))
-                .buffer(configuration.getBatch().getTimeoutMs(), TimeUnit.MILLISECONDS,
-                        configuration.getBatch().getSize())
+                .buffer(configuration.getBatch().getTimeoutMs(), TimeUnit.MILLISECONDS, configuration.getBatch().getSize(), scheduler)
                 .doOnNext(e -> logger.debug("Processing batch operation of size {}", e.size()))
                 .map(CollectionsExt::distinctKeepLast)
-                .observeOn(Schedulers.io()) // blocking CloudClient calls go into the IO scheduler
-                .flatMap(batch -> {
-                    final Batch grouped = new Batch(batch);
-                    final List<LoadBalancerTarget> registerList = grouped.getStateRegister();
-                    final List<LoadBalancerTarget> deregisterList = grouped.getStateDeregister();
-                    final Completable merged = Completable.mergeDelayError(
-                            loadBalancerClient.registerAll(registerList)
-                                    .observeOn(Schedulers.computation())
-                                    .andThen(loadBalancerStore.updateTargets(registerList)),
-                            loadBalancerClient.deregisterAll(deregisterList)
-                                    .observeOn(Schedulers.computation())
-                                    .andThen(loadBalancerStore.updateTargets(deregisterList))
-                    );
-                    return merged.andThen(Observable.just(grouped))
-                            .doOnError(e -> logger.error("Error processing batch " + batch, e))
-                            .onErrorResumeNext(Observable.empty());
-                })
+                .flatMap(this::modifyBatch)
                 .doOnNext(e -> logger.info("Processed load balancer batch: registered {}, deregistered",
                         e.getStateRegister().size(), e.getStateDeregister().size()))
-                .observeOn(Schedulers.computation())
                 .doOnError(e -> logger.error("Error processing a batch", e))
+                .onErrorResumeNext(Observable.empty());
+    }
+
+    private Observable<Batch> modifyBatch(Collection<LoadBalancerTarget> targets) {
+        final Batch grouped = new Batch(targets);
+        final List<LoadBalancerTarget> registerList = grouped.getStateRegister();
+        final List<LoadBalancerTarget> deregisterList = grouped.getStateDeregister();
+        final Completable merged = Completable.mergeDelayError(
+                loadBalancerClient.registerAll(registerList).andThen(loadBalancerStore.updateTargets(registerList)),
+                loadBalancerClient.deregisterAll(deregisterList).andThen(loadBalancerStore.updateTargets(deregisterList))
+        );
+        return merged.andThen(Observable.just(grouped))
+                .doOnError(e -> logger.error("Error processing batch " + grouped, e))
                 .onErrorResumeNext(Observable.empty());
     }
 

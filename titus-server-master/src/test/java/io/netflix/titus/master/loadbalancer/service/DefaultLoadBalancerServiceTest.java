@@ -31,7 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 import rx.Completable;
 import rx.observers.AssertableSubscriber;
-import rx.plugins.RxJavaHooks;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
@@ -55,10 +54,7 @@ public class DefaultLoadBalancerServiceTest {
         client = mock(LoadBalancerClient.class);
         store = new InMemoryLoadBalancerStore();
         jobOperations = mock(V3JobOperations.class);
-
         testScheduler = Schedulers.test();
-        RxJavaHooks.setOnComputationScheduler(ignored -> testScheduler);
-        RxJavaHooks.setOnIOScheduler(ignored -> testScheduler);
     }
 
     @Test
@@ -78,7 +74,7 @@ public class DefaultLoadBalancerServiceTest {
         ));
 
         LoadBalancerConfiguration configuration = mockConfiguration(5, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
 
@@ -110,13 +106,14 @@ public class DefaultLoadBalancerServiceTest {
         ));
 
         LoadBalancerConfiguration configuration = mockConfiguration(1000, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration,
+                client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(store.retrieveLoadBalancersForJob(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
-        testScheduler.advanceTimeBy(5, TimeUnit.SECONDS);
+        testScheduler.advanceTimeBy(5_001, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(jobOperations).getTasks(jobId);
