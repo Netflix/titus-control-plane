@@ -126,6 +126,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
     protected final Injector injector;
     private final ApplicationSlaManagementService applicationSlaManagementService;
     private final TitusTaskInfoCreator titusTaskInfoCreator;
+    private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
 
     private volatile boolean pendingInitialization = false;
     private final BlockingQueue<ScheduledRequest> taskQueueRequests = new LinkedBlockingQueue<>();
@@ -549,6 +550,12 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                                                         List<Integer> portsAssigned)
             throws InvalidJobStateChangeException, InvalidJobException {
         List<V2WorkerMetadata.TwoLevelResource> twoLevelResources = new ArrayList<>();
+        boolean executorPerTask = false;
+
+        // The presence of this label is enough to trigger executor-per-task mode; We do not need to inspect the value.
+        if (attributeMap.containsKey(EXECUTOR_PER_TASK_LABEL))
+            executorPerTask = true;
+
         if (consumedResourceSet != null) {
             logger.info(task.getId() + ": allocated res " + consumedResourceSet.getAttrName() + ", " +
                     consumedResourceSet.getResName() + ", label " + consumedResourceSet.getIndex()
@@ -597,7 +604,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         task.setAssignedResources(assignedResources);
 
         // create taskInfo object
-        return titusTaskInfoCreator.createTitusTaskInfo(slaveID, job.getParameters(), task, portsAssigned, mwmd.getWorkerInstanceId());
+        return titusTaskInfoCreator.createTitusTaskInfo(slaveID, job.getParameters(), task, portsAssigned, mwmd.getWorkerInstanceId(), executorPerTask);
     }
 
     @Override
