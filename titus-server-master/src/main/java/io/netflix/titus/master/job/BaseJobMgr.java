@@ -633,7 +633,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                     AuditLogEvent auditLogEvent = AuditLogEvent.of(AuditLogEvent.Type.WORKER_TERMINATE,
                             taskId, "index=" + task.getWorkerIndex() + ", resubmit requested", task);
                     auditLogService.submit(auditLogEvent);
-                    eventBus.publish(new TaskStateChangeEvent<>(jobId, taskId, task.getState(), System.currentTimeMillis(), Pair.of(job, task)));
+                    eventBus.publish(new TaskStateChangeEvent<>(jobId, taskId, task.getState(), System.currentTimeMillis(), Pair.of(job, rt)));
                 }
             } catch (InvalidJobException | InvalidJobStateChangeException e) {
                 logger.warn(jobId + ": Unexpected to fail resubmit request of task index " + task.getWorkerIndex() +
@@ -677,7 +677,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
             AuditLogEvent taskTerminateEvent = AuditLogEvent.of(AuditLogEvent.Type.WORKER_TERMINATE, WorkerNaming.getTaskId(mwmd),
                     "index=" + status.getWorkerIndex() + ", reason=" + status.getReason(), mwmd);
             auditLogService.submit(taskTerminateEvent);
-
+            eventBus.publish(new TaskStateChangeEvent<>(jobId, WorkerNaming.getTaskId(mwmd), mwmd.getState(), System.currentTimeMillis(), Pair.of(mjmd, mwmd)));
             final V2WorkerMetadata mwmdr = store.replaceTerminatedWorker(request, mwmd);
             queueTask(mwmdr);
             logger.info(jobId + ": Resubmitted task " + status.getWorkerNumber() + " with " + mwmdr.getWorkerNumber() +
