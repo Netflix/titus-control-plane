@@ -19,14 +19,11 @@ package io.netflix.titus.testkit.stub.connector.cloud;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
@@ -57,17 +54,10 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
 
     @Override
     public Observable<List<InstanceGroup>> getInstanceGroups(List<String> instanceGroupIds) {
-        return Observable.fromCallable(() -> {
-            List<InstanceGroup> result = instanceGroupIds.stream()
-                    .filter(serverGroupsById::containsKey)
-                    .map(id -> serverGroupsById.get(id).getFirst())
-                    .collect(Collectors.toList());
-            if (result.size() != instanceGroupIds.size()) {
-                Set<String> missing = CollectionsExt.copyAndRemove(new HashSet<String>(instanceGroupIds), result.stream().map(InstanceGroup::getId).collect(Collectors.toList()));
-                throw CloudConnectorException.invalidInstanceGroupId(missing);
-            }
-            return result;
-        });
+        return Observable.fromCallable(() -> instanceGroupIds.stream()
+                .filter(serverGroupsById::containsKey)
+                .map(id -> serverGroupsById.get(id).getFirst())
+                .collect(Collectors.toList()));
     }
 
     @Override

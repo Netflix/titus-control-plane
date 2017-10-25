@@ -56,6 +56,9 @@ import rx.Observer;
 import rx.Subscription;
 import rx.functions.Func0;
 
+import static io.netflix.titus.master.mesos.MesosTracer.traceMesosCallback;
+import static io.netflix.titus.master.mesos.MesosTracer.traceMesosRequest;
+
 public class MesosSchedulerCallbackHandler implements Scheduler {
 
     private Observer<String> vmLeaseRescindedObserver;
@@ -158,11 +161,14 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         final List<VMLeaseObject> leaseObjects = offers.stream()
                 .filter(offer -> {
                     if (!validateOfferResources(offer)) {
-                        driver.declineOffer(offer.getId(), (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(60).build());
+                        traceMesosRequest(
+                                "Declining new offer: " + offer.getId(),
+                                () -> driver.declineOffer(offer.getId(), (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(60).build())
+                        );
                         numOfferTooSmall.increment();
                         return false;
                     }
-                    logger.info("Adding offer: " + offer.getId().getValue() + " from host: " + offer.getHostname());
+                    traceMesosCallback("Adding offer: " + offer.getId().getValue() + " from host: " + offer.getHostname());
                     return true;
                 })
                 .map(VMLeaseObject::new)
@@ -203,7 +209,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
     @Override
     public void offerRescinded(SchedulerDriver arg0, OfferID arg1) {
-        logger.warn("Rescinded offer: " + arg1.getValue());
+        traceMesosCallback("Rescinded offer: " + arg1.getValue());
         vmLeaseRescindedObserver.onNext(arg1.getValue());
         numOfferRescinded.increment();
     }
@@ -269,7 +275,10 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             );
         }
         if (!tasksToInitialize.isEmpty()) {
-            Protos.Status status = driver.reconcileTasks(tasksToInitialize);
+            Protos.Status status = traceMesosRequest(
+                    "Reconciling active tasks: count=" + tasksToInitialize.size(),
+                    () -> driver.reconcileTasks(tasksToInitialize)
+            );
             numReconcileTasks.increment();
             logger.info("Sent request to reconcile " + tasksToInitialize.size() + " tasks, status=" + status);
             logger.info("Last offer received " + (System.currentTimeMillis() - lastOfferReceivedAt.get()) / 1000 + " secs ago");
@@ -284,7 +293,10 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     private void reconcileAllMesosTasks(SchedulerDriver driver) {
-        Protos.Status status = driver.reconcileTasks(Collections.emptyList());
+        Protos.Status status = traceMesosRequest(
+                "Reconciling all active tasks",
+                () -> driver.reconcileTasks(Collections.emptyList())
+        );
         numReconcileTasks.increment();
         logger.info("Sent request to reconcile all tasks known to Mesos");
         logger.info("Last offer received " + (System.currentTimeMillis() - lastOfferReceivedAt.get()) / 1000 + " secs ago");
@@ -307,10 +319,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         String taskId = arg1.getTaskId().getValue();
         TaskState taskState = arg1.getState();
 
-        WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
-        logger.info("Task status update: (" + taskId + ")" + pair.jobId +
-                " worker index " + pair.workerIndex + " number " + pair.workerNumber + ": " + taskState + " (" +
-                taskState.getNumber() + ") - " + arg1.getMessage());
+        MesosTracer.traceMesosCallback("Task status update: taskId=" + taskId + ", taskState=" + taskState + ", message=" + arg1.getMessage());
 
         TaskState previous = lastStatusUpdate.getIfPresent(taskId);
         TaskState effectiveState;
@@ -357,6 +366,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         if (arg1.getData() != null) {
             logger.info("Mesos status object data: " + new String(arg1.getData().toByteArray()));
         }
+        WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
         final Status status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
                 arg1.getMessage(), arg1.getData() == null ? "" : new String(arg1.getData().toByteArray()), state);
         status.setReason(reason);

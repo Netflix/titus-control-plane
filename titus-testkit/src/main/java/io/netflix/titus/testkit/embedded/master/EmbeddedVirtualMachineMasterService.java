@@ -24,14 +24,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
-import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.master.config.MasterConfiguration;
-import io.netflix.titus.master.master.MasterDescription;
 import io.netflix.titus.master.mesos.MesosMasterResolver;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import io.netflix.titus.master.mesos.VirtualMachineMasterServiceMesosImpl;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
-import io.netflix.titus.master.zookeeper.ZookeeperPaths;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedMesosSchedulerDriver;
 
 @Singleton
@@ -57,12 +54,9 @@ public class EmbeddedVirtualMachineMasterService extends VirtualMachineMasterSer
     @Inject
     public EmbeddedVirtualMachineMasterService(MasterConfiguration config,
                                                SchedulerConfiguration schedulerConfiguration,
-                                               JobConfiguration jobConfiguration,
-                                               MasterDescription masterDescription,
-                                               ZookeeperPaths zkPaths,
                                                MesosSchedulerDriverFactory mesosSchedulerDriverFactory,
                                                Registry metricsRegistry) {
-        super(config, schedulerConfiguration, jobConfiguration, masterDescription, zkPaths, FIXED_RESOLVER, mesosSchedulerDriverFactory, metricsRegistry);
+        super(config, schedulerConfiguration, FIXED_RESOLVER, mesosSchedulerDriverFactory, metricsRegistry);
     }
 
     SimulatedMesosSchedulerDriver getSimulatedMesosDriver() {

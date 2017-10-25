@@ -27,8 +27,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.agent.service.AgentManagementException;
-import io.netflix.titus.api.connector.cloud.CloudConnectorException;
-import io.netflix.titus.api.connector.cloud.CloudConnectorException.ErrorCode;
 import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
@@ -214,27 +212,18 @@ class VmServersCache {
      */
     private Completable doServerGroupRefresh(String instanceGroupId) {
         Observable<Void> updateAction = connector.getInstanceGroups(singletonList(instanceGroupId))
-                .filter(instanceGroups -> !instanceGroups.isEmpty())
-                .map(instanceGroups -> instanceGroups.get(0)) // It is always one
-                .materialize()
-                .take(1)
-                .flatMap(updateEvent -> {
-                    if (updateEvent.getKind() == Notification.Kind.OnError) {
-                        Throwable cause = updateEvent.getThrowable();
-                        if (CloudConnectorException.isThis(cause, ErrorCode.NotFound)) {
-                            logger.info("Server group {} has been removed", instanceGroupId);
-                            onEventLoop(() -> removeServerGroupFromCache(instanceGroupId));
-                            return Observable.empty();
-                        }
-                        return Observable.error(cause);
-                    } else if (updateEvent.getKind() == Notification.Kind.OnNext) {
-                        InstanceGroup updatedServerGroup = updateEvent.getValue();
-                        return connector.getInstances(updatedServerGroup.getInstanceIds())
-                                .doOnNext(updatedVmServers -> onEventLoop(() -> updateCache(updatedServerGroup, updatedVmServers)))
-                                .ignoreElements()
-                                .cast(Void.class);
+                .flatMap(result -> {
+                    if (result.isEmpty()) {
+                        logger.info("Server group {} has been removed", instanceGroupId);
+                        onEventLoop(() -> removeServerGroupFromCache(instanceGroupId));
+                        return Observable.empty();
                     }
-                    return Observable.empty();
+
+                    InstanceGroup updatedServerGroup = result.get(0);
+                    return connector.getInstances(updatedServerGroup.getInstanceIds())
+                            .doOnNext(updatedVmServers -> onEventLoop(() -> updateCache(updatedServerGroup, updatedVmServers)))
+                            .ignoreElements()
+                            .cast(Void.class);
                 });
 
         return updateAction.materialize().take(1).doOnNext(

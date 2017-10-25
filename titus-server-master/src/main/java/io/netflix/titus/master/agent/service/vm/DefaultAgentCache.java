@@ -36,11 +36,9 @@ import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
 import io.netflix.titus.api.model.ResourceDimension;
-import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.master.agent.service.AgentManagementConfiguration;
-import io.netflix.titus.master.agent.store.AgentStoreReaper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -50,6 +48,9 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
+
+import static io.netflix.titus.master.agent.store.AgentStoreReaper.isTaggedToRemove;
+import static io.netflix.titus.master.agent.store.AgentStoreReaper.tagToRemove;
 
 /**
  * {@link DefaultAgentCache} merges data from a storage and the cloud provider. It creates also an event stream of agent
@@ -131,7 +132,11 @@ public class DefaultAgentCache implements AgentCache {
      */
     @Activator
     public void enterActiveMode() {
-        List<AgentInstanceGroup> persistedServerGroups = agentStore.retrieveAgentInstanceGroups().toList().toBlocking().first();
+        List<AgentInstanceGroup> persistedServerGroups = agentStore.retrieveAgentInstanceGroups()
+                .filter(g -> !isTaggedToRemove(g))
+                .toList()
+                .toBlocking()
+                .first();
         List<AgentInstance> persistedServers = agentStore.retrieveAgentInstances().toList().toBlocking().first();
 
         Set<String> knownServerGroupIds = persistedServerGroups.stream().map(AgentInstanceGroup::getId).collect(Collectors.toSet());
@@ -157,6 +162,8 @@ public class DefaultAgentCache implements AgentCache {
                 e -> logger.error("VmServerCache events stream completed with an error", e),
                 () -> logger.info("VmServerCache events stream completed")
         );
+
+        updateOnFullRefreshVmCacheEvent();
     }
 
     public void shutdown() {
@@ -329,11 +336,8 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     private void storeEagerlyWithRemoveFlag(AgentInstanceGroup instanceGroup) {
-        if (!instanceGroup.getAttributes().containsKey(AgentStoreReaper.ATTR_REMOVED)) {
-            AgentInstanceGroup marked = instanceGroup.toBuilder()
-                    .withAttributes(CollectionsExt.copyAndAdd(instanceGroup.getAttributes(), AgentStoreReaper.ATTR_REMOVED, Long.toString(scheduler.now())))
-                    .build();
-            agentStore.storeAgentInstanceGroup(marked).subscribe(
+        if (!isTaggedToRemove(instanceGroup)) {
+            agentStore.storeAgentInstanceGroup(tagToRemove(instanceGroup, scheduler)).subscribe(
                     () -> logger.info("Tagging instance group {} as removed", instanceGroup.getId()),
                     e -> logger.warn("Could not persist instance group {} into the store", instanceGroup.getId(), e)
             );
