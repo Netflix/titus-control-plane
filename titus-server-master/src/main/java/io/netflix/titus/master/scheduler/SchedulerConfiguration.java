@@ -34,7 +34,7 @@ public interface SchedulerConfiguration {
     /**
      * @return whether or not to limit concurrent task launches on a node
      */
-    @DefaultValue("false")
+    @DefaultValue("true")
     boolean isGlobalTaskLaunchingConstraintEvaluatorEnabled();
 
     @DefaultValue("true")

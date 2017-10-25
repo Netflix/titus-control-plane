@@ -42,6 +42,7 @@ import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
+import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
 import io.netflix.titus.api.model.event.JobStateChangeEvent.JobState;
@@ -63,7 +64,6 @@ import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.JobSchedulingInfo;
 import io.netflix.titus.master.Status;
-import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.worker.WorkerNumberGenerator;
 import io.netflix.titus.master.job.worker.WorkerRequest;
@@ -544,7 +544,8 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
 
     @Override
     public Protos.TaskInfo setLaunchedAndCreateTaskInfo(TitusQueuableTask task, String hostname,
-                                                        Map<String, String> attributeMap, Protos.SlaveID slaveID,
+                                                        Map<String, String> attributeMap,
+                                                        Protos.SlaveID slaveID,
                                                         ConsumeResult consumedResourceSet,
                                                         List<Integer> portsAssigned)
             throws InvalidJobStateChangeException, InvalidJobException {
@@ -597,7 +598,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         task.setAssignedResources(assignedResources);
 
         // create taskInfo object
-        return titusTaskInfoCreator.createTitusTaskInfo(slaveID, job.getParameters(), task, portsAssigned, mwmd.getWorkerInstanceId());
+        return titusTaskInfoCreator.createTitusTaskInfo(slaveID, job.getParameters(), task, portsAssigned, mwmd.getWorkerInstanceId(), attributeMap);
     }
 
     @Override
