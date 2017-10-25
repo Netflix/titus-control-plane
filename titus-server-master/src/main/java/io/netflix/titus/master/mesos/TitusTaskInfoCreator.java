@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
 import io.netflix.titus.api.jobmanager.model.job.Container;
@@ -45,43 +43,57 @@ import static java.util.Arrays.asList;
 
 public class TitusTaskInfoCreator {
     private static final Logger logger = LoggerFactory.getLogger(TitusTaskInfoCreator.class);
-    private static final String arnPrefix = "arn:aws:iam::";
-    private static final String arnSuffix = ":role/";
 
-    private static final Pattern IAM_PROFILE_RE = Pattern.compile(arnPrefix + "(\\d+)" + arnSuffix + "\\S+");
+    private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
+    private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
+    private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
+
+    private static final String ARN_PREFIX = "arn:aws:iam::";
+    private static final String ARN_SUFFIX = ":role/";
+    private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
 
     private final MasterConfiguration config;
     private final JobConfiguration jobConfiguration;
-    private final ObjectMapper mapper = new ObjectMapper();
     private final String iamArnPrefix;
 
     public TitusTaskInfoCreator(MasterConfiguration config, JobConfiguration jobConfiguration) {
         this.config = config;
         this.jobConfiguration = jobConfiguration;
 
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
         // Get the AWS account ID to use for building IAM ARNs.
         String id = System.getenv("EC2_OWNER_ID");
         if (null == id) {
             id = "default";
         }
-        iamArnPrefix = arnPrefix + id + arnSuffix;
+        iamArnPrefix = ARN_PREFIX + id + ARN_SUFFIX;
     }
 
-    public Protos.TaskInfo createTitusTaskInfo(Protos.SlaveID slaveID, List<Parameter> parameters,
-                                               TitusQueuableTask<V2JobMetadata, V2WorkerMetadata> fenzoTask, List<Integer> portsAssigned,
-                                               String taskInstanceId) {
+    public Protos.TaskInfo createTitusTaskInfo(Protos.SlaveID slaveID,
+                                               List<Parameter> parameters,
+                                               TitusQueuableTask<V2JobMetadata, V2WorkerMetadata> fenzoTask,
+                                               List<Integer> portsAssigned,
+                                               String taskInstanceId,
+                                               Map<String, String> attributesMap) {
         final WorkerNaming.JobWorkerIdPair jobAndWorkerId = WorkerNaming.getJobAndWorkerId(fenzoTask.getId());
         String _taskId = fenzoTask.getId();
         Protos.TaskID taskId = Protos.TaskID.newBuilder()
                 .setValue(_taskId).build();
         Protos.CommandInfo commandInfo = Protos.CommandInfo.newBuilder().setValue(config.pathToTitusExecutor()).build();
+
+        boolean executorPerTask = attributesMap.containsKey(EXECUTOR_PER_TASK_LABEL);
+        String executorName = LEGACY_EXECUTOR_NAME;
+        String executorId = LEGACY_EXECUTOR_NAME;
+        if (executorPerTask) {
+            executorName = EXECUTOR_PER_TASK_EXECUTOR_NAME;
+            executorId = EXECUTOR_PER_TASK_EXECUTOR_NAME + "-" + _taskId;
+        }
+
         Protos.ExecutorInfo executorInfo = Protos.ExecutorInfo.newBuilder()
-                .setExecutorId(Protos.ExecutorID.newBuilder().setValue("docker-executor").build())
-                .setName("docker-executor")
+                .setExecutorId(Protos.ExecutorID.newBuilder().setValue(executorId).build())
+                .setName(executorName)
                 .setCommand(commandInfo)
                 .build();
+
         Protos.TaskInfo.Builder taskInfoBuilder = Protos.TaskInfo.newBuilder();
         taskInfoBuilder
                 .setTaskId(taskId)

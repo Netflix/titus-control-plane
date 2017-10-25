@@ -51,6 +51,10 @@ import static io.netflix.titus.common.util.Evaluators.applyNotNull;
 @Singleton
 public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo> {
 
+    private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
+    private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
+    private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
+
     private static final String ARN_PREFIX = "arn:aws:iam::";
     private static final String ARN_SUFFIX = ":role/";
     private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
@@ -77,7 +81,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
 
         Protos.CommandInfo commandInfo = Protos.CommandInfo.newBuilder().setValue(config.pathToTitusExecutor()).build();
-        Protos.ExecutorInfo executorInfo = newExecutorInfo(commandInfo);
+        Protos.ExecutorInfo executorInfo = newExecutorInfo(taskId, attributesMap, commandInfo);
         Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID);
         taskInfoBuilder = setupPrimaryResources(taskInfoBuilder, fenzoTask);
 
@@ -187,10 +191,21 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getNetworkMbps())));
     }
 
-    private Protos.ExecutorInfo newExecutorInfo(Protos.CommandInfo commandInfo) {
+    private Protos.ExecutorInfo newExecutorInfo(String taskId,
+                                                Map<String, String> attributesMap,
+                                                Protos.CommandInfo commandInfo) {
+
+        boolean executorPerTask = attributesMap.containsKey(EXECUTOR_PER_TASK_LABEL);
+        String executorName = LEGACY_EXECUTOR_NAME;
+        String executorId = LEGACY_EXECUTOR_NAME;
+        if (executorPerTask) {
+            executorName = EXECUTOR_PER_TASK_EXECUTOR_NAME;
+            executorId = EXECUTOR_PER_TASK_EXECUTOR_NAME + "-" + taskId;
+        }
+
         return Protos.ExecutorInfo.newBuilder()
-                .setExecutorId(Protos.ExecutorID.newBuilder().setValue("docker-executor").build())
-                .setName("docker-executor")
+                .setExecutorId(Protos.ExecutorID.newBuilder().setValue(executorId).build())
+                .setName(executorName)
                 .setCommand(commandInfo)
                 .build();
     }
