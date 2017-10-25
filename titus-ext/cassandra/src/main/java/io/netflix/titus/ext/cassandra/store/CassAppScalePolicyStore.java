@@ -264,7 +264,10 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
     @Override
     public Observable<AutoScalingPolicy> retrievePolicyForRefId(String policyRefId) {
-        return Observable.just(policies.get(policyRefId));
+        if (policies.containsKey(policyRefId)) {
+            return Observable.just(policies.get(policyRefId));
+        }
+        return Observable.empty();
     }
 
     @Override
