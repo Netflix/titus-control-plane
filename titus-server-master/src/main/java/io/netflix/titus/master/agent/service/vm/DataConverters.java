@@ -30,6 +30,7 @@ import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.util.Evaluators;
 
 class DataConverters {
 
@@ -78,9 +79,9 @@ class DataConverters {
     }
 
     static AgentInstance toAgentInstance(Instance instance) {
-        return AgentInstance.newBuilder()
+        AgentInstance.Builder builder = AgentInstance.newBuilder();
+        return updateInstanceAttributes(builder, instance)
                 .withId(instance.getId())
-                .withInstanceGroupId(instance.getInstanceGroupId())
                 .withIpAddress(instance.getIpAddress())
                 .withHostname(instance.getHostname())
                 .withDeploymentStatus(toDeploymentStatus(instance))
@@ -91,13 +92,16 @@ class DataConverters {
     }
 
     static AgentInstance updateAgentInstance(AgentInstance original, Instance instance) {
-        return original.toBuilder()
-                .withIpAddress(instance.getIpAddress())
-                .withHostname(instance.getHostname())
-                .withDeploymentStatus(toDeploymentStatus(instance))
+        AgentInstance.Builder builder = original.toBuilder();
+        return updateInstanceAttributes(builder, instance).withDeploymentStatus(toDeploymentStatus(instance)).build();
+    }
+
+    private static AgentInstance.Builder updateInstanceAttributes(AgentInstance.Builder builder, Instance instance) {
+        return builder.withIpAddress(Evaluators.getOrDefault(instance.getIpAddress(), "0.0.0.0"))
+                .withInstanceGroupId(Evaluators.getOrDefault(instance.getInstanceGroupId(), "detached"))
+                .withHostname(Evaluators.getOrDefault(instance.getHostname(), "0_0_0_0"))
                 .withAttributes(instance.getAttributes())
-                .withTimestamp(System.currentTimeMillis())
-                .build();
+                .withTimestamp(System.currentTimeMillis());
     }
 
     static InstanceLifecycleStatus toDeploymentStatus(Instance instance) {

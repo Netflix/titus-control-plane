@@ -68,7 +68,7 @@ public final class RetryHandlerBuilder {
     }
 
     public RetryHandlerBuilder withRetryDelay(long retryDelay, TimeUnit timeUnit) {
-        Preconditions.checkArgument(retryCount > 0, "Retry delay must be >0");
+        Preconditions.checkArgument(retryDelay > 0, "Retry delay must be >0");
         this.retryDelayMs = timeUnit.toMillis(retryDelay);
         return this;
     }
@@ -129,7 +129,7 @@ public final class RetryHandlerBuilder {
                         if (retryItem.cause instanceof TimeoutException) {
                             logger.info("Delaying timed-out {} retry by {}[ms]", title, expDelay);
                         } else {
-                            logger.info("Delaying failed {} retry by {}[ms]", title, expDelay);
+                            logger.info("Delaying failed {} retry by {}[ms]", title, expDelay, retryItem.cause);
                         }
                         return Observable.timer(expDelay, TimeUnit.MILLISECONDS, scheduler);
                     });

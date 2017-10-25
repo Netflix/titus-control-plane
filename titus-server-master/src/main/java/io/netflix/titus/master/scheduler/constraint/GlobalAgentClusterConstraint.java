@@ -26,8 +26,11 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QueuableTask;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
+import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import io.netflix.titus.api.agent.service.AgentManagementService;
+import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -44,19 +47,25 @@ import org.slf4j.LoggerFactory;
  */
 @Singleton
 public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
+
     private static final Logger logger = LoggerFactory.getLogger(GlobalAgentClusterConstraint.class);
 
-    private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
 
     private final String instanceGroupAttributeName;
+    private final AgentStatusMonitor agentStatusMonitor;
+
+    private final String instanceIdAttribute;
 
     @Inject
-    public GlobalAgentClusterConstraint(SchedulerConfiguration schedulerConfiguration,
-                                        AgentManagementService agentManagementService) {
-        this.schedulerConfiguration = schedulerConfiguration;
+    public GlobalAgentClusterConstraint(MasterConfiguration configuration,
+                                        SchedulerConfiguration schedulerConfiguration,
+                                        AgentManagementService agentManagementService,
+                                        AgentStatusMonitor agentStatusMonitor) {
         this.agentManagementService = agentManagementService;
+        this.agentStatusMonitor = agentStatusMonitor;
 
+        this.instanceIdAttribute = configuration.getAutoScalerMapHostnameAttributeName();
         this.instanceGroupAttributeName = schedulerConfiguration.getInstanceGroupAttributeName();
     }
 
@@ -71,7 +80,21 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
 
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
+        if (!isActive(targetVM)) {
+            return new Result(false, "Inactive VM:  " + targetVM.getHostname());
+        }
         return evaluateGpuAndCapacityTierPinning(taskRequest, targetVM);
+    }
+
+    private boolean isActive(VirtualMachineCurrentState targetVM) {
+        AgentStatus status;
+        try {
+            status = agentStatusMonitor.getStatus(targetVM.getCurrAvailableResources().getAttributeMap().get(instanceIdAttribute).getText().getValue());
+        } catch (Exception e) {
+            logger.warn("Cannot resolve target VM health status", e);
+            return false;
+        }
+        return status.getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
     }
 
     private Result evaluateGpuAndCapacityTierPinning(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {

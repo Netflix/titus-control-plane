@@ -46,6 +46,10 @@ class MonitorTestSubscriber extends TestSubscriber<AgentStatus> {
         verifyEmitted(AgentStatusCode.Healthy);
     }
 
+    public void verifyEmittedTerminated() {
+        verifyEmitted(AgentStatusCode.Terminated);
+    }
+
     public void verifyEmittedBad() {
         verifyEmitted(AgentStatusCode.Unhealthy);
     }

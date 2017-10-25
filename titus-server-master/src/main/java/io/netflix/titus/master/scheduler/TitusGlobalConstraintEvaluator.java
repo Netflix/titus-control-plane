@@ -24,6 +24,7 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import io.netflix.titus.api.agent.service.AgentManagementService;
+import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.config.MasterConfiguration;
@@ -42,6 +43,7 @@ public class TitusGlobalConstraintEvaluator implements GlobalConstraintEvaluator
     private final MasterConfiguration config;
     private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
+    private final AgentStatusMonitor agentStatusMonitor;
     private final TitusRuntime titusRuntime;
     private final GlobalTaskLaunchingConstraintEvaluator globalTaskLaunchingConstraintEvaluator;
 
@@ -51,11 +53,13 @@ public class TitusGlobalConstraintEvaluator implements GlobalConstraintEvaluator
     public TitusGlobalConstraintEvaluator(MasterConfiguration config,
                                           SchedulerConfiguration schedulerConfiguration,
                                           AgentManagementService agentManagementService,
+                                          AgentStatusMonitor agentStatusMonitor,
                                           TitusRuntime titusRuntime,
                                           GlobalTaskLaunchingConstraintEvaluator globalTaskLaunchingConstraintEvaluator) {
         this.config = config;
         this.schedulerConfiguration = schedulerConfiguration;
         this.agentManagementService = agentManagementService;
+        this.agentStatusMonitor = agentStatusMonitor;
         this.titusRuntime = titusRuntime;
         this.globalTaskLaunchingConstraintEvaluator = globalTaskLaunchingConstraintEvaluator;
     }
@@ -64,7 +68,7 @@ public class TitusGlobalConstraintEvaluator implements GlobalConstraintEvaluator
     public void enterActiveMode() {
         this.delegate = new CompositeGlobalConstraintEvaluator(asList(
                 new GlobalInactiveClusterConstraintEvaluator(config, agentManagementService, titusRuntime),
-                new GlobalAgentClusterConstraint(schedulerConfiguration, agentManagementService),
+                new GlobalAgentClusterConstraint(config, schedulerConfiguration, agentManagementService, agentStatusMonitor),
                 new GlobalTaskResubmitConstraintEvaluator(),
                 globalTaskLaunchingConstraintEvaluator
         ));

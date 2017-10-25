@@ -21,14 +21,12 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import io.netflix.titus.api.agent.service.AgentManagementFunctions;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.agent.store.AgentStore;
 import io.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import io.netflix.titus.master.agent.service.DefaultAgentManagementService;
 import io.netflix.titus.master.agent.service.monitor.AgentMonitorConfiguration;
-import io.netflix.titus.master.agent.service.monitor.CircuitBreakingStatusMonitor;
 import io.netflix.titus.master.agent.service.monitor.OnOffStatusMonitor;
 import io.netflix.titus.master.agent.service.monitor.V2JobStatusMonitor;
 import io.netflix.titus.master.agent.service.server.ServerInfoResolver;
@@ -65,14 +63,9 @@ public class AgentModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AgentStatusMonitor getAgentStatusMonitor(V2JobStatusMonitor v2JobStatusMonitor,
-                                                    AgentManagementService agentManagementService,
+    public AgentStatusMonitor getAgentStatusMonitor(AgentManagementService agentManagementService,
+                                                    V2JobStatusMonitor v2JobStatusMonitor,
                                                     AgentMonitorConfiguration config) {
-        return new CircuitBreakingStatusMonitor(
-                new OnOffStatusMonitor(v2JobStatusMonitor, config::isJobStatusMonitorEnabled, Schedulers.computation()),
-                config::getDisableAgentPercentageThreshold,
-                () -> AgentManagementFunctions.getAllInstances(agentManagementService).size(),
-                Schedulers.computation()
-        );
+        return new OnOffStatusMonitor(agentManagementService, v2JobStatusMonitor, config::isJobStatusMonitorEnabled, Schedulers.computation());
     }
 }

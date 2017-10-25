@@ -601,6 +601,18 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "net.bytebuddy:byte-buddy": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
+        "net.bytebuddy:byte-buddy-agent": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
@@ -737,6 +749,16 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.mockito:mockito-core": {
+            "locked": "2.11.0",
+            "requested": "2.+"
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.6",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -1419,6 +1441,18 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "net.bytebuddy:byte-buddy": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
+        "net.bytebuddy:byte-buddy-agent": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
@@ -1555,6 +1589,16 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.mockito:mockito-core": {
+            "locked": "2.11.0",
+            "requested": "2.+"
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.6",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -2237,6 +2281,18 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "net.bytebuddy:byte-buddy": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
+        "net.bytebuddy:byte-buddy-agent": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
@@ -2373,6 +2429,16 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.mockito:mockito-core": {
+            "locked": "2.11.0",
+            "requested": "2.+"
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.6",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -3092,6 +3158,18 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "net.bytebuddy:byte-buddy": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
+        "net.bytebuddy:byte-buddy-agent": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
@@ -3228,6 +3306,16 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.mockito:mockito-core": {
+            "locked": "2.11.0",
+            "requested": "2.+"
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.6",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.quartz-scheduler:quartz": {
@@ -3911,6 +3999,18 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "net.bytebuddy:byte-buddy": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
+        "net.bytebuddy:byte-buddy-agent": {
+            "locked": "1.7.4",
+            "transitive": [
+                "org.mockito:mockito-core"
+            ]
+        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
@@ -4047,6 +4147,16 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "io.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.mockito:mockito-core": {
+            "locked": "2.11.0",
+            "requested": "2.+"
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.6",
+            "transitive": [
+                "org.mockito:mockito-core"
             ]
         },
         "org.quartz-scheduler:quartz": {

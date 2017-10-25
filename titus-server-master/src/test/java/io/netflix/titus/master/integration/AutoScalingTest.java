@@ -27,6 +27,7 @@ import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusMasterResource;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -76,6 +77,7 @@ public class AutoScalingTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30000)
+    @Ignore
     public void testAgentClustersAreScaledUpToMinIdleInstances() throws Exception {
         ExtTestSubscriber<AutoScaleEvent> scaleActionsSubscriber = new ExtTestSubscriber<>();
         titusMaster.observeAutoScaleEvents().subscribe(scaleActionsSubscriber);

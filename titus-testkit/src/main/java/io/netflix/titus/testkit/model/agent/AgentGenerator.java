@@ -27,7 +27,10 @@ import io.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import io.netflix.titus.api.agent.model.InstanceLifecycleState;
 import io.netflix.titus.api.agent.model.InstanceLifecycleStatus;
 import io.netflix.titus.api.agent.model.InstanceOverrideStatus;
+import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.aws.AwsInstanceDescriptor;
+import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.util.tuple.Pair;
 
@@ -75,6 +78,23 @@ public final class AgentGenerator {
 
     public static DataGenerator<AgentInstanceGroup> agentServerGroups(Tier tier, int desiredSize) {
         return agentServerGroups(tier, desiredSize, instanceTypes().toList());
+    }
+
+    public static DataGenerator<AgentInstanceGroup> agentServerGroups(Tier tier, int desiredSize, AwsInstanceType instanceType) {
+        AwsInstanceDescriptor awsInstanceDescriptor = instanceType.getDescriptor();
+        return agentServerGroups(tier, desiredSize, Collections.singletonList(instanceType.name()))
+                .map(instanceGroup ->
+                        instanceGroup.toBuilder()
+                                .withResourceDimension(
+                                        ResourceDimension.newBuilder()
+                                                .withCpus(awsInstanceDescriptor.getvGPUs())
+                                                .withGpu(awsInstanceDescriptor.getvGPUs())
+                                                .withMemoryMB(awsInstanceDescriptor.getMemoryGB() * 1024)
+                                                .withDiskMB(awsInstanceDescriptor.getStorageGB() * 1024)
+                                                .withNetworkMbs(awsInstanceDescriptor.getNetworkMbs())
+                                                .build()
+                                )
+                                .build());
     }
 
     public static DataGenerator<AgentInstanceGroup> agentServerGroups(Tier tier, int desiredSize, List<String> instanceTypes) {

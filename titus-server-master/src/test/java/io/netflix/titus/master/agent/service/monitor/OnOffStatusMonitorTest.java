@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.testkit.model.agent.AgentGenerator;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -37,17 +38,19 @@ public class OnOffStatusMonitorTest {
 
     private static final AgentInstance AGENT_1 = AgentGenerator.agentInstances().getValue();
 
-    private static final AgentStatus AGENT_1_STATUS_OK = AgentStatus.healthy("delegate", AGENT_1);
-    private static final AgentStatus AGENT_1_STATUS_BAD = AgentStatus.unhealthy("delegate", AGENT_1, 60000, System.currentTimeMillis());
+    private static final AgentStatus AGENT_1_STATUS_OK = AgentStatus.healthy("delegate", AGENT_1, "OK", System.currentTimeMillis());
+    private static final AgentStatus AGENT_1_STATUS_BAD = AgentStatus.unhealthy("delegate", AGENT_1, "BAD", System.currentTimeMillis());
 
     private final TestScheduler testScheduler = Schedulers.test();
+
+    private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
 
     private final AgentStatusMonitor delegate = mock(AgentStatusMonitor.class);
     private final PublishSubject<AgentStatus> delegateStatusSubject = PublishSubject.create();
 
     private boolean on = true;
 
-    private final AgentStatusMonitor onOffStatusMonitor = new OnOffStatusMonitor(delegate, () -> on, testScheduler);
+    private final AgentStatusMonitor onOffStatusMonitor = new OnOffStatusMonitor(agentManagementService, delegate, () -> on, testScheduler);
 
     private final ExtTestSubscriber<AgentStatus> statusSubscriber = new ExtTestSubscriber<>();
 
@@ -89,7 +92,9 @@ public class OnOffStatusMonitorTest {
 
     private void expectedStateEmit(AgentStatus expected) {
         testScheduler.advanceTimeBy(OnOffStatusMonitor.CHECK_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(statusSubscriber.takeNext()).isEqualTo(expected);
+        AgentStatus emitted = statusSubscriber.takeNext();
+        assertThat(emitted).isNotNull();
+        assertThat(emitted.getStatusCode()).isEqualTo(expected.getStatusCode());
     }
 
     private void expectedNoStateEmit() {

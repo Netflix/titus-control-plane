@@ -37,6 +37,7 @@ import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusMasterResource;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -114,6 +115,7 @@ public class CapacityGuaranteeTest {
     }
 
     @Test
+    @Ignore
     public void testGuaranteesAreEnforcedInCriticalTier() throws Exception {
         // FIXME Remove this once we have notification mechanism
         Thread.sleep(500);

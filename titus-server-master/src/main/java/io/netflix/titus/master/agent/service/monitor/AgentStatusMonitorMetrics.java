@@ -16,28 +16,23 @@
 
 package io.netflix.titus.master.agent.service.monitor;
 
+import java.util.Collection;
 import java.util.EnumMap;
-import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
-import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus.AgentStatusCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netflix.titus.master.MetricConstants;
 
 public class AgentStatusMonitorMetrics {
-
-    private static final Logger logger = LoggerFactory.getLogger(AgentStatusMonitorMetrics.class);
 
     private final String rootName;
     private final Registry registry;
 
-    private volatile ConcurrentMap<String, Optional<AgentStatus>> statusByAgent = new ConcurrentHashMap<>();
+    private volatile ConcurrentMap<String, AgentStatus> statusByAgent = new ConcurrentHashMap<>();
     private volatile EnumMap<AgentStatusCode, Integer> statusMap = createEmptyStatusMap();
 
     public AgentStatusMonitorMetrics(String name, Registry registry) {
@@ -51,38 +46,24 @@ public class AgentStatusMonitorMetrics {
     }
 
     public void statusChanged(AgentStatus agentStatus) {
-        if (statusByAgent.put(agentStatus.getInstance().getId(), Optional.of(agentStatus)) == null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Agent {} is not tracked by the metrics monitor", agentStatus.getInstance().getId());
+        if (agentStatus.getStatusCode() == AgentStatusCode.Terminated) {
+            if (statusByAgent.remove(agentStatus.getAgentInstance().getId()) != null) {
+                refreshStatusMap();
             }
+        } else {
+            statusByAgent.put(agentStatus.getAgentInstance().getId(), agentStatus);
+            refreshStatusMap();
         }
-        refreshStatusMap();
     }
 
     /**
      * Swap all stored information with the provided one.
      */
-    public void replaceStatusChanges(List<AgentStatus> statusList) {
-        ConcurrentMap<String, Optional<AgentStatus>> newStatusByAgent = new ConcurrentHashMap<>();
-        statusList.forEach(status -> newStatusByAgent.put(status.getInstance().getId(), Optional.of(status)));
+    public void replaceStatusChanges(Collection<AgentStatus> statusList) {
+        ConcurrentMap<String, AgentStatus> newStatusByAgent = new ConcurrentHashMap<>();
+        statusList.forEach(status -> newStatusByAgent.put(status.getAgentInstance().getId(), status));
         this.statusByAgent = newStatusByAgent;
         refreshStatusMap();
-    }
-
-    public void agentAdded(String agentName) {
-        if (statusByAgent.put(agentName, Optional.empty()) != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Agent {} is already tracked by the metrics monitor", agentName);
-            }
-        }
-    }
-
-    public void agentRemoved(String agentName) {
-        if (statusByAgent.remove(agentName) == null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Agent {} is not tracked by the metrics monitor", agentName);
-            }
-        }
     }
 
     private EnumMap<AgentStatusCode, Integer> createEmptyStatusMap() {
@@ -95,18 +76,14 @@ public class AgentStatusMonitorMetrics {
 
     private void refreshStatusMap() {
         EnumMap<AgentStatusCode, Integer> newStatusMap = createEmptyStatusMap();
-        for (Optional<AgentStatus> status : statusByAgent.values()) {
-            if (status.isPresent()) {
-                AgentStatusCode statusCode = status.get().getStatusCode();
-                newStatusMap.put(statusCode, newStatusMap.get(statusCode) + 1);
-            }
+        for (AgentStatus status : statusByAgent.values()) {
+            AgentStatusCode statusCode = status.getStatusCode();
+            newStatusMap.put(statusCode, newStatusMap.get(statusCode) + 1);
         }
         this.statusMap = newStatusMap;
     }
 
     private Id newId(String name) {
-        return registry
-                .createId(rootName + name)
-                .withTag("class", AgentStatusMonitorMetrics.class.getSimpleName());
+        return registry.createId(rootName + name);
     }
 }
