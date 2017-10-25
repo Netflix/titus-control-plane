@@ -34,7 +34,7 @@ final class MesosTracer {
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
             T result = callable.get();
-            logger.info("[Mesos/Request] OK {} (execution time {}ms)", message, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            logger.debug("[Mesos/Request] OK {} (execution time {}ms)", message, stopwatch.elapsed(TimeUnit.MILLISECONDS));
             return result;
         } catch (Exception e) {
             logger.error("[Mesos/Request] ERROR {} (execution time {}ms). Failure message: {}", message, stopwatch.elapsed(TimeUnit.MILLISECONDS), e.getMessage());
@@ -43,6 +43,6 @@ final class MesosTracer {
     }
 
     static void traceMesosCallback(String message) {
-        logger.info("[Mesos/Callback] {}", message);
+        logger.debug("[Mesos/Callback] {}", message);
     }
 }

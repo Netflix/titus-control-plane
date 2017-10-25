@@ -15,8 +15,8 @@
  */
 
 dependencies {
-    compile "com.netflix.eureka:eureka-client:${eurekaVersion}"
     compile project(':titus-server-master')
+    compile "com.netflix.eureka:eureka-client:${eurekaVersion}"
 
     testCompile project(':titus-testkit')
 }

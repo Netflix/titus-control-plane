@@ -25,6 +25,9 @@ import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
 import rx.Subscription;
 
+/**
+ * See {@link ObservableExt#mapWithState(Object, BiFunction)}.
+ */
 class MapWithStateTransformer<T, R, S> implements Observable.Transformer<T, R> {
 
     private final S zero;
