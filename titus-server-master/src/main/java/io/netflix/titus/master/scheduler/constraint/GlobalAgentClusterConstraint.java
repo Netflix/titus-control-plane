@@ -30,6 +30,7 @@ import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
@@ -80,21 +81,23 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
 
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        if (!isActive(targetVM)) {
-            return new Result(false, "Inactive VM:  " + targetVM.getHostname());
+        Pair<Boolean, String> health = evaluateHealthy(targetVM);
+        if (!health.getLeft()) {
+            return new Result(false, health.getRight());
         }
         return evaluateGpuAndCapacityTierPinning(taskRequest, targetVM);
     }
 
-    private boolean isActive(VirtualMachineCurrentState targetVM) {
+    private Pair<Boolean, String> evaluateHealthy(VirtualMachineCurrentState targetVM) {
         AgentStatus status;
         try {
             status = agentStatusMonitor.getStatus(targetVM.getCurrAvailableResources().getAttributeMap().get(instanceIdAttribute).getText().getValue());
         } catch (Exception e) {
             logger.warn("Cannot resolve target VM health status", e);
-            return false;
+            return Pair.of(false, "Unhealthy: Cannot find agent");
         }
-        return status.getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
+        boolean healthy = status.getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
+        return Pair.of(healthy, status.getStatusCode().name() + ": " + status.getDescription());
     }
 
     private Result evaluateGpuAndCapacityTierPinning(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {
