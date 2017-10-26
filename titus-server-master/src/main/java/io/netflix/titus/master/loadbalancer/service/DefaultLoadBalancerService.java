@@ -151,14 +151,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .buffer(configuration.getBatch().getTimeoutMs(), TimeUnit.MILLISECONDS, configuration.getBatch().getSize(), scheduler)
                 .doOnNext(e -> logger.debug("Processing batch operation of size {}", e.size()))
                 .map(CollectionsExt::distinctKeepLast)
-                .flatMap(this::modifyBatch)
-                .doOnNext(e -> logger.info("Processed load balancer batch: registered {}, deregistered",
-                        e.getStateRegister().size(), e.getStateDeregister().size()))
-                .doOnError(e -> logger.error("Error processing a batch", e))
+                .flatMap(this::processBatch)
+                .doOnNext(batch -> logger.info("Processed load balancer batch: registered {}, deregistered {}",
+                        batch.getStateRegister().size(), batch.getStateDeregister().size()))
+                .doOnError(e -> logger.error("Error batching load balancer calls", e))
                 .onErrorResumeNext(Observable.empty());
     }
 
-    private Observable<Batch> modifyBatch(Collection<LoadBalancerTarget> targets) {
+    private Observable<Batch> processBatch(Collection<LoadBalancerTarget> targets) {
         final Batch grouped = new Batch(targets);
         final List<LoadBalancerTarget> registerList = grouped.getStateRegister();
         final List<LoadBalancerTarget> deregisterList = grouped.getStateDeregister();
@@ -179,27 +179,34 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                 target.getTaskId(),
                                 target.getIpAddress(),
                                 LoadBalancerTarget.State.Deregistered
-                        )));
+                        )))
+                .doOnError(e -> logger.error("Error fetching targets to deregister", e))
+                .retry();
     }
 
     @VisibleForTesting
     Observable<LoadBalancerTarget> targetsToRegister(Observable<JobLoadBalancer> pendingAssociations) {
         return pendingAssociations
                 .filter(jobLoadBalancer -> v3JobOperations.getJob(jobLoadBalancer.getJobId()).isPresent())
-                .flatMap(jobLoadBalancer -> {
-                    final LoadBalancerTarget.State desiredState = LoadBalancerTarget.State.Registered;
-                    final String jobId = jobLoadBalancer.getJobId();
-                    return Observable.merge(
-                            v3JobOperations.getTasks(jobId).stream()
-                                    .filter(task -> task.getStatus().getState() == TaskState.Started)
-                                    .filter(DefaultLoadBalancerService::hasIp)
-                                    .map(task -> {
-                                        final String ipAddress = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
-                                        return Observable.just(new LoadBalancerTarget(jobLoadBalancer, task.getId(), ipAddress, desiredState));
-                                    }).collect(Collectors.toList()))
-                            .doOnError(e -> logger.error("Error loading tasks for jobId " + jobId, e))
-                            .onErrorResumeNext(Observable.empty()); // skip it
-                });
+                .flatMap(jobLoadBalancer -> Observable.from(targetsForJob(jobLoadBalancer))
+                        .doOnError(e -> logger.error("Error loading targets for jobId " + jobLoadBalancer.getJobId(), e))
+                        .onErrorResumeNext(Observable.empty()))
+                .doOnError(e -> logger.error("Error fetching targets to register", e))
+                .retry();
+    }
+
+    /**
+     * Valid targets are tasks in the Started state that have ip addresses associated to them.
+     */
+    private List<LoadBalancerTarget> targetsForJob(JobLoadBalancer jobLoadBalancer) {
+        return v3JobOperations.getTasks(jobLoadBalancer.getJobId()).stream()
+                .filter(task -> task.getStatus().getState() == TaskState.Started)
+                .filter(DefaultLoadBalancerService::hasIp)
+                .map(task -> new LoadBalancerTarget(jobLoadBalancer, task.getId(),
+                        task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP),
+                        LoadBalancerTarget.State.Registered
+                ))
+                .collect(Collectors.toList());
     }
 
     private static boolean hasIp(Task task) {

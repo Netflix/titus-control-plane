@@ -39,6 +39,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,11 +81,11 @@ public class DefaultLoadBalancerServiceTest {
 
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(store.retrieveLoadBalancersForJob(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+        verify(jobOperations).getTasks(jobId);
 
         testScheduler.triggerActions();
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(jobOperations).getTasks(jobId);
         verify(client).registerAll(argThat(targets -> targets != null && targets.size() == 5));
         verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
     }
@@ -112,12 +113,57 @@ public class DefaultLoadBalancerServiceTest {
         final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(store.retrieveLoadBalancersForJob(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+        verify(jobOperations).getTasks(jobId);
+
+        testSubscriber.assertNoErrors().assertValueCount(0);
+        verify(client, never()).registerAll(any());
+        verify(client, never()).deregisterAll(any());
 
         testScheduler.advanceTimeBy(5_001, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(jobOperations).getTasks(jobId);
         verify(client).registerAll(argThat(targets -> targets != null && targets.size() == 3));
+        verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+    }
+
+    @Test
+    public void addSkipLoadBalancerOperationsOnErrors() throws Exception {
+        String firstJobId = UUID.randomUUID().toString();
+        String secondJobId = UUID.randomUUID().toString();
+        String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+
+        when(client.registerAll(any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any())).thenReturn(Completable.complete());
+        // first fails, second succeeds
+        when(jobOperations.getJob(firstJobId)).thenThrow(RuntimeException.class);
+        when(jobOperations.getJob(secondJobId)).thenReturn(Optional.of(Job.newBuilder().build()));
+        when(jobOperations.getTasks(secondJobId)).thenReturn(LoadBalancerTests.buildTasksStarted(2, secondJobId));
+
+        LoadBalancerConfiguration configuration = mockConfiguration(2, 5_000);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+
+        final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
+
+        assertTrue(service.addLoadBalancer(firstJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(store.retrieveLoadBalancersForJob(firstJobId).toBlocking().first()).isEqualTo(loadBalancerId);
+
+        testScheduler.triggerActions();
+
+        // first fails and gets skipped after being saved, so convergence can pick it up later
+        testSubscriber.assertNoErrors().assertNoValues();
+        verify(jobOperations, never()).getTasks(firstJobId);
+        verify(client, never()).registerAll(any());
+        verify(client, never()).deregisterAll(any());
+
+        assertTrue(service.addLoadBalancer(secondJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(store.retrieveLoadBalancersForJob(secondJobId).toBlocking().first()).isEqualTo(loadBalancerId);
+
+        testScheduler.triggerActions();
+
+        // second succeeds
+        testSubscriber.assertNoErrors().assertValueCount(1);
+        verify(jobOperations).getTasks(secondJobId);
+        verify(client).registerAll(argThat(targets -> targets != null && targets.size() == 2));
         verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
     }
 
