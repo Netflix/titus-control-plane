@@ -89,7 +89,7 @@ public class Main {
 
     private void fetchTaggedInstances(List<String> tags) {
         List<Instance> instances = connector.getTaggedInstances(tags.get(0)).toBlocking().first();
-        System.out.println("Loaded tagged instances:");
+        System.out.format("Loaded tagged instances (%s):\n", instances.size());
         instances.forEach(System.out::println);
     }
 

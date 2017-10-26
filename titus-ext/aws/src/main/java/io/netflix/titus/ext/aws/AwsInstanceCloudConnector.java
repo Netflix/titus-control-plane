@@ -257,14 +257,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                     new Filter().withName("tag-key").withValues(tagName)
             );
             return ec2Client.describeInstancesAsync(request);
-        }).flatMap(response -> {
+        }).map(response -> {
                     List<com.amazonaws.services.ec2.model.Instance> instances =
                             response.getReservations().stream().flatMap(r -> r.getInstances().stream()).collect(Collectors.toList());
-                    List<String> instanceIds = instances.stream().map(com.amazonaws.services.ec2.model.Instance::getInstanceId).collect(Collectors.toList());
-
-                    DescribeAutoScalingInstancesRequest asRequest = new DescribeAutoScalingInstancesRequest().withInstanceIds(instanceIds);
-                    return toObservable(() -> autoScalingClient.describeAutoScalingInstancesAsync(asRequest))
-                            .map(asResponse -> toInstances(response.getReservations(), asResponse.getAutoScalingInstances()));
+                    return instances.stream().map(this::toInstance).collect(Collectors.toList());
                 }
         );
     }
@@ -399,18 +395,23 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     private Instance toInstance(com.amazonaws.services.ec2.model.Instance awsInstance, Optional<AutoScalingInstanceDetails> details) {
+        Instance instance = toInstance(awsInstance);
+        return details.map(d -> instance.toBuilder().withInstanceGroupId(d.getAutoScalingGroupName()).build()).orElse(instance);
+    }
+
+    private Instance toInstance(com.amazonaws.services.ec2.model.Instance awsInstance) {
         Map<String, String> attributes = CollectionsExt.isNullOrEmpty(awsInstance.getTags())
                 ? Collections.emptyMap()
                 : awsInstance.getTags().stream().collect(Collectors.toMap(Tag::getKey, Tag::getValue));
 
         return Instance.newBuilder()
                 .withId(awsInstance.getInstanceId())
-                .withInstanceGroupId(details.map(AutoScalingInstanceDetails::getAutoScalingGroupName).orElse(UNASSIGNED))
                 .withHostname(awsInstance.getPrivateDnsName())
                 .withIpAddress(awsInstance.getPrivateIpAddress())
                 .withInstanceState(toVmInstanceState(awsInstance.getState()))
                 .withAttributes(attributes)
                 .withLaunchTime(awsInstance.getLaunchTime().getTime())
+                .withInstanceGroupId("unknown")
                 .build();
     }
 
