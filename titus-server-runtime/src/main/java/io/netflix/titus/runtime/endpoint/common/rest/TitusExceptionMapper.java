@@ -31,6 +31,8 @@ import javax.ws.rs.ext.Provider;
 
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.sun.jersey.api.NotFoundException;
+import com.sun.jersey.api.ParamException;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.util.CollectionsExt;
@@ -81,14 +83,35 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
     private Response fromWebApplicationException(WebApplicationException e) {
         int status = e.getResponse().getStatus();
 
-        Throwable effective = e.getCause() == null ? e : e.getCause();
+        Throwable cause = e.getCause() == null ? e : e.getCause();
+        String errorMessage = toStandardHttpErrorMessage(status, cause);
 
-        ErrorResponse errorResponse = ErrorResponse.newError(status, effective.getMessage())
+        ErrorResponse errorResponse = ErrorResponse.newError(status, errorMessage)
                 .clientRequest(httpServletRequest)
                 .serverContext()
-                .exceptionContext(effective)
+                .exceptionContext(cause)
                 .build();
         return Response.status(status).entity(errorResponse).build();
+    }
+
+    private String toStandardHttpErrorMessage(int status, Throwable cause) {
+        // Do not use message from Jersey exceptions, as we can do better
+        if (cause instanceof ParamException) {
+            ParamException pe = (ParamException) cause;
+            return "invalid parameter " + pe.getParameterName() + "=" + pe.getDefaultStringValue() + " of type " + pe.getParameterType();
+        }
+        if (cause instanceof NotFoundException) {
+            NotFoundException nfe = (NotFoundException) cause;
+            return "resource not found: " + nfe.getNotFoundUri();
+        }
+        if (cause.getMessage() != null) {
+            return cause.getMessage();
+        }
+        try {
+            return Status.fromStatusCode(status).getReasonPhrase();
+        } catch (Exception e) {
+            return "HTTP error " + status;
+        }
     }
 
     private Response fromJsonProcessingException(JsonProcessingException e) {
