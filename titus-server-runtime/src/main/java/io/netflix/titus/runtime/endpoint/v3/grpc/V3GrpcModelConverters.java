@@ -43,6 +43,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.Owner;
+import io.netflix.titus.api.jobmanager.model.job.ScalingProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -185,6 +186,13 @@ public final class V3GrpcModelConverters {
         }
     }
 
+    public static ScalingProcesses toCoreScalingProcesses(ServiceJobSpec.ScalingProcesses grpcScalingProcesses) {
+        return JobModel.newScalingProcesses()
+                .withDisableIncreaseDesired(grpcScalingProcesses.getDisableIncreaseDesired())
+                .withDisableDecreaseDesired(grpcScalingProcesses.getDisableDecreaseDesired())
+                .build();
+    }
+
     public static Container toCoreContainer(com.netflix.titus.grpc.protogen.Container grpcContainer) {
         return JobModel.newContainer()
                 .withImage(toCoreImage(grpcContainer.getImage()))
@@ -213,6 +221,7 @@ public final class V3GrpcModelConverters {
                 .withCapacity(toCoreCapacity(serviceSpec.getCapacity()))
                 .withRetryPolicy(toCoreRetryPolicy(serviceSpec.getRetryPolicy()))
                 .withEnabled(serviceSpec.getEnabled())
+                .withScalingProcesses(toCoreScalingProcesses(serviceSpec.getScalingProcesses()))
                 .build();
     }
 
