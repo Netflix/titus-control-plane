@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
@@ -27,6 +28,10 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import rx.Observable;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class LoadBalancerTests {
 
@@ -52,4 +57,16 @@ class LoadBalancerTests {
         ).collect(Collectors.toList());
     }
 
+    static LoadBalancerConfiguration mockConfiguration(int batchSize, long batchTimeoutMs) {
+        final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
+        final LoadBalancerConfiguration.Batch batchConfig = mock(LoadBalancerConfiguration.Batch.class);
+        when(configuration.getBatch()).thenReturn(batchConfig);
+        when(batchConfig.getSize()).thenReturn(batchSize);
+        when(batchConfig.getTimeoutMs()).thenReturn(batchTimeoutMs);
+        return configuration;
+    }
+
+    static <T> long count(Observable<T> items) {
+        return StreamSupport.<T>stream(items.toBlocking().toIterable().spliterator(), false).count();
+    }
 }

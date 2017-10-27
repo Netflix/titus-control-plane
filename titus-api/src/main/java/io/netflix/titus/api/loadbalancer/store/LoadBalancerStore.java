@@ -36,4 +36,6 @@ public interface LoadBalancerStore {
      * @param targets may be null or empty, in which case this is a noop
      */
     Completable updateTargets(Collection<LoadBalancerTarget> targets);
+
+    Completable removeTargets(Collection<LoadBalancerTarget> targets);
 }

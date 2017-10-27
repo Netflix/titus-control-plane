@@ -17,66 +17,70 @@
 package io.netflix.titus.runtime.store.v3.memory;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
+/**
+ * Operations are not being indexed yet for simplicity.
+ */
 public class InMemoryLoadBalancerStore implements LoadBalancerStore {
+    private static Logger logger = LoggerFactory.getLogger(InMemoryLoadBalancerStore.class);
 
-    private final ConcurrentMap<JobLoadBalancer, Set<LoadBalancerTarget>> jobLoadBalancers;
+    private final Set<JobLoadBalancer> associations;
+    private final Set<LoadBalancerTarget> targets;
 
     public InMemoryLoadBalancerStore() {
-        jobLoadBalancers = new ConcurrentHashMap<>();
+        associations = ConcurrentHashMap.newKeySet();
+        targets = ConcurrentHashMap.newKeySet();
     }
 
     @Override
     public Observable<String> retrieveLoadBalancersForJob(String jobId) {
-        return Observable.from(jobLoadBalancers.keySet())
+        return Observable.defer(() -> Observable.from(associations)
                 .filter(jobLoadBalancer -> jobLoadBalancer.getJobId().equals(jobId))
                 .map(JobLoadBalancer::getLoadBalancerId)
-                .distinct();
+                .distinct());
     }
 
     @Override
     public Completable addLoadBalancer(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> jobLoadBalancers.putIfAbsent(jobLoadBalancer, ConcurrentHashMap.newKeySet()));
+        return Completable.fromAction(() -> associations.add(jobLoadBalancer));
     }
 
     @Override
     public Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> jobLoadBalancers.remove(jobLoadBalancer));
+        return Completable.fromAction(() -> associations.remove(jobLoadBalancer));
     }
 
     @Override
     public Observable<LoadBalancerTarget> retrieveTargets(JobLoadBalancer jobLoadBalancer) {
-        final Set<LoadBalancerTarget> targets = jobLoadBalancers.get(jobLoadBalancer);
-        if (targets == null) {
-            return Observable.empty();
-        }
-        return Observable.from(targets);
+        return Observable.defer(() -> Observable.from(targets)
+                .filter(target -> target.getJobLoadBalancer().equals(jobLoadBalancer))
+        );
     }
 
     @Override
-    public Completable updateTargets(Collection<LoadBalancerTarget> targets) {
-        if (CollectionsExt.isNullOrEmpty(targets)) {
+    public Completable updateTargets(Collection<LoadBalancerTarget> update) {
+        if (CollectionsExt.isNullOrEmpty(update)) {
             return Completable.complete();
         }
+        return Completable.fromAction(() -> targets.addAll(update));
+    }
 
-        final Map<JobLoadBalancer, List<LoadBalancerTarget>> grouped = targets.stream()
-                .collect(Collectors.groupingBy(LoadBalancerTarget::getJobLoadBalancer));
-        return Observable.from(grouped.keySet()).flatMap(
-                jobLoadBalancer -> Observable.from(grouped.get(jobLoadBalancer))
-                        .doOnNext(target -> jobLoadBalancers.get(jobLoadBalancer).add(target))
-        ).toCompletable();
+    @Override
+    public Completable removeTargets(Collection<LoadBalancerTarget> remove) {
+        if (CollectionsExt.isNullOrEmpty(remove)) {
+            return Completable.complete();
+        }
+        return Completable.fromAction(() -> targets.removeAll(remove));
     }
 }

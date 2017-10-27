@@ -93,18 +93,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Completable addLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addLoadBalancer(jobLoadBalancer)
-                .andThen(Completable.fromAction(
-                        () -> pendingAssociations.onNext(jobLoadBalancer)
-                ));
+                .andThen(Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer)));
     }
 
     @Override
     public Completable removeLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.removeLoadBalancer(jobLoadBalancer)
-                .andThen(Completable.fromAction(
-                        () -> pendingDissociations.onNext(jobLoadBalancer)
-                ));
+                .andThen(Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer)));
     }
 
     @VisibleForTesting
@@ -144,8 +140,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         this.pendingDissociations.onCompleted();
     }
 
-    @VisibleForTesting
-    Observable<Batch> batchLoadBalancerChanges(Observable<LoadBalancerTarget> targetsToRegister, Observable<LoadBalancerTarget> targetsToDeregister) {
+    private Observable<Batch> batchLoadBalancerChanges(Observable<LoadBalancerTarget> targetsToRegister, Observable<LoadBalancerTarget> targetsToDeregister) {
         return Observable.merge(targetsToRegister, targetsToDeregister)
                 .doOnNext(e -> logger.debug("Buffering load balancer target {}", e))
                 .buffer(configuration.getBatch().getTimeoutMs(), TimeUnit.MILLISECONDS, configuration.getBatch().getSize(), scheduler)
@@ -164,28 +159,27 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final List<LoadBalancerTarget> deregisterList = grouped.getStateDeregister();
         final Completable merged = Completable.mergeDelayError(
                 loadBalancerClient.registerAll(registerList).andThen(loadBalancerStore.updateTargets(registerList)),
-                loadBalancerClient.deregisterAll(deregisterList).andThen(loadBalancerStore.updateTargets(deregisterList))
+                loadBalancerClient.deregisterAll(deregisterList).andThen(loadBalancerStore.removeTargets(deregisterList))
         );
         return merged.andThen(Observable.just(grouped))
                 .doOnError(e -> logger.error("Error processing batch " + grouped, e))
                 .onErrorResumeNext(Observable.empty());
     }
 
-    @VisibleForTesting
-    Observable<LoadBalancerTarget> targetsToDeregister(Observable<JobLoadBalancer> pendingDissociations) {
+    private Observable<LoadBalancerTarget> targetsToDeregister(Observable<JobLoadBalancer> pendingDissociations) {
         return pendingDissociations.flatMap(
                 jobLoadBalancer -> loadBalancerStore.retrieveTargets(jobLoadBalancer).map(
                         target -> new LoadBalancerTarget(jobLoadBalancer,
                                 target.getTaskId(),
                                 target.getIpAddress(),
                                 LoadBalancerTarget.State.Deregistered
-                        )))
+                        )
+                ))
                 .doOnError(e -> logger.error("Error fetching targets to deregister", e))
                 .retry();
     }
 
-    @VisibleForTesting
-    Observable<LoadBalancerTarget> targetsToRegister(Observable<JobLoadBalancer> pendingAssociations) {
+    private Observable<LoadBalancerTarget> targetsToRegister(Observable<JobLoadBalancer> pendingAssociations) {
         return pendingAssociations
                 .filter(jobLoadBalancer -> v3JobOperations.getJob(jobLoadBalancer.getJobId()).isPresent())
                 .flatMap(jobLoadBalancer -> Observable.from(targetsForJob(jobLoadBalancer))
