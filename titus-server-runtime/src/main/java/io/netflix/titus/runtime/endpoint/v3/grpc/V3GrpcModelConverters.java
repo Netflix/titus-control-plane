@@ -43,11 +43,16 @@ import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.Owner;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.model.job.migration.DefaultMigrationPolicy;
+import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
+import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
+import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
@@ -185,6 +190,17 @@ public final class V3GrpcModelConverters {
         }
     }
 
+    private static MigrationPolicy toCoreMigrationPolicy(com.netflix.titus.grpc.protogen.MigrationPolicy grpcMigrationPolicy) {
+        switch (grpcMigrationPolicy.getPolicyCase()) {
+            case DEFAULT:
+                return JobModel.newDefaultMigrationPolicy().build();
+            case SELFMANAGED:
+                return JobModel.newSelfManagedMigrationPolicy().build();
+            default:
+                return JobModel.newDefaultMigrationPolicy().build();
+        }
+    }
+
     public static Container toCoreContainer(com.netflix.titus.grpc.protogen.Container grpcContainer) {
         return JobModel.newContainer()
                 .withImage(toCoreImage(grpcContainer.getImage()))
@@ -212,6 +228,7 @@ public final class V3GrpcModelConverters {
         return JobModel.newServiceJobExt()
                 .withCapacity(toCoreCapacity(serviceSpec.getCapacity()))
                 .withRetryPolicy(toCoreRetryPolicy(serviceSpec.getRetryPolicy()))
+                .withMigrationPolicy(toCoreMigrationPolicy(serviceSpec.getMigrationPolicy()))
                 .withEnabled(serviceSpec.getEnabled())
                 .build();
     }
@@ -389,6 +406,18 @@ public final class V3GrpcModelConverters {
         return builder.build();
     }
 
+    private static com.netflix.titus.grpc.protogen.MigrationPolicy toGrpcMigrationPolicy(MigrationPolicy migrationPolicy) {
+        com.netflix.titus.grpc.protogen.MigrationPolicy.Builder builder = com.netflix.titus.grpc.protogen.MigrationPolicy.newBuilder();
+        if (migrationPolicy instanceof DefaultMigrationPolicy) {
+            builder.setDefault(com.netflix.titus.grpc.protogen.MigrationPolicy.Default.newBuilder());
+        } else if (migrationPolicy instanceof SelfManagedMigrationPolicy) {
+            builder.setSelfManaged(com.netflix.titus.grpc.protogen.MigrationPolicy.SelfManaged.newBuilder());
+        } else {
+            builder.setDefault(com.netflix.titus.grpc.protogen.MigrationPolicy.Default.newBuilder());
+        }
+        return builder.build();
+    }
+
     public static BatchJobSpec toGrpcBatchSpec(BatchJobExt batchJobExt) {
         int desired = batchJobExt.getSize();
         return BatchJobSpec.newBuilder()
@@ -403,7 +432,8 @@ public final class V3GrpcModelConverters {
         ServiceJobSpec.Builder builder = ServiceJobSpec.newBuilder()
                 .setEnabled(serviceJobExt.isEnabled())
                 .setCapacity(toGrpcCapacity(capacity))
-                .setRetryPolicy(toGrpcRetryPolicy(serviceJobExt.getRetryPolicy()));
+                .setRetryPolicy(toGrpcRetryPolicy(serviceJobExt.getRetryPolicy()))
+                .setMigrationPolicy(toGrpcMigrationPolicy(serviceJobExt.getMigrationPolicy()));
         return builder.build();
     }
 
@@ -520,19 +550,23 @@ public final class V3GrpcModelConverters {
         taskContext.put(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(coreTask.getResubmitNumber()));
         coreTask.getResubmitOf().ifPresent(resubmitOf -> taskContext.put(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, resubmitOf));
 
-        if (coreTask instanceof BatchJobTask) {
-            BatchJobTask batchTask = (BatchJobTask) coreTask;
-            taskContext.put(TASK_ATTRIBUTES_TASK_INDEX, Integer.toString(batchTask.getIndex()));
-        }
-
-        return com.netflix.titus.grpc.protogen.Task.newBuilder()
+        com.netflix.titus.grpc.protogen.Task.Builder taskBuilder = com.netflix.titus.grpc.protogen.Task.newBuilder()
                 .setId(coreTask.getId())
                 .setJobId(coreTask.getJobId())
                 .setStatus(toGrpcTaskStatus(coreTask.getStatus()))
                 .addAllStatusHistory(toGrpcTaskStatusHistory(coreTask.getStatusHistory()))
                 .putAllTaskContext(taskContext)
-                .setLogLocation(toGrpcLogLocation(coreTask, logStorageInfo))
-                .build();
+                .setLogLocation(toGrpcLogLocation(coreTask, logStorageInfo));
+
+        if (coreTask instanceof BatchJobTask) {
+            BatchJobTask batchTask = (BatchJobTask) coreTask;
+            taskContext.put(TASK_ATTRIBUTES_TASK_INDEX, Integer.toString(batchTask.getIndex()));
+        } else if (coreTask instanceof ServiceJobTask) {
+            ServiceJobTask serviceTask = (ServiceJobTask) coreTask;
+            taskBuilder.setMigrationDetails(toGrpcMigrationDetails(serviceTask.getMigrationDetails()));
+        }
+
+        return taskBuilder.build();
     }
 
     public static <TASK> LogLocation toGrpcLogLocation(TASK task, LogStorageInfo<TASK> logStorageInfo) {
@@ -557,5 +591,12 @@ public final class V3GrpcModelConverters {
                 ));
 
         return logLocationBuilder.build();
+    }
+
+    public static com.netflix.titus.grpc.protogen.MigrationDetails toGrpcMigrationDetails(MigrationDetails migrationDetails) {
+        return com.netflix.titus.grpc.protogen.MigrationDetails.newBuilder()
+                .setNeedsMigration(migrationDetails.isNeedsMigration())
+                .setDeadline(migrationDetails.getDeadline())
+                .build();
     }
 }

@@ -14,36 +14,31 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.taskmigration;
+package io.netflix.titus.api.jobmanager.model.job.migration;
 
-public interface TaskMigrationDetails {
-    String getId();
+/**
+ */
+public class DefaultMigrationPolicy extends MigrationPolicy {
 
-    String getJobId();
+    public DefaultMigrationPolicy() {
+        super();
+    }
 
-    long getCreatedTimeMillis();
+    public static Builder newBuilder() {
+        return new Builder();
+    }
 
-    int getNumberOfInstances();
+    @Override
+    public String toString() {
+        return "DefaultMigrationPolicy{}";
+    }
 
-    boolean isService();
+    public static final class Builder {
+        private Builder() {
+        }
 
-    String getApplicationName();
-
-    String getStack();
-
-    String getDetail();
-
-    String getSequence();
-
-    String getImageName();
-
-    String getImageVersion();
-
-    String getAttribute(String key);
-
-    boolean isActive();
-
-    long getMigrationDeadline();
-
-    void setMigrationDeadline(long migrationDeadline);
+        public DefaultMigrationPolicy build() {
+            return new DefaultMigrationPolicy();
+        }
+    }
 }

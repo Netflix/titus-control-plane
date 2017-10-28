@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
 import io.netflix.titus.common.model.sanitizer.NeverNull;
 
 import static io.netflix.titus.common.util.CollectionsExt.nonNull;
@@ -29,6 +30,8 @@ import static io.netflix.titus.common.util.CollectionsExt.nonNull;
 @NeverNull
 public class ServiceJobTask extends Task {
 
+    private final MigrationDetails migrationDetails;
+
     private ServiceJobTask(String id,
                            String originalId,
                            Optional<String> resubmitOf,
@@ -37,8 +40,45 @@ public class ServiceJobTask extends Task {
                            TaskStatus status,
                            List<TaskStatus> statusHistory,
                            List<TwoLevelResource> twoLevelResources,
-                           Map<String, String> taskContext) {
+                           Map<String, String> taskContext,
+                           MigrationDetails migrationDetails) {
         super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, twoLevelResources, taskContext);
+        this.migrationDetails = migrationDetails;
+    }
+
+    public MigrationDetails getMigrationDetails() {
+        return migrationDetails;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+
+        ServiceJobTask that = (ServiceJobTask) o;
+
+        return migrationDetails != null ? migrationDetails.equals(that.migrationDetails) : that.migrationDetails == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (migrationDetails != null ? migrationDetails.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ServiceJobTask{" +
+                "migrationDetails=" + migrationDetails +
+                '}';
     }
 
     @Override
@@ -56,11 +96,18 @@ public class ServiceJobTask extends Task {
 
     public static class Builder extends TaskBuilder<ServiceJobTask, Builder> {
 
+        private MigrationDetails migrationDetails;
+
         private Builder() {
         }
 
         private Builder(ServiceJobTask serviceJobTask) {
             newBuilder(this, serviceJobTask);
+        }
+
+        public Builder withMigrationDetails(MigrationDetails migrationDetails) {
+            this.migrationDetails = migrationDetails;
+            return this;
         }
 
         public Builder but() {
@@ -69,6 +116,7 @@ public class ServiceJobTask extends Task {
 
         @Override
         public ServiceJobTask build() {
+            migrationDetails = migrationDetails == null ? new MigrationDetails(false, 0) : migrationDetails;
             return new ServiceJobTask(id,
                     originalId,
                     Optional.ofNullable(resubmitOf),
@@ -77,7 +125,8 @@ public class ServiceJobTask extends Task {
                     status,
                     nonNull(statusHistory),
                     nonNull(twoLevelResources),
-                    nonNull(taskContext)
+                    nonNull(taskContext),
+                    migrationDetails
             );
         }
     }

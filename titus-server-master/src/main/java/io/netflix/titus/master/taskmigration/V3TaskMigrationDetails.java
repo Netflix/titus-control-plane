@@ -17,13 +17,16 @@
 package io.netflix.titus.master.taskmigration;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.jobmanager.model.job.Image;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.util.tuple.Pair;
 
@@ -104,6 +107,40 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
     @Override
     public boolean isActive() {
         return getTask().getStatus().getState() != TaskState.Finished;
+    }
+
+    @Override
+    public long getMigrationDeadline() {
+        Task task = getTask();
+        if (task instanceof ServiceJobTask) {
+            ServiceJobTask serviceTask = (ServiceJobTask) task;
+            MigrationDetails migrationDetails = serviceTask.getMigrationDetails();
+            if (migrationDetails != null) {
+                return migrationDetails.getDeadline();
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public void setMigrationDeadline(long migrationDeadline) {
+        Task task = getTask();
+        if (task instanceof ServiceJobTask) {
+            MigrationDetails migrationDetails = ((ServiceJobTask) task).getMigrationDetails();
+            if (migrationDetails != null && migrationDetails.getDeadline() == 0) {
+                v3JobOperations.updateTask(taskId, t -> {
+                    if (t instanceof ServiceJobTask) {
+                        ServiceJobTask serviceTask = (ServiceJobTask) t;
+                        MigrationDetails newMigrationDetails = MigrationDetails.newBuilder()
+                                .withNeedsMigration(true)
+                                .withDeadline(migrationDeadline)
+                                .build();
+                        return serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build();
+                    }
+                    return t;
+                }, "Updating migration details").await(30_000, TimeUnit.MILLISECONDS);
+            }
+        }
     }
 
     public Job<?> getJob() {

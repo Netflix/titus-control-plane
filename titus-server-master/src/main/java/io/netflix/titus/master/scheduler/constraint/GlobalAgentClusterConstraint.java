@@ -93,7 +93,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
         try {
             status = agentStatusMonitor.getStatus(targetVM.getCurrAvailableResources().getAttributeMap().get(instanceIdAttribute).getText().getValue());
         } catch (Exception e) {
-            logger.warn("Cannot resolve target VM health status", e);
+            logger.debug("Cannot evaluate health of agent: ", e);
             return Pair.of(false, "Unhealthy: Cannot find agent");
         }
         boolean healthy = status.getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
