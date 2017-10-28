@@ -16,7 +16,6 @@
 
 package io.netflix.titus.ext.elasticsearch;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,7 +35,6 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.event.TaskStateChangeEvent;
-import io.netflix.titus.api.model.v2.parameter.Parameter;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.runtime.TitusRuntime;
@@ -118,9 +116,11 @@ public class ElasticsearchTaskDocumentPublisher {
                         Pair<V2JobMetadata, V2WorkerMetadata> jobAndTaskPair = (Pair<V2JobMetadata, V2WorkerMetadata>) taskStateChangeEvent.getSource();
                         V2JobMetadata job = jobAndTaskPair.getLeft();
                         V2WorkerMetadata task = jobAndTaskPair.getRight();
-                        TitusJobSpec titusJobSpec = buildTitusJobSpecFromJobParameters(job.getParameters());
-                        TaskDocument taskDocument = TaskDocument.fromV2Task(task, titusJobSpec, taskDateFormat, taskDocumentContext);
-                        return Optional.of(taskDocument);
+                        if (job != null && task != null) {
+                            TitusJobSpec titusJobSpec = TitusJobSpec.getSpec(job);
+                            TaskDocument taskDocument = TaskDocument.fromV2Task(task, titusJobSpec, taskDateFormat, taskDocumentContext);
+                            return Optional.of(taskDocument);
+                        }
                     } catch (Exception e) {
                         logger.error("Unable to convert task: {} to task document with error: ", taskStateChangeEvent.getTaskId(), e);
                     }
@@ -208,18 +208,5 @@ public class ElasticsearchTaskDocumentPublisher {
 
     private String getEsIndexName() {
         return configuration.getTaskDocumentEsIndexName() + indexDateFormat.format(new Date());
-    }
-
-    private TitusJobSpec buildTitusJobSpecFromJobParameters(List<Parameter> jobParameters) {
-        for (Parameter parameter : jobParameters) {
-            if (parameter.getName().equalsIgnoreCase("request")) {
-                try {
-                    return objectMapper.readValue(parameter.getValue(), TitusJobSpec.class);
-                } catch (IOException e) {
-                    logger.error("Exception in de-serializing TitusJobSpec in ElasticSearchPublisher ", e);
-                }
-            }
-        }
-        return null;
     }
 }
