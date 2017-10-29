@@ -50,6 +50,7 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
             EmbeddedTitusMaster.testTitusMaster()
                     .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
                     .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
+                    .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
                     .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
                     .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
                     .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withInstanceType(AwsInstanceType.M3_XLARGE))
@@ -77,7 +78,6 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
      */
     @Test(timeout = 30_000)
     public void checkIpPerEniLimitIsPreserved() throws Exception {
-        Thread.sleep(1000);
         // FIXME Remove this once we have notification mechanism
         Thread.sleep(500);
 
