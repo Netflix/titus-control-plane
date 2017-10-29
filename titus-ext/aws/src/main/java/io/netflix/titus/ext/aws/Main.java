@@ -18,6 +18,7 @@ package io.netflix.titus.ext.aws;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -130,8 +131,27 @@ public class Main {
         }
     }
 
+    private void scaleUp(List<String> params) {
+        String instanceGroupId = params.get(0);
+        int newDesired = Integer.parseInt(params.get(1));
+
+        InstanceGroup current = connector.getInstanceGroups(Collections.singletonList(instanceGroupId)).toBlocking().first().get(0);
+        System.out.println("Desired before scale-up: " + current.getDesired());
+
+        Throwable error = connector.updateCapacity(instanceGroupId, Optional.empty(), Optional.of(newDesired)).get();
+        if (error != null) {
+            System.err.println("Scale-up error: " + error.getMessage());
+            error.printStackTrace();
+        }
+
+        InstanceGroup after = connector.getInstanceGroups(Collections.singletonList(instanceGroupId)).toBlocking().first().get(0);
+        System.out.println("Desired after scale-up: " + after.getDesired());
+
+
+    }
+
     public static void main(String[] args) {
-        if (args.length == 0 || !asSet("all", "sg", "instance", "terminate", "shrink", "tag", "tagged", "reaper").contains(args[0])) {
+        if (args.length == 0 || !asSet("all", "sg", "instance", "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp").contains(args[0])) {
             helpAndExit();
         }
         String cmd = args[0];
@@ -139,7 +159,7 @@ public class Main {
         if (asSet("all", "reaper").contains(cmd) && args.length != 1) {
             helpAndExit();
         }
-        if (asSet("sg", "instance", "terminate", "shrink", "tagged").contains(cmd) && args.length < 2) {
+        if (asSet("sg", "instance", "terminate", "shrink", "tagged", "scaleUp").contains(cmd) && args.length < 2) {
             helpAndExit();
         }
         if (asSet("tag").contains(cmd) && args.length != 4) {
@@ -166,6 +186,8 @@ public class Main {
                 main.addTag(params);
             } else if (cmd.equals("reaper")) {
                 main.runReaper();
+            } else if (cmd.equals("scaleUp")) {
+                main.scaleUp(params);
             }
         } catch (Throwable e) {
             e.printStackTrace();

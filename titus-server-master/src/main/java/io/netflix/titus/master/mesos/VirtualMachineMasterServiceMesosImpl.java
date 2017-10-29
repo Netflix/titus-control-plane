@@ -54,7 +54,7 @@ import rx.subjects.Subject;
 
 import static io.netflix.titus.common.util.LoggingExt.timed;
 import static io.netflix.titus.master.mesos.MesosTracer.toLeaseIds;
-import static io.netflix.titus.master.mesos.MesosTracer.toTaskIds;
+import static io.netflix.titus.master.mesos.MesosTracer.toTaskSummary;
 import static io.netflix.titus.master.mesos.MesosTracer.traceMesosRequest;
 import static io.netflix.titus.master.mesos.MesosTracer.traceMesosVoidRequest;
 
@@ -129,7 +129,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         }
         if (!taskInfos.isEmpty()) {
             traceMesosVoidRequest(
-                    "Launching tasks: " + toTaskIds(taskInfos) + " with leases: " + toLeaseIds(leases),
+                    "Launching tasks: " + toTaskSummary(taskInfos) + ", with leases: " + toLeaseIds(leases),
                     () -> mesosDriver.launchTasks(offerIDs, taskInfos, (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build())
             );
         } else { // reject offers to prevent offer leak, but shouldn't happen
