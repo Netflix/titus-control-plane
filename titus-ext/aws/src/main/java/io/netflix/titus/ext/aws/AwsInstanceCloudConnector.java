@@ -201,6 +201,9 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     @Override
     public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
         return toObservable(() -> {
+            logger.info("Updating instance group {} capacity: min={}, desired={}", instanceGroupId,
+                    min.map(Object::toString).orElse("notSet"), desired.map(Object::toString).orElse("notSet"));
+
             checkCapacityConstraints(min, desired);
             UpdateAutoScalingGroupRequest request = new UpdateAutoScalingGroupRequest()
                     .withAutoScalingGroupName(instanceGroupId);
