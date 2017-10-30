@@ -225,6 +225,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                                 newDesired, instanceGroup.getMax())
                         );
                     }
+
+                    logger.info("Scaling up instance group {}, by {} instances (desired changed from {} to {})",
+                            instanceGroup, scaleUpCount, instanceGroup.getDesired(), newDesired);
+
                     UpdateAutoScalingGroupRequest request = new UpdateAutoScalingGroupRequest()
                             .withAutoScalingGroupName(instanceGroupId);
                     request.setDesiredCapacity(newDesired);
