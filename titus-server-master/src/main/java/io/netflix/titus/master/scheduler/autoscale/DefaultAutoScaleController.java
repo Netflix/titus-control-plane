@@ -211,11 +211,6 @@ public class DefaultAutoScaleController implements AutoScaleController {
 
     private boolean canScaleDown(AgentInstanceGroup instanceGroup) {
         String instanceGroupName = instanceGroup.getId();
-        if (!instanceGroup.isTerminateEnabled()) {
-            logger.warn("Terminate disabled for instance group {}", instanceGroupName);
-            return false;
-        }
-
         InstanceGroupLifecycleState currentState = instanceGroup.getLifecycleStatus().getState();
         if (currentState == InstanceGroupLifecycleState.Inactive) {
             logger.warn("Instance group {} is in Inactive state, in which instances cannot be terminated", instanceGroupName);
