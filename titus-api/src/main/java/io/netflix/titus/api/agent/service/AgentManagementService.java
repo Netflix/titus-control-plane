@@ -94,8 +94,24 @@ public interface AgentManagementService {
      * @param min                  if set, change the min size of the server group
      * @param desired              if set, change the desired size of the server group
      * @return AgentManagementException if the server group is not found
+     *
+     * @deprecated Use instead {@link #scaleUp(String, int)}.
      */
+    @Deprecated
     Completable updateCapacity(String agentInstanceGroupId, Optional<Integer> min, Optional<Integer> desired);
+
+    /**
+     * Increase instance group size by the given number of instances. The following constraints are checked prior
+     * to admitting scale up:
+     * <ul>
+     *     <li>scaleUpCount >= 0 (if scaleUpCount == 0, the operation is void)</li>
+     *     <li>desired + scaleUpCount <= max instance group size (throws an error if not)</li>
+     * </ul>
+     *
+     * @param scaleUpCount number of instances to add (must be >= 0)
+     * @return AgentManagementException if the server group is not found
+     */
+    Completable scaleUp(String instanceGroupId, int scaleUpCount);
 
     /**
      * Add/change override status of the given agent server.

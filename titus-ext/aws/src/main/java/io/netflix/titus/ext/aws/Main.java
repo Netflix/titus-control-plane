@@ -133,12 +133,12 @@ public class Main {
 
     private void scaleUp(List<String> params) {
         String instanceGroupId = params.get(0);
-        int newDesired = Integer.parseInt(params.get(1));
+        int scaleUpCount = Integer.parseInt(params.get(1));
 
         InstanceGroup current = connector.getInstanceGroups(Collections.singletonList(instanceGroupId)).toBlocking().first().get(0);
         System.out.println("Desired before scale-up: " + current.getDesired());
 
-        Throwable error = connector.updateCapacity(instanceGroupId, Optional.empty(), Optional.of(newDesired)).get();
+        Throwable error = connector.scaleUp(instanceGroupId, scaleUpCount).get();
         if (error != null) {
             System.err.println("Scale-up error: " + error.getMessage());
             error.printStackTrace();

@@ -30,11 +30,6 @@ import rx.Observable;
 public interface InstanceCloudConnector {
 
     /**
-     * Instance group name assigned to {@link Instance} instance, that is not associated with any instance group.
-     */
-    String UNASSIGNED = "Unassigned";
-
-    /**
      * Get all Titus instance groups.
      */
     Observable<List<InstanceGroup>> getInstanceGroups();
@@ -66,6 +61,18 @@ public interface InstanceCloudConnector {
      * Change instance group capacity.
      */
     Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired);
+
+    /**
+     * Increase instance group size by the given number of instances. The following constraints are checked prior
+     * to admitting scale up:
+     * <ul>
+     *     <li>scaleUpCount >= 0 (if scaleUpCount == 0, the operation is void)</li>
+     *     <li>desired + scaleUpCount <= max instance group size (throws an error if not)</li>
+     * </ul>
+     *
+     * @param scaleUpCount number of instances to add (must be >= 0)
+     */
+    Completable scaleUp(String instanceGroupId, int scaleUpCount);
 
     /**
      * Terminate multiple cloud instances. For each successfully terminated instance return {@link Optional#empty()} or

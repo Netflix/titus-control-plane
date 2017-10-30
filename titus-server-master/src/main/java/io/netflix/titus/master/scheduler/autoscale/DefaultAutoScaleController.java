@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -94,10 +93,11 @@ public class DefaultAutoScaleController implements AutoScaleController {
             logger.info("Instance group {} computed new desired size equal to the current one ({})", instanceGroup, newDesired);
             metrics.scaleUpToExistingDesiredSize(instanceGroupName);
         } else {
-            logger.info("Changing instance group {} desired size from {} to {}", instanceGroupName, instanceGroup.getDesired(), newDesired);
+            int delta = newDesired - instanceGroup.getDesired();
+            logger.info("Changing instance group {} desired size from {} to {} (scale up by {})", instanceGroupName, instanceGroup.getDesired(), newDesired, delta);
 
             Stopwatch timer = Stopwatch.createStarted();
-            agentManagementService.updateCapacity(instanceGroupName, Optional.empty(), Optional.of(newDesired)).subscribe(
+            agentManagementService.scaleUp(instanceGroupName, delta).subscribe(
                     () -> {
                         logger.info("Instance group {} desired size changed to {} in {}ms", instanceGroupName, newDesired, timer.elapsed(TimeUnit.MILLISECONDS));
                         eventSubject.onNext(new ScaleUpEvent(instanceGroupName, instanceGroup.getDesired(), newDesired));

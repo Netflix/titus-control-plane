@@ -151,6 +151,21 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
+    public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
+        return Observable.fromCallable(() -> agentCache.getInstanceGroup(instanceGroupId))
+                .flatMap(instanceGroup -> {
+                            Completable cloudUpdate = instanceCloudConnector.scaleUp(instanceGroup.getId(), scaleUpCount);
+
+                            AgentInstanceGroup updated = instanceGroup.toBuilder().withDesired(instanceGroup.getDesired() + scaleUpCount).build();
+                            Completable cacheUpdate = agentCache.updateInstanceGroupStoreAndSyncCloud(updated);
+
+                            return cloudUpdate.concatWith(cacheUpdate).toObservable();
+                        }
+                )
+                .toCompletable();
+    }
+
+    @Override
     public Completable updateInstanceOverride(String agentServerId, InstanceOverrideStatus instanceOverrideStatus) {
         return Observable.fromCallable(() -> agentCache.getAgentInstance(agentServerId))
                 .flatMap(agentInstance -> {

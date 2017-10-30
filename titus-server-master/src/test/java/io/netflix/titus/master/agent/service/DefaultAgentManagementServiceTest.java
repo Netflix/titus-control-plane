@@ -155,6 +155,20 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
+    public void testScaleUp() throws Exception {
+        AgentInstanceGroup instanceGroup = serverGroups.get(0);
+
+        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+        service.scaleUp(instanceGroup.getId(), 500).toObservable().subscribe(testSubscriber);
+
+        verify(connector, times(1)).scaleUp(instanceGroup.getId(), 500);
+
+        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
+        verify(agentCache, times(1)).updateInstanceGroupStoreAndSyncCloud(captor.capture());
+        assertThat(captor.getValue().getDesired()).isEqualTo(instanceGroup.getDesired() + 500);
+    }
+
+    @Test
     public void testUpdateOverride() throws Exception {
         String agentId = serverSet0.get(0).getId();
         when(agentCache.getAgentInstance(agentId)).thenReturn(serverSet0.get(0));
