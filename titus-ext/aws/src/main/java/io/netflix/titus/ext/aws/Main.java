@@ -19,6 +19,7 @@ package io.netflix.titus.ext.aws;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -41,6 +42,8 @@ import static io.netflix.titus.common.util.CollectionsExt.asSet;
 public class Main {
 
     private static final String REGION = "us-east-1";
+
+    private static final Set<String> ALL_COMMANDS = asSet("all", "sg", "instance", "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp", "scaleDown");
 
     private static final AwsConfiguration CONFIGURATION = new AwsConfiguration() {
         @Override
@@ -133,12 +136,12 @@ public class Main {
 
     private void scaleUp(List<String> params) {
         String instanceGroupId = params.get(0);
-        int newDesired = Integer.parseInt(params.get(1));
+        int scaleUpCount = Integer.parseInt(params.get(1));
 
         InstanceGroup current = connector.getInstanceGroups(Collections.singletonList(instanceGroupId)).toBlocking().first().get(0);
         System.out.println("Desired before scale-up: " + current.getDesired());
 
-        Throwable error = connector.updateCapacity(instanceGroupId, Optional.empty(), Optional.of(newDesired)).get();
+        Throwable error = connector.scaleUp(instanceGroupId, scaleUpCount).get();
         if (error != null) {
             System.err.println("Scale-up error: " + error.getMessage());
             error.printStackTrace();
@@ -146,12 +149,27 @@ public class Main {
 
         InstanceGroup after = connector.getInstanceGroups(Collections.singletonList(instanceGroupId)).toBlocking().first().get(0);
         System.out.println("Desired after scale-up: " + after.getDesired());
+    }
 
+    private void scaleDown(List<String> params) {
+        String instanceGroupId = params.get(0);
+        int scaleDownCount = Integer.parseInt(params.get(1));
 
+        InstanceGroup current = connector.getInstanceGroups(Collections.singletonList(instanceGroupId)).toBlocking().first().get(0);
+        System.out.println("Desired before scale-down: " + current.getDesired());
+
+        Throwable error = connector.updateCapacity(instanceGroupId, Optional.empty(), Optional.of(current.getDesired() - scaleDownCount)).get();
+        if (error != null) {
+            System.err.println("Scale-down error: " + error.getMessage());
+            error.printStackTrace();
+        }
+
+        InstanceGroup after = connector.getInstanceGroups(Collections.singletonList(instanceGroupId)).toBlocking().first().get(0);
+        System.out.println("Desired after scale-down: " + after.getDesired());
     }
 
     public static void main(String[] args) {
-        if (args.length == 0 || !asSet("all", "sg", "instance", "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp").contains(args[0])) {
+        if (args.length == 0 || !ALL_COMMANDS.contains(args[0])) {
             helpAndExit();
         }
         String cmd = args[0];
@@ -188,6 +206,8 @@ public class Main {
                 main.runReaper();
             } else if (cmd.equals("scaleUp")) {
                 main.scaleUp(params);
+            } else if (cmd.equals("scaleDown")) {
+                main.scaleDown(params);
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -219,7 +239,7 @@ public class Main {
     }
 
     private static void helpAndExit() {
-        System.err.println("Usage: Main [all] | [sg <id>] | [instance <id>]");
+        System.err.println("Usage: Main [" + ALL_COMMANDS.stream().collect(Collectors.joining(" | ")) + ']');
         System.exit(-1);
     }
 }

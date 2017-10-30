@@ -108,6 +108,17 @@ class SimulatedInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     @Override
+    public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
+        SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroupId);
+        agentInstanceGroup.updateCapacity(
+                agentInstanceGroup.getMinSize(),
+                agentInstanceGroup.getAgents().size() + scaleUpCount,
+                agentInstanceGroup.getMaxSize()
+        );
+        return Completable.complete();
+    }
+
+    @Override
     public Observable<List<Either<Boolean, Throwable>>> terminateInstances(String instanceGroup, List<String> instanceIds, boolean shrink) {
         SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroup);
 

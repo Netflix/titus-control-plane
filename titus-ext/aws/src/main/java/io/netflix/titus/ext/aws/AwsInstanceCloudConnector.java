@@ -214,6 +214,30 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     @Override
+    public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
+        return getInstanceGroups(singletonList(instanceGroupId))
+                .map(list -> list.get(0))
+                .flatMap(instanceGroup -> {
+                    int newDesired = instanceGroup.getDesired() + scaleUpCount;
+                    if (newDesired > instanceGroup.getMax()) {
+                        return Observable.error(CloudConnectorException.invalidArgument(
+                                "Instance group requested desired size %s > max size %s",
+                                newDesired, instanceGroup.getMax())
+                        );
+                    }
+
+                    logger.info("Scaling up instance group {}, by {} instances (desired changed from {} to {})",
+                            instanceGroup, scaleUpCount, instanceGroup.getDesired(), newDesired);
+
+                    UpdateAutoScalingGroupRequest request = new UpdateAutoScalingGroupRequest()
+                            .withAutoScalingGroupName(instanceGroupId);
+                    request.setDesiredCapacity(newDesired);
+
+                    return ObservableExt.toObservable(autoScalingClient.updateAutoScalingGroupAsync(request), scheduler);
+                }).toCompletable().timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
+    }
+
+    @Override
     public Observable<List<Either<Boolean, Throwable>>> terminateInstances(String instanceGroup, List<String> instanceIds, boolean shrink) {
         if (instanceIds.isEmpty()) {
             return Observable.just(Collections.emptyList());
