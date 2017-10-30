@@ -1,11 +1,11 @@
 package io.netflix.titus.api.jobmanager.model.job;
 
-public class ScalingProcesses {
+public class JobProcesses {
     private final boolean disableIncreaseDesired;
 
     private final boolean disableDecreaseDesired;
 
-    public ScalingProcesses(boolean disableIncreaseDesired, boolean disableDecreaseDesired) {
+    public JobProcesses(boolean disableIncreaseDesired, boolean disableDecreaseDesired) {
         this.disableIncreaseDesired = disableIncreaseDesired;
         this.disableDecreaseDesired = disableDecreaseDesired;
     }
@@ -23,7 +23,7 @@ public class ScalingProcesses {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ScalingProcesses that = (ScalingProcesses) o;
+        JobProcesses that = (JobProcesses) o;
 
         if (disableIncreaseDesired != that.disableIncreaseDesired) return false;
         return disableDecreaseDesired == that.disableDecreaseDesired;
@@ -38,14 +38,14 @@ public class ScalingProcesses {
 
     @Override
     public String toString() {
-        return "ScalingProcesses{" +
+        return "JobProcesses{" +
                 "disableIncreaseDesired=" + disableIncreaseDesired +
                 ", disableDecreaseDesired=" + disableDecreaseDesired +
                 '}';
     }
 
-    public static ScalingProcesses.Builder newBuilder() {
-        return new ScalingProcesses.Builder();
+    public static JobProcesses.Builder newBuilder() {
+        return new JobProcesses.Builder();
     }
 
 
@@ -71,8 +71,8 @@ public class ScalingProcesses {
             return this;
         }
 
-        public ScalingProcesses build() {
-            return new ScalingProcesses(disableIncreaseDesired, disableDecreaseDesired);
+        public JobProcesses build() {
+            return new JobProcesses(disableIncreaseDesired, disableDecreaseDesired);
         }
     }
 }
