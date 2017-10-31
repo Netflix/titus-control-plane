@@ -74,8 +74,11 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_ERROR;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN;
 import static io.netflix.titus.common.util.CollectionsExt.applyNotEmpty;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
@@ -318,6 +321,22 @@ public final class V2GrpcModelConverters {
         throw new IllegalArgumentException("Unrecognized state " + grpcTaskState);
     }
 
+    public static JobCompletedReason toV2JobCompletedReason(String reason) {
+        switch (reason) {
+            case "normal":
+                return JobCompletedReason.Normal;
+            case "failed":
+                return JobCompletedReason.Failed;
+            case "crashed":
+                return JobCompletedReason.Failed;
+            case "lost":
+                return JobCompletedReason.Lost;
+            case "killed":
+                return JobCompletedReason.Killed;
+        }
+        throw new IllegalArgumentException("Unrecognized V2 reason " + reason);
+    }
+
     public static JobStatus toGrpcJobStatus(V2JobMetadata jobMetadata) {
         V2JobState v2JobState = jobMetadata.getState();
         JobStatus.Builder builder = JobStatus.newBuilder();
@@ -372,13 +391,32 @@ public final class V2GrpcModelConverters {
                         .setReasonCode(REASON_NORMAL);
                 break;
             case Failed:
+                String grpcReason;
+                switch (reason) {
+                    case Normal:
+                        grpcReason = REASON_NORMAL;
+                        break;
+                    case Error:
+                        grpcReason = REASON_ERROR;
+                        break;
+                    case Lost:
+                        grpcReason = REASON_TASK_LOST;
+                        break;
+                    case Killed:
+                        grpcReason = REASON_TASK_KILLED;
+                        break;
+                    case Failed:
+                        grpcReason = REASON_FAILED;
+                        break;
+                    default:
+                        grpcReason = REASON_UNKNOWN;
+                }
                 stateBuilder.setState(TaskState.Finished)
                         .setTimestamp(worker.getCompletedAt())
-                        .setReasonCode(REASON_FAILED);
+                        .setReasonCode(grpcReason);
                 break;
             default:
-                stateBuilder.setState(TaskState.UNRECOGNIZED)
-                        .setReasonCode(REASON_UNKNOWN);
+                stateBuilder.setState(TaskState.UNRECOGNIZED).setReasonCode(REASON_UNKNOWN);
                 finalReason = "Unrecognized job state " + v2JobState;
         }
         if (finalReason != null) {

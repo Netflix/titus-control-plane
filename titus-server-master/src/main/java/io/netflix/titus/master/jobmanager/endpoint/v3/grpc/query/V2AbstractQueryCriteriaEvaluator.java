@@ -17,21 +17,29 @@
 package io.netflix.titus.master.jobmanager.endpoint.v3.grpc.query;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import io.netflix.titus.api.model.v2.JobCompletedReason;
+import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
 import io.netflix.titus.api.model.v2.parameter.Parameters.JobType;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.runtime.endpoint.common.QueryUtils;
+import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import io.netflix.titus.runtime.endpoint.common.QueryUtils;
 
 public class V2AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements Predicate<Pair<V2JobMetadata, TASK_OR_SET>> {
 
@@ -47,6 +55,43 @@ public class V2AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements Predicate<
     @Override
     public boolean test(Pair<V2JobMetadata, TASK_OR_SET> jobListPair) {
         return queryPredicate.test(jobListPair);
+    }
+
+    protected static Pair<Set<V2JobState>, Set<JobCompletedReason>> toV2TaskStateAndReason(Set<TaskStatus.TaskState> taskStates,
+                                                                                           Set<String> taskStateReasons) {
+        if (taskStates.isEmpty()) {
+            return Pair.of(Collections.emptySet(), Collections.emptySet());
+        }
+
+        Set<JobCompletedReason> coreJobReasons = taskStateReasons.stream()
+                .map(V2GrpcModelConverters::toV2JobCompletedReason)
+                .collect(Collectors.toSet());
+        Set<JobCompletedReason> jobReasonsExceptNormal = CollectionsExt.copyAndRemove(coreJobReasons, JobCompletedReason.Normal);
+
+        Set<V2JobState> coreTaskStates = taskStates.stream()
+                .filter(taskState -> taskState != TaskStatus.TaskState.KillInitiated)
+                .flatMap((TaskStatus.TaskState grpcTaskState) -> {
+                    V2JobState v2JobState = V2GrpcModelConverters.toV2JobState(grpcTaskState);
+                    if (v2JobState == V2JobState.Completed) {
+                        Set<V2JobState> finshedStates = new HashSet<>();
+                        if (coreJobReasons.isEmpty()) {
+                            finshedStates.add(V2JobState.Completed);
+                            finshedStates.add(V2JobState.Failed);
+                        } else {
+                            if (coreJobReasons.contains(JobCompletedReason.Normal)) {
+                                finshedStates.add(V2JobState.Completed);
+                            }
+                            if (!jobReasonsExceptNormal.isEmpty()) {
+                                finshedStates.add(V2JobState.Failed);
+                            }
+                        }
+                        return finshedStates.stream();
+                    }
+                    return Stream.of(v2JobState);
+                })
+                .collect(Collectors.toSet());
+
+        return Pair.of(coreTaskStates, coreJobReasons);
     }
 
     private Predicate<Pair<V2JobMetadata, TASK_OR_SET>> matchAll(List<Predicate<Pair<V2JobMetadata, TASK_OR_SET>>> predicates) {
