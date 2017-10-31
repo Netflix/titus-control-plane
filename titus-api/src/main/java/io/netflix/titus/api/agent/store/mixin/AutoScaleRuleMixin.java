@@ -21,8 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class AutoScaleRuleMixin {
     @JsonCreator
-    public AutoScaleRuleMixin(@JsonProperty("serverGroupId") String serverGroupId,
-                              @JsonProperty("min") int min,
+    public AutoScaleRuleMixin(@JsonProperty("min") int min,
                               @JsonProperty("max") int max,
                               @JsonProperty("minIdleToKeep") int minIdleToKeep,
                               @JsonProperty("maxIdleToKeep") int maxIdleToKeep,

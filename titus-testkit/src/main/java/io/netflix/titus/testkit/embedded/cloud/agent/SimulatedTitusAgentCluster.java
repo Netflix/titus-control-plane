@@ -277,7 +277,6 @@ public class SimulatedTitusAgentCluster {
 
         public SimulatedTitusAgentCluster build() {
             AutoScaleRule autoScaleRule = AutoScaleRule.newBuilder()
-                    .withInstanceGroupId(name)
                     .withMinIdleToKeep(minIdleHostsToKeep)
                     .withMaxIdleToKeep(maxIdleHostsToKeep)
                     .withCoolDownSec((int) coolDownSec)
