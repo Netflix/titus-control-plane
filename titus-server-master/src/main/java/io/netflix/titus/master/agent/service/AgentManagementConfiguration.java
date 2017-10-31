@@ -45,4 +45,7 @@ public interface AgentManagementConfiguration {
 
     @DefaultValue("600")
     int getAutoScaleRuleCoolDownSec();
+
+    @DefaultValue("1")
+    int getAutoScaleRuleShortfallAdjustingFactor();
 }

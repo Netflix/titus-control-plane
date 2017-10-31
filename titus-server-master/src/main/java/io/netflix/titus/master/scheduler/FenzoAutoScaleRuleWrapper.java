@@ -21,15 +21,18 @@ import com.netflix.fenzo.VirtualMachineLease;
 
 public class FenzoAutoScaleRuleWrapper implements AutoScaleRule {
 
+    private final String ruleName;
     private final io.netflix.titus.api.agent.model.AutoScaleRule titusAutoScaleRule;
 
-    public FenzoAutoScaleRuleWrapper(io.netflix.titus.api.agent.model.AutoScaleRule titusAutoScaleRule) {
+    public FenzoAutoScaleRuleWrapper(String ruleName,
+                                     io.netflix.titus.api.agent.model.AutoScaleRule titusAutoScaleRule) {
+        this.ruleName = ruleName;
         this.titusAutoScaleRule = titusAutoScaleRule;
     }
 
     @Override
     public String getRuleName() {
-        return titusAutoScaleRule.getInstanceGroupId();
+        return ruleName;
     }
 
     @Override

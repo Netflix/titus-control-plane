@@ -90,25 +90,25 @@ public class GrpcAgentModelConverters {
 
     private static com.netflix.titus.grpc.protogen.AutoScaleRule toGrpcAutoScaleRule(AutoScaleRule autoScaleRule) {
         return com.netflix.titus.grpc.protogen.AutoScaleRule.newBuilder()
-                .setInstanceGroupId(autoScaleRule.getInstanceGroupId())
                 .setMin(autoScaleRule.getMin())
                 .setMax(autoScaleRule.getMax())
                 .setMinIdleToKeep(autoScaleRule.getMinIdleToKeep())
                 .setMaxIdleToKeep(autoScaleRule.getMaxIdleToKeep())
                 .setCoolDownSec(autoScaleRule.getCoolDownSec())
                 .setPriority(autoScaleRule.getPriority())
+                .setShortfallAdjustingFactor(autoScaleRule.getShortfallAdjustingFactor())
                 .build();
     }
 
     public static AutoScaleRule toCoreAutoScaleRule(com.netflix.titus.grpc.protogen.AutoScaleRule grpcAutoScaleRule) {
         return AutoScaleRule.newBuilder()
-                .withInstanceGroupId(grpcAutoScaleRule.getInstanceGroupId())
                 .withMin(grpcAutoScaleRule.getMin())
                 .withMax(grpcAutoScaleRule.getMax())
                 .withMinIdleToKeep(grpcAutoScaleRule.getMinIdleToKeep())
                 .withMaxIdleToKeep(grpcAutoScaleRule.getMaxIdleToKeep())
                 .withCoolDownSec((int) grpcAutoScaleRule.getCoolDownSec())
                 .withPriority(grpcAutoScaleRule.getPriority())
+                .withShortfallAdjustingFactor(grpcAutoScaleRule.getShortfallAdjustingFactor())
                 .build();
     }
 

@@ -62,7 +62,6 @@ public final class AgentGenerator {
         DataGenerator<Pair<Long, Long>> minMaxIdleToKeep = range(0, MAX_IDLE_TO_KEEP).map(min -> Pair.of(min, Math.min(MAX_IDLE_TO_KEEP, 5 + 2 * min)));
 
         return DataGenerator.bindBuilder(AutoScaleRule::newBuilder)
-                .bind(range(0).map(idx -> "AgentInstanceGroup#" + idx), AutoScaleRule.Builder::withInstanceGroupId)
                 .bind(minMax, (builder, minMaxV) -> {
                     builder.withMin(Math.toIntExact(minMaxV.getLeft()));
                     builder.withMax(Math.toIntExact(minMaxV.getRight()));
@@ -73,6 +72,7 @@ public final class AgentGenerator {
                 })
                 .bind(range(60, 600), (builder, cd) -> builder.withCoolDownSec(Math.toIntExact(cd)))
                 .bind(range(0, 10), (builder, priority) -> builder.withPriority(Math.toIntExact(priority)))
+                .bind(range(0, 10), (builder, priority) -> builder.withShortfallAdjustingFactor(Math.toIntExact(priority)))
                 .map(AutoScaleRule.Builder::build);
     }
 
