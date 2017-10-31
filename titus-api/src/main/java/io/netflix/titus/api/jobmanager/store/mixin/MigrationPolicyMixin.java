@@ -18,7 +18,7 @@ package io.netflix.titus.api.jobmanager.store.mixin;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.netflix.titus.api.jobmanager.model.job.migration.DefaultMigrationPolicy;
+import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 
 @JsonTypeInfo(
@@ -26,7 +26,7 @@ import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationP
         include = JsonTypeInfo.As.PROPERTY,
         property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = DefaultMigrationPolicy.class, name = "defaultMigrationPolicy"),
+        @JsonSubTypes.Type(value = SystemDefaultMigrationPolicy.class, name = "systemDefaultMigrationPolicy"),
         @JsonSubTypes.Type(value = SelfManagedMigrationPolicy.class, name = "selfManagedMigrationPolicy"),
 })
 public abstract class MigrationPolicyMixin {

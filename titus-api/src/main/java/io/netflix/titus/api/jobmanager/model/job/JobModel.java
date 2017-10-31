@@ -18,7 +18,7 @@ package io.netflix.titus.api.jobmanager.model.job;
 
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.model.job.migration.DefaultMigrationPolicy;
+import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
@@ -100,8 +100,8 @@ public final class JobModel {
         return ExponentialBackoffRetryPolicy.newBuilder();
     }
 
-    public static DefaultMigrationPolicy.Builder newDefaultMigrationPolicy() {
-        return DefaultMigrationPolicy.newBuilder();
+    public static SystemDefaultMigrationPolicy.Builder newSystemDefaultMigrationPolicy() {
+        return SystemDefaultMigrationPolicy.newBuilder();
     }
 
     public static SelfManagedMigrationPolicy.Builder newSelfManagedMigrationPolicy() {

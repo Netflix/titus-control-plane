@@ -111,7 +111,7 @@ public class ServiceJobTask extends Task {
         }
 
         public Builder but() {
-            return but(new Builder());
+            return but(new Builder().withMigrationDetails(migrationDetails));
         }
 
         @Override

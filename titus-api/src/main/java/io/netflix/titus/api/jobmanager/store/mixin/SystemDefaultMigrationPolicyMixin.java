@@ -18,8 +18,8 @@ package io.netflix.titus.api.jobmanager.store.mixin;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
-public abstract class DefaultMigrationPolicyMixin {
+public abstract class SystemDefaultMigrationPolicyMixin {
     @JsonCreator
-    public DefaultMigrationPolicyMixin() {
+    public SystemDefaultMigrationPolicyMixin() {
     }
 }

@@ -49,7 +49,7 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.model.job.migration.DefaultMigrationPolicy;
+import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
@@ -192,12 +192,12 @@ public final class V3GrpcModelConverters {
 
     private static MigrationPolicy toCoreMigrationPolicy(com.netflix.titus.grpc.protogen.MigrationPolicy grpcMigrationPolicy) {
         switch (grpcMigrationPolicy.getPolicyCase()) {
-            case DEFAULT:
-                return JobModel.newDefaultMigrationPolicy().build();
+            case SYSTEMDEFAULT:
+                return JobModel.newSystemDefaultMigrationPolicy().build();
             case SELFMANAGED:
                 return JobModel.newSelfManagedMigrationPolicy().build();
             default:
-                return JobModel.newDefaultMigrationPolicy().build();
+                return JobModel.newSystemDefaultMigrationPolicy().build();
         }
     }
 
@@ -408,12 +408,12 @@ public final class V3GrpcModelConverters {
 
     private static com.netflix.titus.grpc.protogen.MigrationPolicy toGrpcMigrationPolicy(MigrationPolicy migrationPolicy) {
         com.netflix.titus.grpc.protogen.MigrationPolicy.Builder builder = com.netflix.titus.grpc.protogen.MigrationPolicy.newBuilder();
-        if (migrationPolicy instanceof DefaultMigrationPolicy) {
-            builder.setDefault(com.netflix.titus.grpc.protogen.MigrationPolicy.Default.newBuilder());
+        if (migrationPolicy instanceof SystemDefaultMigrationPolicy) {
+            builder.setSystemDefault(com.netflix.titus.grpc.protogen.MigrationPolicy.SystemDefault.newBuilder());
         } else if (migrationPolicy instanceof SelfManagedMigrationPolicy) {
             builder.setSelfManaged(com.netflix.titus.grpc.protogen.MigrationPolicy.SelfManaged.newBuilder());
         } else {
-            builder.setDefault(com.netflix.titus.grpc.protogen.MigrationPolicy.Default.newBuilder());
+            builder.setSystemDefault(com.netflix.titus.grpc.protogen.MigrationPolicy.SystemDefault.newBuilder());
         }
         return builder.build();
     }

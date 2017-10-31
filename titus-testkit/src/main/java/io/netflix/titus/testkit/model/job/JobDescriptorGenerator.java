@@ -26,7 +26,6 @@ import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.Owner;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.testkit.model.PrimitiveValueGenerators;
@@ -159,7 +158,7 @@ public final class JobDescriptorGenerator {
                 .withExtensions(JobModel.newServiceJobExt(jobDescriptor.getExtensions())
                         .withCapacity(Capacity.newBuilder().withMin(0).withDesired(1).withMax(2).build())
                         .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(0).build())
-                        .withMigrationPolicy(JobModel.newDefaultMigrationPolicy().build())
+                        .withMigrationPolicy(JobModel.newSystemDefaultMigrationPolicy().build())
                         .build()
                 )
                 .build();

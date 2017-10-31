@@ -71,7 +71,7 @@ public class MigrationDetails {
         }
 
         public MigrationDetailsBuilder but() {
-            return MigrationDetails.newBuilder().withDeadline(deadline);
+            return MigrationDetails.newBuilder().withNeedsMigration(needsMigration).withDeadline(deadline);
         }
 
         public MigrationDetails build() {

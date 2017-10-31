@@ -18,9 +18,9 @@ package io.netflix.titus.api.jobmanager.model.job.migration;
 
 /**
  */
-public class DefaultMigrationPolicy extends MigrationPolicy {
+public class SystemDefaultMigrationPolicy extends MigrationPolicy {
 
-    public DefaultMigrationPolicy() {
+    public SystemDefaultMigrationPolicy() {
         super();
     }
 
@@ -30,15 +30,15 @@ public class DefaultMigrationPolicy extends MigrationPolicy {
 
     @Override
     public String toString() {
-        return "DefaultMigrationPolicy{}";
+        return "SystemDefaultMigrationPolicy{}";
     }
 
     public static final class Builder {
         private Builder() {
         }
 
-        public DefaultMigrationPolicy build() {
-            return new DefaultMigrationPolicy();
+        public SystemDefaultMigrationPolicy build() {
+            return new SystemDefaultMigrationPolicy();
         }
     }
 }
