@@ -17,16 +17,9 @@
 package io.netflix.titus.api.jobmanager.store.mixin;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.netflix.titus.api.jobmanager.model.job.Capacity;
-import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
-import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 
-public abstract class ServiceJobExtMixin {
+public abstract class SystemDefaultMigrationPolicyMixin {
     @JsonCreator
-    protected ServiceJobExtMixin(@JsonProperty("capacity") Capacity capacity,
-                                 @JsonProperty("enabled") boolean enabled,
-                                 @JsonProperty("retryPolicy") RetryPolicy retryPolicy,
-                                 @JsonProperty("migrationPolicy") MigrationPolicy migrationPolicy) {
+    public SystemDefaultMigrationPolicyMixin() {
     }
 }

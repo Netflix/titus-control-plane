@@ -38,6 +38,7 @@ import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobGroupInfo;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.JobStatus.JobState;
+import com.netflix.titus.grpc.protogen.MigrationPolicy;
 import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.Owner;
 import com.netflix.titus.grpc.protogen.RetryPolicy;
@@ -48,6 +49,7 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.model.EfsMount;
+import io.netflix.titus.api.model.SelfManagedMigrationPolicy;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.JobSla;
@@ -212,6 +214,7 @@ public final class V2GrpcModelConverters {
         taskBuilder.setStatus(toGrpcTaskStatus(worker));
         taskBuilder.addAllStatusHistory(toGrpcTaskStatusHistory(worker));
         taskBuilder.setLogLocation(V3GrpcModelConverters.toGrpcLogLocation(worker, logStorageInfo));
+        taskBuilder.setMigrationDetails(toGrpcMigrationDetails(worker));
 
         // Task context data
         taskBuilder.putTaskContext(TASK_ATTRIBUTES_V2_TASK_ID, v2TaskId);
@@ -470,6 +473,14 @@ public final class V2GrpcModelConverters {
         return efsResource.stream().map(V2GrpcModelConverters::toV2EfsMount).collect(Collectors.toList());
     }
 
+    public static com.netflix.titus.grpc.protogen.MigrationDetails toGrpcMigrationDetails(V2WorkerMetadata worker) {
+        boolean needsMigration = worker.getMigrationDeadline() > 0;
+        return com.netflix.titus.grpc.protogen.MigrationDetails.newBuilder()
+                .setNeedsMigration(needsMigration)
+                .setDeadline(worker.getMigrationDeadline())
+                .build();
+    }
+
     /**
      * Mapping from pod based model to the legacy V2 job definition. We expect single pod with single container.
      */
@@ -627,6 +638,10 @@ public final class V2GrpcModelConverters {
             case SERVICE:
                 parameters.add(Parameters.newJobTypeParameter(Parameters.JobType.Service));
                 parameters.add(Parameters.newInServiceParameter(jobDescriptor.getService().getEnabled()));
+                MigrationPolicy migrationPolicy = jobDescriptor.getService().getMigrationPolicy();
+                if (migrationPolicy != null && migrationPolicy.getPolicyCase() == MigrationPolicy.PolicyCase.SELFMANAGED) {
+                    parameters.add(Parameters.newMigrationPolicy(new SelfManagedMigrationPolicy()));
+                }
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported job type " + jobDescriptor.getJobSpecCase());
