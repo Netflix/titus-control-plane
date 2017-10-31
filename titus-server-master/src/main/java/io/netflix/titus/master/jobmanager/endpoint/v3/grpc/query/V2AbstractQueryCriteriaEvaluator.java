@@ -73,19 +73,19 @@ public class V2AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements Predicate<
                 .flatMap((TaskStatus.TaskState grpcTaskState) -> {
                     V2JobState v2JobState = V2GrpcModelConverters.toV2JobState(grpcTaskState);
                     if (v2JobState == V2JobState.Completed) {
-                        Set<V2JobState> finshedStates = new HashSet<>();
+                        Set<V2JobState> finishedStates = new HashSet<>();
                         if (coreJobReasons.isEmpty()) {
-                            finshedStates.add(V2JobState.Completed);
-                            finshedStates.add(V2JobState.Failed);
+                            finishedStates.add(V2JobState.Completed);
+                            finishedStates.add(V2JobState.Failed);
                         } else {
                             if (coreJobReasons.contains(JobCompletedReason.Normal)) {
-                                finshedStates.add(V2JobState.Completed);
+                                finishedStates.add(V2JobState.Completed);
                             }
                             if (!jobReasonsExceptNormal.isEmpty()) {
-                                finshedStates.add(V2JobState.Failed);
+                                finishedStates.add(V2JobState.Failed);
                             }
                         }
-                        return finshedStates.stream();
+                        return finishedStates.stream();
                     }
                     return Stream.of(v2JobState);
                 })
