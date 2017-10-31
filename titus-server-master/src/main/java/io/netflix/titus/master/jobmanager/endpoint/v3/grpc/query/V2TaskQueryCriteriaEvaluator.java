@@ -21,17 +21,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.job.JobMgrUtils;
-import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
 
 public class V2TaskQueryCriteriaEvaluator extends V2AbstractQueryCriteriaEvaluator<V2WorkerMetadata> {
@@ -43,7 +42,7 @@ public class V2TaskQueryCriteriaEvaluator extends V2AbstractQueryCriteriaEvaluat
     private static List<Predicate<Pair<V2JobMetadata, V2WorkerMetadata>>> createTaskPredicates(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria) {
         List<Predicate<Pair<V2JobMetadata, V2WorkerMetadata>>> predicates = new ArrayList<>();
         applyTaskIds(criteria.getTaskIds()).ifPresent(predicates::add);
-        applyTaskStates(criteria.getTaskStates()).ifPresent(predicates::add);
+        applyTaskStateAndReasons(criteria.getTaskStates(), criteria.getTaskStateReasons()).ifPresent(predicates::add);
         return predicates;
     }
 
@@ -58,18 +57,27 @@ public class V2TaskQueryCriteriaEvaluator extends V2AbstractQueryCriteriaEvaluat
         });
     }
 
-    private static Optional<Predicate<Pair<V2JobMetadata, V2WorkerMetadata>>> applyTaskStates(Set<TaskStatus.TaskState> taskStates) {
+    private static Optional<Predicate<Pair<V2JobMetadata, V2WorkerMetadata>>> applyTaskStateAndReasons(Set<TaskStatus.TaskState> taskStates,
+                                                                                                       Set<String> taskStateReasons) {
+
         if (taskStates.isEmpty()) {
             // Filter out tombstone tasks.
             return Optional.of(jobAndTask -> !JobMgrUtils.isTombStoned(jobAndTask.getRight()));
         }
-        Set<V2JobState> coreTaskStates = taskStates.stream()
-                .filter(taskState -> taskState != TaskStatus.TaskState.KillInitiated)
-                .map(V2GrpcModelConverters::toV2JobState)
-                .collect(Collectors.toSet());
+
+        Pair<Set<V2JobState>, Set<JobCompletedReason>> v2TaskStateAndReasons = toV2TaskStateAndReason(taskStates, taskStateReasons);
+        Set<V2JobState> coreTaskStates = v2TaskStateAndReasons.getLeft();
+        Set<JobCompletedReason> coreJobReasons = v2TaskStateAndReasons.getRight();
+
         return Optional.of(jobAndTask -> {
             V2WorkerMetadata task = jobAndTask.getRight();
-            return coreTaskStates.contains(task.getState()) && !JobMgrUtils.isTombStoned(task);
+            if (!coreTaskStates.contains(task.getState()) || JobMgrUtils.isTombStoned(task)) {
+                return false;
+            }
+            if (coreJobReasons.isEmpty()) {
+                return true;
+            }
+            return task.getReason() != null && coreJobReasons.contains(task.getReason());
         });
     }
 }

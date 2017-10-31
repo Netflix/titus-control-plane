@@ -52,7 +52,7 @@ public class CommonGrpcModelConverters {
     public static final Set<String> CRITERIA_JOB_FIELDS = asSet(
             "jobIds", "taskIds", "owner", "appName", "applicationName", "imageName", "imageTag", "capacityGroup",
             "jobGroupStack", "jobGroupDetail", "jobGroupSequence",
-            "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates");
+            "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates", "taskStateReasons");
     public static final Set<String> TASK_CONTEXT_AGENT_ATTRIBUTES = asSet(
             "region", "zone", "asg", "cluster", "stack", "id", "itype"
     );
@@ -139,6 +139,12 @@ public class CommonGrpcModelConverters {
             if (!taskStates.isEmpty()) {
                 criteriaBuilder.withTaskStates(new HashSet<>(taskStates));
             }
+        }
+
+        // Task reason
+        String taskStateReasonsStr = criteriaMap.get("taskStateReasons");
+        if (!StringExt.isEmpty(taskStateReasonsStr)) {
+            criteriaBuilder.withTaskStateReasons(new HashSet<>(StringExt.splitByComma(taskStateReasonsStr)));
         }
 
         // Attributes

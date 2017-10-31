@@ -249,11 +249,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.globalConstraintsEvaluator = globalConstraintsEvaluator;
 
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
-                .withLeaseRejectAction(virtualMachineLease -> {
-                    logger.info("Rejecting lease: " + virtualMachineLease.getId() + " on host: " + virtualMachineLease.hostname() +
-                            " from " + (System.currentTimeMillis() - virtualMachineLease.getOfferedTime()) / 1000L + " secs ago");
-                    virtualMachineService.rejectLease(virtualMachineLease);
-                })
+                .withLeaseRejectAction(virtualMachineService::rejectLease)
                 .withLeaseOfferExpirySecs(config.getMesosLeaseOfferExpirySecs())
                 .withFitnessCalculator(new AgentFitnessCalculator())
                 .withFitnessGoodEnoughFunction(AgentFitnessCalculator.fitnessGoodEnoughFunc)

@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import io.netflix.titus.common.util.CollectionsExt;
+
 import static io.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
@@ -34,6 +36,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
     private final boolean includeArchived;
     private final Optional<Object> jobState;
     private final Set<TASK_STATE> taskStates;
+    private final Set<String> taskStateReasons;
     private final Optional<String> owner;
     private final Map<String, Set<String>> labels;
     private final boolean labelsAndOp;
@@ -52,6 +55,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                              boolean includeArchived,
                              Object jobState,
                              Set<TASK_STATE> taskStates,
+                             Set<String> taskStateReasons,
                              String owner,
                              Map<String, Set<String>> labels,
                              boolean labelsAndOp,
@@ -68,7 +72,8 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         this.taskIds = nonNull(taskIds);
         this.includeArchived = includeArchived;
         this.jobState = Optional.ofNullable(jobState);
-        this.taskStates = taskStates == null ? Collections.emptySet() : taskStates;
+        this.taskStates = CollectionsExt.nonNull(taskStates);
+        this.taskStateReasons = CollectionsExt.nonNull(taskStateReasons);
         this.owner = Optional.ofNullable(owner);
         this.labels = labels == null ? Collections.emptyMap() : labels;
         this.labelsAndOp = labelsAndOp;
@@ -105,6 +110,10 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
 
     public Set<TASK_STATE> getTaskStates() {
         return taskStates;
+    }
+
+    public Set<String> getTaskStateReasons() {
+        return taskStateReasons;
     }
 
     public Optional<String> getOwner() {
@@ -225,6 +234,9 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         if (taskStates != null ? !taskStates.equals(that.taskStates) : that.taskStates != null) {
             return false;
         }
+        if (taskStateReasons != null ? !taskStateReasons.equals(that.taskStateReasons) : that.taskStateReasons != null) {
+            return false;
+        }
         if (owner != null ? !owner.equals(that.owner) : that.owner != null) {
             return false;
         }
@@ -262,6 +274,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         result = 31 * result + (includeArchived ? 1 : 0);
         result = 31 * result + (jobState != null ? jobState.hashCode() : 0);
         result = 31 * result + (taskStates != null ? taskStates.hashCode() : 0);
+        result = 31 * result + (taskStateReasons != null ? taskStateReasons.hashCode() : 0);
         result = 31 * result + (owner != null ? owner.hashCode() : 0);
         result = 31 * result + (labels != null ? labels.hashCode() : 0);
         result = 31 * result + (labelsAndOp ? 1 : 0);
@@ -285,6 +298,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 ", includeArchived=" + includeArchived +
                 ", jobState=" + jobState +
                 ", taskStates=" + taskStates +
+                ", taskStateReasons=" + taskStateReasons +
                 ", owner=" + owner +
                 ", labels=" + labels +
                 ", labelsAndOp=" + labelsAndOp +
@@ -306,6 +320,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         private boolean includeArchived;
         private Object jobState;
         private Set<TASK_STATE> taskStates;
+        private Set<String> taskStateReasons;
         private String owner;
         private Map<String, Set<String>> labels;
         private boolean labelsAndOp;
@@ -344,6 +359,11 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
 
         public Builder<TASK_STATE, JOB_TYPE> withTaskStates(Set<TASK_STATE> taskStates) {
             this.taskStates = taskStates;
+            return this;
+        }
+
+        public Builder<TASK_STATE, JOB_TYPE> withTaskStateReasons(Set<String> taskStateReasons) {
+            this.taskStateReasons = taskStateReasons;
             return this;
         }
 
@@ -413,6 +433,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                     .withIncludeArchived(includeArchived)
                     .withJobState(jobState)
                     .withTaskStates(taskStates)
+                    .withTaskStateReasons(taskStateReasons)
                     .withLabels(labels)
                     .withLabelsAndOp(labelsAndOp)
                     .withImageName(imageName)
@@ -422,7 +443,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         }
 
         public JobQueryCriteria<TASK_STATE, JOB_TYPE> build() {
-            return new JobQueryCriteria<>(jobIds, taskIds, includeArchived, jobState, taskStates, owner, labels,
+            return new JobQueryCriteria<>(jobIds, taskIds, includeArchived, jobState, taskStates, taskStateReasons, owner, labels,
                     labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence, limit);
         }
     }
