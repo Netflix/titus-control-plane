@@ -16,11 +16,13 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -34,10 +36,10 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
-import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.Deactivator;
 import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private final V3JobOperations v3JobOperations;
 
     private final Scheduler scheduler;
+
+    private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> tracking = new ConcurrentHashMap<>();
 
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingAssociations;
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations;
@@ -86,20 +90,22 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Override
     public Observable<String> getJobLoadBalancers(String jobId) {
-        return loadBalancerStore.retrieveLoadBalancersForJob(jobId);
+        return loadBalancerStore.retrieveLoadBalancersForJob(jobId)
+                .filter(pair -> pair.getRight() == JobLoadBalancer.State.Associated)
+                .map(Pair::getLeft);
     }
 
     @Override
     public Completable addLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        return loadBalancerStore.addLoadBalancer(jobLoadBalancer)
+        return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
                 .andThen(Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer)));
     }
 
     @Override
     public Completable removeLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        return loadBalancerStore.removeLoadBalancer(jobLoadBalancer)
+        return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
                 .andThen(Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer)));
     }
 
@@ -128,7 +134,6 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         // TODO(fabio): reconciliation
         // TODO(fabio): watch task and job update streams
         // TODO(fabio): garbage collect removed jobs and loadbalancers
-        // TODO(fabio): garbage collect removed tasks
         // TODO(fabio): integrate with the V2 engine
     }
 
@@ -141,11 +146,15 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     }
 
     private Observable<Batch> batchLoadBalancerChanges(Observable<LoadBalancerTarget> targetsToRegister, Observable<LoadBalancerTarget> targetsToDeregister) {
-        return Observable.merge(targetsToRegister, targetsToDeregister)
-                .doOnNext(e -> logger.debug("Buffering load balancer target {}", e))
+        final Observable<Pair<LoadBalancerTarget, LoadBalancerTarget.State>> mergedWithState = Observable.merge(
+                targetsToRegister.map(target -> Pair.of(target, LoadBalancerTarget.State.Registered)),
+                targetsToDeregister.map(target -> Pair.of(target, LoadBalancerTarget.State.Deregistered))
+        );
+        return mergedWithState
+                .doOnNext(pair -> logger.debug("Buffering load balancer target {} -> {}", pair.getLeft(), pair.getRight()))
                 .buffer(configuration.getBatch().getTimeoutMs(), TimeUnit.MILLISECONDS, configuration.getBatch().getSize(), scheduler)
-                .doOnNext(e -> logger.debug("Processing batch operation of size {}", e.size()))
-                .map(CollectionsExt::distinctKeepLast)
+                .doOnNext(list -> logger.debug("Processing batch operation of size {}", list.size()))
+                .map(targets -> targets.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight)))
                 .flatMap(this::processBatch)
                 .doOnNext(batch -> logger.info("Processed load balancer batch: registered {}, deregistered {}",
                         batch.getStateRegister().size(), batch.getStateDeregister().size()))
@@ -153,12 +162,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .onErrorResumeNext(Observable.empty());
     }
 
-    private Observable<Batch> processBatch(Collection<LoadBalancerTarget> targets) {
+    private Observable<Batch> processBatch(Map<LoadBalancerTarget, LoadBalancerTarget.State> targets) {
         final Batch grouped = new Batch(targets);
         final List<LoadBalancerTarget> registerList = grouped.getStateRegister();
         final List<LoadBalancerTarget> deregisterList = grouped.getStateDeregister();
+        final Completable updateRegistered = loadBalancerStore.updateTargets(registerList.stream()
+                .collect(Collectors.toMap(Function.identity(), ignored -> LoadBalancerTarget.State.Registered)));
         final Completable merged = Completable.mergeDelayError(
-                loadBalancerClient.registerAll(registerList).andThen(loadBalancerStore.updateTargets(registerList)),
+                loadBalancerClient.registerAll(registerList).andThen(updateRegistered),
                 loadBalancerClient.deregisterAll(deregisterList).andThen(loadBalancerStore.removeTargets(deregisterList))
         );
         return merged.andThen(Observable.just(grouped))
@@ -168,13 +179,11 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     private Observable<LoadBalancerTarget> targetsToDeregister(Observable<JobLoadBalancer> pendingDissociations) {
         return pendingDissociations.flatMap(
-                jobLoadBalancer -> loadBalancerStore.retrieveTargets(jobLoadBalancer).map(
-                        target -> new LoadBalancerTarget(jobLoadBalancer,
-                                target.getTaskId(),
-                                target.getIpAddress(),
-                                LoadBalancerTarget.State.Deregistered
-                        )
-                ))
+                // fetch everything, including deregistered, so they are retried
+                jobLoadBalancer -> loadBalancerStore.retrieveTargets(jobLoadBalancer)
+                        .map(pair -> new LoadBalancerTarget(
+                                jobLoadBalancer, pair.getLeft().getTaskId(), pair.getLeft().getIpAddress()
+                        )))
                 .doOnError(e -> logger.error("Error fetching targets to deregister", e))
                 .retry();
     }
@@ -196,9 +205,10 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         return v3JobOperations.getTasks(jobLoadBalancer.getJobId()).stream()
                 .filter(task -> task.getStatus().getState() == TaskState.Started)
                 .filter(DefaultLoadBalancerService::hasIp)
-                .map(task -> new LoadBalancerTarget(jobLoadBalancer, task.getId(),
-                        task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP),
-                        LoadBalancerTarget.State.Registered
+                .map(task -> new LoadBalancerTarget(
+                        jobLoadBalancer,
+                        task.getId(),
+                        task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)
                 ))
                 .collect(Collectors.toList());
     }
@@ -215,15 +225,18 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     static class Batch {
         private final Map<LoadBalancerTarget.State, List<LoadBalancerTarget>> groupedBy;
 
-        public Batch(Collection<LoadBalancerTarget> batch) {
-            groupedBy = batch.stream().collect(Collectors.groupingBy(LoadBalancerTarget::getState));
+        public Batch(Map<LoadBalancerTarget, LoadBalancerTarget.State> batch) {
+            groupedBy = batch.entrySet().stream().collect(
+                    Collectors.groupingBy(
+                            Map.Entry::getValue,
+                            Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
         }
 
-        public List<LoadBalancerTarget> getStateRegister() {
+        private List<LoadBalancerTarget> getStateRegister() {
             return groupedBy.getOrDefault(LoadBalancerTarget.State.Registered, Collections.emptyList());
         }
 
-        public List<LoadBalancerTarget> getStateDeregister() {
+        private List<LoadBalancerTarget> getStateDeregister() {
             return groupedBy.getOrDefault(LoadBalancerTarget.State.Deregistered, Collections.emptyList());
         }
 

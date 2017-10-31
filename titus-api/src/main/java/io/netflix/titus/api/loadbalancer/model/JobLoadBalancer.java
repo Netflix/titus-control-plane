@@ -20,6 +20,8 @@ package io.netflix.titus.api.loadbalancer.model;
  * Association between a Job and a LoadBalancer
  */
 public class JobLoadBalancer {
+    public enum State {Associated, Dissociated}
+
     private final String jobId;
     private final String loadBalancerId;
 
@@ -67,4 +69,5 @@ public class JobLoadBalancer {
         result = 31 * result + loadBalancerId.hashCode();
         return result;
     }
+
 }

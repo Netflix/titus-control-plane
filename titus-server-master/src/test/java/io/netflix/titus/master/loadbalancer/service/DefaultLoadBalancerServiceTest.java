@@ -16,7 +16,7 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
-import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +29,7 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,6 +75,7 @@ public class DefaultLoadBalancerServiceTest {
         when(client.registerAll(any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any())).thenReturn(Completable.complete());
         when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
+        //noinspection unchecked
         when(jobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 LoadBalancerTests.buildTasksStarted(5, jobId),
                 LoadBalancerTests.buildTasks(2, jobId, TaskState.StartInitiated),
@@ -88,7 +90,7 @@ public class DefaultLoadBalancerServiceTest {
         final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
 
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertThat(store.retrieveLoadBalancersForJob(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+        assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
         verify(jobOperations).getTasks(jobId);
 
         testScheduler.triggerActions();
@@ -106,6 +108,7 @@ public class DefaultLoadBalancerServiceTest {
         when(client.registerAll(any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any())).thenReturn(Completable.complete());
         when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
+        //noinspection unchecked
         when(jobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 LoadBalancerTests.buildTasksStarted(3, jobId),
                 LoadBalancerTests.buildTasks(1, jobId, TaskState.StartInitiated),
@@ -120,7 +123,7 @@ public class DefaultLoadBalancerServiceTest {
 
         final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertThat(store.retrieveLoadBalancersForJob(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+        assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
         verify(jobOperations).getTasks(jobId);
 
         testSubscriber.assertNoErrors().assertValueCount(0);
@@ -154,7 +157,7 @@ public class DefaultLoadBalancerServiceTest {
 
         // first fails and gets skipped after being saved, so convergence can pick it up later
         assertTrue(service.addLoadBalancer(firstJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertThat(store.retrieveLoadBalancersForJob(firstJobId).toBlocking().first()).isEqualTo(loadBalancerId);
+        assertThat(service.getJobLoadBalancers(firstJobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
         testScheduler.triggerActions();
 
@@ -165,7 +168,7 @@ public class DefaultLoadBalancerServiceTest {
 
         // second succeeds
         assertTrue(service.addLoadBalancer(secondJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertThat(store.retrieveLoadBalancersForJob(secondJobId).toBlocking().first()).isEqualTo(loadBalancerId);
+        assertThat(service.getJobLoadBalancers(secondJobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
         testScheduler.triggerActions();
 
@@ -175,8 +178,8 @@ public class DefaultLoadBalancerServiceTest {
         verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
     }
 
-    // TODO: test batch sizes
-    // TODO: test batch retries
+    // TODO(fabio): test batch sizes
+    // TODO(fabio): test batch retries
 
     @Test
     public void removeLoadBalancerDeregisterKnownTargets() throws Exception {
@@ -186,14 +189,16 @@ public class DefaultLoadBalancerServiceTest {
 
         when(client.registerAll(any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any())).thenReturn(Completable.complete());
-        assertTrue(store.addLoadBalancer(jobLoadBalancer).await(100, TimeUnit.MILLISECONDS));
-        assertTrue(store.updateTargets(Arrays.asList(
-                new LoadBalancerTarget(jobLoadBalancer, "Task-1", "1.1.1.1", LoadBalancerTarget.State.Registered),
-                new LoadBalancerTarget(jobLoadBalancer, "Task-2", "2.2.2.2", LoadBalancerTarget.State.Registered),
+        assertTrue(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
+                .await(100, TimeUnit.MILLISECONDS));
+        final Map<LoadBalancerTarget, LoadBalancerTarget.State> existingTargets = CollectionsExt.<LoadBalancerTarget, LoadBalancerTarget.State>newHashMap()
+                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-1", "1.1.1.1"), LoadBalancerTarget.State.Registered)
+                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-2", "2.2.2.2"), LoadBalancerTarget.State.Registered)
                 // should keep retrying targets that already have been marked to be deregistered
-                new LoadBalancerTarget(jobLoadBalancer, "Task-3", "3.3.3.3", LoadBalancerTarget.State.Deregistered),
-                new LoadBalancerTarget(jobLoadBalancer, "Task-4", "4.4.4.4", LoadBalancerTarget.State.Deregistered)
-        )).await(100, TimeUnit.MILLISECONDS));
+                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-3", "3.3.3.3"), LoadBalancerTarget.State.Deregistered)
+                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-4", "4.4.4.4"), LoadBalancerTarget.State.Deregistered)
+                .toMap();
+        assertTrue(store.updateTargets(existingTargets).await(100, TimeUnit.MILLISECONDS));
         assertEquals(count(store.retrieveTargets(jobLoadBalancer)), 4);
 
         LoadBalancerConfiguration configuration = mockConfiguration(4, 5_000);
@@ -202,7 +207,10 @@ public class DefaultLoadBalancerServiceTest {
         final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
 
         assertTrue(service.removeLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertFalse(store.retrieveLoadBalancersForJob(jobId).toBlocking().getIterator().hasNext());
+        final Pair<String, JobLoadBalancer.State> loadBalancer = store.retrieveLoadBalancersForJob(jobId).toBlocking().first();
+        assertEquals(loadBalancer.getLeft(), loadBalancerId);
+        assertEquals(loadBalancer.getRight(), JobLoadBalancer.State.Dissociated);
+        assertFalse(service.getJobLoadBalancers(jobId).toBlocking().getIterator().hasNext());
 
         testScheduler.triggerActions();
 
@@ -226,12 +234,15 @@ public class DefaultLoadBalancerServiceTest {
         when(store.retrieveTargets(new JobLoadBalancer(firstJobId, loadBalancerId))).thenThrow(RuntimeException.class);
         when(client.registerAll(any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any())).thenReturn(Completable.complete());
-        assertTrue(store.addLoadBalancer(firstLoadBalancer).await(100, TimeUnit.MILLISECONDS));
-        assertTrue(store.addLoadBalancer(secondLoadBalancer).await(100, TimeUnit.MILLISECONDS));
-        assertTrue(store.updateTargets(Arrays.asList(
-                new LoadBalancerTarget(secondLoadBalancer, "Task-1", "1.1.1.1", LoadBalancerTarget.State.Registered),
-                new LoadBalancerTarget(secondLoadBalancer, "Task-2", "2.2.2.2", LoadBalancerTarget.State.Registered)
-        )).await(100, TimeUnit.MILLISECONDS));
+        assertTrue(store.addOrUpdateLoadBalancer(firstLoadBalancer, JobLoadBalancer.State.Associated)
+                .await(100, TimeUnit.MILLISECONDS));
+        assertTrue(store.addOrUpdateLoadBalancer(secondLoadBalancer, JobLoadBalancer.State.Associated)
+                .await(100, TimeUnit.MILLISECONDS));
+        Map<LoadBalancerTarget, LoadBalancerTarget.State> existingTargets = CollectionsExt.<LoadBalancerTarget, LoadBalancerTarget.State>newHashMap()
+                .entry(new LoadBalancerTarget(secondLoadBalancer, "Task-1", "1.1.1.1"), LoadBalancerTarget.State.Registered)
+                .entry(new LoadBalancerTarget(secondLoadBalancer, "Task-2", "2.2.2.2"), LoadBalancerTarget.State.Registered)
+                .toMap();
+        assertTrue(store.updateTargets(existingTargets).await(100, TimeUnit.MILLISECONDS));
         assertEquals(count(store.retrieveTargets(secondLoadBalancer)), 2);
 
         LoadBalancerConfiguration configuration = mockConfiguration(2, 5_000);
@@ -241,7 +252,7 @@ public class DefaultLoadBalancerServiceTest {
 
         // first fails
         assertTrue(service.removeLoadBalancer(firstJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertFalse(store.retrieveLoadBalancersForJob(firstJobId).toBlocking().getIterator().hasNext());
+        assertFalse(service.getJobLoadBalancers(firstJobId).toBlocking().getIterator().hasNext());
 
         testScheduler.triggerActions();
 
@@ -252,7 +263,7 @@ public class DefaultLoadBalancerServiceTest {
 
         // second succeeds
         assertTrue(service.removeLoadBalancer(secondJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertFalse(store.retrieveLoadBalancersForJob(secondJobId).toBlocking().getIterator().hasNext());
+        assertFalse(service.getJobLoadBalancers(firstJobId).toBlocking().getIterator().hasNext());
 
         testScheduler.triggerActions();
 

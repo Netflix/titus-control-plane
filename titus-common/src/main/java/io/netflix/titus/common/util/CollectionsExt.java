@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -248,21 +247,6 @@ public final class CollectionsExt {
             result.put(kIt.next(), vIt.next());
         }
         return result;
-    }
-
-    /**
-     * Remove duplicated items (defined by equals and hashcode), keeping the last.
-     */
-    public static <T> Set<T> distinctKeepLast(Iterable<T> targets) {
-        Set<T> distinct = new LinkedHashSet<>();
-        for (T t : targets) {
-            if (distinct.contains(t)) {
-                // remove the existing one, so the order is preserved for the last seen
-                distinct.remove(t);
-            }
-            distinct.add(t);
-        }
-        return distinct;
     }
 
     public static <K, V> MapBuilder<K, V> newHashMap() {

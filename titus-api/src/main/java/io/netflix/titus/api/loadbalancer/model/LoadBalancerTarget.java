@@ -17,21 +17,16 @@
 package io.netflix.titus.api.loadbalancer.model;
 
 public class LoadBalancerTarget {
+    public enum State {Registered, Deregistered}
+
     private final JobLoadBalancer jobLoadBalancer;
     private final String taskId;
     private final String ipAddress;
-    private final State state;
 
-    public enum State {
-        Registered,
-        Deregistered
-    }
-
-    public LoadBalancerTarget(JobLoadBalancer jobLoadBalancer, String taskId, String ipAddress, State state) {
+    public LoadBalancerTarget(JobLoadBalancer jobLoadBalancer, String taskId, String ipAddress) {
         this.jobLoadBalancer = jobLoadBalancer;
         this.taskId = taskId;
         this.ipAddress = ipAddress;
-        this.state = state;
     }
 
     public JobLoadBalancer getJobLoadBalancer() {
@@ -54,17 +49,12 @@ public class LoadBalancerTarget {
         return ipAddress;
     }
 
-    public State getState() {
-        return state;
-    }
-
     @Override
     public String toString() {
         return "LoadBalancerTarget{" +
                 "jobLoadBalancer=" + jobLoadBalancer +
                 ", taskId='" + taskId + '\'' +
                 ", ipAddress='" + ipAddress + '\'' +
-                ", state=" + state +
                 '}';
     }
 
