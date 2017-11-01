@@ -19,6 +19,7 @@ package io.netflix.titus.master.loadbalancer.service;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
@@ -46,9 +47,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -178,8 +181,64 @@ public class DefaultLoadBalancerServiceTest {
         verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
     }
 
-    // TODO(fabio): test batch sizes
-    // TODO(fabio): test batch retries
+    @Test
+    public void targetsAreBufferedInBatches() throws Exception {
+        final String jobId = UUID.randomUUID().toString();
+        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final ThreadLocalRandom random = ThreadLocalRandom.current();
+        final int batchSize = random.nextInt(5, 20);
+        final int extra = random.nextInt(1, batchSize);
+
+        when(client.registerAll(any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any())).thenReturn(Completable.complete());
+        when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
+        when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(batchSize + extra, jobId));
+
+        LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+
+        final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
+
+        assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+
+        testScheduler.triggerActions();
+
+        testSubscriber.assertNoErrors().assertValueCount(1);
+        verify(client).registerAll(argThat(targets -> targets != null && targets.size() == batchSize));
+        verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+    }
+
+    @Test
+    public void batchesWithErrorsAreSkipped() throws Exception {
+        final String jobId = UUID.randomUUID().toString();
+        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final ThreadLocalRandom random = ThreadLocalRandom.current();
+        final int batchSize = random.nextInt(3, 10);
+        final int extra = random.nextInt(1, batchSize);
+
+        when(client.registerAll(any())).thenReturn(Completable.error(new RuntimeException()))
+                .thenReturn(Completable.complete());
+        when(client.deregisterAll(any())).thenReturn(Completable.complete());
+        when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
+        // 2 batches
+        when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(2 * batchSize + extra, jobId));
+
+        LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+
+        final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = service.buildStream().test();
+
+        assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+
+        testScheduler.triggerActions();
+
+        // first errored and got skipped
+        testSubscriber.assertNoErrors().assertValueCount(1);
+        verify(client, times(2)).registerAll(argThat(targets -> targets != null && targets.size() == batchSize));
+        verify(client, atMost(2)).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+    }
 
     @Test
     public void removeLoadBalancerDeregisterKnownTargets() throws Exception {

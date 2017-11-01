@@ -159,9 +159,16 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .doOnNext(batch -> logger.info("Processed load balancer batch: registered {}, deregistered {}",
                         batch.getStateRegister().size(), batch.getStateDeregister().size()))
                 .doOnError(e -> logger.error("Error batching load balancer calls", e))
-                .onErrorResumeNext(Observable.empty());
+                .retry();
     }
 
+    /**
+     * rxJava 1.x doesn't have the Maybe type. This could also return a Single<Either<Batch, Throwable>>, but an
+     * Observable that emits a single item (or none in case of errors) is simpler
+     *
+     * @param targets
+     * @return an Observable that emits either a single batch, or none in case of errors
+     */
     private Observable<Batch> processBatch(Map<LoadBalancerTarget, LoadBalancerTarget.State> targets) {
         final Batch grouped = new Batch(targets);
         final List<LoadBalancerTarget> registerList = grouped.getStateRegister();
