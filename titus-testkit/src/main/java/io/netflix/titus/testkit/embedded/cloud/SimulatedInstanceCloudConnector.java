@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
@@ -80,14 +81,17 @@ class SimulatedInstanceCloudConnector implements InstanceCloudConnector {
 
     @Override
     public ResourceDimension getInstanceTypeResourceDimension(String instanceType) {
-        SimulatedTitusAgentCluster instanceGroup = cloud.getAgentInstanceGroup(instanceType);
-        return ResourceDimension.newBuilder()
-                .withCpus(instanceGroup.getCpus())
-                .withGpu((int) instanceGroup.getGpus())
-                .withMemoryMB(instanceGroup.getMemory())
-                .withDiskMB(instanceGroup.getDisk())
-                .withNetworkMbs(instanceGroup.getNetworkMbs())
-                .build();
+        return cloud.getAgentInstanceGroups().stream()
+                .filter(i -> i.getInstanceType().name().equals(instanceType))
+                .findFirst()
+                .map(instanceGroup -> ResourceDimension.newBuilder()
+                        .withCpus(instanceGroup.getCpus())
+                        .withGpu((int) instanceGroup.getGpus())
+                        .withMemoryMB(instanceGroup.getMemory())
+                        .withDiskMB(instanceGroup.getDisk())
+                        .withNetworkMbs(instanceGroup.getNetworkMbs())
+                        .build())
+                .orElseThrow(() -> CloudConnectorException.unrecognizedInstanceType(instanceType));
     }
 
     @Override
