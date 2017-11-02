@@ -101,37 +101,45 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
     }
 
     private Result evaluateGpuAndCapacityTierPinning(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {
-        final boolean taskRequestsGpu = taskRequestsGpu(taskRequest);
-        final Double GPU = targetVM.getCurrAvailableResources().getScalarValue("gpu");
-        final double gpu = GPU == null ? 0.0 : GPU;
-        if (taskRequestsGpu != gpu > 0.0) {
-            // GPU mismatch
-            return new Result(false,
-                    taskRequestsGpu ?
-                            "No GPU on agent" :
-                            "Agent does not run non-GPU tasks"
-            );
-        }
         // Since we moved to using Fenzo queues, we know the task request will be of this type.
-        QueuableTask qt = (QueuableTask) taskRequest;
-        Tier tier = Tier.Flex;
-        if (qt.getQAttributes().getTierNumber() == 0) {
-            tier = Tier.Critical;
-        }
+        Tier tier = getTier((QueuableTask) taskRequest);
 
         String instanceGroupId = getAgentAttributeValue(targetVM, instanceGroupAttributeName);
         if (Strings.isNullOrEmpty(instanceGroupId)) {
             return new Result(false, "No info for agent instance type attribute: " + instanceGroupAttributeName);
         }
+        AgentInstanceGroup instanceGroup;
         try {
-            AgentInstanceGroup instanceGroup = agentManagementService.getInstanceGroup(instanceGroupId);
-            if (instanceGroup.getTier() == tier) {
-                return new Result(true, null);
-            }
+            instanceGroup = agentManagementService.getInstanceGroup(instanceGroupId);
         } catch (Exception ignored) {
+            return new Result(false, "Instance group type not registered with the agent management subsystem: " + instanceGroupId);
         }
 
-        return new Result(false, "Only runs on tier: " + tier.name());
+        // Check tier
+        if (instanceGroup.getTier() != tier) {
+            return new Result(false, "Only runs on tier: " + tier.name());
+        }
+
+        // Check GPU
+        boolean gpuTask = taskRequestsGpu(taskRequest);
+        boolean gpuAgent = instanceGroup.getResourceDimension().getGpu() > 0;
+
+        if (gpuTask && !gpuAgent) {
+            return new Result(false, "No GPU on agent");
+        }
+        if (!gpuTask && gpuAgent) {
+            return new Result(false, "Agent does not run non-GPU tasks");
+        }
+
+        return new Result(true, null);
+    }
+
+    private Tier getTier(QueuableTask qt) {
+        Tier tier = Tier.Flex;
+        if (qt.getQAttributes().getTierNumber() == 0) {
+            tier = Tier.Critical;
+        }
+        return tier;
     }
 
     private String getAgentAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
