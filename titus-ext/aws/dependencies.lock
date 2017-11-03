@@ -2624,8 +2624,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b08",
@@ -3118,8 +3118,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b08",
@@ -3612,8 +3612,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b08",
@@ -4107,8 +4107,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b08",
