@@ -239,7 +239,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -414,7 +414,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -744,14 +744,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -1203,7 +1203,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -1378,7 +1378,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -1708,14 +1708,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -2167,7 +2167,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -2342,7 +2342,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -2672,14 +2672,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -3168,7 +3168,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -3343,7 +3343,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -3673,14 +3673,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -4133,7 +4133,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -4308,7 +4308,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -4638,14 +4638,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -5109,7 +5109,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -5295,7 +5295,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -5661,14 +5661,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -6172,7 +6172,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -6358,7 +6358,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -6724,14 +6724,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -7235,7 +7235,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -7421,7 +7421,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -7787,14 +7787,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -8299,7 +8299,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.4",
+            "locked": "1.8.5",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -8485,7 +8485,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.6",
+            "locked": "1.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -8851,14 +8851,14 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.3.4",
+            "locked": "4.4.1",
             "transitive": [
                 "com.netflix.eureka:eureka-client",
                 "com.sun.jersey.contribs:jersey-apache-client4"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.3.2",
+            "locked": "4.4.1",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
