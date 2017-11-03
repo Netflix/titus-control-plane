@@ -21,6 +21,7 @@ import java.util.Optional;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
@@ -65,6 +66,10 @@ public class EmbeddedTitusOperations {
 
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         return gateway.map(EmbeddedTitusGateway::getAutoScaleGrpcClient).orElse(master.getAutoScaleGrpcClient());
+    }
+
+    public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
+        return gateway.map(EmbeddedTitusGateway::getLoadBalancerGrpcClient).orElse(master.getLoadBalancerGrpcClient());
     }
 
     public Observable<TaskExecutorHolder> observeLaunchedTasks() {

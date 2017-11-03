@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.loadbalancer.endpoint.grpc;
+package io.netflix.titus.gateway.endpoint.v3.grpc;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -27,7 +27,7 @@ import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.grpc.stub.StreamObserver;
-import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
+import io.netflix.titus.gateway.service.v3.LoadBalancerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,33 +44,27 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     @Override
     public void getJobLoadBalancers(JobId request, StreamObserver<GetLoadBalancerResult> responseObserver) {
         log.debug("Received get load balancer request {}", request);
-        GetLoadBalancerResult.Builder resultBuilder = GetLoadBalancerResult.newBuilder();
-        loadBalancerService.getJobLoadBalancers(request.getId()).subscribe(
-                loadBalancerId -> resultBuilder.addLoadBalancers(LoadBalancerId.newBuilder().setId(loadBalancerId).build()),
+        loadBalancerService.getLoadBalancers(request).subscribe(
+                responseObserver::onNext,
                 responseObserver::onError,
-                () -> {
-                    responseObserver.onNext(resultBuilder.build());
-                    responseObserver.onCompleted();
-                }
+                responseObserver::onCompleted
         );
     }
 
     @Override
     public void addLoadBalancer(AddLoadBalancerRequest request, StreamObserver<LoadBalancerId> responseObserver) {
         log.debug("Received add load balancer request {}", request);
-        loadBalancerService.addLoadBalancer(request.getJobId(), request.getLoadBalancerId().getId()).subscribe(
-                () -> {
-                    responseObserver.onNext(request.getLoadBalancerId());
-                    responseObserver.onCompleted();
-                },
-                responseObserver::onError
+        loadBalancerService.addLoadBalancer(request).subscribe(
+                responseObserver::onNext,
+                responseObserver::onError,
+                responseObserver::onCompleted
         );
     }
 
     @Override
     public void removeLoadBalancer(RemoveLoadBalancerRequest request, StreamObserver<Empty> responseObserver) {
         log.debug("Received remove load balancer request {}", request);
-        loadBalancerService.removeLoadBalancer(request.getJobId(), request.getLoadBalancerId().getId()).subscribe(
+        loadBalancerService.removeLoadBalancer(request).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();

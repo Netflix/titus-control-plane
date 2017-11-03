@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagemen
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -52,6 +53,7 @@ public class TitusMasterGrpcServer {
     private AutoScalingServiceGrpc.AutoScalingServiceImplBase appAutoScalingService;
     private final GrpcEndpointConfiguration config;
     private final LeaderServerInterceptor leaderServerInterceptor;
+    private final LoadBalancerServiceGrpc.LoadBalancerServiceImplBase loadBalancerService;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -61,11 +63,13 @@ public class TitusMasterGrpcServer {
             JobManagementServiceImplBase jobManagementService,
             AgentManagementServiceImplBase agentManagementService,
             AutoScalingServiceGrpc.AutoScalingServiceImplBase appAutoScalingService,
+            LoadBalancerServiceGrpc.LoadBalancerServiceImplBase loadBalancerService,
             GrpcEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor) {
         this.jobManagementService = jobManagementService;
         this.agentManagementService = agentManagementService;
         this.appAutoScalingService = appAutoScalingService;
+        this.loadBalancerService = loadBalancerService;
         this.config = config;
         this.leaderServerInterceptor = leaderServerInterceptor;
     }
@@ -85,6 +89,10 @@ public class TitusMasterGrpcServer {
                     .addService(ServerInterceptors.intercept(
                             appAutoScalingService,
                             createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ServerInterceptors.intercept(
+                            loadBalancerService,
+                            createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())
                     ))
                     .build();
 

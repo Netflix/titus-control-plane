@@ -28,6 +28,7 @@ import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.netflix.titus.api.jobmanager.store.JobStore;
@@ -147,6 +148,11 @@ public class EmbeddedTitusGateway {
 
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         AutoScalingServiceGrpc.AutoScalingServiceStub client = AutoScalingServiceGrpc.newStub(getOrCreateGrpcChannel());
+        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+    }
+
+    public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
+        LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
         return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
     }
 
