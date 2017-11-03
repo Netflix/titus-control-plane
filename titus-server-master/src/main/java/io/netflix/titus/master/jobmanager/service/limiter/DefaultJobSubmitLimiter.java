@@ -16,93 +16,37 @@
 
 package io.netflix.titus.master.jobmanager.service.limiter;
 
+import java.util.ArrayList;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.base.Preconditions;
-import io.netflix.titus.api.jobmanager.model.event.JobClosedEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
-import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
-import io.netflix.titus.api.model.event.JobStateChangeEvent;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
-import io.netflix.titus.common.util.guice.annotation.Activator;
-import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
+import io.netflix.titus.master.job.JobMgr;
 import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Subscription;
 
 @Singleton
 public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultJobSubmitLimiter.class);
-
     private final JobManagerConfiguration configuration;
     private final V2JobOperations v2JobOperations;
-    private final RxEventBus eventBus;
     private final V3JobOperations v3JobOperations;
-
-    private final ConcurrentMap<String, String> jobGroupId2JobId = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, String> jobIdToJobGroupId = new ConcurrentHashMap<>();
-
-    private Subscription v2Subscription;
-    private Subscription v3Subscription;
-
-    private final Object lock = new Object();
 
     @Inject
     public DefaultJobSubmitLimiter(JobManagerConfiguration configuration,
                                    V2JobOperations v2JobOperations,
-                                   RxEventBus eventBus,
                                    V3JobOperations v3JobOperations) {
         this.configuration = configuration;
         this.v2JobOperations = v2JobOperations;
-        this.eventBus = eventBus;
         this.v3JobOperations = v3JobOperations;
-    }
-
-    @Activator
-    public void enterActiveMode() {
-        v2JobOperations.getAllJobMgrs().forEach(jm -> {
-            String jobIdSequence = Parameters.getJobIdSequence(jm.getJobMetadata().getParameters());
-            addIfNotNull(jm.getJobMetadata().getJobId(), jobIdSequence);
-        });
-        v3JobOperations.getJobs().forEach(job ->
-                addIfNotNull(job.getId(), formatJobGroupName(job.getJobDescriptor()))
-        );
-
-        this.v2Subscription = eventBus.listen(getClass().getSimpleName(), JobStateChangeEvent.class).subscribe(
-                this::handleV2JobUpdateEvent,
-                e -> logger.error("Error in V2 job event stream", e),
-                () -> logger.info("V3 job event stream closed")
-        );
-        this.v3Subscription = v3JobOperations.observeJobs().subscribe(
-                this::handleV3JobUpdateEvent,
-                e -> logger.error("Error in V3 job event stream", e),
-                () -> logger.info("V3 job event stream closed")
-        );
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        if (v2Subscription != null) {
-            v2Subscription.unsubscribe();
-        }
-        if (v3Subscription != null) {
-            v3Subscription.unsubscribe();
-        }
     }
 
     @Override
@@ -138,12 +82,39 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
             return Optional.empty();
         }
 
-        String existingJob = jobGroupId2JobId.get(jobIdSequence);
-        if (existingJob != null) {
-            return Optional.of(String.format("Constraint violation - job with group sequence %s exists (%s)", jobIdSequence, existingJob));
+        Optional<String> existingV2Job = isJobSequenceInV2Engine(jobIdSequence);
+        if (existingV2Job.isPresent()) {
+            return Optional.of(String.format("Constraint violation - job with group sequence %s exists (%s)", jobIdSequence, existingV2Job.get()));
         }
-        return Optional.empty();
+        return isJobSequenceInV3Engine(jobIdSequence).map(existingJobId ->
+                String.format("Constraint violation - job with group sequence %s exists (%s)", jobIdSequence, existingJobId)
+        );
     }
+
+    private Optional<String> isJobSequenceInV2Engine(String newJobIdSequence) {
+        return new ArrayList<>(v2JobOperations.getAllJobMgrs()).stream()
+                .filter(j -> {
+                    V2JobMetadata jobDescriptor = j.getJobMetadata();
+                    if (jobDescriptor == null) {
+                        return false;
+                    }
+                    String v2JobIdSequence = Parameters.getJobIdSequence(jobDescriptor.getParameters());
+                    return v2JobIdSequence != null && v2JobIdSequence.equals(newJobIdSequence);
+                })
+                .map(JobMgr::getJobId)
+                .findFirst();
+    }
+
+    private Optional<String> isJobSequenceInV3Engine(String newJobIdSequence) {
+        return v3JobOperations.getJobs().stream()
+                .filter(j -> {
+                    String v3JobIdSequence = formatJobGroupName(j.getJobDescriptor());
+                    return v3JobIdSequence != null && v3JobIdSequence.equals(newJobIdSequence);
+                })
+                .map(Job::getId)
+                .findFirst();
+    }
+
 
     private static String formatJobGroupName(JobDescriptor<?> jobDescriptor) {
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
@@ -156,54 +127,5 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
                 jobGroupInfo.getDetail(),
                 jobGroupInfo.getSequence()
         );
-    }
-
-    private void handleV2JobUpdateEvent(JobStateChangeEvent jobEvent) {
-        switch (jobEvent.getJobState()) {
-            case Created:
-                if (jobEvent.getSource() == null) {
-                    return;
-                }
-                V2JobMetadata jobMetadata = (V2JobMetadata) jobEvent.getSource();
-                String jobIdSequence = Parameters.getJobIdSequence(jobMetadata.getParameters());
-                addIfNotNull(jobEvent.getJobId(), jobIdSequence);
-                break;
-            case Finished:
-                remove(jobEvent.getJobId());
-        }
-    }
-
-    private void handleV3JobUpdateEvent(JobManagerEvent event) {
-        if (event instanceof JobUpdateEvent) {
-            JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
-            if (!jobUpdateEvent.getJob().isPresent()) {
-                return;
-            }
-            Job job = jobUpdateEvent.getJob().get();
-            if (job.getStatus().getState() == JobState.Accepted) {
-                addIfNotNull(event.getId(), formatJobGroupName(job.getJobDescriptor()));
-            }
-        } else if (event instanceof JobClosedEvent) {
-            remove(event.getId());
-        }
-    }
-
-    private void addIfNotNull(String jobId, String jobIdSequence) {
-        if (jobIdSequence != null) {
-            synchronized (lock) {
-                jobGroupId2JobId.put(jobIdSequence, jobId);
-                jobIdToJobGroupId.put(jobId, jobIdSequence);
-            }
-        }
-    }
-
-    private void remove(String jobId) {
-        String groupName = jobIdToJobGroupId.get(jobId);
-        if (groupName != null) {
-            synchronized (lock) {
-                jobGroupId2JobId.remove(groupName);
-                jobIdToJobGroupId.remove(jobId);
-            }
-        }
     }
 }
