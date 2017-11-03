@@ -38,6 +38,7 @@ import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.model.event.TaskStateChangeEvent;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
@@ -294,12 +295,14 @@ public final class V2JobStore {
         List<V2WorkerMetadataWritable> addedWorkers = new ArrayList<>();
         for (WorkerRequest workerRequest : workerRequests) {
             if (job.getStageMetadata(workerRequest.getWorkerStage()) == null) {
+
                 V2StageMetadataWritable msmd = new V2StageMetadataWritable(workerRequest.getJobId(),
                         workerRequest.getWorkerStage(), workerRequest.getTotalStages(), workerRequest.getDefinition(),
                         workerRequest.getNumInstancesAtStage(), workerRequest.getHardConstraints(),
                         workerRequest.getSoftConstraints(), workerRequest.getSecurityGroups(), workerRequest.getAllocateIP(),
                         workerRequest.getSchedulingInfo().forStage(workerRequest.getWorkerStage()).getScalingPolicy(),
-                        workerRequest.getSchedulingInfo().forStage(workerRequest.getWorkerStage()).getScalable());
+                        workerRequest.getSchedulingInfo().forStage(workerRequest.getWorkerStage()).getScalable(),
+                        ServiceJobProcesses.newBuilder().build());
                 boolean added = job.addJobStageIfAbsent(msmd);
                 if (added) {
                     storageProvider.storeStage(msmd); // store the new
@@ -335,7 +338,8 @@ public final class V2JobStore {
                     workerRequest.getNumInstancesAtStage(), workerRequest.getHardConstraints(),
                     workerRequest.getSoftConstraints(), workerRequest.getSecurityGroups(), workerRequest.getAllocateIP(),
                     workerRequest.getSchedulingInfo().forStage(workerRequest.getWorkerStage()).getScalingPolicy(),
-                    workerRequest.getSchedulingInfo().forStage(workerRequest.getWorkerStage()).getScalable());
+                    workerRequest.getSchedulingInfo().forStage(workerRequest.getWorkerStage()).getScalable(),
+                    ServiceJobProcesses.newBuilder().build());
             boolean added = job.addJobStageIfAbsent(msmd);
             if (added) {
                 storageProvider.storeStage(msmd); // store the new

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
@@ -168,6 +169,20 @@ public abstract class TitusServiceGatewayTestCompatibilityTestSuite<USER, JOB_SP
         gateway.resizeJob(user, jobId, 10, 5, 20).toBlocking().firstOrDefault(null);
 
         JOB job = gateway.findJobById(jobId, true, Collections.emptySet()).toBlocking().first();
+        modelAsserts.assertServiceJobSize(job, 10, 5, 20);
+    }
+
+    @Test
+    public void testServiceJobPreocess() throws Exception {
+        String jobId = gateway.createJob(dataGenerator.createServiceJob(OK_JOB)).toBlocking().first();
+        gateway.resizeJob(user, jobId, 10, 5, 20).toBlocking().firstOrDefault(null);
+        JOB job = gateway.findJobById(jobId, true, Collections.emptySet()).toBlocking().first();
+        modelAsserts.assertServiceJobSize(job, 10, 5, 20);
+
+        gateway.updateJobProcesses(user, jobId, false, true).toBlocking().firstOrDefault(null);
+
+        gateway.resizeJob(user, jobId, 15, 5, 20).toBlocking().firstOrDefault(null);
+        job = gateway.findJobById(jobId, true, Collections.emptySet()).toBlocking().first();
         modelAsserts.assertServiceJobSize(job, 10, 5, 20);
     }
 

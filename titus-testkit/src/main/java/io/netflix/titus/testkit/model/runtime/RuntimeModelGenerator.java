@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.JobSla;
@@ -213,7 +214,8 @@ public class RuntimeModelGenerator {
                 schedulingInfo.getSecurityGroups(),
                 schedulingInfo.getAllocateIP(),
                 schedulingInfo.getScalingPolicy(),
-                schedulingInfo.getScalable()
+                schedulingInfo.getScalable(),
+                ServiceJobProcesses.newBuilder().build()
         );
         jobMetadata.addJobStageIfAbsent(stage);
 

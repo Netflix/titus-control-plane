@@ -57,6 +57,8 @@ public interface ApiOperations {
 
     void updateInstanceCounts(String jobId, int stageNum, int min, int desired, int max, String user) throws InvalidJobException;
 
+    void updateJobProcesses(String jobId, int stageNum, boolean disableIncreaseDesired, boolean disableDecreaseDesired, String user) throws InvalidJobException;
+
     void updateInServiceStatus(String jobId, int stage, boolean inService, String user) throws InvalidJobException;
 
     void setReady(V2JobStore store);

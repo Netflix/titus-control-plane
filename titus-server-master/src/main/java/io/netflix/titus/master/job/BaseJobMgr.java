@@ -43,6 +43,7 @@ import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
 import io.netflix.titus.api.audit.service.AuditLogService;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
 import io.netflix.titus.api.model.event.JobStateChangeEvent.JobState;
@@ -945,7 +946,8 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                     stageSchedulingInfo.getNumberOfInstances(),
                     stageSchedulingInfo.getHardConstraints(), stageSchedulingInfo.getSoftConstraints(),
                     stageSchedulingInfo.getSecurityGroups(), stageSchedulingInfo.getAllocateIP(),
-                    stageSchedulingInfo.getScalingPolicy(), stageSchedulingInfo.getScalable()
+                    stageSchedulingInfo.getScalingPolicy(), stageSchedulingInfo.getScalable(),
+                    ServiceJobProcesses.newBuilder().build()
             ));
             eventBus.publish(new JobStateChangeEvent<>(jobId, JobState.Created, System.currentTimeMillis(), job));
             createAllWorkers();

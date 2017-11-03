@@ -26,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.MachineDefinition;
@@ -49,6 +50,7 @@ public class V2StageMetadataWritable implements V2StageMetadata {
     private final boolean allocateIP;
     private StageScalingPolicy scalingPolicy;
     private boolean scalable;
+    private ServiceJobProcesses jobProcesses;
     @JsonIgnore
     private final ConcurrentMap<Integer, V2WorkerMetadata> workerByIndexMetadataSet;
     @JsonIgnore
@@ -69,7 +71,8 @@ public class V2StageMetadataWritable implements V2StageMetadata {
                                    @JsonProperty("securityGroups") List<String> securityGroups,
                                    @JsonProperty("allocateIP") boolean allocateIP,
                                    @JsonProperty("scalingPolicy") StageScalingPolicy scalingPolicy,
-                                   @JsonProperty("scalable") boolean scalable) {
+                                   @JsonProperty("scalable") boolean scalable,
+                                   @JsonProperty("jobProcesses") ServiceJobProcesses jobProcesses) {
         this.jobId = jobId;
         this.stageNum = stageNum;
         this.numStages = numStages;
@@ -81,10 +84,10 @@ public class V2StageMetadataWritable implements V2StageMetadata {
         this.allocateIP = allocateIP;
         this.scalingPolicy = scalingPolicy;
         this.scalable = scalable;
+        this.jobProcesses = jobProcesses;
         workerByIndexMetadataSet = new ConcurrentHashMap<>();
         workerByNumberMetadataSet = new ConcurrentHashMap<>();
     }
-
     @Override
     public String getJobId() {
         return jobId;
@@ -149,6 +152,10 @@ public class V2StageMetadataWritable implements V2StageMetadata {
         this.scalingPolicy = scalingPolicy;
     }
 
+    public void setJobProcesses(ServiceJobProcesses jobProcesses) {
+        this.jobProcesses = jobProcesses;
+    }
+
     @Override
     public boolean getScalable() {
         return scalable;
@@ -193,6 +200,11 @@ public class V2StageMetadataWritable implements V2StageMetadata {
             throw new InvalidJobException(jobId, -1, workerNumber);
         }
         return mwmd;
+    }
+
+    @Override
+    public ServiceJobProcesses getJobProcesses() {
+        return jobProcesses;
     }
 
     @Override

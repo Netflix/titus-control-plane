@@ -20,7 +20,7 @@ import javax.validation.Valid;
 
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import io.netflix.titus.api.jobmanager.model.job.JobProcesses;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
 import io.netflix.titus.common.model.sanitizer.NeverNull;
@@ -40,16 +40,16 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
     private final RetryPolicy retryPolicy;
 
     @Valid
-    private final JobProcesses jobProcesses;
+    private final ServiceJobProcesses serviceJobProcesses;
 
     public ServiceJobExt(Capacity capacity,
                          boolean enabled,
                          RetryPolicy retryPolicy,
-                         JobProcesses jobProcesses) {
+                         ServiceJobProcesses serviceJobProcesses) {
         this.capacity = capacity;
         this.enabled = enabled;
         this.retryPolicy = retryPolicy;
-        this.jobProcesses = jobProcesses;
+        this.serviceJobProcesses = serviceJobProcesses;
     }
 
     public Capacity getCapacity() {
@@ -64,7 +64,7 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         return retryPolicy;
     }
 
-    public JobProcesses getJobProcesses() { return jobProcesses; }
+    public ServiceJobProcesses getServiceJobProcesses() { return serviceJobProcesses; }
 
     @Override
     public boolean equals(Object o) {
@@ -76,7 +76,7 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         if (enabled != that.enabled) return false;
         if (!capacity.equals(that.capacity)) return false;
         if (!retryPolicy.equals(that.retryPolicy)) return false;
-        return jobProcesses.equals(that.jobProcesses);
+        return serviceJobProcesses.equals(that.serviceJobProcesses);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         int result = capacity.hashCode();
         result = 31 * result + (enabled ? 1 : 0);
         result = 31 * result + retryPolicy.hashCode();
-        result = 31 * result + jobProcesses.hashCode();
+        result = 31 * result + serviceJobProcesses.hashCode();
         return result;
     }
 
@@ -94,7 +94,7 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
                 "capacity=" + capacity +
                 ", enabled=" + enabled +
                 ", retryPolicy=" + retryPolicy +
-                ", jobProcesses=" + jobProcesses +
+                ", serviceJobProcesses=" + serviceJobProcesses +
                 '}';
     }
 
@@ -111,14 +111,14 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
                 .withCapacity(serviceJobExt.getCapacity())
                 .withEnabled(serviceJobExt.isEnabled())
                 .withRetryPolicy(serviceJobExt.getRetryPolicy())
-                .withJobProcesses(serviceJobExt.getJobProcesses());
+                .withServiceJobProcesses(serviceJobExt.getServiceJobProcesses());
     }
 
     public static final class Builder {
         private Capacity capacity;
         private boolean enabled;
         private RetryPolicy retryPolicy;
-        private JobProcesses jobProcesses;
+        private ServiceJobProcesses serviceJobProcesses;
 
         private Builder() {
         }
@@ -138,17 +138,17 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
             return this;
         }
 
-        public Builder withJobProcesses(JobProcesses jobProcesses) {
-            this.jobProcesses = jobProcesses;
+        public Builder withServiceJobProcesses(ServiceJobProcesses serviceJobProcesses) {
+            this.serviceJobProcesses = serviceJobProcesses;
             return this;
         }
 
         public Builder but() {
-            return newBuilder().withCapacity(capacity).withEnabled(enabled).withRetryPolicy(retryPolicy).withJobProcesses(jobProcesses);
+            return newBuilder().withCapacity(capacity).withEnabled(enabled).withRetryPolicy(retryPolicy).withServiceJobProcesses(serviceJobProcesses);
         }
 
         public ServiceJobExt build() {
-            ServiceJobExt serviceJobExt = new ServiceJobExt(capacity, enabled, retryPolicy, jobProcesses);
+            ServiceJobExt serviceJobExt = new ServiceJobExt(capacity, enabled, retryPolicy, serviceJobProcesses);
             return serviceJobExt;
         }
     }

@@ -63,6 +63,7 @@ import io.netflix.titus.master.endpoint.v2.rest.caller.CallerIdResolver;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobKillCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInServiceCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
+import io.netflix.titus.master.endpoint.v2.rest.representation.SetJobProcessesCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TaskKillCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TaskKillCmdError;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
@@ -233,6 +234,20 @@ public class JobManagementResource implements JobManagementEndpoint {
             eventBus.publish(new UserRequestEvent("POST /api/v2/jobs/setinstancecounts", resolveCallerId(), "ERROR: " + ex.getMessage(), System.currentTimeMillis()));
             throw ex;
         }
+    }
+
+    @POST
+    @Path("/api/v2/jobs/setjobprocesses")
+    public Response setJobProcesses(SetJobProcessesCmd cmd) {
+        try {
+            eventBus.publish(new UserRequestEvent("POST /api/v2/jobs/setjobprocesses", resolveCallerId(), "cmd=" + cmd, System.currentTimeMillis()));
+            return Responses.fromVoidObservable(legacyTitusServiceGateway.updateJobProcesses(cmd.getUser(), cmd.getJobId(), cmd.isDisableDecreaseDesired(),
+                    cmd.isDisableIncreaseDesired()), Status.NO_CONTENT);
+        } catch (Exception ex) {
+            eventBus.publish(new UserRequestEvent("POST /api/v2/jobs/setjobprocesses", resolveCallerId(), "ERROR: " + ex.getMessage(), System.currentTimeMillis()));
+            throw ex;
+        }
+
     }
 
     @POST
