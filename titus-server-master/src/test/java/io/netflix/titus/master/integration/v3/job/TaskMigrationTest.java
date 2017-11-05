@@ -72,7 +72,7 @@ public class TaskMigrationTest {
     public static final TitusMasterResource titusMasterResource = new TitusMasterResource(
             EmbeddedTitusMaster.testTitusMaster()
                     .withSimulatedCloud(simulatedCloud)
-                    .withProperty("mantis.master.grpcServer.v3EnabledApps", "v3App")
+                    .withProperty("titus.master.grpcServer.v3EnabledApps", "v3App")
                     .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "2000")
                     .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "2000")
                     .withProperty("titusMaster.jobManager.serviceTaskInStartInitiatedStateTimeoutMs", "2000")

@@ -71,8 +71,8 @@ public class NamedJobsTest extends TestCase {
         V2JobDefinition jobDefinition = new V2JobDefinition(name, "spo", jarUrl, version, params, null, 0, schedulingInfo, 1, 1, null, null);
         V2JobDefinition jobDefinition2 = new V2JobDefinition("new_" + name, "spo", jarUrl, version, params, null, 0, schedulingInfo, 1, 1, null, null);
         try {
-            namedJobs.createNamedJob(new NamedJobDefinition(jobDefinition, new JobOwner("spo", "Mantis", "", null, null)));
-            namedJobs.createNamedJob(new NamedJobDefinition(jobDefinition2, new JobOwner("spo", "Mantis", "", null, null)));
+            namedJobs.createNamedJob(new NamedJobDefinition(jobDefinition, new JobOwner("spo", "Titus", "", null, null)));
+            namedJobs.createNamedJob(new NamedJobDefinition(jobDefinition2, new JobOwner("spo", "Titus", "", null, null)));
         } catch (InvalidNamedJobException e) {
             e.printStackTrace();
             Assert.fail(e.getMessage());

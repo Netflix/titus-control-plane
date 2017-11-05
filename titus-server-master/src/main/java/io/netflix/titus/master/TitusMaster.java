@@ -20,8 +20,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.util.Modules;
@@ -40,44 +38,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TitusMaster {
-
     private static final Logger logger = LoggerFactory.getLogger(TitusMaster.class);
 
-    private CountDownLatch blockUntilShutdown = new CountDownLatch(1);
-    private final AtomicBoolean shutdownInitiated = new AtomicBoolean(false);
-
-    public TitusMaster() throws Exception {
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                shutdown();
-            }
-        };
-        t.setDaemon(true);
-        // shutdown hook
-        Runtime.getRuntime().addShutdownHook(t);
-    }
-
-    public void start() throws Exception {
-        logger.info("Starting Titus Master");
-        try {
-            blockUntilShutdown.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void shutdown() {
-        if (shutdownInitiated.compareAndSet(false, true)) {
-            logger.info("Shutting down Titus Master");
-            blockUntilShutdown.countDown();
-        } else {
-            logger.info("Shutdown already initiated, not starting again");
-        }
-    }
-
-    @Argument(alias = "p", description = "Specify a configuration file")
-    private static String propFile;
+    @Argument(alias = "p", description = "Specify a properties file", required = true)
+    private static String propertiesFile;
 
     public static void main(String[] args) {
         try {
@@ -106,19 +70,15 @@ public class TitusMaster {
                         @Override
                         protected void configureArchaius() {
                             bindDefaultConfig().toInstance(MapConfig.builder()
-                                    .put("governator.jetty.embedded.port", "${mantis.master.apiport}")
+                                    .put("governator.jetty.embedded.port", "${titus.master.apiport}")
                                     .put("governator.jetty.embedded.webAppResourceBase", resourceDir)
                                     .build());
-                            bindApplicationConfigurationOverride().toInstance(loadPropertiesFile(propFile));
+                            bindApplicationConfigurationOverride().toInstance(loadPropertiesFile(propertiesFile));
                         }
                     }
             ).createInjector();
             injector.getInstance(ContainerEventBus.class).submitInOrder(new ContainerEventBus.ContainerStartedEvent());
-
-            TitusMaster master = new TitusMaster();
-            master.start(); // blocks until shutdown hook (ctrl-c)
-
-            injector.close();
+            injector.awaitTermination();
         } catch (Exception e) {
             // unexpected to get a RuntimeException, will exit
             logger.error("Unexpected error: " + e.getMessage(), e);
@@ -126,16 +86,16 @@ public class TitusMaster {
         }
     }
 
-    private static MapConfig loadPropertiesFile(String propFile) {
-        if (propFile == null) {
+    private static MapConfig loadPropertiesFile(String propertiesFile) {
+        if (propertiesFile == null) {
             return MapConfig.from(Collections.emptyMap());
         }
-        Properties props = new Properties();
-        try (FileReader fr = new FileReader(propFile)) {
-            props.load(fr);
+        Properties properties = new Properties();
+        try (FileReader fr = new FileReader(propertiesFile)) {
+            properties.load(fr);
         } catch (IOException e) {
-            throw new IllegalArgumentException("Cannot load file " + propFile, e);
+            throw new IllegalArgumentException("Cannot load file: " + propertiesFile, e);
         }
-        return MapConfig.from(props);
+        return MapConfig.from(properties);
     }
 }

@@ -17,15 +17,15 @@
 package io.netflix.titus.master;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
-import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import io.netflix.titus.master.endpoint.v2.validator.TitusJobSpecValidators;
 
 public class RuntimeLimitValidator implements TitusJobSpecValidators.Validator {
-    private final MasterConfiguration masterConfiguration;
+    private final JobConfiguration jobConfiguration;
 
-    public RuntimeLimitValidator(MasterConfiguration masterConfiguration) {
-        this.masterConfiguration = masterConfiguration;
+    public RuntimeLimitValidator(JobConfiguration jobConfiguration) {
+        this.jobConfiguration = jobConfiguration;
     }
 
     @Override
@@ -34,6 +34,6 @@ public class RuntimeLimitValidator implements TitusJobSpecValidators.Validator {
                 (titusJobSpec.getType() == TitusJobType.batch &&
                         titusJobSpec.getRuntimeLimitSecs() != null &&
                         titusJobSpec.getRuntimeLimitSecs() >= 0 &&
-                        titusJobSpec.getRuntimeLimitSecs() <= masterConfiguration.getMaxRuntimeLimit());
+                        titusJobSpec.getRuntimeLimitSecs() <= jobConfiguration.getMaxRuntimeLimitSec());
     }
 }

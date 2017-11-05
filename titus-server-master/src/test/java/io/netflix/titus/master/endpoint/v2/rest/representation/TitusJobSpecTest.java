@@ -24,10 +24,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netflix.titus.api.endpoint.v2.rest.representation.EfsMountRepresentation;
 import io.netflix.titus.api.endpoint.v2.rest.representation.EfsMountRepresentation.MountPerm;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.SelfManagedMigrationPolicy;
 import io.netflix.titus.master.RuntimeLimitValidator;
 import io.netflix.titus.master.config.MasterConfiguration;
-import io.netflix.titus.master.config.MasterConfigurationConverters;
 import io.netflix.titus.master.endpoint.v2.validator.DockerImageValidator;
 import io.netflix.titus.master.endpoint.v2.validator.InstanceCountValidator;
 import io.netflix.titus.master.endpoint.v2.validator.ResourceLimitsValidator;
@@ -39,7 +39,7 @@ import org.junit.Test;
 
 import static io.netflix.titus.master.ConfigurationMockSamples.withExecutionEnvironment;
 import static io.netflix.titus.master.ConfigurationMockSamples.withJobSpec;
-import static io.netflix.titus.master.ConfigurationMockSamples.withSecurityGroups;
+import static io.netflix.titus.master.ConfigurationMockSamples.withJobConfiguration;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.TestCase.assertTrue;
@@ -50,11 +50,13 @@ import static org.mockito.Mockito.mock;
 
 public class TitusJobSpecTest {
 
-    private final MasterConfiguration config = withExecutionEnvironment(withSecurityGroups(withJobSpec(mock(MasterConfiguration.class))));
+    private final MasterConfiguration config = withExecutionEnvironment(withJobSpec(mock(MasterConfiguration.class)));
+
+    private final JobConfiguration jobConfiguration = withJobConfiguration(mock(JobConfiguration.class));
 
     private final ValidatorConfiguration validatorConfiguration = mock(ValidatorConfiguration.class);
 
-    private final List<String> defaultSecurityGroups = MasterConfigurationConverters.getDefaultSecurityGroupList(config);
+    private final List<String> defaultSecurityGroups = jobConfiguration.getDefaultSecurityGroups();
 
     private ObjectMapper mapper;
     private TitusJobSpecValidators titusJobSpecValidators;
@@ -62,7 +64,7 @@ public class TitusJobSpecTest {
     @Before
     public void setUp() throws Exception {
         mapper = new ObjectMapper();
-        titusJobSpecValidators = new TitusJobSpecValidators(config, validatorConfiguration);
+        titusJobSpecValidators = new TitusJobSpecValidators(config, jobConfiguration, validatorConfiguration);
     }
 
     private TitusJobSpec.Builder getTitusJobSpecBuilder() {
@@ -82,7 +84,7 @@ public class TitusJobSpecTest {
                     0, true, (long) 0, false, null, defaultSecurityGroups,
                     null, null, null, null, "jgStack",
                     "jgDetail", "001", null, new SelfManagedMigrationPolicy());
-            String[] secGrps = config.getDefaultSecurityGroupsList().split(",");
+            String[] secGrps = (String[]) jobConfiguration.getDefaultSecurityGroups().toArray();
             Arrays.sort(secGrps);
             StringBuilder sgString = new StringBuilder();
             boolean first = true;
@@ -249,8 +251,8 @@ public class TitusJobSpecTest {
         validationResult = titusJobSpecValidators.validate(tjs);
         assertTrue(validationResult.isValid);
 
-        TitusJobSpec sanitize = TitusJobSpec.sanitize(config, tjs);
-        assertTrue(sanitize.getRuntimeLimitSecs().equals(config.getDefaultRuntimeLimit()));
+        TitusJobSpec sanitize = TitusJobSpec.sanitize(jobConfiguration, tjs);
+        assertTrue(sanitize.getRuntimeLimitSecs().equals(jobConfiguration.getDefaultRuntimeLimitSec()));
 
         tjs = getTitusJobSpecBuilder().runtimeLimitSecs((long) -1).type(TitusJobType.batch).build();
         validationResult = titusJobSpecValidators.validate(tjs);
@@ -268,14 +270,14 @@ public class TitusJobSpecTest {
     @Test
     public void testEfsMount() throws Exception {
         TitusJobSpec jobSpec = getTitusJobSpecBuilder().efs(EfsMountRepresentation.newBuilder().withEfsId("efsId").withMountPoint("/mnt").build()).build();
-        TitusJobSpec sanitized = TitusJobSpec.sanitize(config, jobSpec);
+        TitusJobSpec sanitized = TitusJobSpec.sanitize(jobConfiguration, jobSpec);
         assertThat(sanitized.getEfs().getMountPerm(), is(equalTo(MountPerm.RW)));
     }
 
     @Test
     public void testEfsMounts() throws Exception {
         TitusJobSpec jobSpec = getTitusJobSpecBuilder().efsMounts(Collections.singletonList(EfsMountRepresentation.newBuilder().withEfsId("efsId").withMountPoint("/mnt").build())).build();
-        TitusJobSpec sanitized = TitusJobSpec.sanitize(config, jobSpec);
+        TitusJobSpec sanitized = TitusJobSpec.sanitize(jobConfiguration, jobSpec);
         assertThat(sanitized.getEfsMounts().get(0).getMountPerm(), is(equalTo(MountPerm.RW)));
     }
 }

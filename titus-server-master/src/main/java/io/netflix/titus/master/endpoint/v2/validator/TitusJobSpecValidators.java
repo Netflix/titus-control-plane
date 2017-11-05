@@ -20,6 +20,7 @@ package io.netflix.titus.master.endpoint.v2.validator;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.master.RuntimeLimitValidator;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
@@ -43,12 +44,13 @@ public class TitusJobSpecValidators {
     }
 
     public TitusJobSpecValidators(MasterConfiguration masterConfiguration,
+                                  JobConfiguration jobConfiguration,
                                   ValidatorConfiguration validatorConfiguration) {
         this.validators.add(new ResourceLimitsValidator(masterConfiguration));
         this.validators.add(new InstanceCountValidator(masterConfiguration));
         this.validators.add(new DockerImageValidator());
         this.validators.add(new EfsValidator(validatorConfiguration));
-        this.validators.add(new RuntimeLimitValidator(masterConfiguration));
+        this.validators.add(new RuntimeLimitValidator(jobConfiguration));
     }
 
     public ValidationResult validate(TitusJobSpec jobSpec) {
