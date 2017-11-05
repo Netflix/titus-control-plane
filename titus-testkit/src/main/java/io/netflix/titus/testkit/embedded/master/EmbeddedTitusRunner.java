@@ -34,7 +34,7 @@ public class EmbeddedTitusRunner {
 
         EmbeddedTitusMaster.Builder builder = EmbeddedTitusMaster.aTitusMaster()
                 .withSimulatedCloud(cloud)
-                .withProperty("mantis.master.grpcServer.v3EnabledApps", "v3App")
+                .withProperty("titus.master.grpcServer.v3EnabledApps", "v3App")
                 .withApiPort(8080)
                 .withGrpcPort(8090);
 //        if (args.length == 5) {

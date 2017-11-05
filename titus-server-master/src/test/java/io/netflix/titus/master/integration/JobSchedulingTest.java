@@ -61,7 +61,6 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     @Rule
     public final TitusMasterResource titusMasterResource = new TitusMasterResource(
             EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("mantis.worker.state.launched.timeout.millis", "30")
                     .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "30")
                     .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "30")
                     .withProperty("titusMaster.jobManager.serviceTaskInStartInitiatedStateTimeoutMs", "30")

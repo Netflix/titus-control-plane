@@ -63,11 +63,7 @@ public class VMOperationsImpl implements VMOperations {
             final List<JobsOnVMStatus> statusList = jobsGetterFunc.call();
             if (statusList != null && !statusList.isEmpty()) {
                 for (JobsOnVMStatus status : statusList) {
-                    List<JobsOnVMStatus> jobsOnVMStatuses = result.get(status.getAttributeValue());
-                    if (jobsOnVMStatuses == null) {
-                        jobsOnVMStatuses = new ArrayList<>();
-                        result.put(status.getAttributeValue(), jobsOnVMStatuses);
-                    }
+                    List<JobsOnVMStatus> jobsOnVMStatuses = result.computeIfAbsent(status.getAttributeValue(), k -> new ArrayList<>());
                     boolean isIdle = status.getJobs().isEmpty();
                     if ((!idleOnly || isIdle) && (!excludeIdle || !isIdle)) {
                         jobsOnVMStatuses.add(status);
