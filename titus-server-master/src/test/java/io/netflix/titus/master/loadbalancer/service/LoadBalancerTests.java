@@ -16,9 +16,11 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,22 +37,31 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
+import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.common.framework.reconciler.EntityHolder;
+import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.mockito.ArgumentMatcher;
 import rx.Observable;
 import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
+import rx.subjects.PublishSubject;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
@@ -65,11 +76,12 @@ public class LoadBalancerTests {
         final LoadBalancerConfiguration loadBalancerConfig = mockConfiguration(5, 5_000);
         final LoadBalancerClient client = mock(LoadBalancerClient.class);
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
+        when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
         final LoadBalancerStore store = new InMemoryLoadBalancerStore();
         final TestScheduler testScheduler = Schedulers.test();
 
         final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(loadBalancerConfig, client, store, jobOperations, testScheduler);
-        final AssertableSubscriber<DefaultLoadBalancerService.Batch> testSubscriber = loadBalancerService.buildStream().test();
+        final AssertableSubscriber<Batch> testSubscriber = loadBalancerService.events().test();
 
         return loadBalancerService;
     }
@@ -109,15 +121,36 @@ public class LoadBalancerTests {
         return StreamSupport.<T>stream(items.toBlocking().toIterable().spliterator(), false).count();
     }
 
+    static TitusModelUpdateAction mockUpdateAction(String taskId) {
+        return new TitusModelUpdateAction(
+                ActionKind.Task, ModelUpdateAction.Model.Reference, JobManagerEvent.Trigger.Mesos, taskId, "test") {
+            @Override
+            public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+                return Pair.of(rootHolder, Optional.empty());
+            }
+        };
+    }
+
+    static ArgumentMatcher<Collection<LoadBalancerTarget>> matchesTarget(String loadBalancerId, String ipAddress) {
+        return list -> {
+            if (list == null || list.size() != 1) {
+                return false;
+            }
+            LoadBalancerTarget target = list.iterator().next();
+            return ipAddress.equals(target.getIpAddress()) && loadBalancerId.equals(target.getLoadBalancerId());
+        };
+    }
+
     /**
      * Common testing helper that gets load balancers for a job, ensures the gRPC request was
      * successful, and returns the load balancer ids as a set.
+     *
      * @param jobIdStr
      * @param getJobLoadBalancers
      * @return
      */
     static public Set<LoadBalancerId> getLoadBalancersForJob(String jobIdStr,
-                                                       BiConsumer<JobId, TestStreamObserver<GetLoadBalancerResult>> getJobLoadBalancers) {
+                                                             BiConsumer<JobId, TestStreamObserver<GetLoadBalancerResult>> getJobLoadBalancers) {
         JobId jobId = JobId.newBuilder().setId(jobIdStr).build();
 
         TestStreamObserver<GetLoadBalancerResult> getResponse = new TestStreamObserver<>();
@@ -138,6 +171,7 @@ public class LoadBalancerTests {
      * Common testing helper that adds a specified number of random load balancer ids to
      * a specified number of jobs. The helper ensures the gRPC request was successful and
      * returns the job ids and load balancer ids as a map.
+     *
      * @param numJobs
      * @param numLoadBalancersPerJob
      * @param putLoadBalancer
@@ -176,12 +210,13 @@ public class LoadBalancerTests {
                 loadBalancerSet.add(loadBalancerResultId);
             }
         });
-        return  jobIdToLoadBalancersMap;
+        return jobIdToLoadBalancersMap;
     }
 
     /**
      * Common testing helper that removes a load balancer id from a job. The helper ensures the
      * gRPC request was successful.
+     *
      * @param jobId
      * @param loadBalancerId
      * @param removeLoadBalancers

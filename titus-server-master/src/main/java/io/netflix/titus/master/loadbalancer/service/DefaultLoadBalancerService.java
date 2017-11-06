@@ -16,11 +16,9 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,6 +27,7 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -36,6 +35,7 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.Deactivator;
 import io.netflix.titus.common.util.rx.ObservableExt;
@@ -61,8 +61,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private final V3JobOperations v3JobOperations;
 
     private final Scheduler scheduler;
-
-    private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> tracking = new ConcurrentHashMap<>();
+    private final Tracking tracking = new Tracking();
 
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingAssociations;
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations;
@@ -99,6 +98,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Completable addLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
+                .andThen(Completable.fromAction(() -> tracking.add(jobLoadBalancer)))
                 .andThen(Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer)));
     }
 
@@ -106,22 +106,15 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Completable removeLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
+                .andThen(Completable.fromAction(() -> tracking.remove(jobLoadBalancer)))
                 .andThen(Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer)));
-    }
-
-    @VisibleForTesting
-    Observable<Batch> buildStream() {
-        pendingAssociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
-        pendingDissociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
-
-        final Observable<LoadBalancerTarget> toRegister = targetsToRegister(pendingAssociations);
-        final Observable<LoadBalancerTarget> toDeregister = targetsToDeregister(pendingDissociations);
-        return batchLoadBalancerChanges(toRegister, toDeregister);
     }
 
     @Activator
     public void activate() {
-        loadBalancerBatches = buildStream()
+        // TODO(fabio): load from store
+
+        loadBalancerBatches = events()
                 .observeOn(scheduler)
                 .subscribeOn(scheduler)
                 .subscribe(
@@ -132,7 +125,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 );
 
         // TODO(fabio): reconciliation
-        // TODO(fabio): watch task and job update streams
+        // TODO(fabio): load tracking state from store on activation
+        // TODO(fabio): watch job updates stream for garbage collection
         // TODO(fabio): garbage collect removed jobs and loadbalancers
         // TODO(fabio): integrate with the V2 engine
     }
@@ -143,6 +137,61 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
         this.pendingAssociations.onCompleted();
         this.pendingDissociations.onCompleted();
+    }
+
+
+    @VisibleForTesting
+    Observable<Batch> events() {
+        pendingAssociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
+        pendingDissociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
+
+        Observable<TaskUpdateEvent> stateTransitions = v3JobOperations.observeJobs()
+                .filter(TaskUpdateEvent.class::isInstance)
+                .cast(TaskUpdateEvent.class)
+                .filter(event -> event.getModel() == ModelUpdateAction.Model.Reference && event.getTask().isPresent())
+                .filter(StreamHelpers::isStateTransition);
+
+        final Observable<LoadBalancerTarget> toRegister = Observable.merge(
+                registerFromAssociations(pendingAssociations),
+                registerFromEvents(stateTransitions)
+        );
+        final Observable<LoadBalancerTarget> toDeregister = Observable.merge(
+                deregisterFromDissociations(pendingDissociations),
+                deregisterFromEvents(stateTransitions)
+        );
+
+        return batchLoadBalancerChanges(toRegister, toDeregister);
+    }
+
+    private Observable<LoadBalancerTarget> registerFromEvents(Observable<TaskUpdateEvent> events) {
+        // Optional.empty() tasks have been already filtered out
+        //noinspection ConstantConditions
+        Observable<Task> tasks = events.map(event -> event.getTask().get())
+                .filter(StreamHelpers::isStartedWithIp);
+        return targetsForTrackedTasks(tasks);
+    }
+
+    private Observable<LoadBalancerTarget> deregisterFromEvents(Observable<TaskUpdateEvent> events) {
+        // Optional.empty() tasks have been already filtered out
+        //noinspection ConstantConditions
+        Observable<Task> tasks = events.map(event -> event.getTask().get())
+                .filter(StreamHelpers::isTerminalWithIp);
+        return targetsForTrackedTasks(tasks);
+    }
+
+    private Observable<LoadBalancerTarget> targetsForTrackedTasks(Observable<Task> tasks) {
+        return tasks.doOnNext(task -> logger.debug("Checking if task is in job being tracked: {}", task))
+                .filter(this::isTracked)
+                .map(task -> Pair.of(task, tracking.get(task.getJobId())))
+                .doOnNext(pair -> logger.info("Task update in job being tracked, enqueuing {} load balancer updates: {}",
+                        pair.getRight().size(), pair.getLeft()))
+                .flatMap(pair -> Observable.from(
+                        pair.getRight().stream().map(association -> new LoadBalancerTarget(
+                                association,
+                                pair.getLeft().getId(),
+                                pair.getLeft().getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)
+                        )).collect(Collectors.toList()))
+                );
     }
 
     private Observable<Batch> batchLoadBalancerChanges(Observable<LoadBalancerTarget> targetsToRegister, Observable<LoadBalancerTarget> targetsToDeregister) {
@@ -163,10 +212,9 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     }
 
     /**
-     * rxJava 1.x doesn't have the Maybe type. This could also return a Single<Either<Batch, Throwable>>, but an
+     * rxJava 1.x doesn't have the Maybe type. This could also return a Single<Optional<Batch>>, but an
      * Observable that emits a single item (or none in case of errors) is simpler
      *
-     * @param targets
      * @return an Observable that emits either a single batch, or none in case of errors
      */
     private Observable<Batch> processBatch(Map<LoadBalancerTarget, LoadBalancerTarget.State> targets) {
@@ -184,18 +232,19 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .onErrorResumeNext(Observable.empty());
     }
 
-    private Observable<LoadBalancerTarget> targetsToDeregister(Observable<JobLoadBalancer> pendingDissociations) {
-        return pendingDissociations.flatMap(
-                // fetch everything, including deregistered, so they are retried
-                jobLoadBalancer -> loadBalancerStore.retrieveTargets(jobLoadBalancer)
-                        .map(pair -> new LoadBalancerTarget(
-                                jobLoadBalancer, pair.getLeft().getTaskId(), pair.getLeft().getIpAddress()
-                        )))
+    private Observable<LoadBalancerTarget> deregisterFromDissociations(Observable<JobLoadBalancer> pendingDissociations) {
+        return pendingDissociations
+                .flatMap(
+                        // fetch everything, including deregistered, so they are retried
+                        jobLoadBalancer -> loadBalancerStore.retrieveTargets(jobLoadBalancer)
+                                .map(pair -> new LoadBalancerTarget(
+                                        jobLoadBalancer, pair.getLeft().getTaskId(), pair.getLeft().getIpAddress()
+                                )))
                 .doOnError(e -> logger.error("Error fetching targets to deregister", e))
                 .retry();
     }
 
-    private Observable<LoadBalancerTarget> targetsToRegister(Observable<JobLoadBalancer> pendingAssociations) {
+    private Observable<LoadBalancerTarget> registerFromAssociations(Observable<JobLoadBalancer> pendingAssociations) {
         return pendingAssociations
                 .filter(jobLoadBalancer -> v3JobOperations.getJob(jobLoadBalancer.getJobId()).isPresent())
                 .flatMap(jobLoadBalancer -> Observable.from(targetsForJob(jobLoadBalancer))
@@ -210,8 +259,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
      */
     private List<LoadBalancerTarget> targetsForJob(JobLoadBalancer jobLoadBalancer) {
         return v3JobOperations.getTasks(jobLoadBalancer.getJobId()).stream()
-                .filter(task -> task.getStatus().getState() == TaskState.Started)
-                .filter(DefaultLoadBalancerService::hasIp)
+                .filter(StreamHelpers::isStartedWithIp)
                 .map(task -> new LoadBalancerTarget(
                         jobLoadBalancer,
                         task.getId(),
@@ -220,38 +268,53 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .collect(Collectors.toList());
     }
 
-    private static boolean hasIp(Task task) {
-        final boolean hasIp = task.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
-        if (!hasIp) {
-            logger.warn("Task {} has state {} but no ipAddress associated", task.getId(), task.getStatus().getState());
-        }
-        return hasIp;
+    private boolean isTracked(Task task) {
+        return !tracking.get(task.getJobId()).isEmpty();
     }
 
-    @VisibleForTesting
-    static class Batch {
-        private final Map<LoadBalancerTarget.State, List<LoadBalancerTarget>> groupedBy;
+    private interface StreamHelpers {
 
-        public Batch(Map<LoadBalancerTarget, LoadBalancerTarget.State> batch) {
-            groupedBy = batch.entrySet().stream().collect(
-                    Collectors.groupingBy(
-                            Map.Entry::getValue,
-                            Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+        static boolean isStateTransition(TaskUpdateEvent event) {
+            final Task currentTask = event.getTask().get();
+            final Optional<Task> previousTask = event.getPreviousTaskVersion();
+            boolean identical = previousTask.map(previous -> previous == currentTask).orElse(false);
+            return !identical && previousTask
+                    .map(previous -> !previous.getStatus().getState().equals(currentTask.getStatus().getState()))
+                    .orElse(false);
         }
 
-        private List<LoadBalancerTarget> getStateRegister() {
-            return groupedBy.getOrDefault(LoadBalancerTarget.State.Registered, Collections.emptyList());
+        static boolean isStartedWithIp(Task task) {
+            if (task.getStatus().getState() != TaskState.Started) {
+                return false;
+            }
+            final boolean hasIp = task.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
+            if (!hasIp) {
+                logger.warn("Task {} has state {} but no ipAddress associated", task.getId(), task.getStatus().getState());
+            }
+            return hasIp;
         }
 
-        private List<LoadBalancerTarget> getStateDeregister() {
-            return groupedBy.getOrDefault(LoadBalancerTarget.State.Deregistered, Collections.emptyList());
+        static boolean isTerminalWithIp(Task task) {
+            if (!isTerminalState(task)) {
+                return false;
+            }
+
+            final boolean hasIp = task.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
+            if (!hasIp) {
+                logger.warn("Task {} has state {} but no ipAddress associated", task.getId(), task.getStatus().getState());
+            }
+            return hasIp;
         }
 
-        @Override
-        public String toString() {
-            return "Batch{" +
-                    "groupedBy=" + groupedBy +
-                    '}';
+        static boolean isTerminalState(Task task) {
+            switch (task.getStatus().getState()) {
+                case KillInitiated:
+                case Finished:
+                case Disconnected:
+                    return true;
+                default:
+                    return false;
+            }
         }
     }
 }
