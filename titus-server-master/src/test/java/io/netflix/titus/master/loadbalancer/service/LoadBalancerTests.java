@@ -31,6 +31,7 @@ import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import com.google.protobuf.Empty;
+import com.netflix.spectator.api.NoopRegistry;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -50,6 +51,8 @@ import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
@@ -73,6 +76,7 @@ public class LoadBalancerTests {
     private static final long TIMEOUT_MS = 30_000;
 
     static public LoadBalancerService getMockLoadBalancerService() {
+        final TitusRuntime runtime = new DefaultTitusRuntime(new NoopRegistry());
         final LoadBalancerConfiguration loadBalancerConfig = mockConfiguration(5, 5_000);
         final LoadBalancerClient client = mock(LoadBalancerClient.class);
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
@@ -80,7 +84,7 @@ public class LoadBalancerTests {
         final LoadBalancerStore store = new InMemoryLoadBalancerStore();
         final TestScheduler testScheduler = Schedulers.test();
 
-        final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(loadBalancerConfig, client, store, jobOperations, testScheduler);
+        final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(runtime, loadBalancerConfig, client, store, jobOperations, testScheduler);
         final AssertableSubscriber<Batch> testSubscriber = loadBalancerService.events().test();
 
         return loadBalancerService;

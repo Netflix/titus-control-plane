@@ -23,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.spectator.api.NoopRegistry;
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
 import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
@@ -37,6 +38,8 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
@@ -68,6 +71,7 @@ import static org.mockito.Mockito.when;
 
 public class DefaultLoadBalancerServiceTest {
 
+    private TitusRuntime runtime;
     private LoadBalancerClient client;
     private V3JobOperations jobOperations;
     private LoadBalancerStore store;
@@ -81,6 +85,7 @@ public class DefaultLoadBalancerServiceTest {
 
     @Before
     public void setUp() throws Exception {
+        runtime = new DefaultTitusRuntime(new NoopRegistry());
         client = mock(LoadBalancerClient.class);
         store = new InMemoryLoadBalancerStore();
         jobOperations = mock(V3JobOperations.class);
@@ -105,7 +110,7 @@ public class DefaultLoadBalancerServiceTest {
         ));
 
         LoadBalancerConfiguration configuration = mockConfiguration(5, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
@@ -138,7 +143,7 @@ public class DefaultLoadBalancerServiceTest {
         ));
 
         LoadBalancerConfiguration configuration = mockConfiguration(1000, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration,
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration,
                 client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
@@ -170,7 +175,7 @@ public class DefaultLoadBalancerServiceTest {
         when(jobOperations.getTasks(secondJobId)).thenReturn(LoadBalancerTests.buildTasksStarted(2, secondJobId));
 
         LoadBalancerConfiguration configuration = mockConfiguration(2, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
@@ -210,7 +215,7 @@ public class DefaultLoadBalancerServiceTest {
         when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(batchSize + extra, jobId));
 
         LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
@@ -241,7 +246,7 @@ public class DefaultLoadBalancerServiceTest {
         when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(2 * batchSize + extra, jobId));
 
         LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
@@ -277,7 +282,7 @@ public class DefaultLoadBalancerServiceTest {
         assertEquals(count(store.retrieveTargets(jobLoadBalancer)), 4);
 
         LoadBalancerConfiguration configuration = mockConfiguration(4, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
@@ -320,7 +325,7 @@ public class DefaultLoadBalancerServiceTest {
         assertEquals(count(store.retrieveTargets(secondLoadBalancer)), 2);
 
         LoadBalancerConfiguration configuration = mockConfiguration(2, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
@@ -363,7 +368,7 @@ public class DefaultLoadBalancerServiceTest {
         when(jobOperations.getTasks(jobId)).thenReturn(Collections.emptyList());
 
         LoadBalancerConfiguration configuration = mockConfiguration(1, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
@@ -443,7 +448,7 @@ public class DefaultLoadBalancerServiceTest {
         when(jobOperations.getTasks(jobId)).thenReturn(Collections.emptyList());
 
         LoadBalancerConfiguration configuration = mockConfiguration(1, 5_000);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(configuration, client, store, jobOperations, testScheduler);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, store, jobOperations, testScheduler);
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
