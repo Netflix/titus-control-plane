@@ -43,6 +43,7 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.model.v2.JobSla;
@@ -291,6 +292,8 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
             try {
                 apiOperations.updateInstanceCounts(jobId, SERVICE_STAGE, min, desired, max, user);
                 subscriber.onCompleted();
+            } catch (JobManagerException e) {
+                subscriber.onError(TitusServiceException.newBuilder(ErrorCode.JOB_UPDATE_NOT_ALLOWED, e.getMessage()).withCause(e).build());
             } catch (InvalidJobException e) {
                 subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
             }

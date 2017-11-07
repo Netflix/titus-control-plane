@@ -319,6 +319,9 @@ public class ServiceJobMgr extends BaseJobMgr {
 
             updateInstanceCounts(min, desired, max, user, scalingPolicy.getDesired());
             logger.info("Scaling policy updated in {}[ms]", System.currentTimeMillis() - startTime);
+        } catch (JobManagerException e) {
+            logger.warn(jobId + ": JobManagerException in updating instance counts - " + e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
             logger.warn(jobId + ": unexpected exception locking job metadata: " + e.getMessage(), e);
             throw new InvalidJobException(jobId, e);
@@ -331,7 +334,7 @@ public class ServiceJobMgr extends BaseJobMgr {
             V2StageMetadataWritable serviceStage = (V2StageMetadataWritable) jobMetadata.getStageMetadata(stageNum);
             ServiceJobProcesses jobProcesses = ServiceJobProcesses.newBuilder().withDisableIncreaseDesired(disableIncreaseDesired).withDisableDecreaseDesired(disableDecreaseDesired).build();
             serviceStage.setJobProcesses(jobProcesses);
-            store.updateJob(jobId, jobMetadata);
+            store.updateStage(serviceStage);
             logger.info("{} : Updated JobProcesses disableIncreaseDesired={}, disableDecreaseDesired={}, user={}", jobId, disableIncreaseDesired, disableDecreaseDesired, user);
 
             auditLogService.submit(

@@ -1,11 +1,16 @@
 package io.netflix.titus.api.jobmanager.model.job;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class ServiceJobProcesses {
     private final boolean disableIncreaseDesired;
 
     private final boolean disableDecreaseDesired;
 
-    public ServiceJobProcesses(boolean disableIncreaseDesired, boolean disableDecreaseDesired) {
+    @JsonCreator
+    public ServiceJobProcesses(@JsonProperty("disableIncreaseDesired") boolean disableIncreaseDesired,
+                               @JsonProperty("disableDecreaseDesired") boolean disableDecreaseDesired) {
         this.disableIncreaseDesired = disableIncreaseDesired;
         this.disableDecreaseDesired = disableDecreaseDesired;
     }
@@ -20,12 +25,18 @@ public class ServiceJobProcesses {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ServiceJobProcesses that = (ServiceJobProcesses) o;
 
-        if (disableIncreaseDesired != that.disableIncreaseDesired) return false;
+        if (disableIncreaseDesired != that.disableIncreaseDesired) {
+            return false;
+        }
         return disableDecreaseDesired == that.disableDecreaseDesired;
     }
 
@@ -47,7 +58,6 @@ public class ServiceJobProcesses {
     public static ServiceJobProcesses.Builder newBuilder() {
         return new ServiceJobProcesses.Builder();
     }
-
 
 
     public static final class Builder {
