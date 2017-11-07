@@ -23,6 +23,14 @@ allprojects {
 
     repositories {
         jcenter()
+        maven { url 'https://dl.bintray.com/netflixoss/oss-candidate/' }
+        maven {
+            url 'https://titusoss.bintray.com/maven'
+            credentials {
+                username resolveTitusOssUserName()
+                password resolveTitusOssUserPassword()
+            }
+        }
     }
 
     bintray {
