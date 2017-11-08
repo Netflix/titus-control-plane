@@ -121,7 +121,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .subscribeOn(scheduler)
                 .subscribe(
                         batch -> logger.info("Load balancer batch completed. Registered {}, deregistered {}",
-                                batch.getStateRegister().size(), batch.getStateDeregister().size()),
+                                batch.getToRegister().size(), batch.getToDeregister().size()),
                         e -> logger.error("Error while processing load balancer batch", e),
                         () -> logger.info("Load balancer batch stream closed")
                 );

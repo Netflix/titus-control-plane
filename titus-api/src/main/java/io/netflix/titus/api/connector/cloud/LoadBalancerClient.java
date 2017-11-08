@@ -18,17 +18,16 @@ package io.netflix.titus.api.connector.cloud;
 
 import java.util.Collection;
 
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import rx.Completable;
 
 public interface LoadBalancerClient {
     /**
-     * @param loadBalancerTargets can be an empty Collection, in which case this is a noop.
+     * @param targets can be an empty Collection, in which case this is a noop.
      */
-    Completable registerAll(Collection<LoadBalancerTarget> loadBalancerTargets);
+    Completable registerAll(String loadBalancerId, Collection<String> targets);
 
     /**
-     * @param loadBalancerTargets can be an empty Collection, in which case this is a noop.
+     * @param targets can be an empty Collection, in which case this is a noop.
      */
-    Completable deregisterAll(Collection<LoadBalancerTarget> loadBalancerTargets);
+    Completable deregisterAll(String loadBalancerId, Collection<String> targets);
 }

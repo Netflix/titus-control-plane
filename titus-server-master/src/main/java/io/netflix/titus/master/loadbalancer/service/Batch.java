@@ -17,34 +17,73 @@
 package io.netflix.titus.master.loadbalancer.service;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
 
 class Batch {
-    private final Map<LoadBalancerTarget.State, List<LoadBalancerTarget>> groupedBy;
 
-    Batch(Map<LoadBalancerTarget, LoadBalancerTarget.State> batch) {
-        groupedBy = batch.entrySet().stream().collect(
-                Collectors.groupingBy(
+    private final Group toRegister;
+    private final Group toDeregister;
+
+    Batch(Map<LoadBalancerTarget, State> batch) {
+        final Map<State, List<LoadBalancerTarget>> groupedByState = batch.entrySet().stream()
+                .collect(Collectors.groupingBy(
                         Map.Entry::getValue,
-                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())
+                ));
+        toRegister = new Group(groupedByState.getOrDefault(State.Registered, Collections.emptyList()));
+        toDeregister = new Group(groupedByState.getOrDefault(State.Deregistered, Collections.emptyList()));
+
     }
 
-    List<LoadBalancerTarget> getStateRegister() {
-        return groupedBy.getOrDefault(LoadBalancerTarget.State.Registered, Collections.emptyList());
+    public Group getToRegister() {
+        return toRegister;
     }
 
-    List<LoadBalancerTarget> getStateDeregister() {
-        return groupedBy.getOrDefault(LoadBalancerTarget.State.Deregistered, Collections.emptyList());
+    public Group getToDeregister() {
+        return toDeregister;
     }
 
     @Override
     public String toString() {
         return "Batch{" +
-                "groupedBy=" + groupedBy +
+                "toRegister=" + toRegister +
+                ", toDeregister=" + toDeregister +
                 '}';
     }
+
+    class Group {
+        private final Set<LoadBalancerTarget> entries;
+
+        Group(List<LoadBalancerTarget> items) {
+            // reverse so we keep the last seen
+            entries = new HashSet<>(Lists.reverse(items));
+        }
+
+        int size() {
+            return entries.size();
+        }
+
+        Map<String, Set<LoadBalancerTarget>> byLoadBalancerId() {
+            return entries.stream().collect(Collectors.groupingBy(LoadBalancerTarget::getLoadBalancerId))
+                    .entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            entry -> new HashSet<>(entry.getValue())
+                    ));
+        }
+
+        @Override
+        public String toString() {
+            return entries.toString();
+        }
+    }
+
 }

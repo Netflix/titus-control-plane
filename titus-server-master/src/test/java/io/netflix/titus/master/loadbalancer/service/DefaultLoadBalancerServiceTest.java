@@ -53,7 +53,6 @@ import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 
 import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.count;
-import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.matchesTarget;
 import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.mockConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -61,6 +60,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -78,8 +78,8 @@ public class DefaultLoadBalancerServiceTest {
     private TestScheduler testScheduler;
 
     private void defaultStubs() {
-        when(client.registerAll(any())).thenReturn(Completable.complete());
-        when(client.deregisterAll(any())).thenReturn(Completable.complete());
+        when(client.registerAll(any(), any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
     }
 
@@ -121,8 +121,8 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.triggerActions();
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).registerAll(argThat(targets -> targets != null && targets.size() == 5));
-        verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 5));
+        verify(client, never()).deregisterAll(eq(loadBalancerId), any());
     }
 
     @Test
@@ -152,14 +152,14 @@ public class DefaultLoadBalancerServiceTest {
         verify(jobOperations).getTasks(jobId);
 
         testSubscriber.assertNoErrors().assertValueCount(0);
-        verify(client, never()).registerAll(any());
-        verify(client, never()).deregisterAll(any());
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
 
         testScheduler.advanceTimeBy(5_001, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).registerAll(argThat(targets -> targets != null && targets.size() == 3));
-        verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 3));
+        verify(client, never()).deregisterAll(eq(loadBalancerId), any());
     }
 
     @Test
@@ -170,7 +170,7 @@ public class DefaultLoadBalancerServiceTest {
 
         defaultStubs();
         // first fails, second succeeds
-        when(jobOperations.getJob(firstJobId)).thenThrow(RuntimeException.class);
+        when(jobOperations.getJob(firstJobId)).thenThrow(new RuntimeException());
         when(jobOperations.getJob(secondJobId)).thenReturn(Optional.of(Job.newBuilder().build()));
         when(jobOperations.getTasks(secondJobId)).thenReturn(LoadBalancerTests.buildTasksStarted(2, secondJobId));
 
@@ -187,8 +187,8 @@ public class DefaultLoadBalancerServiceTest {
 
         testSubscriber.assertNoErrors().assertNoValues();
         verify(jobOperations, never()).getTasks(firstJobId);
-        verify(client, never()).registerAll(any());
-        verify(client, never()).deregisterAll(any());
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
 
         // second succeeds
         assertTrue(service.addLoadBalancer(secondJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
@@ -198,8 +198,8 @@ public class DefaultLoadBalancerServiceTest {
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(jobOperations).getTasks(secondJobId);
-        verify(client).registerAll(argThat(targets -> targets != null && targets.size() == 2));
-        verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 2));
+        verify(client, never()).deregisterAll(eq(loadBalancerId), any());
     }
 
     @Test
@@ -225,8 +225,8 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.triggerActions();
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).registerAll(argThat(targets -> targets != null && targets.size() == batchSize));
-        verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
+        verify(client, never()).deregisterAll(eq(loadBalancerId), any());
     }
 
     @Test
@@ -237,9 +237,9 @@ public class DefaultLoadBalancerServiceTest {
         final int batchSize = random.nextInt(3, 10);
         final int extra = random.nextInt(1, batchSize);
 
-        when(client.registerAll(any())).thenReturn(Completable.error(new RuntimeException()))
+        when(client.registerAll(any(), any())).thenReturn(Completable.error(new RuntimeException()))
                 .thenReturn(Completable.complete());
-        when(client.deregisterAll(any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
         when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
         // 2 batches
@@ -257,8 +257,8 @@ public class DefaultLoadBalancerServiceTest {
 
         // first errored and got skipped
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client, times(2)).registerAll(argThat(targets -> targets != null && targets.size() == batchSize));
-        verify(client, atMost(2)).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client, times(2)).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
+        verify(client, atMost(2)).deregisterAll(eq(loadBalancerId), argThat(CollectionsExt::isNullOrEmpty));
     }
 
     @Test
@@ -295,8 +295,8 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.triggerActions();
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).deregisterAll(argThat(targets -> targets != null && targets.size() == 4));
-        verify(client).registerAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client, never()).registerAll(eq(loadBalancerId), any());
+        verify(client).deregisterAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 4));
 
         // all successfully deregistered are gone
         assertEquals(count(store.retrieveTargets(jobLoadBalancer)), 0);
@@ -312,7 +312,7 @@ public class DefaultLoadBalancerServiceTest {
 
         defaultStubs();
         store = spy(store);
-        when(store.retrieveTargets(new JobLoadBalancer(firstJobId, loadBalancerId))).thenThrow(RuntimeException.class);
+        when(store.retrieveTargets(new JobLoadBalancer(firstJobId, loadBalancerId))).thenThrow(new RuntimeException());
         assertTrue(store.addOrUpdateLoadBalancer(firstLoadBalancer, JobLoadBalancer.State.Associated)
                 .await(100, TimeUnit.MILLISECONDS));
         assertTrue(store.addOrUpdateLoadBalancer(secondLoadBalancer, JobLoadBalancer.State.Associated)
@@ -336,8 +336,8 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.triggerActions();
 
         testSubscriber.assertNoErrors().assertValueCount(0);
-        verify(client, never()).deregisterAll(any());
-        verify(client, never()).registerAll(any());
+        verify(client, never()).deregisterAll(any(), any());
+        verify(client, never()).registerAll(any(), any());
         assertEquals(count(store.retrieveTargets(secondLoadBalancer)), 2);
 
         // second succeeds
@@ -347,8 +347,8 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.triggerActions();
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).deregisterAll(argThat(targets -> targets != null && targets.size() == 2));
-        verify(client).registerAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client, never()).registerAll(eq(loadBalancerId), any());
+        verify(client).deregisterAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 2));
         // all successfully deregistered are gone
         assertEquals(count(store.retrieveTargets(secondLoadBalancer)), 0);
     }
@@ -362,8 +362,8 @@ public class DefaultLoadBalancerServiceTest {
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
         final PublishSubject<JobManagerEvent> taskEvents = PublishSubject.create();
 
-        when(client.registerAll(any())).thenReturn(Completable.complete());
-        when(client.deregisterAll(any())).thenReturn(Completable.complete());
+        when(client.registerAll(any(), any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(jobOperations.observeJobs()).thenReturn(taskEvents);
         when(jobOperations.getTasks(jobId)).thenReturn(Collections.emptyList());
 
@@ -377,8 +377,8 @@ public class DefaultLoadBalancerServiceTest {
 
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
-        verify(client, never()).registerAll(any());
-        verify(client, never()).deregisterAll(any());
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
 
         Task launched = ServiceJobTask.newBuilder()
                 .withJobId(jobId)
@@ -406,8 +406,8 @@ public class DefaultLoadBalancerServiceTest {
         ));
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
-        verify(client, never()).registerAll(any());
-        verify(client, never()).deregisterAll(any());
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
 
         // events to !Started states get ignored
         taskEvents.onNext(new TaskUpdateEvent(
@@ -419,8 +419,8 @@ public class DefaultLoadBalancerServiceTest {
         ));
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
-        verify(client, never()).registerAll(any());
-        verify(client, never()).deregisterAll(any());
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
 
         // finally detect the task is UP and gets registered
         taskEvents.onNext(new TaskUpdateEvent(
@@ -432,8 +432,8 @@ public class DefaultLoadBalancerServiceTest {
         ));
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).registerAll(argThat(matchesTarget(loadBalancerId, "1.2.3.4")));
-        verify(client).deregisterAll(argThat(CollectionsExt::isNullOrEmpty));
+        verify(client).registerAll(eq(loadBalancerId), argThat(set -> set.contains("1.2.3.4")));
+        verify(client, never()).deregisterAll(eq(loadBalancerId), any());
     }
 
     @Test
@@ -442,8 +442,8 @@ public class DefaultLoadBalancerServiceTest {
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
         final PublishSubject<JobManagerEvent> taskEvents = PublishSubject.create();
 
-        when(client.registerAll(any())).thenReturn(Completable.complete());
-        when(client.deregisterAll(any())).thenReturn(Completable.complete());
+        when(client.registerAll(any(), any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(jobOperations.observeJobs()).thenReturn(taskEvents);
         when(jobOperations.getTasks(jobId)).thenReturn(Collections.emptyList());
 
@@ -457,8 +457,8 @@ public class DefaultLoadBalancerServiceTest {
 
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
-        verify(client, never()).registerAll(any());
-        verify(client, never()).deregisterAll(any());
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
 
         // a task that was prematurely killed before having an IP address associated to it should be ignored
         Task noIp = ServiceJobTask.newBuilder()
@@ -478,8 +478,8 @@ public class DefaultLoadBalancerServiceTest {
         ));
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
-        verify(client, never()).registerAll(any());
-        verify(client, never()).deregisterAll(any());
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
 
         // 3 state transitions to 3 different terminal events
 
@@ -501,8 +501,8 @@ public class DefaultLoadBalancerServiceTest {
         ));
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).registerAll(argThat(CollectionsExt::isNullOrEmpty));
-        verify(client).deregisterAll(argThat(matchesTarget(loadBalancerId, "1.1.1.1")));
+        verify(client, never()).registerAll(eq(loadBalancerId), any());
+        verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("1.1.1.1")));
 
         Task second = first.toBuilder()
                 .withId(UUID.randomUUID().toString())
@@ -521,8 +521,8 @@ public class DefaultLoadBalancerServiceTest {
         ));
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(2);
-        verify(client, times(2)).registerAll(argThat(CollectionsExt::isNullOrEmpty));
-        verify(client).deregisterAll(argThat(matchesTarget(loadBalancerId, "2.2.2.2")));
+        verify(client, never()).registerAll(eq(loadBalancerId), any());
+        verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("2.2.2.2")));
 
         Task third = first.toBuilder()
                 .withId(UUID.randomUUID().toString())
@@ -541,7 +541,7 @@ public class DefaultLoadBalancerServiceTest {
         ));
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(3);
-        verify(client, times(3)).registerAll(argThat(CollectionsExt::isNullOrEmpty));
-        verify(client).deregisterAll(argThat(matchesTarget(loadBalancerId, "3.3.3.3")));
+        verify(client, never()).registerAll(eq(loadBalancerId), any());
+        verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("3.3.3.3")));
     }
 }

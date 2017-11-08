@@ -16,7 +16,6 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,6 @@ import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
@@ -59,7 +57,6 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.mockito.ArgumentMatcher;
 import rx.Observable;
 import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
@@ -132,16 +129,6 @@ public class LoadBalancerTests {
             public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
                 return Pair.of(rootHolder, Optional.empty());
             }
-        };
-    }
-
-    static ArgumentMatcher<Collection<LoadBalancerTarget>> matchesTarget(String loadBalancerId, String ipAddress) {
-        return list -> {
-            if (list == null || list.size() != 1) {
-                return false;
-            }
-            LoadBalancerTarget target = list.iterator().next();
-            return ipAddress.equals(target.getIpAddress()) && loadBalancerId.equals(target.getLoadBalancerId());
         };
     }
 

@@ -19,21 +19,19 @@ package io.netflix.titus.master.loadbalancer.service;
 import java.util.Collection;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import rx.Completable;
-import rx.Observable;
 
 /**
  * Test helper class that intentionally does nothing on register/deregister and returns success.
  */
 public class NoOpLoadBalancerClient implements LoadBalancerClient {
     @Override
-    public Completable registerAll(Collection<LoadBalancerTarget> loadBalancerTargets) {
-        return Completable.fromObservable(Observable.empty());
+    public Completable registerAll(String loadBalancerId, Collection<String> targets) {
+        return Completable.complete();
     }
 
     @Override
-    public Completable deregisterAll(Collection<LoadBalancerTarget> loadBalancerTargets) {
-        return Completable.fromObservable(Observable.empty());
+    public Completable deregisterAll(String loadBalancerId, Collection<String> targets) {
+        return Completable.complete();
     }
 }

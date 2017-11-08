@@ -18,6 +18,7 @@ package io.netflix.titus.master.loadbalancer.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +62,12 @@ class Batcher {
         return mergedWithState
                 .doOnNext(pair -> logger.debug("Buffering load balancer target {} -> {}", pair.getLeft(), pair.getRight()))
                 .buffer(timeoutMs, TimeUnit.MILLISECONDS, batchSize, scheduler)
+                .onBackpressureDrop(list -> logger.warn("Backpressure! Dropping batch of size {}: {}", list.size(), list))
                 .doOnNext(list -> logger.debug("Processing batch operation of size {}", list.size()))
                 .map(targets -> targets.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight)))
                 .flatMap(this::processBatch)
                 .doOnNext(batch -> logger.info("Processed load balancer batch: registered {}, deregistered {}",
-                        batch.getStateRegister().size(), batch.getStateDeregister().size()))
+                        batch.getToRegister().size(), batch.getToDeregister().size()))
                 .doOnError(e -> logger.error("Error batching load balancer calls", e))
                 .retry();
     }
@@ -75,18 +78,29 @@ class Batcher {
      *
      * @return an Observable that emits either a single batch, or none in case of errors
      */
-    private Observable<Batch> processBatch(Map<LoadBalancerTarget, LoadBalancerTarget.State> targets) {
-        final Batch grouped = new Batch(targets);
-        final List<LoadBalancerTarget> registerList = grouped.getStateRegister();
-        final List<LoadBalancerTarget> deregisterList = grouped.getStateDeregister();
-        final Completable updateRegistered = loadBalancerStore.updateTargets(registerList.stream()
-                .collect(Collectors.toMap(Function.identity(), ignored -> LoadBalancerTarget.State.Registered)));
-        final Completable merged = Completable.mergeDelayError(
-                loadBalancerClient.registerAll(registerList).andThen(updateRegistered),
-                loadBalancerClient.deregisterAll(deregisterList).andThen(loadBalancerStore.removeTargets(deregisterList))
-        );
-        return merged.andThen(Observable.just(grouped))
-                .doOnError(e -> logger.error("Error processing batch " + grouped, e))
+    private Observable<Batch> processBatch(Map<LoadBalancerTarget, LoadBalancerTarget.State> targetsWithState) {
+        final Batch batch = new Batch(targetsWithState);
+
+        final List<Completable> registerAndUpdate = batch.getToRegister().byLoadBalancerId().entrySet().stream().map(entry -> {
+            final String loadBalancerId = entry.getKey();
+            final Set<LoadBalancerTarget> targets = entry.getValue();
+            final Set<String> ipAddresses = targets.stream().map(LoadBalancerTarget::getIpAddress).collect(Collectors.toSet());
+            final Completable updateRegistered = loadBalancerStore.updateTargets(targets.stream()
+                    .collect(Collectors.toMap(Function.identity(), ignored -> LoadBalancerTarget.State.Registered)));
+            return loadBalancerClient.registerAll(loadBalancerId, ipAddresses).andThen(updateRegistered);
+        }).collect(Collectors.toList());
+
+        final List<Completable> deregisterAndRemove = batch.getToDeregister().byLoadBalancerId().entrySet().stream().map(entry -> {
+            final String loadBalancerId = entry.getKey();
+            final Set<LoadBalancerTarget> targets = entry.getValue();
+            final Set<String> ipAddresses = targets.stream().map(LoadBalancerTarget::getIpAddress).collect(Collectors.toSet());
+            return loadBalancerClient.deregisterAll(loadBalancerId, ipAddresses)
+                    .andThen(loadBalancerStore.removeTargets(targets));
+        }).collect(Collectors.toList());
+
+        final Completable merged = Completable.mergeDelayError(CollectionsExt.merge(registerAndUpdate, deregisterAndRemove));
+        return merged.andThen(Observable.just(batch))
+                .doOnError(e -> logger.error("Error processing batch " + batch, e))
                 .onErrorResumeNext(Observable.empty());
     }
 
