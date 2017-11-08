@@ -62,6 +62,7 @@ class Batcher {
         return mergedWithState
                 .doOnNext(pair -> logger.debug("Buffering load balancer target {} -> {}", pair.getLeft(), pair.getRight()))
                 .buffer(timeoutMs, TimeUnit.MILLISECONDS, batchSize, scheduler)
+                .filter(batch -> !batch.isEmpty()) // only proceed when there are pending targets
                 .onBackpressureDrop(list -> logger.warn("Backpressure! Dropping batch of size {}: {}", list.size(), list))
                 .doOnNext(list -> logger.debug("Processing batch operation of size {}", list.size()))
                 .map(targets -> targets.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight)))

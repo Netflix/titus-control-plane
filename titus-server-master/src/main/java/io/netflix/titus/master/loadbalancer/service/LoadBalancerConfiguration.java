@@ -22,10 +22,10 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.master.loadBalancer")
 public interface LoadBalancerConfiguration {
     interface Batch {
-        @DefaultValue("20")
+        @DefaultValue("100")
         int getSize();
 
-        @DefaultValue("1000")
+        @DefaultValue("5000")
         long getTimeoutMs();
     }
 

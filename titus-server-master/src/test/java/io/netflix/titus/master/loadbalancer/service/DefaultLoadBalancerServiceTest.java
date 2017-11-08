@@ -163,6 +163,30 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
+    public void emptyBatchesAreFilteredOut() throws Exception {
+        final String jobId = UUID.randomUUID().toString();
+        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+
+        defaultStubs();
+
+        LoadBalancerConfiguration configuration = mockConfiguration(1000, 5_000);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration,
+                client, store, jobOperations, testScheduler);
+
+        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+
+        testSubscriber.assertNoErrors().assertValueCount(0);
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
+
+        testScheduler.advanceTimeBy(5_001, TimeUnit.MILLISECONDS);
+
+        testSubscriber.assertNoErrors().assertValueCount(0);
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
+    }
+
+    @Test
     public void addSkipLoadBalancerOperationsOnErrors() throws Exception {
         final String firstJobId = UUID.randomUUID().toString();
         final String secondJobId = UUID.randomUUID().toString();
