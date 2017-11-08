@@ -34,7 +34,7 @@ import static io.netflix.titus.common.util.CollectionsExt.asSet;
 final class RestUtil {
 
     static final Set<String> IGNORED_QUERY_PARAMS = asSet(
-            "debug", "fields", "page", "pagesize"
+            "debug", "fields", "page", "pagesize", "accesstoken"
     );
 
     static Page createPage(MultivaluedMap<String, String> map) {
