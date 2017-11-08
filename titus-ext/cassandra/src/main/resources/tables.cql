@@ -98,3 +98,14 @@ CREATE TABLE "app_scale_jobs" (
 ) WITH
   comment='App auto scale jobs' AND
   compression={};
+
+// ------------------------------------------------------------------
+// Load Balancer schema
+CREATE TABLE "load_balancer_jobs" (
+	job_id text,
+	load_balancer_id text,
+  state text,
+	PRIMARY KEY (job_id, load_balancer_id)
+) WITH
+  comment='The jobs with load balancers' AND
+  compression={};

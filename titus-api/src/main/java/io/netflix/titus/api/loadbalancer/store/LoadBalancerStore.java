@@ -26,8 +26,24 @@ import rx.Completable;
 import rx.Observable;
 
 public interface LoadBalancerStore {
+    /**
+     * Initialize the store. Must be called prior to store usage.
+     */
+    Completable init();
+
+    /**
+     * Returns all load balancers associated with a job.
+     * @param jobId
+     * @return
+     */
     Observable<Pair<String, JobLoadBalancer.State>> retrieveLoadBalancersForJob(String jobId);
 
+    /**
+     * Adds a new or updates an existing load balancer with the provided state.
+     * @param jobLoadBalancer
+     * @param state
+     * @return
+     */
     Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state);
 
     Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer);
