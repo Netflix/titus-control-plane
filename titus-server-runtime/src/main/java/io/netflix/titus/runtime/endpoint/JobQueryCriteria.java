@@ -48,6 +48,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
     private final Optional<String> jobGroupStack;
     private final Optional<String> jobGroupDetail;
     private final Optional<String> jobGroupSequence;
+    private final boolean needsMigration;
     private final int limit;
 
     private JobQueryCriteria(Set<String> jobIds,
@@ -67,6 +68,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                              String jobGroupStack,
                              String jobGroupDetail,
                              String jobGroupSequence,
+                             boolean needsMigration,
                              int limit) {
         this.jobIds = nonNull(jobIds);
         this.taskIds = nonNull(taskIds);
@@ -85,6 +87,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         this.jobGroupStack = Optional.ofNullable(jobGroupStack);
         this.jobGroupDetail = Optional.ofNullable(jobGroupDetail);
         this.jobGroupSequence = Optional.ofNullable(jobGroupSequence);
+        this.needsMigration = needsMigration;
         this.limit = limit;
     }
 
@@ -160,6 +163,10 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         return jobGroupSequence;
     }
 
+    public boolean isNeedsMigration() {
+        return needsMigration;
+    }
+
     public int getLimit() {
         return limit;
     }
@@ -181,6 +188,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 .withJobGroupDetail(this.jobGroupDetail.orElse(null))
                 .withJobGroupStack(this.jobGroupStack.orElse(null))
                 .withJobGroupSequence(this.jobGroupSequence.orElse(null))
+                .withNeedsMigration(needsMigration)
                 .withLimit(this.limit);
     }
 
@@ -199,6 +207,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 && !jobGroupDetail.isPresent()
                 && !jobGroupStack.isPresent()
                 && !jobGroupSequence.isPresent()
+                && !needsMigration
                 && limit < 1;
     }
 
@@ -217,6 +226,9 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
             return false;
         }
         if (labelsAndOp != that.labelsAndOp) {
+            return false;
+        }
+        if (needsMigration != that.needsMigration) {
             return false;
         }
         if (limit != that.limit) {
@@ -286,6 +298,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         result = 31 * result + (jobGroupStack != null ? jobGroupStack.hashCode() : 0);
         result = 31 * result + (jobGroupDetail != null ? jobGroupDetail.hashCode() : 0);
         result = 31 * result + (jobGroupSequence != null ? jobGroupSequence.hashCode() : 0);
+        result = 31 * result + (needsMigration ? 1 : 0);
         result = 31 * result + limit;
         return result;
     }
@@ -310,6 +323,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 ", jobGroupStack=" + jobGroupStack +
                 ", jobGroupDetail=" + jobGroupDetail +
                 ", jobGroupSequence=" + jobGroupSequence +
+                ", needsMigration=" + needsMigration +
                 ", limit=" + limit +
                 '}';
     }
@@ -332,6 +346,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         private String jobGroupStack;
         private String jobGroupDetail;
         private String jobGroupSequence;
+        private boolean needsMigration;
         private int limit;
 
         private Builder() {
@@ -422,6 +437,11 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
             return this;
         }
 
+        public Builder<TASK_STATE, JOB_TYPE> withNeedsMigration(boolean needsMigration) {
+            this.needsMigration = needsMigration;
+            return this;
+        }
+
         public Builder<TASK_STATE, JOB_TYPE> withLimit(int limit) {
             this.limit = limit;
             return this;
@@ -439,12 +459,14 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                     .withImageName(imageName)
                     .withAppName(appName)
                     .withJobType(jobType)
+                    .withNeedsMigration(needsMigration)
                     .withLimit(limit);
         }
 
         public JobQueryCriteria<TASK_STATE, JOB_TYPE> build() {
             return new JobQueryCriteria<>(jobIds, taskIds, includeArchived, jobState, taskStates, taskStateReasons, owner, labels,
-                    labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence, limit);
+                    labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence,
+                    needsMigration, limit);
         }
     }
 }
