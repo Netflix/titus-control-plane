@@ -43,6 +43,7 @@ public class V2JobQueryCriteriaEvaluator extends V2AbstractQueryCriteriaEvaluato
         List<Predicate<Pair<V2JobMetadata, List<V2WorkerMetadata>>>> predicates = new ArrayList<>();
         applyTaskIds(criteria.getTaskIds()).ifPresent(predicates::add);
         applyTaskStateAndReasons(criteria.getTaskStates(), criteria.getTaskStateReasons()).ifPresent(predicates::add);
+        applyNeedsMigration(criteria.isNeedsMigration()).ifPresent(predicates::add);
         return predicates;
     }
 
@@ -82,5 +83,12 @@ public class V2JobQueryCriteriaEvaluator extends V2AbstractQueryCriteriaEvaluato
                 return t.getReason() != null && coreJobReasons.contains(t.getReason());
             });
         });
+    }
+
+    private static Optional<Predicate<Pair<V2JobMetadata, List<V2WorkerMetadata>>>> applyNeedsMigration(boolean needsMigration) {
+        if (!needsMigration) {
+            return Optional.empty();
+        }
+        return Optional.of(jobAndTasks -> jobAndTasks.getRight().stream().anyMatch(t -> t.getMigrationDeadline() > 0));
     }
 }

@@ -49,10 +49,14 @@ public class CommonGrpcModelConverters {
     public static final String LABEL_LEGACY_NAME = "titus.legacy.name";
     public static final List<TaskStatus.TaskState> ALL_TASK_STATES = asList(TaskStatus.TaskState.values());
     public static final Pattern SPACE_SPLIT_RE = Pattern.compile("\\s+");
+
     public static final Set<String> CRITERIA_JOB_FIELDS = asSet(
             "jobIds", "taskIds", "owner", "appName", "applicationName", "imageName", "imageTag", "capacityGroup",
             "jobGroupStack", "jobGroupDetail", "jobGroupSequence",
-            "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates", "taskStateReasons");
+            "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates", "taskStateReasons",
+            "needsMigration"
+    );
+
     public static final Set<String> TASK_CONTEXT_AGENT_ATTRIBUTES = asSet(
             "region", "zone", "asg", "cluster", "stack", "id", "itype"
     );
@@ -122,6 +126,8 @@ public class CommonGrpcModelConverters {
         trimAndApplyIfNonEmpty(criteriaMap.get("jobGroupStack"), criteriaBuilder::withJobGroupStack);
         trimAndApplyIfNonEmpty(criteriaMap.get("jobGroupDetail"), criteriaBuilder::withJobGroupDetail);
         trimAndApplyIfNonEmpty(criteriaMap.get("jobGroupSequence"), criteriaBuilder::withJobGroupSequence);
+
+        criteriaBuilder.withNeedsMigration(criteriaMap.getOrDefault("needsMigration", "false").equalsIgnoreCase("true"));
 
         // Job state
         String jobStateStr = criteriaMap.get("jobState");
