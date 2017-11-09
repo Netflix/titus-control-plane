@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -152,11 +153,19 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectStoreTaskAdded() {
+        return expectStoreTaskAdded(null);
+    }
+
+    public JobScenarioBuilder<E> expectStoreTaskAdded(Consumer<Task> check) {
         Pair<StoreEvent, ?> storeEventPair = storeEvents.takeNext();
         assertThat(storeEventPair.getLeft()).isEqualTo(StoreEvent.TaskAdded);
 
         Task task = (Task) storeEventPair.getRight();
         taskIdx2Id.put(nextTaskIdx++, task.getId());
+
+        if (check != null) {
+            check.accept(task);
+        }
 
         return this;
     }
@@ -210,6 +219,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, TaskState taskState, String reason) {
+        return triggerMesosEvent(taskIdx, taskState, reason, null);
+    }
+
+    public JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, TaskState taskState, String reason, String data) {
         String taskId = taskIdx2Id.get(taskIdx);
         assertThat(taskId).isNotNull();
 
@@ -221,7 +234,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 .build();
 
         AtomicBoolean done = new AtomicBoolean();
-        jobOperations.updateTask(taskId, JobManagerUtil.newTaskStateUpdater(taskStatus), "Mesos -> " + taskState).subscribe(() -> done.set(true));
+        jobOperations.updateTask(taskId, JobManagerUtil.newTaskStateUpdater(taskStatus, data), "Mesos -> " + taskState)
+                .subscribe(() -> done.set(true));
         advance();
         assertThat(done.get()).isTrue();
 
