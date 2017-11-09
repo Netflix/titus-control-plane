@@ -144,6 +144,7 @@ public final class V2JobStore {
                         case JOB_SCALE_DOWN:
                         case JOB_SCALE_UP:
                         case JOB_SCALE_UPDATE:
+                        case JOB_PROCESSES_UPDATE:
                         case JOB_TERMINATE:
                             final String jobId = event.getOperand();
                             final V2JobMetadataWritable job = activeJobsMap.get(jobId);

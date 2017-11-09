@@ -21,6 +21,8 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
@@ -47,6 +49,7 @@ import io.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import org.junit.Before;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
@@ -150,6 +153,12 @@ public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestComp
                     min, max, desired,
                     current.getIncrement(), current.getDecrement(), current.getCoolDownSecs(), current.getStrategies()
             ));
+            ServiceJobProcesses jobProcesses = stage.getJobProcesses();
+            if ((jobProcesses.isDisableDecreaseDesired() && desired < current.getDesired()) ||
+                    (jobProcesses.isDisableIncreaseDesired() && desired > current.getDesired())) {
+                throw JobManagerException.invalidDesiredCapacity(jobId, desired, jobProcesses);
+            }
+
             return null;
         }).when(apiOperations).updateInstanceCounts(any(), anyInt(), anyInt(), anyInt(), anyInt(), any());
 
@@ -169,6 +178,25 @@ public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestComp
 
             return null;
         }).when(apiOperations).updateInServiceStatus(any(), anyInt(), anyBoolean(), any());
+
+        doAnswer(i -> {
+            String jobId = (String) i.getArguments()[0];
+            int stageNum = (Integer) i.getArguments()[1];
+            boolean disableIncreaseDesired = (Boolean) i.getArguments()[2];
+            boolean disableDecreaseDesired = (Boolean) i.getArguments()[3];
+
+            V2JobMetadata job = dataGenerator.runtime().getJob(jobId);
+            if (job == null) {
+                throw new InvalidJobException("no job " + jobId);
+            }
+
+            V2StageMetadataWritable stage = (V2StageMetadataWritable) job.getStageMetadata(stageNum);
+            ServiceJobProcesses serviceJobProcesses = ServiceJobProcesses.newBuilder().withDisableDecreaseDesired(disableDecreaseDesired)
+                    .withDisableIncreaseDesired(disableIncreaseDesired).build();
+            stage.setJobProcesses(serviceJobProcesses);
+
+            return null;
+        }).when(apiOperations).updateJobProcesses(any(), anyInt(), anyBoolean(), anyBoolean(), any());
 
         super.setUp();
     }

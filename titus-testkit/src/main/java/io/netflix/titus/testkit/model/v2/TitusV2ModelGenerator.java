@@ -28,6 +28,7 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.JobSla;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.V2JobDurationType;
@@ -123,7 +124,7 @@ public class TitusV2ModelGenerator {
                 titusContext, jobSpec.getRetries(), jobSpec.getRuntimeLimitSecs(), jobSpec.isAllocateIpAddress(),
                 jobSpec.getIamProfile(), jobSpec.getSecurityGroups(), jobSpec.getEfs(), jobSpec.getEfsMounts(),
                 DateTimeExt.toUtcDateTimeString(jobMetadata.getSubmittedAt()),
-                jobSpec.getSoftConstraints(), jobSpec.getHardConstraints(), tasks, Collections.emptyList());
+                jobSpec.getSoftConstraints(), jobSpec.getHardConstraints(), tasks, Collections.emptyList(), ServiceJobProcesses.newBuilder().build());
     }
 
     public List<TitusTaskInfo> getTitusTaskInfos(String jobId) {

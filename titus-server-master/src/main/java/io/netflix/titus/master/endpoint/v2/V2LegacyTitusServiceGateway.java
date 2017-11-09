@@ -57,6 +57,7 @@ import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
+import io.netflix.titus.api.store.v2.V2StageMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.DateTimeExt;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -379,7 +380,8 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
 
     private TitusJobInfo buildTitusJobInfo(V2JobMetadata jobMetadata, boolean includeArchivedTasks, Set<TitusTaskState> taskStates) {
         List<TaskInfo> tasks = new ArrayList<>();
-        List<V2WorkerMetadata> allWorkers = new ArrayList<>(jobMetadata.getStageMetadata(1).getAllWorkers());
+        V2StageMetadata stageMetadata = jobMetadata.getStageMetadata(1);
+        List<V2WorkerMetadata> allWorkers = new ArrayList<>(stageMetadata.getAllWorkers());
 
         if (includeArchivedTasks) {
             final Set<String> currentWorkerInstanceIds = allWorkers.stream().map(V2WorkerMetadata::getWorkerInstanceId).collect(Collectors.toCollection(HashSet::new));
@@ -433,7 +435,7 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
                 contextResolver.resolveContext(jobMetadata.getJobId()), jobSpec.getRetries(), jobSpec.getRuntimeLimitSecs(), jobSpec.isAllocateIpAddress(),
                 jobSpec.getIamProfile(), jobSpec.getSecurityGroups(), jobSpec.getEfs(), jobSpec.getEfsMounts(),
                 DateTimeExt.toUtcDateTimeString(jobMetadata.getSubmittedAt()),
-                jobSpec.getSoftConstraints(), jobSpec.getHardConstraints(), tasks, auditLogs);
+                jobSpec.getSoftConstraints(), jobSpec.getHardConstraints(), tasks, auditLogs, stageMetadata.getJobProcesses());
     }
 
     private String getWorkerZone(V2WorkerMetadata mwmd) {
