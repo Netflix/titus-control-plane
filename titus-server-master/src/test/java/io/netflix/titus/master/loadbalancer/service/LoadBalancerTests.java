@@ -169,7 +169,7 @@ public class LoadBalancerTests {
      * @return
      */
     static public Map<String, Set<LoadBalancerId>> putLoadBalancersPerJob(int numJobs, int numLoadBalancersPerJob,
-                                                                          BiConsumer<AddLoadBalancerRequest, TestStreamObserver<LoadBalancerId>> putLoadBalancer) {
+                                              BiConsumer<AddLoadBalancerRequest, TestStreamObserver<Empty>> putLoadBalancer) {
         // Create job entries
         Map<String, Set<LoadBalancerId>> jobIdToLoadBalancersMap = new ConcurrentHashMap<>();
         for (int i = 1; i <= numJobs; i++) {
@@ -186,19 +186,13 @@ public class LoadBalancerTests {
                         .setJobId(jobId)
                         .setLoadBalancerId(loadBalancerId)
                         .build();
-                TestStreamObserver<LoadBalancerId> addResponse = new TestStreamObserver<>();
+                TestStreamObserver<Empty> addResponse = new TestStreamObserver<>();
                 putLoadBalancer.accept(request, addResponse);
 
-                LoadBalancerId loadBalancerResultId = null;
-                try {
-                    loadBalancerResultId = addResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                } catch (Exception e) {
-                    assert false;
-                }
+                assertThatCode(addResponse::awaitDone).doesNotThrowAnyException();
                 assertThat(addResponse.hasError()).isFalse();
-                assertThat(loadBalancerResultId.getId()).isNotEmpty();
 
-                loadBalancerSet.add(loadBalancerResultId);
+                loadBalancerSet.add(loadBalancerId);
             }
         });
         return jobIdToLoadBalancersMap;

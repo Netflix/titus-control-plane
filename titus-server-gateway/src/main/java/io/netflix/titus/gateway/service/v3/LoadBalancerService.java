@@ -26,6 +26,6 @@ import rx.Observable;
 
 public interface LoadBalancerService {
     Observable<GetLoadBalancerResult> getLoadBalancers(JobId jobId);
-    Observable<LoadBalancerId> addLoadBalancer(AddLoadBalancerRequest request);
+    Completable addLoadBalancer(AddLoadBalancerRequest request);
     Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest);
 }

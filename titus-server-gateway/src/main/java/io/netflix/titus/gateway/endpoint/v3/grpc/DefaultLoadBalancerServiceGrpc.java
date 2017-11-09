@@ -52,12 +52,11 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     }
 
     @Override
-    public void addLoadBalancer(AddLoadBalancerRequest request, StreamObserver<LoadBalancerId> responseObserver) {
+    public void addLoadBalancer(AddLoadBalancerRequest request, StreamObserver<Empty> responseObserver) {
         log.debug("Received add load balancer request {}", request);
         loadBalancerService.addLoadBalancer(request).subscribe(
-                responseObserver::onNext,
-                responseObserver::onError,
-                responseObserver::onCompleted
+                responseObserver::onCompleted,
+                responseObserver::onError
         );
     }
 

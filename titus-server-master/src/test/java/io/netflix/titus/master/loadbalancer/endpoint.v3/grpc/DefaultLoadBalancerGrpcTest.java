@@ -90,7 +90,7 @@ public class DefaultLoadBalancerGrpcTest {
         });
     }
 
-    private BiConsumer<AddLoadBalancerRequest, TestStreamObserver<LoadBalancerId>> putLoadBalancerWithJobId = (request, addResponse) -> {
+    private BiConsumer<AddLoadBalancerRequest, TestStreamObserver<Empty>> putLoadBalancerWithJobId = (request, addResponse) -> {
         serviceGrpc.addLoadBalancer(request, addResponse);
     };
 

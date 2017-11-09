@@ -61,9 +61,9 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     }
 
     @Override
-    public Observable<LoadBalancerId> addLoadBalancer(AddLoadBalancerRequest addLoadBalancerRequest) {
-        return toObservable(emitter -> {
-            StreamObserver<LoadBalancerId> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+    public Completable addLoadBalancer(AddLoadBalancerRequest addLoadBalancerRequest) {
+        return toCompletable(emitter -> {
+            StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.addLoadBalancer(addLoadBalancerRequest, simpleStreamObserver);
         });
     }
