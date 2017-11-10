@@ -16,6 +16,9 @@
 
 package io.netflix.titus.master;
 
+import java.util.Arrays;
+
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.master.config.MasterConfiguration;
 
 import static org.mockito.Mockito.when;
@@ -38,12 +41,14 @@ public class ConfigurationMockSamples {
         when(mock.getZkConnectionRetrySleepMs()).thenReturn(100);
         when(mock.getZkConnectionMaxRetries()).thenReturn(3);
         when(mock.getZkConnectionString()).thenReturn(zkConnectStr);
-        when(mock.getZkRoot()).thenReturn("/mantis/master");
+        when(mock.getZkRoot()).thenReturn("/titus/master");
         return mock;
     }
 
-    public static MasterConfiguration withSecurityGroups(MasterConfiguration mock) {
-        when(mock.getDefaultSecurityGroupsList()).thenReturn("infrastructure,persistence");
+    public static JobConfiguration withJobConfiguration(JobConfiguration mock) {
+        when(mock.getDefaultSecurityGroups()).thenReturn(Arrays.asList("infrastructure", "persistence"));
+        when(mock.getDefaultRuntimeLimitSec()).thenReturn(432000L);
+        when(mock.getMaxRuntimeLimitSec()).thenReturn(864000L);
         return mock;
     }
 
@@ -54,15 +59,6 @@ public class ConfigurationMockSamples {
         when(mock.getMaxNetworkMbps()).thenReturn(6000);
         when(mock.getMaxBatchInstances()).thenReturn(10000);
         when(mock.getMaxServiceInstances()).thenReturn(1000);
-        when(mock.getDefaultRuntimeLimit()).thenReturn(432000L);
-        when(mock.getMaxRuntimeLimit()).thenReturn(864000L);
-        return mock;
-    }
-
-    public static MasterConfiguration withAutoScaleClusterInfo(MasterConfiguration mock) {
-        when(mock.getActiveSlaveAttributeName()).thenReturn("cluster");
-        when(mock.getAutoscaleByAttributeName()).thenReturn(agentClusterAttributeName);
-        when(mock.getInstanceTypeAttributeName()).thenReturn("itype");
         return mock;
     }
 }

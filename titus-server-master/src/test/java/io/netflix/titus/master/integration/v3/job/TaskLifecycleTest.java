@@ -47,7 +47,7 @@ public class TaskLifecycleTest {
     @ClassRule
     public static final TitusMasterResource titusMasterResource = new TitusMasterResource(
             EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("mantis.master.grpcServer.v3EnabledApps", "myApp")
+                    .withProperty("titus.master.grpcServer.v3EnabledApps", "myApp")
                     .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "2000")
                     .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "2000")
                     .withProperty("titusMaster.jobManager.serviceTaskInStartInitiatedStateTimeoutMs", "2000")

@@ -24,19 +24,19 @@ public interface MasterConfiguration extends CoreConfiguration {
     @PropertyName(name = "region")
     String getRegion();
 
-    @PropertyName(name = "mantis.master.apiProxyPort")
+    @PropertyName(name = "titus.master.apiProxyPort")
     @DefaultValue("7001")
     int getApiProxyPort();
 
-    @PropertyName(name = "mantis.master.api.status.path")
+    @PropertyName(name = "titus.master.api.status.path")
     @DefaultValue("/api/v2/jobs/heartbeat")
     String getApiStatusUri();
 
-    @PropertyName(name = "mantis.master.host")
+    @PropertyName(name = "titus.master.host")
     @DefaultValue("")
     String getMasterHost();
 
-    @PropertyName(name = "mantis.master.ip")
+    @PropertyName(name = "titus.master.ip")
     @DefaultValue("")
     String getMasterIP();
 
@@ -48,27 +48,23 @@ public interface MasterConfiguration extends CoreConfiguration {
     @DefaultValue("false")
     boolean getDisableSecurityGroupsAssignments();
 
-    @PropertyName(name = "titus.master.job.security.groups.default.list")
-    @DefaultValue("nf.infrastructure,nf.datacenter")
-    String getDefaultSecurityGroupsList();
-
     @PropertyName(name = "mesos.master.location")
     @DefaultValue("localhost:5050")
     String getMasterLocation();
 
-    @PropertyName(name = "mesos.titan.executor")
+    @PropertyName(name = "mesos.titus.executor")
     @DefaultValue("/apps/titus-executor/bin/run")
     String pathToTitusExecutor();
 
-    @PropertyName(name = "mantis.master.active.slave.attribute.name")
+    @PropertyName(name = "titus.master.active.slave.attribute.name")
     @DefaultValue("SLAVE_ID")
     String getActiveSlaveAttributeName();
 
-    @PropertyName(name = "mantis.master.framework.name")
+    @PropertyName(name = "titus.master.framework.name")
     @DefaultValue("TitusFramework")
     String getMesosFrameworkName();
 
-    @PropertyName(name = "mantis.master.mesos.failover.timeout.secs")
+    @PropertyName(name = "titus.master.mesos.failover.timeout.secs")
     @DefaultValue("604800.0")
         // 604800 secs = 1 week
     double getMesosFailoverTimeOutSecs();
@@ -81,27 +77,27 @@ public interface MasterConfiguration extends CoreConfiguration {
     @DefaultValue("300")
     long getMesosLeaseOfferExpirySecs();
 
-    @PropertyName(name = "mantis.jobs.max.jars.per.named.job")
+    @PropertyName(name = "titus.jobs.max.jars.per.named.job")
     @DefaultValue("10")
     int getMaximumNumberOfJarsPerJobName();
 
-    @PropertyName(name = "mantis.named.job.store.completed.jobs")
+    @PropertyName(name = "titus.named.job.store.completed.jobs")
     @DefaultValue("false")
     boolean getStoreCompletedJobsForNamedJob();
 
-    @PropertyName(name = "mantis.worker.resubmission.interval.secs")
+    @PropertyName(name = "titus.worker.resubmission.interval.secs")
     @DefaultValue("5:10:20")
     String getWorkerResubmitIntervalSecs();
 
-    @PropertyName(name = "mantis.worker.expire.resubmit.delay.secs")
+    @PropertyName(name = "titus.worker.expire.resubmit.delay.secs")
     @DefaultValue("300")
     long getExpireWorkerResubmitDelaySecs();
 
-    @PropertyName(name = "mantis.worker.expire.resubmit.execution.interval.secs")
+    @PropertyName(name = "titus.worker.expire.resubmit.execution.interval.secs")
     @DefaultValue("120")
     long getExpireResubmitDelayExecutionIntervalSecs();
 
-    @PropertyName(name = "mantis.master.terminated.job.to.delete.delay.hours")
+    @PropertyName(name = "titus.master.terminated.job.to.delete.delay.hours")
     @DefaultValue("360")
         // 15 days * 24 hours
     long getTerminatedJobToDeleteDelayHours();
@@ -110,23 +106,23 @@ public interface MasterConfiguration extends CoreConfiguration {
     @DefaultValue("AWSZone")
     String getHostZoneAttributeName();
 
-    @PropertyName(name = "mantis.agent.cluster.autoscale.by.attribute.name")
-    @DefaultValue("CLUSTER_NAME")
+    @PropertyName(name = "titus.agent.cluster.autoscale.by.attribute.name")
+    @DefaultValue("asg")
     String getAutoscaleByAttributeName();
 
-    @PropertyName(name = "mantis.agent.cluster.autoscaler.map.hostname.attribute.name")
-    @DefaultValue("EC2_INSTANCE_ID")
+    @PropertyName(name = "titus.agent.cluster.autoscaler.map.hostname.attribute.name")
+    @DefaultValue("id")
     String getAutoScalerMapHostnameAttributeName();
 
-    @PropertyName(name = "mantis.agent.cluster.instance.type")
+    @PropertyName(name = "titus.agent.cluster.instance.type")
     @DefaultValue("itype")
     String getInstanceTypeAttributeName();
 
-    @PropertyName(name = "mantis.master.store.worker.writes.batch.size")
+    @PropertyName(name = "titus.master.store.worker.writes.batch.size")
     @DefaultValue("100")
     int getWorkerWriteBatchSize();
 
-    @PropertyName(name = "mantis.master.check.unique.job.id.sequence")
+    @PropertyName(name = "titus.master.check.unique.job.id.sequence")
     @DefaultValue("true")
     boolean getCheckUniqueJobIdSequence();
 
@@ -157,14 +153,6 @@ public interface MasterConfiguration extends CoreConfiguration {
     @PropertyName(name = "titus.jobspec.service.instances.max")
     @DefaultValue("1000")
     int getMaxServiceInstances();
-
-    @PropertyName(name = "titus.jobspec.runtimelimit.secs.default")
-    @DefaultValue("432000")
-    long getDefaultRuntimeLimit();
-
-    @PropertyName(name = "titus.jobspec.runtimelimit.secs.max")
-    @DefaultValue("864000")
-    long getMaxRuntimeLimit();
 
     @PropertyName(name = "titus.store.terminatedJobCleanUpBatchSize")
     @DefaultValue("1000")

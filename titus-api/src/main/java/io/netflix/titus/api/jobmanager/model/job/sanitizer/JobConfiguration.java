@@ -27,8 +27,8 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titusMaster.job.configuration")
 public interface JobConfiguration {
 
-    // 5 days
-    long DEFAULT_RUNTIME_LIMIT_SEC = 5 * 24 * 60 * 60 * 1000;
+    long DEFAULT_RUNTIME_LIMIT_SEC = 432_000; // 5 days
+    long MAX_RUNTIME_LIMIT_SEC = 864_000; // 10 days
 
     @DefaultValue("1000")
     int getMaxBatchJobSize();
@@ -49,9 +49,13 @@ public interface JobConfiguration {
     int getNetworkMbpsMin();
 
     @DefaultValue("" + DEFAULT_RUNTIME_LIMIT_SEC)
+    long getDefaultRuntimeLimitSec();
+
+    @DefaultValue("" + MAX_RUNTIME_LIMIT_SEC)
     long getMaxRuntimeLimitSec();
 
     List<String> getDefaultSecurityGroups();
 
+    @DefaultValue("")
     String getDefaultIamRole();
 }
