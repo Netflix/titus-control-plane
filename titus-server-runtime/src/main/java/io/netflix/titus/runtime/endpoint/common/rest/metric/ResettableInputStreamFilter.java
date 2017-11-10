@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.v2.rest.metric;
+package io.netflix.titus.runtime.endpoint.common.rest.metric;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -35,15 +35,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
 import com.google.common.io.ByteStreams;
-import io.netflix.titus.master.endpoint.v2.rest.RestConfig;
+import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 
 @Singleton
 public class ResettableInputStreamFilter implements Filter {
 
-    private final RestConfig config;
+    private final RestServerConfiguration config;
 
     @Inject
-    public ResettableInputStreamFilter(RestConfig config) {
+    public ResettableInputStreamFilter(RestServerConfiguration config) {
         this.config = config;
     }
 

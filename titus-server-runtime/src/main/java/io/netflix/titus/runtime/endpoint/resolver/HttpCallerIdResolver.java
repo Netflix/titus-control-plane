@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.v2.rest.caller;
+package io.netflix.titus.runtime.endpoint.resolver;
 
-import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 
 /**
  * Extract from the HTTP request information about a caller.
  */
-public interface CallerIdResolver {
-
-    Optional<String> resolve(HttpServletRequest httpServletRequest);
+public interface HttpCallerIdResolver extends CallerIdResolver<HttpServletRequest> {
 }

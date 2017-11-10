@@ -18,17 +18,10 @@ package io.netflix.titus.master.endpoint.v2.rest;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 
 @Configuration(prefix = "titus.master.jaxrs")
-public interface RestConfig {
-
-    /**
-     * Default is false
-     *
-     * @return whether or not to log verbose resource errors in the log file.
-     */
-    @DefaultValue("false")
-    boolean isJaxrsErrorLoggingEnabled();
+public interface RestConfig extends RestServerConfiguration {
 
     /**
      * If set to true, multi-job query operation is restricted to live data only, even if the client explicitly requests it.

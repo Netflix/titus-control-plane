@@ -14,31 +14,38 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.v2.rest.metric;
+package io.netflix.titus.runtime.endpoint.common.rest.metric;
 
-import com.netflix.spectator.api.Counter;
+import java.util.Arrays;
+import java.util.List;
+
+import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Registry;
-import com.netflix.spectator.api.Timer;
+import com.netflix.spectator.api.Tag;
 import com.sun.jersey.api.model.AbstractResourceMethod;
 import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
 import com.sun.jersey.spi.dispatch.RequestDispatcher;
-import io.netflix.titus.master.MetricConstants;
-import io.netflix.titus.master.endpoint.v2.rest.RestConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netflix.titus.runtime.endpoint.common.ClientInvocationMetrics;
+import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
+import io.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 
 public class InstrumentedResourceMethodDispatchProvider implements ResourceMethodDispatchProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(InstrumentedResourceMethodDispatchProvider.class);
+    private static final String METRIC_ROOT = "titus.rest.resource.";
 
-    private final RestConfig config;
+    private final RestServerConfiguration config;
     private final Registry registry;
     private final ResourceMethodDispatchProvider provider;
+    private ClientInvocationMetrics clientInvocationMetrics;
 
-    public InstrumentedResourceMethodDispatchProvider(RestConfig config, Registry registry, ResourceMethodDispatchProvider provider) {
+    public InstrumentedResourceMethodDispatchProvider(RestServerConfiguration config,
+                                                      HostCallerIdResolver hostCallerIdResolver,
+                                                      Registry registry,
+                                                      ResourceMethodDispatchProvider provider) {
         this.config = config;
         this.registry = registry;
         this.provider = provider;
+        this.clientInvocationMetrics = new ClientInvocationMetrics(METRIC_ROOT, hostCallerIdResolver, registry);
     }
 
     @Override
@@ -50,13 +57,9 @@ public class InstrumentedResourceMethodDispatchProvider implements ResourceMetho
 
         String resourceName = method.getDeclaringResource().getResourceClass().getSimpleName();
         String methodName = method.getMethod().getName();
-        String[] tags = {"resource", resourceName, "method", methodName};
+        List<Tag> tags = Arrays.asList(new BasicTag("resource", resourceName), new BasicTag("method", methodName));
 
-        Counter successCounter = registry.counter(MetricConstants.METRIC_REST + "successCount", tags);
-        Counter failureCounter = registry.counter(MetricConstants.METRIC_REST + "failureCount", tags);
-        Timer latencyTimer = registry.timer(MetricConstants.METRIC_REST + "latency", tags);
-
-        return new InstrumentedRequestDispatcher(dispatcher, config, registry, successCounter, failureCounter, latencyTimer);
+        return new InstrumentedRequestDispatcher(dispatcher, config, clientInvocationMetrics, tags, registry);
     }
 }
 

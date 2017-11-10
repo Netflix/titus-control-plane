@@ -59,7 +59,7 @@ import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
 import io.netflix.titus.master.endpoint.v2.V2LegacyTitusServiceGateway;
-import io.netflix.titus.master.endpoint.v2.rest.caller.CallerIdResolver;
+import io.netflix.titus.runtime.endpoint.resolver.HttpCallerIdResolver;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobKillCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInServiceCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
@@ -89,7 +89,7 @@ public class JobManagementResource implements JobManagementEndpoint {
     private final MasterConfiguration configuration;
     private final TitusJobSpecValidators titusJobSpecValidators;
     private final ApiOperations apiOperations;
-    private final CallerIdResolver callerIdResolver;
+    private final HttpCallerIdResolver httpCallerIdResolver;
     private final RxEventBus eventBus;
 
     @Context
@@ -100,13 +100,13 @@ public class JobManagementResource implements JobManagementEndpoint {
                                  MasterConfiguration configuration,
                                  ValidatorConfiguration validatorConfiguration,
                                  ApiOperations apiOperations,
-                                 CallerIdResolver callerIdResolver,
+                                 HttpCallerIdResolver httpCallerIdResolver,
                                  RxEventBus eventBus) {
         this.legacyTitusServiceGateway = legacyTitusServiceGateway;
         this.configuration = configuration;
         this.titusJobSpecValidators = new TitusJobSpecValidators(configuration, validatorConfiguration);
         this.apiOperations = apiOperations;
-        this.callerIdResolver = callerIdResolver;
+        this.httpCallerIdResolver = httpCallerIdResolver;
         this.eventBus = eventBus;
     }
 
@@ -202,7 +202,7 @@ public class JobManagementResource implements JobManagementEndpoint {
     }
 
     private String resolveCallerId() {
-        return callerIdResolver.resolve(httpServletRequest).orElse("UNKNOWN");
+        return httpCallerIdResolver.resolve(httpServletRequest).orElse("UNKNOWN");
     }
 
     @POST

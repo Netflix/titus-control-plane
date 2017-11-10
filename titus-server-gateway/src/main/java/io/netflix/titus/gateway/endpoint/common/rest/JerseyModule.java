@@ -20,6 +20,8 @@ import java.util.function.UnaryOperator;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
 import com.sun.jersey.api.core.DefaultResourceConfig;
@@ -30,7 +32,9 @@ import io.netflix.titus.gateway.endpoint.v3.rest.AgentManagementResource;
 import io.netflix.titus.gateway.endpoint.v3.rest.AutoScalingResource;
 import io.netflix.titus.gateway.endpoint.v3.rest.JobManagementResource;
 import io.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
+import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import io.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
+import io.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
 
 /**
  * We use this module to wire up our endpoints.
@@ -49,6 +53,12 @@ public final class JerseyModule extends JerseyServletModule {
         serve("/api/*").with(GovernatorServletContainer.class);
     }
 
+    @Provides
+    @Singleton
+    public RestServerConfiguration getRestServerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(RestServerConfiguration.class);
+    }
+
     @Advises
     @Singleton
     @Named("governator")
@@ -57,6 +67,7 @@ public final class JerseyModule extends JerseyServletModule {
             // providers
             config.getClasses().add(JsonMessageReaderWriter.class);
             config.getClasses().add(TitusExceptionMapper.class);
+            config.getClasses().add(InstrumentedResourceMethodDispatchAdapter.class);
 
             // resources
             config.getClasses().add(AgentManagementResource.class);

@@ -35,7 +35,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.ConfigurationMockSamples;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.v2.V2LegacyTitusServiceGateway;
-import io.netflix.titus.master.endpoint.v2.rest.caller.NoOpCallerIdResolver;
+import io.netflix.titus.runtime.endpoint.resolver.NoOpHttpCallerIdResolver;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobKillCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInServiceCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
@@ -82,7 +82,7 @@ public class JobManagementResourceTest {
     private static RxEventBus eventBus = mock(RxEventBus.class);
 
     private static final JobManagementResource restService = new JobManagementResource(
-            serviceGateway, configuration, validatorConfiguration, null, NoOpCallerIdResolver.INSTANCE, eventBus);
+            serviceGateway, configuration, validatorConfiguration, null, NoOpHttpCallerIdResolver.INSTANCE, eventBus);
 
     @ClassRule
     public static final JaxRsServerResource<JobManagementResource> jaxRsServer = JaxRsServerResource.newBuilder(restService)
