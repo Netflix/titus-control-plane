@@ -57,7 +57,7 @@ public interface MasterConfiguration extends CoreConfiguration {
     String pathToTitusExecutor();
 
     @PropertyName(name = "titus.master.active.slave.attribute.name")
-    @DefaultValue("SLAVE_ID")
+    @DefaultValue("asg")
     String getActiveSlaveAttributeName();
 
     @PropertyName(name = "titus.master.framework.name")
@@ -103,7 +103,7 @@ public interface MasterConfiguration extends CoreConfiguration {
     long getTerminatedJobToDeleteDelayHours();
 
     @PropertyName(name = "mesos.slave.attribute.zone.name")
-    @DefaultValue("AWSZone")
+    @DefaultValue("zone")
     String getHostZoneAttributeName();
 
     @PropertyName(name = "titus.agent.cluster.autoscale.by.attribute.name")
