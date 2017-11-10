@@ -18,10 +18,15 @@ package io.netflix.titus.master.jobmanager.service.integration;
 
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.json.ObjectMappers;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder;
+import io.netflix.titus.master.mesos.TitusExecutorDetails;
+import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.junit.Test;
 
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class BatchJobSchedulingTest {
 
@@ -30,6 +35,11 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testStartFinishOk() throws Exception {
+        String detailsWithIp = ObjectMappers.defaultMapper().writeValueAsString(new TitusExecutorDetails(
+                CollectionsExt.asMap("nfvpc", "1.2.3.4"),
+                new TitusExecutorDetails.NetworkConfiguration(
+                        true, "1.2.3.4", "1.1.1.1", "eni-12345", "eni-resource-1"
+                )));
         new JobScenarioBuilder<>(oneTaskBatchJobDescriptor())
                 .activate()
                 .submit()
@@ -48,9 +58,10 @@ public class BatchJobSchedulingTest {
                 .advance()
                 .expectStoreTaskAdded()
                 .ignoreAvailableEvents()
-                .triggerMesosEvent(0, TaskState.Started)
+                .triggerMesosEvent(0, TaskState.Started, "update", detailsWithIp)
                 .advance()
-                .expectStoreTaskAdded()
+                .expectStoreTaskAdded(task -> assertThat(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP))
+                        .isEqualTo("1.2.3.4"))
                 .ignoreAvailableEvents()
                 .triggerMesosEvent(0, TaskState.Finished, TaskStatus.REASON_NORMAL)
                 .advance()
