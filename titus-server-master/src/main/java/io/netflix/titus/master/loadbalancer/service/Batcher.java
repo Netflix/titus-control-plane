@@ -65,7 +65,8 @@ class Batcher {
                 .filter(batch -> !batch.isEmpty()) // only proceed when there are pending targets
                 .onBackpressureDrop(list -> logger.warn("Backpressure! Dropping batch of size {}: {}", list.size(), list))
                 .doOnNext(list -> logger.debug("Processing batch operation of size {}", list.size()))
-                .map(targets -> targets.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight)))
+                // keep last seen state for each target
+                .map(targets -> targets.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (old, last) -> last)))
                 .flatMap(this::processBatch)
                 .doOnNext(batch -> logger.info("Processed load balancer batch: registered {}, deregistered {}",
                         batch.getToRegister().size(), batch.getToDeregister().size()))
