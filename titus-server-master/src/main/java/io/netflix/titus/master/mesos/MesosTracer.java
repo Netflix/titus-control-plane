@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 final class MesosTracer {
 
-    private static final Logger logger = LoggerFactory.getLogger(MesosTracer.class);
+    private static final Logger logger = LoggerFactory.getLogger("TitusMesosLog");
 
     static String toTaskSummary(Protos.TaskInfo taskInfo) {
         StringBuilder sb = new StringBuilder(taskInfo.getTaskId().getValue()).append('{');
@@ -96,7 +96,35 @@ final class MesosTracer {
         }
     }
 
-    static void traceMesosCallback(String message) {
-        logger.debug("[Mesos/Callback] {}", message);
+    static void logMesosCallbackDebug(String message, Object... args) {
+        if (args.length == 0) {
+            logger.debug("[Mesos/Callback] {}", message);
+        } else {
+            logger.debug("[Mesos/Callback] {}", String.format(message, args));
+        }
+    }
+
+    static void logMesosCallbackInfo(String message, Object... args) {
+        if (args.length == 0) {
+            logger.info("[Mesos/Callback] {}", message);
+        } else {
+            logger.info("[Mesos/Callback] {}", String.format(message, args));
+        }
+    }
+
+    static void logMesosCallbackWarn(String message, Object... args) {
+        if (args.length == 0) {
+            logger.warn("[Mesos/Callback] {}", message);
+        } else {
+            logger.warn("[Mesos/Callback] {}", String.format(message, args));
+        }
+    }
+
+    static void logMesosCallbackError(String message, Object... args) {
+        if (args.length == 0) {
+            logger.error("[Mesos/Callback] {}", message);
+        } else {
+            logger.error("[Mesos/Callback] {}", String.format(message, args));
+        }
     }
 }

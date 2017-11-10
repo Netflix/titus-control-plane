@@ -874,7 +874,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void checkInactiveVMs(List<VirtualMachineCurrentState> vmCurrentStates) {
-        logger.info("Checking on any workers on VMs that are not active anymore");
+        logger.debug("Checking on any workers on VMs that are not active anymore");
         List<VirtualMachineCurrentState> inactiveVmStates = VMStateMgr.getInactiveVMs(config.getActiveSlaveAttributeName(), agentManagementService, vmCurrentStates);
 
         // get all running tasks on the inactive vms
