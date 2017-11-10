@@ -26,6 +26,7 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
@@ -38,6 +39,7 @@ import io.grpc.stub.StreamObserver;
 import io.netflix.titus.gateway.service.v3.JobManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Completable;
 import rx.Subscription;
 
 import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
@@ -67,14 +69,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = jobManagementService.updateJobCapacity(request).subscribe(
-                () -> {
-                    responseObserver.onNext(Empty.getDefaultInstance());
-                    responseObserver.onCompleted();
-                },
-                e -> safeOnError(logger, e, responseObserver)
-        );
-        attachCancellingCallback(responseObserver, subscription);
+        streamCompletableResponse(jobManagementService.updateJobCapacity(request), responseObserver);
+    }
+
+    @Override
+    public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
+        streamCompletableResponse(jobManagementService.updateJobProcesses(request), responseObserver);
     }
 
     @Override
@@ -99,14 +99,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = jobManagementService.changeJobInServiceStatus(request).subscribe(
-                () -> {
-                    responseObserver.onNext(Empty.getDefaultInstance());
-                    responseObserver.onCompleted();
-                },
-                e -> safeOnError(logger, e, responseObserver)
-        );
-        attachCancellingCallback(responseObserver, subscription);
+        streamCompletableResponse(jobManagementService.changeJobInServiceStatus(request), responseObserver);
     }
 
     @Override
@@ -131,14 +124,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = jobManagementService.killJob(request.getId()).subscribe(
-                () -> {
-                    responseObserver.onNext(Empty.getDefaultInstance());
-                    responseObserver.onCompleted();
-                },
-                e -> safeOnError(logger, e, responseObserver)
-        );
-        attachCancellingCallback(responseObserver, subscription);
+        streamCompletableResponse(jobManagementService.killJob(request.getId()), responseObserver);
     }
 
     @Override
@@ -163,7 +149,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = jobManagementService.killTask(request).subscribe(
+        streamCompletableResponse(jobManagementService.killTask(request), responseObserver);
+    }
+
+    private static void streamCompletableResponse(Completable completable, StreamObserver<Empty> responseObserver) {
+        Subscription subscription = completable.subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
@@ -171,5 +161,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
+
     }
 }

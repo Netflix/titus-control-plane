@@ -46,6 +46,7 @@ import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
@@ -186,7 +187,17 @@ public final class V2GrpcModelConverters {
             serviceJobBuilder.setRetryPolicy(RetryPolicy.newBuilder().setImmediate(RetryPolicy.Immediate.getDefaultInstance()));
             serviceJobBuilder.setEnabled(Parameters.getInService(parameters));
 
+            ServiceJobProcesses jobProcesses = stageMetadata.getJobProcesses();
+            if (jobProcesses != null) {
+                ServiceJobSpec.ServiceJobProcesses serviceJobProcesses = ServiceJobSpec.ServiceJobProcesses.newBuilder()
+                        .setDisableDecreaseDesired(jobProcesses.isDisableDecreaseDesired())
+                        .setDisableIncreaseDesired(jobProcesses.isDisableIncreaseDesired())
+                        .build();
+                serviceJobBuilder.setServiceJobProcesses(serviceJobProcesses);
+            }
+
             descriptorBuilder.setService(serviceJobBuilder);
+
         } else {
             BatchJobSpec.Builder batchJobBuilder = BatchJobSpec.newBuilder();
             batchJobBuilder.setSize(stageMetadata.getNumWorkers());
