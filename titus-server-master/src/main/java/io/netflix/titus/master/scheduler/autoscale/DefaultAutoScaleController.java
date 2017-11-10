@@ -90,7 +90,7 @@ public class DefaultAutoScaleController implements AutoScaleController {
 
         int newDesired = computeNewDesiredSize(scaleUpCount, instanceGroup);
         if (newDesired == instanceGroup.getDesired()) {
-            logger.info("Instance group {} computed new desired size equal to the current one ({})", instanceGroup, newDesired);
+            logger.info("Instance group {} computed new desired size equal to the current one ({})", instanceGroupName, newDesired);
             metrics.scaleUpToExistingDesiredSize(instanceGroupName);
         } else {
             int delta = newDesired - instanceGroup.getDesired();
@@ -135,7 +135,7 @@ public class DefaultAutoScaleController implements AutoScaleController {
         Set<String> unknownInstances = resultPair.getRight();
 
         if (terminateIds.isEmpty()) {
-            logger.info("No instances eligible to terminate in instance group {}", instanceGroup);
+            logger.info("No instances eligible to terminate in instance group {}", instanceGroupName);
             metrics.noInstancesToScaleDown(instanceGroup);
         } else {
             logger.warn("Terminating instances of the instance group {}: {}", instanceGroupName, terminateIds);
