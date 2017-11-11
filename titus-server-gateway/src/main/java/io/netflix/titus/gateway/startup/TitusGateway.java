@@ -16,29 +16,62 @@
 
 package io.netflix.titus.gateway.startup;
 
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Properties;
+
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
+import com.sampullara.cli.Args;
+import com.sampullara.cli.Argument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * The "main" class that boots up the service. When it's deployed within a servlet container such
- * as Tomcat, only the createInjector() is called. For local testing one simply invokes the
- * main() getMethod as if running a normal Java app.
- */
 public class TitusGateway {
+    private static final Logger logger = LoggerFactory.getLogger(TitusGateway.class);
+
+    @Argument(alias = "p", description = "Specify a properties file", required = true)
+    private static String propertiesFile;
 
     public static void main(String[] args) throws Exception {
-        InjectorBuilder.fromModules(
-                new TitusGatewayModule(),
-                new Archaius2JettyModule(),
-                new ArchaiusModule() {
-                    @Override
-                    protected void configureArchaius() {
-                        bindDefaultConfig().toInstance(MapConfig.builder()
-                                .build());
-                        bindApplicationConfigurationOverrideResource("laptop");
-                    }
-                }).createInjector().awaitTermination();
+        try {
+            Args.parse(TitusGateway.class, args);
+        } catch (IllegalArgumentException e) {
+            Args.usage(TitusGateway.class);
+            System.exit(1);
+        }
+
+        try {
+            InjectorBuilder.fromModules(
+                    new TitusGatewayModule(),
+                    new Archaius2JettyModule(),
+                    new ArchaiusModule() {
+                        @Override
+                        protected void configureArchaius() {
+                            bindDefaultConfig().toInstance(MapConfig.builder()
+                                    .build());
+                            bindApplicationConfigurationOverride().toInstance(loadPropertiesFile(propertiesFile));
+                        }
+                    }).createInjector().awaitTermination();
+        } catch (Exception e) {
+            logger.error("Unexpected error: " + e.getMessage(), e);
+            System.exit(2);
+        }
+    }
+
+    private static MapConfig loadPropertiesFile(String propertiesFile) {
+        if (propertiesFile == null) {
+            return MapConfig.from(Collections.emptyMap());
+        }
+        Properties properties = new Properties();
+        try (FileReader fr = new FileReader(propertiesFile)) {
+            properties.load(fr);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Cannot load file: " + propertiesFile, e);
+        }
+        return MapConfig.from(properties);
     }
 }

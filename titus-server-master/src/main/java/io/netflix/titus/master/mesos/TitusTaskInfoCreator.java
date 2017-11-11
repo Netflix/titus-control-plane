@@ -39,8 +39,6 @@ import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.Arrays.asList;
-
 public class TitusTaskInfoCreator {
     private static final Logger logger = LoggerFactory.getLogger(TitusTaskInfoCreator.class);
 
@@ -199,7 +197,7 @@ public class TitusTaskInfoCreator {
         String imageName = Parameters.getImageName(parameters);
         List<String> securityGroups = Parameters.getSecurityGroups(parameters);
         if (securityGroups.isEmpty()) {
-            securityGroups = asList(config.getDefaultSecurityGroupsList().split(","));
+            securityGroups = jobConfiguration.getDefaultSecurityGroups();
         }
         EfsMount efs = Parameters.getEfs(parameters);
         List<EfsMount> efsMounts = Parameters.getEfsMounts(parameters);

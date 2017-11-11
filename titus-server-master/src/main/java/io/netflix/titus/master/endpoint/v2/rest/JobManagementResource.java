@@ -47,6 +47,7 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.model.event.UserRequestEvent;
 import io.netflix.titus.api.service.TitusServiceException;
@@ -87,6 +88,7 @@ public class JobManagementResource implements JobManagementEndpoint {
 
     private final V2LegacyTitusServiceGateway legacyTitusServiceGateway;
     private final MasterConfiguration configuration;
+    private final JobConfiguration jobConfiguration;
     private final TitusJobSpecValidators titusJobSpecValidators;
     private final ApiOperations apiOperations;
     private final HttpCallerIdResolver httpCallerIdResolver;
@@ -98,13 +100,15 @@ public class JobManagementResource implements JobManagementEndpoint {
     @Inject
     public JobManagementResource(V2LegacyTitusServiceGateway legacyTitusServiceGateway,
                                  MasterConfiguration configuration,
+                                 JobConfiguration jobConfiguration,
                                  ValidatorConfiguration validatorConfiguration,
                                  ApiOperations apiOperations,
                                  HttpCallerIdResolver httpCallerIdResolver,
                                  RxEventBus eventBus) {
         this.legacyTitusServiceGateway = legacyTitusServiceGateway;
         this.configuration = configuration;
-        this.titusJobSpecValidators = new TitusJobSpecValidators(configuration, validatorConfiguration);
+        this.jobConfiguration = jobConfiguration;
+        this.titusJobSpecValidators = new TitusJobSpecValidators(configuration, jobConfiguration, validatorConfiguration);
         this.apiOperations = apiOperations;
         this.httpCallerIdResolver = httpCallerIdResolver;
         this.eventBus = eventBus;
@@ -180,7 +184,7 @@ public class JobManagementResource implements JobManagementEndpoint {
     @Path("/api/v2/jobs")
     public Response addJob(TitusJobSpec jobSpec) {
         try {
-            TitusJobSpec sanitizedJobSpec = TitusJobSpec.sanitize(configuration, jobSpec);
+            TitusJobSpec sanitizedJobSpec = TitusJobSpec.sanitize(jobConfiguration, jobSpec);
 
             final TitusJobSpecValidators.ValidationResult validationResult = titusJobSpecValidators.validate(sanitizedJobSpec);
             if (!validationResult.isValid) {

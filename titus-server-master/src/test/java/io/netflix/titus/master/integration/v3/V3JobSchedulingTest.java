@@ -46,8 +46,7 @@ public class V3JobSchedulingTest {
     @Rule
     public final TitusMasterResource titusMasterResource = new TitusMasterResource(
             EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("mantis.worker.state.launched.timeout.millis", "100")
-                    .withProperty("mantis.master.grpcServer.v3EnabledApps", "myApp")
+                    .withProperty("titus.master.grpcServer.v3EnabledApps", "myApp")
                     .withProperty("titusMaster.jobManager.launchedTimeoutMs", "3000")
                     .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
                     .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)

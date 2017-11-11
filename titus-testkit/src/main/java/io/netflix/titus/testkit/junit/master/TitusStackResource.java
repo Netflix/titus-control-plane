@@ -69,8 +69,7 @@ public class TitusStackResource extends ExternalResource {
         return new TitusStackResource(
                 EmbeddedTitusStack.aTitusStack()
                         .withMaster(EmbeddedTitusMaster.testTitusMaster()
-                                .withProperty("mantis.worker.state.launched.timeout.millis", "30000")
-                                .withProperty("mantis.master.grpcServer.v3EnabledApps", String.format("(%s.*)", V3_ENGINE_APP_PREFIX))
+                                .withProperty("titus.master.grpcServer.v3EnabledApps", String.format("(%s.*)", V3_ENGINE_APP_PREFIX))
                                 .withProperty("titusMaster.jobManager.launchedTimeoutMs", "30000")
                                 .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
                                 .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
