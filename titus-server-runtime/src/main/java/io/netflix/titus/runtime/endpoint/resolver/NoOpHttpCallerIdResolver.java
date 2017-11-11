@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.v2.rest.caller;
+package io.netflix.titus.runtime.endpoint.resolver;
 
 import java.util.Optional;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * Extract caller id from HTTP request.
+ * {@link HttpCallerIdResolver} implementation that returns always an empty response.
  */
-public class HttpCallerIdResolver implements CallerIdResolver {
+@Singleton
+public class NoOpHttpCallerIdResolver implements HttpCallerIdResolver {
 
-    private static final String TITUS_HEADER_CALLER_HOST_ADDRESS = "X-Titus-CallerHostAddress";
+    public static final NoOpHttpCallerIdResolver INSTANCE = new NoOpHttpCallerIdResolver();
 
     @Override
     public Optional<String> resolve(HttpServletRequest httpServletRequest) {
-        String originalCallerId = httpServletRequest.getHeader(TITUS_HEADER_CALLER_HOST_ADDRESS);
-        if (originalCallerId != null) {
-            return Optional.of(originalCallerId);
-        }
-        return Optional.ofNullable(httpServletRequest.getRemoteHost());
+        return Optional.empty();
     }
 }

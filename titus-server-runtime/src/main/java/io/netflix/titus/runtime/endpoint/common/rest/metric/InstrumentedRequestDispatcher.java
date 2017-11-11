@@ -14,43 +14,45 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.v2.rest.metric;
+package io.netflix.titus.runtime.endpoint.common.rest.metric;
 
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
-import com.netflix.spectator.api.Timer;
+import com.netflix.spectator.api.Tag;
 import com.sun.jersey.api.core.HttpContext;
 import com.sun.jersey.api.core.HttpRequestContext;
 import com.sun.jersey.api.core.HttpResponseContext;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.dispatch.RequestDispatcher;
-import io.netflix.titus.master.endpoint.v2.rest.RestConfig;
+import io.netflix.titus.runtime.endpoint.common.ClientInvocationMetrics;
+import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InstrumentedRequestDispatcher implements RequestDispatcher {
+
     private static final Logger logger = LoggerFactory.getLogger(InstrumentedRequestDispatcher.class);
 
     private final RequestDispatcher underlying;
-    private final RestConfig config;
+    private final RestServerConfiguration config;
+    private final ClientInvocationMetrics clientInvocationMetrics;
+    private final List<Tag> tags;
     private final Registry registry;
-    private final Counter successCounter;
-    private final Counter failureCounter;
-    private final Timer latencyTimer;
 
-    public InstrumentedRequestDispatcher(RequestDispatcher underlying, RestConfig config, Registry registry,
-                                         Counter successCounter, Counter failureCounter, Timer latencyTimer) {
+    public InstrumentedRequestDispatcher(RequestDispatcher underlying,
+                                         RestServerConfiguration config,
+                                         ClientInvocationMetrics clientInvocationMetrics,
+                                         List<Tag> tags,
+                                         Registry registry) {
         this.underlying = underlying;
         this.config = config;
+        this.clientInvocationMetrics = clientInvocationMetrics;
+        this.tags = tags;
         this.registry = registry;
-        this.successCounter = successCounter;
-        this.failureCounter = failureCounter;
-        this.latencyTimer = latencyTimer;
     }
 
     @Override
@@ -58,16 +60,13 @@ public class InstrumentedRequestDispatcher implements RequestDispatcher {
         final long start = registry.clock().wallTime();
         try {
             underlying.dispatch(resource, httpContext);
-            successCounter.increment();
+            clientInvocationMetrics.registerSuccess(httpContext.getRequest().toString(), tags, registry.clock().wallTime() - start);
         } catch (Exception e) {
-            failureCounter.increment();
+            clientInvocationMetrics.registerFailure(httpContext.getRequest().toString(), tags, registry.clock().wallTime() - start);
             if (config.isJaxrsErrorLoggingEnabled()) {
                 logger.error(generateRequestResponseErrorMessage(httpContext, e));
             }
             throw e;
-        } finally {
-            final long end = registry.clock().wallTime();
-            latencyTimer.record(end - start, TimeUnit.MILLISECONDS);
         }
     }
 
