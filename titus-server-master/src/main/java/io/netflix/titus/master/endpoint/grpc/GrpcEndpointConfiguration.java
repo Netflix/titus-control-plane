@@ -24,7 +24,7 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.master.grpcServer")
 public interface GrpcEndpointConfiguration {
 
-    @DefaultValue("7103")
+    @DefaultValue("7104")
     int getPort();
 
     /**
