@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.gateway.endpoint.common.grpc;
+package io.netflix.titus.gateway.endpoint;
 
 import javax.inject.Singleton;
 
@@ -26,10 +26,9 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import io.netflix.titus.common.grpc.SessionContext;
-import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultAgentManagementServiceGrpc;
-import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
+import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import io.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration;
 import io.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 
