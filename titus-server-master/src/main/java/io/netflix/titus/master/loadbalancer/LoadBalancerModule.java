@@ -34,7 +34,6 @@ public class LoadBalancerModule extends AbstractModule {
     protected void configure() {
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
-        // TODO: C* Store implementation
         bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
     }
 

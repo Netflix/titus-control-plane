@@ -60,7 +60,6 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
         log.debug("Received add load balancer request {}", request);
         loadBalancerService.addLoadBalancer(request.getJobId(), request.getLoadBalancerId().getId()).subscribe(
                 () -> {
-                    // responseObserver.onNext(request.getLoadBalancerId());
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
