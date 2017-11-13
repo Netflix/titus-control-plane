@@ -63,6 +63,9 @@ public class AwsLoadBalancerClient implements LoadBalancerClient {
             return Completable.complete();
         }
 
+        // TODO: retry logic
+        // TODO: handle partial failures in the batch
+
         final RegisterTargetsRequest request = new RegisterTargetsRequest()
                 .withTargetGroupArn(loadBalancerId)
                 .withTargets(ipAddresses.stream().map(
@@ -84,6 +87,9 @@ public class AwsLoadBalancerClient implements LoadBalancerClient {
         if (CollectionsExt.isNullOrEmpty(ipAddresses)) {
             return Completable.complete();
         }
+
+        // TODO: retry logic
+        // TODO: handle partial failures in the batch
 
         final DeregisterTargetsRequest request = new DeregisterTargetsRequest()
                 .withTargetGroupArn(loadBalancerId)

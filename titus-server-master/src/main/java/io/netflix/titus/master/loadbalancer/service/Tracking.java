@@ -34,7 +34,7 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
  */
 class Tracking {
     /**
-     * Maps held in here must be all immutable (usually via Collections.unmodifiableMap).
+     * Sets held in here must be all immutable (usually via Collections.unmodifiableSet).
      */
     private final ConcurrentMap<String, Set<JobLoadBalancer>> tracked = new ConcurrentHashMap<>();
 
@@ -81,6 +81,9 @@ class Tracking {
         );
     }
 
+    /**
+     * @return a snapshot of jobIds being tracked
+     */
     public Set<String> getAll() {
         return Collections.unmodifiableSet(new HashSet<>(tracked.keySet()));
     }
