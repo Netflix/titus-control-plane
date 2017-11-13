@@ -40,15 +40,6 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
     private final ConcurrentMap<LoadBalancerTarget, LoadBalancerTarget.State> targets = new ConcurrentHashMap<>();
 
-    /**
-     * Does nothing since there us no backing store.
-     * @return
-     */
-    @Override
-    public Completable init() {
-        return Completable.complete();
-    }
-
     @Override
     public Observable<Pair<String, JobLoadBalancer.State>> retrieveLoadBalancersForJob(String jobId) {
         return Observable.defer(() -> Observable.from(associations.entrySet())

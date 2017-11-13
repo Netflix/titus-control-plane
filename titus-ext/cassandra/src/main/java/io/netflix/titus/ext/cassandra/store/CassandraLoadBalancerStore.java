@@ -30,6 +30,7 @@ import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,21 +94,20 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     /**
-     * Populates the map based on current C* data.
-     * @return
+     * Initialize the store from current C* data. Must be called prior to store usage.
      */
-    @Override
-    public Completable init() {
-        return storeHelper.execute(getAllJobIdsStmt.bind().setFetchSize(FETCH_SIZE))
+    @Activator
+    public void init() {
+        storeHelper.execute(getAllJobIdsStmt.bind().setFetchSize(FETCH_SIZE))
                 .flatMap(rows -> Observable.from(rows.all()))
-                .map(row -> buildLoadBalancerStatePairFromRow(row))
-                .map(loadBalancerStatePair -> {
+                .map(this::buildLoadBalancerStatePairFromRow)
+                .toBlocking()
+                .forEach(loadBalancerStatePair -> {
                     JobLoadBalancer jobLoadBalancer = loadBalancerStatePair.getLeft();
                     JobLoadBalancer.State state = loadBalancerStatePair.getRight();
                     log.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
-                    return loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
-                })
-                .toCompletable();
+                    loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
+                });
     }
 
     @Override
@@ -143,10 +143,14 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Completable updateTargets(Map<LoadBalancerTarget, LoadBalancerTarget.State> update) { return null; }
+    public Completable updateTargets(Map<LoadBalancerTarget, LoadBalancerTarget.State> update) {
+        return null;
+    }
 
     @Override
-    public Completable removeTargets(Collection<LoadBalancerTarget> remove) { return null; }
+    public Completable removeTargets(Collection<LoadBalancerTarget> remove) {
+        return null;
+    }
 
     private Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {
         return Pair.of(new JobLoadBalancer(row.getString(COLUMN_JOB_ID), row.getString(COLUMN_LOAD_BALANCER)),

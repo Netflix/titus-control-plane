@@ -53,6 +53,7 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Tests loading existing Cassandra data on store init.
+     *
      * @throws Exception
      */
     @Test
@@ -65,6 +66,7 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Tests retrieval of a data set loaded on initialization.
+     *
      * @throws Exception
      */
     @Test
@@ -81,6 +83,7 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Adds load balancers to jobs and checks that they were added properly.
+     *
      * @throws Exception
      */
     @Test
@@ -139,6 +142,7 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Returns a map of data to be inserted that can be used for later verification.
+     *
      * @param numJobs
      * @param numLoadBalancersPerJob
      * @throws Exception
@@ -158,6 +162,7 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Inserts data in C* for use during tests.
+     *
      * @throws Exception
      */
     private void loadTestData(Map<JobLoadBalancer, JobLoadBalancer.State> testData) throws Exception {
@@ -178,13 +183,14 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Creates, loads, and returns a store instance based on what was already in Cassandra.
+     *
      * @return
      * @throws Exception
      */
     private CassandraLoadBalancerStore getInitdStore() throws Exception {
         Session session = cassandraCQLUnit.getSession();
         CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(session, new DefaultRegistry());
-        store.init().await();
+        store.init();
 
         return store;
     }
@@ -192,6 +198,7 @@ public class CassandraLoadBalancerStoreTest {
     /**
      * Checks if a provided data set fully exists in the store. The method is
      * expected to assert if the check is false.
+     *
      * @throws Exception
      */
     private void checkDataSetExists(CassandraLoadBalancerStore store, Map<JobLoadBalancer, JobLoadBalancer.State> testData) throws Exception {
