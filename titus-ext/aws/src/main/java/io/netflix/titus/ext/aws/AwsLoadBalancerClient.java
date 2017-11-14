@@ -17,29 +17,20 @@
 package io.netflix.titus.ext.aws;
 
 import java.util.Collection;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
-import com.amazonaws.AmazonWebServiceRequest;
-import com.amazonaws.handlers.AsyncHandler;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
-import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsResult;
 import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
-import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsResult;
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
 import io.netflix.titus.common.util.CollectionsExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
-import rx.CompletableSubscriber;
 import rx.Scheduler;
-import rx.functions.Action1;
-import rx.functions.Action2;
 import rx.schedulers.Schedulers;
-import rx.subscriptions.Subscriptions;
 
 public class AwsLoadBalancerClient implements LoadBalancerClient {
     private static final Logger logger = LoggerFactory.getLogger(AwsLoadBalancerClient.class);
@@ -73,13 +64,10 @@ public class AwsLoadBalancerClient implements LoadBalancerClient {
                 ).collect(Collectors.toSet()));
 
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
-        return Completable.create(subscriber -> {
-            final Future<RegisterTargetsResult> future = client.registerTargetsAsync(request, asyncHandler(subscriber,
-                    (req, resp) -> logger.debug("Registered targets {}", resp),
-                    (t) -> logger.error("Error registering targets on " + loadBalancerId, t)
-            ));
-            subscriber.onSubscribe(Subscriptions.create(() -> future.cancel(true)));
-        }).observeOn(scheduler);
+        return AwsObservableExt.asyncActionCompletable(factory -> client.registerTargetsAsync(request, factory.handler(
+                (req, resp) -> logger.debug("Registered targets {}", resp),
+                (t) -> logger.error("Error registering targets on " + loadBalancerId, t)
+        ))).observeOn(scheduler);
     }
 
     @Override
@@ -98,29 +86,9 @@ public class AwsLoadBalancerClient implements LoadBalancerClient {
                 ).collect(Collectors.toSet()));
 
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
-        return Completable.create(subscriber -> {
-            final Future<DeregisterTargetsResult> future = client.deregisterTargetsAsync(request, asyncHandler(subscriber,
-                    (req, resp) -> logger.debug("Deregistered targets {}", resp),
-                    (t) -> logger.error("Error deregistering targets on " + loadBalancerId, t)
-            ));
-            subscriber.onSubscribe(Subscriptions.create(() -> future.cancel(true)));
-        }).observeOn(scheduler);
-    }
-
-    private <REQ extends AmazonWebServiceRequest, RES> AsyncHandler<REQ, RES> asyncHandler(
-            CompletableSubscriber subscriber, Action2<REQ, RES> onSuccessAction, Action1<Exception> onErrorAction) {
-        return new AsyncHandler<REQ, RES>() {
-            @Override
-            public void onError(Exception exception) {
-                onErrorAction.call(exception);
-                subscriber.onError(exception);
-            }
-
-            @Override
-            public void onSuccess(REQ request, RES result) {
-                onSuccessAction.call(request, result);
-                subscriber.onCompleted();
-            }
-        };
+        return AwsObservableExt.asyncActionCompletable(factory -> client.deregisterTargetsAsync(request, factory.handler(
+                (req, resp) -> logger.debug("Deregistered targets {}", resp),
+                (t) -> logger.error("Error deregistering targets on " + loadBalancerId, t)
+        ))).observeOn(scheduler);
     }
 }
