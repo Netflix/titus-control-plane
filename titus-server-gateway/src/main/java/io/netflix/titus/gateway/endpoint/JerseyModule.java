@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.gateway.endpoint.common.rest;
+package io.netflix.titus.gateway.endpoint;
 
 import java.util.function.UnaryOperator;
 import javax.inject.Named;
@@ -34,6 +34,7 @@ import io.netflix.titus.gateway.endpoint.v3.rest.JobManagementResource;
 import io.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import io.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
+import io.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter;
 import io.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
 
 /**
@@ -42,9 +43,11 @@ import io.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResour
 public final class JerseyModule extends JerseyServletModule {
     @Override
     protected void configureServlets() {
-
         // Set up rewrite filter to modify urls into the v2 api
         filter("/*").through(ApiRewriteFilter.class);
+
+        // Store HTTP servlet request data in thread local variable
+        filter("/api/v3/*").through(CallerContextFilter.class);
 
         // Configure servlet that proxies requests to master
         serve("/api/v2/*").with(TitusMasterProxyServlet.class);

@@ -30,6 +30,7 @@ import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.dispatch.RequestDispatcher;
 import io.netflix.titus.runtime.endpoint.common.ClientInvocationMetrics;
 import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
+import io.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +59,12 @@ public class InstrumentedRequestDispatcher implements RequestDispatcher {
     @Override
     public void dispatch(Object resource, HttpContext httpContext) {
         final long start = registry.clock().wallTime();
+        String callerId = CallerContextFilter.getCurrentCallerAddress().orElse("UNKNOWN");
         try {
             underlying.dispatch(resource, httpContext);
-            clientInvocationMetrics.registerSuccess(httpContext.getRequest().toString(), tags, registry.clock().wallTime() - start);
+            clientInvocationMetrics.registerSuccess(callerId, tags, registry.clock().wallTime() - start);
         } catch (Exception e) {
-            clientInvocationMetrics.registerFailure(httpContext.getRequest().toString(), tags, registry.clock().wallTime() - start);
+            clientInvocationMetrics.registerFailure(callerId, tags, registry.clock().wallTime() - start);
             if (config.isJaxrsErrorLoggingEnabled()) {
                 logger.error(generateRequestResponseErrorMessage(httpContext, e));
             }
