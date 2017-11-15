@@ -19,6 +19,7 @@ package io.netflix.titus.ext.cassandra.store;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -47,6 +48,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private static final String COLUMN_STATE = "state";
 
     private static final Integer FETCH_SIZE = Integer.MAX_VALUE;
+    private static final long FETCH_TIMEOUT_MS = 120_000;
 
     private final PreparedStatement getAllJobIdsStmt;
     private final PreparedStatement insertLoadBalancerStmt;
@@ -99,6 +101,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Activator
     public void init() {
         storeHelper.execute(getAllJobIdsStmt.bind().setFetchSize(FETCH_SIZE))
+                .timeout(FETCH_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .flatMap(rows -> Observable.from(rows.all()))
                 .map(this::buildLoadBalancerStatePairFromRow)
                 .toBlocking()
