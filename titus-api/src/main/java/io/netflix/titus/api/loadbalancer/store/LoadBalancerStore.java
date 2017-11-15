@@ -16,12 +16,8 @@
 
 package io.netflix.titus.api.loadbalancer.store;
 
-import java.util.Collection;
-import java.util.Map;
-
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
-import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import rx.Completable;
 import rx.Observable;
 
@@ -32,7 +28,7 @@ public interface LoadBalancerStore {
      * @param jobId
      * @return
      */
-    Observable<Pair<String, JobLoadBalancer.State>> retrieveLoadBalancersForJob(String jobId);
+    Observable<LoadBalancerState> retrieveLoadBalancersForJob(String jobId);
 
     /**
      * Adds a new or updates an existing load balancer with the provided state.
@@ -43,14 +39,11 @@ public interface LoadBalancerStore {
      */
     Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state);
 
-    Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer);
-
-    Observable<Pair<LoadBalancerTarget, LoadBalancerTarget.State>> retrieveTargets(JobLoadBalancer jobLoadBalancer);
-
     /**
-     * @param targets may be null or empty, in which case this is a noop
+     * Removes a load balancer associated with a job.
+     *
+     * @param jobLoadBalancer
+     * @return
      */
-    Completable updateTargets(Map<LoadBalancerTarget, LoadBalancerTarget.State> targets);
-
-    Completable removeTargets(Collection<LoadBalancerTarget> targets);
+    Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer);
 }

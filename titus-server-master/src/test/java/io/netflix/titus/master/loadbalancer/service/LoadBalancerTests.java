@@ -47,6 +47,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.runtime.TitusRuntime;
@@ -55,6 +56,7 @@ import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryTargetStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
 import rx.Observable;
@@ -78,10 +80,11 @@ public class LoadBalancerTests {
         final LoadBalancerClient client = mock(LoadBalancerClient.class);
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
-        final LoadBalancerStore store = new InMemoryLoadBalancerStore();
+        final LoadBalancerStore loadBalancerStore = new InMemoryLoadBalancerStore();
+        final TargetStore targetStore = new InMemoryTargetStore();
         final TestScheduler testScheduler = Schedulers.test();
 
-        final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(runtime, loadBalancerConfig, client, store, jobOperations, testScheduler);
+        final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(runtime, loadBalancerConfig, client, loadBalancerStore, targetStore, jobOperations, testScheduler);
         final AssertableSubscriber<Batch> testSubscriber = loadBalancerService.events().test();
 
         return loadBalancerService;

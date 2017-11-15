@@ -24,10 +24,12 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.master.loadbalancer.endpoint.grpc.DefaultLoadBalancerServiceGrpc;
 import io.netflix.titus.master.loadbalancer.service.DefaultLoadBalancerService;
 import io.netflix.titus.master.loadbalancer.service.LoadBalancerConfiguration;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryTargetStore;
 
 public class LoadBalancerModule extends AbstractModule {
     @Override
@@ -35,6 +37,7 @@ public class LoadBalancerModule extends AbstractModule {
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
         bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
+        bind(TargetStore.class).to(InMemoryTargetStore.class);
     }
 
     @Provides

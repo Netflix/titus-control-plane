@@ -30,9 +30,11 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -56,6 +58,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     private final TitusRuntime runtime;
     private final LoadBalancerStore loadBalancerStore;
+    private final TargetStore targetStore;
     private final V3JobOperations v3JobOperations;
 
     private final Scheduler scheduler;
@@ -71,29 +74,32 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                       LoadBalancerConfiguration configuration,
                                       LoadBalancerClient loadBalancerClient,
                                       LoadBalancerStore loadBalancerStore,
+                                      TargetStore targetStore,
                                       V3JobOperations v3JobOperations) {
-        this(runtime, configuration, loadBalancerClient, loadBalancerStore, v3JobOperations, Schedulers.computation());
+        this(runtime, configuration, loadBalancerClient, loadBalancerStore, targetStore, v3JobOperations, Schedulers.computation());
     }
 
     public DefaultLoadBalancerService(TitusRuntime runtime,
                                       LoadBalancerConfiguration configuration,
                                       LoadBalancerClient loadBalancerClient,
                                       LoadBalancerStore loadBalancerStore,
+                                      TargetStore targetStore,
                                       V3JobOperations v3JobOperations,
                                       Scheduler scheduler) {
         this.runtime = runtime;
         this.loadBalancerStore = loadBalancerStore;
+        this.targetStore = targetStore;
         this.v3JobOperations = v3JobOperations;
         this.scheduler = scheduler;
         this.batcher = new Batcher(configuration.getBatch().getTimeoutMs(), configuration.getBatch().getSize(),
-                loadBalancerClient, loadBalancerStore, scheduler);
+                loadBalancerClient, targetStore, scheduler);
     }
 
     @Override
     public Observable<String> getJobLoadBalancers(String jobId) {
         return loadBalancerStore.retrieveLoadBalancersForJob(jobId)
-                .filter(pair -> pair.getRight() == JobLoadBalancer.State.Associated)
-                .map(Pair::getLeft);
+                .filter(loadBalancerState -> loadBalancerState.getState() == JobLoadBalancer.State.Associated)
+                .map(LoadBalancerState::getLoadBalancerId);
     }
 
     @Override
@@ -208,9 +214,9 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         return pendingDissociations
                 .flatMap(
                         // fetch everything, including deregistered, so they are retried
-                        jobLoadBalancer -> loadBalancerStore.retrieveTargets(jobLoadBalancer)
-                                .map(pair -> new LoadBalancerTarget(
-                                        jobLoadBalancer, pair.getLeft().getTaskId(), pair.getLeft().getIpAddress()
+                        jobLoadBalancer -> targetStore.retrieveTargets(jobLoadBalancer)
+                                .map(targetState -> new LoadBalancerTarget(
+                                        jobLoadBalancer, targetState.getLoadBalancerTarget().getTaskId(), targetState.getLoadBalancerTarget().getIpAddress()
                                 )))
                 .doOnError(e -> logger.error("Error fetching targets to deregister", e))
                 .retry();

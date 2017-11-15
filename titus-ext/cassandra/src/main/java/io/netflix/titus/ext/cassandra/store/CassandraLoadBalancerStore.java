@@ -16,7 +16,6 @@
 
 package io.netflix.titus.ext.cassandra.store;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +28,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -62,7 +61,10 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private volatile Map<JobLoadBalancer, JobLoadBalancer.State> loadBalancerStateMap;
 
     private static final String GET_ALL_JOB_IDS = String
-            .format("SELECT * FROM %s;",
+            .format("SELECT %s, %s, %s FROM %s;",
+                    COLUMN_JOB_ID,
+                    COLUMN_LOAD_BALANCER,
+                    COLUMN_STATE,
                     TABLE_LOAD_BALANCER);
     private static final String INSERT_JOB_LOAD_BALANCER = String
             .format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?);",
@@ -114,11 +116,11 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Observable<Pair<String, JobLoadBalancer.State>> retrieveLoadBalancersForJob(String jobId) {
+    public Observable<LoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
         log.debug("Retrieving load balancers for job {}", jobId);
         return Observable.from(loadBalancerStateMap.entrySet())
                 .filter(entry -> entry.getKey().getJobId().equals(jobId))
-                .map(entry -> Pair.of(entry.getKey().getLoadBalancerId(), entry.getValue()));
+                .map(entry -> new LoadBalancerState(entry.getKey().getLoadBalancerId(), entry.getValue()));
     }
 
     @Override
@@ -138,21 +140,6 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 // Note: If the C* entry doesn't exist, it'll fail here and not remove from the map.
                 .map(rs -> loadBalancerStateMap.remove(jobLoadBalancer))
                 .toCompletable();
-    }
-
-    @Override
-    public Observable<Pair<LoadBalancerTarget, LoadBalancerTarget.State>> retrieveTargets(JobLoadBalancer jobLoadBalancer) {
-        return null;
-    }
-
-    @Override
-    public Completable updateTargets(Map<LoadBalancerTarget, LoadBalancerTarget.State> update) {
-        return null;
-    }
-
-    @Override
-    public Completable removeTargets(Collection<LoadBalancerTarget> remove) {
-        return null;
     }
 
     private Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {

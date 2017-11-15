@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
-import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -43,14 +43,14 @@ class Batcher {
     private final long timeoutMs;
     private final int batchSize;
     private final LoadBalancerClient loadBalancerClient;
-    private final LoadBalancerStore loadBalancerStore;
+    private final TargetStore targetStore;
     private final Scheduler scheduler;
 
-    Batcher(long timeoutMs, int batchSize, LoadBalancerClient loadBalancerClient, LoadBalancerStore loadBalancerStore, Scheduler scheduler) {
+    Batcher(long timeoutMs, int batchSize, LoadBalancerClient loadBalancerClient, TargetStore targetStore, Scheduler scheduler) {
         this.timeoutMs = timeoutMs;
         this.batchSize = batchSize;
         this.loadBalancerClient = loadBalancerClient;
-        this.loadBalancerStore = loadBalancerStore;
+        this.targetStore = targetStore;
         this.scheduler = scheduler;
     }
 
@@ -87,7 +87,7 @@ class Batcher {
             final String loadBalancerId = entry.getKey();
             final Set<LoadBalancerTarget> targets = entry.getValue();
             final Set<String> ipAddresses = targets.stream().map(LoadBalancerTarget::getIpAddress).collect(Collectors.toSet());
-            final Completable updateRegistered = loadBalancerStore.updateTargets(targets.stream()
+            final Completable updateRegistered = targetStore.updateTargets(targets.stream()
                     .collect(Collectors.toMap(Function.identity(), ignored -> LoadBalancerTarget.State.Registered)));
             return loadBalancerClient.registerAll(loadBalancerId, ipAddresses).andThen(updateRegistered);
         }).collect(Collectors.toList());
@@ -97,7 +97,7 @@ class Batcher {
             final Set<LoadBalancerTarget> targets = entry.getValue();
             final Set<String> ipAddresses = targets.stream().map(LoadBalancerTarget::getIpAddress).collect(Collectors.toSet());
             return loadBalancerClient.deregisterAll(loadBalancerId, ipAddresses)
-                    .andThen(loadBalancerStore.removeTargets(targets));
+                    .andThen(targetStore.removeTargets(targets));
         }).collect(Collectors.toList());
 
         final Completable merged = Completable.mergeDelayError(CollectionsExt.merge(registerAndUpdate, deregisterAndRemove));

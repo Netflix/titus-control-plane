@@ -133,9 +133,9 @@ public class CassandraLoadBalancerStoreTest {
 
         testData.forEach((jobLoadBalancer, state) -> {
             store.retrieveLoadBalancersForJob(jobLoadBalancer.getJobId()).subscribe(
-                    pair -> {
-                        assertThat(testData.containsKey(new JobLoadBalancer(jobLoadBalancer.getJobId(), pair.getLeft()))).isTrue();
-                        assertThat(pair.getRight()).isEqualTo(JobLoadBalancer.State.Dissociated);
+                    loadBalancerState -> {
+                        assertThat(testData.containsKey(new JobLoadBalancer(jobLoadBalancer.getJobId(), loadBalancerState.getLoadBalancerId()))).isTrue();
+                        assertThat(loadBalancerState.getState()).isEqualTo(JobLoadBalancer.State.Dissociated);
                     });
         });
     }
@@ -207,11 +207,15 @@ public class CassandraLoadBalancerStoreTest {
                 .collect(Collectors.toSet())
                 .forEach(jobId -> {
                     store.retrieveLoadBalancersForJob(jobId).subscribe(
-                            pair -> {
-                                log.info("Got back pair {} for job {}", pair, jobId);
-                                assertThat(testData.containsKey(new JobLoadBalancer(jobId, pair.getLeft()))).isTrue();
-                                assertThat(testData.get(new JobLoadBalancer(jobId, pair.getLeft()))).isEqualTo(pair.getRight());
-                                log.info("Verified job {} has load balancer id {} in state {}", jobId, pair.getLeft(), pair.getRight());
+                            loadBalancerState -> {
+                                log.info("Got back load balancer state {} for job {}", loadBalancerState, jobId);
+                                assertThat(testData.containsKey(new JobLoadBalancer(jobId, loadBalancerState.getLoadBalancerId()))).isTrue();
+                                assertThat(testData.get(new JobLoadBalancer(jobId, loadBalancerState.getLoadBalancerId())))
+                                        .isEqualTo(loadBalancerState.getState());
+                                log.info("Verified job {} has load balancer id {} in state {}",
+                                        jobId,
+                                        loadBalancerState.getLoadBalancerId(),
+                                        loadBalancerState.getState());
                             });
                 });
     }
