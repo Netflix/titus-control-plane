@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Strings;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
@@ -52,7 +53,7 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.subjects.PublishSubject;
 
-import static io.netflix.titus.common.util.spectator.SpectatorExt.completableMetrics;
+import static io.netflix.titus.common.util.spectator.SpectatorExt.longRunningCompletableMetrics;
 import static io.netflix.titus.master.MetricConstants.METRIC_AGENT_CACHE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -102,6 +103,8 @@ class InstanceCache {
         this.cacheSnapshot = InstanceCacheDataSnapshot.empty();
         this.worker = scheduler.createWorker();
 
+        List<Tag> tags = Collections.singletonList(new BasicTag("class", InstanceCache.class.getSimpleName()));
+        fullInstanceGroupRefreshMetricsTransform = longRunningCompletableMetrics(METRIC_AGENT_CACHE + "fullInstanceGroupRefresh", tags, registry);
 
         // Synchronously refresh information about the known instance groups
         List<Completable> initialRefresh = knownInstanceGroups.stream().map(this::doInstanceGroupRefresh).collect(Collectors.toList());
@@ -181,18 +184,21 @@ class InstanceCache {
                     Set<String> allDiscoveredIds = newInstanceGroups.stream().map(InstanceGroup::getId).collect(Collectors.toSet());
                     Set<String> newArrivalIds = CollectionsExt.copyAndRemove(allDiscoveredIds, allKnownIds);
 
-                    logger.debug("Performing full instance group refresh: known={}, found={}, new={}",
-                            allKnownIds.size(), allDiscoveredIds.size(), newArrivalIds.size());
+                    logger.debug("Performing full instance group refresh: knownIds={}, foundIds={}, newIds={}",
+                            allKnownIds, allDiscoveredIds, newArrivalIds);
 
                     if (newArrivalIds.isEmpty()) {
                         return Observable.empty();
                     }
+
+                    logger.info("Performing full instance group refresh: newIds={}", newArrivalIds);
 
                     Map<String, InstanceGroup> newArrivalsById = newInstanceGroups.stream()
                             .filter(instanceGroup -> newArrivalIds.contains(instanceGroup.getId()))
                             .collect(Collectors.toMap(InstanceGroup::getId, Function.identity()));
 
                     Map<String, InstanceGroup> newArrivalsByLaunchConfigId = newArrivalsById.values().stream()
+                            .filter(instanceGroup -> !Strings.isNullOrEmpty(instanceGroup.getLaunchConfigurationName()))
                             .collect(Collectors.toMap(InstanceGroup::getLaunchConfigurationName, Function.identity()));
 
                     List<String> launchConfigIds = new ArrayList<>(newArrivalsByLaunchConfigId.keySet());
@@ -220,15 +226,7 @@ class InstanceCache {
                         })
                 ).toCompletable();
 
-        return completable.compose(getFullInstanceGroupRefreshMetricsTransform());
-    }
-
-    private Completable.Transformer getFullInstanceGroupRefreshMetricsTransform() {
-        if (fullInstanceGroupRefreshMetricsTransform == null) {
-            List<Tag> tags = Collections.singletonList(new BasicTag("class", InstanceCache.class.getSimpleName()));
-            fullInstanceGroupRefreshMetricsTransform = completableMetrics(METRIC_AGENT_CACHE + "fullInstanceGroupRefresh", tags, registry);
-        }
-        return fullInstanceGroupRefreshMetricsTransform;
+        return completable.compose(fullInstanceGroupRefreshMetricsTransform);
     }
 
     private Completable.Transformer getInstanceGroupRefreshMetricsTransform(String instanceGroupId) {
@@ -237,7 +235,7 @@ class InstanceCache {
                     new BasicTag("class", InstanceCache.class.getSimpleName()),
                     new BasicTag("instanceGroupId", instanceGroupId)
             );
-            return completableMetrics(METRIC_AGENT_CACHE + "instanceGroupRefresh", tags, registry);
+            return longRunningCompletableMetrics(METRIC_AGENT_CACHE + "instanceGroupRefresh", tags, registry);
         });
     }
 
@@ -273,7 +271,7 @@ class InstanceCache {
         Observable<Void> updateAction = connector.getInstanceGroups(singletonList(instanceGroupId))
                 .flatMap(result -> {
                     if (result.isEmpty()) {
-                        logger.debug("Instance group: {} has been removed", instanceGroupId);
+                        logger.info("Instance group: {} has been removed", instanceGroupId);
                         onEventLoop(() -> removeInstanceGroupFromCache(instanceGroupId));
                         return Observable.empty();
                     }

@@ -85,9 +85,9 @@ public final class SpectatorExt {
     }
 
     /**
-     * RxJava completable metrics.
+     * RxJava long running completable metrics.
      */
-    public static Completable.Transformer completableMetrics(String rootName, List<Tag> tags, Registry registry) {
-        return new CompletableMetrics(rootName, tags, registry);
+    public static Completable.Transformer longRunningCompletableMetrics(String rootName, List<Tag> tags, Registry registry) {
+        return new LongRunningCompletableMetrics(rootName, tags, registry);
     }
 }

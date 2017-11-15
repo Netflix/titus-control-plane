@@ -17,30 +17,36 @@
 package io.netflix.titus.common.util.spectator;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.LongTaskTimer;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import rx.Completable;
 
 /**
- * RxJava completable metrics.
+ * This is a transformer that instruments a long running completable with metrics in order to determine the duration
+ * of the completable as well as how long it has been since the completable last completed. This is useful
+ * for long running tasks but has the following limitations:
+ * <ul>
+ * <li>This class only measures the duration based on the first subscription until the first complete.</li>
+ * <li>The same instance of this transformer must be used in order to keep the complete timestamp history.</li>
+ * </ul>
  */
-class CompletableMetrics implements Completable.Transformer {
+class LongRunningCompletableMetrics implements Completable.Transformer {
 
     private final Registry registry;
 
-    private final Id rootId;
     private final LongTaskTimer duration;
+    private final AtomicBoolean hasSubscribed;
     private final AtomicLong timerId;
     private final AtomicLong lastCompleteTimestamp;
 
-    CompletableMetrics(String root, List<Tag> commonTags, Registry registry) {
-        this.rootId = registry.createId(root, commonTags);
+    LongRunningCompletableMetrics(String root, List<Tag> commonTags, Registry registry) {
         this.registry = registry;
         this.duration = registry.longTaskTimer(root + ".duration", commonTags);
+        this.hasSubscribed = new AtomicBoolean(false);
         this.timerId = new AtomicLong(0);
         this.lastCompleteTimestamp = new AtomicLong(registry.clock().wallTime());
         registry.gauge(
@@ -52,12 +58,17 @@ class CompletableMetrics implements Completable.Transformer {
 
     @Override
     public Completable call(Completable completable) {
-        return completable.doOnSubscribe(subscription -> timerId.getAndSet(duration.start()))
-                .doOnError(e -> registry.gauge(rootId.withTags("status", "error", "error", e.getClass().getSimpleName()), 1))
+        return completable
+                .doOnSubscribe(subscription -> {
+                    if (!hasSubscribed.get()) {
+                        hasSubscribed.getAndSet(true);
+                        timerId.getAndSet(duration.start());
+                    }
+                })
                 .doOnCompleted(() -> {
-                    registry.gauge(rootId.withTag("status", "success"), 1);
                     duration.stop(timerId.get());
                     lastCompleteTimestamp.getAndSet(registry.clock().wallTime());
+                    hasSubscribed.getAndSet(false);
                 });
     }
 
