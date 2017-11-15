@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.agent.service.vm;
+package io.netflix.titus.master.agent.service.cache;
 
 import java.util.Collections;
 
@@ -38,7 +38,7 @@ class DataConverters {
                                                    ResourceDimension instanceResourceDimension,
                                                    AutoScaleRule defaultAutoScaleRule) {
         long now = System.currentTimeMillis();
-        String instanceType = instanceGroup.getAttributes().getOrDefault(VmServersCache.ATTR_INSTANCE_TYPE, "unknown");
+        String instanceType = instanceGroup.getAttributes().getOrDefault(InstanceCache.ATTR_INSTANCE_TYPE, "unknown");
 
         return AgentInstanceGroup.newBuilder()
                 .withId(instanceGroup.getId())

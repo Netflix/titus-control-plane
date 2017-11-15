@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.agent.service.vm;
+package io.netflix.titus.master.agent.service.cache;
 
 import io.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 /**
  * Container for common functions and constantsł.
  */
-public final class VmTestUtils {
+public final class InstanceTestUtils {
 
     public static final long CACHE_REFRESH_INTERVAL_MS = 1_000;
     public static final long FULL_CACHE_REFRESH_INTERVAL_MS = 10_000;
@@ -35,21 +35,21 @@ public final class VmTestUtils {
         AgentManagementConfiguration configuration = mock(AgentManagementConfiguration.class);
         when(configuration.getCacheRefreshIntervalMs()).thenReturn(CACHE_REFRESH_INTERVAL_MS);
         when(configuration.getFullCacheRefreshIntervalMs()).thenReturn(FULL_CACHE_REFRESH_INTERVAL_MS);
-        when(configuration.getAgentServerGroupPattern()).thenReturn(".*");
+        when(configuration.getAgentInstanceGroupPattern()).thenReturn(".*");
         return configuration;
     }
 
-    public static void expectServerGroupUpdateEvent(ExtTestSubscriber<CacheUpdateEvent> eventSubscriber, String serverGroupId) {
+    public static void expectInstanceGroupUpdateEvent(ExtTestSubscriber<CacheUpdateEvent> eventSubscriber, String instanceGroupId) {
         CacheUpdateEvent event = eventSubscriber.takeNext();
         assertThat(event).isNotNull();
-        assertThat(event.getType()).isEqualTo(CacheUpdateType.ServerGroup);
-        assertThat(event.getResourceId()).isEqualTo(serverGroupId);
+        assertThat(event.getType()).isEqualTo(CacheUpdateType.InstanceGroup);
+        assertThat(event.getResourceId()).isEqualTo(instanceGroupId);
     }
 
-    public static void expectServerUpdateEvent(ExtTestSubscriber<CacheUpdateEvent> eventSubscriber, String serverId) {
+    public static void expectInstanceUpdateEvent(ExtTestSubscriber<CacheUpdateEvent> eventSubscriber, String instanceId) {
         CacheUpdateEvent event = eventSubscriber.takeNext();
         assertThat(event).isNotNull();
-        assertThat(event.getType()).isEqualTo(CacheUpdateType.Server);
-        assertThat(event.getResourceId()).isEqualTo(serverId);
+        assertThat(event.getType()).isEqualTo(CacheUpdateType.Instance);
+        assertThat(event.getResourceId()).isEqualTo(instanceId);
     }
 }

@@ -28,8 +28,8 @@ public interface AgentManagementConfiguration {
     @DefaultValue("120000")
     long getFullCacheRefreshIntervalMs();
 
-    @DefaultValue("titusagent.*")
-    String getAgentServerGroupPattern();
+    @DefaultValue(".*")
+    String getAgentInstanceGroupPattern();
 
     @DefaultValue("2")
     int getAutoScaleRuleMinIdleToKeep();

@@ -36,7 +36,7 @@ import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 import static io.netflix.titus.ext.aws.AwsInstanceCloudConnector.AWS_PAGE_MAX;
-import static io.netflix.titus.ext.aws.AwsInstanceCloudConnector.TAG_ASG_LINK;
+import static io.netflix.titus.ext.aws.AwsInstanceCloudConnector.TAG_ASG_NAME;
 import static io.netflix.titus.ext.aws.AwsInstanceCloudConnector.TAG_TERMINATE;
 
 /**
@@ -122,7 +122,7 @@ public class InstanceReaper {
         if (CollectionsExt.isNullOrEmpty(attributes)) {
             return false;
         }
-        if (attributes.containsKey(TAG_ASG_LINK)) {
+        if (attributes.containsKey(TAG_ASG_NAME)) {
             return false;
         }
         return attributes.containsKey(TAG_TERMINATE);

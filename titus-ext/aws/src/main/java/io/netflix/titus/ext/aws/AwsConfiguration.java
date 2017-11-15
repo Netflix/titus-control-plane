@@ -30,6 +30,13 @@ public interface AwsConfiguration {
     long getInstanceGroupsFetchTimeoutMs();
 
     /**
+     * Fetching all instances by instance group id in {@link AwsInstanceCloudConnector#getInstancesByInstanceGroupId(String)} ()}
+     * method may require multiple page queries (AWS calls), so we need to set a timeout value.
+     */
+    @DefaultValue("60000")
+    long getInstancesByInstanceGroupIdFetchTimeoutMs();
+
+    /**
      * Except {@link AwsInstanceCloudConnector#getInstanceGroups()}, all the remaining operations require single
      * AWS request, hence timeout value ~10sec should be more than enough.
      */

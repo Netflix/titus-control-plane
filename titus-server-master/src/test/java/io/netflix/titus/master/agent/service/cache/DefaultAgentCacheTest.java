@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.agent.service.vm;
+package io.netflix.titus.master.agent.service.cache;
 
 import java.util.concurrent.TimeUnit;
 
@@ -31,7 +31,7 @@ import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import io.netflix.titus.testkit.stub.connector.cloud.TestableInstanceCloudConnector;
-import io.netflix.titus.testkit.stub.connector.cloud.VmGenerators;
+import io.netflix.titus.testkit.stub.connector.cloud.InstanceGenerators;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Completable;
@@ -40,10 +40,10 @@ import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
 import static io.netflix.titus.common.util.ExceptionExt.doCatch;
-import static io.netflix.titus.master.agent.service.vm.VmTestUtils.CACHE_REFRESH_INTERVAL_MS;
-import static io.netflix.titus.master.agent.service.vm.VmTestUtils.FULL_CACHE_REFRESH_INTERVAL_MS;
-import static io.netflix.titus.master.agent.service.vm.VmTestUtils.expectServerGroupUpdateEvent;
-import static io.netflix.titus.master.agent.service.vm.VmTestUtils.expectServerUpdateEvent;
+import static io.netflix.titus.master.agent.service.cache.InstanceTestUtils.CACHE_REFRESH_INTERVAL_MS;
+import static io.netflix.titus.master.agent.service.cache.InstanceTestUtils.FULL_CACHE_REFRESH_INTERVAL_MS;
+import static io.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceGroupUpdateEvent;
+import static io.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceUpdateEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -57,13 +57,13 @@ public class DefaultAgentCacheTest {
 
     private final Registry registry = new DefaultRegistry();
 
-    private final AgentManagementConfiguration configuration = VmTestUtils.mockedAgentManagementConfiguration();
+    private final AgentManagementConfiguration configuration = InstanceTestUtils.mockedAgentManagementConfiguration();
 
     private final AgentStore agentStore = mock(AgentStore.class);
 
     private final TestableInstanceCloudConnector testConnector = new TestableInstanceCloudConnector();
 
-    private DataGenerator<InstanceGroup> serverGroupsGenerator = VmGenerators.vmServerGroups(5);
+    private DataGenerator<InstanceGroup> instanceGroupsGenerator = InstanceGenerators.instanceGroups(5);
     private DataGenerator<Instance> instanceGenerator1;
     private DataGenerator<Instance> instanceGenerator2;
 
@@ -72,9 +72,9 @@ public class DefaultAgentCacheTest {
 
     @Before
     public void setUp() throws Exception {
-        serverGroupsGenerator = serverGroupsGenerator.apply(testConnector::addVmServerGroup, 2);
-        instanceGenerator1 = VmGenerators.vmServers(testConnector.takeServerGroup(0)).apply(testConnector::addVmServer, 5);
-        instanceGenerator2 = VmGenerators.vmServers(testConnector.takeServerGroup(1)).apply(testConnector::addVmServer, 5);
+        instanceGroupsGenerator = instanceGroupsGenerator.apply(testConnector::addInstanceGroup, 2);
+        instanceGenerator1 = InstanceGenerators.instances(testConnector.takeInstanceGroup(0)).apply(testConnector::addInstance, 5);
+        instanceGenerator2 = InstanceGenerators.instances(testConnector.takeInstanceGroup(1)).apply(testConnector::addInstance, 5);
 
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS); // This will populate the cache with the initial connector state
 
@@ -91,9 +91,9 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testDiscoverNewServerGroup() throws Exception {
+    public void testDiscoverNewInstanceGroup() throws Exception {
         int initialCount = cache.getInstanceGroups().size();
-        serverGroupsGenerator = serverGroupsGenerator.apply(testConnector::addVmServerGroup);
+        instanceGroupsGenerator = instanceGroupsGenerator.apply(testConnector::addInstanceGroup);
 
         testScheduler.advanceTimeBy(FULL_CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
         assertThat(cache.getInstanceGroups()).hasSize(initialCount + 1);
@@ -101,108 +101,108 @@ public class DefaultAgentCacheTest {
         // We need to count both the setup additions, and this one
         verify(agentStore, times(initialCount + 1)).storeAgentInstanceGroup(any());
 
-        expectServerGroupUpdateEvent(eventSubscriber, testConnector.takeServerGroup(2).getId());
+        expectInstanceGroupUpdateEvent(eventSubscriber, testConnector.takeInstanceGroup(2).getId());
     }
 
     @Test
-    public void testServerGroupCloudUpdate() throws Exception {
-        InstanceGroup updated = testConnector.takeServerGroup(0).toBuilder().withMax(100).build();
-        testConnector.addVmServerGroup(updated);
+    public void testInstanceGroupCloudUpdate() throws Exception {
+        InstanceGroup updated = testConnector.takeInstanceGroup(0).toBuilder().withMax(100).build();
+        testConnector.addInstanceGroup(updated);
 
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        expectServerGroupUpdateEvent(eventSubscriber, testConnector.takeServerGroup(0).getId());
+        expectInstanceGroupUpdateEvent(eventSubscriber, testConnector.takeInstanceGroup(0).getId());
     }
 
     @Test
-    public void testServerGroupStoreUpdate() throws Exception {
-        testServerGroupUpdate(false);
+    public void testInstanceGroupStoreUpdate() throws Exception {
+        testInstanceGroupUpdate(false);
     }
 
     @Test
-    public void testServerGroupStoreUpdateAndCloudSync() throws Exception {
-        testServerGroupUpdate(true);
+    public void testInstanceGroupStoreUpdateAndCloudSync() throws Exception {
+        testInstanceGroupUpdate(true);
     }
 
-    private void testServerGroupUpdate(boolean withCloudSync) {
+    private void testInstanceGroupUpdate(boolean withCloudSync) {
         int initialCount = cache.getInstanceGroups().size();
 
-        AgentInstanceGroup updatedServerGroup = cache.getInstanceGroups().get(0).toBuilder()
+        AgentInstanceGroup updatedInstanceGroup = cache.getInstanceGroups().get(0).toBuilder()
                 .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()
                 ).build();
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         if (withCloudSync) {
-            cache.updateInstanceGroupStoreAndSyncCloud(updatedServerGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStoreAndSyncCloud(updatedInstanceGroup).toObservable().subscribe(testSubscriber);
         } else {
-            cache.updateInstanceGroupStore(updatedServerGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStore(updatedInstanceGroup).toObservable().subscribe(testSubscriber);
         }
 
         testScheduler.triggerActions();
 
-        assertThat(cache.getInstanceGroup(updatedServerGroup.getId()).getLifecycleStatus().getState()).isEqualTo(InstanceGroupLifecycleState.Removable);
+        assertThat(cache.getInstanceGroup(updatedInstanceGroup.getId()).getLifecycleStatus().getState()).isEqualTo(InstanceGroupLifecycleState.Removable);
 
         // We need to count both the setup additions, and this one
         verify(agentStore, times(initialCount + 1)).storeAgentInstanceGroup(any());
 
-        expectServerGroupUpdateEvent(eventSubscriber, testConnector.takeServerGroup(0).getId());
+        expectInstanceGroupUpdateEvent(eventSubscriber, updatedInstanceGroup.getId());
     }
 
     @Test
-    public void testCleanupOfRemovedServerGroups() throws Exception {
-        AgentInstanceGroup serverGroup = cache.getInstanceGroups().get(0);
-        testConnector.removeVmServerGroup(serverGroup.getId());
+    public void testCleanupOfRemovedInstanceGroups() throws Exception {
+        AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
+        testConnector.removeInstanceGroup(instanceGroup.getId());
 
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
-        assertThat(doCatch(() -> cache.getInstanceGroup(serverGroup.getId()))).isNotEmpty();
-        expectServerGroupUpdateEvent(eventSubscriber, serverGroup.getId());
+        assertThat(doCatch(() -> cache.getInstanceGroup(instanceGroup.getId()))).isNotEmpty();
+        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroup.getId());
     }
 
     @Test
-    public void testDiscoverNewAgentServer() throws Exception {
-        String serverGroupId = testConnector.takeServerGroup(0).getId();
-        int initialCount = cache.getAgentInstances(serverGroupId).size();
+    public void testDiscoverNewAgentInstance() throws Exception {
+        String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
+        int initialCount = cache.getAgentInstances(instanceGroupId).size();
 
-        instanceGenerator1 = instanceGenerator1.apply(testConnector::addVmServer);
+        instanceGenerator1 = instanceGenerator1.apply(testConnector::addInstance);
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
-        assertThat(cache.getAgentInstances(serverGroupId).size()).isEqualTo(initialCount + 1);
-        expectServerGroupUpdateEvent(eventSubscriber, serverGroupId);
+        assertThat(cache.getAgentInstances(instanceGroupId).size()).isEqualTo(initialCount + 1);
+        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupId);
     }
 
     @Test
-    public void testAgentServerCloudUpdate() throws Exception {
-        Instance updatedServer = testConnector.takeServer(0, 0).toBuilder()
+    public void testAgentInstanceCloudUpdate() throws Exception {
+        Instance updatedInstance = testConnector.takeInstance(0, 0).toBuilder()
                 .withInstanceState(Instance.InstanceState.Terminated)
                 .build();
-        testConnector.addVmServer(updatedServer);
+        testConnector.addInstance(updatedInstance);
 
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(cache.getAgentInstance(updatedServer.getId()).getLifecycleStatus().getState()).isEqualTo(InstanceLifecycleState.Stopped);
-        expectServerGroupUpdateEvent(eventSubscriber, testConnector.takeServerGroup(0).getId());
+        assertThat(cache.getAgentInstance(updatedInstance.getId()).getLifecycleStatus().getState()).isEqualTo(InstanceLifecycleState.Stopped);
+        expectInstanceGroupUpdateEvent(eventSubscriber, testConnector.takeInstanceGroup(0).getId());
     }
 
     @Test
-    public void testAgentServerConfigurationUpdate() throws Exception {
-        String serverId = testConnector.takeServer(0, 0).getId();
+    public void testAgentInstanceConfigurationUpdate() throws Exception {
+        String instanceId = testConnector.takeInstance(0, 0).getId();
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        cache.updateAgentInstanceStore(cache.getAgentInstance(serverId)).toObservable().subscribe(testSubscriber);
+        cache.updateAgentInstanceStore(cache.getAgentInstance(instanceId)).toObservable().subscribe(testSubscriber);
 
         testScheduler.triggerActions();
 
         verify(agentStore, times(1)).storeAgentInstance(any());
-        expectServerUpdateEvent(eventSubscriber, serverId);
+        expectInstanceUpdateEvent(eventSubscriber, instanceId);
     }
 
     @Test
-    public void testCleanupOfRemovedAgentServer() throws Exception {
-        String serverGroupId = testConnector.takeServerGroup(0).getId();
-        int initialCount = cache.getAgentInstances(serverGroupId).size();
+    public void testCleanupOfRemovedAgentInstance() throws Exception {
+        String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
+        int initialCount = cache.getAgentInstances(instanceGroupId).size();
 
-        testConnector.removeVmServer(testConnector.takeServer(0, 0).getId());
+        testConnector.removeInstance(testConnector.takeInstance(0, 0).getId());
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
-        assertThat(cache.getAgentInstances(serverGroupId).size()).isEqualTo(initialCount - 1);
-        expectServerGroupUpdateEvent(eventSubscriber, serverGroupId);
+        assertThat(cache.getAgentInstances(instanceGroupId).size()).isEqualTo(initialCount - 1);
+        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupId);
     }
 }

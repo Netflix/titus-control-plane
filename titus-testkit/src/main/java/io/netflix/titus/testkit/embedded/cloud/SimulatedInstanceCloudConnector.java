@@ -101,6 +101,14 @@ class SimulatedInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     @Override
+    public Observable<List<Instance>> getInstancesByInstanceGroupId(String instanceGroupId) {
+        List<Instance> instancesByInstanceGroup = cloud.getAgentInstancesByInstanceGroup(instanceGroupId).stream()
+                .map(this::toInstance)
+                .collect(Collectors.toList());
+        return Observable.just(instancesByInstanceGroup);
+    }
+
+    @Override
     public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
         SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroupId);
         agentInstanceGroup.updateCapacity(

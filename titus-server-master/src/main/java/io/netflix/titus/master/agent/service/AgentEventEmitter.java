@@ -34,9 +34,9 @@ import io.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import io.netflix.titus.api.agent.model.event.AgentSnapshotEndEvent;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.agent.service.vm.AgentCache;
-import io.netflix.titus.master.agent.service.vm.CacheUpdateEvent;
-import io.netflix.titus.master.agent.service.vm.CacheUpdateType;
+import io.netflix.titus.master.agent.service.cache.AgentCache;
+import io.netflix.titus.master.agent.service.cache.CacheUpdateEvent;
+import io.netflix.titus.master.agent.service.cache.CacheUpdateType;
 
 /**
  * As we get instance group level events from {@link AgentCache}, irrespective of what changed (instance group or instance),
@@ -66,12 +66,12 @@ final class AgentEventEmitter {
 
     Pair<List<AgentEvent>, AgentEventEmitter> apply(CacheUpdateEvent event) {
         CacheUpdateType type = event.getType();
-        if (type != CacheUpdateType.ServerGroup && type != CacheUpdateType.Server) {
+        if (type != CacheUpdateType.InstanceGroup && type != CacheUpdateType.Instance) {
             return Pair.of(Collections.emptyList(), this);
         }
 
         AgentEventEmitter newEventEmitter = new AgentEventEmitter(agentCache);
-        if (type == CacheUpdateType.ServerGroup) {
+        if (type == CacheUpdateType.InstanceGroup) {
             return Pair.of(compareServerGroup(event.getResourceId(), newEventEmitter), newEventEmitter);
         }
         return Pair.of(compareInstance(event.getResourceId(), newEventEmitter), newEventEmitter);

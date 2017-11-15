@@ -454,7 +454,6 @@ public class EmbeddedTitusMaster {
             }
             grpcPort = grpcPort == 0 ? NetworkExt.findUnusedPort() : grpcPort;
 
-            props.put("titus.agent.agentServerGroupPattern", ".*");
             props.put("titus.master.audit.auditLogFolder", "build/auditLogs");
             props.put("titus.master.apiport", Integer.toString(apiPort));
             props.put("titus.master.grpcServer.port", Integer.toString(grpcPort));
