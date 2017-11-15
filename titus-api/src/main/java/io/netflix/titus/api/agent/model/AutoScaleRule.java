@@ -28,8 +28,6 @@ import io.netflix.titus.common.model.sanitizer.NeverNull;
 @NeverNull
 public class AutoScaleRule {
 
-    private final String instanceGroupId;
-
     @Min(value = 0, message = "'min' must be >= 0, but is #{#root}")
     private final int min;
 
@@ -51,15 +49,13 @@ public class AutoScaleRule {
     @Min(value = 1, message = "'shortfallAdjustingFactor' must be > 0, but is #{#root}")
     private final int shortfallAdjustingFactor;
 
-    public AutoScaleRule(String instanceGroupId,
-                         int min,
+    public AutoScaleRule(int min,
                          int max,
                          int minIdleToKeep,
                          int maxIdleToKeep,
                          int coolDownSec,
                          int priority,
                          int shortfallAdjustingFactor) {
-        this.instanceGroupId = instanceGroupId;
         this.min = min;
         this.max = max;
         this.minIdleToKeep = minIdleToKeep;
@@ -67,10 +63,6 @@ public class AutoScaleRule {
         this.coolDownSec = coolDownSec;
         this.priority = priority;
         this.shortfallAdjustingFactor = shortfallAdjustingFactor;
-    }
-
-    public String getInstanceGroupId() {
-        return instanceGroupId;
     }
 
     public int getMin() {
@@ -130,16 +122,12 @@ public class AutoScaleRule {
         if (priority != that.priority) {
             return false;
         }
-        if (shortfallAdjustingFactor != that.shortfallAdjustingFactor) {
-            return false;
-        }
-        return instanceGroupId != null ? instanceGroupId.equals(that.instanceGroupId) : that.instanceGroupId == null;
+        return shortfallAdjustingFactor == that.shortfallAdjustingFactor;
     }
 
     @Override
     public int hashCode() {
-        int result = instanceGroupId != null ? instanceGroupId.hashCode() : 0;
-        result = 31 * result + min;
+        int result = min;
         result = 31 * result + max;
         result = 31 * result + minIdleToKeep;
         result = 31 * result + maxIdleToKeep;
@@ -152,8 +140,7 @@ public class AutoScaleRule {
     @Override
     public String toString() {
         return "AutoScaleRule{" +
-                "instanceGroupId='" + instanceGroupId + '\'' +
-                ", min=" + min +
+                "min=" + min +
                 ", max=" + max +
                 ", minIdleToKeep=" + minIdleToKeep +
                 ", maxIdleToKeep=" + maxIdleToKeep +
@@ -165,13 +152,13 @@ public class AutoScaleRule {
 
     public Builder toBuilder() {
         return newBuilder()
-                .withInstanceGroupId(instanceGroupId)
                 .withMin(min)
                 .withMax(max)
                 .withMinIdleToKeep(minIdleToKeep)
                 .withMaxIdleToKeep(maxIdleToKeep)
                 .withCoolDownSec(coolDownSec)
-                .withPriority(priority);
+                .withPriority(priority)
+                .withShortfallAdjustingFactor(shortfallAdjustingFactor);
     }
 
     public static Builder newBuilder() {
@@ -179,7 +166,6 @@ public class AutoScaleRule {
     }
 
     public static final class Builder {
-        private String instanceGroupId;
         private int min;
         private int max;
         private int minIdleToKeep;
@@ -189,11 +175,6 @@ public class AutoScaleRule {
         private int shortfallAdjustingFactor;
 
         private Builder() {
-        }
-
-        public Builder withInstanceGroupId(String instanceGroupId) {
-            this.instanceGroupId = instanceGroupId;
-            return this;
         }
 
         public Builder withMin(int min) {
@@ -232,13 +213,18 @@ public class AutoScaleRule {
         }
 
         public Builder but() {
-            return newBuilder().withInstanceGroupId(instanceGroupId).withMin(min).withMax(max).withMinIdleToKeep(minIdleToKeep)
-                    .withMaxIdleToKeep(maxIdleToKeep).withCoolDownSec(coolDownSec).withPriority(priority).withShortfallAdjustingFactor(shortfallAdjustingFactor);
+            return newBuilder()
+                    .withMin(min)
+                    .withMax(max)
+                    .withMinIdleToKeep(minIdleToKeep)
+                    .withMaxIdleToKeep(maxIdleToKeep)
+                    .withCoolDownSec(coolDownSec)
+                    .withPriority(priority)
+                    .withShortfallAdjustingFactor(shortfallAdjustingFactor);
         }
 
         public AutoScaleRule build() {
-            AutoScaleRule autoScaleRule = new AutoScaleRule(instanceGroupId, min, max, minIdleToKeep, maxIdleToKeep, coolDownSec, priority, shortfallAdjustingFactor);
-            return autoScaleRule;
+            return new AutoScaleRule(min, max, minIdleToKeep, maxIdleToKeep, coolDownSec, priority, shortfallAdjustingFactor);
         }
     }
 }

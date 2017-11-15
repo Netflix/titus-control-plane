@@ -29,13 +29,14 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TypeReferences;
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.ConfigurationMockSamples;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.v2.V2LegacyTitusServiceGateway;
-import io.netflix.titus.master.endpoint.v2.rest.caller.NoOpCallerIdResolver;
+import io.netflix.titus.runtime.endpoint.resolver.NoOpHttpCallerIdResolver;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobKillCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInServiceCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
@@ -77,12 +78,14 @@ public class JobManagementResourceTest {
 
     private static final MasterConfiguration configuration = ConfigurationMockSamples.withJobSpec(mock(MasterConfiguration.class));
 
+    private static final JobConfiguration jobConfiguration = ConfigurationMockSamples.withJobConfiguration(mock(JobConfiguration.class));
+
     private static final ValidatorConfiguration validatorConfiguration = mock(ValidatorConfiguration.class);
 
     private static RxEventBus eventBus = mock(RxEventBus.class);
 
     private static final JobManagementResource restService = new JobManagementResource(
-            serviceGateway, configuration, validatorConfiguration, null, NoOpCallerIdResolver.INSTANCE, eventBus);
+            serviceGateway, configuration, jobConfiguration, validatorConfiguration, null, NoOpHttpCallerIdResolver.INSTANCE, eventBus);
 
     @ClassRule
     public static final JaxRsServerResource<JobManagementResource> jaxRsServer = JaxRsServerResource.newBuilder(restService)

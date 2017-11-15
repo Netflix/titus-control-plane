@@ -66,6 +66,7 @@ import com.netflix.fenzo.queues.TaskQueues;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
+import io.netflix.titus.api.agent.model.AgentInstanceGroup;
 import io.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import io.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import io.netflix.titus.api.agent.service.AgentManagementFunctions;
@@ -249,11 +250,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.globalConstraintsEvaluator = globalConstraintsEvaluator;
 
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
-                .withLeaseRejectAction(virtualMachineLease -> {
-                    logger.info("Rejecting lease: " + virtualMachineLease.getId() + " on host: " + virtualMachineLease.hostname() +
-                            " from " + (System.currentTimeMillis() - virtualMachineLease.getOfferedTime()) / 1000L + " secs ago");
-                    virtualMachineService.rejectLease(virtualMachineLease);
-                })
+                .withLeaseRejectAction(virtualMachineService::rejectLease)
                 .withLeaseOfferExpirySecs(config.getMesosLeaseOfferExpirySecs())
                 .withFitnessCalculator(new AgentFitnessCalculator())
                 .withFitnessGoodEnoughFunction(AgentFitnessCalculator.fitnessGoodEnoughFunc)
@@ -409,10 +406,12 @@ public class DefaultSchedulingService implements SchedulingService {
                     try {
                         if (next instanceof AgentInstanceGroupUpdateEvent) {
                             AgentInstanceGroupUpdateEvent updateEvent = (AgentInstanceGroupUpdateEvent) next;
-                            io.netflix.titus.api.agent.model.AutoScaleRule rule = updateEvent.getAgentInstanceGroup().getAutoScaleRule();
+                            AgentInstanceGroup instanceGroup = updateEvent.getAgentInstanceGroup();
+                            String instanceGroupId = instanceGroup.getId();
+                            io.netflix.titus.api.agent.model.AutoScaleRule rule = instanceGroup.getAutoScaleRule();
 
-                            logger.info("Setting up autoscale rule for the agent instance group {}: {}", updateEvent.getAgentInstanceGroup().getId(), rule);
-                            taskScheduler.addOrReplaceAutoScaleRule(new FenzoAutoScaleRuleWrapper(rule));
+                            logger.info("Setting up autoscale rule for the agent instance group {}: {}", instanceGroupId, rule);
+                            taskScheduler.addOrReplaceAutoScaleRule(new FenzoAutoScaleRuleWrapper(instanceGroupId, rule));
                         } else if (next instanceof AgentInstanceGroupRemovedEvent) {
                             String instanceGroupId = ((AgentInstanceGroupRemovedEvent) next).getInstanceGroupId();
 
@@ -875,7 +874,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void checkInactiveVMs(List<VirtualMachineCurrentState> vmCurrentStates) {
-        logger.info("Checking on any workers on VMs that are not active anymore");
+        logger.debug("Checking on any workers on VMs that are not active anymore");
         List<VirtualMachineCurrentState> inactiveVmStates = VMStateMgr.getInactiveVMs(config.getActiveSlaveAttributeName(), agentManagementService, vmCurrentStates);
 
         // get all running tasks on the inactive vms

@@ -44,6 +44,7 @@ public class V3JobQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluato
         List<Predicate<Pair<Job<?>, List<Task>>>> predicates = new ArrayList<>();
         applyTaskIds(criteria.getTaskIds()).ifPresent(predicates::add);
         applyTaskStates(criteria.getTaskStates()).ifPresent(predicates::add);
+        applyTaskStateReasons(criteria.getTaskStateReasons());
         return predicates;
     }
 
@@ -65,6 +66,16 @@ public class V3JobQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluato
         return Optional.of(jobAndTasks -> {
             List<Task> tasks = jobAndTasks.getRight();
             return tasks.stream().anyMatch(t -> coreTaskStates.contains(t.getStatus().getState()));
+        });
+    }
+
+    private static Optional<Predicate<Pair<Job<?>, List<Task>>>> applyTaskStateReasons(Set<String> taskStateReasons) {
+        if (taskStateReasons.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(jobAndTasks -> {
+            List<Task> tasks = jobAndTasks.getRight();
+            return tasks.stream().anyMatch(t -> taskStateReasons.contains(t.getStatus().getReasonCode()));
         });
     }
 }

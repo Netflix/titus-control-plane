@@ -78,8 +78,7 @@ public class JobSubmitAndControlNegativeTest {
     @ClassRule
     public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStack.aTitusStack()
             .withMaster(EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("mantis.worker.state.launched.timeout.millis", "100")
-                    .withProperty("mantis.master.grpcServer.v3EnabledApps", "v3App")
+                    .withProperty("titus.master.grpcServer.v3EnabledApps", "v3App")
                     .withProperty("titusMaster.jobManager.launchedTimeoutMs", "3000")
                     .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
                     .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
@@ -173,7 +172,7 @@ public class JobSubmitAndControlNegativeTest {
         submitBadJob(
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setImage(Image.getDefaultInstance())).build(),
                 "container.image.name",
-                "container.image.tag"
+                "container.image"
         );
     }
 
@@ -188,7 +187,7 @@ public class JobSubmitAndControlNegativeTest {
         submitBadJob(
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setImage(badImage)).build(),
                 "container.image.name",
-                "container.image.tag"
+                "container.image"
         );
     }
 
@@ -242,7 +241,7 @@ public class JobSubmitAndControlNegativeTest {
     @Test
     public void testTooLargeBatchJobRuntimeLimit() throws Exception {
         submitBadJob(
-                BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRuntimeLimitSec(2 * JobConfiguration.DEFAULT_RUNTIME_LIMIT_SEC)).build(),
+                BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRuntimeLimitSec(2 * JobConfiguration.MAX_RUNTIME_LIMIT_SEC)).build(),
                 "extensions.runtimeLimitMs"
         );
     }

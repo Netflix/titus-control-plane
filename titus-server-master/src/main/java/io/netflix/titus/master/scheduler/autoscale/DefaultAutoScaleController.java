@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -91,13 +90,14 @@ public class DefaultAutoScaleController implements AutoScaleController {
 
         int newDesired = computeNewDesiredSize(scaleUpCount, instanceGroup);
         if (newDesired == instanceGroup.getDesired()) {
-            logger.info("Instance group {} computed new desired size equal to the current one ({})", instanceGroup, newDesired);
+            logger.info("Instance group {} computed new desired size equal to the current one ({})", instanceGroupName, newDesired);
             metrics.scaleUpToExistingDesiredSize(instanceGroupName);
         } else {
-            logger.info("Changing instance group {} desired size from {} to {}", instanceGroupName, instanceGroup.getDesired(), newDesired);
+            int delta = newDesired - instanceGroup.getDesired();
+            logger.info("Changing instance group {} desired size from {} to {} (scale up by {})", instanceGroupName, instanceGroup.getDesired(), newDesired, delta);
 
             Stopwatch timer = Stopwatch.createStarted();
-            agentManagementService.updateCapacity(instanceGroupName, Optional.empty(), Optional.of(newDesired)).subscribe(
+            agentManagementService.scaleUp(instanceGroupName, delta).subscribe(
                     () -> {
                         logger.info("Instance group {} desired size changed to {} in {}ms", instanceGroupName, newDesired, timer.elapsed(TimeUnit.MILLISECONDS));
                         eventSubject.onNext(new ScaleUpEvent(instanceGroupName, instanceGroup.getDesired(), newDesired));
@@ -135,7 +135,7 @@ public class DefaultAutoScaleController implements AutoScaleController {
         Set<String> unknownInstances = resultPair.getRight();
 
         if (terminateIds.isEmpty()) {
-            logger.info("No instances eligible to terminate in instance group {}", instanceGroup);
+            logger.info("No instances eligible to terminate in instance group {}", instanceGroupName);
             metrics.noInstancesToScaleDown(instanceGroup);
         } else {
             logger.warn("Terminating instances of the instance group {}: {}", instanceGroupName, terminateIds);
@@ -211,11 +211,6 @@ public class DefaultAutoScaleController implements AutoScaleController {
 
     private boolean canScaleDown(AgentInstanceGroup instanceGroup) {
         String instanceGroupName = instanceGroup.getId();
-        if (!instanceGroup.isTerminateEnabled()) {
-            logger.warn("Terminate disabled for instance group {}", instanceGroupName);
-            return false;
-        }
-
         InstanceGroupLifecycleState currentState = instanceGroup.getLifecycleStatus().getState();
         if (currentState == InstanceGroupLifecycleState.Inactive) {
             logger.warn("Instance group {} is in Inactive state, in which instances cannot be terminated", instanceGroupName);

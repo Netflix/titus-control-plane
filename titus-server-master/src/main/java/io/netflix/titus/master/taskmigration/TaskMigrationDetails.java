@@ -42,4 +42,8 @@ public interface TaskMigrationDetails {
     String getAttribute(String key);
 
     boolean isActive();
+
+    long getMigrationDeadline();
+
+    void setMigrationDeadline(long migrationDeadline);
 }

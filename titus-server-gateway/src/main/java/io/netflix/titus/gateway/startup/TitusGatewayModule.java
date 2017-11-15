@@ -30,14 +30,16 @@ import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import io.netflix.titus.gateway.connector.titusmaster.TitusMasterConnectorModule;
-import io.netflix.titus.gateway.endpoint.common.grpc.GrpcModule;
-import io.netflix.titus.gateway.endpoint.common.rest.JerseyModule;
+import io.netflix.titus.gateway.endpoint.GrpcModule;
+import io.netflix.titus.gateway.endpoint.JerseyModule;
 import io.netflix.titus.gateway.service.v2.V2ServiceModule;
 import io.netflix.titus.gateway.service.v3.V3ServiceModule;
 import io.netflix.titus.gateway.store.StoreModule;
 import io.netflix.titus.runtime.TitusEntitySanitizerModule;
 import io.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import io.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
+import io.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 
 // Common module dependencies
 // Server dependencies
@@ -64,6 +66,8 @@ public final class TitusGatewayModule extends AbstractModule {
 
         install(new GovernatorJerseySupportModule());
         install(new JerseyModule());
+
+        bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
 
         install(new GrpcModule());
         install(new TitusMasterConnectorModule());

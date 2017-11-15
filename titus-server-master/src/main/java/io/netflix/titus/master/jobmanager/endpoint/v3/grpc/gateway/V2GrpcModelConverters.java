@@ -38,6 +38,7 @@ import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobGroupInfo;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.JobStatus.JobState;
+import com.netflix.titus.grpc.protogen.MigrationPolicy;
 import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.Owner;
 import com.netflix.titus.grpc.protogen.RetryPolicy;
@@ -49,6 +50,7 @@ import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.model.EfsMount;
+import io.netflix.titus.api.model.SelfManagedMigrationPolicy;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.JobSla;
@@ -75,8 +77,11 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_ERROR;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN;
 import static io.netflix.titus.common.util.CollectionsExt.applyNotEmpty;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
@@ -220,6 +225,7 @@ public final class V2GrpcModelConverters {
         taskBuilder.setStatus(toGrpcTaskStatus(worker));
         taskBuilder.addAllStatusHistory(toGrpcTaskStatusHistory(worker));
         taskBuilder.setLogLocation(V3GrpcModelConverters.toGrpcLogLocation(worker, logStorageInfo));
+        taskBuilder.setMigrationDetails(toGrpcMigrationDetails(worker));
 
         // Task context data
         taskBuilder.putTaskContext(TASK_ATTRIBUTES_V2_TASK_ID, v2TaskId);
@@ -329,6 +335,22 @@ public final class V2GrpcModelConverters {
         throw new IllegalArgumentException("Unrecognized state " + grpcTaskState);
     }
 
+    public static JobCompletedReason toV2JobCompletedReason(String reason) {
+        switch (reason) {
+            case "normal":
+                return JobCompletedReason.Normal;
+            case "failed":
+                return JobCompletedReason.Failed;
+            case "crashed":
+                return JobCompletedReason.Failed;
+            case "lost":
+                return JobCompletedReason.Lost;
+            case "killed":
+                return JobCompletedReason.Killed;
+        }
+        throw new IllegalArgumentException("Unrecognized V2 reason " + reason);
+    }
+
     public static JobStatus toGrpcJobStatus(V2JobMetadata jobMetadata) {
         V2JobState v2JobState = jobMetadata.getState();
         JobStatus.Builder builder = JobStatus.newBuilder();
@@ -383,13 +405,32 @@ public final class V2GrpcModelConverters {
                         .setReasonCode(REASON_NORMAL);
                 break;
             case Failed:
+                String grpcReason;
+                switch (reason) {
+                    case Normal:
+                        grpcReason = REASON_NORMAL;
+                        break;
+                    case Error:
+                        grpcReason = REASON_ERROR;
+                        break;
+                    case Lost:
+                        grpcReason = REASON_TASK_LOST;
+                        break;
+                    case Killed:
+                        grpcReason = REASON_TASK_KILLED;
+                        break;
+                    case Failed:
+                        grpcReason = REASON_FAILED;
+                        break;
+                    default:
+                        grpcReason = REASON_UNKNOWN;
+                }
                 stateBuilder.setState(TaskState.Finished)
                         .setTimestamp(worker.getCompletedAt())
-                        .setReasonCode(REASON_FAILED);
+                        .setReasonCode(grpcReason);
                 break;
             default:
-                stateBuilder.setState(TaskState.UNRECOGNIZED)
-                        .setReasonCode(REASON_UNKNOWN);
+                stateBuilder.setState(TaskState.UNRECOGNIZED).setReasonCode(REASON_UNKNOWN);
                 finalReason = "Unrecognized job state " + v2JobState;
         }
         if (finalReason != null) {
@@ -441,6 +482,14 @@ public final class V2GrpcModelConverters {
 
     public static List<EfsMount> toV2EfsMounts(List<com.netflix.titus.grpc.protogen.ContainerResources.EfsMount> efsResource) {
         return efsResource.stream().map(V2GrpcModelConverters::toV2EfsMount).collect(Collectors.toList());
+    }
+
+    public static com.netflix.titus.grpc.protogen.MigrationDetails toGrpcMigrationDetails(V2WorkerMetadata worker) {
+        boolean needsMigration = worker.getMigrationDeadline() > 0;
+        return com.netflix.titus.grpc.protogen.MigrationDetails.newBuilder()
+                .setNeedsMigration(needsMigration)
+                .setDeadline(worker.getMigrationDeadline())
+                .build();
     }
 
     /**
@@ -600,6 +649,10 @@ public final class V2GrpcModelConverters {
             case SERVICE:
                 parameters.add(Parameters.newJobTypeParameter(Parameters.JobType.Service));
                 parameters.add(Parameters.newInServiceParameter(jobDescriptor.getService().getEnabled()));
+                MigrationPolicy migrationPolicy = jobDescriptor.getService().getMigrationPolicy();
+                if (migrationPolicy != null && migrationPolicy.getPolicyCase() == MigrationPolicy.PolicyCase.SELFMANAGED) {
+                    parameters.add(Parameters.newMigrationPolicy(new SelfManagedMigrationPolicy()));
+                }
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported job type " + jobDescriptor.getJobSpecCase());

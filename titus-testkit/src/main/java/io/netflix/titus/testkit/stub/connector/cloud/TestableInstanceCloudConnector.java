@@ -89,6 +89,11 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     @Override
+    public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
+        return null;
+    }
+
+    @Override
     public Observable<List<Either<Boolean, Throwable>>> terminateInstances(String instanceGroup, List<String> instanceIds, boolean shrink) {
         return null;
     }

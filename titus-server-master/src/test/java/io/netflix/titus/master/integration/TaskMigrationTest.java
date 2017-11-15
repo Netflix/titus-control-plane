@@ -61,12 +61,12 @@ public class TaskMigrationTest extends BaseIntegrationTest {
 
     private SimulatedCloud simulatedCloud = new SimulatedCloud();
 
-    SimulatedTitusAgentCluster agentClusterOne = aTitusAgentCluster("agentClusterOne", 0)
+    private SimulatedTitusAgentCluster agentClusterOne = aTitusAgentCluster("agentClusterOne", 0)
             .withComputeResources(simulatedCloud.getComputeResources())
             .withSize(3)
             .withInstanceType(AwsInstanceType.M3_XLARGE)
             .build();
-    SimulatedTitusAgentCluster agentClusterTwo = aTitusAgentCluster("agentClusterTwo", 1)
+    private SimulatedTitusAgentCluster agentClusterTwo = aTitusAgentCluster("agentClusterTwo", 1)
             .withComputeResources(simulatedCloud.getComputeResources())
             .withSize(3)
             .withInstanceType(AwsInstanceType.M3_XLARGE)
@@ -102,7 +102,7 @@ public class TaskMigrationTest extends BaseIntegrationTest {
         jobRunner = new JobRunner(titusMaster);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void doNotMigrateBatchJob() throws Exception {
         setActiveCluster(singletonList(agentClusterOne.getName()));
 
@@ -118,7 +118,7 @@ public class TaskMigrationTest extends BaseIntegrationTest {
         assertThat(taskExecutorHolder).isNull();
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void migrateServiceJob() throws Exception {
         setActiveCluster(singletonList(agentClusterOne.getName()));
 
@@ -141,7 +141,7 @@ public class TaskMigrationTest extends BaseIntegrationTest {
         assertThat(titusJobInfo.getTasks().size()).isEqualTo(jobSpec.getInstances());
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void migrateServiceJobAndVerifyThatOnlyOneTaskIsMigratedFirst() throws Exception {
         setActiveCluster(singletonList(agentClusterOne.getName()));
 

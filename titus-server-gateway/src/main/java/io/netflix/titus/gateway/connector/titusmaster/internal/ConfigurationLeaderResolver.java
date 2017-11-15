@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -40,13 +41,15 @@ public class ConfigurationLeaderResolver implements LeaderResolver {
     private static final Logger logger = LoggerFactory.getLogger(ConfigurationLeaderResolver.class);
     private static final int LEADER_REFRESH_INTERVAL_MS = 5_000;
 
+    private final ScheduledExecutorService executorService;
+
     private final PublishSubject<Optional<Address>> leaderPublishSubject;
     private volatile Address leaderAddress;
 
     @Inject
     public ConfigurationLeaderResolver(TitusGatewayConfiguration configuration) {
         ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("configuration-leader-resolver-%d").build();
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
+        this.executorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
         leaderPublishSubject = PublishSubject.create();
 
         executorService.scheduleAtFixedRate(() -> {
@@ -62,6 +65,11 @@ public class ConfigurationLeaderResolver implements LeaderResolver {
                 logger.error("Unable to resolve current titus master with error: ", e);
             }
         }, 0, LEADER_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        executorService.shutdownNow();
     }
 
     public Optional<Address> resolve() {

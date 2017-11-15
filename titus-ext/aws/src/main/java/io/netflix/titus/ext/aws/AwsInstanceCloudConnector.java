@@ -201,6 +201,9 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     @Override
     public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
         return toObservable(() -> {
+            logger.info("Updating instance group {} capacity: min={}, desired={}", instanceGroupId,
+                    min.map(Object::toString).orElse("notSet"), desired.map(Object::toString).orElse("notSet"));
+
             checkCapacityConstraints(min, desired);
             UpdateAutoScalingGroupRequest request = new UpdateAutoScalingGroupRequest()
                     .withAutoScalingGroupName(instanceGroupId);
@@ -208,6 +211,30 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
             desired.ifPresent(request::setDesiredCapacity);
             return autoScalingClient.updateAutoScalingGroupAsync(request);
         }).toCompletable().timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
+        return getInstanceGroups(singletonList(instanceGroupId))
+                .map(list -> list.get(0))
+                .flatMap(instanceGroup -> {
+                    int newDesired = instanceGroup.getDesired() + scaleUpCount;
+                    if (newDesired > instanceGroup.getMax()) {
+                        return Observable.error(CloudConnectorException.invalidArgument(
+                                "Instance group requested desired size %s > max size %s",
+                                newDesired, instanceGroup.getMax())
+                        );
+                    }
+
+                    logger.info("Scaling up instance group {}, by {} instances (desired changed from {} to {})",
+                            instanceGroup, scaleUpCount, instanceGroup.getDesired(), newDesired);
+
+                    UpdateAutoScalingGroupRequest request = new UpdateAutoScalingGroupRequest()
+                            .withAutoScalingGroupName(instanceGroupId);
+                    request.setDesiredCapacity(newDesired);
+
+                    return ObservableExt.toObservable(autoScalingClient.updateAutoScalingGroupAsync(request), scheduler);
+                }).toCompletable().timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
     @Override

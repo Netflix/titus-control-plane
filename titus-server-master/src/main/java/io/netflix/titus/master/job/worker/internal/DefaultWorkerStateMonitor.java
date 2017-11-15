@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -135,7 +136,8 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                                 .withTimestamp(args.getTimestamp())
                                 .build();
                         // Failures are logged only, as the reconciler will take care of it if needed.
-                        v3JobOperations.updateTask(task.getId(), JobManagerUtil.newTaskStateUpdater(taskStatus), "Mesos -> " + newState).subscribe(
+                        final Function<Task, Task> updater = JobManagerUtil.newTaskStateUpdater(taskStatus, args.getData());
+                        v3JobOperations.updateTask(task.getId(), updater, "Mesos -> " + newState).subscribe(
                                 () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
                                 e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
                         );

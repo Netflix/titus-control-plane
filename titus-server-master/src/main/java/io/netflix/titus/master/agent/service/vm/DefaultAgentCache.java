@@ -104,13 +104,13 @@ public class DefaultAgentCache implements AgentCache {
                       Registry registry,
                       Scheduler scheduler) {
         this.defaultAutoScaleRule = AutoScaleRule.newBuilder()
-                .withInstanceGroupId("template")
                 .withPriority(100)
                 .withMinIdleToKeep(configuration.getAutoScaleRuleMinIdleToKeep())
                 .withMaxIdleToKeep(configuration.getAutoScaleRuleMaxIdleToKeep())
                 .withMin(configuration.getAutoScaleRuleMin())
                 .withMax(configuration.getAutoScaleRuleMax())
                 .withCoolDownSec(configuration.getAutoScaleRuleCoolDownSec())
+                .withShortfallAdjustingFactor(configuration.getAutoScaleRuleShortfallAdjustingFactor())
                 .build();
         this.configuration = configuration;
         this.agentStore = agentStore;
@@ -295,7 +295,7 @@ public class DefaultAgentCache implements AgentCache {
             agentInstanceGroup = DataConverters.toAgentInstanceGroup(
                     instanceGroup,
                     instanceResourceDimension,
-                    defaultAutoScaleRule.toBuilder().withInstanceGroupId(instanceGroupId).build()
+                    defaultAutoScaleRule
             );
             agentInstances = instanceGroup.getInstanceIds().stream()
                     .map(vmServersCache::getAgentInstance)

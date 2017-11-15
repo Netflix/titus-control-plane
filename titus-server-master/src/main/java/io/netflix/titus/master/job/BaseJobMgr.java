@@ -602,6 +602,9 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         return titusTaskInfoCreator.createTitusTaskInfo(slaveID, job.getParameters(), task, portsAssigned, mwmd.getWorkerInstanceId(), attributeMap);
     }
 
+    /**
+     * Kill current task, and run a replacement.
+     */
     @Override
     public void resubmitWorker(String taskId, String reason) throws InvalidJobException, InvalidJobStateChangeException {
         final WorkerNaming.JobWorkerIdPair jobAndWorkerId = WorkerNaming.getJobAndWorkerId(taskId);
@@ -622,6 +625,8 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
             }
             Status status = new Status(jobId, WorkerNaming.getTaskId(task), 1, task.getWorkerIndex(), taskNumber, Status.TYPE.INFO,
                     reason == null ? "resubmit requested" : reason, Status.getDataStringFromObj(task.getStatusData()), V2JobState.Failed);
+            status.setReason(JobCompletedReason.Killed);
+
             try {
 
                 String newReason = "Replacing failed task number " + status.getWorkerNumber();

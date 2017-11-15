@@ -132,7 +132,6 @@ public class EmbeddedTitusMaster {
         Properties embeddedProperties = new Properties();
         embeddedProperties.put("governator.jetty.embedded.port", apiPort);
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
-        embeddedProperties.put("mantis.agent.cluster.autoscaler.map.hostname.attribute.name", "id");
         config.setProperties(embeddedProperties);
 
         this.simulatedCloud = builder.simulatedCloud == null ? new SimulatedCloud() : builder.simulatedCloud;
@@ -457,8 +456,8 @@ public class EmbeddedTitusMaster {
 
             props.put("titus.agent.agentServerGroupPattern", ".*");
             props.put("titus.master.audit.auditLogFolder", "build/auditLogs");
-            props.put("mantis.master.apiport", Integer.toString(apiPort));
-            props.put("mantis.master.grpcServer.port", Integer.toString(grpcPort));
+            props.put("titus.master.apiport", Integer.toString(apiPort));
+            props.put("titus.master.grpcServer.port", Integer.toString(grpcPort));
 
             if (storageProvider == null) {
                 storageProvider = new EmbeddedStorageProvider();

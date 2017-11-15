@@ -21,6 +21,7 @@ import javax.validation.Valid;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
+import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
 import io.netflix.titus.common.model.sanitizer.NeverNull;
@@ -42,14 +43,22 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
     @Valid
     private final ServiceJobProcesses serviceJobProcesses;
 
+    @Valid
+    private final MigrationPolicy migrationPolicy;
+
     public ServiceJobExt(Capacity capacity,
                          boolean enabled,
                          RetryPolicy retryPolicy,
-                         ServiceJobProcesses serviceJobProcesses) {
+                         ServiceJobProcesses serviceJobProcesses,
+                         MigrationPolicy migrationPolicy) {
         this.capacity = capacity;
         this.enabled = enabled;
         this.retryPolicy = retryPolicy;
         this.serviceJobProcesses = serviceJobProcesses;
+        this.capacity = capacity;
+        this.enabled = enabled;
+        this.retryPolicy = retryPolicy;
+        this.migrationPolicy = migrationPolicy;
     }
 
     public Capacity getCapacity() {
@@ -65,6 +74,9 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
     }
 
     public ServiceJobProcesses getServiceJobProcesses() { return serviceJobProcesses; }
+    public MigrationPolicy getMigrationPolicy() {
+        return migrationPolicy;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -73,10 +85,20 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
 
         ServiceJobExt that = (ServiceJobExt) o;
 
-        if (enabled != that.enabled) return false;
-        if (!capacity.equals(that.capacity)) return false;
-        if (!retryPolicy.equals(that.retryPolicy)) return false;
-        return serviceJobProcesses.equals(that.serviceJobProcesses);
+        if (enabled != that.enabled) {
+            return false;
+        }
+        if (capacity != null ? !capacity.equals(that.capacity) : that.capacity != null) {
+            return false;
+        }
+        if (retryPolicy != null ? !retryPolicy.equals(that.retryPolicy) : that.retryPolicy != null) {
+            return false;
+        }
+        if (serviceJobProcesses != null ? serviceJobProcesses.equals(that.serviceJobProcesses) : that.serviceJobProcesses != null) {
+            return false;
+        }
+
+        return migrationPolicy != null ? migrationPolicy.equals(that.migrationPolicy) : that.migrationPolicy == null;
     }
 
     @Override
@@ -84,7 +106,8 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         int result = capacity.hashCode();
         result = 31 * result + (enabled ? 1 : 0);
         result = 31 * result + retryPolicy.hashCode();
-        result = 31 * result + serviceJobProcesses.hashCode();
+        result = 31 * result + (serviceJobProcesses != null ? serviceJobProcesses.hashCode() : 0);
+        result = 31 * result + (migrationPolicy != null ? migrationPolicy.hashCode() : 0);
         return result;
     }
 
@@ -95,6 +118,7 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
                 ", enabled=" + enabled +
                 ", retryPolicy=" + retryPolicy +
                 ", serviceJobProcesses=" + serviceJobProcesses +
+                ", migrationPolicy=" + migrationPolicy +
                 '}';
     }
 
@@ -119,6 +143,7 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         private boolean enabled;
         private RetryPolicy retryPolicy;
         private ServiceJobProcesses serviceJobProcesses;
+        private MigrationPolicy migrationPolicy;
 
         private Builder() {
         }
@@ -143,13 +168,18 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
             return this;
         }
 
+        public Builder withMigrationPolicy(MigrationPolicy migrationPolicy) {
+            this.migrationPolicy = migrationPolicy;
+            return this;
+        }
+
         public Builder but() {
-            return newBuilder().withCapacity(capacity).withEnabled(enabled).withRetryPolicy(retryPolicy).withServiceJobProcesses(serviceJobProcesses);
+            return newBuilder().withCapacity(capacity).withEnabled(enabled).withRetryPolicy(retryPolicy)
+                    .withServiceJobProcesses(serviceJobProcesses).withMigrationPolicy(migrationPolicy);
         }
 
         public ServiceJobExt build() {
-            ServiceJobExt serviceJobExt = new ServiceJobExt(capacity, enabled, retryPolicy, serviceJobProcesses);
-            return serviceJobExt;
+            return new ServiceJobExt(capacity, enabled, retryPolicy, serviceJobProcesses, migrationPolicy);
         }
     }
 }

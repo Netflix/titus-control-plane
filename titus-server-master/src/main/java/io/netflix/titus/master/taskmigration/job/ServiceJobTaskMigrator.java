@@ -210,9 +210,7 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
         try {
             long deadline = System.currentTimeMillis() + taskMigrationManager.getTimeoutMs();
             for (TaskMigrationDetails taskMigrationDetails : taskMigrationDetailsList) {
-                if (taskMigrationDetails instanceof V2TaskMigrationDetails) {
-                    ((V2TaskMigrationDetails) taskMigrationDetails).setMigrationDeadline(deadline);
-                }
+                taskMigrationDetails.setMigrationDeadline(deadline);
             }
             taskMigrationManager.update(taskMigrationDetailsList);
         } catch (Exception e) {

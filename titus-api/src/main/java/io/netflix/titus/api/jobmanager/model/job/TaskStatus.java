@@ -25,11 +25,11 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
 
     public static final String REASON_NORMAL = "normal";
 
-    public static final String REASON_JOB_KILLED = "jobKilled";
+    public static final String REASON_JOB_KILLED = "killed";
 
-    public static final String REASON_TASK_KILLED = "taskKilled";
+    public static final String REASON_TASK_KILLED = "killed";
 
-    public static final String REASON_TASK_LOST = "taskLost";
+    public static final String REASON_TASK_LOST = "lost";
 
     public static final String REASON_SCALED_DOWN = "scaledDown";
 

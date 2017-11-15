@@ -58,6 +58,11 @@ public class NoOpInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     @Override
+    public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
+        return Completable.complete();
+    }
+
+    @Override
     public Observable<List<Either<Boolean, Throwable>>> terminateInstances(String instanceGroup, List<String> instanceIds, boolean shrink) {
         return Observable.empty();
     }

@@ -158,6 +158,7 @@ public final class JobDescriptorGenerator {
                 .withExtensions(JobModel.newServiceJobExt(jobDescriptor.getExtensions())
                         .withCapacity(Capacity.newBuilder().withMin(0).withDesired(1).withMax(2).build())
                         .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(0).build())
+                        .withMigrationPolicy(JobModel.newSystemDefaultMigrationPolicy().build())
                         .build()
                 )
                 .build();

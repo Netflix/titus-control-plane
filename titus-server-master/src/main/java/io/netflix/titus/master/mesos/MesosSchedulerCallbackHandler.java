@@ -56,7 +56,10 @@ import rx.Observer;
 import rx.Subscription;
 import rx.functions.Func0;
 
-import static io.netflix.titus.master.mesos.MesosTracer.traceMesosCallback;
+import static io.netflix.titus.master.mesos.MesosTracer.logMesosCallbackDebug;
+import static io.netflix.titus.master.mesos.MesosTracer.logMesosCallbackError;
+import static io.netflix.titus.master.mesos.MesosTracer.logMesosCallbackInfo;
+import static io.netflix.titus.master.mesos.MesosTracer.logMesosCallbackWarn;
 import static io.netflix.titus.master.mesos.MesosTracer.traceMesosRequest;
 
 public class MesosSchedulerCallbackHandler implements Scheduler {
@@ -139,15 +142,13 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             if ("cpus".equals(resource.getName())) {
                 final double cpus = resource.getScalar().getValue();
                 if (cpus < 0.1) {
-                    logger.warn("Declining offer: " + offer.getId().getValue() + " due to too few CPUs in offer from " + offer.getHostname() +
-                            ": " + cpus);
+                    logMesosCallbackInfo("Declining offer: %s due to too few CPUs in offer from %s: %s", offer.getId().getValue(), offer.getHostname(), cpus);
                     return false;
                 }
             } else if ("mem".equals(resource.getName())) {
                 double memoryMB = resource.getScalar().getValue();
                 if (memoryMB < 1) {
-                    logger.warn("Declining offer: " + offer.getId().getValue() + " due to too few memory in offer from " + offer.getHostname() +
-                            ": " + memoryMB);
+                    logMesosCallbackInfo("Declining offer: %s due to too few memory in offer from %s: %s", offer.getId().getValue(), offer.getHostname(), memoryMB);
                     return false;
                 }
             }
@@ -168,7 +169,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                         numOfferTooSmall.increment();
                         return false;
                     }
-                    traceMesosCallback("Adding offer: " + offer.getId().getValue() + " from host: " + offer.getHostname());
+                    logMesosCallbackInfo("Adding offer: " + offer.getId().getValue() + " from host: " + offer.getHostname());
                     return true;
                 })
                 .map(VMLeaseObject::new)
@@ -183,49 +184,45 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     @Override
-    public void disconnected(SchedulerDriver arg0) {
-        logger.warn("Mesos driver disconnected: " + arg0);
+    public void disconnected(SchedulerDriver driver) {
+        logMesosCallbackError("Mesos driver disconnected: %s", driver);
         numMesosDisconnects.increment();
         connected = false;
     }
 
     @Override
-    public void error(SchedulerDriver arg0, String msg) {
-        logger.error("Error from Mesos: " + msg);
+    public void error(SchedulerDriver driver, String msg) {
+        logMesosCallbackError("Error from Mesos: %s", msg);
     }
 
     @Override
-    public void executorLost(SchedulerDriver arg0, ExecutorID arg1,
-                             SlaveID arg2, int arg3) {
-        logger.warn("Lost executor " + arg1.getValue() + " on slave " + arg2.getValue() + " with status=" + arg3);
+    public void executorLost(SchedulerDriver driver, ExecutorID executorId, SlaveID slaveId, int status) {
+        logMesosCallbackError("Lost executor %s on slave %s with status=%s", executorId.getValue(), slaveId.getValue(), status);
     }
 
     @Override
-    public void frameworkMessage(SchedulerDriver arg0, ExecutorID arg1,
-                                 SlaveID arg2, byte[] arg3) {
-        logger.warn("Unexpected framework message: executorId=" + arg1.getValue() +
-                ", slaveID=" + arg2.getValue() + ", message=" + arg3);
+    public void frameworkMessage(SchedulerDriver driver, ExecutorID executorId, SlaveID slaveId, byte[] data) {
+        logMesosCallbackError("Unexpected framework message: executorId=%s slaveID=%s, message=%s", executorId.getValue(), slaveId.getValue(), data);
     }
 
     @Override
-    public void offerRescinded(SchedulerDriver arg0, OfferID arg1) {
-        traceMesosCallback("Rescinded offer: " + arg1.getValue());
-        vmLeaseRescindedObserver.onNext(arg1.getValue());
+    public void offerRescinded(SchedulerDriver driver, OfferID offerId) {
+        logMesosCallbackInfo("Rescinded offer: %s", offerId.getValue());
+        vmLeaseRescindedObserver.onNext(offerId.getValue());
         numOfferRescinded.increment();
     }
 
     @Override
-    public void registered(SchedulerDriver driver, FrameworkID frameworkID,
-                           MasterInfo masterInfo) {
-        logger.info("Mesos registered: " + driver + ", ID=" + frameworkID.getValue() + ", masterInfo=" + masterInfo.getId());
+    public void registered(SchedulerDriver driver, FrameworkID frameworkID, MasterInfo masterInfo) {
+        logMesosCallbackInfo("Mesos registered: %s, ID=%s, masterInfo=%s", driver, frameworkID.getValue(), masterInfo.getId());
         initializeNewDriver(driver);
         numMesosRegistered.increment();
         connected = true;
     }
 
     @Override
-    public void reregistered(SchedulerDriver driver, MasterInfo arg1) {
-        logger.info("Mesos re-registered: " + driver + ", masterInfo=" + arg1.getId());
+    public void reregistered(SchedulerDriver driver, MasterInfo masterInfo) {
+        logMesosCallbackWarn("Mesos re-registered: %s, masterInfo=%s", driver, masterInfo.getId());
         initializeNewDriver(driver);
         numMesosRegistered.increment();
         connected = true;
@@ -310,16 +307,16 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     @Override
-    public void slaveLost(SchedulerDriver arg0, SlaveID arg1) {
-        logger.warn("Lost slave " + arg1.getValue());
+    public void slaveLost(SchedulerDriver arg0, SlaveID slaveId) {
+        logMesosCallbackWarn("Lost slave: %s", slaveId.getValue());
     }
 
     @Override
-    public void statusUpdate(final SchedulerDriver arg0, TaskStatus arg1) {
-        String taskId = arg1.getTaskId().getValue();
-        TaskState taskState = arg1.getState();
+    public void statusUpdate(final SchedulerDriver arg0, TaskStatus taskStatus) {
+        String taskId = taskStatus.getTaskId().getValue();
+        TaskState taskState = taskStatus.getState();
 
-        MesosTracer.traceMesosCallback("Task status update: taskId=" + taskId + ", taskState=" + taskState + ", message=" + arg1.getMessage());
+        logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, taskStatus.getMessage());
 
         TaskState previous = lastStatusUpdate.getIfPresent(taskId);
         TaskState effectiveState;
@@ -363,15 +360,17 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 logger.warn("Unexpected Mesos task state " + effectiveState);
                 return;
         }
-        if (arg1.getData() != null) {
-            logger.info("Mesos status object data: " + new String(arg1.getData().toByteArray()));
+        String data = "";
+        if (taskStatus.getData() != null) {
+            data = new String(taskStatus.getData().toByteArray());
+            logMesosCallbackDebug("Mesos status object data: %s", data);
         }
         WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
         final Status status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
-                arg1.getMessage(), arg1.getData() == null ? "" : new String(arg1.getData().toByteArray()), state);
+                taskStatus.getMessage(), data, state);
         status.setReason(reason);
 
-        logger.info("Publishing task status {}", status);
+        logger.debug("Publishing task status: {}", status);
 
         vmTaskStatusObserver.onNext(status);
     }

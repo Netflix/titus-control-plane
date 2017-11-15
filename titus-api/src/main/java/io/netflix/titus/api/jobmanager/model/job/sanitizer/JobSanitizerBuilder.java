@@ -21,6 +21,7 @@ import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;

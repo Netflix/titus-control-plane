@@ -67,7 +67,7 @@ public class CassandraAgentStoreTest {
     }
 
     @Test
-    public void testSoreAndRetrieveAgentServerGroups() throws Exception {
+    public void testStoreAndRetrieveAgentServerGroups() throws Exception {
         List<AgentInstanceGroup> serverGroups = agentServerGroups().toList(2);
 
         AgentStore bootstrappingTitusStore = createAgentStore();

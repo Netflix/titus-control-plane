@@ -29,11 +29,12 @@ import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
-import io.netflix.titus.master.endpoint.v2.rest.metric.ResettableInputStreamFilter;
-import io.netflix.titus.master.endpoint.v2.rest.provider.InstrumentedResourceMethodDispatchAdapter;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import io.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
+import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import io.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
+import io.netflix.titus.runtime.endpoint.common.rest.metric.ResettableInputStreamFilter;
+import io.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
 
 /**
  * We use this module to wire up our endpoints.
@@ -55,8 +56,14 @@ public final class JerseyModule extends JerseyServletModule {
 
     @Provides
     @Singleton
-    public RestConfig getMetricConfig(ConfigProxyFactory factory) {
+    public RestConfig getRestConfig(ConfigProxyFactory factory) {
         return factory.newProxy(RestConfig.class);
+    }
+
+    @Provides
+    @Singleton
+    public RestServerConfiguration getRestServerConfiguration(RestConfig restConfig) {
+        return restConfig;
     }
 
     @Advises

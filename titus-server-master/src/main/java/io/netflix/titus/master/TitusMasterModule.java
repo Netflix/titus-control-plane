@@ -37,8 +37,6 @@ import io.netflix.titus.master.endpoint.EndpointModule;
 import io.netflix.titus.master.endpoint.common.ContextResolver;
 import io.netflix.titus.master.endpoint.common.EmptyContextResolver;
 import io.netflix.titus.master.endpoint.v2.rest.JerseyModule;
-import io.netflix.titus.master.endpoint.v2.rest.caller.CallerIdResolver;
-import io.netflix.titus.master.endpoint.v2.rest.caller.HttpCallerIdResolver;
 import io.netflix.titus.master.endpoint.v2.validator.ValidatorConfiguration;
 import io.netflix.titus.master.job.JobModule;
 import io.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
@@ -54,6 +52,10 @@ import io.netflix.titus.master.taskmigration.TaskMigratorModule;
 import io.netflix.titus.master.zookeeper.ZookeeperPaths;
 import io.netflix.titus.runtime.TitusEntitySanitizerModule;
 import io.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
+import io.netflix.titus.runtime.endpoint.resolver.ByRemoteAddressHttpCallerIdResolver;
+import io.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
+import io.netflix.titus.runtime.endpoint.resolver.HttpCallerIdResolver;
+import io.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 
 /**
  * Main TitusMaster guice module.
@@ -99,7 +101,8 @@ public class TitusMasterModule extends AbstractModule {
         install(new GovernatorJerseySupportModule());
 
         // This should be in JerseyModule, but overrides get broken if we do that (possibly Governator bug).
-        bind(CallerIdResolver.class).to(HttpCallerIdResolver.class);
+        bind(HttpCallerIdResolver.class).to(ByRemoteAddressHttpCallerIdResolver.class);
+        bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
         install(new JerseyModule());
 
         install(new EndpointModule());

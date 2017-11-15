@@ -58,6 +58,10 @@ public class CloudConnectorException extends RuntimeException {
         return new CloudConnectorException(ErrorCode.NotFound, "Unrecognized instance type:  " + instanceType);
     }
 
+    public static CloudConnectorException invalidArgument(String message, Object... args) {
+        return new CloudConnectorException(ErrorCode.InvalidData, message, args);
+    }
+
     public static void checkArgument(boolean isValid, String message, Object... args) {
         if (isValid) {
             throw new CloudConnectorException(ErrorCode.InvalidData, message, args);

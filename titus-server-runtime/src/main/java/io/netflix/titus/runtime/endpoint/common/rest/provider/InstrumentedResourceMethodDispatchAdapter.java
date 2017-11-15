@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.v2.rest.provider;
+package io.netflix.titus.runtime.endpoint.common.rest.provider;
 
 import javax.inject.Inject;
 import javax.ws.rs.ext.Provider;
@@ -22,27 +22,26 @@ import javax.ws.rs.ext.Provider;
 import com.netflix.spectator.api.Registry;
 import com.sun.jersey.spi.container.ResourceMethodDispatchAdapter;
 import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
-import io.netflix.titus.master.endpoint.v2.rest.RestConfig;
-import io.netflix.titus.master.endpoint.v2.rest.metric.InstrumentedResourceMethodDispatchProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
+import io.netflix.titus.runtime.endpoint.common.rest.metric.InstrumentedResourceMethodDispatchProvider;
+import io.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 
 @Provider
 public class InstrumentedResourceMethodDispatchAdapter implements ResourceMethodDispatchAdapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(InstrumentedResourceMethodDispatchAdapter.class);
-
-    private final RestConfig config;
+    private final RestServerConfiguration config;
     private final Registry registry;
+    private final HostCallerIdResolver hostCallerIdResolver;
 
     @Inject
-    public InstrumentedResourceMethodDispatchAdapter(RestConfig config, Registry registry) {
+    public InstrumentedResourceMethodDispatchAdapter(RestServerConfiguration config, HostCallerIdResolver hostCallerIdResolver, Registry registry) {
         this.config = config;
         this.registry = registry;
+        this.hostCallerIdResolver = hostCallerIdResolver;
     }
 
     @Override
     public ResourceMethodDispatchProvider adapt(ResourceMethodDispatchProvider provider) {
-        return new InstrumentedResourceMethodDispatchProvider(config, registry, provider);
+        return new InstrumentedResourceMethodDispatchProvider(config, hostCallerIdResolver, registry, provider);
     }
 }

@@ -177,9 +177,12 @@ public class V2GrpcTitusServiceGateway
             return emptyReply.get();
         }
 
+        Set<String> jobIds = queryCriteria.getJobIds();
+        boolean hasJobIds = !jobIds.isEmpty();
+        List<V2JobMetadata> jobs = hasJobIds ? getSortedJobsByIds(jobIds) : getAllSortedJobs();
+
         V2JobQueryCriteriaEvaluator criteriaEvaluator = new V2JobQueryCriteriaEvaluator(queryCriteria);
-        List<V2JobMetadata> allJobs = getAllSortedJobs();
-        List<Pair<V2JobMetadata, List<V2WorkerMetadata>>> filtered = allJobs.stream()
+        List<Pair<V2JobMetadata, List<V2WorkerMetadata>>> filtered = jobs.stream()
                 .map(job -> {
                     List<V2WorkerMetadata> tasks = new ArrayList<>(job.getStageMetadata(1).getAllWorkers());
                     return Pair.of(job, tasks);
@@ -215,7 +218,7 @@ public class V2GrpcTitusServiceGateway
                         .getAllWorkers().stream()
                         .map(task -> Pair.of(job, task))
                 )
-                .filter(criteriaEvaluator::test)
+                .filter(criteriaEvaluator)
                 .collect(Collectors.toList());
 
         Pair<List<Pair<V2JobMetadata, V2WorkerMetadata>>, Pagination> paginationPair = PaginationUtil.takePage(page, filtered);

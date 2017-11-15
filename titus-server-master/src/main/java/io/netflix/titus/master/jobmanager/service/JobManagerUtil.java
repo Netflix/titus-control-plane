@@ -16,21 +16,30 @@
 
 package io.netflix.titus.master.jobmanager.service;
 
+import java.io.IOException;
+import java.util.Optional;
 import java.util.function.Function;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 
 /**
  * Collection of common functions.
  */
 public final class JobManagerUtil {
+    private static final ObjectMapper mapper = ObjectMappers.defaultMapper();
 
     private JobManagerUtil() {
     }
@@ -47,7 +56,7 @@ public final class JobManagerUtil {
         return Pair.of(applicationSLA.getTier(), capacityGroup);
     }
 
-    public static Function<Task, Task> newTaskStateUpdater(TaskStatus taskStatus) {
+    public static Function<Task, Task> newTaskStateUpdater(TaskStatus taskStatus, String statusData) {
         return oldTask -> {
             // De-duplicate task status updates. For example 'Launched' state is reported from two places, so we got
             // 'Launched' state update twice.
@@ -55,7 +64,27 @@ public final class JobManagerUtil {
                 return oldTask;
             }
 
-            return JobFunctions.updateTaskStatus(oldTask, taskStatus);
+            final Task newTask = JobFunctions.updateTaskStatus(oldTask, taskStatus);
+            return parseDetails(statusData).map(details -> {
+                if (details.getNetworkConfiguration() != null && !StringExt.isEmpty(details.getNetworkConfiguration().getIpAddress())) {
+                    return newTask.toBuilder().withTaskContext(CollectionsExt.copyAndAdd(
+                            newTask.getTaskContext(),
+                            TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, details.getNetworkConfiguration().getIpAddress()
+                    )).build();
+                }
+                return newTask;
+            }).orElse(newTask);
         };
+    }
+
+    private static Optional<TitusExecutorDetails> parseDetails(String statusData) {
+        if (StringExt.isEmpty(statusData)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(mapper.readValue(statusData, TitusExecutorDetails.class));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 }

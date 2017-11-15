@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.MoreObjects;
 import io.netflix.titus.api.endpoint.v2.rest.representation.EfsMountRepresentation;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.MigrationPolicy;
 import io.netflix.titus.api.model.v2.JobConstraints;
@@ -48,8 +49,6 @@ import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2StageMetadata;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.StringExt;
-import io.netflix.titus.master.config.MasterConfiguration;
-import io.netflix.titus.master.config.MasterConfigurationConverters;
 import io.netflix.titus.master.store.NamedJobs;
 
 import static io.netflix.titus.common.util.CollectionsExt.ifNotEmpty;
@@ -239,7 +238,7 @@ public class TitusJobSpec {
      *
      * @return cleaned up {@link TitusJobSpec}
      */
-    public static TitusJobSpec sanitize(MasterConfiguration config, TitusJobSpec original) {
+    public static TitusJobSpec sanitize(JobConfiguration config, TitusJobSpec original) {
         Builder builder = new Builder(original);
 
         // 'appName' must be non-empty string or null
@@ -254,7 +253,7 @@ public class TitusJobSpec {
             securityGroups = StringExt.trim(securityGroups);
         }
         if (securityGroups == null || securityGroups.isEmpty()) {
-            builder.securityGroups(MasterConfigurationConverters.getDefaultSecurityGroupList(config));
+            builder.securityGroups(config.getDefaultSecurityGroups());
         } else {
             builder.securityGroups(securityGroups);
         }
@@ -267,7 +266,7 @@ public class TitusJobSpec {
         ifNotEmpty(original.getEfsMounts(), () -> builder.efsMounts(reorderByEfsPathInclusion(addEfsDefaults(original))));
 
         if ((original.getRuntimeLimitSecs() == null || original.getRuntimeLimitSecs().equals(0L)) && original.getType() == TitusJobType.batch) {
-            builder.runtimeLimitSecs(config.getDefaultRuntimeLimit());
+            builder.runtimeLimitSecs(config.getDefaultRuntimeLimitSec());
         }
 
         // Convert 'null' values in env map to empty string
