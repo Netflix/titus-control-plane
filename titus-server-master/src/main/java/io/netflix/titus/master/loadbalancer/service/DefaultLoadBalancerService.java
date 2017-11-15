@@ -117,7 +117,6 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         // TODO(fabio): load tracking state from store
 
         loadBalancerBatches = runtime.persistentStream(events())
-                .observeOn(scheduler)
                 .subscribeOn(scheduler)
                 .subscribe(
                         batch -> logger.info("Load balancer batch completed. Registered {}, deregistered {}",
