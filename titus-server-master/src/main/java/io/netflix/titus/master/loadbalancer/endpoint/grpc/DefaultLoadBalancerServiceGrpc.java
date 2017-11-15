@@ -31,6 +31,8 @@ import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
+
 @Singleton
 public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
     private static Logger log = LoggerFactory.getLogger(DefaultLoadBalancerServiceGrpc.class);
@@ -47,7 +49,7 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
         GetLoadBalancerResult.Builder resultBuilder = GetLoadBalancerResult.newBuilder();
         loadBalancerService.getJobLoadBalancers(request.getId()).subscribe(
                 loadBalancerId -> resultBuilder.addLoadBalancers(LoadBalancerId.newBuilder().setId(loadBalancerId).build()),
-                responseObserver::onError,
+                e -> safeOnError(log, e, responseObserver),
                 () -> {
                     responseObserver.onNext(resultBuilder.build());
                     responseObserver.onCompleted();
@@ -63,7 +65,7 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
-                responseObserver::onError
+                e -> safeOnError(log, e, responseObserver)
         );
     }
 
@@ -75,7 +77,7 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
-                responseObserver::onError
+                e -> safeOnError(log, e, responseObserver)
         );
     }
 }

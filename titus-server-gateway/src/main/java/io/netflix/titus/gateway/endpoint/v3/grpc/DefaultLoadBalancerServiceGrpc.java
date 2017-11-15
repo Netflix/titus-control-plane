@@ -29,6 +29,10 @@ import io.grpc.stub.StreamObserver;
 import io.netflix.titus.gateway.service.v3.LoadBalancerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Subscription;
+
+import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
+import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 
 @Singleton
 public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
@@ -43,31 +47,34 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     @Override
     public void getJobLoadBalancers(JobId request, StreamObserver<GetLoadBalancerResult> responseObserver) {
         log.debug("Received get load balancer request {}", request);
-        loadBalancerService.getLoadBalancers(request).subscribe(
+        Subscription subscription = loadBalancerService.getLoadBalancers(request).subscribe(
                 responseObserver::onNext,
-                responseObserver::onError,
+                e -> safeOnError(log, e, responseObserver),
                 responseObserver::onCompleted
         );
+        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void addLoadBalancer(AddLoadBalancerRequest request, StreamObserver<Empty> responseObserver) {
         log.debug("Received add load balancer request {}", request);
-        loadBalancerService.addLoadBalancer(request).subscribe(
+        Subscription subscription = loadBalancerService.addLoadBalancer(request).subscribe(
                 responseObserver::onCompleted,
-                responseObserver::onError
+                e -> safeOnError(log, e, responseObserver)
         );
+        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void removeLoadBalancer(RemoveLoadBalancerRequest request, StreamObserver<Empty> responseObserver) {
         log.debug("Received remove load balancer request {}", request);
-        loadBalancerService.removeLoadBalancer(request).subscribe(
+        Subscription subscription = loadBalancerService.removeLoadBalancer(request).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
-                responseObserver::onError
+                e -> safeOnError(log, e, responseObserver)
         );
+        attachCancellingCallback(responseObserver, subscription);
     }
 }
