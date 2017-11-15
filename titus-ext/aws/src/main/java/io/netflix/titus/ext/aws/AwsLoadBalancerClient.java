@@ -16,7 +16,7 @@
 
 package io.netflix.titus.ext.aws;
 
-import java.util.Collection;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
@@ -49,19 +49,21 @@ public class AwsLoadBalancerClient implements LoadBalancerClient {
     }
 
     @Override
-    public Completable registerAll(String loadBalancerId, Collection<String> ipAddresses) {
+    public Completable registerAll(String loadBalancerId, Set<String> ipAddresses) {
         if (CollectionsExt.isNullOrEmpty(ipAddresses)) {
             return Completable.complete();
         }
 
         // TODO: retry logic
         // TODO: handle partial failures in the batch
+        // TODO: timeouts
 
+        final Set<TargetDescription> targetDescriptions = ipAddresses.stream().map(
+                ipAddress -> new TargetDescription().withId(ipAddress)
+        ).collect(Collectors.toSet());
         final RegisterTargetsRequest request = new RegisterTargetsRequest()
                 .withTargetGroupArn(loadBalancerId)
-                .withTargets(ipAddresses.stream().map(
-                        ipAddress -> new TargetDescription().withId(ipAddress)
-                ).collect(Collectors.toSet()));
+                .withTargets(targetDescriptions);
 
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
         return AwsObservableExt.asyncActionCompletable(factory -> client.registerTargetsAsync(request, factory.handler(
@@ -71,13 +73,14 @@ public class AwsLoadBalancerClient implements LoadBalancerClient {
     }
 
     @Override
-    public Completable deregisterAll(String loadBalancerId, Collection<String> ipAddresses) {
+    public Completable deregisterAll(String loadBalancerId, Set<String> ipAddresses) {
         if (CollectionsExt.isNullOrEmpty(ipAddresses)) {
             return Completable.complete();
         }
 
         // TODO: retry logic
         // TODO: handle partial failures in the batch
+        // TODO: timeouts
 
         final DeregisterTargetsRequest request = new DeregisterTargetsRequest()
                 .withTargetGroupArn(loadBalancerId)

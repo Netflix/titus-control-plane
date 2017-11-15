@@ -16,7 +16,7 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
-import java.util.Collection;
+import java.util.Set;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
 import rx.Completable;
@@ -26,12 +26,12 @@ import rx.Completable;
  */
 public class NoOpLoadBalancerClient implements LoadBalancerClient {
     @Override
-    public Completable registerAll(String loadBalancerId, Collection<String> targets) {
+    public Completable registerAll(String loadBalancerId, Set<String> ipAddresses) {
         return Completable.complete();
     }
 
     @Override
-    public Completable deregisterAll(String loadBalancerId, Collection<String> targets) {
+    public Completable deregisterAll(String loadBalancerId, Set<String> ipAddresses) {
         return Completable.complete();
     }
 }
