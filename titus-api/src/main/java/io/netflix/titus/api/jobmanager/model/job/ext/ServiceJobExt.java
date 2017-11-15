@@ -55,9 +55,6 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         this.enabled = enabled;
         this.retryPolicy = retryPolicy;
         this.serviceJobProcesses = serviceJobProcesses;
-        this.capacity = capacity;
-        this.enabled = enabled;
-        this.retryPolicy = retryPolicy;
         this.migrationPolicy = migrationPolicy;
     }
 
