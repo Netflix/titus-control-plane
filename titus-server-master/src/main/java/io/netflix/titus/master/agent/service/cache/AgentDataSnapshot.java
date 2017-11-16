@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.agent.service.vm;
+package io.netflix.titus.master.agent.service.cache;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,7 +36,6 @@ class AgentDataSnapshot {
     private final Set<String> instanceGroupIds;
     private final List<AgentInstanceGroup> instanceGroups;
     private final Map<String, Pair<AgentInstanceGroup, Set<AgentInstance>>> instanceGroupsById;
-
     private final Map<String, AgentInstance> agentInstancesById;
 
     AgentDataSnapshot() {
@@ -113,7 +112,7 @@ class AgentDataSnapshot {
             return this;
         }
 
-        HashMap<String, Pair<AgentInstanceGroup, Set<AgentInstance>>> newInstanceGroupsById = new HashMap<>(instanceGroupsById);
+        Map<String, Pair<AgentInstanceGroup, Set<AgentInstance>>> newInstanceGroupsById = new HashMap<>(instanceGroupsById);
         TreeSet<AgentInstance> newInstanceSet = new TreeSet<>(AgentInstance.idComparator());
         existing.getRight().forEach(agentInstance -> {
             if (!agentInstanceIds.contains(agentInstance.getId())) {
@@ -126,12 +125,12 @@ class AgentDataSnapshot {
     }
 
     static AgentDataSnapshot initWithStaleDataSnapshot(List<AgentInstanceGroup> persistedInstanceGroups, List<AgentInstance> persistedInstances) {
-        Map<String, Set<AgentInstance>> instancesByServerGroup = persistedInstances.stream()
+        Map<String, Set<AgentInstance>> instancesByInstanceGroup = persistedInstances.stream()
                 .collect(Collectors.groupingBy(AgentInstance::getInstanceGroupId, Collectors.toSet()));
 
         Map<String, Pair<AgentInstanceGroup, Set<AgentInstance>>> instanceGroupsById = persistedInstanceGroups.stream()
                 .map(sg -> {
-                    Set<AgentInstance> instances = instancesByServerGroup.get(sg.getId());
+                    Set<AgentInstance> instances = instancesByInstanceGroup.get(sg.getId());
                     instances = instances == null ? Collections.emptySet() : instances;
                     return Pair.of(sg, instances);
                 }).collect(Collectors.toMap(p -> p.getLeft().getId(), Function.identity()));

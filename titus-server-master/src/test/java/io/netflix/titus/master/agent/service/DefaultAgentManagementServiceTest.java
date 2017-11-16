@@ -38,9 +38,9 @@ import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.agent.service.vm.AgentCache;
-import io.netflix.titus.master.agent.service.vm.CacheUpdateEvent;
-import io.netflix.titus.master.agent.service.vm.CacheUpdateType;
+import io.netflix.titus.master.agent.service.cache.AgentCache;
+import io.netflix.titus.master.agent.service.cache.CacheUpdateEvent;
+import io.netflix.titus.master.agent.service.cache.CacheUpdateType;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
@@ -222,7 +222,7 @@ public class DefaultAgentManagementServiceTest {
     @Test
     public void testEventOnServerGroupUpdate() throws Exception {
         serverGroups.set(0, serverGroups.get(0).toBuilder().withMax(1000).build());
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.ServerGroup, serverGroups.get(0).getId()));
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, serverGroups.get(0).getId()));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceGroupUpdateEvent.class);
     }
@@ -232,7 +232,7 @@ public class DefaultAgentManagementServiceTest {
         String id = serverGroups.get(0).getId();
         serverGroups.remove(0);
 
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.ServerGroup, id));
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, id));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceGroupRemovedEvent.class);
     }
@@ -242,7 +242,7 @@ public class DefaultAgentManagementServiceTest {
         serverSet0.set(0, serverSet0.get(0).toBuilder().withHostname("changed").build());
         when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
 
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Server, serverSet0.get(0).getId()));
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, serverSet0.get(0).getId()));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceUpdateEvent.class);
     }
@@ -252,7 +252,7 @@ public class DefaultAgentManagementServiceTest {
         serverSet0.remove(0);
         when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
 
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.ServerGroup, serverGroups.get(0).getId()));
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, serverGroups.get(0).getId()));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceRemovedEvent.class);
     }
@@ -263,7 +263,7 @@ public class DefaultAgentManagementServiceTest {
         serverSet0.remove(0);
         when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
 
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Server, id));
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, id));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceRemovedEvent.class);
     }

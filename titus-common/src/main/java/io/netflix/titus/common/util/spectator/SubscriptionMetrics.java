@@ -69,7 +69,7 @@ class SubscriptionMetrics<T> implements Observable.Transformer<T, T> {
                 .doOnUnsubscribe(() -> unsubscribed.set(1));
     }
 
-    private long getTimeSinceLastEmit(long v) {
+    private long getTimeSinceLastEmit(long value) {
         return unsubscribed.get() == 0 ? registry.clock().wallTime() - lastEmitTimestamp.get() : 0;
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.agent.service.vm;
+package io.netflix.titus.master.agent.service.cache;
 
 import java.util.List;
 import java.util.Set;

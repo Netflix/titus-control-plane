@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.agent.service.vm;
+package io.netflix.titus.master.agent.service.cache;
 
 public enum CacheUpdateType {
     // All data in cache refreshed
     Refreshed,
 
     // Updated data of a specific instance group
-    ServerGroup,
+    InstanceGroup,
 
     // Updated data of a specific instance
-    Server
+    Instance
 }
