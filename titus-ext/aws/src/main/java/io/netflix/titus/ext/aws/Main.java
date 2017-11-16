@@ -96,7 +96,7 @@ public class Main {
     private void fetchInstancesByInstanceGroupId(List<String> instanceGroupIds) {
         String instanceGroupId = instanceGroupIds.get(0);
         List<Instance> instances = connector.getInstancesByInstanceGroupId(instanceGroupId).toBlocking().first();
-        System.out.println("Loaded instances: " + instances);
+        System.out.println("Loaded " + instances.size() + " instances: " + instances);
     }
 
     private void fetchInstance(List<String> ids) {
