@@ -90,6 +90,13 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     static final String TAG_ASG_NAME = "aws:autoscaling:groupName";
     static final String TAG_ASG_FILTER_NAME = "tag:" + TAG_ASG_NAME;
 
+    private static final int PENDING = 0;
+    private static final int RUNNING = 16;
+    private static final int SHUTTING_DOWN = 32;
+    private static final int TERMINATED = 48;
+    private static final int STOPPING = 64;
+    private static final int STOPPED = 80;
+
     private final AwsConfiguration configuration;
     private final AmazonEC2Async ec2Client;
     private final AmazonAutoScalingAsync autoScalingClient;
@@ -210,8 +217,9 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                         .withNextToken(token),
                 request -> toObservable(() -> ec2Client.describeInstancesAsync(request))
                         .map(result -> {
-                            List<com.amazonaws.services.ec2.model.Instance> instances =
-                                    result.getReservations().stream().flatMap(r -> r.getInstances().stream()).collect(Collectors.toList());
+                            List<com.amazonaws.services.ec2.model.Instance> instances = result.getReservations().stream()
+                                    .flatMap(r -> r.getInstances().stream().filter(instance -> !isTerminal(instance.getState())))
+                                    .collect(Collectors.toList());
                             return Pair.of(instances, result.getNextToken());
                         })
         );
@@ -313,7 +321,9 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
             return ec2Client.describeInstancesAsync(request);
         }).map(response -> {
                     List<com.amazonaws.services.ec2.model.Instance> instances =
-                            response.getReservations().stream().flatMap(r -> r.getInstances().stream()).collect(Collectors.toList());
+                            response.getReservations().stream()
+                                    .flatMap(r -> r.getInstances().stream().filter(instance -> !isTerminal(instance.getState())))
+                                    .collect(Collectors.toList());
                     return instances.stream().map(this::toInstance).collect(Collectors.toList());
                 }
         );
@@ -375,22 +385,22 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
         }
     }
 
-    private Instance.InstanceState toVmInstanceState(com.amazonaws.services.ec2.model.InstanceState instanceState) {
+    private Instance.InstanceState toInstanceState(com.amazonaws.services.ec2.model.InstanceState instanceState) {
         if (instanceState == null || instanceState.getCode() == null) {
             return InstanceState.Unknown;
         }
         switch (instanceState.getCode()) {
-            case 0: // pending
+            case PENDING: // pending
                 return Instance.InstanceState.Starting;
-            case 16: // running
+            case RUNNING: // running
                 return Instance.InstanceState.Running;
-            case 32: // shutting-down
+            case SHUTTING_DOWN: // shutting-down
                 return InstanceState.Terminating;
-            case 48: // terminated
+            case TERMINATED: // terminated
                 return Instance.InstanceState.Terminated;
-            case 64: // stopping
+            case STOPPING: // stopping
                 return Instance.InstanceState.Stopping;
-            case 80: // stopped
+            case STOPPED: // stopped
                 return Instance.InstanceState.Stopped;
         }
         return InstanceState.Unknown;
@@ -466,7 +476,7 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                 .withId(awsInstance.getInstanceId())
                 .withHostname(awsInstance.getPrivateDnsName())
                 .withIpAddress(awsInstance.getPrivateIpAddress())
-                .withInstanceState(toVmInstanceState(awsInstance.getState()))
+                .withInstanceState(toInstanceState(awsInstance.getState()))
                 .withAttributes(attributes)
                 .withLaunchTime(awsInstance.getLaunchTime().getTime())
                 .withInstanceGroupId(instanceGroupId)
@@ -475,5 +485,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
 
     private <T> Observable<T> toObservable(Supplier<Future<T>> futureSupplier) {
         return Observable.fromCallable(futureSupplier::get).flatMap(future -> ObservableExt.toObservable(future, scheduler));
+    }
+
+    private boolean isTerminal(com.amazonaws.services.ec2.model.InstanceState instanceState) {
+        Integer code = instanceState.getCode();
+        return code == STOPPED || code == TERMINATED;
     }
 }
