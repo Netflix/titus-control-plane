@@ -32,6 +32,7 @@ import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
@@ -231,6 +232,46 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
+    public void multipleLoadBalancersPerJob() throws Exception {
+        final String jobId = UUID.randomUUID().toString();
+        final String firstLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final String secondLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final int numberOfStartedTasks = 5;
+
+        defaultStubs();
+        when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
+
+        //noinspection unchecked
+        when(jobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
+                LoadBalancerTests.buildTasksStarted(numberOfStartedTasks, jobId),
+                LoadBalancerTests.buildTasks(2, jobId, TaskState.StartInitiated),
+                LoadBalancerTests.buildTasks(2, jobId, TaskState.KillInitiated),
+                LoadBalancerTests.buildTasks(3, jobId, TaskState.Finished),
+                LoadBalancerTests.buildTasks(1, jobId, TaskState.Disconnected)
+        ));
+
+        final int batchSize = 2 * numberOfStartedTasks; // expect 1 operation per <loadBalancer, task> pair
+        LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, loadBalancerStore, targetStore, jobOperations, testScheduler);
+
+        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+
+        assertTrue(service.addLoadBalancer(jobId, firstLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertTrue(service.addLoadBalancer(jobId, secondLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(jobId).toList().toBlocking().single())
+                .containsOnly(firstLoadBalancerId, secondLoadBalancerId);
+        verify(jobOperations, times(2)).getTasks(jobId);
+
+        testScheduler.triggerActions();
+
+        testSubscriber.assertNoErrors().assertValueCount(1);
+        verify(client).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == 5));
+        verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == 5));
+        verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
+        verify(client, never()).deregisterAll(eq(secondLoadBalancerId), any());
+    }
+
+    @Test
     public void targetsAreBufferedInBatches() throws Exception {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
@@ -382,7 +423,31 @@ public class DefaultLoadBalancerServiceTest {
         assertEquals(count(targetStore.retrieveTargets(secondLoadBalancer)), 0);
     }
 
-    // TODO(fabio): test JobNotFoundException from getTasks(jobId) gets ignored
+    @Test
+    public void goneJobsAreSkipped() throws Exception {
+        final String jobId = UUID.randomUUID().toString();
+        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+
+        defaultStubs();
+        when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
+        // job is gone somewhere in the middle after its pipeline starts
+        when(jobOperations.getTasks(jobId)).thenThrow(JobManagerException.jobNotFound(jobId));
+
+        LoadBalancerConfiguration configuration = mockConfiguration(1, 5_000);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, loadBalancerStore, targetStore, jobOperations, testScheduler);
+
+        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+
+        assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+
+        testScheduler.triggerActions();
+
+        // job errored and got skipped
+        testSubscriber.assertNoErrors().assertValueCount(0);
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
+    }
 
     @Test
     public void newTasksGetRegistered() throws Exception {
