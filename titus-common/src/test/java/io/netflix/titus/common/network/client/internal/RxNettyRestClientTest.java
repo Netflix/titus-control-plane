@@ -60,7 +60,7 @@ public class RxNettyRestClientTest {
     private HttpServer<ByteBuf, ByteBuf> httpServer;
     private RxNettyRestClient client;
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testGET() throws Exception {
         MyEntity actual = new MyEntity("test");
 
@@ -75,7 +75,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testGetWithWrapper() throws Exception {
         MyEntity actual = new MyEntity("test");
 
@@ -90,7 +90,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testGetNotFound() throws Exception {
         MyErrorReply serverError = new MyErrorReply("simulated error");
 
@@ -110,7 +110,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testVeryLongGET() throws Exception {
         char[] cbuf = new char[_100_KB];
         Arrays.fill(cbuf, 'A');
@@ -129,7 +129,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testGetCollection() throws Exception {
         List<MyEntity> actual = Arrays.asList(new MyEntity("item1"), new MyEntity("item2"));
 
@@ -144,7 +144,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testPostWithEmptyBodyReply() throws Exception {
         AtomicReference<MyEntity> valueCapture = new AtomicReference<>();
 
@@ -160,7 +160,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testPostWithBodyReply() throws Exception {
         AtomicReference<MyEntity> valueCapture = new AtomicReference<>();
 
@@ -181,7 +181,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testPostBodyWithErrorReply() throws Exception {
         MyErrorReply serverError = new MyErrorReply("simulated error");
 
@@ -201,7 +201,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testPutWithEmptyBodyReply() throws Exception {
         AtomicReference<MyEntity> valueCapture = new AtomicReference<>();
 
@@ -217,7 +217,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testPutWithEmptyBody() throws Exception {
 
         AtomicReference<ByteBuf> valueCapture = new AtomicReference<>();
@@ -235,7 +235,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testPutWithBodyReply() throws Exception {
         AtomicReference<MyEntity> valueCapture = new AtomicReference<>();
 
@@ -256,7 +256,7 @@ public class RxNettyRestClientTest {
         });
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testPutBodyWithErrorReply() throws Exception {
         MyErrorReply serverError = new MyErrorReply("simulated error");
 

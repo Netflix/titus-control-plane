@@ -66,7 +66,7 @@ public class InstanceGroupScenarioBuilder {
     }
 
     public InstanceGroupScenarioBuilder tier(Tier tier) {
-        checkIsKnwon();
+        checkIsKnown();
 
         Stopwatch timer = Stopwatch.createStarted();
         logger.info("Changing tier of {} to: {}", instanceGroup.getId(), tier);
@@ -81,7 +81,7 @@ public class InstanceGroupScenarioBuilder {
     }
 
     public InstanceGroupScenarioBuilder lifecycleState(InstanceGroupLifecycleState lifecycleState) {
-        checkIsKnwon();
+        checkIsKnown();
 
         Stopwatch timer = Stopwatch.createStarted();
         logger.info("Changing lifecycle state of {} to: {}", instanceGroup.getId(), lifecycleState);
@@ -97,7 +97,7 @@ public class InstanceGroupScenarioBuilder {
     }
 
     public InstanceGroupScenarioBuilder autoScaleRule(AutoScaleRule autoScaleRule) {
-        checkIsKnwon();
+        checkIsKnown();
 
         Stopwatch timer = Stopwatch.createStarted();
         logger.info("Changing auto scale rule of {} to: {}", instanceGroup.getId(), autoScaleRule);
@@ -112,7 +112,7 @@ public class InstanceGroupScenarioBuilder {
     }
 
     public InstanceGroupScenarioBuilder expectInstancesInState(InstanceLifecycleState state) {
-        checkIsKnwon();
+        checkIsKnown();
         Throwable error = checkTrigger()
                 .takeUntil(tick -> hasInstancesInState(state))
                 .toCompletable()
@@ -125,7 +125,7 @@ public class InstanceGroupScenarioBuilder {
     }
 
     public InstanceGroupScenarioBuilder awaitDesiredSize(int expectedDesired) {
-        checkIsKnwon();
+        checkIsKnown();
 
         Throwable error = checkTrigger()
                 .takeUntil(tick -> instanceGroup.getDesired() == expectedDesired)
@@ -159,7 +159,7 @@ public class InstanceGroupScenarioBuilder {
         return true;
     }
 
-    private void checkIsKnwon() {
+    private void checkIsKnown() {
         Preconditions.checkState(instanceGroup != null, "Instance group %s not discovered yet", simulatedCluster.getName());
     }
 

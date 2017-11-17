@@ -115,7 +115,12 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
-        io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+        io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
+        try {
+            coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+        } catch (Exception e) {
+            return Observable.error(TitusServiceException.invalidArgument(e));
+        }
         io.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
         Set<ConstraintViolation<io.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);

@@ -54,7 +54,7 @@ public class AutoScalingTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(activate("flex1"));
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testAgentClustersAreScaledUpToMinIdleInstances() throws Exception {
         AutoScaleRule autoScaleRule = AutoScaleRule.newBuilder()
                 .withMinIdleToKeep(5)

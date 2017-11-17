@@ -62,7 +62,7 @@ public class AgentPlacementConstraintTest extends BaseIntegrationTest {
      * Having two clusters in flex tier, disable second and verify that job is scheduled on the first one.
      * Next disable first, and enable second, and verify that scheduled job runs on the second cluster.
      */
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void scheduleJobOnActiveAgentCluster() throws Exception {
         // Activate 'flex1' only
         instanceGroupsScenarioBuilder.template(activate("flex1"));
