@@ -106,16 +106,20 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Completable addLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
-                .andThen(Completable.fromAction(() -> tracking.add(jobLoadBalancer)))
-                .andThen(Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer)));
+                .andThen(Completable.fromAction(() -> {
+                    tracking.add(jobLoadBalancer);
+                    pendingAssociations.onNext(jobLoadBalancer);
+                }));
     }
 
     @Override
     public Completable removeLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
-                .andThen(Completable.fromAction(() -> tracking.remove(jobLoadBalancer)))
-                .andThen(Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer)));
+                .andThen(Completable.fromAction(() -> {
+                    tracking.remove(jobLoadBalancer);
+                    pendingDissociations.onNext(jobLoadBalancer);
+                }));
     }
 
     @Activator
