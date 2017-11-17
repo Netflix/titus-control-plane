@@ -37,7 +37,7 @@ import static java.lang.annotation.ElementType.PARAMETER;
 
 public class SchedulingConstraintValidator implements ConstraintValidator<SchedulingConstraintValidator.SchedulingConstraint, Map<String, String>> {
 
-    private static final Set<String> CONSTRAINT_NAMES = asSet("UniqueHost", "ZoneBalance");
+    private static final Set<String> CONSTRAINT_NAMES = asSet("UniqueHost", "ExclusiveHost", "ZoneBalance");
 
     @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER})
     @Retention(RetentionPolicy.RUNTIME)
