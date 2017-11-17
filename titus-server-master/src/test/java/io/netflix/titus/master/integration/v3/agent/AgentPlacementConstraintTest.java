@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.integration.v3;
+package io.netflix.titus.master.integration.v3.agent;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -30,16 +29,20 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static io.netflix.titus.master.integration.v3.scenario.JobAsserts.jobInState;
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.activate;
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.deactivate;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
 import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.twoPartitionsPerTierStack;
-import static io.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 
+/**
+ * A collection of tests verifying that configured agent instance group placement constraints (tier, lifecycle state)
+ * are enforced.
+ */
 @Category(IntegrationTest.class)
-public class V3JobSchedulingTest {
+public class AgentPlacementConstraintTest extends BaseIntegrationTest {
 
-    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
+    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName("myApp").build();
 
     private final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierStack(2));
 
@@ -48,7 +51,7 @@ public class V3JobSchedulingTest {
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
     @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
+    public final RuleChain chain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @Before
     public void setUp() throws Exception {
@@ -56,35 +59,27 @@ public class V3JobSchedulingTest {
     }
 
     /**
-     * Verify batch job submission for two agent clusters with identical fitness, but only one having required
-     * resources.
-     * TODO We should add second cluster in this test, but as adding cluster requires master restart, we provide two clusters in the initialization step
+     * Having two clusters in flex tier, disable second and verify that job is scheduled on the first one.
+     * Next disable first, and enable second, and verify that scheduled job runs on the second cluster.
      */
-    @Test(timeout = 30_000)
-    public void submitBatchJobWhenTwoAgentClustersWithSameFitnessButDifferentResourceAmounts() throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor =
-                ONE_TASK_BATCH_JOB.but(j -> j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(7)));
+    @Test(timeout = 30000)
+    public void scheduleJobOnActiveAgentCluster() throws Exception {
+        // Activate 'flex1' only
+        instanceGroupsScenarioBuilder.template(activate("flex1"));
 
-        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
-                .template(startTasksInNewJob())
-                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectInstanceType(AwsInstanceType.M3_2XLARGE))
-        );
-    }
-
-    @Test(timeout = 30_000)
-    public void submitBatchJobAndRebootTitusMaster() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(startTasksInNewJob())
+                .assertEachTask(task -> task.getTaskContext().get("agent.itype").equals("m3.2xlarge"), "Task placed on bad instance type")
+                .killJob()
         );
 
-        jobsScenarioBuilder.stop();
-        titusStackResource.getMaster().reboot();
+        // Activate 'flex2' only
+        instanceGroupsScenarioBuilder.template(deactivate("flex1")).template(activate("flex2"));
 
-        JobsScenarioBuilder newJobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource.getOperations());
-        newJobsScenarioBuilder
-                .assertJobs(jobs -> jobs.size() == 1)
-                .takeJob(0)
-                .assertJob(jobInState(JobState.Accepted))
-                .assertTasks(tasks -> tasks.size() == 1);
+        jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
+                .template(startTasksInNewJob())
+                .assertEachTask(task -> task.getTaskContext().get("agent.itype").equals("m4.2xlarge"), "Task placed on bad instance type")
+                .killJob()
+        );
     }
 }

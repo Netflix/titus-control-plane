@@ -38,20 +38,23 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Triple;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.completeTask;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.jobAccepted;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.launchJob;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startJob;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startJobAndMoveToKillInitiated;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,25 +72,30 @@ public class JobCriteriaQueryTest {
     private static final String V2_ENGINE_APP = "myV2App";
     private static final String V2_ENGINE_APP2 = "myV2App2";
 
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicStack(5));
+
+    private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
+
+    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
+
     @Rule
-    public final TitusStackResource titusStackResource = TitusStackResource.aDefaultStack();
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
-    private JobsScenarioBuilder jobsScenarioBuilder;
 
     @Before
     public void setUp() throws Exception {
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource.getOperations());
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFindJobAndTaskByJobIdsV2() throws Exception {
         testFindJobAndTaskByJobIds(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFindJobAndTaskByJobIdsV3() throws Exception {
         testFindJobAndTaskByJobIds(false);
     }
@@ -108,12 +116,12 @@ public class JobCriteriaQueryTest {
         assertThat(taskQueryResult.getItemsList()).hasSize(2);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFindJobAndTaskByTaskIdsV2() throws Exception {
         testFindJobAndTaskByTaskIds(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFindJobAndTaskByTaskIdsV3() throws Exception {
         testFindJobAndTaskByTaskIds(false);
     }
@@ -135,12 +143,12 @@ public class JobCriteriaQueryTest {
         assertThat(taskQueryResult.getItemsList()).hasSize(2);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFindArchivedTasksByTaskIdsV2() throws Exception {
         testFindArchivedTasksByTaskIds(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFindArchivedTasksByTaskIdsV3() throws Exception {
         testFindArchivedTasksByTaskIds(false);
     }
@@ -158,12 +166,12 @@ public class JobCriteriaQueryTest {
                         tasks -> tasks.size() == numberOfTasks && tasks.stream().allMatch(task -> task.getStatus().getState() == TaskStatus.TaskState.Finished)));
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByJobTypeV2() throws Exception {
         testSearchByJobType(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByJobTypeV3() throws Exception {
         testSearchByJobType(false);
     }
@@ -207,7 +215,7 @@ public class JobCriteriaQueryTest {
      * V2 jobState query not supported, as effectively there is one state 'Accepted'. Once job moves to 'Finished' state
      * it is removed from TitusMaster.
      */
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByJobState() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP).build();
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(launchJob()));
@@ -250,12 +258,12 @@ public class JobCriteriaQueryTest {
         assertThat(killInitTaskQueryResult.getItems(0).getId()).isEqualTo(killInitiatedTaskId);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByTaskStateV2() throws Exception {
         testSearchByTaskState(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByTaskStateV3() throws Exception {
         testSearchByTaskState(false);
     }
@@ -290,12 +298,12 @@ public class JobCriteriaQueryTest {
         assertThat(taskQueryResult.getItems(0).getId()).isEqualTo(expectedTaskId);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByOwnerV2() throws Exception {
         testSearchByOwner(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByOwnerV3() throws Exception {
         testSearchByOwner(false);
     }
@@ -310,40 +318,40 @@ public class JobCriteriaQueryTest {
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "owner", "user1@netflix.com", "user2@netflix.com");
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByAppNameV2() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor1 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP).build();
         JobDescriptor<BatchJobExt> jobDescriptor2 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP2).build();
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "appName", V2_ENGINE_APP, V2_ENGINE_APP2);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByAppNameV3() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor1 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP).build();
         JobDescriptor<BatchJobExt> jobDescriptor2 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP2).build();
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "appName", V3_ENGINE_APP, V3_ENGINE_APP2);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByApplicationNameV2() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor1 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP).build();
         JobDescriptor<BatchJobExt> jobDescriptor2 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP2).build();
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "applicationName", V2_ENGINE_APP, V2_ENGINE_APP2);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByApplicationNameV3() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor1 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP).build();
         JobDescriptor<BatchJobExt> jobDescriptor2 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP2).build();
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "applicationName", V3_ENGINE_APP, V3_ENGINE_APP2);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByCapacityGroupV2() throws Exception {
         testSearchByCapacityGroup(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByCapacityGroupV3() throws Exception {
         testSearchByCapacityGroup(false);
     }
@@ -354,12 +362,12 @@ public class JobCriteriaQueryTest {
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "capacityGroup", "capacity1", "capacity2");
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByJobGroupInfoV2() throws Exception {
         testSearchByJobGroupInfo(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByJobGroupInfoV3() throws Exception {
         testSearchByJobGroupInfo(false);
     }
@@ -388,12 +396,12 @@ public class JobCriteriaQueryTest {
         );
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByImageV2() throws Exception {
         testSearchByImage(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByImageV3() throws Exception {
         testSearchByImage(false);
     }
@@ -412,12 +420,12 @@ public class JobCriteriaQueryTest {
         );
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByJobDescriptorAttributesV2() throws Exception {
         testSearchByJobDescriptorAttributes(true);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testSearchByJobDescriptorAttributesV3() throws Exception {
         testSearchByJobDescriptorAttributes(false);
     }
@@ -535,8 +543,7 @@ public class JobCriteriaQueryTest {
         }
     }
 
-    @Test
-    @Ignore
+    @Test(timeout = 30_000)
     public void testPagination() throws Exception {
         // Create a mix of V2/V3 jobs.
         jobsScenarioBuilder.schedule(baseBatchJobDescriptor(true).build(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(startJob(TaskStatus.TaskState.Started)));
@@ -574,7 +581,7 @@ public class JobCriteriaQueryTest {
         assertThat(foundTasksIds).hasSize(6);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFieldsFiltering() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(false).build();
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(jobAccepted()));

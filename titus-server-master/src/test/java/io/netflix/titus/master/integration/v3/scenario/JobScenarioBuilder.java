@@ -171,10 +171,10 @@ public class JobScenarioBuilder {
         return lastTaskHolders.get(idx).getTaskScenarioBuilder();
     }
 
-    public TaskScenarioBuilder getTaskInSlot(int slot, int index) {
+    public TaskScenarioBuilder getTaskInSlot(int slot, int resubmit) {
         Collection<String> taskIdsPerSlot = taskSlotIndexes.get(slot);
-        Preconditions.checkArgument(index < taskIdsPerSlot.size(), "Task with index %s not created yet", index);
-        String taskId = Iterables.getLast(taskIdsPerSlot);
+        Preconditions.checkArgument(resubmit < taskIdsPerSlot.size(), "Task with index %s and resubmit=%s not created yet", slot, resubmit);
+        String taskId = taskIdsPerSlot.stream().skip(resubmit).findFirst().get();
         return taskHolders.get(taskId).getTaskScenarioBuilder();
     }
 
@@ -199,6 +199,12 @@ public class JobScenarioBuilder {
     public JobScenarioBuilder inTask(int idx, Function<TaskScenarioBuilder, TaskScenarioBuilder> taskActions) {
         Preconditions.checkArgument(idx < nextIndex, "No task with id %s in job %s", idx, jobId);
         taskActions.apply(getTaskByIndex(idx));
+        return this;
+    }
+
+    public JobScenarioBuilder inTask(int idx, int resubmit, Function<TaskScenarioBuilder, TaskScenarioBuilder> taskActions) {
+        Preconditions.checkArgument(idx < nextIndex, "No task with id %s in job %s", idx, jobId);
+        taskActions.apply(getTaskInSlot(idx, resubmit));
         return this;
     }
 
@@ -281,6 +287,14 @@ public class JobScenarioBuilder {
         return this;
     }
 
+    public JobScenarioBuilder expectTasksOnAgents(int count) {
+        logger.info("[{}] Expecting {} tasks to be running on agents...", discoverActiveTest(), count);
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> getLastTaskHolders().stream()
+                .filter(h -> h.getTaskScenarioBuilder().hasTaskExecutorHolder())
+                .count() == count);
+        return this;
+    }
+
     public JobScenarioBuilder expectJobToScaleDown() {
         JobDescriptor.JobDescriptorExt ext = getJob().getJobDescriptor().getExtensions();
         Preconditions.checkState(ext instanceof ServiceJobExt, "Not a service job %s", jobId);
@@ -308,6 +322,15 @@ public class JobScenarioBuilder {
         await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {
             Collection<String> taskIdsPerSlot = taskSlotIndexes.get(slot);
             return index < taskIdsPerSlot.size() && Iterables.get(taskIdsPerSlot, index) != null;
+        });
+        return this;
+    }
+
+    public JobScenarioBuilder expectSome(int count, Predicate<TaskScenarioBuilder> predicate) {
+        logger.info("[{}] Expecting {} tasks to meet fulfill the predicate requirements", discoverActiveTest(), count);
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {
+            long matching = getLastTaskHolders().stream().filter(t -> predicate.test(t.getTaskScenarioBuilder())).count();
+            return matching == count;
         });
         return this;
     }

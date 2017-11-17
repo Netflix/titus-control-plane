@@ -27,8 +27,8 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import io.netflix.titus.api.store.v2.V2StageMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
-import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.mesos.MesosSchedulerCallbackHandler;
 import io.netflix.titus.master.store.V2JobMetadataWritable;
 import io.netflix.titus.master.store.V2WorkerMetadataWritable;
@@ -48,8 +48,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
+import static io.netflix.titus.testkit.embedded.cloud.SimulatedClouds.basicCloud;
+import static io.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
@@ -57,20 +60,20 @@ public class ReconciliationTest extends BaseIntegrationTest {
 
     private final EmbeddedStorageProvider storageProvider = new EmbeddedStorageProvider();
 
-    @Rule
-    public final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            EmbeddedTitusMaster.testTitusMaster()
-                    .withStorageProvider(storageProvider)
-                    .withCriticalTier(0.1, AwsInstanceType.M4_4XLarge)
-                    .withFlexTier(0.1, AwsInstanceType.R3_8XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(1).withInstanceType(AwsInstanceType.R3_8XLarge))
-                    .build()
+    private final TitusMasterResource titusMasterResource = new TitusMasterResource(
+            basicMaster(basicCloud(1)).toBuilder().withStorageProvider(storageProvider).build()
     );
+
+    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusMasterResource);
+
+    @Rule
+    public RuleChain ruleChain = RuleChain.outerRule(titusMasterResource).around(instanceGroupsScenarioBuilder);
 
     private EmbeddedTitusMaster titusMaster;
 
     @Before
     public void setUp() throws Exception {
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
         titusMaster = titusMasterResource.getMaster();
     }
 

@@ -28,4 +28,11 @@ public interface GrpcEndpointConfiguration {
     @PropertyName(name = "port")
     @DefaultValue("7104")
     int getPort();
+
+    /**
+     * Graceful shutdown time for GRPC server. If zero, shutdown happens immediately, and all client connections are
+     * terminated abruptly.
+     */
+    @DefaultValue("30000")
+    long getShutdownTimeoutMs();
 }

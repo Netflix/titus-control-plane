@@ -22,9 +22,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.common.util.CollectionsExt;
-import io.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
+import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -70,10 +69,7 @@ public class EmbeddedTitusStackTest {
     public void testShutdownCleanup() throws Throwable {
         Set<Thread> threadsBefore = Thread.getAllStackTraces().keySet();
 
-        EmbeddedTitusMaster titusMaster = EmbeddedTitusMaster.aDefaultTitusMaster();
-        EmbeddedTitusGateway titusGateway = EmbeddedTitusGateway.aDefaultTitusGateway().withMasterGrpcEndpoint("localhost", titusMaster.getGrpcPort()).build();
-        EmbeddedTitusStack titusStack = EmbeddedTitusStack.aTitusStack().withMaster(titusMaster).withGateway(titusGateway).build();
-
+        EmbeddedTitusStack titusStack = EmbeddedTitusStacks.basicStack(1);
         titusStack.boot();
         titusStack.shutdown();
 

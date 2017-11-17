@@ -36,7 +36,7 @@ public class ComputeResources {
         // No-op (in the future we should support IP address re-use).
     }
 
-    public static String asHostname(String ipAddress) {
-        return ipAddress.replace('.', '_') + ".titus.dev";
+    public static String asHostname(String ipAddress, String instanceGroupName) {
+        return ipAddress.replace('.', '_') + '.' + instanceGroupName +  ".titus.dev";
     }
 }

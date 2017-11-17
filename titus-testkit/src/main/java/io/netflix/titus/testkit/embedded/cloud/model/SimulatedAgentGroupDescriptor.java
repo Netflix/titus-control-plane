@@ -18,6 +18,7 @@ package io.netflix.titus.testkit.embedded.cloud.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.netflix.titus.common.aws.AwsInstanceType;
 
 public class SimulatedAgentGroupDescriptor {
 
@@ -26,18 +27,21 @@ public class SimulatedAgentGroupDescriptor {
     private final int min;
     private final int desired;
     private final int max;
+    private final int ipPerEni;
 
     @JsonCreator
     public SimulatedAgentGroupDescriptor(@JsonProperty("name") String name,
                                          @JsonProperty("instanceType") String instanceType,
                                          @JsonProperty("min") int min,
                                          @JsonProperty("desired") int desired,
-                                         @JsonProperty("max") int max) {
+                                         @JsonProperty("max") int max,
+                                         @JsonProperty("ipPerEni") int ipPerEni) {
         this.name = name;
         this.instanceType = instanceType;
         this.min = min;
         this.desired = desired;
         this.max = max;
+        this.ipPerEni = ipPerEni;
     }
 
     public String getName() {
@@ -58,5 +62,17 @@ public class SimulatedAgentGroupDescriptor {
 
     public int getMax() {
         return max;
+    }
+
+    public int getIpPerEni() {
+        return ipPerEni;
+    }
+
+    public static SimulatedAgentGroupDescriptor awsInstanceGroup(String name, AwsInstanceType instanceType, int desired) {
+        return awsInstanceGroup(name, instanceType, 0, desired, desired + 1);
+    }
+
+    public static SimulatedAgentGroupDescriptor awsInstanceGroup(String name, AwsInstanceType instanceType, int min, int desired, int max) {
+        return new SimulatedAgentGroupDescriptor(name, instanceType.name(), min, desired, max, 27);
     }
 }

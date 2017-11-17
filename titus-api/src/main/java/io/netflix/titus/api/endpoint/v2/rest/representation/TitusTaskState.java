@@ -88,7 +88,7 @@ public enum TitusTaskState {
             case CRASHED:
                 return V2JobState.Failed;
             default:
-                logger.warn("Unknown TitusState " + state + " to convert to V2State");
+                logger.debug("Unknown TitusState " + state + " to convert to V2State");
                 return V2JobState.Noop;
         }
     }

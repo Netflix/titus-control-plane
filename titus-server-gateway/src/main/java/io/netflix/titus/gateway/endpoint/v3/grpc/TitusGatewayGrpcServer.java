@@ -96,13 +96,18 @@ public class TitusGatewayGrpcServer {
     @PreDestroy
     public void shutdown() {
         if (!server.isShutdown()) {
-            server.shutdown();
-            try {
-                server.awaitTermination(30, TimeUnit.SECONDS);
-            } catch (InterruptedException ignore) {
-            }
-            if (!server.isShutdown()) {
+            long timeoutMs = config.getShutdownTimeoutMs();
+            if (timeoutMs <= 0) {
                 server.shutdownNow();
+            } else {
+                server.shutdown();
+                try {
+                    server.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException ignore) {
+                }
+                if (!server.isShutdown()) {
+                    server.shutdownNow();
+                }
             }
         }
     }

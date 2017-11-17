@@ -21,6 +21,7 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -29,12 +30,14 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.completeTask;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startV2TasksInNewJob;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioUtil.baseBatchJobDescriptor;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioUtil.baseServiceJobDescriptor;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
@@ -43,8 +46,14 @@ public class JobDirectQueryTest {
     private static final String NON_EXISTING_V2_ID = "Titus-non_existing_id";
     private static final String NON_EXISTING_V3_ID = "non_existing_id";
 
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2));
+
+    private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
+
+    private static final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
+
     @ClassRule
-    public static final TitusStackResource titusStackResource = TitusStackResource.aDefaultStack();
+    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     private static JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
@@ -61,9 +70,10 @@ public class JobDirectQueryTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
+        instanceGroupsScenarioBuilder.synchronizeWithCloud();
+
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
-        JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource.getOperations());
         // Batch Jobs
         jobsScenarioBuilder.schedule(
                 baseBatchJobDescriptor(true).build(),

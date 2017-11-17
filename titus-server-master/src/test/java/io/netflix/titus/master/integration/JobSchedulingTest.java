@@ -16,6 +16,7 @@
 
 package io.netflix.titus.master.integration;
 
+import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
@@ -24,6 +25,8 @@ import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.store.V2StageMetadataWritable;
 import io.netflix.titus.master.store.V2WorkerMetadataWritable;
 import io.netflix.titus.testkit.client.TitusMasterClient;
@@ -37,16 +40,17 @@ import io.netflix.titus.testkit.model.v2.TitusV2ModelGenerator;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.apache.mesos.Protos;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.testkit.embedded.cloud.SimulatedClouds.basicCloud;
+import static io.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
 import static io.netflix.titus.testkit.model.v2.TitusV2ModelAsserts.assertAllTasksInState;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,19 +62,12 @@ public class JobSchedulingTest extends BaseIntegrationTest {
 
     private final static Logger logger = LoggerFactory.getLogger(JobSchedulingTest.class);
 
+    private final TitusMasterResource titusMasterResource = new TitusMasterResource(basicMaster(basicCloud(2)));
+
+    private final InstanceGroupsScenarioBuilder scenarioBuilder = new InstanceGroupsScenarioBuilder(titusMasterResource);
+
     @Rule
-    public final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "30")
-                    .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "30")
-                    .withProperty("titusMaster.jobManager.serviceTaskInStartInitiatedStateTimeoutMs", "30")
-                    .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                    .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(2).withInstanceType(AwsInstanceType.M3_XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("gpuCluster", 1).withSize(2).withInstanceType(AwsInstanceType.G2_2XLarge))
-                    .build()
-    );
+    public final RuleChain chain = RuleChain.outerRule(titusMasterResource).around(scenarioBuilder);
 
     private EmbeddedTitusMaster titusMaster;
 
@@ -80,8 +77,11 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     private ExtTestSubscriber<TaskExecutorHolder> taskExecutorHolders;
     private JobRunner jobRunner;
 
+
     @Before
     public void setUp() throws Exception {
+        scenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicSetupActivation());
+
         titusMaster = titusMasterResource.getMaster();
 
         client = titusMaster.getClient();
@@ -93,7 +93,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     /**
      * Verify batch job submit with the expected state transitions.
      */
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitBatchJob() throws Exception {
         runBatchJob(generator.newJobSpec(TitusJobType.batch, "myjob"));
     }
@@ -101,7 +101,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     /**
      * Verify batch job submit with the expected state transitions.
      */
-    @Test
+    @Test(timeout = 30_000)
     public void submitBatchJobStuckInLaunched() throws Exception {
         Observable<Status> checkStatusObservable = titusMaster.getWorkerStateMonitor().getAllStatusObservable().flatMap(status -> {
             logger.info(String.format("status %s-%s-%s - %s (%s)", status.getJobId(), status.getWorkerIndex(), status.getWorkerNumber(), status.getState(), status.getReason()));
@@ -135,7 +135,6 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30000)
-    @Ignore
     public void submitGpuBatchJob() throws Exception {
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.batch, "myjob")).gpu(1).build();
         TaskExecutorHolder taskHolder = runBatchJob(jobSpec);
@@ -151,9 +150,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         assertAllTasksInState(jobInfo, TitusTaskState.RUNNING);
     }
 
-    // FIXME Assertion is incorrect now, but the test exposes the bug with incorrect initialization order
     @Test(timeout = 30000)
-    @Ignore
     public void submitServiceJobWithTooFewRunningWorkersAndRebootTitusMaster() throws Exception {
         TaskExecutorHolder holder = jobRunner.runJob(generator.newJobSpec(TitusJobType.service, "myjob")).get(0);
         titusMaster.shutdown();
@@ -168,7 +165,11 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         titusMaster.boot();
 
         TitusJobInfo jobInfo = client.findJob(holder.getJobId(), false).toBlocking().first();
-        assertAllTasksInState(jobInfo, TitusTaskState.RUNNING);
+        assertThat(jobInfo.getTasks()).hasSize(2);
+        TaskInfo replacement = jobInfo.getTasks().get(0).getId().contains("worker-0")
+                ? jobInfo.getTasks().get(0)
+                : jobInfo.getTasks().get(1);
+        assertThat(replacement.getId()).endsWith("-52");
     }
 
     private TaskExecutorHolder runBatchJob(TitusJobSpec myjob) throws InterruptedException {
