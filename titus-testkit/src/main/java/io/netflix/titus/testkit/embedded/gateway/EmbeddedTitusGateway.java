@@ -51,6 +51,7 @@ public class EmbeddedTitusGateway {
 
     private final String masterGrpcHost;
     private final int masterGrpcPort;
+    private final int masterHttpPort;
 
     private final int httpPort;
     private final int grpcPort;
@@ -66,6 +67,7 @@ public class EmbeddedTitusGateway {
     public EmbeddedTitusGateway(Builder builder) {
         this.masterGrpcHost = getOrDefault(builder.masterGrpcHost, "localhost");
         this.masterGrpcPort = builder.masterGrpcPort;
+        this.masterHttpPort = builder.masterHttpPort;
         this.httpPort = builder.httpPort;
         this.grpcPort = builder.grpcPort;
         this.store = builder.store;
@@ -78,6 +80,7 @@ public class EmbeddedTitusGateway {
         Properties props = new Properties();
         props.put("titus.gateway.masterIp", masterGrpcHost);
         props.put("titus.gateway.masterGrpcPort", masterGrpcPort);
+        props.put("titus.gateway.masterHttpPort", masterHttpPort);
         props.put("titusGateway.endpoint.grpc.port", grpcPort);
         props.put("governator.jetty.embedded.port", httpPort);
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
@@ -159,27 +162,30 @@ public class EmbeddedTitusGateway {
     public Builder toBuilder() {
         return aDefaultTitusGateway()
                 .withStore(store)
-                .withMasterGrpcEndpoint(masterGrpcHost, masterGrpcPort)
+                .withMasterEndpoint(masterGrpcHost, masterGrpcPort, masterHttpPort)
                 .withHttpPort(httpPort)
                 .withProperties(properties);
     }
 
     public static Builder aDefaultTitusGateway() {
-        return new Builder();
+        return new Builder()
+                .withProperty("titusGateway.endpoint.grpc.shutdownTimeoutMs", "0");
     }
 
     public static class Builder {
 
         private String masterGrpcHost;
         private int masterGrpcPort;
+        private int masterHttpPort;
         private int grpcPort;
         private int httpPort;
         private JobStore store;
         private Properties properties = new Properties();
 
-        public Builder withMasterGrpcEndpoint(String host, int port) {
+        public Builder withMasterEndpoint(String host, int grpcPort, int httpPort) {
             this.masterGrpcHost = host;
-            this.masterGrpcPort = port;
+            this.masterGrpcPort = grpcPort;
+            this.masterHttpPort = httpPort;
             return this;
         }
 

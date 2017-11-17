@@ -31,4 +31,11 @@ public interface GrpcEndpointConfiguration {
      * Application name regular expression for identifying V3 enabled applications.
      */
     String getV3EnabledApps();
+
+    /**
+     * Graceful shutdown time for GRPC server. If zero, shutdown happens immediately, and all client connections are
+     * terminated abruptly.
+     */
+    @DefaultValue("30000")
+    long getShutdownTimeoutMs();
 }

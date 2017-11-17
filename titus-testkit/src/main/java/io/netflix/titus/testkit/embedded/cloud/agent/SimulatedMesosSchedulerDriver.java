@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.base.Preconditions;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.mesos.MesosSchedulerCallbackHandler;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.util.PrettyPrinters;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.Status;
@@ -52,6 +53,7 @@ public class SimulatedMesosSchedulerDriver implements SchedulerDriver {
     private static final Logger logger = LoggerFactory.getLogger(SimulatedMesosSchedulerDriver.class);
 
     private final AtomicReference<Status> statusRef = new AtomicReference<>(Status.DRIVER_NOT_STARTED);
+    private final SimulatedCloud simulatedCloud;
     private final Protos.FrameworkInfo framework;
     private final Protos.MasterInfo masterInfo;
     private final MesosSchedulerCallbackHandler scheduler;
@@ -68,7 +70,10 @@ public class SimulatedMesosSchedulerDriver implements SchedulerDriver {
     private Subscription offerUpdateSubscription;
     private Subscription taskStatusSubscription;
 
-    public SimulatedMesosSchedulerDriver(Protos.FrameworkInfo framework, MesosSchedulerCallbackHandler scheduler) {
+    public SimulatedMesosSchedulerDriver(SimulatedCloud simulatedCloud,
+                                         Protos.FrameworkInfo framework,
+                                         MesosSchedulerCallbackHandler scheduler) {
+        this.simulatedCloud = simulatedCloud;
         this.framework = framework;
         this.masterInfo = Protos.MasterInfo.newBuilder()
                 .setHostname("titus.embedded")
@@ -166,6 +171,8 @@ public class SimulatedMesosSchedulerDriver implements SchedulerDriver {
                 e -> logger.error("Offer updates stream terminated with an error", e),
                 () -> logger.error("Offer updates stream onCompleted")
         );
+
+        simulatedCloud.setMesosSchedulerDriver(this);
         return Status.DRIVER_RUNNING;
     }
 

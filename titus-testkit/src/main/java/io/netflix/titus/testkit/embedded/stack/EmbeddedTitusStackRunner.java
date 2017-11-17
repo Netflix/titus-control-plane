@@ -45,7 +45,7 @@ public class EmbeddedTitusStackRunner {
                 .withMaster(titusMaster)
                 .withGateway(
                         EmbeddedTitusGateway.aDefaultTitusGateway()
-                                .withMasterGrpcEndpoint("localhost", 8090)
+                                .withMasterEndpoint("localhost", 8090, 8080)
                                 .withHttpPort(8081)
                                 .build()
                 )

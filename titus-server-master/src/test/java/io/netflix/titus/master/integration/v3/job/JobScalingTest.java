@@ -19,8 +19,10 @@ package io.netflix.titus.master.integration.v3.job;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -28,30 +30,33 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 @Category(IntegrationTest.class)
 public class JobScalingTest {
 
-    private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder()
-            .withApplicationName(TitusStackResource.V3_ENGINE_APP_PREFIX)
-            .build();
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2));
+
+    private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
+
+    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
     @Rule
-    public final TitusStackResource titusStackResource = TitusStackResource.aDefaultStack();
-
-    private JobsScenarioBuilder jobsScenarioBuilder;
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @Before
     public void setUp() throws Exception {
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource.getStack().getTitusOperations());
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
     }
 
     @Test
     public void testScaleUpAndDownServiceJob() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
+        jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(startTasksInNewJob())
                 .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
                 .expectAllTasksCreated()
@@ -62,7 +67,7 @@ public class JobScalingTest {
 
     @Test
     public void testTerminateAndShrink() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
+        jobsScenarioBuilder.schedule(newJob("testTerminateAndShrink"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(startTasksInNewJob())
                 .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
                 .expectAllTasksCreated()
@@ -74,7 +79,14 @@ public class JobScalingTest {
         );
     }
 
-    private boolean hasSize(Job<?> job, int expected) {
+    private JobDescriptor<ServiceJobExt> newJob(String detail) {
+        return oneTaskServiceJobDescriptor().toBuilder()
+                .withApplicationName(TitusStackResource.V3_ENGINE_APP_PREFIX)
+                .withJobGroupInfo(JobGroupInfo.newBuilder().withDetail(detail).build())
+                .build();
+    }
+
+    private static boolean hasSize(Job<?> job, int expected) {
         Job<ServiceJobExt> serviceJob = (Job<ServiceJobExt>) job;
         int actual = serviceJob.getJobDescriptor().getExtensions().getCapacity().getDesired();
         return actual == expected;

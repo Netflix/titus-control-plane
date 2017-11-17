@@ -30,6 +30,7 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.ScalingPolicyStatus;
 import io.netflix.titus.api.appscale.model.PolicyType;
 import io.netflix.titus.master.appscale.endpoint.v3.grpc.AutoScalingTestUtils;
+import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -40,10 +41,8 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Applied;
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Deleted;
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Deleting;
-import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Pending;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Category(IntegrationTest.class)
@@ -55,7 +54,7 @@ public class AutoScalingGrpcTest {
     private static final long TIMEOUT_MS = 30_000;
 
     @Rule
-    public static final TitusStackResource titusStackResource = TitusStackResource.aDefaultStack();
+    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStacks.basicStack(2));
 
     @Before
     public void setUp() throws Exception {
@@ -179,6 +178,8 @@ public class AutoScalingGrpcTest {
         client.getAllScalingPolicies(Empty.newBuilder().build(), getResponse);
         GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         assertThat(getPolicyResult.getItemsCount()).isEqualTo(numJobs);
-        getPolicyResult.getItemsList().forEach(scalingPolicyResult -> { assertThat(policyIDSet.contains(scalingPolicyResult.getId())).isTrue(); });
+        getPolicyResult.getItemsList().forEach(scalingPolicyResult -> {
+            assertThat(policyIDSet.contains(scalingPolicyResult.getId())).isTrue();
+        });
     }
 }

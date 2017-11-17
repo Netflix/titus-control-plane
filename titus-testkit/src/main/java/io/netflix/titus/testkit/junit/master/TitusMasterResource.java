@@ -16,6 +16,9 @@
 
 package io.netflix.titus.testkit.junit.master;
 
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Stopwatch;
 import io.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import org.junit.rules.ExternalResource;
@@ -38,7 +41,9 @@ public class TitusMasterResource extends ExternalResource {
 
     @Override
     public void after() {
+        Stopwatch timer = Stopwatch.createStarted();
         embeddedTitusMaster.shutdown();
+        System.out.println("Execution time: " + timer.elapsed(TimeUnit.MILLISECONDS));
     }
 
     public EmbeddedTitusMaster getMaster() {

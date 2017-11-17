@@ -16,16 +16,11 @@
 
 package io.netflix.titus.testkit.junit.master;
 
-import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.common.aws.AwsInstanceType;
-import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import io.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import io.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import org.junit.rules.ExternalResource;
-
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
 
 public class TitusStackResource extends ExternalResource {
 
@@ -62,27 +57,5 @@ public class TitusStackResource extends ExternalResource {
 
     public EmbeddedTitusOperations getOperations() {
         return embeddedTitusStack.getTitusOperations();
-    }
-
-    public static TitusStackResource aDefaultStack() {
-        JobStore store = new InMemoryJobStore();
-        return new TitusStackResource(
-                EmbeddedTitusStack.aTitusStack()
-                        .withMaster(EmbeddedTitusMaster.testTitusMaster()
-                                .withProperty("titus.master.grpcServer.v3EnabledApps", String.format("(%s.*)", V3_ENGINE_APP_PREFIX))
-                                .withProperty("titusMaster.jobManager.launchedTimeoutMs", "30000")
-                                .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                                .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                                .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(3).withInstanceType(AwsInstanceType.M3_XLARGE))
-                                .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(3).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                                .withJobStore(store)
-                                .build()
-                        )
-                        .withGateway(EmbeddedTitusGateway.aDefaultTitusGateway()
-                                .withStore(store)
-                                .build()
-                        )
-                        .build()
-        );
     }
 }

@@ -16,37 +16,32 @@
 
 package io.netflix.titus.master.integration;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState;
-import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.TierUpdate;
-import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
-import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
-import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.aws.AwsInstanceType;
-import io.netflix.titus.master.endpoint.v2.V2TitusDataGenerator;
-import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
+import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.client.TitusMasterClient;
-import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import io.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusMasterResource;
-import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 import static io.netflix.titus.master.endpoint.v2.rest.Representation2ModelConvertions.asRepresentation;
 import static io.netflix.titus.testkit.data.core.ApplicationSlaSample.fromAwsInstanceType;
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
-import static junit.framework.Assert.fail;
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
+import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 
 /**
  * Tests that capacity guarantees are enforced during task scheduling.
@@ -54,102 +49,76 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Category(IntegrationTest.class)
 public class CapacityGuaranteeTest {
 
+    private static final JobDescriptor<BatchJobExt> BATCH_JOB_8CPU = oneTaskBatchJobDescriptor()
+            .but(jd -> jd.getContainer().but(c -> c.toBuilder().withContainerResources(
+                    ContainerResources.newBuilder()
+                            .withCpu(8)
+                            .withMemoryMB(1)
+                            .withDiskMB(1)
+                            .withNetworkMbps(1)
+                            .build()
+            )))
+            .but(jd -> jd.getExtensions().toBuilder().withSize(3));
+
     private static final ApplicationSLA CRITICAL1_GUARANTEE = fromAwsInstanceType(Tier.Critical, "c1", AwsInstanceType.M4_4XLarge, 1);
     private static final ApplicationSLA CRITICAL2_GUARANTEE = fromAwsInstanceType(Tier.Critical, "c2", AwsInstanceType.M4_4XLarge, 1);
 
-    @Rule
-    public final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
-                    .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
-                    .withCriticalTier(0.1, AwsInstanceType.M4_4XLarge)
-                    .withFlexTier(0.1, AwsInstanceType.R3_4XLarge)
-                    .withAgentCluster(aTitusAgentCluster("criticalAgentCluster", 0).withSize(2).withInstanceType(AwsInstanceType.M4_4XLarge))
-                    .withAgentCluster(aTitusAgentCluster("flexAgentCluster", 1).withSize(2).withInstanceType(AwsInstanceType.R3_4XLarge))
-                    .build()
+    private final TitusMasterResource titusMasterResource = new TitusMasterResource(
+            basicMaster(
+                    new SimulatedCloud().createAgentInstanceGroups(
+                            SimulatedAgentGroupDescriptor.awsInstanceGroup("critical1", AwsInstanceType.M4_4XLarge, 2, 2, 2)
+                    )
+            ).toBuilder().withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false").build()
     );
 
-    private EmbeddedTitusMaster titusMaster;
+    private InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusMasterResource);
 
-    private TitusMasterClient client;
-    private ExtTestSubscriber<TaskExecutorHolder> taskExecutorHolders;
+    @Rule
+    public final RuleChain ruleChain = RuleChain.outerRule(titusMasterResource).around(instanceGroupsScenarioBuilder);
 
-    private final V2TitusDataGenerator generator = new V2TitusDataGenerator();
-    private JobRunner jobRunner;
+    private JobsScenarioBuilder jobsScenarioBuilder;
+
+    private TitusMasterClient v2Client;
 
     @Before
     public void setUp() throws Exception {
-        titusMaster = titusMasterResource.getMaster();
+        jobsScenarioBuilder = new JobsScenarioBuilder(titusMasterResource.getOperations());
 
-        client = titusMaster.getClient();
-        jobRunner = new JobRunner(titusMaster);
+        instanceGroupsScenarioBuilder.synchronizeWithCloud()
+                .apply("critical1", g -> g.tier(Tier.Critical).lifecycleState(InstanceGroupLifecycleState.Active));
 
-        taskExecutorHolders = new ExtTestSubscriber<>();
-        titusMaster.observeLaunchedTasks().subscribe(taskExecutorHolders);
-
-        // Configure Clusters
-        titusMasterResource.getOperations().getV3BlockingGrpcAgentClient().updateInstanceGroupTier(
-                TierUpdate.newBuilder()
-                        .setInstanceGroupId("criticalAgentCluster")
-                        .setTier(com.netflix.titus.grpc.protogen.Tier.Critical)
-                        .build()
-        );
-        titusMasterResource.getOperations().getV3BlockingGrpcAgentClient().updateInstanceGroupLifecycleState(
-                InstanceGroupLifecycleStateUpdate.newBuilder()
-                        .setInstanceGroupId("criticalAgentCluster")
-                        .setDetail("activate")
-                        .setLifecycleState(InstanceGroupLifecycleState.Active)
-                        .build()
-        );
-        titusMasterResource.getOperations().getV3BlockingGrpcAgentClient().updateInstanceGroupLifecycleState(
-                InstanceGroupLifecycleStateUpdate.newBuilder()
-                        .setInstanceGroupId("flexAgentCluster")
-                        .setDetail("activate")
-                        .setLifecycleState(InstanceGroupLifecycleState.Active)
-                        .build()
-        );
+        v2Client = titusMasterResource.getMaster().getClient();
 
         // Setup capacity guarantees for tiers
-        client.addApplicationSLA(asRepresentation(CRITICAL1_GUARANTEE)).toBlocking().first();
-        client.addApplicationSLA(asRepresentation(CRITICAL2_GUARANTEE)).toBlocking().first();
+        v2Client.addApplicationSLA(
+                asRepresentation(CRITICAL1_GUARANTEE)).
+                toBlocking().
+                first();
+        v2Client.addApplicationSLA(
+                asRepresentation(CRITICAL2_GUARANTEE)).
+                toBlocking().
+                first();
     }
 
     @Test
-    @Ignore
     public void testGuaranteesAreEnforcedInCriticalTier() throws Exception {
-        // FIXME Remove this once we have notification mechanism
-        Thread.sleep(500);
+        JobDescriptor<BatchJobExt> c1Job = BATCH_JOB_8CPU.toBuilder().withCapacityGroup("c1").build();
+        JobDescriptor<BatchJobExt> c2Job = BATCH_JOB_8CPU.toBuilder().withCapacityGroup("c2").build();
 
         // Run c1 job, and make sure it takes up to 16 CPUs
-        try {
-            TitusJobSpec c1Job = new TitusJobSpec.Builder(generator.createBatchJob("c1"))
-                    .appName("c1")
-                    .cpu(8)
-                    .memory(1)
-                    .networkMbps(1)
-                    .instances(3)
-                    .build();
-            jobRunner.runJob(c1Job);
-            fail("Expected to fail, as not all tasks can be run within the available capacity");
-        } catch (AssertionError ignore) {
-            // We expect it to fail, as not all tasks can be run
-        }
-
-        TitusJobInfo c1Job = client.findJobs().toBlocking().first();
-        assertThat(c1Job.getTasks()).hasSize(3);
-        List<TaskInfo> c1Running = c1Job.getTasks().stream().filter(t -> t.getState() == TitusTaskState.RUNNING).collect(Collectors.toList());
-        assertThat(c1Running).hasSize(2);
-        List<TaskInfo> c1Queued = c1Job.getTasks().stream().filter(t -> t.getState() == TitusTaskState.QUEUED).collect(Collectors.toList());
-        assertThat(c1Queued).hasSize(1);
+        jobsScenarioBuilder.schedule(c1Job, jobScenarioBuilder -> jobScenarioBuilder
+                .expectTasksOnAgents(2)
+                .assertTasks(tasks -> tasks.stream().filter(CapacityGuaranteeTest::isScheduled).count() == 2)
+        );
 
         // Run c2 job, and make sure it can take its share
-        TitusJobSpec c2Job = new TitusJobSpec.Builder(generator.createBatchJob("c2"))
-                .appName("c2")
-                .cpu(1)
-                .memory(1024)
-                .networkMbps(100)
-                .instances(16)
-                .build();
-        jobRunner.runJob(c2Job);
+        jobsScenarioBuilder.schedule(c2Job, jobScenarioBuilder -> jobScenarioBuilder
+                .expectTasksOnAgents(2)
+                .assertTasks(tasks -> tasks.stream().filter(CapacityGuaranteeTest::isScheduled).count() == 2)
+        );
+    }
+
+    private static boolean isScheduled(Task task) {
+        return task.getStatus().getState() != TaskState.Accepted;
     }
 }

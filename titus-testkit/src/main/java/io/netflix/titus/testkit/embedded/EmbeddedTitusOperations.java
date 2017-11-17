@@ -21,6 +21,7 @@ import java.util.Optional;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
@@ -30,6 +31,7 @@ public class EmbeddedTitusOperations {
 
     private final EmbeddedTitusMaster master;
     private final Optional<EmbeddedTitusGateway> gateway;
+    private final SimulatedCloud simulatedCloud;
 
     public EmbeddedTitusOperations(EmbeddedTitusMaster master) {
         this(master, null);
@@ -38,6 +40,11 @@ public class EmbeddedTitusOperations {
     public EmbeddedTitusOperations(EmbeddedTitusMaster master, EmbeddedTitusGateway gateway) {
         this.master = master;
         this.gateway = Optional.ofNullable(gateway);
+        this.simulatedCloud = master.getSimulatedCloud();
+    }
+
+    public SimulatedCloud getSimulatedCloud() {
+        return simulatedCloud;
     }
 
     public JobManagementServiceGrpc.JobManagementServiceStub getV3GrpcClient() {

@@ -47,36 +47,39 @@ class SimulatedInstanceCloudConnector implements InstanceCloudConnector {
 
     @Override
     public Observable<List<InstanceGroup>> getInstanceGroups() {
-        List<InstanceGroup> instanceGroups = cloud.getAgentInstanceGroups().stream().map(this::toInstanceGroup).collect(Collectors.toList());
-        return Observable.just(instanceGroups);
+        return Observable.fromCallable(() -> cloud.getAgentInstanceGroups().stream().map(this::toInstanceGroup).collect(Collectors.toList()));
     }
 
     @Override
     public Observable<List<InstanceGroup>> getInstanceGroups(List<String> instanceGroupIds) {
-        Set<String> idSet = new HashSet<>(instanceGroupIds);
-        List<InstanceGroup> instanceGroups = cloud.getAgentInstanceGroups().stream()
-                .filter(g -> idSet.contains(g.getName()))
-                .map(this::toInstanceGroup)
-                .collect(Collectors.toList());
-        if (instanceGroups.size() != instanceGroupIds.size()) {
-            Set<String> unknownIds = new HashSet<>(idSet);
-            unknownIds.removeAll(instanceGroups.stream().map(InstanceGroup::getId).collect(Collectors.toList()));
-            Preconditions.checkArgument(false, "Unknown instance groups requested: %s", unknownIds);
-        }
-        return Observable.just(instanceGroups);
+        return Observable.fromCallable(() -> {
+            Set<String> idSet = new HashSet<>(instanceGroupIds);
+            List<InstanceGroup> instanceGroups = cloud.getAgentInstanceGroups().stream()
+                    .filter(g -> idSet.contains(g.getName()))
+                    .map(this::toInstanceGroup)
+                    .collect(Collectors.toList());
+            if (instanceGroups.size() != instanceGroupIds.size()) {
+                Set<String> unknownIds = new HashSet<>(idSet);
+                unknownIds.removeAll(instanceGroups.stream().map(InstanceGroup::getId).collect(Collectors.toList()));
+                Preconditions.checkArgument(false, "Unknown instance groups requested: %s", unknownIds);
+            }
+            return instanceGroups;
+        });
     }
 
     @Override
     public Observable<List<InstanceLaunchConfiguration>> getInstanceLaunchConfiguration(List<String> launchConfigurationIds) {
-        Set<String> knownIds = cloud.getAgentInstanceGroups().stream().map(SimulatedTitusAgentCluster::getName).collect(Collectors.toSet());
-        Set<String> unknownIds = new HashSet<>(launchConfigurationIds);
-        unknownIds.removeAll(knownIds);
-        Preconditions.checkArgument(unknownIds.isEmpty(), "Unknown instance groups requested: %s", unknownIds);
+        return Observable.fromCallable(() -> {
+            Set<String> knownIds = cloud.getAgentInstanceGroups().stream().map(SimulatedTitusAgentCluster::getName).collect(Collectors.toSet());
+            Set<String> unknownIds = new HashSet<>(launchConfigurationIds);
+            unknownIds.removeAll(knownIds);
+            Preconditions.checkArgument(unknownIds.isEmpty(), "Unknown instance groups requested: %s", unknownIds);
 
-        List<InstanceLaunchConfiguration> launchConfigurations = launchConfigurationIds.stream()
-                .map(id -> new InstanceLaunchConfiguration(id, cloud.getAgentInstanceGroup(id).getInstanceType().name()))
-                .collect(Collectors.toList());
-        return Observable.just(launchConfigurations);
+            List<InstanceLaunchConfiguration> launchConfigurations = launchConfigurationIds.stream()
+                    .map(id -> new InstanceLaunchConfiguration(id, cloud.getAgentInstanceGroup(id).getInstanceType().name()))
+                    .collect(Collectors.toList());
+            return launchConfigurations;
+        });
     }
 
     @Override
@@ -96,46 +99,49 @@ class SimulatedInstanceCloudConnector implements InstanceCloudConnector {
 
     @Override
     public Observable<List<Instance>> getInstances(List<String> instanceIds) {
-        List<Instance> instances = instanceIds.stream().map(id -> toInstance(cloud.getAgentInstance(id))).collect(Collectors.toList());
-        return Observable.just(instances);
+        return Observable.fromCallable(() -> instanceIds.stream().map(id -> toInstance(cloud.getAgentInstance(id))).collect(Collectors.toList()));
     }
 
     @Override
     public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
-        SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroupId);
-        agentInstanceGroup.updateCapacity(
-                min.orElse(agentInstanceGroup.getMinSize()),
-                desired.orElse(agentInstanceGroup.getAgents().size()),
-                agentInstanceGroup.getMaxSize()
-        );
-        return Completable.complete();
+        return Completable.fromAction(() -> {
+            SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroupId);
+            agentInstanceGroup.updateCapacity(
+                    min.orElse(agentInstanceGroup.getMinSize()),
+                    desired.orElse(agentInstanceGroup.getAgents().size()),
+                    agentInstanceGroup.getMaxSize()
+            );
+        });
     }
 
     @Override
     public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
-        SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroupId);
-        agentInstanceGroup.updateCapacity(
-                agentInstanceGroup.getMinSize(),
-                agentInstanceGroup.getAgents().size() + scaleUpCount,
-                agentInstanceGroup.getMaxSize()
-        );
-        return Completable.complete();
+        return Completable.fromAction(() -> {
+            SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroupId);
+            agentInstanceGroup.updateCapacity(
+                    agentInstanceGroup.getMinSize(),
+                    agentInstanceGroup.getAgents().size() + scaleUpCount,
+                    agentInstanceGroup.getMaxSize()
+            );
+        });
     }
 
     @Override
     public Observable<List<Either<Boolean, Throwable>>> terminateInstances(String instanceGroup, List<String> instanceIds, boolean shrink) {
-        SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroup);
+        return Observable.fromCallable(() -> {
+            SimulatedTitusAgentCluster agentInstanceGroup = cloud.getAgentInstanceGroup(instanceGroup);
 
-        List<Either<Boolean, Throwable>> result = new ArrayList<>();
-        for (String instanceId : instanceIds) {
-            try {
-                agentInstanceGroup.terminate(instanceId);
-                result.add(Either.ofValue(true));
-            } catch (Exception e) {
-                result.add(Either.ofError(e));
+            List<Either<Boolean, Throwable>> result = new ArrayList<>();
+            for (String instanceId : instanceIds) {
+                try {
+                    agentInstanceGroup.terminate(instanceId);
+                    result.add(Either.ofValue(true));
+                } catch (Exception e) {
+                    result.add(Either.ofError(e));
+                }
             }
-        }
-        return Observable.just(result);
+            return result;
+        });
     }
 
     private InstanceGroup toInstanceGroup(SimulatedTitusAgentCluster agentCluster) {

@@ -16,6 +16,7 @@
 
 package io.netflix.titus.testkit.embedded.stack;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import io.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import io.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
@@ -34,6 +35,10 @@ public class EmbeddedTitusStack {
         this.master = master;
         this.gateway = gateway;
         this.titusOperations = new EmbeddedTitusOperations(master, gateway);
+    }
+
+    public EmbeddedTitusStack toMaster(Function<EmbeddedTitusMaster.Builder, EmbeddedTitusMaster.Builder> masterTransformer) {
+        return new EmbeddedTitusStack(masterTransformer.apply(master.toBuilder()).build(), gateway);
     }
 
     public EmbeddedTitusStack boot() {
@@ -64,13 +69,6 @@ public class EmbeddedTitusStack {
         return new Builder();
     }
 
-    public static EmbeddedTitusStack aDefaultTitusStack() {
-        return new Builder()
-                .withMaster(EmbeddedTitusMaster.aDefaultTitusMaster())
-                .withDefaultGateway()
-                .build();
-    }
-
     public static class Builder {
 
         private EmbeddedTitusMaster master;
@@ -98,11 +96,13 @@ public class EmbeddedTitusStack {
 
             if (defaultGateway) {
                 gateway = EmbeddedTitusGateway.aDefaultTitusGateway()
-                        .withMasterGrpcEndpoint("localhost", master.getGrpcPort())
+                        .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
+                        .withStore(master.getStore())
                         .build();
             } else {
                 gateway = gateway.toBuilder()
-                        .withMasterGrpcEndpoint("localhost", master.getGrpcPort())
+                        .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
+                        .withStore(master.getStore())
                         .build();
             }
 

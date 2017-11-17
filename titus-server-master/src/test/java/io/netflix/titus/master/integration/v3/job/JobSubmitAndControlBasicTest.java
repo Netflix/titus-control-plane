@@ -25,15 +25,13 @@ import io.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
-import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import io.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
-import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.netflix.titus.testkit.model.job.ContainersGenerator;
@@ -42,14 +40,17 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.master.integration.v3.scenario.JobAsserts.containerWithEfsMounts;
 import static io.netflix.titus.master.integration.v3.scenario.JobAsserts.containerWithResources;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.completeTask;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.jobFinished;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.killJob;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
+import static io.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static java.util.Arrays.asList;
@@ -59,34 +60,24 @@ import static java.util.Arrays.asList;
 @Category(IntegrationTest.class)
 public class JobSubmitAndControlBasicTest {
 
-    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName("myApp").build();
-    private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName("myApp").build();
+    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
+    private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 
-    private final JobStore store = new InMemoryJobStore();
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2));
+
+    private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
+
+    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
     @Rule
-    public final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStack.aTitusStack()
-            .withMaster(EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titus.master.grpcServer.v3EnabledApps", "myApp")
-                    .withProperty("titusMaster.jobManager.launchedTimeoutMs", "3000")
-                    .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                    .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(2).withInstanceType(AwsInstanceType.M3_XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                    .withJobStore(store)
-                    .build())
-            .withDefaultGateway()
-            .build()
-    );
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     private EmbeddedTitusMaster titusMaster;
 
-    private JobsScenarioBuilder jobsScenarioBuilder;
-
     @Before
     public void setUp() throws Exception {
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
         titusMaster = titusStackResource.getMaster();
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource.getStack().getTitusOperations());
     }
 
     /**
@@ -200,8 +191,6 @@ public class JobSubmitAndControlBasicTest {
 
     @Test(timeout = 30_000)
     public void submitGpuBatchJob() throws Exception {
-        titusMaster.addAgentCluster(aTitusAgentCluster("gpuAgentCluster", 3).withInstanceType(AwsInstanceType.G2_2XLarge));
-
         JobDescriptor<BatchJobExt> gpuJobDescriptor =
                 ONE_TASK_BATCH_JOB.but(j -> j.getContainer().but(c -> c.getContainerResources().toBuilder().withGpu(1)));
 

@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.mesos.MesosSchedulerCallbackHandler;
+import io.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedMesosSchedulerDriver;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
@@ -34,6 +35,7 @@ import io.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescript
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import org.apache.mesos.Protos;
 import org.apache.mesos.SchedulerDriver;
+import rx.Observable;
 
 import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
 
@@ -46,6 +48,8 @@ public class SimulatedCloud {
 
     private final SimulatedInstanceCloudConnector instanceCloudConnector;
 
+    private SimulatedMesosSchedulerDriver mesosSchedulerDriver;
+
     public SimulatedCloud() {
         this.computeResources = new ComputeResources();
         this.instanceCloudConnector = new SimulatedInstanceCloudConnector(this);
@@ -55,23 +59,38 @@ public class SimulatedCloud {
         agentInstanceGroups.values().forEach(SimulatedTitusAgentCluster::shutdown);
     }
 
-    public void addInstanceGroup(SimulatedTitusAgentCluster agentInstanceGroup) {
-        agentInstanceGroups.put(agentInstanceGroup.getName(), agentInstanceGroup);
+    // FIXME Create proper contract between SimulatedCloud and MesosSchedulerDriver
+    public void setMesosSchedulerDriver(SimulatedMesosSchedulerDriver mesosSchedulerDriver) {
+        this.mesosSchedulerDriver = mesosSchedulerDriver;
+        agentInstanceGroups.values().forEach(g -> g.getAgents().forEach(mesosSchedulerDriver::addAgent));
     }
 
-    public void createAgentInstanceGroups(SimulatedAgentGroupDescriptor agentGroupDescriptor) {
-        Preconditions.checkArgument(
-                !agentInstanceGroups.containsKey(agentGroupDescriptor.getName()),
-                "Agent instance group with name %s already exists", agentGroupDescriptor.getName()
-        );
-        SimulatedTitusAgentCluster newAgentInstanceGroup = aTitusAgentCluster(agentGroupDescriptor.getName(), nextInstanceGroupId++)
-                .withComputeResources(computeResources)
-                .withCoolDownSec(60)
-                .withInstanceType(AwsInstanceType.withName(agentGroupDescriptor.getInstanceType()))
-                .withIpPerEni(8)
-                .withSize(agentGroupDescriptor.getDesired())
-                .build();
-        agentInstanceGroups.put(agentGroupDescriptor.getName(), newAgentInstanceGroup);
+    public SimulatedCloud addInstanceGroup(SimulatedTitusAgentCluster agentInstanceGroup) {
+        agentInstanceGroups.put(agentInstanceGroup.getName(), agentInstanceGroup);
+        if (mesosSchedulerDriver != null) {
+            agentInstanceGroup.getAgents().forEach(a -> mesosSchedulerDriver.addAgent(a));
+        }
+        return this;
+    }
+
+    public SimulatedCloud createAgentInstanceGroups(SimulatedAgentGroupDescriptor... agentGroupDescriptors) {
+        for (SimulatedAgentGroupDescriptor agentGroupDescriptor : agentGroupDescriptors) {
+            Preconditions.checkArgument(
+                    !agentInstanceGroups.containsKey(agentGroupDescriptor.getName()),
+                    "Agent instance group with name %s already exists", agentGroupDescriptor.getName()
+            );
+            SimulatedTitusAgentCluster newAgentInstanceGroup = aTitusAgentCluster(agentGroupDescriptor.getName(), nextInstanceGroupId++)
+                    .withComputeResources(computeResources)
+                    .withCoolDownSec(60)
+                    .withInstanceType(AwsInstanceType.withName(agentGroupDescriptor.getInstanceType()))
+                    .withIpPerEni(agentGroupDescriptor.getIpPerEni())
+                    .withSize(agentGroupDescriptor.getDesired())
+                    .withMaxSize(agentGroupDescriptor.getMax())
+                    .build();
+            addInstanceGroup(newAgentInstanceGroup);
+        }
+
+        return this;
     }
 
     public List<SimulatedTitusAgentCluster> getAgentInstanceGroups() {
@@ -121,7 +140,7 @@ public class SimulatedCloud {
         agentInstanceGroups.values().stream()
                 .filter(g -> g.getAgents().stream().anyMatch(a -> a.getId().equals(agentId)))
                 .findFirst()
-                .ifPresent(g ->  {
+                .ifPresent(g -> {
                     g.terminate(agentId);
                 });
     }
@@ -131,6 +150,10 @@ public class SimulatedCloud {
     }
 
     public SchedulerDriver createMesosSchedulerDriver(Protos.FrameworkInfo framework, MesosSchedulerCallbackHandler scheduler) {
-        return new SimulatedMesosSchedulerDriver(framework, scheduler);
+        return new SimulatedMesosSchedulerDriver(this, framework, scheduler);
+    }
+
+    public Observable<OfferChangeEvent> offerUpdates() {
+        return null;
     }
 }

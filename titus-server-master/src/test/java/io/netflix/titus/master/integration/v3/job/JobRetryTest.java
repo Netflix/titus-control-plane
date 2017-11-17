@@ -22,6 +22,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import io.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
@@ -32,8 +33,11 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
@@ -44,7 +48,7 @@ import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskS
 public class JobRetryTest {
 
     private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder()
-            .withApplicationName("myApp")
+            .withApplicationName(TitusStackResource.V3_ENGINE_APP_PREFIX)
             .withExtensions(BatchJobExt.newBuilder()
                     .withSize(1)
                     .withRuntimeLimitMs(600000)
@@ -53,7 +57,7 @@ public class JobRetryTest {
             )
             .build();
     private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder()
-            .withApplicationName("myApp")
+            .withApplicationName(TitusStackResource.V3_ENGINE_APP_PREFIX)
             .withExtensions(ServiceJobExt.newBuilder()
                     .withCapacity(Capacity.newBuilder().withMin(0).withDesired(1).withMax(2).build())
                     .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(1).build())
@@ -61,16 +65,23 @@ public class JobRetryTest {
             )
             .build();
 
-    @ClassRule
-    public static final TitusStackResource titusStackResource = TitusStackResource.aDefaultStack();
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicStack(5));
 
-    private static JobsScenarioBuilder jobsScenarioBuilder;
+    private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
+
+    private static final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
+
+    @ClassRule
+    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @BeforeClass
     public static void setUp() throws Exception {
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource.getStack().getTitusOperations());
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
     }
 
+    /**
+     * FIXME V3 engine is broken. Batch job returned as service job.
+     */
     @Test(timeout = 30_000)
     @Ignore
     public void testBatchJobRetry() throws Exception {
@@ -81,8 +92,8 @@ public class JobRetryTest {
                 .expectAllTasksCreated()
                 .allTasks(TaskScenarioBuilder::expectTaskOnAgent)
                 .assertTasks(task -> task.get(1).getResubmitNumber() == 1)
-                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
-                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.completeTask()))
+                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
+                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.completeTask()))
                 .expectJobEventStreamCompletes()
         );
     }

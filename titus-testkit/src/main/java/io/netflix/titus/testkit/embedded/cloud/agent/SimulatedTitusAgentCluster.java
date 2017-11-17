@@ -78,6 +78,7 @@ public class SimulatedTitusAgentCluster {
         this.networkMbs = networkMbs;
         this.ipPerEni = ipPerEni;
         this.autoScaleRule = autoScaleRule;
+        this.maxSize = autoScaleRule.getMax();
 
         this.offerTemplate = Protos.Offer.newBuilder()
                 .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("EmbeddedTitusMaster"))
@@ -190,7 +191,7 @@ public class SimulatedTitusAgentCluster {
     }
 
     private SimulatedTitusAgent createAgent() {
-        String hostName = ComputeResources.asHostname(computeResources.allocateIpAddress());
+        String hostName = ComputeResources.asHostname(computeResources.allocateIpAddress(), name);
         Protos.SlaveID slaveId = Protos.SlaveID.newBuilder().setValue(hostName).build();
 
         Protos.Offer.Builder agentOfferTemplate = offerTemplate.clone()
@@ -222,6 +223,7 @@ public class SimulatedTitusAgentCluster {
         private int disk = 200000;
         private int networkMbs = 1000;
         private int size = 2;
+        private int maxSize = 2;
         private int gpus = 0;
 
         private int minIdleHostsToKeep = 1;
@@ -255,6 +257,11 @@ public class SimulatedTitusAgentCluster {
             return this;
         }
 
+        public Builder withMaxSize(int maxSize) {
+            this.maxSize = maxSize;
+            return this;
+        }
+
         public Builder withMinIdleHostsToKeep(int minIdleHostsToKeep) {
             this.minIdleHostsToKeep = minIdleHostsToKeep;
             return this;
@@ -279,6 +286,7 @@ public class SimulatedTitusAgentCluster {
             AutoScaleRule autoScaleRule = AutoScaleRule.newBuilder()
                     .withMinIdleToKeep(minIdleHostsToKeep)
                     .withMaxIdleToKeep(maxIdleHostsToKeep)
+                    .withMax(maxSize)
                     .withCoolDownSec((int) coolDownSec)
                     .withShortfallAdjustingFactor(1)
                     .build();
