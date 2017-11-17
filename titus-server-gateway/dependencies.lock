@@ -49,6 +49,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -688,6 +692,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -1326,6 +1334,10 @@
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
         },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
@@ -2003,6 +2015,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -2642,6 +2658,10 @@
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
         },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
@@ -3300,7 +3320,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -4232,7 +4254,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -5164,7 +5188,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -6097,7 +6123,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },

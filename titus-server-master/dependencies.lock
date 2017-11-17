@@ -3900,6 +3900,7 @@
             "locked": "1.1.1",
             "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -4819,6 +4820,7 @@
             "locked": "1.1.1",
             "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -5738,6 +5740,7 @@
             "locked": "1.1.1",
             "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -6658,6 +6661,7 @@
             "locked": "1.1.1",
             "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },

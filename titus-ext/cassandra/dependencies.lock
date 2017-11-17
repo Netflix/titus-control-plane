@@ -2520,6 +2520,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -3748,6 +3749,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -4976,6 +4978,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -6205,6 +6208,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },

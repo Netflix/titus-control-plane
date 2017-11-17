@@ -239,7 +239,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -1203,7 +1203,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -2167,7 +2167,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -3168,7 +3168,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -4133,7 +4133,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -4944,6 +4944,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -5109,7 +5110,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -6007,6 +6008,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -6172,7 +6174,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -7070,6 +7072,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -7235,7 +7238,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -8134,6 +8137,7 @@
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -8299,7 +8303,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.8.5",
+            "locked": "1.8.6",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
