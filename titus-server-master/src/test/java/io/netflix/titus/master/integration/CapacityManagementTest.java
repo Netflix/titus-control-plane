@@ -52,7 +52,7 @@ public class CapacityManagementTest extends BaseIntegrationTest {
      * Add new critical tier SLA, which should be persisted in a storage, and should force a scale up of
      * a server group.
      */
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void addCriticalTierJobSla() throws Exception {
         ApplicationSLA applicationSLA = ApplicationSlaSample.CriticalLarge.build();
 

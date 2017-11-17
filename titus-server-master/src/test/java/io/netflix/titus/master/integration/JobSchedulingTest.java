@@ -126,7 +126,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
      * resources.
      * TODO We should add second cluster in this test, but as adding cluster requires master restart, we provide two clusters in the initialization step
      */
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitBatchJobWhenTwoAgentClustersWithSameFitnessButDifferentResourceAmounts() throws Exception {
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.batch, "myjob")).cpu(7).build();
         TaskExecutorHolder taskHolder = runBatchJob(jobSpec);
@@ -134,7 +134,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         assertThat(taskHolder.getInstanceType()).isEqualTo(AwsInstanceType.M3_2XLARGE);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitGpuBatchJob() throws Exception {
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.batch, "myjob")).gpu(1).build();
         TaskExecutorHolder taskHolder = runBatchJob(jobSpec);
@@ -142,7 +142,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         assertThat(taskHolder.getInstanceType()).isEqualTo(AwsInstanceType.G2_2XLarge);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitBatchJobAndRebootTitusMaster() throws Exception {
         TaskExecutorHolder holder = jobRunner.runJob(generator.newJobSpec(TitusJobType.batch, "myjob")).get(0);
         titusMaster.reboot();
@@ -150,7 +150,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         assertAllTasksInState(jobInfo, TitusTaskState.RUNNING);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitServiceJobWithTooFewRunningWorkersAndRebootTitusMaster() throws Exception {
         TaskExecutorHolder holder = jobRunner.runJob(generator.newJobSpec(TitusJobType.service, "myjob")).get(0);
         titusMaster.shutdown();
@@ -200,7 +200,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     /**
      * Verify service job submit with the expected state transitions, and explicit termination (kill).
      */
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitServiceJob() throws Exception {
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
                 .instancesMin(1).instancesDesired(1).instancesMax(1)
@@ -212,7 +212,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     /**
      * Verify service job getting stuck in Launched assigns correct completedReason
      */
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitServiceJobStuckInLaunched() throws Exception {
         Observable<Status> checkStatusObservable = titusMaster.getWorkerStateMonitor().getAllStatusObservable().flatMap(status -> {
             logger.info(String.format("status %s-%s-%s - %s (%s)", status.getJobId(), status.getWorkerIndex(), status.getWorkerNumber(), status.getState(), status.getReason()));
@@ -238,7 +238,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     /**
      * Verify that a service job is automatically restarted, after a task exits.
      */
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void submitServiceJobFinishItAndCheckThatItRestarts() throws Exception {
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
                 .instancesMin(1).instancesDesired(1).instancesMax(1)

@@ -77,7 +77,7 @@ public class ReconciliationTest extends BaseIntegrationTest {
         titusMaster = titusMasterResource.getMaster();
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testReconciliationAfterEniDuplicateError() throws Exception {
         ExtTestSubscriber<TaskExecutorHolder> taskExecutorHolders = new ExtTestSubscriber<>();
         titusMaster.observeLaunchedTasks().subscribe(taskExecutorHolders);

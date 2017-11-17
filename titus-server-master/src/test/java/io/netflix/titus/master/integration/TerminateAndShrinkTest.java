@@ -96,7 +96,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobRunner = new JobRunner(titusMaster);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testTerminateAndShrinkScalesDownJobByOne() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -127,7 +127,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         assertThat(jobInfo.getInstancesDesired()).isEqualTo(1);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testTerminateAndShrinkRecyclesTombStonedIndexes() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -151,7 +151,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         verifyTasksHaveTheSameIndex(newTaskIds.iterator().next(), firstHolder.getTaskId());
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScaleUpWithTombStonedIndexes() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -166,7 +166,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(3, 1, 5); // Fails if job not scaled to desired level = 3
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScaleDownWithTombStonedIndexes() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(threeTaskServiceSpec);
         TaskExecutorHolder secondHolder = holders.get(1);
@@ -181,7 +181,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(1, 1, 5); // Scale down from 2 to 1
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testTombStonedTaskIsNotRunningAfterMasterReboot() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -202,7 +202,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(2, 1, 3); // Fails if job not scaled to desired level = 2
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScalingToZeroDoesNotTerminateJob() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(oneTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -220,7 +220,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(1, 0, 3); // Fails if job not scaled to desired level = 1
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScalingBelowMinNotAllowed() throws Exception {
         TitusJobSpec myTask = new TitusJobSpec.Builder(oneTaskServiceSpec).instancesMin(1).build();
         List<TaskExecutorHolder> holders = jobRunner.runJob(myTask);
