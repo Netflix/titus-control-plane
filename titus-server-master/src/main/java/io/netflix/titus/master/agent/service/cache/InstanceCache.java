@@ -272,7 +272,10 @@ class InstanceCache {
                 .flatMap(result -> {
                     if (result.isEmpty()) {
                         logger.info("Instance group: {} has been removed", instanceGroupId);
-                        onEventLoop(() -> removeInstanceGroupFromCache(instanceGroupId));
+                        onEventLoop(() -> {
+                            removeInstanceGroupFromCache(instanceGroupId);
+                            instanceGroupRefreshMetricsTransforms.remove(instanceGroupId);
+                        });
                         return Observable.empty();
                     }
 

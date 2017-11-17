@@ -17,12 +17,13 @@
 package io.netflix.titus.common.util.spectator;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.netflix.spectator.api.LongTaskTimer;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
+import com.netflix.spectator.api.Timer;
 import rx.Completable;
 
 /**
@@ -38,16 +39,16 @@ class LongRunningCompletableMetrics implements Completable.Transformer {
 
     private final Registry registry;
 
-    private final LongTaskTimer duration;
+    private final Timer duration;
     private final AtomicBoolean hasSubscribed;
-    private final AtomicLong timerId;
+    private final AtomicLong durationStart;
     private final AtomicLong lastCompleteTimestamp;
 
     LongRunningCompletableMetrics(String root, List<Tag> commonTags, Registry registry) {
         this.registry = registry;
-        this.duration = registry.longTaskTimer(root + ".duration", commonTags);
+        this.duration = registry.timer(root + ".duration", commonTags);
         this.hasSubscribed = new AtomicBoolean(false);
-        this.timerId = new AtomicLong(0);
+        this.durationStart = new AtomicLong(0);
         this.lastCompleteTimestamp = new AtomicLong(registry.clock().wallTime());
         registry.gauge(
                 registry.createId(root + ".timeSinceLastComplete", commonTags),
@@ -62,11 +63,12 @@ class LongRunningCompletableMetrics implements Completable.Transformer {
                 .doOnSubscribe(subscription -> {
                     if (!hasSubscribed.get()) {
                         hasSubscribed.getAndSet(true);
-                        timerId.getAndSet(duration.start());
+                        durationStart.getAndSet(registry.clock().wallTime());
                     }
                 })
                 .doOnCompleted(() -> {
-                    duration.stop(timerId.get());
+                    final long end = registry.clock().monotonicTime();
+                    duration.record(end - durationStart.get(), TimeUnit.MILLISECONDS);
                     lastCompleteTimestamp.getAndSet(registry.clock().wallTime());
                     hasSubscribed.getAndSet(false);
                 });
