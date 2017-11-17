@@ -77,7 +77,7 @@ public class JobObserveTest {
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
     @Rule
-    public RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(jobsScenarioBuilder);
+    public RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @Before
     public void setUp() throws Exception {
