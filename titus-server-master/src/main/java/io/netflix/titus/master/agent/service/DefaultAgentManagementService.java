@@ -44,7 +44,7 @@ import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.agent.service.vm.AgentCache;
+import io.netflix.titus.master.agent.service.cache.AgentCache;
 import rx.Completable;
 import rx.Observable;
 

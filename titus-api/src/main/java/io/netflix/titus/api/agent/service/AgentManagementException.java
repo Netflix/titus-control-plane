@@ -46,11 +46,11 @@ public class AgentManagementException extends RuntimeException {
         return new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s is not found", null, agentGroupId);
     }
 
-    public static <T> T checkInstanceGroupFound(T serverGroupData, String serverGroupId) {
-        if (serverGroupData == null) {
-            throw new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s is not found", null, serverGroupId);
+    public static <T> T checkInstanceGroupFound(T instanceGroupData, String instanceGroupId) {
+        if (instanceGroupData == null) {
+            throw new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s is not found", null, instanceGroupId);
         }
-        return serverGroupData;
+        return instanceGroupData;
     }
 
     public static AgentManagementException agentNotFound(String agentInstanceId) {

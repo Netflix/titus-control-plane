@@ -47,6 +47,7 @@ import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.google.common.base.Strings;
 import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.Instance.InstanceState;
@@ -86,7 +87,15 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     static final long AWS_OPERATION_DELAY_MS = 500;
 
     static final String TAG_TERMINATE = "TitusAgentPendingTermination";
-    static final String TAG_ASG_LINK = "aws:autoscaling:groupName";
+    static final String TAG_ASG_NAME = "aws:autoscaling:groupName";
+    static final String TAG_ASG_FILTER_NAME = "tag:" + TAG_ASG_NAME;
+
+    private static final int PENDING = 0;
+    private static final int RUNNING = 16;
+    private static final int SHUTTING_DOWN = 32;
+    private static final int TERMINATED = 48;
+    private static final int STOPPING = 64;
+    private static final int STOPPED = 80;
 
     private final AwsConfiguration configuration;
     private final AmazonEC2Async ec2Client;
@@ -154,7 +163,7 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
             DescribeLaunchConfigurationsRequest request = new DescribeLaunchConfigurationsRequest().withLaunchConfigurationNames(launchConfigurationIds);
             return autoScalingClient.describeLaunchConfigurationsAsync(request);
         }).map(
-                response -> toVmLaunchConfigurations(response.getLaunchConfigurations())
+                response -> toInstanceLaunchConfigurations(response.getLaunchConfigurations())
         ).timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
@@ -199,9 +208,35 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     @Override
+    public Observable<List<Instance>> getInstancesByInstanceGroupId(String instanceGroupId) {
+        if (Strings.isNullOrEmpty(instanceGroupId)) {
+            return Observable.just(Collections.emptyList());
+        }
+        PageCollector<DescribeInstancesRequest, com.amazonaws.services.ec2.model.Instance> pageCollector = new PageCollector<>(
+                token -> new DescribeInstancesRequest().withFilters(new Filter().withName(TAG_ASG_FILTER_NAME).withValues(instanceGroupId))
+                        .withNextToken(token),
+                request -> toObservable(() -> ec2Client.describeInstancesAsync(request))
+                        .map(result -> {
+                            List<com.amazonaws.services.ec2.model.Instance> instances = result.getReservations().stream()
+                                    .flatMap(r -> r.getInstances().stream().filter(instance -> !isTerminal(instance.getState())))
+                                    .collect(Collectors.toList());
+                            return Pair.of(instances, result.getNextToken());
+                        })
+        );
+        return pageCollector.getAll()
+                .map(instances -> instances.stream()
+                        .filter(instance -> {
+                            Optional<Tag> asgTagOptional = instance.getTags().stream().filter(tag -> tag.getKey().equals(TAG_ASG_NAME)).findFirst();
+                            return asgTagOptional.isPresent() && asgTagOptional.get().getValue().equals(instanceGroupId);
+                        })
+                        .map(instance -> toInstance(instance, instanceGroupId)).collect(Collectors.toList()))
+                .timeout(configuration.getInstancesByInstanceGroupIdFetchTimeoutMs(), TimeUnit.MILLISECONDS);
+    }
+
+    @Override
     public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
         return toObservable(() -> {
-            logger.info("Updating instance group {} capacity: min={}, desired={}", instanceGroupId,
+            logger.info("Updating instance group: {} capacity: min={}, desired={}", instanceGroupId,
                     min.map(Object::toString).orElse("notSet"), desired.map(Object::toString).orElse("notSet"));
 
             checkCapacityConstraints(min, desired);
@@ -286,7 +321,9 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
             return ec2Client.describeInstancesAsync(request);
         }).map(response -> {
                     List<com.amazonaws.services.ec2.model.Instance> instances =
-                            response.getReservations().stream().flatMap(r -> r.getInstances().stream()).collect(Collectors.toList());
+                            response.getReservations().stream()
+                                    .flatMap(r -> r.getInstances().stream().filter(instance -> !isTerminal(instance.getState())))
+                                    .collect(Collectors.toList());
                     return instances.stream().map(this::toInstance).collect(Collectors.toList());
                 }
         );
@@ -348,22 +385,22 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
         }
     }
 
-    private Instance.InstanceState toVmInstanceState(com.amazonaws.services.ec2.model.InstanceState instanceState) {
+    private Instance.InstanceState toInstanceState(com.amazonaws.services.ec2.model.InstanceState instanceState) {
         if (instanceState == null || instanceState.getCode() == null) {
             return InstanceState.Unknown;
         }
         switch (instanceState.getCode()) {
-            case 0: // pending
+            case PENDING: // pending
                 return Instance.InstanceState.Starting;
-            case 16: // running
+            case RUNNING: // running
                 return Instance.InstanceState.Running;
-            case 32: // shutting-down
+            case SHUTTING_DOWN: // shutting-down
                 return InstanceState.Terminating;
-            case 48: // terminated
+            case TERMINATED: // terminated
                 return Instance.InstanceState.Terminated;
-            case 64: // stopping
+            case STOPPING: // stopping
                 return Instance.InstanceState.Stopping;
-            case 80: // stopped
+            case STOPPED: // stopped
                 return Instance.InstanceState.Stopped;
         }
         return InstanceState.Unknown;
@@ -396,11 +433,11 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
         );
     }
 
-    private List<InstanceLaunchConfiguration> toVmLaunchConfigurations(List<LaunchConfiguration> awsLaunchConfigurations) {
-        return awsLaunchConfigurations.stream().map(this::toVmLaunchConfiguration).collect(Collectors.toList());
+    private List<InstanceLaunchConfiguration> toInstanceLaunchConfigurations(List<LaunchConfiguration> awsLaunchConfigurations) {
+        return awsLaunchConfigurations.stream().map(this::toInstanceLaunchConfiguration).collect(Collectors.toList());
     }
 
-    private InstanceLaunchConfiguration toVmLaunchConfiguration(LaunchConfiguration awsLaunchConfiguration) {
+    private InstanceLaunchConfiguration toInstanceLaunchConfiguration(LaunchConfiguration awsLaunchConfiguration) {
         return new InstanceLaunchConfiguration(
                 awsLaunchConfiguration.getLaunchConfigurationName(),
                 awsLaunchConfiguration.getInstanceType()
@@ -427,6 +464,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     private Instance toInstance(com.amazonaws.services.ec2.model.Instance awsInstance) {
+        return toInstance(awsInstance, "unknown");
+    }
+
+    private Instance toInstance(com.amazonaws.services.ec2.model.Instance awsInstance, String instanceGroupId) {
         Map<String, String> attributes = CollectionsExt.isNullOrEmpty(awsInstance.getTags())
                 ? Collections.emptyMap()
                 : awsInstance.getTags().stream().collect(Collectors.toMap(Tag::getKey, Tag::getValue));
@@ -435,14 +476,19 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                 .withId(awsInstance.getInstanceId())
                 .withHostname(awsInstance.getPrivateDnsName())
                 .withIpAddress(awsInstance.getPrivateIpAddress())
-                .withInstanceState(toVmInstanceState(awsInstance.getState()))
+                .withInstanceState(toInstanceState(awsInstance.getState()))
                 .withAttributes(attributes)
                 .withLaunchTime(awsInstance.getLaunchTime().getTime())
-                .withInstanceGroupId("unknown")
+                .withInstanceGroupId(instanceGroupId)
                 .build();
     }
 
     private <T> Observable<T> toObservable(Supplier<Future<T>> futureSupplier) {
         return Observable.fromCallable(futureSupplier::get).flatMap(future -> ObservableExt.toObservable(future, scheduler));
+    }
+
+    private boolean isTerminal(com.amazonaws.services.ec2.model.InstanceState instanceState) {
+        Integer code = instanceState.getCode();
+        return code == STOPPED || code == TERMINATED;
     }
 }

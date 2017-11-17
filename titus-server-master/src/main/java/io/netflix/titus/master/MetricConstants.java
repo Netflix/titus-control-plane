@@ -25,6 +25,8 @@ public class MetricConstants {
 
     public static final String METRIC_AGENT = METRIC_ROOT + "agent.";
 
+    public static final String METRIC_AGENT_CACHE = METRIC_ROOT + "agentCache.";
+
     public static final String METRIC_AGENT_MONITOR = METRIC_ROOT + "agentMonitor.";
 
     public static final String METRIC_CAPACITY_MANAGEMENT = METRIC_ROOT + "capacity.";

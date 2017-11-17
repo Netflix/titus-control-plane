@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.netflix.titus.api.connector.cloud.Instance;
@@ -68,6 +69,16 @@ public class VmOperationsInstanceCloudConnector implements InstanceCloudConnecto
         }
         return Observable.fromCallable(() -> internalGetInstances().stream()
                 .filter(instance -> instanceIds.contains(instance.getId()))
+                .collect(Collectors.toList()));
+    }
+
+    @Override
+    public Observable<List<Instance>> getInstancesByInstanceGroupId(String instanceGroupId) {
+        if (Strings.isNullOrEmpty(instanceGroupId)) {
+            return Observable.just(Collections.emptyList());
+        }
+        return Observable.fromCallable(() -> internalGetInstances().stream()
+                .filter(instance -> instance.getInstanceGroupId().equals(instanceGroupId))
                 .collect(Collectors.toList()));
     }
 

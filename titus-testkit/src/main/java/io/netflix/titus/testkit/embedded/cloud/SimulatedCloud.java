@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
@@ -110,6 +111,16 @@ public class SimulatedCloud {
                 .findFirst();
         Preconditions.checkArgument(agentOptional.isPresent(), "Agent %s not found", instanceName);
         return agentOptional.get();
+    }
+
+    public List<SimulatedTitusAgent> getAgentInstancesByInstanceGroup(String instanceGroupName) {
+        Preconditions.checkArgument(agentInstanceGroups.containsKey(instanceGroupName), "Instance group %s not found", instanceGroupName);
+
+        return agentInstanceGroups.get(instanceGroupName)
+                .getAgents()
+                .stream()
+                .filter(simulatedTitusAgent -> simulatedTitusAgent.getClusterName().equals(instanceGroupName))
+                .collect(Collectors.toList());
     }
 
     public ComputeResources getComputeResources() {

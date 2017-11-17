@@ -147,11 +147,11 @@ public interface MasterConfiguration extends CoreConfiguration {
     int getMaxNetworkMbps();
 
     @PropertyName(name = "titus.jobspec.batch.instances.max")
-    @DefaultValue("10000")
+    @DefaultValue("20000")
     int getMaxBatchInstances();
 
     @PropertyName(name = "titus.jobspec.service.instances.max")
-    @DefaultValue("1000")
+    @DefaultValue("2000")
     int getMaxServiceInstances();
 
     @PropertyName(name = "titus.store.terminatedJobCleanUpBatchSize")

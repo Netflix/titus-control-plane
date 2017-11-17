@@ -53,6 +53,11 @@ public class NoOpInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     @Override
+    public Observable<List<Instance>> getInstancesByInstanceGroupId(String instanceGroupId) {
+        return Observable.empty();
+    }
+
+    @Override
     public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
         return Completable.complete();
     }

@@ -28,14 +28,14 @@ import static io.netflix.titus.testkit.model.PrimitiveValueGenerators.ipv4CIDRs;
 /**
  * Test data generator.
  */
-public final class VmGenerators {
+public final class InstanceGenerators {
 
     public static final String ATTR_SUBNET = "subnet";
 
-    public static DataGenerator<InstanceGroup> vmServerGroups(int desiredSize) {
+    public static DataGenerator<InstanceGroup> instanceGroups(int desiredSize) {
         return range(1).map(idx -> InstanceGroup.newBuilder()
-                .withId("vmServerGroup-" + idx)
-                .withLaunchConfigurationName("vmLaunchConfiguration-" + idx)
+                .withId("instanceGroup-" + idx)
+                .withLaunchConfigurationName("launchConfiguration-" + idx)
                 .withMin(0)
                 .withDesired(desiredSize)
                 .withMax(desiredSize)
@@ -45,7 +45,7 @@ public final class VmGenerators {
         );
     }
 
-    public static DataGenerator<Instance> vmServers(InstanceGroup instanceGroup) {
+    public static DataGenerator<Instance> instances(InstanceGroup instanceGroup) {
         Instance.Builder template = Instance.newBuilder()
                 .withInstanceGroupId(instanceGroup.getId())
                 .withInstanceState(Instance.InstanceState.Running)

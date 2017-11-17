@@ -24,7 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2AsyncClientBuilder;
 import com.google.common.base.Stopwatch;
@@ -43,7 +44,8 @@ public class Main {
 
     private static final String REGION = "us-east-1";
 
-    private static final Set<String> ALL_COMMANDS = asSet("all", "sg", "instance", "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp", "scaleDown");
+    private static final Set<String> ALL_COMMANDS = asSet("all", "sg", "instancesByInstanceGroupId", "instance",
+            "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp", "scaleDown");
 
     private static final AwsConfiguration CONFIGURATION = new AwsConfiguration() {
         @Override
@@ -54,6 +56,11 @@ public class Main {
         @Override
         public long getInstanceGroupsFetchTimeoutMs() {
             return 300_000;
+        }
+
+        @Override
+        public long getInstancesByInstanceGroupIdFetchTimeoutMs() {
+            return 60_000;
         }
 
         @Override
@@ -84,6 +91,12 @@ public class Main {
 
         List<InstanceLaunchConfiguration> launchConfigurations = createConnector().getInstanceLaunchConfiguration(instanceGroups.stream().map(g -> g.getLaunchConfigurationName()).collect(Collectors.toList())).toBlocking().first();
         System.out.println("Launch configurations: " + launchConfigurations);
+    }
+
+    private void fetchInstancesByInstanceGroupId(List<String> instanceGroupIds) {
+        String instanceGroupId = instanceGroupIds.get(0);
+        List<Instance> instances = connector.getInstancesByInstanceGroupId(instanceGroupId).toBlocking().first();
+        System.out.println("Loaded " + instances.size() + " instances: " + instances);
     }
 
     private void fetchInstance(List<String> ids) {
@@ -192,6 +205,8 @@ public class Main {
                 main.fetchInstanceGroups();
             } else if (cmd.equals("sg")) {
                 main.fetchInstanceGroup(params);
+            } else if (cmd.equals("instancesByInstanceGroupId")) {
+                main.fetchInstancesByInstanceGroupId(params);
             } else if (cmd.equals("instance")) {
                 main.fetchInstance(params);
             } else if (cmd.equals("terminate")) {
@@ -225,14 +240,18 @@ public class Main {
 
     private static AwsInstanceCloudConnector createConnector() {
         EnvironmentVariableCredentialsProvider credentialsProvider = new EnvironmentVariableCredentialsProvider();
+        Region currentRegion = Regions.getCurrentRegion();
+        if (currentRegion == null) {
+            currentRegion = Region.getRegion(Regions.US_EAST_1);
+        }
         return new AwsInstanceCloudConnector(
                 CONFIGURATION,
                 AmazonEC2AsyncClientBuilder.standard()
-                        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("ec2." + REGION + ".amazonaws.com", REGION))
+                        .withRegion(currentRegion.getName())
                         .withCredentials(credentialsProvider)
                         .build(),
                 AmazonAutoScalingAsyncClientBuilder.standard()
-                        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("autoscaling." + REGION + ".amazonaws.com", REGION))
+                        .withRegion(currentRegion.getName())
                         .withCredentials(credentialsProvider)
                         .build()
         );
