@@ -104,8 +104,6 @@ public class DefaultLoadBalancerServiceTest {
 
         defaultStubs();
         when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
-
-        //noinspection unchecked
         when(jobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 LoadBalancerTests.buildTasksStarted(5, jobId),
                 LoadBalancerTests.buildTasks(2, jobId, TaskState.StartInitiated),
@@ -137,8 +135,6 @@ public class DefaultLoadBalancerServiceTest {
 
         defaultStubs();
         when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
-
-        //noinspection unchecked
         when(jobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 LoadBalancerTests.buildTasksStarted(3, jobId),
                 LoadBalancerTests.buildTasks(1, jobId, TaskState.StartInitiated),
@@ -169,9 +165,6 @@ public class DefaultLoadBalancerServiceTest {
 
     @Test
     public void emptyBatchesAreFilteredOut() throws Exception {
-        final String jobId = UUID.randomUUID().toString();
-        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
-
         defaultStubs();
 
         LoadBalancerConfiguration configuration = mockConfiguration(1000, 5_000);
@@ -233,15 +226,16 @@ public class DefaultLoadBalancerServiceTest {
 
     @Test
     public void multipleLoadBalancersPerJob() throws Exception {
+        final PublishSubject<JobManagerEvent> taskEvents = PublishSubject.create();
         final String jobId = UUID.randomUUID().toString();
         final String firstLoadBalancerId = "lb-" + UUID.randomUUID().toString();
         final String secondLoadBalancerId = "lb-" + UUID.randomUUID().toString();
         final int numberOfStartedTasks = 5;
 
-        defaultStubs();
+        when(client.registerAll(any(), any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
+        when(jobOperations.observeJobs()).thenReturn(taskEvents);
         when(jobOperations.getJob(jobId)).thenReturn(Optional.of(Job.newBuilder().build()));
-
-        //noinspection unchecked
         when(jobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 LoadBalancerTests.buildTasksStarted(numberOfStartedTasks, jobId),
                 LoadBalancerTests.buildTasks(2, jobId, TaskState.StartInitiated),
@@ -256,6 +250,8 @@ public class DefaultLoadBalancerServiceTest {
 
         final AssertableSubscriber<Batch> testSubscriber = service.events().test();
 
+        // associate two load balancers to the same job
+
         assertTrue(service.addLoadBalancer(jobId, firstLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertTrue(service.addLoadBalancer(jobId, secondLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(jobId).toList().toBlocking().single())
@@ -265,8 +261,38 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.triggerActions();
 
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == 5));
-        verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == 5));
+        verify(client).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
+        verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
+        verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
+        verify(client, never()).deregisterAll(eq(secondLoadBalancerId), any());
+
+        // now some more tasks are added to the job, check if both load balancers get updated
+
+        for (int i = 0; i < numberOfStartedTasks; i++) {
+            final String taskId = UUID.randomUUID().toString();
+            final Task startingWithIp = ServiceJobTask.newBuilder()
+                    .withJobId(jobId)
+                    .withId(taskId)
+                    .withStatus(TaskStatus.newBuilder().withState(TaskState.StartInitiated).build())
+                    .withTaskContext(CollectionsExt.asMap(
+                            TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, String.format("%1$d.%1$d.%1$d.%1$d", i + 1)
+                    )).build();
+            final Task started = startingWithIp.toBuilder()
+                    .withStatus(TaskStatus.newBuilder().withState(TaskState.Started).build())
+                    .build();
+
+            taskEvents.onNext(new TaskUpdateEvent(
+                    ReconcilerEvent.EventType.ModelUpdated,
+                    LoadBalancerTests.mockUpdateAction(taskId),
+                    Optional.of(started),
+                    Optional.of(startingWithIp),
+                    Optional.empty()
+            ));
+        }
+        testScheduler.triggerActions();
+        testSubscriber.assertNoErrors().assertValueCount(2);
+        verify(client, times(2)).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
+        verify(client, times(2)).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
         verify(client, never()).deregisterAll(eq(secondLoadBalancerId), any());
     }
