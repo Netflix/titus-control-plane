@@ -22,6 +22,7 @@ import javax.inject.Inject;
 
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
+import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
@@ -92,6 +93,17 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         return AwsObservableExt.asyncActionCompletable(factory -> client.deregisterTargetsAsync(request, factory.handler(
                 (req, resp) -> logger.debug("Deregistered targets {}", resp),
                 (t) -> logger.error("Error deregistering targets on " + loadBalancerId, t)
+        ))).observeOn(scheduler);
+    }
+
+    @Override
+    public Completable isValid(String loadBalancerId) {
+        final DescribeTargetGroupsRequest request = new DescribeTargetGroupsRequest()
+                .withLoadBalancerArn(loadBalancerId);
+
+        return AwsObservableExt.asyncActionCompletable(factory -> client.describeTargetGroupsAsync(request, factory.handler(
+                (req, resp) -> logger.debug("Described target groups {}", resp),
+                (t) -> logger.error("Error describing target groups on " + loadBalancerId, t)
         ))).observeOn(scheduler);
     }
 }

@@ -14,25 +14,21 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.connector.cloud;
+package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-import java.util.Set;
-
-import rx.Completable;
-
-public interface LoadBalancerConnector {
-    /**
-     * @param ipAddresses can be empty or null, in which case this is a noop.
-     */
-    Completable registerAll(String loadBalancerId, Set<String> ipAddresses);
+public interface LoadBalancerValidator {
 
     /**
-     * @param ipAddresses can be empty or null, in which case this is a noop.
+     * Validates that a Job ID is capable of having a load balancer associated with it.
+     * @param jobId
+     * @throws Exception
      */
-    Completable deregisterAll(String loadBalancerId, Set<String> ipAddresses);
+    void validateJobId(String jobId) throws Exception;
 
     /**
-     * Checks if a load balancer ID is valid for use.
+     * Validates that a load balancer can be associated with a Job.
+     * @param loadBalancerId
+     * @throws Exception
      */
-    Completable isValid(String loadBalancerId);
+    void validateLoadBalancer(String loadBalancerId) throws Exception;
 }

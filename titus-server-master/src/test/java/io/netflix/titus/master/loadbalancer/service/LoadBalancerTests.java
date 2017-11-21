@@ -38,13 +38,24 @@ import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.Container;
+import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import io.netflix.titus.api.jobmanager.model.job.Image;
+import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
+import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
@@ -57,6 +68,7 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.mockito.stubbing.OngoingStubbing;
 import rx.Observable;
 import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
@@ -79,11 +91,12 @@ public class LoadBalancerTests {
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
         final LoadBalancerStore loadBalancerStore = new InMemoryLoadBalancerStore();
+        final LoadBalancerValidator validator = new NoOpLoadBalancerValidator();
         final TargetTracking targetTracking = new TargetTracking();
         final TestScheduler testScheduler = Schedulers.test();
 
         final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(
-                runtime, loadBalancerConfig, client, loadBalancerStore, jobOperations, targetTracking, testScheduler);
+                runtime, loadBalancerConfig, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
         final AssertableSubscriber<Batch> testSubscriber = loadBalancerService.events().test();
 
         return loadBalancerService;
@@ -118,6 +131,12 @@ public class LoadBalancerTests {
         when(batchConfig.getSize()).thenReturn(batchSize);
         when(batchConfig.getTimeoutMs()).thenReturn(batchTimeoutMs);
         return configuration;
+    }
+
+    static LoadBalancerValidationConfiguration mockValidationConfig(int maxLbsPerJob) {
+        final LoadBalancerValidationConfiguration config = mock(LoadBalancerValidationConfiguration.class);
+        when(config.getMaxLoadBalancersPerJob()).thenReturn(maxLbsPerJob);
+        return config;
     }
 
     static <T> long count(Observable<T> items) {
@@ -219,5 +238,28 @@ public class LoadBalancerTests {
 
         assertThatCode(removeResponse::awaitDone).doesNotThrowAnyException();
         assertThat(removeResponse.hasError()).isFalse();
+    }
+
+    /**
+     * Configures a V3 mock to return job from getJobs() that passes validation.
+     * @param mockedV3Ops
+     * @return
+     */
+    static public OngoingStubbing<?> applyValidGetJobMock(V3JobOperations mockedV3Ops, String jobId) {
+        return when(mockedV3Ops.getJob(jobId)).thenReturn(Optional.of(Job.<ServiceJobExt>newBuilder()
+                .withId(jobId)
+                .withStatus(JobStatus.newBuilder()
+                        .withState(JobState.Accepted)
+                        .build())
+                .withJobDescriptor(JobDescriptor.<ServiceJobExt>newBuilder()
+                        .withExtensions(ServiceJobExt.newBuilder().build())
+                        .withContainer(Container.newBuilder()
+                                .withImage(Image.newBuilder().build())
+                                .withContainerResources(ContainerResources.newBuilder()
+                                        .withAllocateIP(true)
+                                        .build())
+                                .build())
+                        .build())
+                .build()));
     }
 }

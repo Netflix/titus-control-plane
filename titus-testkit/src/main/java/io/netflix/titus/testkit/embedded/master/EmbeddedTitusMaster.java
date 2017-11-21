@@ -53,6 +53,8 @@ import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.store.JobStore;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerValidator;
 import io.netflix.titus.api.model.event.AutoScaleEvent;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -169,6 +171,7 @@ public class EmbeddedTitusMaster {
                                       bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
 
                                       bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
+                                      bind(LoadBalancerValidator.class).to(NoOpLoadBalancerValidator.class);
                                       bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
                                   }
 

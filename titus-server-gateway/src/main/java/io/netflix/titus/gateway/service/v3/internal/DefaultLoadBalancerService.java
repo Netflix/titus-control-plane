@@ -27,6 +27,9 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.grpc.stub.StreamObserver;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
+import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.gateway.service.v3.LoadBalancerService;
@@ -39,16 +42,18 @@ import rx.functions.Action1;
 
 @Singleton
 public class DefaultLoadBalancerService implements LoadBalancerService {
-    private static Logger log = LoggerFactory.getLogger(DefaultLoadBalancerService.class);
+    private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerService.class);
 
     private final GrpcClientConfiguration configuration;
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
+    // private final LoadBalancerValidator validator;
 
     @Inject
     public DefaultLoadBalancerService(GrpcClientConfiguration configuration,
                                       LoadBalancerServiceGrpc.LoadBalancerServiceStub client) {
         this.configuration = configuration;
         this.client = client;
+        // this.validator = validator;
     }
 
     @Override
@@ -61,6 +66,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Override
     public Completable addLoadBalancer(AddLoadBalancerRequest addLoadBalancerRequest) {
+        /*
+        try {
+            validator.validateLoadBalancer(addLoadBalancerRequest.getLoadBalancerId().getId());
+        } catch (Exception e) {
+            return Completable.error(TitusServiceException.invalidArgument(e.getMessage()));
+        }
+        */
+
         return toCompletable(emitter -> {
             StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.addLoadBalancer(addLoadBalancerRequest, simpleStreamObserver);

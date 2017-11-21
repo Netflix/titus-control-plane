@@ -14,25 +14,14 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.connector.cloud;
+package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-import java.util.Set;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-import rx.Completable;
+@Configuration(prefix = "titus.master.loadBalancer")
+public interface LoadBalancerValidationConfiguration {
 
-public interface LoadBalancerConnector {
-    /**
-     * @param ipAddresses can be empty or null, in which case this is a noop.
-     */
-    Completable registerAll(String loadBalancerId, Set<String> ipAddresses);
-
-    /**
-     * @param ipAddresses can be empty or null, in which case this is a noop.
-     */
-    Completable deregisterAll(String loadBalancerId, Set<String> ipAddresses);
-
-    /**
-     * Checks if a load balancer ID is valid for use.
-     */
-    Completable isValid(String loadBalancerId);
+    @DefaultValue("30")
+    int getMaxLoadBalancersPerJob();
 }
