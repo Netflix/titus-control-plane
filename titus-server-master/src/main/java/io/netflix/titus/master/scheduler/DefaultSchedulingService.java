@@ -536,7 +536,6 @@ public class DefaultSchedulingService implements SchedulingService {
             Set<TaskAssignmentResult> tasksAssigned = aResult.getValue().getTasksAssigned();
             launchTasks(tasksAssigned, aResult.getValue().getLeasesUsed());
             assignedDuringSchedulingResult += tasksAssigned.size();
-            logger.info("Assigned Tasks: {}", tasksAssigned.size());
         }
 
         List<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
