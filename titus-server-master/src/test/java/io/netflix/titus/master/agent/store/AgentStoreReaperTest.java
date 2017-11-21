@@ -3,6 +3,7 @@ package io.netflix.titus.master.agent.store;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
 import io.netflix.titus.api.agent.store.AgentStore;
@@ -26,7 +27,7 @@ public class AgentStoreReaperTest {
 
     private final AgentStore agentStore = mock(AgentStore.class);
 
-    private final AgentStoreReaper reaper = new AgentStoreReaper(agentStore, testScheduler);
+    private final AgentStoreReaper reaper = new AgentStoreReaper(agentStore, new DefaultRegistry(), testScheduler);
 
     @Before
     public void setUp() throws Exception {

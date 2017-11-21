@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -30,23 +31,33 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.amazonaws.AmazonWebServiceRequest;
+import com.amazonaws.handlers.AsyncHandler;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
 import com.amazonaws.services.autoscaling.model.AutoScalingGroup;
 import com.amazonaws.services.autoscaling.model.AutoScalingInstanceDetails;
 import com.amazonaws.services.autoscaling.model.DescribeAutoScalingGroupsRequest;
+import com.amazonaws.services.autoscaling.model.DescribeAutoScalingGroupsResult;
 import com.amazonaws.services.autoscaling.model.DescribeAutoScalingInstancesRequest;
+import com.amazonaws.services.autoscaling.model.DescribeAutoScalingInstancesResult;
 import com.amazonaws.services.autoscaling.model.DescribeLaunchConfigurationsRequest;
+import com.amazonaws.services.autoscaling.model.DescribeLaunchConfigurationsResult;
 import com.amazonaws.services.autoscaling.model.DetachInstancesRequest;
+import com.amazonaws.services.autoscaling.model.DetachInstancesResult;
 import com.amazonaws.services.autoscaling.model.LaunchConfiguration;
 import com.amazonaws.services.autoscaling.model.SuspendedProcess;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupRequest;
+import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupResult;
 import com.amazonaws.services.ec2.AmazonEC2Async;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
+import com.amazonaws.services.ec2.model.CreateTagsResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.google.common.base.Strings;
 import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.Instance;
@@ -67,6 +78,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
+import rx.Emitter;
 import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
@@ -133,8 +145,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     public Observable<List<InstanceGroup>> getInstanceGroups() {
         PageCollector<DescribeAutoScalingGroupsRequest, AutoScalingGroup> pageCollector = new PageCollector<>(
                 token -> new DescribeAutoScalingGroupsRequest().withMaxRecords(AWS_PAGE_MAX).withNextToken(token),
-                request -> toObservable(() -> autoScalingClient.describeAutoScalingGroupsAsync(request))
-                        .map(result -> Pair.of(result.getAutoScalingGroups(), result.getNextToken()))
+                request -> {
+                    Observable<DescribeAutoScalingGroupsResult> observable = toObservable(request, autoScalingClient::describeAutoScalingGroupsAsync);
+                    return observable.map(result -> Pair.of(result.getAutoScalingGroups(), result.getNextToken()));
+                }
         );
         return pageCollector.getAll()
                 .map(this::toInstanceGroups)
@@ -146,10 +160,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
         if (instanceGroupIds.isEmpty()) {
             return Observable.just(Collections.emptyList());
         }
-        return toObservable(() -> {
-            DescribeAutoScalingGroupsRequest request = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(instanceGroupIds);
-            return autoScalingClient.describeAutoScalingGroupsAsync(request);
-        }).map(
+
+        DescribeAutoScalingGroupsRequest request = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(instanceGroupIds);
+        Observable<DescribeAutoScalingGroupsResult> observable = toObservable(request, autoScalingClient::describeAutoScalingGroupsAsync);
+        return observable.map(
                 response -> toInstanceGroups(response.getAutoScalingGroups())
         ).timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
@@ -159,10 +173,9 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
         if (launchConfigurationIds.isEmpty()) {
             return Observable.just(Collections.emptyList());
         }
-        return toObservable(() -> {
-            DescribeLaunchConfigurationsRequest request = new DescribeLaunchConfigurationsRequest().withLaunchConfigurationNames(launchConfigurationIds);
-            return autoScalingClient.describeLaunchConfigurationsAsync(request);
-        }).map(
+        DescribeLaunchConfigurationsRequest request = new DescribeLaunchConfigurationsRequest().withLaunchConfigurationNames(launchConfigurationIds);
+        Observable<DescribeLaunchConfigurationsResult> observable = toObservable(request, autoScalingClient::describeLaunchConfigurationsAsync);
+        return observable.map(
                 response -> toInstanceLaunchConfigurations(response.getLaunchConfigurations())
         ).timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
@@ -191,13 +204,11 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
             return Observable.just(Collections.emptyList());
         }
         List<Observable<List<Instance>>> chunkObservable = CollectionsExt.chop(instanceIds, AWS_INSTANCE_ID_MAX).stream()
-                .map(chunk ->
-                        Observable.zip(
-                                toObservable(() -> ec2Client.describeInstancesAsync(new DescribeInstancesRequest().withInstanceIds(chunk))),
-                                toObservable(() -> autoScalingClient.describeAutoScalingInstancesAsync(new DescribeAutoScalingInstancesRequest().withInstanceIds(chunk))),
-                                (ec2Data, autoScalerData) -> toInstances(ec2Data.getReservations(), autoScalerData.getAutoScalingInstances())
-                        )
-                )
+                .map(chunk -> {
+                    Observable<DescribeInstancesResult> ec2DescribeObservable = toObservable(new DescribeInstancesRequest().withInstanceIds(chunk), ec2Client::describeInstancesAsync);
+                    Observable<DescribeAutoScalingInstancesResult> asgDescribeObservable = toObservable(new DescribeAutoScalingInstancesRequest().withInstanceIds(chunk), autoScalingClient::describeAutoScalingInstancesAsync);
+                    return Observable.zip(ec2DescribeObservable, asgDescribeObservable, (ec2Data, autoScalerData) -> toInstances(ec2Data.getReservations(), autoScalerData.getAutoScalingInstances()));
+                })
                 .collect(Collectors.toList());
         return Observable.merge(chunkObservable, AWS_PARALLELISM)
                 .timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS)
@@ -215,13 +226,15 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
         PageCollector<DescribeInstancesRequest, com.amazonaws.services.ec2.model.Instance> pageCollector = new PageCollector<>(
                 token -> new DescribeInstancesRequest().withFilters(new Filter().withName(TAG_ASG_FILTER_NAME).withValues(instanceGroupId))
                         .withNextToken(token),
-                request -> toObservable(() -> ec2Client.describeInstancesAsync(request))
-                        .map(result -> {
-                            List<com.amazonaws.services.ec2.model.Instance> instances = result.getReservations().stream()
-                                    .flatMap(r -> r.getInstances().stream().filter(instance -> !isTerminal(instance.getState())))
-                                    .collect(Collectors.toList());
-                            return Pair.of(instances, result.getNextToken());
-                        })
+                request -> {
+                    Observable<DescribeInstancesResult> observable = toObservable(request, ec2Client::describeInstancesAsync);
+                    return observable.map(result -> {
+                        List<com.amazonaws.services.ec2.model.Instance> instances = result.getReservations().stream()
+                                .flatMap(r -> r.getInstances().stream().filter(instance -> !isTerminal(instance.getState())))
+                                .collect(Collectors.toList());
+                        return Pair.of(instances, result.getNextToken());
+                    });
+                }
         );
         return pageCollector.getAll()
                 .map(instances -> instances.stream()
@@ -235,7 +248,7 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
 
     @Override
     public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
-        return toObservable(() -> {
+        Supplier<UpdateAutoScalingGroupRequest> supplier = () -> {
             logger.info("Updating instance group: {} capacity: min={}, desired={}", instanceGroupId,
                     min.map(Object::toString).orElse("notSet"), desired.map(Object::toString).orElse("notSet"));
 
@@ -244,8 +257,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                     .withAutoScalingGroupName(instanceGroupId);
             min.ifPresent(request::setMinSize);
             desired.ifPresent(request::setDesiredCapacity);
-            return autoScalingClient.updateAutoScalingGroupAsync(request);
-        }).toCompletable().timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
+            return request;
+        };
+        Observable<UpdateAutoScalingGroupResult> observable = toObservable(supplier, autoScalingClient::updateAutoScalingGroupAsync);
+        return observable.toCompletable().timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -265,10 +280,10 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                             instanceGroup, scaleUpCount, instanceGroup.getDesired(), newDesired);
 
                     UpdateAutoScalingGroupRequest request = new UpdateAutoScalingGroupRequest()
-                            .withAutoScalingGroupName(instanceGroupId);
-                    request.setDesiredCapacity(newDesired);
-
-                    return ObservableExt.toObservable(autoScalingClient.updateAutoScalingGroupAsync(request), scheduler);
+                            .withAutoScalingGroupName(instanceGroupId)
+                            .withDesiredCapacity(newDesired);
+                    Observable<UpdateAutoScalingGroupResult> observable = toObservable(request, autoScalingClient::updateAutoScalingGroupAsync);
+                    return observable;
                 }).toCompletable().timeout(configuration.getAwsRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
@@ -307,19 +322,19 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     Completable addTagToResource(String resourceId, String tag, String value) {
         List<String> resources = singletonList(resourceId);
         List<Tag> tags = singletonList(new Tag(tag, value));
-        return toObservable(() -> ec2Client.createTagsAsync(new CreateTagsRequest(resources, tags))).toCompletable();
+        Observable<CreateTagsResult> observable = toObservable(new CreateTagsRequest(resources, tags), ec2Client::createTagsAsync);
+        return observable.toCompletable();
     }
 
     /**
      * This method is used internally by the connector itself for housekeeping.
      */
     Observable<List<Instance>> getTaggedInstances(String tagName) {
-        return toObservable(() -> {
-            DescribeInstancesRequest request = new DescribeInstancesRequest().withFilters(
-                    new Filter().withName("tag-key").withValues(tagName)
-            );
-            return ec2Client.describeInstancesAsync(request);
-        }).map(response -> {
+        Observable<DescribeInstancesResult> observable = toObservable(
+                new DescribeInstancesRequest().withFilters(new Filter().withName("tag-key").withValues(tagName)),
+                ec2Client::describeInstancesAsync
+        );
+        return observable.map(response -> {
                     List<com.amazonaws.services.ec2.model.Instance> instances =
                             response.getReservations().stream()
                                     .flatMap(r -> r.getInstances().stream().filter(instance -> !isTerminal(instance.getState())))
@@ -333,7 +348,11 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
      * This method is used internally by the connector itself for housekeeping.
      */
     Completable terminateDetachedInstances(List<String> ids) {
-        return toObservable(() -> ec2Client.terminateInstancesAsync(new TerminateInstancesRequest(ids))).toCompletable();
+        Observable<TerminateInstancesResult> observable = toObservable(
+                new TerminateInstancesRequest(ids),
+                ec2Client::terminateInstancesAsync
+        );
+        return observable.toCompletable();
     }
 
     private Observable<Either<Boolean, Throwable>> terminateChunk(String instanceGroup, List<String> instanceIds, boolean shrink) {
@@ -350,7 +369,8 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                 instanceIds,
                 singletonList(new Tag(TAG_TERMINATE, Long.toString(System.currentTimeMillis())))
         );
-        return toObservable(() -> ec2Client.createTagsAsync(request))
+        Observable<CreateTagsResult> observable = toObservable(request, ec2Client::createTagsAsync);
+        return observable
                 .doOnCompleted(() -> logger.info("Tagged instances: {}", instanceIds))
                 .doOnError(e -> logger.warn("Failed to tag instances: {}, due to {}", instanceIds, e.getMessage()))
                 .toCompletable();
@@ -360,7 +380,8 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
         DetachInstancesRequest request = new DetachInstancesRequest().withAutoScalingGroupName(instanceGroup)
                 .withInstanceIds(instanceIds)
                 .withShouldDecrementDesiredCapacity(shrink);
-        return toObservable(() -> autoScalingClient.detachInstancesAsync(request))
+        Observable<DetachInstancesResult> observable = toObservable(request, autoScalingClient::detachInstancesAsync);
+        return observable
                 .doOnCompleted(() -> logger.info("Detached instances: {}", instanceIds))
                 .doOnError(e -> logger.warn("Failed to detach instances: {}, due to {}", instanceIds, e.getMessage()))
                 .toCompletable();
@@ -368,7 +389,8 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
 
     private Completable doTerminate(List<String> instanceIds) {
         TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instanceIds);
-        return toObservable(() -> ec2Client.terminateInstancesAsync(request))
+        Observable<TerminateInstancesResult> observable = toObservable(request, ec2Client::terminateInstancesAsync);
+        return observable
                 .doOnCompleted(() -> logger.info("Terminated instances: {}", instanceIds))
                 .doOnError(e -> logger.warn("Failed to terminate instances: {}, due to {}", instanceIds, e.getMessage()))
                 .toCompletable();
@@ -483,8 +505,38 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                 .build();
     }
 
-    private <T> Observable<T> toObservable(Supplier<Future<T>> futureSupplier) {
-        return Observable.fromCallable(futureSupplier::get).flatMap(future -> ObservableExt.toObservable(future, scheduler));
+    private <REQUEST extends AmazonWebServiceRequest, RESPONSE> Observable<RESPONSE> toObservable(
+            Supplier<REQUEST> request,
+            BiFunction<REQUEST, AsyncHandler<REQUEST, RESPONSE>, Future<RESPONSE>> callFun
+    ) {
+        return Observable.create(emitter -> {
+            AsyncHandler<REQUEST, RESPONSE> asyncHandler = new AsyncHandler<REQUEST, RESPONSE>() {
+                @Override
+                public void onError(Exception exception) {
+                    emitter.onError(exception);
+                }
+
+                @Override
+                public void onSuccess(REQUEST request, RESPONSE result) {
+                    emitter.onNext(result);
+                    emitter.onCompleted();
+                }
+            };
+            Future<RESPONSE> future = callFun.apply(request.get(), asyncHandler);
+            emitter.setCancellation(() -> {
+                if (!future.isCancelled() && !future.isDone()) {
+                    future.cancel(true);
+                }
+            });
+        }, Emitter.BackpressureMode.NONE);
+    }
+
+    private <REQUEST extends AmazonWebServiceRequest, RESPONSE> Observable<RESPONSE> toObservable(
+            REQUEST request,
+            BiFunction<REQUEST, AsyncHandler<REQUEST, RESPONSE>, Future<RESPONSE>> callFun
+    ) {
+        Supplier<REQUEST> supplier = () -> request;
+        return toObservable(supplier, callFun);
     }
 
     private boolean isTerminal(com.amazonaws.services.ec2.model.InstanceState instanceState) {

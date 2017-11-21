@@ -24,6 +24,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -51,26 +52,31 @@ public class InstanceReaper {
     private final AwsConfiguration configuration;
     private final AwsInstanceCloudConnector connector;
     private final Scheduler scheduler;
+    private final Registry registry;
 
     private Subscription subscription;
 
     @Inject
     public InstanceReaper(AwsConfiguration configuration,
-                          AwsInstanceCloudConnector connector) {
-        this(configuration, connector, Schedulers.computation());
+                          AwsInstanceCloudConnector connector,
+                          Registry registry) {
+        this(configuration, connector, registry, Schedulers.computation());
     }
 
     public InstanceReaper(AwsConfiguration configuration,
                           AwsInstanceCloudConnector connector,
+                          Registry registry,
                           Scheduler scheduler) {
         this.configuration = configuration;
         this.connector = connector;
+        this.registry = registry;
         this.scheduler = scheduler;
     }
 
     @Activator
     public void enterActiveMode() {
         this.subscription = ObservableExt.schedule(
+                "titusMaster.agent.storeReaper", registry, "doClean",
                 doClean(),
                 configuration.getReaperIntervalMs(), configuration.getReaperIntervalMs(), TimeUnit.MILLISECONDS,
                 scheduler

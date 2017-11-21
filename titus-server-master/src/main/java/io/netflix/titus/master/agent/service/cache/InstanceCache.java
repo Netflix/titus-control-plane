@@ -39,8 +39,10 @@ import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
 import io.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.rx.InstrumentedEventLoop;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
+import io.netflix.titus.common.util.spectator.ScheduledCompletableMetrics;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import org.slf4j.Logger;
@@ -53,7 +55,7 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.subjects.PublishSubject;
 
-import static io.netflix.titus.common.util.spectator.SpectatorExt.longRunningCompletableMetrics;
+import static io.netflix.titus.common.util.spectator.SpectatorExt.scheduledCompletableMetrics;
 import static io.netflix.titus.master.MetricConstants.METRIC_AGENT_CACHE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -74,13 +76,14 @@ class InstanceCache {
     static String ATTR_INSTANCE_TYPE = "instanceType";
 
     private static final long BOOT_TIMEOUT_MS = 60_000;
-    private static final int MAX_RETRY_COUNT = 10;
-    private static final long RETRY_DELAYS_MS = 1_000;
+    private static final int BOOT_RETRY_COUNT = 10;
+    private static final long BOOT_RETRY_DELAYS_MS = 1_000;
+    private static final long MAX_REFRESH_TIMEOUT = 600_000;
 
     private final AgentManagementConfiguration configuration;
     private final InstanceCloudConnector connector;
     private final Registry registry;
-    private final Scheduler.Worker worker;
+    private final InstrumentedEventLoop eventLoop;
 
     private volatile InstanceCacheDataSnapshot cacheSnapshot;
 
@@ -89,8 +92,8 @@ class InstanceCache {
 
     private final PublishSubject<CacheUpdateEvent> eventSubject = PublishSubject.create();
 
-    private Completable.Transformer fullInstanceGroupRefreshMetricsTransform;
-    private Map<String, Completable.Transformer> instanceGroupRefreshMetricsTransforms = new ConcurrentHashMap<>();
+    private ScheduledCompletableMetrics fullInstanceGroupRefreshMetricsTransformer;
+    private Map<String, ScheduledCompletableMetrics> instanceGroupRefreshMetricsTransformers = new ConcurrentHashMap<>();
 
     private InstanceCache(AgentManagementConfiguration configuration,
                           InstanceCloudConnector connector,
@@ -101,16 +104,16 @@ class InstanceCache {
         this.connector = connector;
         this.registry = registry;
         this.cacheSnapshot = InstanceCacheDataSnapshot.empty();
-        this.worker = scheduler.createWorker();
+        this.eventLoop = ObservableExt.createEventLoop(METRIC_AGENT_CACHE + "eventLoop", registry, scheduler);
 
         List<Tag> tags = Collections.singletonList(new BasicTag("class", InstanceCache.class.getSimpleName()));
-        fullInstanceGroupRefreshMetricsTransform = longRunningCompletableMetrics(METRIC_AGENT_CACHE + "fullInstanceGroupRefresh", tags, registry);
+        fullInstanceGroupRefreshMetricsTransformer = scheduledCompletableMetrics(METRIC_AGENT_CACHE + "fullInstanceGroupRefresh", tags, registry);
 
         // Synchronously refresh information about the known instance groups
         List<Completable> initialRefresh = knownInstanceGroups.stream().map(this::doInstanceGroupRefresh).collect(Collectors.toList());
         Throwable error = Completable.merge(initialRefresh).timeout(BOOT_TIMEOUT_MS, TimeUnit.MILLISECONDS).retryWhen(RetryHandlerBuilder.retryHandler()
-                .withRetryCount(MAX_RETRY_COUNT)
-                .withDelay(RETRY_DELAYS_MS, RETRY_DELAYS_MS, TimeUnit.MILLISECONDS)
+                .withRetryCount(BOOT_RETRY_COUNT)
+                .withDelay(BOOT_RETRY_DELAYS_MS, BOOT_RETRY_DELAYS_MS, TimeUnit.MILLISECONDS)
                 .withScheduler(scheduler)
                 .buildExponentialBackoff()
         ).get();
@@ -120,7 +123,8 @@ class InstanceCache {
         }
 
         this.fullInstanceGroupRefreshSubscription = ObservableExt.schedule(
-                doFullInstanceGroupRefresh(), 0, configuration.getFullCacheRefreshIntervalMs(), TimeUnit.MILLISECONDS, scheduler
+                METRIC_AGENT_CACHE, registry, "doFullInstanceGroupRefresh", doFullInstanceGroupRefresh(),
+                0, configuration.getFullCacheRefreshIntervalMs(), TimeUnit.MILLISECONDS, scheduler
         ).subscribe(
                 next -> next.ifPresent(throwable -> logger.warn("Full refresh cycle failed with an error", throwable)),
                 e -> logger.error("Full cache refresh process terminated with an error", e),
@@ -128,7 +132,8 @@ class InstanceCache {
         );
 
         this.instanceGroupRefreshSubscription = ObservableExt.schedule(
-                doInstanceGroupRefresh(), 0, configuration.getCacheRefreshIntervalMs(), TimeUnit.MILLISECONDS, scheduler
+                METRIC_AGENT_CACHE, registry, "doInstanceGroupRefresh", doInstanceGroupRefresh(),
+                0, configuration.getCacheRefreshIntervalMs(), TimeUnit.MILLISECONDS, scheduler
         ).subscribe(
                 next -> next.ifPresent(throwable -> logger.warn("Instance group refresh cycle failed with an error", throwable)),
                 e -> logger.error("Instance group cache refresh process terminated with an error", e),
@@ -138,7 +143,7 @@ class InstanceCache {
     }
 
     void shutdown() {
-        worker.unsubscribe();
+        eventLoop.shutdown();
         fullInstanceGroupRefreshSubscription.unsubscribe();
         instanceGroupRefreshSubscription.unsubscribe();
     }
@@ -218,7 +223,7 @@ class InstanceCache {
                     );
                 })
                 .doOnNext(instanceGroups ->
-                        onEventLoop(() -> {
+                        onEventLoop("addInstanceGroups", () -> {
                             this.cacheSnapshot = cacheSnapshot.addInstanceGroups(instanceGroups);
                             eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Refreshed, CacheUpdateEvent.EMPTY_ID));
 
@@ -226,16 +231,17 @@ class InstanceCache {
                         })
                 ).toCompletable();
 
-        return completable.compose(fullInstanceGroupRefreshMetricsTransform);
+        return completable.compose(fullInstanceGroupRefreshMetricsTransformer)
+                .timeout(MAX_REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     private Completable.Transformer getInstanceGroupRefreshMetricsTransform(String instanceGroupId) {
-        return instanceGroupRefreshMetricsTransforms.computeIfAbsent(instanceGroupId, id -> {
+        return instanceGroupRefreshMetricsTransformers.computeIfAbsent(instanceGroupId, k -> {
             List<Tag> tags = asList(
                     new BasicTag("class", InstanceCache.class.getSimpleName()),
                     new BasicTag("instanceGroupId", instanceGroupId)
             );
-            return longRunningCompletableMetrics(METRIC_AGENT_CACHE + "instanceGroupRefresh", tags, registry);
+            return scheduledCompletableMetrics(METRIC_AGENT_CACHE + "instanceGroupRefresh", tags, registry);
         });
     }
 
@@ -271,10 +277,9 @@ class InstanceCache {
         Observable<Void> updateAction = connector.getInstanceGroups(singletonList(instanceGroupId))
                 .flatMap(result -> {
                     if (result.isEmpty()) {
-                        logger.info("Instance group: {} has been removed", instanceGroupId);
-                        onEventLoop(() -> {
-                            removeInstanceGroupFromCache(instanceGroupId);
-                            instanceGroupRefreshMetricsTransforms.remove(instanceGroupId);
+                        onEventLoop("removeInstanceGroup", () -> {
+                            removeInstanceGroup(instanceGroupId);
+                            logger.info("Instance group: {} has been removed", instanceGroupId);
                         });
                         return Observable.empty();
                     }
@@ -282,7 +287,7 @@ class InstanceCache {
                     InstanceGroup instanceGroup = result.get(0);
 
                     return connector.getInstancesByInstanceGroupId(instanceGroup.getId())
-                            .doOnNext(updatedInstances -> onEventLoop(() -> {
+                            .doOnNext(updatedInstances -> onEventLoop("updateInstances", () -> {
                                 // update the instance ids on the instance group
                                 List<String> instanceIds = updatedInstances.stream().map(Instance::getId).sorted().collect(Collectors.toList());
                                 InstanceGroup updatedInstanceGroup = instanceGroup.toBuilder().withInstanceIds(instanceIds).build();
@@ -300,7 +305,8 @@ class InstanceCache {
                 }
         ).toCompletable();
 
-        return completable.compose(getInstanceGroupRefreshMetricsTransform(instanceGroupId));
+        return completable.compose(getInstanceGroupRefreshMetricsTransform(instanceGroupId))
+                .timeout(MAX_REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     private void updateCache(InstanceGroup updatedInstanceGroup, List<Instance> updatedInstances) {
@@ -359,17 +365,22 @@ class InstanceCache {
         return newInstanceGroup.toBuilder().withAttributes(newAttributes).build();
     }
 
-    private void removeInstanceGroupFromCache(String removedInstanceGroupId) {
+    private void removeInstanceGroup(String removedInstanceGroupId) {
         this.cacheSnapshot = cacheSnapshot.removeInstanceGroup(removedInstanceGroupId);
         eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, removedInstanceGroupId));
+        ScheduledCompletableMetrics transformer = instanceGroupRefreshMetricsTransformers.remove(removedInstanceGroupId);
+        if (transformer != null) {
+            transformer.remove();
+        }
     }
 
-    private void onEventLoop(Action0 action) {
-        worker.schedule(() -> {
+    private void onEventLoop(String actionName, Action0 action) {
+        eventLoop.schedule(actionName, () -> {
             try {
                 action.call();
             } catch (Exception e) {
-                logger.warn("InstanceCache internal operation error", e);
+                logger.warn("InstanceCache actionName: {} internal operation error", actionName, e);
+                throw e;
             }
         });
     }

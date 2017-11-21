@@ -33,7 +33,7 @@ public interface JobConfiguration {
     @DefaultValue("1000")
     int getMaxBatchJobSize();
 
-    @DefaultValue("2000")
+    @DefaultValue("2500")
     int getMaxServiceJobSize();
 
     @DefaultValue("1.0")
