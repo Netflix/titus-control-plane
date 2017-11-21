@@ -43,7 +43,5 @@ public class MetricConstants {
 
     public static final String METRIC_TASK_MIGRATION = METRIC_ROOT + "taskMigration.";
 
-    public static final String METRIC_REST = METRIC_ROOT + "rest.";
-
     public static final String METRIC_WORKER_STATE_OBSERVER = METRIC_ROOT + "workerStateObserver.";
 }
