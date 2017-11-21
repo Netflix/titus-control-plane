@@ -29,6 +29,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2AsyncClientBuilder;
 import com.google.common.base.Stopwatch;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
 import io.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
@@ -137,7 +138,7 @@ public class Main {
     }
 
     private void runReaper() {
-        InstanceReaper reaper = new InstanceReaper(CONFIGURATION, connector);
+        InstanceReaper reaper = new InstanceReaper(CONFIGURATION, connector, new DefaultRegistry());
         reaper.enterActiveMode();
         System.out.println("Reaper process started...");
 

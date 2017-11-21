@@ -25,7 +25,6 @@ import java.util.function.Function;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
-import rx.Completable;
 import rx.Observable;
 
 import static java.util.Arrays.asList;
@@ -85,9 +84,16 @@ public final class SpectatorExt {
     }
 
     /**
+     * RxJava scheduled completable metrics.
+     */
+    public static ScheduledCompletableMetrics scheduledCompletableMetrics(String rootName, List<Tag> tags, Registry registry) {
+        return new ScheduledCompletableMetrics(rootName, tags, registry);
+    }
+
+    /**
      * RxJava long running completable metrics.
      */
-    public static Completable.Transformer longRunningCompletableMetrics(String rootName, List<Tag> tags, Registry registry) {
-        return new LongRunningCompletableMetrics(rootName, tags, registry);
+    public static ActionMetrics actionMetrics(String rootName, List<Tag> tags, Registry registry) {
+        return new ActionMetrics(rootName, tags, registry);
     }
 }

@@ -16,24 +16,21 @@
 
 package io.netflix.titus.common.util.spectator;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
 
-import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
-import com.netflix.spectator.api.patterns.PolledMeter;
+import com.netflix.spectator.api.Timer;
 
 /**
  * A collection of metrics for tracking successful and failed action executions.
  */
-public class ExecutionMetrics {
-
+public class ActionMetrics {
     private final String root;
     private final Registry registry;
     private final List<Tag> commonTags;
@@ -42,33 +39,28 @@ public class ExecutionMetrics {
     private final Counter errorCounter;
     private final Map<Class<? extends Throwable>, Counter> exceptionCounters = new ConcurrentHashMap<>();
 
-    private final AtomicLong successLatency = new AtomicLong();
-    private final AtomicLong failureLatency = new AtomicLong();
+    private final Timer latencyTimer;
 
-    public ExecutionMetrics(String root, Class<?> aClass, Registry registry) {
+    public ActionMetrics(String root, List<Tag> commonTags, Registry registry) {
         this.root = root;
         this.registry = registry;
-        this.commonTags = Collections.singletonList(
-                new BasicTag("class", aClass.getName())
-        );
-
+        this.commonTags = commonTags;
         this.successCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "success"));
         this.errorCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "failure"));
 
-        Id successLatencyId = registry.createId(root + ".latency", commonTags).withTag("status", "success");
-        PolledMeter.using(registry).withId(successLatencyId).monitorValue(successLatency);
-        Id failureLatencyId = registry.createId(root + ".latency", commonTags).withTag("status", "failure");
-        PolledMeter.using(registry).withId(failureLatencyId).monitorValue(failureLatency);
+        this.latencyTimer = registry.timer(registry.createId(root + ".latency", commonTags));
+    }
+
+    public long start() {
+        return registry.clock().wallTime();
     }
 
     public void success() {
         successCounter.increment();
     }
 
-    public void success(long startTime) {
-        success();
-        successLatency.set(registry.clock().wallTime() - startTime);
-        failureLatency.set(0);
+    public void finish(long startTime) {
+        latencyTimer.record(registry.clock().wallTime() - startTime, TimeUnit.MILLISECONDS);
     }
 
     public void failure(Throwable error) {
@@ -81,11 +73,5 @@ public class ExecutionMetrics {
 
         errorCounter.increment();
         exceptionCounter.increment();
-    }
-
-    public void failure(Throwable error, long startTime) {
-        failure(error);
-        successLatency.set(0);
-        failureLatency.set(registry.clock().wallTime() - startTime);
     }
 }

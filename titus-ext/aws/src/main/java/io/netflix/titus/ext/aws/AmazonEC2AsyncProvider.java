@@ -19,12 +19,14 @@ package io.netflix.titus.ext.aws;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import javax.inject.Singleton;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2Async;
 import com.amazonaws.services.ec2.AmazonEC2AsyncClientBuilder;
 
+@Singleton
 public class AmazonEC2AsyncProvider implements Provider<AmazonEC2Async> {
 
     private final AmazonEC2Async amazonEC2Async;

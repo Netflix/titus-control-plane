@@ -26,6 +26,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
@@ -213,13 +214,16 @@ public class ObservableExt {
     /**
      * Simple scheduler.
      */
-    public static Observable<Optional<Throwable>> schedule(Completable action, long initialDelay, long interval, TimeUnit timeUnit, Scheduler scheduler) {
-        return Observable.timer(initialDelay, timeUnit, scheduler)
-                .flatMap(tick -> emitError(action).toObservable())
-                .flatMap(oneRoundResult -> {
-                    Observable<Optional<Throwable>> nextRound = schedule(action, interval, interval, timeUnit, scheduler);
-                    return Observable.just(oneRoundResult).concatWith(nextRound);
-                });
+    public static Observable<Optional<Throwable>> schedule(String metricNameRoot,
+                                                           Registry registry,
+                                                           String completableName,
+                                                           Completable completable,
+                                                           long initialDelay,
+                                                           long interval,
+                                                           TimeUnit timeUnit,
+                                                           Scheduler scheduler) {
+        InstrumentedCompletableScheduler completableScheduler = new InstrumentedCompletableScheduler(metricNameRoot, registry, scheduler);
+        return completableScheduler.schedule(completableName, completable, initialDelay, interval, timeUnit);
     }
 
     /**
@@ -238,5 +242,16 @@ public class ObservableExt {
      */
     public static <T> Observable<T> fromOptionalObservable(Observable<Optional<T>> observable) {
         return observable.filter(Optional::isPresent).map(Optional::get);
+    }
+
+    /**
+     * Creates an instrumented event loop
+     *
+     * @param metricNameRoot the root metric name to use
+     * @param registry       the metric registry to use
+     * @param scheduler      the scheduler used to create workers
+     */
+    public static InstrumentedEventLoop createEventLoop(String metricNameRoot, Registry registry, Scheduler scheduler) {
+        return new InstrumentedEventLoop(metricNameRoot, registry, scheduler);
     }
 }

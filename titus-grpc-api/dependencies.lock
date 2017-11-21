@@ -1,83 +1,12 @@
 {
     "compile": {
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
+            "requested": "3.3.+"
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
-        },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
@@ -89,84 +18,13 @@
         }
     },
     "compileClasspath": {
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
+            "requested": "3.3.+"
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
-        },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
@@ -178,101 +36,21 @@
         }
     },
     "default": {
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
+            "requested": "3.3.+"
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
         },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
             "requested": "1.3.+"
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
-            "requested": "1.7.0",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
+            "requested": "1.7.0"
         },
         "org.slf4j:slf4j-log4j12": {
             "locked": "1.7.0",
@@ -285,34 +63,8 @@
         }
     },
     "jacocoAnt": {
-        "org.jacoco:org.jacoco.agent": {
-            "locked": "0.7.8",
-            "transitive": [
-                "org.jacoco:org.jacoco.ant"
-            ]
-        },
         "org.jacoco:org.jacoco.ant": {
             "locked": "0.7.8"
-        },
-        "org.jacoco:org.jacoco.core": {
-            "locked": "0.7.8",
-            "transitive": [
-                "org.jacoco:org.jacoco.ant",
-                "org.jacoco:org.jacoco.report"
-            ]
-        },
-        "org.jacoco:org.jacoco.report": {
-            "locked": "0.7.8",
-            "transitive": [
-                "org.jacoco:org.jacoco.ant"
-            ]
-        },
-        "org.ow2.asm:asm-debug-all": {
-            "locked": "5.1",
-            "transitive": [
-                "org.jacoco:org.jacoco.core",
-                "org.jacoco:org.jacoco.report"
-            ]
         }
     },
     "protoPluginDeps": {
@@ -344,101 +96,21 @@
         }
     },
     "runtime": {
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
+            "requested": "3.3.+"
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
         },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
             "requested": "1.3.+"
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
-            "requested": "1.7.0",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
+            "requested": "1.7.0"
         },
         "org.slf4j:slf4j-log4j12": {
             "locked": "1.7.0",
@@ -446,101 +118,21 @@
         }
     },
     "runtimeClasspath": {
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
+            "requested": "3.3.+"
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
         },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
             "requested": "1.3.+"
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
-            "requested": "1.7.0",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
+            "requested": "1.7.0"
         },
         "org.slf4j:slf4j-log4j12": {
             "locked": "1.7.0",
@@ -548,94 +140,17 @@
         }
     },
     "testCompile": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
+            "requested": "3.3.+"
         },
         "com.jayway.awaitility:awaitility": {
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
-        },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
-        },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
@@ -645,47 +160,17 @@
             "locked": "4.10",
             "requested": "4.10"
         },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
-            "requested": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "junit:junit-dep",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
+            "requested": "1.3"
         },
         "org.mockito:mockito-core": {
             "locked": "2.12.0",
             "requested": "2.+"
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "org.mockito:mockito-core"
-            ]
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
@@ -693,94 +178,17 @@
         }
     },
     "testCompileClasspath": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
+            "requested": "3.3.+"
         },
         "com.jayway.awaitility:awaitility": {
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
-        },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
-        },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
@@ -790,47 +198,17 @@
             "locked": "4.10",
             "requested": "4.10"
         },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
-            "requested": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "junit:junit-dep",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
+            "requested": "1.3"
         },
         "org.mockito:mockito-core": {
             "locked": "2.12.0",
             "requested": "2.+"
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "org.mockito:mockito-core"
-            ]
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
@@ -838,94 +216,17 @@
         }
     },
     "testRuntime": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
+            "requested": "3.3.+"
         },
         "com.jayway.awaitility:awaitility": {
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
-        },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
-        },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
@@ -935,60 +236,21 @@
             "locked": "4.10",
             "requested": "4.10"
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
-            "requested": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "junit:junit-dep",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
+            "requested": "1.3"
         },
         "org.mockito:mockito-core": {
             "locked": "2.12.0",
             "requested": "2.+"
         },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
-            "requested": "1.7.0",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
+            "requested": "1.7.0"
         },
         "org.slf4j:slf4j-log4j12": {
             "locked": "1.7.0",
@@ -996,94 +258,17 @@
         }
     },
     "testRuntimeClasspath": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
-        "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
-            "transitive": [
-                "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.code.gson:gson": {
-            "locked": "2.7",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util"
-            ]
-        },
-        "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "com.google.guava:guava": {
-            "locked": "19.0",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core",
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
-            "requested": "3.3.+",
-            "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
+            "requested": "3.3.+"
         },
         "com.jayway.awaitility:awaitility": {
             "locked": "1.7.0",
             "requested": "1.7.0"
         },
-        "io.grpc:grpc-context": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
-        "io.grpc:grpc-core": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
-            ]
-        },
         "io.grpc:grpc-protobuf": {
             "locked": "1.3.1",
             "requested": "1.3.+"
-        },
-        "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.3.1",
@@ -1093,60 +278,21 @@
             "locked": "4.10",
             "requested": "4.10"
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.assertj:assertj-core": {
             "locked": "3.4.1",
             "requested": "3.4.1"
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
-            "requested": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "junit:junit-dep",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
+            "requested": "1.3"
         },
         "org.mockito:mockito-core": {
             "locked": "2.12.0",
             "requested": "2.+"
         },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
-            "requested": "1.7.0",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
+            "requested": "1.7.0"
         },
         "org.slf4j:slf4j-log4j12": {
             "locked": "1.7.0",
