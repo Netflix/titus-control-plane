@@ -36,7 +36,7 @@ import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
@@ -77,7 +77,7 @@ public class LoadBalancerTests {
     static public LoadBalancerService getMockLoadBalancerService() {
         final TitusRuntime runtime = new DefaultTitusRuntime(new NoopRegistry());
         final LoadBalancerConfiguration loadBalancerConfig = mockConfiguration(5, 5_000);
-        final LoadBalancerClient client = mock(LoadBalancerClient.class);
+        final LoadBalancerConnector client = mock(LoadBalancerConnector.class);
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
         final LoadBalancerStore loadBalancerStore = new InMemoryLoadBalancerStore();

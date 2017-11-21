@@ -18,13 +18,13 @@ package io.netflix.titus.master.loadbalancer.service;
 
 import java.util.Set;
 
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import rx.Completable;
 
 /**
  * Test helper class that intentionally does nothing on register/deregister and returns success.
  */
-public class NoOpLoadBalancerClient implements LoadBalancerClient {
+public class NoOpLoadBalancerConnector implements LoadBalancerConnector {
     @Override
     public Completable registerAll(String loadBalancerId, Set<String> ipAddresses) {
         return Completable.complete();

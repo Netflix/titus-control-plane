@@ -24,7 +24,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -72,16 +72,16 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     @Inject
     public DefaultLoadBalancerService(TitusRuntime runtime,
                                       LoadBalancerConfiguration configuration,
-                                      LoadBalancerClient loadBalancerClient,
+                                      LoadBalancerConnector loadBalancerConnector,
                                       LoadBalancerStore loadBalancerStore,
                                       TargetStore targetStore,
                                       V3JobOperations v3JobOperations) {
-        this(runtime, configuration, loadBalancerClient, loadBalancerStore, targetStore, v3JobOperations, Schedulers.computation());
+        this(runtime, configuration, loadBalancerConnector, loadBalancerStore, targetStore, v3JobOperations, Schedulers.computation());
     }
 
     public DefaultLoadBalancerService(TitusRuntime runtime,
                                       LoadBalancerConfiguration configuration,
-                                      LoadBalancerClient loadBalancerClient,
+                                      LoadBalancerConnector loadBalancerConnector,
                                       LoadBalancerStore loadBalancerStore,
                                       TargetStore targetStore,
                                       V3JobOperations v3JobOperations,
@@ -92,7 +92,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         this.v3JobOperations = v3JobOperations;
         this.scheduler = scheduler;
         this.batcher = new Batcher(configuration.getBatch().getTimeoutMs(), configuration.getBatch().getSize(),
-                loadBalancerClient, targetStore, scheduler);
+                loadBalancerConnector, targetStore, scheduler);
     }
 
     @Override

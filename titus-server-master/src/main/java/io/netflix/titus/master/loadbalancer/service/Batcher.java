@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.common.util.CollectionsExt;
@@ -42,14 +42,14 @@ class Batcher {
 
     private final long timeoutMs;
     private final int batchSize;
-    private final LoadBalancerClient loadBalancerClient;
+    private final LoadBalancerConnector loadBalancerConnector;
     private final TargetStore targetStore;
     private final Scheduler scheduler;
 
-    Batcher(long timeoutMs, int batchSize, LoadBalancerClient loadBalancerClient, TargetStore targetStore, Scheduler scheduler) {
+    Batcher(long timeoutMs, int batchSize, LoadBalancerConnector loadBalancerConnector, TargetStore targetStore, Scheduler scheduler) {
         this.timeoutMs = timeoutMs;
         this.batchSize = batchSize;
-        this.loadBalancerClient = loadBalancerClient;
+        this.loadBalancerConnector = loadBalancerConnector;
         this.targetStore = targetStore;
         this.scheduler = scheduler;
     }
@@ -89,14 +89,14 @@ class Batcher {
             final Set<String> ipAddresses = targets.stream().map(LoadBalancerTarget::getIpAddress).collect(Collectors.toSet());
             final Completable updateRegistered = targetStore.updateTargets(targets.stream()
                     .collect(Collectors.toMap(Function.identity(), ignored -> LoadBalancerTarget.State.Registered)));
-            return loadBalancerClient.registerAll(loadBalancerId, ipAddresses).andThen(updateRegistered);
+            return loadBalancerConnector.registerAll(loadBalancerId, ipAddresses).andThen(updateRegistered);
         }).collect(Collectors.toList());
 
         final List<Completable> deregisterAndRemove = batch.getToDeregister().byLoadBalancerId().entrySet().stream().map(entry -> {
             final String loadBalancerId = entry.getKey();
             final Set<LoadBalancerTarget> targets = entry.getValue();
             final Set<String> ipAddresses = targets.stream().map(LoadBalancerTarget::getIpAddress).collect(Collectors.toSet());
-            return loadBalancerClient.deregisterAll(loadBalancerId, ipAddresses)
+            return loadBalancerConnector.deregisterAll(loadBalancerId, ipAddresses)
                     .andThen(targetStore.removeTargets(targets));
         }).collect(Collectors.toList());
 

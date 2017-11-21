@@ -25,7 +25,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 
 public class AwsModule extends AbstractModule {
     @Override
@@ -35,7 +35,7 @@ public class AwsModule extends AbstractModule {
         bind(AmazonElasticLoadBalancingAsync.class).toProvider(AmazonElasticLoadBalancingAsyncProvider.class);
         bind(InstanceCloudConnector.class).to(AwsInstanceCloudConnector.class);
         bind(InstanceReaper.class).asEagerSingleton();
-        bind(LoadBalancerClient.class).to(AwsLoadBalancerClient.class);
+        bind(LoadBalancerConnector.class).to(AwsLoadBalancerConnector.class);
     }
 
     @Provides

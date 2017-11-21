@@ -20,7 +20,7 @@ import java.util.Set;
 
 import rx.Completable;
 
-public interface LoadBalancerClient {
+public interface LoadBalancerConnector {
     /**
      * @param ipAddresses can be empty or null, in which case this is a noop.
      */

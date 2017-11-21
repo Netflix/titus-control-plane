@@ -24,7 +24,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.NoopRegistry;
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Job;
@@ -75,7 +75,7 @@ import static org.mockito.Mockito.when;
 public class DefaultLoadBalancerServiceTest {
 
     private TitusRuntime runtime;
-    private LoadBalancerClient client;
+    private LoadBalancerConnector client;
     private V3JobOperations jobOperations;
     private LoadBalancerStore loadBalancerStore;
     private TargetStore targetStore;
@@ -90,7 +90,7 @@ public class DefaultLoadBalancerServiceTest {
     @Before
     public void setUp() throws Exception {
         runtime = new DefaultTitusRuntime(new NoopRegistry());
-        client = mock(LoadBalancerClient.class);
+        client = mock(LoadBalancerConnector.class);
         loadBalancerStore = new InMemoryLoadBalancerStore();
         targetStore = new InMemoryTargetStore();
         jobOperations = mock(V3JobOperations.class);

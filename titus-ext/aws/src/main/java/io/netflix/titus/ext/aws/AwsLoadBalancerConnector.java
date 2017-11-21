@@ -24,7 +24,7 @@ import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingA
 import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.common.util.CollectionsExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,18 +32,18 @@ import rx.Completable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-public class AwsLoadBalancerClient implements LoadBalancerClient {
-    private static final Logger logger = LoggerFactory.getLogger(AwsLoadBalancerClient.class);
+public class AwsLoadBalancerConnector implements LoadBalancerConnector {
+    private static final Logger logger = LoggerFactory.getLogger(AwsLoadBalancerConnector.class);
 
     private final AmazonElasticLoadBalancingAsync client;
     private final Scheduler scheduler;
 
     @Inject
-    public AwsLoadBalancerClient(AmazonElasticLoadBalancingAsync client) {
+    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client) {
         this(client, Schedulers.computation());
     }
 
-    public AwsLoadBalancerClient(AmazonElasticLoadBalancingAsync client, Scheduler scheduler) {
+    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler) {
         this.client = client;
         this.scheduler = scheduler;
     }
