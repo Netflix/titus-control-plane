@@ -43,7 +43,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
  * through the Gateway and Master servers.
  */
 public class LoadBalancerGrpcTest {
-    private final Logger log = LoggerFactory.getLogger(LoadBalancerGrpcTest.class);
+    private final Logger logger = LoggerFactory.getLogger(LoadBalancerGrpcTest.class);
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
 
     @Rule

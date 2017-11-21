@@ -40,7 +40,7 @@ import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.get
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class DefaultLoadBalancerGrpcTest {
-    private static Logger log = LoggerFactory.getLogger(DefaultLoadBalancerGrpcTest.class);
+    private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerGrpcTest.class);
     private DefaultLoadBalancerServiceGrpc serviceGrpc;
 
     @Before
@@ -71,14 +71,14 @@ public class DefaultLoadBalancerGrpcTest {
         // For each job, query the load balancers and check that they match.
         jobIdToLoadBalancersMap.forEach((jobId, loadBalancerIdSet) -> {
             Set<LoadBalancerId> getIdSet = LoadBalancerTests.getLoadBalancersForJob(jobId, getJobLoadBalancers);
-            log.info("Checking that Job {} LB IDs {} match expected IDs {}", jobId, getIdSet, loadBalancerIdSet);
+            logger.info("Checking that Job {} LB IDs {} match expected IDs {}", jobId, getIdSet, loadBalancerIdSet);
             assertThat(loadBalancerIdSet.equals(getIdSet)).isTrue();
         });
 
         // Remove the load balancers for each job
         jobIdToLoadBalancersMap.forEach((jobId, loadBalancerIdSet) -> {
             loadBalancerIdSet.forEach(loadBalancerId -> {
-                log.info("Removing load balancer {} from Job {}", loadBalancerId.getId(), jobId);
+                logger.info("Removing load balancer {} from Job {}", loadBalancerId.getId(), jobId);
                 LoadBalancerTests.removeLoadBalancerFromJob(jobId, loadBalancerId, removeLoadBalancers);
             });
         });
@@ -86,7 +86,7 @@ public class DefaultLoadBalancerGrpcTest {
         // Check that there are no load balancers left
         jobIdToLoadBalancersMap.forEach((jobId, loadBalancerIdSet) -> {
             assertThat(LoadBalancerTests.getLoadBalancersForJob(jobId, getJobLoadBalancers).size()).isEqualTo(0);
-            log.info("Job {} has no more load balancers", jobId);
+            logger.info("Job {} has no more load balancers", jobId);
         });
     }
 

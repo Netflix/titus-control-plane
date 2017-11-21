@@ -39,7 +39,7 @@ import rx.Observable;
 
 @Singleton
 public class CassandraLoadBalancerStore implements LoadBalancerStore {
-    private static Logger log = LoggerFactory.getLogger(CassandraLoadBalancerStore.class);
+    private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStore.class);
 
     private static final String TABLE_LOAD_BALANCER = "load_balancer_jobs";
     private static final String COLUMN_JOB_ID = "job_id";
@@ -110,14 +110,14 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .forEach(loadBalancerStatePair -> {
                     JobLoadBalancer jobLoadBalancer = loadBalancerStatePair.getLeft();
                     JobLoadBalancer.State state = loadBalancerStatePair.getRight();
-                    log.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
+                    logger.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
                     loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
                 });
     }
 
     @Override
     public Observable<LoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
-        log.debug("Retrieving load balancers for job {}", jobId);
+        logger.debug("Retrieving load balancers for job {}", jobId);
         return Observable.from(loadBalancerStateMap.entrySet())
                 .filter(entry -> entry.getKey().getJobId().equals(jobId))
                 .map(entry -> new LoadBalancerState(entry.getKey().getLoadBalancerId(), entry.getValue()));
@@ -125,7 +125,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     @Override
     public Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state) {
-        log.debug("Updating load balancer {} to state {}", jobLoadBalancer, state);
+        logger.debug("Updating load balancer {} to state {}", jobLoadBalancer, state);
         BoundStatement stmt = insertLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
         return storeHelper.execute(stmt)
                 .map(rs -> loadBalancerStateMap.put(jobLoadBalancer, state))
@@ -134,7 +134,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     @Override
     public Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer) {
-        log.debug("Removing load balancer {}", jobLoadBalancer);
+        logger.debug("Removing load balancer {}", jobLoadBalancer);
         BoundStatement stmt = deleteLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId());
         return storeHelper.execute(stmt)
                 // Note: If the C* entry doesn't exist, it'll fail here and not remove from the map.

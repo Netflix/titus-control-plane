@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class CassandraLoadBalancerStoreTest {
-    private static Logger log = LoggerFactory.getLogger(CassandraLoadBalancerStoreTest.class);
+    private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStoreTest.class);
 
     private static final long STARTUP_TIMEOUT = 30_000L;
     private static final String CONFIGURATION_FILE_NAME = "relocated-cassandra.yaml";
@@ -208,11 +208,11 @@ public class CassandraLoadBalancerStoreTest {
                 .forEach(jobId -> {
                     store.retrieveLoadBalancersForJob(jobId).subscribe(
                             loadBalancerState -> {
-                                log.info("Got back load balancer state {} for job {}", loadBalancerState, jobId);
+                                logger.info("Got back load balancer state {} for job {}", loadBalancerState, jobId);
                                 assertThat(testData.containsKey(new JobLoadBalancer(jobId, loadBalancerState.getLoadBalancerId()))).isTrue();
                                 assertThat(testData.get(new JobLoadBalancer(jobId, loadBalancerState.getLoadBalancerId())))
                                         .isEqualTo(loadBalancerState.getState());
-                                log.info("Verified job {} has load balancer id {} in state {}",
+                                logger.info("Verified job {} has load balancer id {} in state {}",
                                         jobId,
                                         loadBalancerState.getLoadBalancerId(),
                                         loadBalancerState.getState());
