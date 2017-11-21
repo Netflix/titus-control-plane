@@ -746,40 +746,50 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void verifyAndReportResourceUsageMetrics(List<VirtualMachineCurrentState> vmCurrentStates) {
-        double totalCpu = 0.0;
-        double usedCpu = 0.0;
-        double totalMemory = 0.0;
-        double usedMemory = 0.0;
-        double totalNetworkMbps = 0.0;
-        double usedNetworkMbps = 0.0;
-        long totalDisabled = 0;
-        long currentMinDisableDuration = 0;
-        long currentMaxDisableDuration = 0;
-        long now = System.currentTimeMillis();
+        try {
+            double totalCpu = 0.0;
+            double usedCpu = 0.0;
+            double totalMemory = 0.0;
+            double usedMemory = 0.0;
+            double totalNetworkMbps = 0.0;
+            double usedNetworkMbps = 0.0;
+            long totalDisabled = 0;
+            long currentMinDisableDuration = 0;
+            long currentMaxDisableDuration = 0;
+            long now = System.currentTimeMillis();
 
-        for (VirtualMachineCurrentState state : vmCurrentStates) {
-            final VirtualMachineLease currAvailableResources = state.getCurrAvailableResources();
+            for (VirtualMachineCurrentState state : vmCurrentStates) {
+                final VirtualMachineLease currAvailableResources = state.getCurrAvailableResources();
 
-            if (currAvailableResources != null) {
-                totalCpu += currAvailableResources.cpuCores();
-                totalMemory += currAvailableResources.memoryMB();
-                totalNetworkMbps += currAvailableResources.networkMbps();
-            }
-            long disableDuration = state.getDisabledUntil() - now;
-            if (disableDuration > 0) {
-                totalDisabled++;
-                currentMinDisableDuration = Math.min(currentMinDisableDuration, disableDuration);
-                currentMaxDisableDuration = Math.max(currentMinDisableDuration, disableDuration);
-            }
-            final Collection<TaskRequest> runningTasks = state.getRunningTasks();
-            if (runningTasks != null && !runningTasks.isEmpty()) {
-                for (TaskRequest t : runningTasks) {
-                    QueuableTask task = (QueuableTask) t;
-                    if (task instanceof ScheduledRequest) {
-                        final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(t.getId());
-                        if (jobMgr == null || !jobMgr.isTaskValid(t.getId())) {
-                            schedulingService.removeTask(task.getId(), task.getQAttributes(), state.getHostname());
-                        } else {
+                if (currAvailableResources != null) {
+                    totalCpu += currAvailableResources.cpuCores();
+                    totalMemory += currAvailableResources.memoryMB();
+                    totalNetworkMbps += currAvailableResources.networkMbps();
+                }
+                long disableDuration = state.getDisabledUntil() - now;
+                if (disableDuration > 0) {
+                    totalDisabled++;
+                    currentMinDisableDuration = Math.min(currentMinDisableDuration, disableDuration);
+                    currentMaxDisableDuration = Math.max(currentMinDisableDuration, disableDuration);
+                }
+                final Collection<TaskRequest> runningTasks = state.getRunningTasks();
+                if (runningTasks != null && !runningTasks.isEmpty()) {
+                    for (TaskRequest t : runningTasks) {
+                        QueuableTask task = (QueuableTask) t;
+                        if (task instanceof ScheduledRequest) {
+                            final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(t.getId());
+                            if (jobMgr == null || !jobMgr.isTaskValid(t.getId())) {
+                                schedulingService.removeTask(task.getId(), task.getQAttributes(), state.getHostname());
+                            } else {
+                                usedCpu += t.getCPUs();
+                                totalCpu += t.getCPUs();
+                                usedMemory += t.getMemory();
+                                totalMemory += t.getMemory();
+                                usedNetworkMbps += t.getNetworkMbps();
+                                totalNetworkMbps += t.getNetworkMbps();
+                            }
+                        } else if (task instanceof V3QueueableTask) {
+                            //TODO redo the metrics publishing but we should keep it the same as v2 for now
                             usedCpu += t.getCPUs();
                             totalCpu += t.getCPUs();
                             usedMemory += t.getMemory();
@@ -787,35 +797,29 @@ public class DefaultSchedulingService implements SchedulingService {
                             usedNetworkMbps += t.getNetworkMbps();
                             totalNetworkMbps += t.getNetworkMbps();
                         }
-                    } else if (task instanceof V3QueueableTask) {
-                        //TODO redo the metrics publishing but we should keep it the same as v2 for now
-                        usedCpu += t.getCPUs();
-                        totalCpu += t.getCPUs();
-                        usedMemory += t.getMemory();
-                        totalMemory += t.getMemory();
-                        usedNetworkMbps += t.getNetworkMbps();
-                        totalNetworkMbps += t.getNetworkMbps();
                     }
                 }
             }
-        }
 
-        totalDisabledAgents.set(totalDisabled);
-        minDisableDuration.set(currentMinDisableDuration);
-        maxDisableDuration.set(currentMaxDisableDuration);
-        totalAvailableCpus.set((long) totalCpu);
-        totalAllocatedCpus.set((long) usedCpu);
-        cpuUtilization.set((long) (usedCpu * 100.0 / Math.max(1.0, totalCpu)));
-        double dominantResourceUtilization = usedCpu * 100.0 / totalCpu;
-        totalAvailableMemory.set((long) totalMemory);
-        totalAllocatedMemory.set((long) usedMemory);
-        memoryUtilization.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
-        dominantResourceUtilization = Math.max(dominantResourceUtilization, usedMemory * 100.0 / totalMemory);
-        totalAvailableNetworkMbps.set((long) totalNetworkMbps);
-        totalAllocatedNetworkMbps.set((long) usedNetworkMbps);
-        networkUtilization.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
-        dominantResourceUtilization = Math.max(dominantResourceUtilization, usedNetworkMbps * 100.0 / totalNetworkMbps);
-        this.dominantResourceUtilization.set((long) dominantResourceUtilization);
+            totalDisabledAgents.set(totalDisabled);
+            minDisableDuration.set(currentMinDisableDuration);
+            maxDisableDuration.set(currentMaxDisableDuration);
+            totalAvailableCpus.set((long) totalCpu);
+            totalAllocatedCpus.set((long) usedCpu);
+            cpuUtilization.set((long) (usedCpu * 100.0 / Math.max(1.0, totalCpu)));
+            double dominantResourceUtilization = usedCpu * 100.0 / totalCpu;
+            totalAvailableMemory.set((long) totalMemory);
+            totalAllocatedMemory.set((long) usedMemory);
+            memoryUtilization.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
+            dominantResourceUtilization = Math.max(dominantResourceUtilization, usedMemory * 100.0 / totalMemory);
+            totalAvailableNetworkMbps.set((long) totalNetworkMbps);
+            totalAllocatedNetworkMbps.set((long) usedNetworkMbps);
+            networkUtilization.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
+            dominantResourceUtilization = Math.max(dominantResourceUtilization, usedNetworkMbps * 100.0 / totalNetworkMbps);
+            this.dominantResourceUtilization.set((long) dominantResourceUtilization);
+        } catch (Exception e) {
+            logger.error("Error settings metrics with error: ", e);
+        }
     }
 
     private void checkInactiveVMs(List<VirtualMachineCurrentState> vmCurrentStates) {
