@@ -45,6 +45,8 @@ public class V3JobManagerModule extends AbstractModule {
 
         bind(new TypeLiteral<TaskInfoFactory<Protos.TaskInfo>>() {
         }).to(DefaultV3TaskInfoFactory.class);
+
+        bind(TaskLivenessMetrics.class).asEagerSingleton();
     }
 
     @Provides

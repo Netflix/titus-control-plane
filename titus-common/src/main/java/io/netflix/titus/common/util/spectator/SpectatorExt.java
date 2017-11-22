@@ -63,6 +63,19 @@ public final class SpectatorExt {
     }
 
     /**
+     * Monitors a value, and a collection of buckets, each denoting a value range. If a current value is within a
+     * particular bucket/range, its gauge is set to 1. All the other buckets are set to 0.
+     * If a current value is less than zero, all gauge values are set to 0.
+     */
+    public static <SOURCE> ValueRangeMetrics<SOURCE> valueRangeMetrics(Id rootId,
+                                                                       long[] levels,
+                                                                       SOURCE source,
+                                                                       Function<SOURCE, Long> valueSupplier,
+                                                                       Registry registry) {
+        return ValueRangeMetrics.metricsOf(rootId, levels, source, valueSupplier, registry);
+    }
+
+    /**
      * RxJava subscription metrics.
      */
     public static <T> Observable.Transformer<T, T> subscriptionMetrics(String rootName, List<Tag> commonTags, Registry registry) {

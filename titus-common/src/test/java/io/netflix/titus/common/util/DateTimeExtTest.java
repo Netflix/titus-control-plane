@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -61,5 +62,7 @@ public class DateTimeExtTest {
         long zeroMillis = 0;
         assertThat(DateTimeExt.toTimeUnitString(zeroMillis), is(equalTo("0ms")));
 
+        long twoDays = TimeUnit.DAYS.toMillis(2);
+        assertThat(DateTimeExt.toTimeUnitString(twoDays), is(equalTo("2d")));
     }
 }

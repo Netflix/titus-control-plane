@@ -67,10 +67,10 @@ public class ValueRangeMetrics<SOURCE> {
     }
 
     public static <SOURCE> ValueRangeMetrics<SOURCE> metricsOf(Id rootId,
-                                                               long[] levelsMs,
+                                                               long[] levels,
                                                                SOURCE source,
                                                                Function<SOURCE, Long> valueSupplier,
                                                                Registry registry) {
-        return new ValueRangeMetrics<>(rootId, levelsMs, source, valueSupplier, registry);
+        return new ValueRangeMetrics<>(rootId, levels, source, valueSupplier, registry);
     }
 }
