@@ -27,6 +27,8 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.Rule;
@@ -35,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class CassandraLoadBalancerStoreTest {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStoreTest.class);
@@ -189,7 +192,9 @@ public class CassandraLoadBalancerStoreTest {
      */
     private CassandraLoadBalancerStore getInitdStore() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(session, new DefaultRegistry());
+        CassandraStoreConfiguration configuration = mock(CassandraStoreConfiguration.class);
+        EntitySanitizer entitySanitizer = new LoadBalancerSanitizerBuilder().build();
+        CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(configuration, entitySanitizer, session, new DefaultRegistry());
         store.init();
 
         return store;

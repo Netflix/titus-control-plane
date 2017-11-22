@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.ext.cassandra.store;
+package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 
-@Configuration(prefix = "titus.ext.cassandra")
-public interface CassandraStoreConfiguration {
+public class LoadBalancerSanitizerBuilder {
+    private final EntitySanitizerBuilder sanitizerBuilder = EntitySanitizerBuilder.stdBuilder();
 
-    @DefaultValue("true")
-    boolean isFailOnInconsistentAgentData();
-
-    @DefaultValue("false")
-    boolean isFailOnInconsistentLoadBalancerData();
+    public EntitySanitizer build() {
+        return sanitizerBuilder.build();
+    }
 }

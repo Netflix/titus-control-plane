@@ -16,13 +16,17 @@
 
 package io.netflix.titus.api.loadbalancer.model;
 
+import javax.validation.constraints.Size;
+
 /**
  * Association between a Job and a LoadBalancer
  */
 public class JobLoadBalancer {
     public enum State {Associated, Dissociated}
 
+    @Size(min = 1, max = 50)
     private final String jobId;
+    @Size(min = 1, max = 1024)
     private final String loadBalancerId;
 
     public JobLoadBalancer(String jobId, String loadBalancerId) {

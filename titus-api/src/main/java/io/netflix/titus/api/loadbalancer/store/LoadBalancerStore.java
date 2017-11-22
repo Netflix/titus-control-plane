@@ -22,6 +22,8 @@ import rx.Completable;
 import rx.Observable;
 
 public interface LoadBalancerStore {
+    String LOAD_BALANCER_SANITIZER = "loadbalancer";
+
     /**
      * Returns all load balancers associated with a job.
      *

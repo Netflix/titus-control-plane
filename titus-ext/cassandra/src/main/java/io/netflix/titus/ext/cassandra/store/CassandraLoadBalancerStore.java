@@ -17,10 +17,13 @@
 package io.netflix.titus.ext.cassandra.store;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.validation.ConstraintViolation;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
@@ -30,6 +33,8 @@ import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.api.loadbalancer.store.LoadBalancerStoreException;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -53,6 +58,10 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private final PreparedStatement insertLoadBalancerStmt;
     private final PreparedStatement updateLoadBalancerStmt;
     private final PreparedStatement deleteLoadBalancerStmt;
+
+    private final CassandraStoreConfiguration configuration;
+
+    private final EntitySanitizer entitySanitizer;
 
     private final CassStoreHelper storeHelper;
 
@@ -85,7 +94,9 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     COLUMN_LOAD_BALANCER);
 
     @Inject
-    public CassandraLoadBalancerStore(Session session, Registry registry) {
+    public CassandraLoadBalancerStore(CassandraStoreConfiguration configuration, @Named(LOAD_BALANCER_SANITIZER) EntitySanitizer entitySanitizer, Session session, Registry registry) {
+        this.configuration = configuration;
+        this.entitySanitizer = entitySanitizer;
         this.registry = registry;
 
         this.storeHelper = new CassStoreHelper(session);
@@ -102,6 +113,8 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
      */
     @Activator
     public void init() {
+        boolean failOnError = configuration.isFailOnInconsistentLoadBalancerData();
+
         storeHelper.execute(getAllJobIdsStmt.bind().setFetchSize(FETCH_SIZE))
                 .timeout(FETCH_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .flatMap(rows -> Observable.from(rows.all()))
@@ -110,8 +123,16 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .forEach(loadBalancerStatePair -> {
                     JobLoadBalancer jobLoadBalancer = loadBalancerStatePair.getLeft();
                     JobLoadBalancer.State state = loadBalancerStatePair.getRight();
-                    logger.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
-                    loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
+                    Set<ConstraintViolation<JobLoadBalancer>> violations = entitySanitizer.validate(jobLoadBalancer);
+                    if (violations.isEmpty()) {
+                        logger.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
+                        loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
+                    } else {
+                        if(failOnError) {
+                            throw LoadBalancerStoreException.badData(jobLoadBalancer, violations);
+                        }
+                        logger.warn("Ignoring bad record of {} due to validation constraint violations: violations={}", jobLoadBalancer, violations);
+                    }
                 });
     }
 
