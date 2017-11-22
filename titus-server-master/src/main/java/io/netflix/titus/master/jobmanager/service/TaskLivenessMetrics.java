@@ -78,6 +78,7 @@ public class TaskLivenessMetrics {
 
     private final ApplicationSlaManagementService applicationSlaManagementService;
     private final V2JobOperations v2JobOperations;
+    private final JobManagerConfiguration configuration;
     private final Registry registry;
 
     private final Map<String, Map<String, List<Gauge>>> capacityGroupsMetrics = new HashMap<>();
@@ -87,17 +88,20 @@ public class TaskLivenessMetrics {
     @Inject
     public TaskLivenessMetrics(ApplicationSlaManagementService applicationSlaManagementService,
                                V2JobOperations v2JobOperations,
+                               JobManagerConfiguration configuration,
                                Registry registry) {
         this.applicationSlaManagementService = applicationSlaManagementService;
         this.v2JobOperations = v2JobOperations;
+        this.configuration = configuration;
         this.registry = registry;
     }
 
     @Activator
     public void enterActiveMode() {
+        long intervalMs = Math.max(1_000, configuration.getTaskLivenessPollerIntervalMs());
         this.subscription = ObservableExt.schedule(
                 ROOT_METRIC_NAME + "scheduler", registry, "TaskLivenessRefreshAction",
-                Completable.fromAction(this::refresh), REFRESH_INTERVAL_SEC, REFRESH_INTERVAL_SEC, TimeUnit.SECONDS, Schedulers.computation()
+                Completable.fromAction(this::refresh), intervalMs, intervalMs, TimeUnit.MILLISECONDS, Schedulers.computation()
         ).subscribe(result -> {
             result.ifPresent(error -> logger.warn("Task liveness metrics refresh error", error));
         });
