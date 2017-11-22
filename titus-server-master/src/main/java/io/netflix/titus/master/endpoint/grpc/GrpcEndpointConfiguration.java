@@ -18,6 +18,7 @@ package io.netflix.titus.master.endpoint.grpc;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.archaius.api.annotations.PropertyName;
 
 /**
  */
@@ -31,6 +32,10 @@ public interface GrpcEndpointConfiguration {
      * Application name regular expression for identifying V3 enabled applications.
      */
     String getV3EnabledApps();
+
+    @PropertyName(name = "loadbalancer.enabled")
+    @DefaultValue("true")
+    boolean getLoadBalancerGrpcEnabled();
 
     /**
      * Graceful shutdown time for GRPC server. If zero, shutdown happens immediately, and all client connections are
