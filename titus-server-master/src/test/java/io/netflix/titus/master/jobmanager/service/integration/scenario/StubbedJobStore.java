@@ -54,6 +54,21 @@ class StubbedJobStore implements JobStore {
         return eventSubject;
     }
 
+    public Observable<Pair<StoreEvent, ?>> events(String jobId) {
+        return eventSubject
+                .filter(event -> {
+                    if (event.getRight() instanceof Job) {
+                        Job eventJob = (Job) event.getRight();
+                        return jobId.equals(eventJob.getId());
+                    }
+                    if (event.getRight() instanceof Task) {
+                        Task eventTask = (Task) event.getRight();
+                        return jobId.equals(eventTask.getJobId());
+                    }
+                    return false;
+                });
+    }
+
     @Override
     public Completable init() {
         return Completable.complete();

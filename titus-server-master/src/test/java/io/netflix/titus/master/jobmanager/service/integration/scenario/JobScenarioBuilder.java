@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -33,80 +33,49 @@ import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
-import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import io.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
-import io.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
-import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
-import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
-    public static final long RECONCILER_ACTIVE_TIMEOUT_MS = 50L;
-    public static final long RECONCILER_IDLE_TIMEOUT_MS = 50;
+    private final String jobId;
+    private final ExtTestSubscriber<JobManagerEvent> jobEventsSubscriber;
+    private final ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber;
 
-    private enum RunningState {NotActivated, Activated, JobCreated, JobFinished}
+    private final V3JobOperations jobOperations;
+    private final StubbedSchedulingService schedulingService;
+    private final StubbedJobStore jobStore;
+    private final StubbedVirtualMachineMasterService vmService;
+    private final TestScheduler testScheduler;
 
-    private final TestScheduler testScheduler = Schedulers.test();
-
-    private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
-    private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
-    private final StubbedSchedulingService schedulingService = new StubbedSchedulingService();
-    private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
-    private final StubbedJobStore jobStore = new StubbedJobStore();
-
-    private final DefaultV3JobOperations jobOperations;
-    private final JobDescriptor<E> jobDescriptor;
-
-    private RunningState runningState = RunningState.NotActivated;
-    private String jobId;
     private int nextTaskIdx;
     private Map<Integer, String> taskIdx2Id = new HashMap<>();
 
-    private final ExtTestSubscriber<Pair<StoreEvent, ?>> storeEvents = new ExtTestSubscriber<>();
-    private final ExtTestSubscriber<JobManagerEvent> jobEvents = new ExtTestSubscriber<>();
 
-    public JobScenarioBuilder(JobDescriptor<E> jobDescriptor) {
-        when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
-        when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
-
-        this.jobDescriptor = jobDescriptor;
-
-        jobStore.events().subscribe(storeEvents);
-
-        BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
-                configuration,
-                capacityGroupService,
-                schedulingService,
-                vmService,
-                jobStore
-        );
-        ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(
-                configuration,
-                capacityGroupService,
-                schedulingService,
-                vmService,
-                jobStore
-        );
-        this.jobOperations = new DefaultV3JobOperations(
-                configuration,
-                batchDifferenceResolver,
-                serviceDifferenceResolver,
-                jobStore,
-                schedulingService,
-                vmService,
-                capacityGroupService,
-                testScheduler
-        );
+    public JobScenarioBuilder(String jobId,
+                              ExtTestSubscriber<JobManagerEvent> jobEventsSubscriber,
+                              ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber,
+                              V3JobOperations jobOperations,
+                              StubbedSchedulingService schedulingService,
+                              StubbedJobStore jobStore,
+                              StubbedVirtualMachineMasterService vmService,
+                              TestScheduler testScheduler) {
+        this.jobId = jobId;
+        this.jobEventsSubscriber = jobEventsSubscriber;
+        this.storeEventsSubscriber = storeEventsSubscriber;
+        this.jobOperations = jobOperations;
+        this.schedulingService = schedulingService;
+        this.jobStore = jobStore;
+        this.vmService = vmService;
+        this.testScheduler = testScheduler;
     }
 
     public JobScenarioBuilder<E> trigger() {
@@ -115,64 +84,25 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> advance() {
-        testScheduler.advanceTimeBy(RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(JobsScenarioBuilder.RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
     }
 
-    public JobScenarioBuilder<?> ignoreAvailableEvents() {
-        while (jobEvents.takeNext() != null) {
+    public JobScenarioBuilder<E> template(Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> templateFun) {
+        return templateFun.apply(this);
+    }
+
+    public JobScenarioBuilder<E> ignoreAvailableEvents() {
+        while (jobEventsSubscriber.takeNext() != null) {
         }
-        while (storeEvents.takeNext() != null) {
+        while (storeEventsSubscriber.takeNext() != null) {
         }
-        return this;
-    }
-
-    public JobScenarioBuilder<E> activate() {
-        ensureInState(RunningState.NotActivated);
-        jobOperations.enterActiveMode();
-
-        runningState = RunningState.Activated;
-        return this;
-    }
-
-    public JobScenarioBuilder<E> submit() {
-        ensureInState(RunningState.Activated);
-
-        jobOperations.createJob(jobDescriptor).flatMap(jobId -> {
-            JobScenarioBuilder.this.jobId = jobId;
-            return jobOperations.observeJob(jobId);
-        }).subscribe(jobEvents);
-
-        runningState = RunningState.JobCreated;
-        return this;
-    }
-
-    public JobScenarioBuilder<E> expectStoreJobUpdate() {
-        assertThat(storeEvents.takeNext().getLeft()).isEqualTo(StoreEvent.JobAdded);
-        return this;
-    }
-
-    public JobScenarioBuilder<E> expectStoreTaskAdded() {
-        return expectStoreTaskAdded(null);
-    }
-
-    public JobScenarioBuilder<E> expectStoreTaskAdded(Consumer<Task> check) {
-        Pair<StoreEvent, ?> storeEventPair = storeEvents.takeNext();
-        assertThat(storeEventPair.getLeft()).isEqualTo(StoreEvent.TaskAdded);
-
-        Task task = (Task) storeEventPair.getRight();
-        taskIdx2Id.put(nextTaskIdx++, task.getId());
-
-        if (check != null) {
-            check.accept(task);
-        }
-
         return this;
     }
 
     public JobScenarioBuilder<E> expectJobUpdateEvent() {
-        JobManagerEvent event = jobEvents.takeNext();
-        assertThat(event).isNotNull();
+        JobManagerEvent event = jobEventsSubscriber.takeNext();
+        assertThat(event).describedAs("No job update event for job: %s", jobId).isNotNull();
         assertThat(event).isInstanceOf(JobEvent.class);
 
         JobEvent jobEvent = (JobEvent) event;
@@ -182,7 +112,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectTaskCreatedEvent() {
-        JobManagerEvent event = jobEvents.takeNext();
+        JobManagerEvent event = jobEventsSubscriber.takeNext();
         assertThat(event).isNotNull();
         assertThat(event).isInstanceOf(TaskEvent.class);
 
@@ -192,10 +122,12 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> expectTaskUpdateEvent(int taskIdx, String message) {
-        expectTaskEvent(taskIdx, event -> event.getSummary().contains(message));
+    public JobScenarioBuilder<E> expectedMesosChangedEvent(int taskIdx) {
+        return expectTaskEvent(taskIdx, event -> event.getTrigger() == Trigger.Mesos && event.getEventType() == ReconcilerEvent.EventType.Changed, "Expected Mesos triggered task changed event");
+    }
 
-        return this;
+    public JobScenarioBuilder<E> expectTaskUpdateEvent(int taskIdx, String expectedSummary) {
+        return expectTaskEvent(taskIdx, event -> event.getSummary().contains(expectedSummary), "Expected task with " + expectedSummary + " summary");
     }
 
     public JobScenarioBuilder<E> expectScheduleRequest() {
@@ -203,26 +135,72 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    private void expectTaskEvent(int taskIdx, Predicate<TaskEvent> predicate) {
-        JobManagerEvent event = jobEvents.takeNext();
+    private JobScenarioBuilder<E> expectTaskEvent(int taskIdx, Predicate<TaskEvent> predicate, String errorMessage) {
+        JobManagerEvent event = jobEventsSubscriber.takeNext();
         assertThat(event).isNotNull();
         assertThat(event).isInstanceOf(TaskEvent.class);
 
         String taskId = taskIdx2Id.get(taskIdx);
         assertThat(taskId).describedAs("Unknown task id %s: ", taskId).isNotNull();
 
-        assertThat(predicate.apply((TaskEvent) event)).describedAs("Unexpected event %s", event).isTrue();
+        assertThat(predicate.apply((TaskEvent) event)).describedAs("%s\nUnexpected event %s", errorMessage, event).isTrue();
+        return this;
     }
 
-    public JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, TaskState taskState) {
-        return triggerMesosEvent(taskIdx, taskState, "ScenarioBuilder");
+    public JobScenarioBuilder<E> expectStoreJobUpdate() {
+        assertThat(storeEventsSubscriber.takeNext().getLeft()).isEqualTo(StoreEvent.JobAdded);
+        return this;
     }
 
-    public JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, TaskState taskState, String reason) {
-        return triggerMesosEvent(taskIdx, taskState, reason, null);
+    public JobScenarioBuilder<E> assertStoreTaskAddedEvent(Predicate<Task> check) {
+        Pair<StoreEvent, ?> storeEventPair = storeEventsSubscriber.takeNext();
+        assertThat(storeEventPair.getLeft()).isEqualTo(StoreEvent.TaskAdded);
+
+        Task task = (Task) storeEventPair.getRight();
+        taskIdx2Id.put(nextTaskIdx++, task.getId());
+
+        Preconditions.checkState(check.apply(task), "Task store event with unexpected task state: %s", task);
+
+        return this;
     }
 
-    public JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, TaskState taskState, String reason, String data) {
+    public JobScenarioBuilder<E> expectStoreTaskAdded() {
+        return assertStoreTaskAddedEvent(task -> true);
+    }
+
+    public JobScenarioBuilder<E> expectStoreTaskArchived() {
+        return this;
+    }
+
+    public JobScenarioBuilder<E> expectStoreTaskRemoved() {
+        return this;
+    }
+
+    public JobScenarioBuilder<E> expectStoreJobRemoved() {
+        return this;
+    }
+
+    public JobScenarioBuilder<E> triggerMesosLaunchEvent(int taskIdx) {
+        return triggerMesosEvent(taskIdx, TaskState.Launched, "Task launched", null);
+    }
+
+    public JobScenarioBuilder<E> triggerMesosStartInitiatedEvent(int taskIdx) {
+        String taskId = taskIdx2Id.get(taskIdx);
+        assertThat(taskId).isNotNull();
+        TitusExecutorDetails details = vmService.buildExecutorDetails();
+
+        return triggerMesosEvent(taskIdx, TaskState.StartInitiated, "Starting container", vmService.toString(details));
+    }
+
+    public JobScenarioBuilder<E> triggerMesosStartedEvent(int taskIdx) {
+        return triggerMesosEvent(taskIdx, TaskState.Started, "Task started", null);
+    }
+
+    public JobScenarioBuilder<E> triggerMesosFinishedEvent(int taskIdx) {
+        return triggerMesosEvent(taskIdx, TaskState.Finished, TaskStatus.REASON_NORMAL, null);
+    }
+
+    private JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, TaskState taskState, String reason, String data) {
         String taskId = taskIdx2Id.get(taskIdx);
         assertThat(taskId).isNotNull();
 
@@ -239,24 +217,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         advance();
         assertThat(done.get()).isTrue();
 
-        expectTaskEvent(taskIdx, event -> event.getTrigger() == Trigger.Mesos);
+        expectTaskEvent(taskIdx, event -> event.getEventType() == ReconcilerEvent.EventType.ChangeRequest && event.getTrigger() == Trigger.Mesos, "Expected Mesos triggered change request");
 
         return this;
-    }
-
-    public JobScenarioBuilder<E> expectStoreTaskArchived() {
-        return this;
-    }
-
-    public JobScenarioBuilder<E> expectStoreTaskRemoved() {
-        return this;
-    }
-
-    public JobScenarioBuilder<E> expectStoreJobRemoved() {
-        return this;
-    }
-
-    private void ensureInState(RunningState expectedState) {
-        Preconditions.checkState(expectedState == runningState, "Expected state (%s) != actual state (%s)", expectedState, runningState);
     }
 }

@@ -18,16 +18,37 @@ package io.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
+import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.VirtualMachineMasterService;
+import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import org.apache.mesos.Protos;
 import rx.Observable;
 import rx.functions.Func0;
 
 class StubbedVirtualMachineMasterService implements VirtualMachineMasterService {
+
+    public String toString(TitusExecutorDetails executorDetails) {
+        try {
+            return ObjectMappers.defaultMapper().writeValueAsString(executorDetails);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public TitusExecutorDetails buildExecutorDetails() {
+        return new TitusExecutorDetails(
+                CollectionsExt.asMap("nfvpc", "1.2.3.4"),
+                new TitusExecutorDetails.NetworkConfiguration(
+                        true, "1.2.3.4", "1.1.1.1", "eni-12345", "eni-resource-1"
+                ));
+    }
+
     @Override
     public void launchTasks(List<Protos.TaskInfo> requests, List<VirtualMachineLease> leases) {
         throw new IllegalStateException("method not supported");
