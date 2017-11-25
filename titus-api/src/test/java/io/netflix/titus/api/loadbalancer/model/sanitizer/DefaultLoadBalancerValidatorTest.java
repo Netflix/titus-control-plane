@@ -19,7 +19,7 @@ package io.netflix.titus.api.loadbalancer.model.sanitizer;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Image;
@@ -57,7 +57,7 @@ public class DefaultLoadBalancerValidatorTest {
 
     @Before
     public void setUp() throws Exception {
-        LoadBalancerClient client = mock(LoadBalancerClient.class);
+        LoadBalancerConnector client = mock(LoadBalancerConnector.class);
         jobOperations = mock(V3JobOperations.class);
         loadBalancerStore = new InMemoryLoadBalancerStore();
         loadBalancerValidationConfiguration = mock(LoadBalancerValidationConfiguration.class);

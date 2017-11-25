@@ -19,7 +19,7 @@ package io.netflix.titus.api.loadbalancer.model.sanitizer;
 import java.util.Optional;
 import javax.inject.Inject;
 
-import io.netflix.titus.api.connector.cloud.LoadBalancerClient;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -34,17 +34,17 @@ public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerValidator.class);
 
     private final V3JobOperations v3JobOperations;
-    private final LoadBalancerClient loadBalancerClient;
+    private final LoadBalancerConnector loadBalancerConnector;
     private final LoadBalancerStore loadBalancerStore;
     private final LoadBalancerValidationConfiguration loadBalancerValidationConfiguration;
 
     @Inject
     public DefaultLoadBalancerValidator(V3JobOperations v3JobOperations,
-                                        LoadBalancerClient loadBalancerClient,
+                                        LoadBalancerConnector loadBalancerConnector,
                                         LoadBalancerStore loadBalancerStore,
                                         LoadBalancerValidationConfiguration loadBalancerValidationConfiguration) {
         this.v3JobOperations = v3JobOperations;
-        this.loadBalancerClient = loadBalancerClient;
+        this.loadBalancerConnector = loadBalancerConnector;
         this.loadBalancerStore = loadBalancerStore;
         this.loadBalancerValidationConfiguration = loadBalancerValidationConfiguration;
     }
@@ -98,7 +98,7 @@ public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
 
     public static final class Builder {
         private V3JobOperations v3JobOperations;
-        private LoadBalancerClient loadBalancerClient;
+        private LoadBalancerConnector loadBalancerConnector;
         private LoadBalancerStore loadBalancerStore;
         private LoadBalancerValidationConfiguration loadBalancerValidationConfiguration;
 
@@ -114,8 +114,8 @@ public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
             return this;
         }
 
-        public Builder withLoadBalancerClient(LoadBalancerClient loadBalancerClient) {
-            this.loadBalancerClient = loadBalancerClient;
+        public Builder withLoadBalancerClient(LoadBalancerConnector loadBalancerConnector) {
+            this.loadBalancerConnector = loadBalancerConnector;
             return this;
         }
 
@@ -130,7 +130,7 @@ public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
         }
 
         public DefaultLoadBalancerValidator build() {
-            return new DefaultLoadBalancerValidator(v3JobOperations, loadBalancerClient, loadBalancerStore, loadBalancerValidationConfiguration);
+            return new DefaultLoadBalancerValidator(v3JobOperations, loadBalancerConnector, loadBalancerStore, loadBalancerValidationConfiguration);
         }
     }
 }
