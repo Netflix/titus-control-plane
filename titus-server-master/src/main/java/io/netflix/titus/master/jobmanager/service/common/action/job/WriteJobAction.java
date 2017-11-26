@@ -26,8 +26,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
@@ -45,8 +44,8 @@ public class WriteJobAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
-        ModelUpdateAction updateAction = TitusModelUpdateActions.updateJob(job, Trigger.Reconciler, Model.Store, "Writing job to the store");
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
+        ModelActionHolder updateAction = ModelActionHolder.store(TitusModelUpdateActions.updateJob(job, Trigger.Reconciler, "Writing job to the store"));
         return titusStore.storeJob(job).andThen(Observable.just(Pair.of(getChange(), Collections.singletonList(updateAction))));
     }
 }

@@ -32,7 +32,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
 
@@ -51,20 +51,17 @@ public class TaskChangeAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         return Observable.just(Pair.of(
                 getChange(),
-                asList(
-                        new TaskUpdateAction(ModelUpdateAction.Model.Reference),
-                        new TaskUpdateAction(ModelUpdateAction.Model.Running)
-                ))
+                asList(ModelActionHolder.reference(new TaskUpdateAction()), ModelActionHolder.running(new TaskUpdateAction())))
         );
     }
 
     private class TaskUpdateAction extends TitusModelUpdateAction {
 
-        public TaskUpdateAction(Model model) {
-            super(ActionKind.Task, model, JobEvent.Trigger.Mesos, TaskChangeAction.this.getChange().getId(), "Updating task with function");
+        private TaskUpdateAction() {
+            super(ActionKind.Task, JobEvent.Trigger.Mesos, TaskChangeAction.this.getChange().getId(), "Updating task with function");
         }
 
         @Override

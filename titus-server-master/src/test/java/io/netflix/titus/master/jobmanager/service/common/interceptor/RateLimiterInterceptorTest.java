@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.limiter.ImmutableLimiters;
 import io.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import io.netflix.titus.common.util.time.Clocks;
@@ -57,7 +58,7 @@ public class RateLimiterInterceptorTest {
         EntityHolder nextRoot = EntityHolder.newRoot("rootId", "data");
         for (int i = 0; i < BUCKET_SIZE; i++) {
             assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(BUCKET_SIZE - i);
-            ModelUpdateAction updateAction = expectUpdateActionOfType(SampleTitusChangeActions.successfulJob(), RateLimiterInterceptor.UpdateRateLimiterStateAction.class);
+            ModelAction updateAction = expectUpdateActionOfType(SampleTitusChangeActions.successfulJob(), RateLimiterInterceptor.UpdateRateLimiterStateAction.class);
             nextRoot = updateAction.apply(nextRoot).getRight().get();
         }
         assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(0);
@@ -67,11 +68,11 @@ public class RateLimiterInterceptorTest {
         assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(1);
     }
 
-    private ModelUpdateAction expectUpdateActionOfType(TitusChangeAction changeAction, Class<? extends ModelUpdateAction> updateActionType) {
-        ExtTestSubscriber<Pair<JobChange, List<ModelUpdateAction>>> testSubscriber = new ExtTestSubscriber<>();
+    private ModelAction expectUpdateActionOfType(TitusChangeAction changeAction, Class<? extends ModelAction> updateActionType) {
+        ExtTestSubscriber<Pair<JobChange, List<ModelActionHolder>>> testSubscriber = new ExtTestSubscriber<>();
         rateLimiterInterceptor.apply(changeAction).apply().subscribe(testSubscriber);
 
-        ModelUpdateAction updateAction = testSubscriber.takeNext().getRight().get(0);
+        ModelAction updateAction = testSubscriber.takeNext().getRight().get(0).getAction();
         assertThat(updateAction).isInstanceOf(updateActionType);
         return updateAction;
     }

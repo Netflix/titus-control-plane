@@ -18,13 +18,13 @@ package io.netflix.titus.api.jobmanager.model.event;
 
 import java.util.Optional;
 
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 
 /**
  * The last job event, marking job as completed and removed from the storage/memory.
  */
 public class JobClosedEvent extends JobEvent {
-    public JobClosedEvent(EventType eventType, TitusModelUpdateAction updateAction) {
-        super(eventType, updateAction, Optional.empty());
+    public JobClosedEvent(EventType eventType, ModelActionHolder actionHolder) {
+        super(eventType, actionHolder, Optional.empty());
     }
 }

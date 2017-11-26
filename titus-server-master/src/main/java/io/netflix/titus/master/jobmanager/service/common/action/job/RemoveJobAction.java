@@ -25,7 +25,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
@@ -47,8 +47,10 @@ public class RemoveJobAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         return store.deleteJob(job)
-                .andThen(Observable.just(Pair.of(getChange(), Collections.singletonList(TitusModelUpdateActions.closeJob(getChange().getId())))));
+                .andThen(Observable.just(Pair.of(getChange(),
+                        Collections.singletonList(ModelActionHolder.reference(TitusModelUpdateActions.closeJob(getChange().getId())))
+                )));
     }
 }

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 
 public final class JobChanges {
@@ -32,10 +32,10 @@ public final class JobChanges {
         return new JobChange(original.getActionKind(), original.getTrigger(), original.getId(), wrapperSummary + '(' + original.getSummary() + ')');
     }
 
-    public static Pair<JobChange, List<ModelUpdateAction>> wrapper(Pair<JobChange, List<ModelUpdateAction>> original,
-                                                                   String wrapperSummary,
-                                                                   ModelUpdateAction... wrapperActions) {
-        ArrayList<ModelUpdateAction> actions = new ArrayList<>(original.getRight());
+    public static Pair<JobChange, List<ModelActionHolder>> wrapper(Pair<JobChange, List<ModelActionHolder>> original,
+                                                             String wrapperSummary,
+                                                             ModelActionHolder... wrapperActions) {
+        ArrayList<ModelActionHolder> actions = new ArrayList<>(original.getRight());
         Collections.addAll(actions, wrapperActions);
         return Pair.of(wrapper(original.getLeft(), wrapperSummary), actions);
     }

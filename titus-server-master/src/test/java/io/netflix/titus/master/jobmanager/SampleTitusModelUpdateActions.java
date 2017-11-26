@@ -42,7 +42,7 @@ public final class SampleTitusModelUpdateActions {
     private static class JobUpdateAction extends TitusModelUpdateAction {
 
         protected JobUpdateAction(String id) {
-            super(ActionKind.Job, Model.Reference, JobManagerEvent.Trigger.API, id, "Job update action");
+            super(ActionKind.Job, JobManagerEvent.Trigger.API, id, "Job update action");
         }
 
         @Override

@@ -20,7 +20,7 @@ import io.netflix.titus.common.framework.reconciler.ChangeAction;
 
 /**
  */
-public abstract class TitusChangeAction extends ChangeAction<JobChange> {
+public abstract class TitusChangeAction implements ChangeAction<JobChange> {
 
     private final JobChange change;
 

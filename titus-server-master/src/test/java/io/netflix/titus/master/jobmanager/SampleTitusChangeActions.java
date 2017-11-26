@@ -24,7 +24,7 @@ import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
 
@@ -49,7 +49,7 @@ public final class SampleTitusChangeActions {
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+        public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
             return Observable.just(Pair.of(getChange(), Collections.emptyList()));
         }
     }
@@ -64,7 +64,7 @@ public final class SampleTitusChangeActions {
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+        public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
             if (failureCounter.decrementAndGet() >= 0) {
                 return Observable.error(new RuntimeException("Simulated failure; remaining failures=" + failureCounter.get()));
             }

@@ -20,19 +20,17 @@ import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelAction;
 import io.netflix.titus.common.util.tuple.Pair;
 
 /**
  */
-public class SimpleModelUpdateAction extends ModelUpdateAction {
+public class SimpleModelUpdateAction implements ModelAction {
     private final EntityHolder entityHolder;
     private final boolean isRoot;
 
-    public SimpleModelUpdateAction(ModelUpdateAction.Model model, EntityHolder entityHolder, boolean isRoot) {
-        super(entityHolder.getId(), model);
+    public SimpleModelUpdateAction(EntityHolder entityHolder, boolean isRoot) {
         Preconditions.checkArgument(entityHolder.getChildren().isEmpty(), "EntryHolder with no children expected");
-
         this.entityHolder = entityHolder;
         this.isRoot = isRoot;
     }

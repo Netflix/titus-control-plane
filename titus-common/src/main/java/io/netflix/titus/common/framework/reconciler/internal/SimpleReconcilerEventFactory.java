@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 
 /**
@@ -33,10 +33,10 @@ public class SimpleReconcilerEventFactory implements ReconcilerEvent.ReconcileEv
 
     @Override
     public ReconcilerEvent newModelUpdateEvent(ReconcilerEvent.EventType eventType,
-                                               ModelUpdateAction modelUpdateAction,
+                                               ModelActionHolder modelAction,
                                                Optional<EntityHolder> changedEntityHolder,
                                                Optional<EntityHolder> previousEntityHolder,
                                                Optional<Throwable> error) {
-        return new SimpleReconcilerEvent(eventType, modelUpdateAction == null ? "Init" : modelUpdateAction.toString(), error);
+        return new SimpleReconcilerEvent(eventType, modelAction == null ? "Init" : modelAction.toString(), error);
     }
 }

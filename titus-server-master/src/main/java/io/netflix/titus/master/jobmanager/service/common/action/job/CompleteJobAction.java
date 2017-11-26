@@ -33,7 +33,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
 
@@ -47,19 +47,16 @@ public class CompleteJobAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         return Observable.just(Pair.of(getChange(),
-                Arrays.asList(
-                        new JobStateUpdateAction(ModelUpdateAction.Model.Reference),
-                        new JobStateUpdateAction(ModelUpdateAction.Model.Running)
-                ))
+                Arrays.asList(ModelActionHolder.reference(new JobStateUpdateAction()), ModelActionHolder.running(new JobStateUpdateAction())))
         );
     }
 
     private class JobStateUpdateAction extends TitusModelUpdateAction {
 
-        public JobStateUpdateAction(Model model) {
-            super(ActionKind.Job, model, JobEvent.Trigger.Reconciler, CompleteJobAction.this.getChange().getId(), "Updating job state");
+        public JobStateUpdateAction() {
+            super(ActionKind.Job, JobEvent.Trigger.Reconciler, CompleteJobAction.this.getChange().getId(), "Updating job state");
         }
 
         @Override

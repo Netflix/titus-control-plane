@@ -24,7 +24,7 @@ import rx.Completable;
 import rx.Observable;
 
 /**
- * TODO Assign ChangeAction and its ModelUpdateAction(s) a unique id
+ * TODO Assign ChangeAction and its ModelAction(s) a unique id
  */
 public interface ReconciliationFramework<CHANGE> {
 

@@ -19,8 +19,7 @@ package io.netflix.titus.api.jobmanager.model.event;
 import java.util.Optional;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 
 /**
  */
@@ -28,12 +27,12 @@ public class JobUpdateEvent extends JobEvent {
 
     private final Optional<Job> job;
     private final Optional<Job> previousJobVersion;
-    private final ModelUpdateAction.Model model;
+    private final ModelActionHolder.Model model;
 
-    public JobUpdateEvent(EventType eventType, TitusModelUpdateAction updateAction, Optional<Job> job, Optional<Job> previousJobVersion, Optional<Throwable> error) {
-        super(eventType, updateAction, error);
+    public JobUpdateEvent(EventType eventType, ModelActionHolder actionHolder, Optional<Job> job, Optional<Job> previousJobVersion, Optional<Throwable> error) {
+        super(eventType,actionHolder, error);
         this.job = job;
-        this.model = updateAction.getModel();
+        this.model = actionHolder.getModel();
         this.previousJobVersion = previousJobVersion;
     }
 
@@ -45,7 +44,7 @@ public class JobUpdateEvent extends JobEvent {
         return previousJobVersion;
     }
 
-    public ModelUpdateAction.Model getModel() {
+    public ModelActionHolder.Model getModel() {
         return model;
     }
 

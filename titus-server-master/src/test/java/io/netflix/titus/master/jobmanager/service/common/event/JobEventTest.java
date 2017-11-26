@@ -24,7 +24,7 @@ import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent.Trigger;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.EventType;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import org.junit.Test;
@@ -45,7 +45,7 @@ public class JobEventTest {
         Job job = createJob();
         JobEvent jobEvent = new JobEvent(
                 EventType.Changed,
-                TitusModelUpdateActions.updateJob(job, Trigger.API, Model.Reference, "test"),
+                ModelActionHolder.reference(TitusModelUpdateActions.updateJob(job, Trigger.API, "test")),
                 Optional.empty()
         );
         String logLine = jobEvent.toLogString();

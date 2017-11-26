@@ -26,7 +26,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
@@ -86,10 +86,10 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+        public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
             return delegate.apply().map(changeUpdatesPair ->
-                    changeUpdatesPair.mapRight(updates -> CollectionsExt.copyAndAdd(updates, new RemoveRetryRecord(delegate)))
-            ).onErrorReturn(e -> Pair.of(getChange(), Collections.singletonList(new RetryModelUpdateAction(delegate, e))));
+                    changeUpdatesPair.mapRight(updates -> CollectionsExt.copyAndAdd(updates, ModelActionHolder.store(new RemoveRetryRecord(delegate))))
+            ).onErrorReturn(e -> Pair.of(getChange(), Collections.singletonList(ModelActionHolder.store(new RetryModelUpdateAction(delegate, e)))));
         }
     }
 
@@ -97,7 +97,6 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
 
         RetryModelUpdateAction(TitusChangeAction delegate, Throwable e) {
             super(ActionKind.Job,
-                    Model.Store,
                     delegate.getChange().getTrigger(),
                     delegate.getChange().getId(),
                     "Report failure of: " + delegate.getChange().getSummary() + '(' + e.getMessage() + ')'
@@ -130,7 +129,6 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
     class RemoveRetryRecord extends TitusModelUpdateAction {
         RemoveRetryRecord(TitusChangeAction delegate) {
             super(ActionKind.Job,
-                    Model.Store,
                     delegate.getChange().getTrigger(),
                     delegate.getChange().getId(),
                     "Cleaning up after successful action execution"

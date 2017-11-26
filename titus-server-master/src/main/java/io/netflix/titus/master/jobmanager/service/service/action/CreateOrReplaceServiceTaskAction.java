@@ -33,8 +33,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
@@ -66,7 +65,7 @@ public class CreateOrReplaceServiceTaskAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         if (oldTaskOpt.isPresent()) {
             return titusStore.replaceTask(oldTaskOpt.get(), newTask).andThen(Observable.just(Pair.of(getChange(), createTaskReplaceUpdateActions())));
         }
@@ -89,20 +88,15 @@ public class CreateOrReplaceServiceTaskAction extends TitusChangeAction {
             }
 
             return jobHolder.addTag(tagName, newRetryer);
-        }, Trigger.Reconciler, Model.Reference, "Updating retry execution status for task with original id " + task.getOriginalId());
+        }, Trigger.Reconciler, "Updating retry execution status for task with original id " + task.getOriginalId());
     }
 
-    private List<ModelUpdateAction> createTaskReplaceUpdateActions() {
-        List<ModelUpdateAction> actions = new ArrayList<>();
+    private List<ModelActionHolder> createTaskReplaceUpdateActions() {
+        List<ModelActionHolder> actions = new ArrayList<>();
 
-        oldTaskOpt.ifPresent(oldTask -> {
-            actions.add(removeTask(oldTask.getId(), Trigger.Reconciler, Model.Reference, "Removing replaced task"));
-            actions.add(removeTask(oldTask.getId(), Trigger.Reconciler, Model.Running, "Removing replaced task"));
-            actions.add(removeTask(oldTask.getId(), Trigger.Reconciler, Model.Store, "Removing replaced task"));
-        });
-        actions.add(createTask(newTask, Trigger.Reconciler, Model.Reference, "Creating new task"));
-        actions.add(createTask(newTask, Trigger.Reconciler, Model.Store, "Creating new task"));
-        actions.add(createOrUpdateTaskRetryer(newTask));
+        oldTaskOpt.ifPresent(oldTask -> actions.addAll(ModelActionHolder.allModels(removeTask(oldTask.getId(), Trigger.Reconciler, "Removing replaced task"))));
+        actions.addAll(ModelActionHolder.referenceAndStore(createTask(newTask, Trigger.Reconciler, "Creating new task")));
+        actions.add(ModelActionHolder.reference(createOrUpdateTaskRetryer(newTask)));
 
         return actions;
     }

@@ -27,7 +27,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
@@ -71,17 +71,17 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+        public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
+            ModelActionHolder action = ModelActionHolder.store(new UpdateRateLimiterStateAction(delegate));
             return delegate.apply().map(
-                    result -> JobChanges.wrapper(result, "RateLimiter", new UpdateRateLimiterStateAction(delegate))
-            ).onErrorReturn(e -> Pair.of(getChange(), Collections.singletonList(new UpdateRateLimiterStateAction(delegate))));
+                    result -> JobChanges.wrapper(result, "RateLimiter", action)
+            ).onErrorReturn(e -> Pair.of(getChange(), Collections.singletonList(action)));
         }
     }
 
     class UpdateRateLimiterStateAction extends TitusModelUpdateAction {
         UpdateRateLimiterStateAction(TitusChangeAction delegate) {
             super(ActionKind.Job,
-                    Model.Store,
                     delegate.getChange().getTrigger(),
                     delegate.getChange().getId(),
                     "Updating rate limiting data of " + name

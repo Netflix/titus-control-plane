@@ -24,7 +24,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.ReconcileEventFactory;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -50,14 +50,14 @@ public class JobEventFactory implements ReconcileEventFactory {
 
     @Override
     public ReconcilerEvent newModelUpdateEvent(ReconcilerEvent.EventType eventType,
-                                               ModelUpdateAction action,
+                                               ModelActionHolder actionHolder,
                                                Optional<EntityHolder> changedEntityHolder,
                                                Optional<EntityHolder> previousEntityHolder,
                                                Optional<Throwable> error) {
         if (eventType == ReconcilerEvent.EventType.ModelInitial) {
-            TitusModelUpdateAction initialAction = new InitialUpdateAction(changedEntityHolder.get());
+            ModelActionHolder initialActionHolder = ModelActionHolder.reference(new InitialUpdateAction(changedEntityHolder.get()));
             return new JobUpdateEvent(eventType,
-                    initialAction,
+                    initialActionHolder,
                     changedEntityHolder.map(EntityHolder::getEntity),
                     Optional.empty(),
                     error
@@ -65,27 +65,27 @@ public class JobEventFactory implements ReconcileEventFactory {
         }
 
         Preconditions.checkArgument(
-                action instanceof TitusModelUpdateAction,
-                "Unexpected ModelUpdateAction type %s", action.getClass()
+                actionHolder.getAction() instanceof TitusModelUpdateAction,
+                "Unexpected ModelAction type %s", actionHolder.getClass()
         );
-        TitusModelUpdateAction titusAction = (TitusModelUpdateAction) action;
+        TitusModelUpdateAction titusAction = (TitusModelUpdateAction) actionHolder.getAction();
         switch (titusAction.getActionKind()) {
             case Job:
                 return new JobUpdateEvent(eventType,
-                        titusAction,
+                        actionHolder,
                         changedEntityHolder.map(EntityHolder::getEntity),
                         previousEntityHolder.map(EntityHolder::getEntity),
                         error
                 );
             case Task:
                 return new TaskUpdateEvent(eventType,
-                        titusAction,
+                        actionHolder,
                         changedEntityHolder.map(EntityHolder::getEntity),
                         previousEntityHolder.map(EntityHolder::getEntity),
                         error
                 );
             case Close:
-                return new JobClosedEvent(eventType, titusAction);
+                return new JobClosedEvent(eventType, actionHolder);
         }
         throw new IllegalStateException("Unknown action kind " + titusAction.getActionKind() + " of " + titusAction.getClass().getSimpleName());
     }
@@ -100,7 +100,7 @@ public class JobEventFactory implements ReconcileEventFactory {
         private final EntityHolder initialRoot;
 
         protected InitialUpdateAction(EntityHolder initialRoot) {
-            super(ActionKind.Job, ModelUpdateAction.Model.Reference, JobManagerEvent.Trigger.API, initialRoot.getId(), "Job created");
+            super(ActionKind.Job, JobManagerEvent.Trigger.API, initialRoot.getId(), "Job created");
             this.initialRoot = initialRoot;
         }
 

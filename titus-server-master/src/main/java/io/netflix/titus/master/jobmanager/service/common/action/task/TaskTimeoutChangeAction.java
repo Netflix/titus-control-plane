@@ -32,8 +32,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
@@ -71,17 +70,15 @@ public class TaskTimeoutChangeAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
-        return Observable.fromCallable(() ->
-                Pair.of(
-                        getChange(),
-                        Collections.singletonList(new EntityUpdateAction(
-                                Model.Running,
-                                getChange().getId(),
-                                eh -> eh.addTag(tagName, deadlineMs),
-                                getChange().getSummary()
-                        ))
-                ));
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
+        return Observable.fromCallable(() -> {
+            EntityUpdateAction action = new EntityUpdateAction(
+                    getChange().getId(),
+                    eh -> eh.addTag(tagName, deadlineMs),
+                    getChange().getSummary()
+            );
+            return Pair.of(getChange(), Collections.singletonList(ModelActionHolder.running(action)));
+        });
     }
 
     public static TimeoutStatus getTimeoutStatus(EntityHolder taskHolder, Clock clock) {
@@ -102,8 +99,8 @@ public class TaskTimeoutChangeAction extends TitusChangeAction {
 
         private final Function<EntityHolder, EntityHolder> updateFun;
 
-        EntityUpdateAction(Model model, String id, Function<EntityHolder, EntityHolder> updateFun, String summary) {
-            super(ActionKind.Task, model, Trigger.Reconciler, id, summary);
+        EntityUpdateAction(String id, Function<EntityHolder, EntityHolder> updateFun, String summary) {
+            super(ActionKind.Task, Trigger.Reconciler, id, summary);
             this.updateFun = updateFun;
         }
 

@@ -47,6 +47,7 @@ import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
 import io.netflix.titus.api.model.v2.parameter.Parameter;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
@@ -339,8 +340,9 @@ public class DefaultAppScaleManagerTest {
         when(v3JobOperations.getJob(jobIdTwo)).thenReturn(Optional.of(jobTwo));
 
 
+        ModelActionHolder actionHolder = ModelActionHolder.reference(SampleTitusModelUpdateActions.any(jobIdTwo));
         JobUpdateEvent jobUpdateEvent =
-                new JobUpdateEvent(ReconcilerEvent.EventType.Changed, SampleTitusModelUpdateActions.any(jobIdTwo),
+                new JobUpdateEvent(ReconcilerEvent.EventType.Changed, actionHolder,
                         Optional.of(jobTwo), Optional.of(jobTwo), Optional.empty());
         when(v3JobOperations.observeJobs())
                 .thenAnswer(invocation -> Observable.from(Arrays.asList(jobUpdateEvent)));

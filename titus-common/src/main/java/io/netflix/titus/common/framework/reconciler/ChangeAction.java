@@ -23,10 +23,10 @@ import rx.Observable;
 
 /**
  */
-public abstract class ChangeAction<CHANGE> {
+public interface ChangeAction<CHANGE> {
 
     /**
      * Performs changes on external resources, and if successful emits corresponding model updates.
      */
-    public abstract Observable<Pair<CHANGE, List<ModelUpdateAction>>> apply();
+    Observable<Pair<CHANGE, List<ModelActionHolder>>> apply();
 }

@@ -30,9 +30,9 @@ import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
@@ -65,22 +65,20 @@ public class InitiateTaskKillAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         Task taskWithKillInitiated = JobFunctions.updateTaskStatus(task, TaskState.KillInitiated, reasonCode, getChange().getSummary());
         return killOnVM().concatWith(Observable.just(Pair.of(getChange(), createUpdateActions(taskWithKillInitiated))));
     }
 
-    private Observable<Pair<JobChange, List<ModelUpdateAction>>> killOnVM() {
+    private Observable<Pair<JobChange, List<ModelActionHolder>>> killOnVM() {
         return Completable.fromAction(() -> vmService.killTask(task.getId())).toObservable();
     }
 
-    private List<ModelUpdateAction> createUpdateActions(Task taskWithKillInitiated) {
-        List<ModelUpdateAction> updateActions = new ArrayList<>();
-        updateActions.add(TitusModelUpdateActions.updateTask(taskWithKillInitiated, getChange().getTrigger(), Model.Reference, SUMMARY));
-        updateActions.add(TitusModelUpdateActions.updateTask(taskWithKillInitiated, getChange().getTrigger(), Model.Running, SUMMARY));
-        updateActions.add(TitusModelUpdateActions.updateTask(taskWithKillInitiated, getChange().getTrigger(), Model.Store, SUMMARY));
+    private List<ModelActionHolder> createUpdateActions(Task taskWithKillInitiated) {
+        List<ModelActionHolder> updateActions = new ArrayList<>();
+        updateActions.addAll(ModelActionHolder.allModels(TitusModelUpdateActions.updateTask(taskWithKillInitiated, getChange().getTrigger(), SUMMARY)));
         if (shrink) {
-            updateActions.add(TitusModelUpdateActions.updateJob(
+            TitusModelUpdateAction shrinkAction = TitusModelUpdateActions.updateJob(
                     task.getJobId(),
                     job -> {
                         Job<ServiceJobExt> serviceJob = job;
@@ -102,9 +100,9 @@ public class InitiateTaskKillAction extends TitusChangeAction {
                                 .build();
                     },
                     getChange().getTrigger(),
-                    Model.Reference,
                     "Shrinking job as a result of terminate and shrink request"
-            ));
+            );
+            updateActions.add(ModelActionHolder.reference(shrinkAction));
         }
         return updateActions;
     }

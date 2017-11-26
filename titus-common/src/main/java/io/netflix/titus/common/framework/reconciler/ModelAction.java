@@ -20,25 +20,6 @@ import java.util.Optional;
 
 import io.netflix.titus.common.util.tuple.Pair;
 
-public abstract class ModelUpdateAction {
-
-    public enum Model {Reference, Running, Store}
-
-    private final String id;
-    private final Model model;
-
-    protected ModelUpdateAction(String id, Model model) {
-        this.id = id;
-        this.model = model;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public Model getModel() {
-        return model;
-    }
-
-    public abstract Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder);
+public interface ModelAction {
+    Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder);
 }

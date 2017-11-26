@@ -35,7 +35,7 @@ public interface ReconcilerEvent {
         ReconcilerEvent newChangeEvent(ReconcilerEvent.EventType eventType, ChangeAction changeAction, Optional<Throwable> error);
 
         ReconcilerEvent newModelUpdateEvent(ReconcilerEvent.EventType eventType,
-                                            ModelUpdateAction modelUpdateAction,
+                                            ModelActionHolder modelAction,
                                             Optional<EntityHolder> changedEntityHolder,
                                             Optional<EntityHolder> previousEnityHolder,
                                             Optional<Throwable> error);

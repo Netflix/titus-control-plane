@@ -25,7 +25,6 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
 import io.netflix.titus.common.util.tuple.Pair;
 
 /**
@@ -34,28 +33,28 @@ public final class TitusModelUpdateActions {
 
     public static final String ATTR_JOB_CLOSED = "job.closed";
 
-    public static TitusModelUpdateAction updateJob(Job job, Trigger trigger, Model model, String summary) {
-        return new UpdateJobAction(job.getId(), jh -> jh.setEntity(job), trigger, model, summary);
+    public static TitusModelUpdateAction updateJob(Job job, Trigger trigger, String summary) {
+        return new UpdateJobAction(job.getId(), jh -> jh.setEntity(job), trigger, summary);
     }
 
-    public static TitusModelUpdateAction updateJob(String jobId, Function<Job, Job> updateFun, Trigger trigger, Model model, String summary) {
-        return new UpdateJobAction(jobId, applyJob(updateFun), trigger, model, summary);
+    public static TitusModelUpdateAction updateJob(String jobId, Function<Job, Job> updateFun, Trigger trigger, String summary) {
+        return new UpdateJobAction(jobId, applyJob(updateFun), trigger, summary);
     }
 
-    public static TitusModelUpdateAction updateJobHolder(String jobId, Function<EntityHolder, EntityHolder> updateFun, Trigger trigger, Model model, String summary) {
-        return new UpdateJobAction(jobId, updateFun, trigger, model, summary);
+    public static TitusModelUpdateAction updateJobHolder(String jobId, Function<EntityHolder, EntityHolder> updateFun, Trigger trigger, String summary) {
+        return new UpdateJobAction(jobId, updateFun, trigger, summary);
     }
 
-    public static TitusModelUpdateAction createTask(Task task, Trigger trigger, Model model, String summary) {
-        return new UpdateTaskAction(task, trigger, model, summary);
+    public static TitusModelUpdateAction createTask(Task task, Trigger trigger, String summary) {
+        return new UpdateTaskAction(task, trigger, summary);
     }
 
-    public static TitusModelUpdateAction updateTask(Task task, Trigger trigger, Model model, String summary) {
-        return new UpdateTaskAction(task, trigger, model, summary);
+    public static TitusModelUpdateAction updateTask(Task task, Trigger trigger, String summary) {
+        return new UpdateTaskAction(task, trigger, summary);
     }
 
-    public static TitusModelUpdateAction removeTask(String taskId, Trigger trigger, Model model, String summary) {
-        return new RemoveTaskAction(taskId, trigger, model, summary);
+    public static TitusModelUpdateAction removeTask(String taskId, Trigger trigger, String summary) {
+        return new RemoveTaskAction(taskId, trigger, summary);
     }
 
     public static TitusModelUpdateAction closeJob(String jobId) {
@@ -74,8 +73,8 @@ public final class TitusModelUpdateActions {
 
         private final Function<EntityHolder, EntityHolder> updateFun;
 
-        UpdateJobAction(String jobId, Function<EntityHolder, EntityHolder> updateFun, Trigger trigger, Model model, String summary) {
-            super(ActionKind.Job, model, trigger, jobId, summary);
+        UpdateJobAction(String jobId, Function<EntityHolder, EntityHolder> updateFun, Trigger trigger, String summary) {
+            super(ActionKind.Job, trigger, jobId, summary);
             this.updateFun = updateFun;
         }
 
@@ -89,7 +88,7 @@ public final class TitusModelUpdateActions {
     private static class CloseJobAction extends TitusModelUpdateAction {
 
         CloseJobAction(String jobId) {
-            super(ActionKind.Close, Model.Reference, Trigger.Reconciler, jobId, "Closing the job");
+            super(ActionKind.Close, Trigger.Reconciler, jobId, "Closing the job");
         }
 
         @Override
@@ -103,8 +102,8 @@ public final class TitusModelUpdateActions {
 
         private final Task task;
 
-        UpdateTaskAction(Task task, Trigger trigger, Model model, String summary) {
-            super(ActionKind.Task, model, trigger, task.getId(), summary);
+        UpdateTaskAction(Task task, Trigger trigger, String summary) {
+            super(ActionKind.Task, trigger, task.getId(), summary);
             this.task = task;
         }
 
@@ -118,8 +117,8 @@ public final class TitusModelUpdateActions {
 
     private static class RemoveTaskAction extends TitusModelUpdateAction {
 
-        RemoveTaskAction(String taskId, Trigger trigger, Model model, String summary) {
-            super(ActionKind.Task, model, trigger, taskId, summary);
+        RemoveTaskAction(String taskId, Trigger trigger, String summary) {
+            super(ActionKind.Task, trigger, taskId, summary);
         }
 
         @Override

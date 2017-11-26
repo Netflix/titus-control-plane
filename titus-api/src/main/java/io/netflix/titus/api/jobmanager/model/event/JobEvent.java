@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 
 public class JobEvent extends JobManagerEvent {
 
@@ -27,7 +28,13 @@ public class JobEvent extends JobManagerEvent {
         super(eventType, changeAction.getClass().getSimpleName(), changeAction.getChange().getId(), changeAction.getChange().getTrigger(), changeAction.getChange().getSummary(), error);
     }
 
-    public JobEvent(EventType eventType, TitusModelUpdateAction updateAction, Optional<Throwable> error) {
-        super(eventType, "jobUpdate", updateAction.getId(), updateAction.getTrigger(), updateAction.getSummary(), error);
+    public JobEvent(EventType eventType, ModelActionHolder actionHolder, Optional<Throwable> error) {
+        super(eventType,
+                "jobUpdate",
+                ((TitusModelUpdateAction) actionHolder.getAction()).getId(),
+                ((TitusModelUpdateAction) actionHolder.getAction()).getTrigger(),
+                ((TitusModelUpdateAction) actionHolder.getAction()).getSummary(),
+                error
+        );
     }
 }

@@ -29,8 +29,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.model.Tier;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.common.V3QAttributes;
@@ -66,8 +65,8 @@ public class WriteTaskAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
-        ModelUpdateAction updateAction = TitusModelUpdateActions.updateTask(referenceTask, Trigger.Reconciler, Model.Store, "Persisting task to the store");
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
+        ModelActionHolder updateAction = ModelActionHolder.store(TitusModelUpdateActions.updateTask(referenceTask, Trigger.Reconciler, "Persisting task to the store"));
         return titusStore.storeTask(referenceTask)
                 .andThen(Completable.fromAction(this::removeFromFenzoFinishedTask))
                 .andThen(Observable.just(Pair.of(getChange(), Collections.singletonList(updateAction))));

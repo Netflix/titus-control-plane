@@ -28,14 +28,11 @@ import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
-
-import static java.util.Arrays.asList;
 
 /**
  * Persist new job status to the store and update running/store models.
@@ -54,7 +51,7 @@ public class InitiateJobKillAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         Job job = engine.getReferenceView().getEntity();
         JobStatus newStatus = JobStatus.newBuilder()
                 .withState(JobState.KillInitiated)
@@ -62,12 +59,7 @@ public class InitiateJobKillAction extends TitusChangeAction {
                 .build();
         Job jobWithKillInitiated = JobFunctions.updateJobStatus(job, newStatus);
 
-        List<ModelUpdateAction> updateActions = asList(
-                TitusModelUpdateActions.updateJob(jobWithKillInitiated, Trigger.API, Model.Reference, SUMMARY),
-                TitusModelUpdateActions.updateJob(jobWithKillInitiated, Trigger.API, Model.Store, SUMMARY),
-                TitusModelUpdateActions.updateJob(jobWithKillInitiated, Trigger.API, Model.Running, SUMMARY)
-        );
-
+        List<ModelActionHolder> updateActions = ModelActionHolder.allModels(TitusModelUpdateActions.updateJob(jobWithKillInitiated, Trigger.API, SUMMARY));
         return titusStore.updateJob(job).andThen(Observable.just(Pair.of(getChange(), updateActions)));
     }
 }

@@ -27,7 +27,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.EventType;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.ReconcileEventFactory;
@@ -51,7 +51,7 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
     private final ModelHolder modelHolder;
 
     private final BlockingQueue<Pair<ChangeAction<CHANGE>, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
-    private final BlockingQueue<ModelUpdateAction> modelUpdateActions = new LinkedBlockingQueue<>();
+    private final BlockingQueue<ModelActionHolder> modelActionHolders = new LinkedBlockingQueue<>();
 
     private IndexSet<EntityHolder> indexSet;
 
@@ -93,7 +93,7 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
         }
 
         // Always apply known runtime state changes first.
-        boolean modelUpdates = !modelUpdateActions.isEmpty();
+        boolean modelUpdates = !modelActionHolders.isEmpty();
         if (modelUpdates) {
             applyModelUpdates();
         }
@@ -160,8 +160,8 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
     }
 
     private void applyModelUpdates() {
-        ModelUpdateAction next;
-        while ((next = modelUpdateActions.poll()) != null) {
+        ModelActionHolder next;
+        while ((next = modelActionHolders.poll()) != null) {
             EntityHolder rootHolder;
             switch (next.getModel()) {
                 case Reference:
@@ -177,7 +177,7 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
                     return;
             }
             try {
-                Pair<EntityHolder, Optional<EntityHolder>> newRootAndChangedItem = next.apply(rootHolder);
+                Pair<EntityHolder, Optional<EntityHolder>> newRootAndChangedItem = next.getAction().apply(rootHolder);
                 EntityHolder newRoot = newRootAndChangedItem.getLeft();
                 Optional<EntityHolder> changedHolder = newRootAndChangedItem.getRight();
                 Optional<EntityHolder> previousHolder = Optional.empty();
@@ -201,7 +201,7 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
                 }
             } catch (Exception e) {
                 eventSubject.onNext(eventFactory.newModelUpdateEvent(EventType.ModelUpdateError, next, Optional.empty(), Optional.empty(), Optional.of(e)));
-                logger.warn("Failed to update running state of {}/{} ({})", next.getClass().getSimpleName(), next.getId(), e.toString());
+                logger.warn("Failed to update running state of {} ({})", next.getClass().getSimpleName(), e.toString());
             }
         }
     }
@@ -251,8 +251,8 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
         return false;
     }
 
-    private void registerModelUpdateRequest(List<ModelUpdateAction> stateChange) {
-        modelUpdateActions.addAll(stateChange);
+    private void registerModelUpdateRequest(List<ModelActionHolder> stateChange) {
+        modelActionHolders.addAll(stateChange);
     }
 
     private boolean hasRunningReconciliationActions() {

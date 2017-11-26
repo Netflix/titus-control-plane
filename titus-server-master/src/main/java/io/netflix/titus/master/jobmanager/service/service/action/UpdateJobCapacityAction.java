@@ -27,7 +27,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
@@ -45,7 +45,7 @@ public class UpdateJobCapacityAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         Job<ServiceJobExt> job = engine.getReferenceView().getEntity();
 
         JobDescriptor<ServiceJobExt> jobDescriptor = job.getJobDescriptor().toBuilder()
@@ -60,13 +60,13 @@ public class UpdateJobCapacityAction extends TitusChangeAction {
         return Observable.just(Pair.of(
                 getChange(),
                 Collections.singletonList(
-                        TitusModelUpdateActions.updateJob(
-                                updatedJob,
-                                JobManagerEvent.Trigger.API,
-                                ModelUpdateAction.Model.Reference,
-                                "Job resize operation requested"
-                        )
-                )
+                        ModelActionHolder.reference(
+                                TitusModelUpdateActions.updateJob(
+                                        updatedJob,
+                                        JobManagerEvent.Trigger.API,
+                                        "Job resize operation requested"
+                                )
+                        ))
         ));
     }
 }

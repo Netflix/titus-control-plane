@@ -17,21 +17,26 @@
 package io.netflix.titus.api.jobmanager.service.common.action;
 
 import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelAction;
 
 /**
  */
-public abstract class TitusModelUpdateAction extends ModelUpdateAction {
+public abstract class TitusModelUpdateAction implements ModelAction {
 
     private final ActionKind actionKind;
     private final JobManagerEvent.Trigger trigger;
+    private final String id;
     private final String summary;
 
-    protected TitusModelUpdateAction(ActionKind actionKind, Model model, JobManagerEvent.Trigger trigger, String id, String summary) {
-        super(id, model);
+    protected TitusModelUpdateAction(ActionKind actionKind, JobManagerEvent.Trigger trigger, String id, String summary) {
         this.actionKind = actionKind;
         this.trigger = trigger;
+        this.id = id;
         this.summary = summary;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public ActionKind getActionKind() {

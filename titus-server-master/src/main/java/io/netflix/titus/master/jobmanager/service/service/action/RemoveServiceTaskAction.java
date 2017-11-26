@@ -16,7 +16,6 @@
 
 package io.netflix.titus.master.jobmanager.service.service.action;
 
-import java.util.Arrays;
 import java.util.List;
 
 import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
@@ -24,8 +23,7 @@ import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
@@ -39,13 +37,7 @@ public class RemoveServiceTaskAction extends TitusChangeAction {
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
-        return Observable.just(Pair.of(getChange(),
-                Arrays.asList(
-                        TitusModelUpdateActions.removeTask(getChange().getId(), getChange().getTrigger(), Model.Reference, MESSAGE),
-                        TitusModelUpdateActions.removeTask(getChange().getId(), getChange().getTrigger(), Model.Running, MESSAGE),
-                        TitusModelUpdateActions.removeTask(getChange().getId(), getChange().getTrigger(), Model.Store, MESSAGE)
-                ))
-        );
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
+        return Observable.just(Pair.of(getChange(), ModelActionHolder.allModels(TitusModelUpdateActions.removeTask(getChange().getId(), getChange().getTrigger(), MESSAGE))));
     }
 }

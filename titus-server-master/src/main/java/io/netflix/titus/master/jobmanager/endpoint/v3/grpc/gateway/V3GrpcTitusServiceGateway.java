@@ -42,7 +42,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.service.TitusServiceException;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.rx.ObservableExt;
@@ -240,10 +240,10 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
             return false;
         }
         if (event instanceof JobUpdateEvent) {
-            return ((JobUpdateEvent) event).getModel() == Model.Reference;
+            return ((JobUpdateEvent) event).getModel() == ModelActionHolder.Model.Reference;
         }
         if (event instanceof TaskUpdateEvent) {
-            return ((TaskUpdateEvent) event).getModel() == Model.Reference;
+            return ((TaskUpdateEvent) event).getModel() == ModelActionHolder.Model.Reference;
         }
         return false;
     }

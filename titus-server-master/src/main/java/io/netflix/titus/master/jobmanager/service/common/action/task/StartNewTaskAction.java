@@ -26,8 +26,7 @@ import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.model.Tier;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
@@ -43,7 +42,7 @@ public class StartNewTaskAction extends TitusChangeAction {
 
     private final Job<?> job;
     private final Task task;
-    private final ModelUpdateAction action;
+    private final ModelActionHolder action;
 
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService schedulingService;
@@ -59,11 +58,11 @@ public class StartNewTaskAction extends TitusChangeAction {
         this.job = job;
 
         this.task = task;
-        this.action = TitusModelUpdateActions.updateTask(task, Trigger.Reconciler, Model.Running, "Starting new task");
+        this.action = ModelActionHolder.running(TitusModelUpdateActions.updateTask(task, Trigger.Reconciler, "Starting new task"));
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
         return Observable.fromCallable(() -> {
             Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
             schedulingService.getTaskQueueAction().call(new V3QueueableTask(tierAssignment.getLeft(), tierAssignment.getRight(), job, task));
