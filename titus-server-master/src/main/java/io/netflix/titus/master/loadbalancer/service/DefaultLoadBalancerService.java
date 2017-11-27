@@ -56,13 +56,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerService.class);
 
     private final TitusRuntime runtime;
+    private final LoadBalancerConfiguration configuration;
     private final LoadBalancerStore loadBalancerStore;
     private final V3JobOperations v3JobOperations;
 
-    private final Scheduler scheduler;
-    private final Batcher batcher;
     private final TargetTracking targetTracking;
     private final AssociationsTracking associationsTracking = new AssociationsTracking();
+    private final Batcher batcher;
+    private final Scheduler scheduler;
 
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingAssociations;
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations;
@@ -86,6 +87,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                TargetTracking targetTracking,
                                Scheduler scheduler) {
         this.runtime = runtime;
+        this.configuration = configuration;
         this.loadBalancerStore = loadBalancerStore;
         this.v3JobOperations = v3JobOperations;
         this.scheduler = scheduler;
@@ -123,6 +125,10 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Activator
     public void activate() {
+        if (!configuration.isEngineEnabled()) {
+            return; // noop
+        }
+
         // TODO(fabio): load tracking state from store
 
         loadBalancerBatches = runtime.persistentStream(events())

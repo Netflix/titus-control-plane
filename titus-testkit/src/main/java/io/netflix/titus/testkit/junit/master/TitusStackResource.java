@@ -67,6 +67,7 @@ public class TitusStackResource extends ExternalResource {
                                 .withProperty("titus.master.grpcServer.v3EnabledApps", String.format("(%s.*)", V3_ENGINE_APP_PREFIX))
                                 .withProperty("titusMaster.jobManager.launchedTimeoutMs", "30000")
                                 .withProperty("titus.master.grpcServer.loadbalancer.enabled", "true")
+                                .withProperty("titus.master.loadBalancer.engineEnabled", "true")
                                 .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
                                 .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
                                 .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(3).withInstanceType(AwsInstanceType.M3_XLARGE))

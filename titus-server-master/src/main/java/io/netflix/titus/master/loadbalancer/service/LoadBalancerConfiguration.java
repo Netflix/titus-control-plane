@@ -30,4 +30,7 @@ public interface LoadBalancerConfiguration {
     }
 
     Batch getBatch();
+
+    @DefaultValue("false")
+    boolean isEngineEnabled();
 }
