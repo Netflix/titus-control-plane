@@ -34,7 +34,7 @@ public interface GrpcEndpointConfiguration {
     String getV3EnabledApps();
 
     @PropertyName(name = "loadbalancer.enabled")
-    @DefaultValue("true")
+    @DefaultValue("false")
     boolean getLoadBalancerGrpcEnabled();
 
     /**
