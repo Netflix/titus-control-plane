@@ -50,9 +50,13 @@ public final class DateTimeExt {
         long sec = timeMs / 1000;
         long min = sec / 60;
         long hour = min / 60;
+        long day = hour / 24;
 
-        if (hour > 0) {
-            sb.append(' ').append(hour).append("h");
+        if(day > 0) {
+            sb.append(' ').append(day).append("d");
+        }
+        if (hour % 24 > 0) {
+            sb.append(' ').append(hour % 24).append("h");
         }
         if (min % 60 > 0) {
             sb.append(' ').append(min % 60).append("min");

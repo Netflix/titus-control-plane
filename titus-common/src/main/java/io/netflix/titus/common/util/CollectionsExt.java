@@ -283,7 +283,7 @@ public final class CollectionsExt {
         return result;
     }
 
-    public static Collection<Integer> toWrapperList(int[] intArray) {
+    public static List<Integer> toWrapperList(int[] intArray) {
         List<Integer> result = new ArrayList<>();
         for (int v : intArray) {
             result.add(v);
