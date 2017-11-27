@@ -34,7 +34,6 @@ import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
-import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -58,12 +57,12 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     private final TitusRuntime runtime;
     private final LoadBalancerStore loadBalancerStore;
-    private final TargetStore targetStore;
     private final V3JobOperations v3JobOperations;
 
     private final Scheduler scheduler;
     private final Batcher batcher;
-    private final Tracking tracking = new Tracking();
+    private final TargetTracking targetTracking;
+    private final AssociationsTracking associationsTracking = new AssociationsTracking();
 
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingAssociations;
     private Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations;
@@ -74,25 +73,25 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                       LoadBalancerConfiguration configuration,
                                       LoadBalancerConnector loadBalancerConnector,
                                       LoadBalancerStore loadBalancerStore,
-                                      TargetStore targetStore,
                                       V3JobOperations v3JobOperations) {
-        this(runtime, configuration, loadBalancerConnector, loadBalancerStore, targetStore, v3JobOperations, Schedulers.computation());
+        this(runtime, configuration, loadBalancerConnector, loadBalancerStore, v3JobOperations, new TargetTracking(), Schedulers.computation());
     }
 
-    public DefaultLoadBalancerService(TitusRuntime runtime,
-                                      LoadBalancerConfiguration configuration,
-                                      LoadBalancerConnector loadBalancerConnector,
-                                      LoadBalancerStore loadBalancerStore,
-                                      TargetStore targetStore,
-                                      V3JobOperations v3JobOperations,
-                                      Scheduler scheduler) {
+    @VisibleForTesting
+    DefaultLoadBalancerService(TitusRuntime runtime,
+                               LoadBalancerConfiguration configuration,
+                               LoadBalancerConnector loadBalancerConnector,
+                               LoadBalancerStore loadBalancerStore,
+                               V3JobOperations v3JobOperations,
+                               TargetTracking targetTracking,
+                               Scheduler scheduler) {
         this.runtime = runtime;
         this.loadBalancerStore = loadBalancerStore;
-        this.targetStore = targetStore;
         this.v3JobOperations = v3JobOperations;
         this.scheduler = scheduler;
+        this.targetTracking = targetTracking;
         this.batcher = new Batcher(configuration.getBatch().getTimeoutMs(), configuration.getBatch().getSize(),
-                loadBalancerConnector, targetStore, scheduler);
+                loadBalancerConnector, targetTracking, scheduler);
     }
 
     @Override
@@ -107,7 +106,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
                 .andThen(Completable.fromAction(() -> {
-                    tracking.add(jobLoadBalancer);
+                    associationsTracking.add(jobLoadBalancer);
                     pendingAssociations.onNext(jobLoadBalancer);
                 }));
     }
@@ -117,7 +116,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
                 .andThen(Completable.fromAction(() -> {
-                    tracking.remove(jobLoadBalancer);
+                    associationsTracking.remove(jobLoadBalancer);
                     pendingDissociations.onNext(jobLoadBalancer);
                 }));
     }
@@ -192,7 +191,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private Observable<LoadBalancerTarget> targetsForTrackedTasks(Observable<Task> tasks) {
         return tasks.doOnNext(task -> logger.debug("Checking if task is in job being tracked: {}", task))
                 .filter(this::isTracked)
-                .map(task -> Pair.of(task, tracking.get(task.getJobId())))
+                .map(task -> Pair.of(task, associationsTracking.get(task.getJobId())))
                 .doOnNext(pair -> logger.info("Task update in job being tracked, enqueuing {} load balancer updates: {}",
                         pair.getRight().size(), pair.getLeft()))
                 .flatMap(pair -> Observable.from(
@@ -218,7 +217,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         return pendingDissociations
                 .flatMap(
                         // fetch everything, including deregistered, so they are retried
-                        jobLoadBalancer -> targetStore.retrieveTargets(jobLoadBalancer)
+                        jobLoadBalancer -> targetTracking.retrieveTargets(jobLoadBalancer)
                                 .map(targetState -> new LoadBalancerTarget(
                                         jobLoadBalancer, targetState.getLoadBalancerTarget().getTaskId(), targetState.getLoadBalancerTarget().getIpAddress()
                                 )))
@@ -241,10 +240,10 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     }
 
     private boolean isTracked(Task task) {
-        return !tracking.get(task.getJobId()).isEmpty();
+        return !associationsTracking.get(task.getJobId()).isEmpty();
     }
 
-    private interface StreamHelpers {
+    private static final class StreamHelpers {
 
         static boolean isStateTransition(TaskUpdateEvent event) {
             final Task currentTask = event.getTask().get();

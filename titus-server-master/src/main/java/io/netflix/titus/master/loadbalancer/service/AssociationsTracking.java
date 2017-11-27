@@ -32,13 +32,13 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
  * inefficient implementation of CopyOnWriteHashSets.
  * </p>
  */
-class Tracking {
+class AssociationsTracking {
     /**
      * Sets held in here must be all immutable (usually via Collections.unmodifiableSet).
      */
     private final ConcurrentMap<String, Set<JobLoadBalancer>> tracked = new ConcurrentHashMap<>();
 
-    Tracking() {
+    AssociationsTracking() {
     }
 
     /**

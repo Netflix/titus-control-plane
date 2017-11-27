@@ -47,7 +47,6 @@ import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
-import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.runtime.TitusRuntime;
@@ -56,7 +55,6 @@ import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
-import io.netflix.titus.runtime.store.v3.memory.InMemoryTargetStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
 import rx.Observable;
@@ -81,10 +79,11 @@ public class LoadBalancerTests {
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
         final LoadBalancerStore loadBalancerStore = new InMemoryLoadBalancerStore();
-        final TargetStore targetStore = new InMemoryTargetStore();
+        final TargetTracking targetTracking = new TargetTracking();
         final TestScheduler testScheduler = Schedulers.test();
 
-        final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(runtime, loadBalancerConfig, client, loadBalancerStore, targetStore, jobOperations, testScheduler);
+        final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(
+                runtime, loadBalancerConfig, client, loadBalancerStore, jobOperations, targetTracking, testScheduler);
         final AssertableSubscriber<Batch> testSubscriber = loadBalancerService.events().test();
 
         return loadBalancerService;
@@ -172,7 +171,7 @@ public class LoadBalancerTests {
      * @return
      */
     static public Map<String, Set<LoadBalancerId>> putLoadBalancersPerJob(int numJobs, int numLoadBalancersPerJob,
-                                              BiConsumer<AddLoadBalancerRequest, TestStreamObserver<Empty>> putLoadBalancer) {
+                                                                          BiConsumer<AddLoadBalancerRequest, TestStreamObserver<Empty>> putLoadBalancer) {
         // Create job entries
         Map<String, Set<LoadBalancerId>> jobIdToLoadBalancersMap = new ConcurrentHashMap<>();
         for (int i = 1; i <= numJobs; i++) {

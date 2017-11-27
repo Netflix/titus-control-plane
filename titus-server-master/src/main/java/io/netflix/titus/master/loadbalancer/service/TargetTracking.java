@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.runtime.store.v3.memory;
+package io.netflix.titus.master.loadbalancer.service;
 
 import java.util.Collection;
 import java.util.Map;
@@ -24,37 +24,36 @@ import java.util.concurrent.ConcurrentMap;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.TargetState;
-import io.netflix.titus.api.loadbalancer.store.TargetStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-public class InMemoryTargetStore implements TargetStore {
-    private static Logger logger = LoggerFactory.getLogger(InMemoryTargetStore.class);
+/**
+ * In-memory state of load balancer targets currently being tracked
+ */
+class TargetTracking {
+    private static Logger logger = LoggerFactory.getLogger(TargetTracking.class);
 
-    private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
     private final ConcurrentMap<LoadBalancerTarget, LoadBalancerTarget.State> targets = new ConcurrentHashMap<>();
 
-    @Override
-    public Observable<TargetState> retrieveTargets(JobLoadBalancer jobLoadBalancer) {
+    Observable<TargetState> retrieveTargets(JobLoadBalancer jobLoadBalancer) {
+        // TODO: index by jobLoadBalancer
         return Observable.defer(() -> Observable.from(targets.entrySet())
                 .filter(entry -> entry.getKey().getJobLoadBalancer().equals(jobLoadBalancer))
                 .map(entry -> new TargetState(entry.getKey(), entry.getValue()))
         );
     }
 
-    @Override
-    public Completable updateTargets(Map<LoadBalancerTarget, LoadBalancerTarget.State> update) {
+    Completable updateTargets(Map<LoadBalancerTarget, LoadBalancerTarget.State> update) {
         if (CollectionsExt.isNullOrEmpty(update)) {
             return Completable.complete();
         }
         return Completable.fromAction(() -> update.forEach(targets::put));
     }
 
-    @Override
-    public Completable removeTargets(Collection<LoadBalancerTarget> remove) {
+    Completable removeTargets(Collection<LoadBalancerTarget> remove) {
         if (CollectionsExt.isNullOrEmpty(remove)) {
             return Completable.complete();
         }
