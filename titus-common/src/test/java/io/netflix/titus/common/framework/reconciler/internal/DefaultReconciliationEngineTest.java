@@ -37,8 +37,6 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
@@ -48,8 +46,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DefaultReconciliationEngineTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(DefaultReconciliationEngineTest.class);
 
     private final TestScheduler testScheduler = Schedulers.test();
 

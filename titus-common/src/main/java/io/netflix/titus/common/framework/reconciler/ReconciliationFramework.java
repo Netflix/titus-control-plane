@@ -24,6 +24,8 @@ import rx.Completable;
 import rx.Observable;
 
 /**
+ * {@link ReconciliationFramework} manages lifecycle of multiple {@link ReconciliationEngine} instances, as well
+ * as orchestrates their reconciliation processes.
  */
 public interface ReconciliationFramework<CHANGE, EVENT> {
 
@@ -36,7 +38,6 @@ public interface ReconciliationFramework<CHANGE, EVENT> {
      * Stops the reconciliation framework
      *
      * @return true if it was stopped in the specified timeout
-     * @param timeoutMs
      */
     boolean stop(long timeoutMs);
 

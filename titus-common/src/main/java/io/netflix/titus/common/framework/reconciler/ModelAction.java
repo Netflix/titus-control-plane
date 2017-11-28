@@ -25,7 +25,7 @@ public interface ModelAction {
     /**
      * Update an {@link EntityHolder} hierarchy. It is expected that only one {@link EntityHolder} is modified by
      * single action. The result always contains a new root value (left), and the entity that was created or updated (right).
-     * If the root value was updated itself, both left and right fields contain a reference to the new root value.
+     * If the root value was updated, both left and right fields contain a reference to the new root value.
      *
      * @return {@link Optional#empty()} if no change was made, or new versions of the {@link EntityHolder} entities
      */

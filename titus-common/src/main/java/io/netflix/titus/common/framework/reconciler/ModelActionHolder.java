@@ -20,6 +20,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * {@link ModelAction} wrapper with context information.
+ */
 public class ModelActionHolder {
 
     public enum Model {Reference, Running, Store}
