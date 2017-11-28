@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.jobmanager.service.common.action;
+package io.netflix.titus.master.jobmanager.service.common.action;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,7 +29,7 @@ public final class JobChanges {
     }
 
     public static JobChange wrapper(JobChange original, String wrapperSummary) {
-        return new JobChange(original.getActionKind(), original.getTrigger(), original.getId(), wrapperSummary + '(' + original.getSummary() + ')');
+        return new JobChange(original.getTrigger(), original.getId(), wrapperSummary + '(' + original.getSummary() + ')');
     }
 
     public static Pair<JobChange, List<ModelActionHolder>> wrapper(Pair<JobChange, List<ModelActionHolder>> original,

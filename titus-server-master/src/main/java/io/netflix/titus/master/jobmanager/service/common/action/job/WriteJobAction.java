@@ -19,15 +19,14 @@ package io.netflix.titus.master.jobmanager.service.common.action.job;
 import java.util.Collections;
 import java.util.List;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent.Trigger;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
 
@@ -38,7 +37,7 @@ public class WriteJobAction extends TitusChangeAction {
     private final Job<BatchJobExt> job;
 
     public WriteJobAction(JobStore titusStore, Job<BatchJobExt> referenceJob) {
-        super(new JobChange(ActionKind.Job, Trigger.Reconciler, referenceJob.getId(), "Writing job to the store"));
+        super(new JobChange(Trigger.Reconciler, referenceJob.getId(), "Writing job to the store"));
         this.titusStore = titusStore;
         this.job = referenceJob;
     }

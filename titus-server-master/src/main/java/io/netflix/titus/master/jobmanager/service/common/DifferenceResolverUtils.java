@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
@@ -37,6 +36,7 @@ import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import io.netflix.titus.master.jobmanager.service.common.action.job.CompleteJobAction;
 import io.netflix.titus.master.jobmanager.service.common.action.job.RemoveJobAction;
@@ -142,7 +142,7 @@ public class DifferenceResolverUtils {
                     if (task.getStatus().getState() == TaskState.KillInitiated) {
                         actions.add(
                                 new TaskChangeAction(task.getId(),
-                                        JobManagerEvent.Trigger.Reconciler,
+                                        Trigger.Reconciler,
                                         taskParam -> taskParam.toBuilder()
                                                 .withStatus(taskParam.getStatus().toBuilder()
                                                         .withState(TaskState.Finished)
@@ -155,7 +155,7 @@ public class DifferenceResolverUtils {
                                 )
                         );
                     } else {
-                        actions.add(new InitiateTaskKillAction(JobManagerEvent.Trigger.Reconciler, task, false, vmService, TaskStatus.REASON_STUCK_IN_STATE, "stuck in " + taskState + "state"));
+                        actions.add(new InitiateTaskKillAction(Trigger.Reconciler, task, false, vmService, TaskStatus.REASON_STUCK_IN_STATE, "stuck in " + taskState + "state"));
                     }
                     break;
             }

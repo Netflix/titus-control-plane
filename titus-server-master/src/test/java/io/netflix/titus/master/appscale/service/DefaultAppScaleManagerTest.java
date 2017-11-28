@@ -17,7 +17,6 @@
 package io.netflix.titus.master.appscale.service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +32,14 @@ import io.netflix.titus.api.appscale.model.AutoScalableTarget;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyType;
 import io.netflix.titus.api.appscale.service.AutoScalePolicyException;
-import io.netflix.titus.api.jobmanager.model.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
+import io.netflix.titus.api.jobmanager.model.job.JobModel;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
@@ -47,13 +49,10 @@ import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
 import io.netflix.titus.api.model.v2.parameter.Parameter;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
-import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
 import io.netflix.titus.master.job.V2JobMgrIntf;
 import io.netflix.titus.master.job.V2JobOperations;
-import io.netflix.titus.master.jobmanager.SampleTitusModelUpdateActions;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -64,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
+import static java.util.Arrays.asList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -286,7 +286,9 @@ public class DefaultAppScaleManagerTest {
     private V3JobOperations mockV3Operations(String jobIdOne, String jobIdTwo) {
         V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
+        // FIXME Use JobGenerator instead of mocking.
         Job jobOne = mock(Job.class);
+        when(jobOne.getId()).thenReturn(jobIdOne);
         JobDescriptor jobDescriptorOne = mock(JobDescriptor.class);
         ServiceJobExt serviceJobExtOne = mock(ServiceJobExt.class);
         JobGroupInfo jobGroupInfoOne = buildMockJobGroupInfo(jobIdOne);
@@ -301,6 +303,7 @@ public class DefaultAppScaleManagerTest {
 
 
         Job jobTwo = mock(Job.class);
+        when(jobTwo.getId()).thenReturn(jobIdTwo);
         JobDescriptor jobDescriptorTwo = mock(JobDescriptor.class);
         ServiceJobExt serviceJobExtTwo = mock(ServiceJobExt.class);
         Capacity capacityJobTwo = mock(Capacity.class);
@@ -335,17 +338,13 @@ public class DefaultAppScaleManagerTest {
         when(jobDescriptorTwo.getExtensions()).thenReturn(serviceJobExtTwo);
         when(jobDescriptorTwo.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
         when(jobTwo.getJobDescriptor()).thenReturn(jobDescriptorTwo);
+        when(jobTwo.getStatus()).thenReturn(JobModel.newJobStatus().withState(JobState.Accepted).build());
 
         when(v3JobOperations.getJob(jobIdOne)).thenReturn(Optional.of(jobOne));
         when(v3JobOperations.getJob(jobIdTwo)).thenReturn(Optional.of(jobTwo));
 
-
-        ModelActionHolder actionHolder = ModelActionHolder.reference(SampleTitusModelUpdateActions.any(jobIdTwo));
-        JobUpdateEvent jobUpdateEvent =
-                new JobUpdateEvent(ReconcilerEvent.EventType.Changed, actionHolder,
-                        Optional.of(jobTwo), Optional.of(jobTwo), Optional.empty());
-        when(v3JobOperations.observeJobs())
-                .thenAnswer(invocation -> Observable.from(Arrays.asList(jobUpdateEvent)));
+        JobManagerEvent<?> jobUpdateEvent = JobUpdateEvent.newJob(jobTwo);
+        when(v3JobOperations.observeJobs()).thenAnswer(invocation -> Observable.from(asList(jobUpdateEvent)));
 
         return v3JobOperations;
     }
@@ -409,18 +408,18 @@ public class DefaultAppScaleManagerTest {
         Parameter detailParam = new Parameter(Parameters.JOB_GROUP_DETAIL, "2.0.0");
         Parameter seqParam = new Parameter(Parameters.JOB_GROUP_SEQ, "v000");
 
-        String autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(Arrays.asList(appParam, stackParam, detailParam, seqParam));
+        String autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(appParam, stackParam, detailParam, seqParam));
         Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-main-2.0.0-v000");
 
 
-        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(Arrays.asList(stackParam, appParam, detailParam, seqParam));
+        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(stackParam, appParam, detailParam, seqParam));
         Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-main-2.0.0-v000");
 
 
-        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(Arrays.asList(stackParam, appParam));
+        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(stackParam, appParam));
         Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-main-v000");
 
-        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(Arrays.asList(appParam));
+        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(appParam));
         Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-v000");
 
     }

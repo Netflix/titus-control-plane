@@ -21,21 +21,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent.Trigger;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
 import rx.Observable;
 
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.retryerFrom;
@@ -58,7 +57,7 @@ public class CreateOrReplaceBatchTaskAction extends TitusChangeAction {
                                            BatchJobTask newTask,
                                            Optional<BatchJobTask> oldTaskOpt,
                                            String summary) {
-        super(new JobChange(ActionKind.Task, Trigger.Reconciler, newTask.getId(), summary));
+        super(new JobChange(Trigger.Reconciler, newTask.getId(), summary));
         this.titusStore = titusStore;
         this.newTask = newTask;
         this.oldTaskOpt = oldTaskOpt;

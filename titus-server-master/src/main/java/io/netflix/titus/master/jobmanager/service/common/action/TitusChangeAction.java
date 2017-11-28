@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.jobmanager.service.common.action;
+package io.netflix.titus.master.jobmanager.service.common.action;
 
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 

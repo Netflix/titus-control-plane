@@ -24,9 +24,8 @@ import rx.Completable;
 import rx.Observable;
 
 /**
- * TODO Assign ChangeAction and its ModelAction(s) a unique id
  */
-public interface ReconciliationFramework<CHANGE> {
+public interface ReconciliationFramework<CHANGE, EVENT> {
 
     /**
      * Starts the framework
@@ -44,17 +43,17 @@ public interface ReconciliationFramework<CHANGE> {
     /**
      * Event stream of changes in the engine.
      */
-    Observable<ReconcilerEvent> events();
+    Observable<EVENT> events();
 
     /**
      * @return {@link ReconciliationEngine} with root node having the given id or {@link Optional#empty()}.
      */
-    Optional<ReconciliationEngine<CHANGE>> findEngineByRootId(String id);
+    Optional<ReconciliationEngine<CHANGE, EVENT>> findEngineByRootId(String id);
 
     /**
      * @return parent and its child node with the given child id or {@link Optional#empty()}.
      */
-    Optional<Pair<ReconciliationEngine<CHANGE>, EntityHolder>> findEngineByChildId(String childId);
+    Optional<Pair<ReconciliationEngine<CHANGE, EVENT>, EntityHolder>> findEngineByChildId(String childId);
 
     /**
      * Returns all roots of {@link ReconciliationEngine} instances ordered by the requested ordering criteria. The returned
@@ -67,10 +66,10 @@ public interface ReconciliationFramework<CHANGE> {
     /**
      * Creates a new reconciliation engine.
      */
-    Observable<ReconciliationEngine<CHANGE>> newEngine(EntityHolder bootstrapModel);
+    Observable<ReconciliationEngine<CHANGE, EVENT>> newEngine(EntityHolder bootstrapModel);
 
     /**
      * Removes an existing reconciliation engine.
      */
-    Completable removeEngine(ReconciliationEngine<CHANGE> engine);
+    Completable removeEngine(ReconciliationEngine<CHANGE, EVENT> engine);
 }

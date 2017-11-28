@@ -18,19 +18,18 @@ package io.netflix.titus.master.jobmanager.service.common.action.job;
 
 import java.util.List;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent.Trigger;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
 
@@ -45,7 +44,7 @@ public class InitiateJobKillAction extends TitusChangeAction {
     private final JobStore titusStore;
 
     public InitiateJobKillAction(ReconciliationEngine engine, JobStore titusStore) {
-        super(new JobChange(ActionKind.Job, Trigger.API, engine.getReferenceView().getId(), SUMMARY));
+        super(new JobChange(Trigger.API, engine.getReferenceView().getId(), SUMMARY));
         this.engine = engine;
         this.titusStore = titusStore;
     }

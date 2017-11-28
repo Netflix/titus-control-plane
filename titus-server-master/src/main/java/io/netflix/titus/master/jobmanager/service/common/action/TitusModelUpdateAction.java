@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.jobmanager.service.common.action;
+package io.netflix.titus.master.jobmanager.service.common.action;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.common.framework.reconciler.ModelAction;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 
 /**
  */
 public abstract class TitusModelUpdateAction implements ModelAction {
 
-    private final ActionKind actionKind;
-    private final JobManagerEvent.Trigger trigger;
+    private final Trigger trigger;
     private final String id;
     private final String summary;
 
-    protected TitusModelUpdateAction(ActionKind actionKind, JobManagerEvent.Trigger trigger, String id, String summary) {
-        this.actionKind = actionKind;
+    protected TitusModelUpdateAction(Trigger trigger, String id, String summary) {
         this.trigger = trigger;
         this.id = id;
         this.summary = summary;
@@ -39,11 +37,7 @@ public abstract class TitusModelUpdateAction implements ModelAction {
         return id;
     }
 
-    public ActionKind getActionKind() {
-        return actionKind;
-    }
-
-    public JobManagerEvent.Trigger getTrigger() {
+    public Trigger getTrigger() {
         return trigger;
     }
 

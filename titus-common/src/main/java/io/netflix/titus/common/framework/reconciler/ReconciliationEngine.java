@@ -22,7 +22,7 @@ import rx.Observable;
 
 /**
  */
-public interface ReconciliationEngine<CHANGE> {
+public interface ReconciliationEngine<CHANGE, EVENT> {
 
     interface DifferenceResolver<CHANGE> {
         List<ChangeAction<CHANGE>> apply(EntityHolder referenceModel, EntityHolder runningModel, EntityHolder storeModel);
@@ -95,5 +95,5 @@ public interface ReconciliationEngine<CHANGE> {
     /**
      * Emits an event for each requested system change , and reconciliation action.
      */
-    Observable<ReconcilerEvent> events();
+    Observable<EVENT> events();
 }

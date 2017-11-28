@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -104,11 +105,11 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
 
     @Override
     public Observable<AutoScalingPolicy> retrievePoliciesForJob(String jobId) {
-        return Observable.from(policyMap.values())
-                .filter(autoScalingPolicy -> autoScalingPolicy.getJobId().equals(jobId) &&
-                        (autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
-                                autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
-                                autoScalingPolicy.getStatus() == PolicyStatus.Applied));
+        return ObservableExt.fromCollection(() ->
+                policyMap.values().stream()
+                        .filter(autoScalingPolicy -> matches(jobId, autoScalingPolicy))
+                        .collect(Collectors.toList())
+        );
     }
 
     @Override
@@ -131,5 +132,12 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
     @Override
     public Completable removePolicy(String policyRefId) {
         return updatePolicyStatus(policyRefId, PolicyStatus.Deleting);
+    }
+
+    private boolean matches(String jobId, AutoScalingPolicy autoScalingPolicy) {
+        return autoScalingPolicy.getJobId().equals(jobId) &&
+                (autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
+                        autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
+                        autoScalingPolicy.getStatus() == PolicyStatus.Applied);
     }
 }

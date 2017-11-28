@@ -19,17 +19,16 @@ package io.netflix.titus.master.jobmanager.service.common.action.task;
 import java.util.Collections;
 import java.util.List;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent.Trigger;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
@@ -52,7 +51,7 @@ public class StartNewTaskAction extends TitusChangeAction {
             SchedulingService schedulingService,
             Job<?> job,
             Task task) {
-        super(new JobChange(ActionKind.Task, Trigger.Reconciler, task.getId(), "Starting new task"));
+        super(new JobChange(Trigger.Reconciler, task.getId(), "Starting new task"));
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.job = job;

@@ -36,12 +36,12 @@ public class SimpleModelUpdateAction implements ModelAction {
     }
 
     @Override
-    public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+    public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
         if (isRoot) {
             EntityHolder newRoot = rootHolder.setEntity(entityHolder.getEntity());
-            return Pair.of(newRoot, Optional.of(newRoot));
+            return Optional.of(Pair.of(newRoot, newRoot));
         }
         EntityHolder newRoot = rootHolder.addChild(entityHolder);
-        return Pair.of(newRoot, Optional.of(entityHolder));
+        return Optional.of(Pair.of(newRoot, entityHolder));
     }
 }

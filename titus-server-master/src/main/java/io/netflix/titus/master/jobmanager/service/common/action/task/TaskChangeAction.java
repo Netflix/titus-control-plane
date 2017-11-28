@@ -20,20 +20,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.netflix.titus.api.jobmanager.model.event.JobEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
 import rx.Observable;
 
 import static java.util.Arrays.asList;
@@ -45,8 +43,8 @@ public class TaskChangeAction extends TitusChangeAction {
 
     private final Function<Task, Task> changeFunction;
 
-    public TaskChangeAction(String taskId, JobManagerEvent.Trigger trigger, Function<Task, Task> changeFunction, String changeSummary) {
-        super(new JobChange(ActionKind.Task, trigger, taskId, "Updating task state (" + changeSummary + ')'));
+    public TaskChangeAction(String taskId, Trigger trigger, Function<Task, Task> changeFunction, String changeSummary) {
+        super(new JobChange(trigger, taskId, "Updating task state (" + changeSummary + ')'));
         this.changeFunction = changeFunction;
     }
 
@@ -61,18 +59,18 @@ public class TaskChangeAction extends TitusChangeAction {
     private class TaskUpdateAction extends TitusModelUpdateAction {
 
         private TaskUpdateAction() {
-            super(ActionKind.Task, JobEvent.Trigger.Mesos, TaskChangeAction.this.getChange().getId(), "Updating task with function");
+            super(Trigger.Mesos, TaskChangeAction.this.getChange().getId(), "Updating task with function");
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder model) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder model) {
             return model.findById(getId())
-                    .map(taskHolder -> {
+                    .flatMap(taskHolder -> {
                         Task oldTask = taskHolder.getEntity();
                         Task newTask = changeFunction.apply(oldTask);
 
                         if (newTask == oldTask) {
-                            return Pair.of(model, Optional.<EntityHolder>empty());
+                            return Optional.empty();
                         }
 
                         if (oldTask instanceof ServiceJobTask) {
@@ -87,9 +85,8 @@ public class TaskChangeAction extends TitusChangeAction {
 
                         EntityHolder newChild = EntityHolder.newRoot(oldTask.getId(), newTask);
                         EntityHolder newRoot = model.addChild(newChild);
-                        return Pair.of(newRoot, Optional.of(newChild));
-                    })
-                    .orElseGet(() -> Pair.of(model, Optional.empty()));
+                        return Optional.of(Pair.of(newRoot, newChild));
+                    });
         }
 
         @Override

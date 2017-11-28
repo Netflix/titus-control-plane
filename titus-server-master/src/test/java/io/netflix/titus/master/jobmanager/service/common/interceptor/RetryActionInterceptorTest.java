@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -29,6 +27,8 @@ import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.retry.Retryers;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.SampleTitusChangeActions;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;
 import rx.schedulers.Schedulers;
@@ -92,10 +92,10 @@ public class RetryActionInterceptorTest {
     }
 
     private EntityHolder expectAboveExecutionLimits(ModelAction updateAction, EntityHolder model) {
-        Optional<EntityHolder> modelWithTagOpt = updateAction.apply(model).getRight();
-        assertThat(modelWithTagOpt).isPresent();
+        Optional<Pair<EntityHolder, EntityHolder>> pair = updateAction.apply(model);
+        assertThat(pair).isPresent();
 
-        EntityHolder modelWithTag = modelWithTagOpt.get();
+        EntityHolder modelWithTag = pair.get().getRight();
         assertThat(retryInterceptor.executionLimits(modelWithTag)).isFalse();
         return modelWithTag;
     }
@@ -109,8 +109,8 @@ public class RetryActionInterceptorTest {
     }
 
     private void expectNoRetryTag(ModelAction updateAction, EntityHolder model) {
-        Optional<EntityHolder> modelWithoutTag = updateAction.apply(model).getRight();
-        assertThat(modelWithoutTag).isPresent();
-        assertThat(modelWithoutTag.get().getAttributes()).isEmpty();
+        Optional<Pair<EntityHolder, EntityHolder>> pair = updateAction.apply(model);
+        assertThat(pair).isPresent();
+        assertThat(pair.get().getRight().getAttributes()).isEmpty();
     }
 }

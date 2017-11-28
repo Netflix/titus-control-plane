@@ -19,16 +19,16 @@ package io.netflix.titus.master.jobmanager.service.common.action.task;
 import java.util.List;
 import java.util.function.Function;
 
-import io.netflix.titus.api.jobmanager.model.event.JobEvent;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import rx.Observable;
 
 import static io.netflix.titus.common.framework.reconciler.ModelActionHolder.allModels;
@@ -39,7 +39,7 @@ import static io.netflix.titus.master.jobmanager.service.common.action.TitusMode
  */
 public class TaskChangeAfterStoreAction extends TitusChangeAction {
 
-    private final ReconciliationFramework<JobChange> reconciliationFramework;
+    private final ReconciliationFramework<JobChange, JobManagerReconcilerEvent> reconciliationFramework;
     private final Function<Task, Task> changeFunction;
     private final JobStore titusStore;
 
@@ -47,7 +47,7 @@ public class TaskChangeAfterStoreAction extends TitusChangeAction {
                                       ReconciliationFramework reconciliationFramework,
                                       Function<Task, Task> changeFunction,
                                       JobStore titusStore) {
-        super(new JobChange(ActionKind.Task, JobEvent.Trigger.Mesos, taskId, "Updating task state and writing it to the store"));
+        super(new JobChange(Trigger.Mesos, taskId, "Updating task state and writing it to the store"));
         this.reconciliationFramework = reconciliationFramework;
         this.changeFunction = changeFunction;
         this.titusStore = titusStore;

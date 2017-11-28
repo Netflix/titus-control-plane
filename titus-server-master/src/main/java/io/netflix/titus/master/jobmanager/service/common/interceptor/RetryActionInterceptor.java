@@ -20,10 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -31,6 +27,9 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.Differe
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
 import rx.Observable;
 import rx.Scheduler;
 
@@ -96,7 +95,7 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
     class RetryModelUpdateAction extends TitusModelUpdateAction {
 
         RetryModelUpdateAction(TitusChangeAction delegate, Throwable e) {
-            super(ActionKind.Job,
+            super(
                     delegate.getChange().getTrigger(),
                     delegate.getChange().getId(),
                     "Report failure of: " + delegate.getChange().getSummary() + '(' + e.getMessage() + ')'
@@ -104,7 +103,7 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             RetryRecord retryRecord = (RetryRecord) rootHolder.getAttributes().get(attrName);
 
             RetryRecord newRecord;
@@ -112,7 +111,7 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
             if (retryRecord == null) {
                 newRecord = new RetryRecord(initialRetryPolicy, now, 1);
             } else if (!retryRecord.getRetryPolicy().getDelayMs().isPresent()) { // Retry limit reached
-                return Pair.of(rootHolder, Optional.empty());
+                return Optional.empty();
             } else {
                 // Only increment retry for actions that happened after the last failure time
                 long nextRetryTime = retryRecord.getLastFailureTime() + retryRecord.getRetryPolicy().getDelayMs().get();
@@ -122,13 +121,13 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
             }
 
             EntityHolder newRoot = rootHolder.addTag(attrName, newRecord);
-            return Pair.of(newRoot, Optional.of(newRoot));
+            return Optional.of(Pair.of(newRoot, newRoot));
         }
     }
 
     class RemoveRetryRecord extends TitusModelUpdateAction {
         RemoveRetryRecord(TitusChangeAction delegate) {
-            super(ActionKind.Job,
+            super(
                     delegate.getChange().getTrigger(),
                     delegate.getChange().getId(),
                     "Cleaning up after successful action execution"
@@ -136,12 +135,12 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             if (rootHolder.getAttributes().containsKey(attrName)) {
                 EntityHolder newRoot = rootHolder.removeTag(attrName);
-                return Pair.of(newRoot, Optional.of(newRoot));
+                return Optional.of(Pair.of(newRoot, newRoot));
             }
-            return Pair.of(rootHolder, Optional.empty());
+            return Optional.empty();
         }
     }
 

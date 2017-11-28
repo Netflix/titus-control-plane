@@ -20,16 +20,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChanges;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChanges;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
 import rx.Observable;
 
 /**
@@ -66,7 +65,7 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
         private final TitusChangeAction delegate;
 
         RateLimiterChangeAction(TitusChangeAction delegate) {
-            super(new JobChange(delegate.getChange().getActionKind(), delegate.getChange().getTrigger(), delegate.getChange().getId(), delegate.getChange().getSummary()));
+            super(new JobChange(delegate.getChange().getTrigger(), delegate.getChange().getId(), delegate.getChange().getSummary()));
             this.delegate = delegate;
         }
 
@@ -81,7 +80,7 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
 
     class UpdateRateLimiterStateAction extends TitusModelUpdateAction {
         UpdateRateLimiterStateAction(TitusChangeAction delegate) {
-            super(ActionKind.Job,
+            super(
                     delegate.getChange().getTrigger(),
                     delegate.getChange().getId(),
                     "Updating rate limiting data of " + name
@@ -89,13 +88,13 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             ImmutableTokenBucket lastTokenBucket = (ImmutableTokenBucket) rootHolder.getAttributes().getOrDefault(attrName, initialTokenBucket);
             return lastTokenBucket.tryTake()
                     .map(newBucket -> {
                         EntityHolder newRoot = rootHolder.addTag(attrName, newBucket);
-                        return Pair.of(newRoot, Optional.of(newRoot));
-                    }).orElse(Pair.of(rootHolder, Optional.empty()));
+                        return Pair.of(newRoot, newRoot);
+                    });
         }
     }
 }

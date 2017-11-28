@@ -19,8 +19,6 @@ package io.netflix.titus.master.jobmanager.service.common.interceptor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -30,6 +28,8 @@ import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.SampleTitusChangeActions;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;
 
@@ -59,7 +59,7 @@ public class RateLimiterInterceptorTest {
         for (int i = 0; i < BUCKET_SIZE; i++) {
             assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(BUCKET_SIZE - i);
             ModelAction updateAction = expectUpdateActionOfType(SampleTitusChangeActions.successfulJob(), RateLimiterInterceptor.UpdateRateLimiterStateAction.class);
-            nextRoot = updateAction.apply(nextRoot).getRight().get();
+            nextRoot = updateAction.apply(nextRoot).get().getRight();
         }
         assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(0);
 

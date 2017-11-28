@@ -19,16 +19,15 @@ package io.netflix.titus.master.jobmanager.service.service.action;
 import java.util.Collections;
 import java.util.List;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
 
@@ -38,7 +37,7 @@ public class UpdateJobStatusAction extends TitusChangeAction {
     private final boolean enabled;
 
     public UpdateJobStatusAction(ReconciliationEngine engine, boolean enabled) {
-        super(new JobChange(ActionKind.Job, JobManagerEvent.Trigger.API, engine.getReferenceView().getId(), "Job status update requested: enabled=" + enabled));
+        super(new JobChange(Trigger.API, engine.getReferenceView().getId(), "Job status update requested: enabled=" + enabled));
         this.engine = engine;
         this.enabled = enabled;
     }
@@ -59,7 +58,7 @@ public class UpdateJobStatusAction extends TitusChangeAction {
         return Observable.just(Pair.of(getChange(),
                 Collections.singletonList(ModelActionHolder.reference(TitusModelUpdateActions.updateJob(
                         updatedJob,
-                        JobManagerEvent.Trigger.API,
+                        Trigger.API,
                         getChange().getSummary()
                         )
                 ))));

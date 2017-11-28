@@ -30,7 +30,7 @@ import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;

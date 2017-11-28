@@ -19,13 +19,11 @@ package io.netflix.titus.master.jobmanager.service.common.action;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent.Trigger;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 
 /**
  */
@@ -74,27 +72,27 @@ public final class TitusModelUpdateActions {
         private final Function<EntityHolder, EntityHolder> updateFun;
 
         UpdateJobAction(String jobId, Function<EntityHolder, EntityHolder> updateFun, Trigger trigger, String summary) {
-            super(ActionKind.Job, trigger, jobId, summary);
+            super(trigger, jobId, summary);
             this.updateFun = updateFun;
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             EntityHolder newRoot = updateFun.apply(rootHolder);
-            return Pair.of(newRoot, Optional.of(newRoot));
+            return Optional.of(Pair.of(newRoot, newRoot));
         }
     }
 
     private static class CloseJobAction extends TitusModelUpdateAction {
 
         CloseJobAction(String jobId) {
-            super(ActionKind.Close, Trigger.Reconciler, jobId, "Closing the job");
+            super(Trigger.Reconciler, jobId, "Closing the job");
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             EntityHolder newRoot = rootHolder.addTag(ATTR_JOB_CLOSED, true);
-            return Pair.of(newRoot, Optional.of(newRoot));
+            return Optional.of(Pair.of(newRoot, newRoot));
         }
     }
 
@@ -103,30 +101,28 @@ public final class TitusModelUpdateActions {
         private final Task task;
 
         UpdateTaskAction(Task task, Trigger trigger, String summary) {
-            super(ActionKind.Task, trigger, task.getId(), summary);
+            super(trigger, task.getId(), summary);
             this.task = task;
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             EntityHolder newTask = EntityHolder.newRoot(task.getId(), task);
             EntityHolder newRoot = rootHolder.addChild(newTask);
-            return Pair.of(newRoot, Optional.of(newTask));
+            return Optional.of(Pair.of(newRoot, newTask));
         }
     }
 
     private static class RemoveTaskAction extends TitusModelUpdateAction {
 
         RemoveTaskAction(String taskId, Trigger trigger, String summary) {
-            super(ActionKind.Task, trigger, taskId, summary);
+            super(trigger, taskId, summary);
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             Pair<EntityHolder, Optional<EntityHolder>> result = rootHolder.removeChild(getId());
-
-            // Do not include task instance, as it is gone.
-            return Pair.of(result.getLeft(), Optional.empty());
+            return result.getRight().map(task -> Pair.of(result.getLeft(), task));
         }
     }
 }

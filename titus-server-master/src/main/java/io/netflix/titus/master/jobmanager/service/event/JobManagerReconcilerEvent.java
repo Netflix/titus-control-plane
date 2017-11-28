@@ -14,10 +14,27 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.jobmanager.service.common.action;
+package io.netflix.titus.master.jobmanager.service.event;
+
+import io.netflix.titus.api.jobmanager.model.job.Job;
 
 /**
  */
-public enum ActionKind {
-    Job, Task, Close
+public abstract class JobManagerReconcilerEvent {
+
+    private final Job<?> job;
+    private final long transactionId;
+
+    protected JobManagerReconcilerEvent(Job<?> job, long transactionId) {
+        this.job = job;
+        this.transactionId = transactionId;
+    }
+
+    public Job<?> getJob() {
+        return job;
+    }
+
+    public long getTransactionId() {
+        return transactionId;
+    }
 }

@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -31,8 +32,7 @@ import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.EventType;
-import io.netflix.titus.common.framework.reconciler.ReconcilerUtil;
+import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
@@ -58,7 +58,7 @@ public class DefaultReconciliationEngineTest {
             .put("descending", Comparator.<EntityHolder, String>comparing(EntityHolder::getEntity).reversed())
             .build();
 
-    private final DefaultReconciliationEngine<String> engine = new DefaultReconciliationEngine(
+    private final DefaultReconciliationEngine<String, SimpleReconcilerEvent> engine = new DefaultReconciliationEngine<>(
             EntityHolder.newRoot("myRoot", "myEntity"), this::difference, indexComparators, new SimpleReconcilerEventFactory()
     );
 
@@ -69,7 +69,6 @@ public class DefaultReconciliationEngineTest {
     @Before
     public void setUp() throws Exception {
         engine.events().cast(SimpleReconcilerEvent.class).subscribe(eventSubscriber);
-        ReconcilerUtil.logEvents(engine.events(), logger);
     }
 
     @Test
@@ -218,7 +217,10 @@ public class DefaultReconciliationEngineTest {
 
         @Override
         public Observable<Pair<String, List<ModelActionHolder>>> apply() {
-            ModelAction updateAction = rootHolder -> rootHolder.removeChild(childId);
+            ModelAction updateAction = rootHolder -> {
+                Pair<EntityHolder, Optional<EntityHolder>> result = rootHolder.removeChild(childId);
+                return result.getRight().map(removed -> Pair.of(result.getLeft(), removed));
+            };
             return Observable.just(Pair.of("Child removed: " + childId, ModelActionHolder.referenceList(updateAction)));
         }
     }

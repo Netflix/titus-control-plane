@@ -21,5 +21,13 @@ import java.util.Optional;
 import io.netflix.titus.common.util.tuple.Pair;
 
 public interface ModelAction {
-    Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder);
+
+    /**
+     * Update an {@link EntityHolder} hierarchy. It is expected that only one {@link EntityHolder} is modified by
+     * single action. The result always contains a new root value (left), and the entity that was created or updated (right).
+     * If the root value was updated itself, both left and right fields contain a reference to the new root value.
+     *
+     * @return {@link Optional#empty()} if no change was made, or new versions of the {@link EntityHolder} entities
+     */
+    Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder);
 }

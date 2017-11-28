@@ -32,11 +32,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.netflix.titus.api.jobmanager.model.event.JobClosedEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobEventFactory;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.model.event.TaskEvent;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -45,15 +40,18 @@ import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.framework.reconciler.DifferenceResolvers;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
@@ -65,10 +63,17 @@ import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import io.netflix.titus.master.jobmanager.service.common.action.job.InitiateJobKillAction;
 import io.netflix.titus.master.jobmanager.service.common.action.task.InitiateTaskKillAction;
 import io.netflix.titus.master.jobmanager.service.common.action.task.TaskChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.task.TaskChangeAfterStoreAction;
+import io.netflix.titus.master.jobmanager.service.event.JobEventFactory;
+import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
+import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.service.action.UpdateJobCapacityAction;
 import io.netflix.titus.master.jobmanager.service.service.action.UpdateJobStatusAction;
 import io.netflix.titus.master.scheduler.SchedulingService;
@@ -79,6 +84,7 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
+import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 @Singleton
@@ -103,10 +109,11 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
-    private final ReconciliationFramework<JobChange> reconciliationFramework;
+    private final ReconciliationFramework<JobChange, JobManagerReconcilerEvent> reconciliationFramework;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final SchedulingService schedulingService;
     private final ApplicationSlaManagementService capacityGroupService;
+    private final Subscription transactionLoggerSubscription;
 
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
@@ -152,21 +159,29 @@ public class DefaultV3JobOperations implements V3JobOperations {
         );
         this.schedulingService = schedulingService;
         this.capacityGroupService = capacityGroupService;
+        this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework);
+
+        // Remove finished jobs from the reconciliation framework.
         reconciliationFramework.events().subscribe(
                 event -> {
-                    if (event instanceof JobEvent) {
-                        if (event instanceof JobClosedEvent) {
-                            String jobId = ((JobClosedEvent) event).getId();
-                            reconciliationFramework.findEngineByRootId(jobId).ifPresent(engine ->
-                                    reconciliationFramework.removeEngine(engine).subscribe(
-                                            () -> logger.info("Removed reconciliation engine of job {}", jobId),
-                                            e -> logger.warn("Could not remove reconciliation engine of job {}", jobId, e)
-                                    )
-                            );
+                    if (event instanceof JobModelUpdateReconcilerEvent) {
+                        JobModelUpdateReconcilerEvent jobUpdateEvent = (JobModelUpdateReconcilerEvent) event;
+                        EntityHolder changedEntityHolder = jobUpdateEvent.getChangedEntityHolder();
+                        if (changedEntityHolder.getEntity() instanceof Job) {
+                            Job<?> job = changedEntityHolder.getEntity();
+                            if (job.getStatus().getState() == JobState.Finished) {
+                                boolean isClosed = TitusModelUpdateActions.isClosed(changedEntityHolder);
+                                if (isClosed) {
+                                    String jobId = job.getId();
+                                    reconciliationFramework.findEngineByRootId(jobId).ifPresent(engine ->
+                                            reconciliationFramework.removeEngine(engine).subscribe(
+                                                    () -> logger.info("Removed reconciliation engine of job {}", jobId),
+                                                    e -> logger.warn("Could not remove reconciliation engine of job {}", jobId, e)
+                                            )
+                                    );
+                                }
+                            }
                         }
-                        logger.info("Change event: {}", ((JobEvent) event).toLogString());
-                    } else if (event instanceof TaskEvent) {
-                        logger.info("Change event: {}", ((TaskEvent) event).toLogString());
                     }
                 },
                 e -> logger.error("Event stream terminated with an error", e),
@@ -246,6 +261,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @PreDestroy
     public void shutdown() {
+        transactionLoggerSubscription.unsubscribe();
         reconciliationFramework.stop(RECONCILER_SHUTDOWN_TIMEOUT_MS);
     }
 
@@ -286,7 +302,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public List<Task> getTasks(String jobId) {
-        ReconciliationEngine<JobChange> engine = reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId));
+        ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine = reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId));
         return engine.orderedView(IndexKind.StatusCreationTime).stream().map(h -> (Task) h.getEntity()).collect(Collectors.toList());
     }
 
@@ -322,7 +338,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
         ReconciliationEngine engine = engineOpt.get();
-        return engine.changeReferenceModel(new TaskChangeAction(taskId, JobManagerEvent.Trigger.Mesos, changeFunction, reason)).toCompletable();
+        return engine.changeReferenceModel(new TaskChangeAction(taskId, Trigger.Mesos, changeFunction, reason)).toCompletable();
     }
 
     @Override
@@ -375,7 +391,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     }
                     Task task = engineChildPair.getRight().getEntity();
                     InitiateTaskKillAction killAction = new InitiateTaskKillAction(
-                            JobManagerEvent.Trigger.API, task, shrink, vmService, TaskStatus.REASON_TASK_KILLED, reason
+                            Trigger.API, task, shrink, vmService, TaskStatus.REASON_TASK_KILLED, reason
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })
@@ -383,22 +399,19 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<JobManagerEvent> observeJobs() {
-        return reconciliationFramework.events()
-                .filter(event -> event instanceof JobManagerEvent)
-                .cast(JobManagerEvent.class);
+    public Observable<JobManagerEvent<?>> observeJobs() {
+        return toJobManagerEvents(reconciliationFramework.events());
     }
 
     @Override
-    public Observable<JobManagerEvent> observeJob(String jobId) {
+    public Observable<JobManagerEvent<?>> observeJob(String jobId) {
         return Observable.fromCallable(() -> reconciliationFramework.findEngineByRootId(jobId))
-                .flatMap(engineOpt -> {
-                    Optional<Observable<JobManagerEvent>> events = engineOpt.map(e -> e.events()
-                            .filter(event -> event instanceof JobManagerEvent)
-                            .cast(JobManagerEvent.class)
-                    );
-                    return events.orElseGet(() -> Observable.error(JobManagerException.jobNotFound(jobId)));
-                });
+                .flatMap(engineOpt ->
+                        engineOpt.map(engine ->
+                                toJobManagerEvents(engine.events())
+                        ).orElseGet(() ->
+                                Observable.error(JobManagerException.jobNotFound(jobId))
+                        ));
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> Job<E> newJob(JobDescriptor<E> jobDescriptor) {
@@ -423,5 +436,44 @@ public class DefaultV3JobOperations implements V3JobOperations {
         Task task1 = holder1.getEntity();
         Task task2 = holder2.getEntity();
         return Long.compare(task1.getStatus().getTimestamp(), task2.getStatus().getTimestamp());
+    }
+
+    private Observable<JobManagerEvent<?>> toJobManagerEvents(Observable<JobManagerReconcilerEvent> events) {
+        return events
+                .map(this::toJobManagerEvent)
+                .filter(Optional::isPresent)
+                .map(Optional::get);
+    }
+
+    private Optional<JobManagerEvent<?>> toJobManagerEvent(JobManagerReconcilerEvent event) {
+        if (event instanceof JobNewModelReconcilerEvent) {
+            return Optional.of(JobUpdateEvent.newJob(((JobNewModelReconcilerEvent) event).getNewRoot().getEntity()));
+        }
+        if (event instanceof JobModelUpdateReconcilerEvent) {
+            JobModelUpdateReconcilerEvent modelUpdateEvent = (JobModelUpdateReconcilerEvent) event;
+            if (modelUpdateEvent.getModelActionHolder().getModel() != Model.Reference) {
+                return Optional.empty();
+            }
+            if (modelUpdateEvent.getChangedEntityHolder().getEntity() instanceof Job) {
+                Job<?> changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
+                if (modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
+                    Job<?> previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
+                    return changed.equals(previous)
+                            ? Optional.empty()
+                            : Optional.of(JobUpdateEvent.jobChange(changed, previous));
+                }
+                return Optional.of(JobUpdateEvent.jobChange(changed, changed));
+            }
+            Job job = modelUpdateEvent.getJob();
+            Task changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
+            if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
+                return Optional.of(TaskUpdateEvent.newTask(job, changed));
+            }
+            Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
+            return changed.equals(previous)
+                    ? Optional.empty()
+                    : Optional.of(TaskUpdateEvent.taskChange(job, changed, previous));
+        }
+        return Optional.empty();
     }
 }

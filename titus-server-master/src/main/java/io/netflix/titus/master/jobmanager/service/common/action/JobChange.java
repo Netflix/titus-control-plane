@@ -14,33 +14,34 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.jobmanager.service.common.action;
+package io.netflix.titus.master.jobmanager.service.common.action;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-
+/**
+ * Describes a job or task change action.
+ */
 public class JobChange {
 
-    private final ActionKind actionKind;
-    private JobManagerEvent.Trigger trigger;
+    public enum Trigger {
+        API,
+        Mesos,
+        Reconciler
+    }
+
+    private final Trigger trigger;
     private final String id;
     private final String summary;
 
-    public JobChange(ActionKind actionKind, JobManagerEvent.Trigger trigger, String id, String summary) {
-        this.actionKind = actionKind;
+    public JobChange(Trigger trigger, String id, String summary) {
         this.trigger = trigger;
         this.id = id;
         this.summary = summary;
-    }
-
-    public ActionKind getActionKind() {
-        return actionKind;
     }
 
     public String getId() {
         return id;
     }
 
-    public JobManagerEvent.Trigger getTrigger() {
+    public Trigger getTrigger() {
         return trigger;
     }
 

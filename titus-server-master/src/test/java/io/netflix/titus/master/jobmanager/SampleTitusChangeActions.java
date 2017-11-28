@@ -20,12 +20,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import rx.Observable;
 
 /**
@@ -35,17 +34,17 @@ public final class SampleTitusChangeActions {
 
 
     public static TitusChangeAction successfulJob() {
-        return new SuccessfulChangeAction(ActionKind.Job, JobManagerEvent.Trigger.API, "jobId");
+        return new SuccessfulChangeAction(Trigger.API, "jobId");
     }
 
     public static TitusChangeAction failingJob(int failureCount) {
-        return new FailingChangeAction(ActionKind.Job, JobManagerEvent.Trigger.API, "jobId", failureCount);
+        return new FailingChangeAction(Trigger.API, "jobId", failureCount);
     }
 
     private static class SuccessfulChangeAction extends TitusChangeAction {
 
-        private SuccessfulChangeAction(ActionKind actionKind, JobManagerEvent.Trigger trigger, String id) {
-            super(new JobChange(actionKind, trigger, id, "Simulated successful action"));
+        private SuccessfulChangeAction(Trigger trigger, String id) {
+            super(new JobChange(trigger, id, "Simulated successful action"));
         }
 
         @Override
@@ -58,8 +57,8 @@ public final class SampleTitusChangeActions {
 
         private final AtomicInteger failureCounter;
 
-        protected FailingChangeAction(ActionKind actionKind, JobManagerEvent.Trigger trigger, String id, int failureCount) {
-            super(new JobChange(actionKind, trigger, id, "Simulated initial failure repeated " + failureCount + " times"));
+        protected FailingChangeAction(Trigger trigger, String id, int failureCount) {
+            super(new JobChange(trigger, id, "Simulated initial failure repeated " + failureCount + " times"));
             this.failureCounter = new AtomicInteger(failureCount);
         }
 

@@ -17,7 +17,6 @@
 package io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,10 +30,6 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import io.netflix.titus.api.jobmanager.model.event.JobClosedEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobUpdateEvent;
-import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
@@ -42,8 +37,6 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.service.TitusServiceException;
-import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -59,7 +52,6 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
-import static java.util.Collections.singletonList;
 
 /**
  */
@@ -198,14 +190,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     @Override
     public Observable<JobChangeNotification> observeJobs() {
-        return jobOperations.observeJobs()
-                .filter(this::isChangeNotificationEvent)
-                .flatMap(event -> {
-                    if (event instanceof JobUpdateEvent) {
-                        return Observable.from(toGrpcJobEvent((JobUpdateEvent) event));
-                    }
-                    return Observable.from(toGrpcTaskEvent((TaskUpdateEvent) event));
-                })
+        return jobOperations.observeJobs().map(event -> V3GrpcModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobsSnapshot();
                     snapshot.add(SNAPSHOT_END_MARKER);
@@ -216,36 +201,13 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
-        return jobOperations.observeJob(jobId)
-                .takeUntil(event -> event instanceof JobClosedEvent)
-                .filter(this::isChangeNotificationEvent)
-                .flatMap(event -> {
-                    if (event instanceof JobUpdateEvent) {
-                        return Observable.from(toGrpcJobEvent((JobUpdateEvent) event));
-                    }
-                    return Observable.from(toGrpcTaskEvent((TaskUpdateEvent) event));
-                })
+        return jobOperations.observeJob(jobId).map(event -> V3GrpcModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobSnapshot(jobId);
                     snapshot.add(SNAPSHOT_END_MARKER);
                     return snapshot;
                 }))
                 .doOnError(e -> logger.error("Unexpected error in job {} event stream", jobId, e));
-    }
-
-    private boolean isChangeNotificationEvent(JobManagerEvent event) {
-        ReconcilerEvent.EventType eventType = event.getEventType();
-        if (eventType != ReconcilerEvent.EventType.ModelUpdated
-                && eventType != ReconcilerEvent.EventType.ModelInitial) {
-            return false;
-        }
-        if (event instanceof JobUpdateEvent) {
-            return ((JobUpdateEvent) event).getModel() == ModelActionHolder.Model.Reference;
-        }
-        if (event instanceof TaskUpdateEvent) {
-            return ((TaskUpdateEvent) event).getModel() == ModelActionHolder.Model.Reference;
-        }
-        return false;
     }
 
     private List<JobChangeNotification> createJobsSnapshot() {
@@ -270,24 +232,6 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         coreTasks.forEach(task -> snapshot.add(toJobChangeNotification(task)));
 
         return snapshot;
-    }
-
-    private List<JobChangeNotification> toGrpcJobEvent(JobUpdateEvent event) {
-        return event.getJob()
-                .map(coreJob -> {
-                    boolean identical = event.getPreviousJobVersion().map(previous -> previous == coreJob).orElse(false);
-                    return identical ? Collections.<JobChangeNotification>emptyList() : singletonList(toJobChangeNotification(coreJob));
-                })
-                .orElse(Collections.emptyList());
-    }
-
-    private List<JobChangeNotification> toGrpcTaskEvent(TaskUpdateEvent event) {
-        return event.getTask()
-                .map(coreTask -> {
-                    boolean identical = event.getPreviousTaskVersion().map(previous -> previous == coreTask).orElse(false);
-                    return identical ? Collections.<JobChangeNotification>emptyList() : singletonList(toJobChangeNotification(coreTask));
-                })
-                .orElse(Collections.emptyList());
     }
 
     private JobChangeNotification toJobChangeNotification(io.netflix.titus.api.jobmanager.model.job.Job<?> coreJob) {

@@ -24,7 +24,6 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.time.Clocks;
@@ -65,7 +64,7 @@ public class TaskTimeoutChangeActionTest {
                 testClock.wallTime() + DEADLINE_INTERVAL_MS
         ).apply().toBlocking().first();
 
-        EntityHolder rootWithTimeout = changeUpdatesPair.getRight().get(0).getAction().apply(initialRoot).getLeft();
+        EntityHolder rootWithTimeout = changeUpdatesPair.getRight().get(0).getAction().apply(initialRoot).get().getLeft();
         assertThat(TaskTimeoutChangeAction.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.Pending);
 
         // Advance time to trigger timeout

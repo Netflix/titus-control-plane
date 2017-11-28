@@ -24,13 +24,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.base.Stopwatch;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.EventType;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.ReconcileEventFactory;
+import io.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -43,23 +44,25 @@ import rx.subscriptions.Subscriptions;
 
 /**
  */
-public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine<CHANGE> {
+public class DefaultReconciliationEngine<CHANGE, EVENT> implements ReconciliationEngine<CHANGE, EVENT> {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultReconciliationEngine.class);
 
-    private final ReconcileEventFactory eventFactory;
+    private final AtomicLong nextTransactionId = new AtomicLong();
+
+    private final ReconcileEventFactory<CHANGE, EVENT> eventFactory;
     private final ModelHolder modelHolder;
 
-    private final BlockingQueue<Pair<ChangeAction<CHANGE>, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
-    private final BlockingQueue<ModelActionHolder> modelActionHolders = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<ChangeActionHolder<CHANGE>, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<ChangeActionHolder<CHANGE>, List<ModelActionHolder>>> modelActionHolders = new LinkedBlockingQueue<>();
 
     private IndexSet<EntityHolder> indexSet;
 
     private Optional<Subscription> startedReferenceChangeActionSubscription = Optional.empty();
     private List<Subscription> startedReconciliationActionSubscriptions = Collections.emptyList();
 
-    private final PublishSubject<ReconcilerEvent> eventSubject = PublishSubject.create();
-    private final Observable<ReconcilerEvent> eventObservable = eventSubject.asObservable();
+    private final PublishSubject<EVENT> eventSubject = PublishSubject.create();
+    private final Observable<EVENT> eventObservable = eventSubject.asObservable();
 
     private boolean firstTrigger;
 
@@ -83,13 +86,7 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
          */
         if (firstTrigger) {
             firstTrigger = false;
-            eventSubject.onNext(eventFactory.newModelUpdateEvent(
-                    EventType.ModelInitial,
-                    null,
-                    Optional.of(modelHolder.getReference()),
-                    Optional.empty(),
-                    Optional.empty())
-            );
+            eventSubject.onNext(eventFactory.newModelEvent(this, modelHolder.getReference()));
         }
 
         // Always apply known runtime state changes first.
@@ -121,8 +118,9 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
     @Override
     public Observable<Void> changeReferenceModel(ChangeAction<CHANGE> referenceUpdate) {
         return Observable.unsafeCreate(subscriber -> {
-            eventSubject.onNext(eventFactory.newChangeEvent(EventType.ChangeRequest, referenceUpdate, Optional.empty()));
-            referenceChangeActions.add(Pair.of(referenceUpdate, (Subscriber<Void>) subscriber));
+            long transactionId = nextTransactionId.getAndIncrement();
+            eventSubject.onNext(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
+            referenceChangeActions.add(Pair.of(new ChangeActionHolder<>(referenceUpdate, transactionId), (Subscriber<Void>) subscriber));
         });
     }
 
@@ -147,7 +145,7 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
     }
 
     @Override
-    public Observable<ReconcilerEvent> events() {
+    public Observable<EVENT> events() {
         return eventObservable;
     }
 
@@ -157,57 +155,63 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
 
         startedReconciliationActionSubscriptions.forEach(Subscription::unsubscribe);
         startedReconciliationActionSubscriptions = Collections.emptyList();
+
+        eventSubject.onCompleted();
     }
 
     private void applyModelUpdates() {
-        ModelActionHolder next;
+        Pair<ChangeActionHolder<CHANGE>, List<ModelActionHolder>> next;
         while ((next = modelActionHolders.poll()) != null) {
-            EntityHolder rootHolder;
-            switch (next.getModel()) {
-                case Reference:
-                    rootHolder = modelHolder.getReference();
-                    break;
-                case Running:
-                    rootHolder = modelHolder.getRunning();
-                    break;
-                case Store:
-                    rootHolder = modelHolder.getStore();
-                    break;
-                default:
-                    return;
-            }
-            try {
-                Pair<EntityHolder, Optional<EntityHolder>> newRootAndChangedItem = next.getAction().apply(rootHolder);
-                EntityHolder newRoot = newRootAndChangedItem.getLeft();
-                Optional<EntityHolder> changedHolder = newRootAndChangedItem.getRight();
-                Optional<EntityHolder> previousHolder = Optional.empty();
-                switch (next.getModel()) {
+            for (ModelActionHolder updateAction : next.getRight()) {
+                EntityHolder rootHolder;
+                switch (updateAction.getModel()) {
                     case Reference:
-                        previousHolder = getPrevious(modelHolder.getReference(), changedHolder);
-                        modelHolder.setReference(newRoot);
-                        changedHolder.filter(h -> h != newRoot).ifPresent(h -> indexEntityHolder(newRoot));
+                        rootHolder = modelHolder.getReference();
                         break;
                     case Running:
-                        previousHolder = getPrevious(modelHolder.getRunning(), changedHolder);
-                        modelHolder.setRunning(newRoot);
+                        rootHolder = modelHolder.getRunning();
                         break;
                     case Store:
-                        previousHolder = getPrevious(modelHolder.getStore(), changedHolder);
-                        modelHolder.setStore(newRoot);
+                        rootHolder = modelHolder.getStore();
                         break;
+                    default:
+                        return;
                 }
-                if (changedHolder.isPresent()) {
-                    eventSubject.onNext(eventFactory.newModelUpdateEvent(EventType.ModelUpdated, next, changedHolder, previousHolder, Optional.empty()));
+                final Pair<ChangeActionHolder<CHANGE>, List<ModelActionHolder>> finalNext = next;
+                try {
+                    updateAction.getAction().apply(rootHolder).ifPresent(newRootAndChangedItem -> {
+                        EntityHolder newRoot = newRootAndChangedItem.getLeft();
+                        EntityHolder changedItem = newRootAndChangedItem.getRight();
+                        Optional<EntityHolder> previousHolder = Optional.empty();
+                        switch (updateAction.getModel()) {
+                            case Reference:
+                                previousHolder = getPrevious(modelHolder.getReference(), changedItem);
+                                modelHolder.setReference(newRoot);
+                                if (changedItem != newRoot) {
+                                    indexEntityHolder(newRoot);
+                                }
+                                break;
+                            case Running:
+                                previousHolder = getPrevious(modelHolder.getRunning(), changedItem);
+                                modelHolder.setRunning(newRoot);
+                                break;
+                            case Store:
+                                previousHolder = getPrevious(modelHolder.getStore(), changedItem);
+                                modelHolder.setStore(newRoot);
+                                break;
+                        }
+                        eventSubject.onNext(eventFactory.newModelUpdateEvent(this, finalNext.getLeft().getChangeAction(), updateAction, changedItem, previousHolder, finalNext.getLeft().getTransactionId()));
+                    });
+                } catch (Exception e) {
+                    eventSubject.onNext(eventFactory.newModelUpdateErrorEvent(this, finalNext.getLeft().getChangeAction(), updateAction, rootHolder, e, next.getLeft().getTransactionId()));
+                    logger.warn("Failed to update running state of {} ({})", next.getClass().getSimpleName(), e.toString());
                 }
-            } catch (Exception e) {
-                eventSubject.onNext(eventFactory.newModelUpdateEvent(EventType.ModelUpdateError, next, Optional.empty(), Optional.empty(), Optional.of(e)));
-                logger.warn("Failed to update running state of {} ({})", next.getClass().getSimpleName(), e.toString());
             }
         }
     }
 
-    private Optional<EntityHolder> getPrevious(EntityHolder root, Optional<EntityHolder> changedHolder) {
-        return changedHolder.flatMap(newEntityHolder -> root.findById(newEntityHolder.getId()));
+    private Optional<EntityHolder> getPrevious(EntityHolder root, EntityHolder changedHolder) {
+        return root.findById(changedHolder.getId());
     }
 
     private boolean hasRunningReferenceStateUpdate() {
@@ -222,26 +226,27 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
     }
 
     private boolean startNextReferenceChangeAction() {
-        Pair<ChangeAction<CHANGE>, Subscriber<Void>> next;
+        Pair<ChangeActionHolder<CHANGE>, Subscriber<Void>> next;
         while ((next = referenceChangeActions.poll()) != null) {
             Subscriber<Void> subscriber = next.getRight();
             if (!subscriber.isUnsubscribed()) {
-                ChangeAction<CHANGE> action = next.getLeft();
-                Subscription subscription = action.apply()
+                ChangeActionHolder<CHANGE> actionHolder = next.getLeft();
+                Stopwatch timer = Stopwatch.createStarted();
+
+                final Pair<ChangeActionHolder<CHANGE>, Subscriber<Void>> finalNext = next;
+                Subscription subscription = actionHolder.getChangeAction().apply()
                         .doOnUnsubscribe(subscriber::unsubscribe)
                         .subscribe(
                                 resultPair -> {
-                                    eventSubject.onNext(eventFactory.newChangeEvent(EventType.Changed, action, Optional.empty()));
-                                    registerModelUpdateRequest(resultPair.getRight());
+                                    eventSubject.onNext(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), resultPair.getLeft(), timer.elapsed(TimeUnit.MILLISECONDS), actionHolder.getTransactionId()));
+                                    registerModelUpdateRequest(finalNext.getLeft(), resultPair.getRight());
                                 },
                                 e -> {
-                                    eventSubject.onNext(eventFactory.newChangeEvent(EventType.ChangeError, action, Optional.of(e)));
+                                    eventSubject.onNext(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, timer.elapsed(TimeUnit.MILLISECONDS), actionHolder.getTransactionId()));
                                     subscriber.onError(e);
                                 },
-                                () -> {
-                                    // TODO Make sure always one element is emitted
-                                    subscriber.onCompleted();
-                                }
+                                // TODO Make sure always one element is emitted
+                                subscriber::onCompleted
                         );
                 subscriber.add(Subscriptions.create(subscription::unsubscribe));
                 startedReferenceChangeActionSubscription = Optional.of(subscription);
@@ -251,8 +256,8 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
         return false;
     }
 
-    private void registerModelUpdateRequest(List<ModelActionHolder> stateChange) {
-        modelActionHolders.addAll(stateChange);
+    private void registerModelUpdateRequest(ChangeActionHolder<CHANGE> changeActionHolder, List<ModelActionHolder> stateChange) {
+        modelActionHolders.add(Pair.of(changeActionHolder, stateChange));
     }
 
     private boolean hasRunningReconciliationActions() {
@@ -269,14 +274,16 @@ public class DefaultReconciliationEngine<CHANGE> implements ReconciliationEngine
     private void startReconcileAction(List<ChangeAction<CHANGE>> reconcileActions) {
         List<Subscription> subscriptions = new ArrayList<>(reconcileActions.size());
         for (ChangeAction<CHANGE> action : reconcileActions) {
-            eventSubject.onNext(eventFactory.newChangeEvent(EventType.ChangeRequest, action, Optional.empty()));
+            long transactionId = nextTransactionId.getAndIncrement();
+            Stopwatch timer = Stopwatch.createStarted();
+            eventSubject.onNext(eventFactory.newBeforeChangeEvent(this, action, transactionId));
             Subscription subscription = action.apply().subscribe(
                     resultPair -> {
-                        registerModelUpdateRequest(resultPair.getRight());
-                        eventSubject.onNext(eventFactory.newChangeEvent(EventType.Changed, action, Optional.empty()));
+                        registerModelUpdateRequest(new ChangeActionHolder<>(action, transactionId), resultPair.getRight());
+                        eventSubject.onNext(eventFactory.newAfterChangeEvent(this, action, resultPair.getLeft(), timer.elapsed(TimeUnit.MILLISECONDS), transactionId));
                     },
                     e -> {
-                        eventSubject.onNext(eventFactory.newChangeEvent(EventType.ChangeError, action, Optional.of(e)));
+                        eventSubject.onNext(eventFactory.newChangeErrorEvent(this, action, e, timer.elapsed(TimeUnit.MILLISECONDS), transactionId));
                         logger.debug("Action execution error", e);
                     }
             );

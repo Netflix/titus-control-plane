@@ -21,11 +21,11 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
@@ -74,7 +74,7 @@ public interface V3JobOperations {
      */
     Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction);
 
-    Observable<JobManagerEvent> observeJobs();
+    Observable<JobManagerEvent<?>> observeJobs();
 
-    Observable<JobManagerEvent> observeJob(String jobId);
+    Observable<JobManagerEvent<?>> observeJob(String jobId);
 }

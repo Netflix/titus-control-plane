@@ -18,11 +18,18 @@ package io.netflix.titus.common.framework.reconciler.internal;
 
 import java.util.Optional;
 
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
-
 /**
  */
-public class SimpleReconcilerEvent implements ReconcilerEvent {
+public class SimpleReconcilerEvent {
+
+    enum EventType {
+        ChangeRequest,
+        Changed,
+        ChangeError,
+        ModelInitial,
+        ModelUpdated,
+        ModelUpdateError
+    }
 
     private final long timestamp;
 

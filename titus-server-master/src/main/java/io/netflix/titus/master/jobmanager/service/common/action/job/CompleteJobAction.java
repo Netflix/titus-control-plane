@@ -20,21 +20,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import io.netflix.titus.api.jobmanager.model.event.JobEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
 import rx.Observable;
 
 /**
@@ -43,7 +41,7 @@ public class CompleteJobAction extends TitusChangeAction {
     private static final String SUMMARY = "Moving job to Finished state";
 
     public CompleteJobAction(String jobId) {
-        super(new JobChange(ActionKind.Job, JobManagerEvent.Trigger.Reconciler, jobId, SUMMARY));
+        super(new JobChange(Trigger.Reconciler, jobId, SUMMARY));
     }
 
     @Override
@@ -56,11 +54,11 @@ public class CompleteJobAction extends TitusChangeAction {
     private class JobStateUpdateAction extends TitusModelUpdateAction {
 
         public JobStateUpdateAction() {
-            super(ActionKind.Job, JobEvent.Trigger.Reconciler, CompleteJobAction.this.getChange().getId(), "Updating job state");
+            super(Trigger.Reconciler, CompleteJobAction.this.getChange().getId(), "Updating job state");
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder model) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder model) {
             Job job = model.getEntity();
             if (job.getStatus().getState() != JobState.Finished) {
                 JobStatus newStatus = JobModel.newJobStatus()
@@ -69,9 +67,9 @@ public class CompleteJobAction extends TitusChangeAction {
                         .build();
                 Job newJob = JobFunctions.updateJobStatus(job, newStatus);
                 EntityHolder newRoot = model.setEntity(newJob);
-                return Pair.of(newRoot, Optional.of(newRoot));
+                return Optional.of(Pair.of(newRoot, newRoot));
             }
-            return Pair.of(model, Optional.empty());
+            return Optional.empty();
         }
     }
 }

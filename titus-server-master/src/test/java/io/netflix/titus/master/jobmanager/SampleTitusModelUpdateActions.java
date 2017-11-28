@@ -18,11 +18,10 @@ package io.netflix.titus.master.jobmanager;
 
 import java.util.Optional;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
 
 /**
  */
@@ -42,12 +41,12 @@ public final class SampleTitusModelUpdateActions {
     private static class JobUpdateAction extends TitusModelUpdateAction {
 
         protected JobUpdateAction(String id) {
-            super(ActionKind.Job, JobManagerEvent.Trigger.API, id, "Job update action");
+            super(Trigger.API, id, "Job update action");
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
-            return Pair.of(rootHolder, Optional.empty());
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
+            return Optional.of(Pair.of(rootHolder, rootHolder));
         }
     }
 }

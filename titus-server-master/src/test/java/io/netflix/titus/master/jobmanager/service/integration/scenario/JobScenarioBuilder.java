@@ -24,19 +24,18 @@ import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import io.netflix.titus.api.jobmanager.model.event.JobEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent.Trigger;
-import io.netflix.titus.api.jobmanager.model.event.TaskEvent;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import io.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -47,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     private final String jobId;
-    private final ExtTestSubscriber<JobManagerEvent> jobEventsSubscriber;
+    private final ExtTestSubscriber<JobManagerEvent<?>> jobEventsSubscriber;
     private final ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber;
 
     private final V3JobOperations jobOperations;
@@ -61,7 +60,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
 
     public JobScenarioBuilder(String jobId,
-                              ExtTestSubscriber<JobManagerEvent> jobEventsSubscriber,
+                              ExtTestSubscriber<JobManagerEvent<?>> jobEventsSubscriber,
                               ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber,
                               V3JobOperations jobOperations,
                               StubbedSchedulingService schedulingService,
@@ -101,33 +100,37 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectJobUpdateEvent() {
-        JobManagerEvent event = jobEventsSubscriber.takeNext();
+        JobManagerEvent<?> event = jobEventsSubscriber.takeNext();
         assertThat(event).describedAs("No job update event for job: %s", jobId).isNotNull();
-        assertThat(event).isInstanceOf(JobEvent.class);
+        assertThat(event).isInstanceOf(JobUpdateEvent.class);
 
-        JobEvent jobEvent = (JobEvent) event;
-        assertThat(jobEvent.getId()).isEqualTo(jobId);
+        JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+        assertThat(jobUpdateEvent.getCurrent().getId()).isEqualTo(jobId);
 
         return this;
     }
 
     public JobScenarioBuilder<E> expectTaskCreatedEvent() {
-        JobManagerEvent event = jobEventsSubscriber.takeNext();
+        JobManagerEvent<?> event = jobEventsSubscriber.takeNext();
         assertThat(event).isNotNull();
-        assertThat(event).isInstanceOf(TaskEvent.class);
-
-        TaskEvent taskEvent = (TaskEvent) event;
-        assertThat(taskEvent.getSummary()).contains("Creating new task");
-
+        assertThat(event).isInstanceOf(TaskUpdateEvent.class);
         return this;
     }
 
     public JobScenarioBuilder<E> expectedMesosChangedEvent(int taskIdx) {
-        return expectTaskEvent(taskIdx, event -> event.getTrigger() == Trigger.Mesos && event.getEventType() == ReconcilerEvent.EventType.Changed, "Expected Mesos triggered task changed event");
+        return expectTaskEvent(
+                taskIdx,
+                event -> event.getCurrent().getStatus().getReasonMessage().contains("mesos"),
+                "Expected Mesos triggered task changed event"
+        );
     }
 
-    public JobScenarioBuilder<E> expectTaskUpdateEvent(int taskIdx, String expectedSummary) {
-        return expectTaskEvent(taskIdx, event -> event.getSummary().contains(expectedSummary), "Expected task with " + expectedSummary + " summary");
+    public JobScenarioBuilder<E> expectTaskUpdateEvent(int taskIdx, String expectedReason) {
+        return expectTaskEvent(
+                taskIdx,
+                event -> event.getCurrent().getStatus().getReasonMessage().contains(expectedReason),
+                "Expected task with " + expectedReason + " summary"
+        );
     }
 
     public JobScenarioBuilder<E> expectScheduleRequest() {
@@ -135,15 +138,15 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    private JobScenarioBuilder<E> expectTaskEvent(int taskIdx, Predicate<TaskEvent> predicate, String errorMessage) {
-        JobManagerEvent event = jobEventsSubscriber.takeNext();
+    private JobScenarioBuilder<E> expectTaskEvent(int taskIdx, Predicate<TaskUpdateEvent> predicate, String errorMessage) {
+        JobManagerEvent<?> event = jobEventsSubscriber.takeNext();
         assertThat(event).isNotNull();
-        assertThat(event).isInstanceOf(TaskEvent.class);
+        assertThat(event).isInstanceOf(JobChangeReconcilerEvent.class);
 
         String taskId = taskIdx2Id.get(taskIdx);
         assertThat(taskId).describedAs("Unknown task id %s: ", taskId).isNotNull();
 
-        assertThat(predicate.apply((TaskEvent) event)).describedAs("%s\nUnexpected event %s", errorMessage, event).isTrue();
+        assertThat(predicate.apply((TaskUpdateEvent) event)).describedAs("%s\nUnexpected event %s", errorMessage, event).isTrue();
         return this;
     }
 
@@ -217,7 +220,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         advance();
         assertThat(done.get()).isTrue();
 
-        expectTaskEvent(taskIdx, event -> event.getEventType() == ReconcilerEvent.EventType.ChangeRequest && event.getTrigger() == Trigger.Mesos, "Expected Mesos triggered change request");
+        expectedMesosChangedEvent(taskIdx);
 
         return this;
     }

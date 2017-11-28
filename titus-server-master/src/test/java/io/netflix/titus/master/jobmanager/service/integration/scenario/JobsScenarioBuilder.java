@@ -6,8 +6,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
@@ -89,7 +89,7 @@ public class JobsScenarioBuilder {
     public JobsScenarioBuilder scheduleBatchJob(JobDescriptor<BatchJobExt> jobDescriptor,
                                                 Function<JobScenarioBuilder<BatchJobExt>, JobScenarioBuilder<BatchJobExt>> jobScenario) {
 
-        ExtTestSubscriber<JobManagerEvent> jobEventsSubscriber = new ExtTestSubscriber<>();
+        ExtTestSubscriber<JobManagerEvent<?>> jobEventsSubscriber = new ExtTestSubscriber<>();
         ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber = new ExtTestSubscriber<>();
         AtomicReference<String> jobIdRef = new AtomicReference<>();
 
