@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -75,6 +76,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultWorkerStateMonitor.class);
+    private final VirtualMachineMasterService vmService;
     private final V2JobOperations jobOps;
     private final Observable<V2JobMgrIntf> jobCreationObservable;
     private final JobManagerConfiguration jobManagerConfiguration;
@@ -87,6 +89,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                                      V2JobOperations jOps,
                                      V3JobOperations v3JobOperations,
                                      JobManagerConfiguration jobManagerConfiguration) {
+        this.vmService = vmService;
         this.jobOps = jOps;
         this.jobCreationObservable = jOps.getJobCreationPublishSubject();
         this.jobManagerConfiguration = jobManagerConfiguration;
@@ -124,7 +127,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                     jobMgr.handleStatus(args);
                     return;
                 }
-                if (args.getTaskId() != null) {
+                if (args.getTaskId() != null && !JobFunctions.isV2Task(args.getTaskId())) {
                     Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
                     if (jobAndTaskOpt.isPresent()) {
                         Task task = jobAndTaskOpt.get().getRight();
@@ -144,10 +147,28 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                         return;
                     }
                 }
-                logger.warn("Ignoring VMTaskStatus of " + args.getMessage() + " on unknown job " + args.getJobId());
+                killOrphanedTask(args);
             }
         });
         allStatusSubject = PublishSubject.create();
+    }
+
+    private void killOrphanedTask(Status status) {
+        String taskId = status.getTaskId();
+
+        // This should never happen, but lets check it anyway
+        if (taskId == null) {
+            logger.warn("Task status update notification received, but no task id is given: {}", status);
+            return;
+        }
+
+        // If it is already terminated, do nothing
+        if (V2JobState.isTerminalState(status.getState())) {
+            return;
+        }
+
+        logger.warn("Received Mesos callback for unknown task: {} (state {}). Terminating it.", taskId, status.getState());
+        vmService.killTask(taskId);
     }
 
     @PreDestroy
