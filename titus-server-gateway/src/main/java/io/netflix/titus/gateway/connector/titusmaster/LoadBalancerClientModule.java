@@ -25,6 +25,10 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.connector.cloud.NoOpLoadBalancerConnector;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerResourceValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceValidator;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 
@@ -33,6 +37,8 @@ public class LoadBalancerClientModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(LoadBalancerResourceValidator.class).to(DefaultLoadBalancerResourceValidator.class);
+        bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
     }
 
     @Provides

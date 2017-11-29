@@ -54,8 +54,8 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
 import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
@@ -91,7 +91,7 @@ public class LoadBalancerTests {
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
         final LoadBalancerStore loadBalancerStore = new InMemoryLoadBalancerStore();
-        final LoadBalancerValidator validator = new NoOpLoadBalancerValidator();
+        final LoadBalancerJobValidator validator = new NoOpLoadBalancerJobValidator();
         final TargetTracking targetTracking = new TargetTracking();
         final TestScheduler testScheduler = Schedulers.test();
 

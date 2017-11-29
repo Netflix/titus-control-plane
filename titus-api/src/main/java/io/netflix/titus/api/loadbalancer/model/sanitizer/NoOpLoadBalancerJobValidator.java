@@ -16,19 +16,7 @@
 
 package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-public interface LoadBalancerValidator {
-
-    /**
-     * Validates that a Job ID is capable of having a load balancer associated with it.
-     * @param jobId
-     * @throws Exception
-     */
-    void validateJobId(String jobId) throws Exception;
-
-    /**
-     * Validates that a load balancer can be associated with a Job.
-     * @param loadBalancerId
-     * @throws Exception
-     */
-    void validateLoadBalancer(String loadBalancerId) throws Exception;
+public class NoOpLoadBalancerJobValidator implements LoadBalancerJobValidator {
+    @Override
+    public void validateJobId(String jobId) throws Exception { }
 }

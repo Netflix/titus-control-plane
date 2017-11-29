@@ -32,7 +32,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.api.service.TitusServiceException;
@@ -61,7 +61,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private final LoadBalancerConfiguration configuration;
     private final LoadBalancerStore loadBalancerStore;
     private final V3JobOperations v3JobOperations;
-    private final LoadBalancerValidator validator;
+    private final LoadBalancerJobValidator validator;
 
     private final TargetTracking targetTracking;
     private final AssociationsTracking associationsTracking = new AssociationsTracking();
@@ -78,7 +78,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                       LoadBalancerConnector loadBalancerConnector,
                                       LoadBalancerStore loadBalancerStore,
                                       V3JobOperations v3JobOperations,
-                                      LoadBalancerValidator validator) {
+                                      LoadBalancerJobValidator validator) {
         this(runtime, configuration, loadBalancerConnector, loadBalancerStore, v3JobOperations, new TargetTracking(), validator, Schedulers.computation());
     }
 
@@ -89,7 +89,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                LoadBalancerStore loadBalancerStore,
                                V3JobOperations v3JobOperations,
                                TargetTracking targetTracking,
-                               LoadBalancerValidator validator,
+                               LoadBalancerJobValidator validator,
                                Scheduler scheduler) {
         this.runtime = runtime;
         this.configuration = configuration;

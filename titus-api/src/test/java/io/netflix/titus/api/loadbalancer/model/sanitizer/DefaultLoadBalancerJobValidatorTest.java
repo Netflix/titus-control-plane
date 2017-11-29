@@ -19,7 +19,6 @@ package io.netflix.titus.api.loadbalancer.model.sanitizer;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Image;
@@ -43,28 +42,26 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DefaultLoadBalancerValidatorTest {
-    private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerValidatorTest.class);
+public class DefaultLoadBalancerJobValidatorTest {
+    private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerJobValidatorTest.class);
 
     private static final long TIMEOUT_MS = 30_000;
 
     private V3JobOperations jobOperations;
     private LoadBalancerStore loadBalancerStore;
     private LoadBalancerValidationConfiguration loadBalancerValidationConfiguration;
-    private DefaultLoadBalancerValidator loadBalancerValidator;
+    private DefaultLoadBalancerJobValidator loadBalancerValidator;
 
     private static final String JOB_ID = "Titus-123";
 
     @Before
     public void setUp() throws Exception {
-        LoadBalancerConnector client = mock(LoadBalancerConnector.class);
         jobOperations = mock(V3JobOperations.class);
         loadBalancerStore = new InMemoryLoadBalancerStore();
         loadBalancerValidationConfiguration = mock(LoadBalancerValidationConfiguration.class);
 
-        loadBalancerValidator = DefaultLoadBalancerValidator.newBuilder()
+        loadBalancerValidator = DefaultLoadBalancerJobValidator.newBuilder()
                 .withV3JobOperations(jobOperations)
-                .withLoadBalancerClient(client)
                 .withLoadBalancerStore(loadBalancerStore)
                 .withLoadBalancerConfiguration(loadBalancerValidationConfiguration)
                 .build();

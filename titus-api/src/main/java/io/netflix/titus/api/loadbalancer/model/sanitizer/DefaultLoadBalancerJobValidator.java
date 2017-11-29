@@ -19,7 +19,6 @@ package io.netflix.titus.api.loadbalancer.model.sanitizer;
 import java.util.Optional;
 import javax.inject.Inject;
 
-import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -30,21 +29,18 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerValidator.class);
+public class DefaultLoadBalancerJobValidator implements LoadBalancerJobValidator {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerJobValidator.class);
 
     private final V3JobOperations v3JobOperations;
-    private final LoadBalancerConnector loadBalancerConnector;
     private final LoadBalancerStore loadBalancerStore;
     private final LoadBalancerValidationConfiguration loadBalancerValidationConfiguration;
 
     @Inject
-    public DefaultLoadBalancerValidator(V3JobOperations v3JobOperations,
-                                        LoadBalancerConnector loadBalancerConnector,
-                                        LoadBalancerStore loadBalancerStore,
-                                        LoadBalancerValidationConfiguration loadBalancerValidationConfiguration) {
+    public DefaultLoadBalancerJobValidator(V3JobOperations v3JobOperations,
+                                           LoadBalancerStore loadBalancerStore,
+                                           LoadBalancerValidationConfiguration loadBalancerValidationConfiguration) {
         this.v3JobOperations = v3JobOperations;
-        this.loadBalancerConnector = loadBalancerConnector;
         this.loadBalancerStore = loadBalancerStore;
         this.loadBalancerValidationConfiguration = loadBalancerValidationConfiguration;
     }
@@ -84,21 +80,12 @@ public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
         }
     }
 
-    @Override
-    public void validateLoadBalancer(String loadBalancerId) throws Exception {
-        // Load balancer ID must exist
-        // Load balancer ID must accept IP targets
-        logger.info("Validating load balancer {}!", loadBalancerId);
-
-    }
-
     public static Builder newBuilder() {
         return new Builder();
     }
 
     public static final class Builder {
         private V3JobOperations v3JobOperations;
-        private LoadBalancerConnector loadBalancerConnector;
         private LoadBalancerStore loadBalancerStore;
         private LoadBalancerValidationConfiguration loadBalancerValidationConfiguration;
 
@@ -114,11 +101,6 @@ public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
             return this;
         }
 
-        public Builder withLoadBalancerClient(LoadBalancerConnector loadBalancerConnector) {
-            this.loadBalancerConnector = loadBalancerConnector;
-            return this;
-        }
-
         public Builder withLoadBalancerStore(LoadBalancerStore loadBalancerStore) {
             this.loadBalancerStore = loadBalancerStore;
             return this;
@@ -129,8 +111,8 @@ public class DefaultLoadBalancerValidator implements LoadBalancerValidator {
             return this;
         }
 
-        public DefaultLoadBalancerValidator build() {
-            return new DefaultLoadBalancerValidator(v3JobOperations, loadBalancerConnector, loadBalancerStore, loadBalancerValidationConfiguration);
+        public DefaultLoadBalancerJobValidator build() {
+            return new DefaultLoadBalancerJobValidator(v3JobOperations, loadBalancerStore, loadBalancerValidationConfiguration);
         }
     }
 }

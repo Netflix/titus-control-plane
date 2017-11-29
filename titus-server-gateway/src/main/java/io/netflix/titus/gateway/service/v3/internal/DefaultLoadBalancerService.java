@@ -27,8 +27,7 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.grpc.stub.StreamObserver;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerValidator;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceValidator;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
@@ -46,14 +45,15 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     private final GrpcClientConfiguration configuration;
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
-    // private final LoadBalancerValidator validator;
+    private final LoadBalancerResourceValidator validator;
 
     @Inject
     public DefaultLoadBalancerService(GrpcClientConfiguration configuration,
+                                      LoadBalancerResourceValidator validator,
                                       LoadBalancerServiceGrpc.LoadBalancerServiceStub client) {
         this.configuration = configuration;
         this.client = client;
-        // this.validator = validator;
+        this.validator = validator;
     }
 
     @Override
@@ -66,13 +66,11 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Override
     public Completable addLoadBalancer(AddLoadBalancerRequest addLoadBalancerRequest) {
-        /*
         try {
             validator.validateLoadBalancer(addLoadBalancerRequest.getLoadBalancerId().getId());
         } catch (Exception e) {
             return Completable.error(TitusServiceException.invalidArgument(e.getMessage()));
         }
-        */
 
         return toCompletable(emitter -> {
             StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);

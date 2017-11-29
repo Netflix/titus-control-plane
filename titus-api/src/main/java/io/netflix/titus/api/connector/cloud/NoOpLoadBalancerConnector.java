@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.loadbalancer.service;
+package io.netflix.titus.api.connector.cloud;
 
 import java.util.Set;
 

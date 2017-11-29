@@ -53,8 +53,8 @@ import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import io.netflix.titus.api.model.event.AutoScaleEvent;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -72,7 +72,7 @@ import io.netflix.titus.master.cluster.LeaderElector;
 import io.netflix.titus.master.endpoint.common.SchedulerUtil;
 import io.netflix.titus.master.job.worker.WorkerStateMonitor;
 import io.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
-import io.netflix.titus.master.loadbalancer.service.NoOpLoadBalancerConnector;
+import io.netflix.titus.api.connector.cloud.NoOpLoadBalancerConnector;
 import io.netflix.titus.master.master.MasterDescription;
 import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
@@ -171,8 +171,8 @@ public class EmbeddedTitusMaster {
                                       bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
 
                                       bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
-                                      bind(LoadBalancerValidator.class).to(NoOpLoadBalancerValidator.class);
                                       bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
+                                      bind(LoadBalancerJobValidator.class).to(NoOpLoadBalancerJobValidator.class);
                                   }
 
                                   @Provides

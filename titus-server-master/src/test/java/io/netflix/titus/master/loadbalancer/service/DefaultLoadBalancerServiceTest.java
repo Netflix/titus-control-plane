@@ -37,9 +37,9 @@ import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAct
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.runtime.TitusRuntime;
@@ -80,7 +80,7 @@ public class DefaultLoadBalancerServiceTest {
     private LoadBalancerConnector client;
     private V3JobOperations jobOperations;
     private LoadBalancerStore loadBalancerStore;
-    private LoadBalancerValidator validator;
+    private LoadBalancerJobValidator validator;
     private TargetTracking targetTracking;
     private TestScheduler testScheduler;
 
@@ -97,7 +97,7 @@ public class DefaultLoadBalancerServiceTest {
         loadBalancerStore = new InMemoryLoadBalancerStore();
         jobOperations = mock(V3JobOperations.class);
         LoadBalancerValidationConfiguration validationConfiguration = mockValidationConfig(30);
-        validator = DefaultLoadBalancerValidator.newBuilder()
+        validator = DefaultLoadBalancerJobValidator.newBuilder()
                 .withLoadBalancerConfiguration(validationConfiguration)
                 .withV3JobOperations(jobOperations)
                 .withLoadBalancerStore(loadBalancerStore)

@@ -16,10 +16,12 @@
 
 package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-public class NoOpLoadBalancerValidator implements LoadBalancerValidator {
-    @Override
-    public void validateJobId(String jobId) throws Exception { }
+public interface LoadBalancerJobValidator {
 
-    @Override
-    public void validateLoadBalancer(String loadBalancerId) throws Exception { }
+    /**
+     * Validates that a Job ID is capable of having a load balancer associated with it.
+     * @param jobId
+     * @throws Exception
+     */
+    void validateJobId(String jobId) throws Exception;
 }
