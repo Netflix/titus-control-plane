@@ -87,6 +87,7 @@ public class EmbeddedTitusGateway {
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
         props.put("titusMaster.job.configuration.defaultIamRole", "iam-12345");
+        props.put("titusGateway.endpoint.grpc.loadbalancer.enabled", "true");
         config.setProperties(props);
     }
 

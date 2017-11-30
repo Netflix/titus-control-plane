@@ -28,14 +28,18 @@ import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 /**
@@ -46,13 +50,17 @@ public class LoadBalancerGrpcTest {
     private final Logger logger = LoggerFactory.getLogger(LoadBalancerGrpcTest.class);
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
 
+    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStack.aTitusStack()
+            .withMaster(basicMaster(new SimulatedCloud()))
+            .withDefaultGateway()
+            .build());
+
     @Rule
-    public static final TitusStackResource titusStackResource = TitusStackResource.aDefaultStack();
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource);
 
     @Before
     public void setUp() throws Exception {
-        client = titusStackResource.getGateway().getLoadBalancerGrpcClient();
-        // client = titusStackResource.getMaster().getLoadBalancerGrpcClient();
+        client = titusStackResource.getOperations().getLoadBalancerGrpcClient();
     }
 
     @Test
