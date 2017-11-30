@@ -26,6 +26,8 @@ public final class EmbeddedTitusMasters {
                 .withProperty("titus.master.taskMigration.schedulerDelayInMillis", "100")
                 .withProperty("titusMaster.jobManager.reconcilerIdleTimeoutMs", "100")
                 .withProperty("titusMaster.jobManager.reconcilerActiveTimeoutMs", "10")
+                .withProperty("titus.master.grpcServer.loadbalancer.enabled", "true")
+                .withProperty("titus.master.loadBalancer.engineEnabled", "true")
                 .build();
     }
 }

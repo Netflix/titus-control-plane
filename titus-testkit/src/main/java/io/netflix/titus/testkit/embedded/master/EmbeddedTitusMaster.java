@@ -44,13 +44,18 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
 import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.store.JobStore;
+import io.netflix.titus.api.model.event.AutoScaleEvent;
+import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.grpc.V3HeaderInterceptor;
 import io.netflix.titus.common.util.AwaitExt;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
@@ -65,11 +70,13 @@ import io.netflix.titus.master.cluster.LeaderElector;
 import io.netflix.titus.master.endpoint.common.SchedulerUtil;
 import io.netflix.titus.master.job.worker.WorkerStateMonitor;
 import io.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
+import io.netflix.titus.master.loadbalancer.service.NoOpLoadBalancerConnector;
 import io.netflix.titus.master.master.MasterDescription;
 import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.store.V2StorageProvider;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import io.netflix.titus.testkit.client.DefaultTitusMasterClient;
@@ -160,6 +167,9 @@ public class EmbeddedTitusMaster {
                                       bind(VirtualMachineMasterService.class).to(EmbeddedVirtualMachineMasterService.class);
 
                                       bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
+
+                                      bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
+                                      bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
                                   }
 
                                   @Provides
@@ -257,6 +267,11 @@ public class EmbeddedTitusMaster {
 
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         AutoScalingServiceGrpc.AutoScalingServiceStub client = AutoScalingServiceGrpc.newStub(getOrCreateGrpcChannel());
+        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+    }
+
+    public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
+        LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
         return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
     }
 

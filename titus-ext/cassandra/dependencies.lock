@@ -3287,8 +3287,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.caffinitas.ohc:ohc-core": {
             "locked": "0.4.3",
@@ -4516,8 +4516,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.caffinitas.ohc:ohc-core": {
             "locked": "0.4.3",
@@ -5745,8 +5745,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.caffinitas.ohc:ohc-core": {
             "locked": "0.4.3",
@@ -6975,8 +6975,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.caffinitas.ohc:ohc-core": {
             "locked": "0.4.3",

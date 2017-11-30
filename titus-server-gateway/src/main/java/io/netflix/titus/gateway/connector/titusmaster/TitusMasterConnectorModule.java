@@ -49,6 +49,7 @@ public class TitusMasterConnectorModule extends AbstractModule {
         install(new JobManagementClientModule());
         install(new AgentManagementClientModule());
         install(new AutoScalingClientModule());
+        install(new LoadBalancerClientModule());
     }
 
     @Named(TITUS_MASTER_CLIENT)

@@ -24,4 +24,7 @@ public interface CassandraStoreConfiguration {
 
     @DefaultValue("true")
     boolean isFailOnInconsistentAgentData();
+
+    @DefaultValue("false")
+    boolean isFailOnInconsistentLoadBalancerData();
 }

@@ -5606,8 +5606,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -6615,8 +6615,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -7624,8 +7624,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -8634,8 +8634,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
