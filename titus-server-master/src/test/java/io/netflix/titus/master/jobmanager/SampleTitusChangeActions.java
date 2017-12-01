@@ -20,10 +20,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import rx.Observable;
 
@@ -34,11 +35,11 @@ public final class SampleTitusChangeActions {
 
 
     public static TitusChangeAction successfulJob() {
-        return new SuccessfulChangeAction(Trigger.API, "jobId");
+        return new SuccessfulChangeAction(V3JobOperations.Trigger.API, "jobId");
     }
 
     public static TitusChangeAction failingJob(int failureCount) {
-        return new FailingChangeAction(Trigger.API, "jobId", failureCount);
+        return new FailingChangeAction(V3JobOperations.Trigger.API, "jobId", failureCount);
     }
 
     private static class SuccessfulChangeAction extends TitusChangeAction {

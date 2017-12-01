@@ -16,24 +16,29 @@
 
 package io.netflix.titus.master.jobmanager.service.common.action;
 
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+
 /**
  * Describes a job or task change action.
  */
 public class JobChange {
 
-    public enum Trigger {
-        API,
-        Mesos,
-        Reconciler
-    }
-
-    private final Trigger trigger;
+    private final V3JobOperations.Trigger trigger;
     private final String id;
+    private final String name;
     private final String summary;
 
-    public JobChange(Trigger trigger, String id, String summary) {
+    public JobChange(V3JobOperations.Trigger trigger, String id, String summary) {
         this.trigger = trigger;
         this.id = id;
+        this.name = "???";
+        this.summary = summary;
+    }
+
+    public JobChange(V3JobOperations.Trigger trigger, String id, String name, String summary) {
+        this.trigger = trigger;
+        this.id = id;
+        this.name = name;
         this.summary = summary;
     }
 
@@ -41,7 +46,11 @@ public class JobChange {
         return id;
     }
 
-    public Trigger getTrigger() {
+    public String getName() {
+        return name;
+    }
+
+    public V3JobOperations.Trigger getTrigger() {
         return trigger;
     }
 

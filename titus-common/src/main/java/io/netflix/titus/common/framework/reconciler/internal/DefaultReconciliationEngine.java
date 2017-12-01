@@ -51,7 +51,7 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
     private final AtomicLong nextTransactionId = new AtomicLong();
 
     private final ReconcileEventFactory<CHANGE, EVENT> eventFactory;
-    private final ModelHolder modelHolder;
+    private final ModelHolder<CHANGE, EVENT> modelHolder;
 
     private final BlockingQueue<Pair<ChangeActionHolder<CHANGE>, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
     private final BlockingQueue<Pair<ChangeActionHolder<CHANGE>, List<ModelActionHolder>>> modelActionHolders = new LinkedBlockingQueue<>();
@@ -67,12 +67,12 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
     private boolean firstTrigger;
 
     public DefaultReconciliationEngine(EntityHolder bootstrapModel,
-                                       DifferenceResolver runningDifferenceResolver,
+                                       DifferenceResolver<CHANGE, EVENT> runningDifferenceResolver,
                                        Map<Object, Comparator<EntityHolder>> indexComparators,
-                                       ReconcileEventFactory eventFactory) {
+                                       ReconcileEventFactory<CHANGE, EVENT> eventFactory) {
         this.eventFactory = eventFactory;
         this.indexSet = IndexSet.newIndexSet(indexComparators);
-        this.modelHolder = new ModelHolder(bootstrapModel, runningDifferenceResolver);
+        this.modelHolder = new ModelHolder<>(this, bootstrapModel, runningDifferenceResolver);
         this.firstTrigger = true;
         indexEntityHolder(bootstrapModel);
     }

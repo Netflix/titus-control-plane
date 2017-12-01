@@ -29,7 +29,7 @@ import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
 import rx.Scheduler;
 
@@ -92,7 +92,7 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         }
     }
 
-    class RetryModelUpdateAction extends TitusModelUpdateAction {
+    class RetryModelUpdateAction extends TitusModelAction {
 
         RetryModelUpdateAction(TitusChangeAction delegate, Throwable e) {
             super(
@@ -125,7 +125,7 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         }
     }
 
-    class RemoveRetryRecord extends TitusModelUpdateAction {
+    class RemoveRetryRecord extends TitusModelAction {
         RemoveRetryRecord(TitusChangeAction delegate) {
             super(
                     delegate.getChange().getTrigger(),

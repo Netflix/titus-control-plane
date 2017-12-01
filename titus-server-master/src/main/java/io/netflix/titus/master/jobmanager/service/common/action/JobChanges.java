@@ -23,6 +23,7 @@ import java.util.List;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 
+@Deprecated
 public final class JobChanges {
 
     private JobChanges() {

@@ -21,53 +21,38 @@ import java.util.function.Function;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 
-/**
- */
+@Deprecated
 public final class TitusModelUpdateActions {
 
-    public static final String ATTR_JOB_CLOSED = "job.closed";
-
-    public static TitusModelUpdateAction updateJob(Job job, Trigger trigger, String summary) {
+    public static TitusModelAction updateJob(Job job, Trigger trigger, String summary) {
         return new UpdateJobAction(job.getId(), jh -> jh.setEntity(job), trigger, summary);
     }
 
-    public static TitusModelUpdateAction updateJob(String jobId, Function<Job, Job> updateFun, Trigger trigger, String summary) {
+    public static TitusModelAction updateJob(String jobId, Function<Job, Job> updateFun, Trigger trigger, String summary) {
         return new UpdateJobAction(jobId, applyJob(updateFun), trigger, summary);
     }
 
-    public static TitusModelUpdateAction updateJobHolder(String jobId, Function<EntityHolder, EntityHolder> updateFun, Trigger trigger, String summary) {
+    public static TitusModelAction updateJobHolder(String jobId, Function<EntityHolder, EntityHolder> updateFun, Trigger trigger, String summary) {
         return new UpdateJobAction(jobId, updateFun, trigger, summary);
     }
 
-    public static TitusModelUpdateAction createTask(Task task, Trigger trigger, String summary) {
+    public static TitusModelAction createTask(Task task, Trigger trigger, String summary) {
         return new UpdateTaskAction(task, trigger, summary);
     }
 
-    public static TitusModelUpdateAction updateTask(Task task, Trigger trigger, String summary) {
-        return new UpdateTaskAction(task, trigger, summary);
-    }
-
-    public static TitusModelUpdateAction removeTask(String taskId, Trigger trigger, String summary) {
+    public static TitusModelAction removeTask(String taskId, Trigger trigger, String summary) {
         return new RemoveTaskAction(taskId, trigger, summary);
-    }
-
-    public static TitusModelUpdateAction closeJob(String jobId) {
-        return new CloseJobAction(jobId);
-    }
-
-    public static boolean isClosed(EntityHolder model) {
-        return (Boolean) model.getAttributes().getOrDefault(ATTR_JOB_CLOSED, Boolean.FALSE);
     }
 
     private static Function<EntityHolder, EntityHolder> applyJob(Function<Job, Job> jobHolderFun) {
         return jobHolder -> jobHolder.setEntity(jobHolderFun.apply(jobHolder.getEntity()));
     }
 
-    private static class UpdateJobAction extends TitusModelUpdateAction {
+    private static class UpdateJobAction extends TitusModelAction {
 
         private final Function<EntityHolder, EntityHolder> updateFun;
 
@@ -83,20 +68,7 @@ public final class TitusModelUpdateActions {
         }
     }
 
-    private static class CloseJobAction extends TitusModelUpdateAction {
-
-        CloseJobAction(String jobId) {
-            super(Trigger.Reconciler, jobId, "Closing the job");
-        }
-
-        @Override
-        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
-            EntityHolder newRoot = rootHolder.addTag(ATTR_JOB_CLOSED, true);
-            return Optional.of(Pair.of(newRoot, newRoot));
-        }
-    }
-
-    private static class UpdateTaskAction extends TitusModelUpdateAction {
+    private static class UpdateTaskAction extends TitusModelAction {
 
         private final Task task;
 
@@ -113,7 +85,7 @@ public final class TitusModelUpdateActions {
         }
     }
 
-    private static class RemoveTaskAction extends TitusModelUpdateAction {
+    private static class RemoveTaskAction extends TitusModelAction {
 
         RemoveTaskAction(String taskId, Trigger trigger, String summary) {
             super(trigger, taskId, summary);

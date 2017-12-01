@@ -106,6 +106,11 @@ class StubbedJobStore implements JobStore {
         return Completable.fromAction(() -> {
             Job<?> removedJob = jobs.remove(job.getId());
             if (removedJob != null) {
+                tasks.values().stream().filter(task -> task.getJobId().equals(job.getId())).forEach(task -> {
+                    tasks.remove(task.getId());
+                    archivedTasks.put(task.getId(), task);
+                    eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
+                });
                 archivedJobs.put(removedJob.getId(), removedJob);
                 eventSubject.onNext(Pair.of(StoreEvent.JobRemoved, job));
             }

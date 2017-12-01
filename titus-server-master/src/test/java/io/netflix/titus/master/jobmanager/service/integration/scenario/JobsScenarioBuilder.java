@@ -54,14 +54,16 @@ public class JobsScenarioBuilder {
                 capacityGroupService,
                 schedulingService,
                 vmService,
-                jobStore
+                jobStore,
+                testScheduler
         );
         ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(
                 configuration,
                 capacityGroupService,
                 schedulingService,
                 vmService,
-                jobStore
+                jobStore,
+                testScheduler
         );
         this.jobOperations = new DefaultV3JobOperations(
                 configuration,

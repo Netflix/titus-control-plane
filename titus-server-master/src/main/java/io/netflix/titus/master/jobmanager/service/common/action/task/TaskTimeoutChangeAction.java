@@ -26,14 +26,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
 
 /**
@@ -60,7 +60,7 @@ public class TaskTimeoutChangeAction extends TitusChangeAction {
     private final long deadlineMs;
 
     public TaskTimeoutChangeAction(String id, TaskState taskState, long deadlineMs) {
-        super(new JobChange(Trigger.Reconciler, id, "Setting timeout for task " + id));
+        super(new JobChange(V3JobOperations.Trigger.Reconciler, id, "Setting timeout for task " + id));
 
         this.tagName = STATE_TAGS.get(taskState);
         Preconditions.checkArgument(tagName != null, "Timeout not tracked for state %s", taskState);
@@ -94,12 +94,12 @@ public class TaskTimeoutChangeAction extends TitusChangeAction {
         return clock.wallTime() < deadline ? TimeoutStatus.Pending : TimeoutStatus.TimedOut;
     }
 
-    static class EntityUpdateAction extends TitusModelUpdateAction {
+    static class EntityUpdateAction extends TitusModelAction {
 
         private final Function<EntityHolder, EntityHolder> updateFun;
 
         EntityUpdateAction(String id, Function<EntityHolder, EntityHolder> updateFun, String summary) {
-            super(Trigger.Reconciler, id, summary);
+            super(V3JobOperations.Trigger.Reconciler, id, summary);
             this.updateFun = updateFun;
         }
 

@@ -28,7 +28,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChanges;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
 
 /**
@@ -65,7 +65,7 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
         private final TitusChangeAction delegate;
 
         RateLimiterChangeAction(TitusChangeAction delegate) {
-            super(new JobChange(delegate.getChange().getTrigger(), delegate.getChange().getId(), delegate.getChange().getSummary()));
+            super(new JobChange(delegate.getChange().getTrigger(), delegate.getChange().getId(), "RateLimiter(" + delegate.getChange().getName() + ')', delegate.getChange().getSummary()));
             this.delegate = delegate;
         }
 
@@ -78,7 +78,7 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
         }
     }
 
-    class UpdateRateLimiterStateAction extends TitusModelUpdateAction {
+    class UpdateRateLimiterStateAction extends TitusModelAction {
         UpdateRateLimiterStateAction(TitusChangeAction delegate) {
             super(
                     delegate.getChange().getTrigger(),

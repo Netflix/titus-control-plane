@@ -25,11 +25,11 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -53,7 +53,7 @@ public class JobTransactionLoggerTest {
         Job previousJob = createJob();
         Job currentJob = previousJob.toBuilder().withStatus(JobStatus.newBuilder().withState(JobState.Finished).build()).build();
 
-        ModelActionHolder modelActionHolder = ModelActionHolder.reference(TitusModelUpdateActions.updateJob(previousJob, Trigger.API, "test"));
+        ModelActionHolder modelActionHolder = ModelActionHolder.reference(TitusModelUpdateActions.updateJob(previousJob, V3JobOperations.Trigger.API, "test"));
         TitusChangeAction changeAction = createChangeAction(previousJob, modelActionHolder);
 
         JobManagerReconcilerEvent jobReconcilerEvent = new JobModelUpdateReconcilerEvent(
@@ -79,7 +79,7 @@ public class JobTransactionLoggerTest {
     }
 
     private TitusChangeAction createChangeAction(Job job, ModelActionHolder modelActionHolder) {
-        JobChange jobChange = new JobChange(Trigger.API, job.getId(), "Job update");
+        JobChange jobChange = new JobChange(V3JobOperations.Trigger.API, job.getId(), "Job update");
         return new TitusChangeAction(jobChange) {
             @Override
             public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {

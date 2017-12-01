@@ -19,6 +19,7 @@ package io.netflix.titus.master.jobmanager.service.integration.scenario;
 import java.util.function.Function;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 
@@ -26,43 +27,31 @@ public class ScenarioTemplates {
 
     public static <E extends JobDescriptor.JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> startSingleTaskJob() {
         return jobScenario -> jobScenario
-                .expectJobUpdateEvent()
-                .expectStoreTaskAdded()
-                .expectTaskCreatedEvent().advance()
-                .expectScheduleRequest()
-                .ignoreAvailableEvents()
+                .expectJobEvent()
+                .expectTaskAddedToStore(task -> task.getStatus().getState() == TaskState.Accepted)
+                .expectedTaskStateChange(0, TaskState.Accepted)
+                .expectScheduleRequest(0)
                 .triggerMesosLaunchEvent(0)
-                .expectTaskUpdateEvent(0, "Starting new task")
-                .advance()
-                .expectStoreTaskAdded()
-                .ignoreAvailableEvents()
+                .expectedTaskStateChange(0, TaskState.Launched)
+                .expectTaskUpdatedInStore(task -> task.getStatus().getState() == TaskState.Launched)
                 .triggerMesosStartInitiatedEvent(0)
-                .advance()
-                .expectStoreTaskAdded()
-                .ignoreAvailableEvents()
+                .expectedTaskStateChange(0, TaskState.StartInitiated)
+                .expectTaskUpdatedInStore(task -> task.getStatus().getState() == TaskState.StartInitiated)
                 .triggerMesosStartedEvent(0)
-                .advance()
-                .assertStoreTaskAddedEvent(task -> !task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP).isEmpty());
+                .expectedTaskStateChange(0, TaskState.Started)
+                .expectTaskUpdatedInStore(task -> !task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP).isEmpty());
     }
 
     public static <E extends JobDescriptor.JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> finishSingleTaskJob() {
         return jobScenario -> jobScenario
-                .ignoreAvailableEvents()
                 .triggerMesosFinishedEvent(0)
+                .expectedTaskStateChange(0, TaskState.Finished)
+                .expectTaskUpdatedInStore(task -> task.getStatus().getState() == TaskState.Finished)
                 .advance()
-                .expectTaskUpdateEvent(0, "Persisting task to the store")
-                .expectedMesosChangedEvent(0)
-                .expectTaskUpdateEvent(0, "Updating task")
-                .expectTaskUpdateEvent(0, "Updating task")
-                .assertStoreTaskAddedEvent(task -> task.getStatus().getState() == TaskState.Finished)
+                .expectJobEvent(job -> job.getStatus().getState() == JobState.Finished)
                 .advance()
-                .expectTaskUpdateEvent(0, "Persisting task to the store")
-                .expectTaskUpdateEvent(0, "Persisting task to the store")
-                .expectTaskUpdateEvent(0, "Persisting task to the store")
-                .expectJobUpdateEvent()
-                .expectJobUpdateEvent();
-//                .expectStoreTaskArchived()
-//                .expectStoreTaskRemoved()
-//                .expectStoreJobRemoved()
+                .expectJobUpdatedInStore(job -> job.getStatus().getState() == JobState.Finished)
+                .expectedTaskArchivedInStore()
+                .expectJobArchivedInStore();
     }
 }

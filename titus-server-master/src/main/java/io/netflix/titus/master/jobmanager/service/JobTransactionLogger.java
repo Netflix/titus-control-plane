@@ -1,8 +1,11 @@
 package io.netflix.titus.master.jobmanager.service;
 
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobAfterChangeReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobBeforeChangeReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobChangeErrorReconcilerEvent;
@@ -65,7 +68,7 @@ class JobTransactionLogger {
                 event.getTransactionId(),
                 "ok",
                 "beforeChange",
-                event.getChangeAction().getClass().getSimpleName(),
+                event.getChangeAction().getChange().getName(),
                 jobChange.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
@@ -85,7 +88,7 @@ class JobTransactionLogger {
                 event.getTransactionId(),
                 "ok",
                 "afterChange",
-                event.getChangeAction().getClass().getSimpleName(),
+                event.getChangeAction().getChange().getName(),
                 jobChange.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
@@ -105,7 +108,7 @@ class JobTransactionLogger {
                 event.getTransactionId(),
                 "error",
                 "afterChange",
-                event.getChangeAction().getClass().getSimpleName(),
+                event.getChangeAction().getChange().getName(),
                 jobChange.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
@@ -123,7 +126,7 @@ class JobTransactionLogger {
                 "ok",
                 "modelUpdate",
                 "initial",
-                JobChange.Trigger.API,
+                V3JobOperations.Trigger.API,
                 "job",
                 jobId,
                 Model.Reference.name(),
@@ -136,18 +139,20 @@ class JobTransactionLogger {
         String jobId = event.getJob().getId();
         String entityId = event.getChangedEntityHolder().getId();
 
+        ModelActionHolder actionHolder = event.getModelActionHolder();
+        TitusModelAction action = (TitusModelAction) actionHolder.getAction();
         return doFormat(
                 jobId,
                 event.getTransactionId(),
                 "ok",
                 "modelUpdate",
-                event.getModelActionHolder().getAction().getClass().getSimpleName(),
+                ((TitusModelAction)actionHolder.getAction()).getName(),
                 event.getChangeAction().getChange().getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
-                event.getModelActionHolder().getModel().name(),
+                actionHolder.getModel().name(),
                 0,
-                "New job created"
+                action.getSummary()
         );
     }
 
@@ -155,18 +160,20 @@ class JobTransactionLogger {
         String jobId = event.getJob().getId();
         String entityId = event.getPreviousEntityHolder().getId();
 
+        ModelActionHolder actionHolder = event.getModelActionHolder();
+        TitusModelAction action = (TitusModelAction) actionHolder.getAction();
         return doFormat(
                 jobId,
                 event.getTransactionId(),
-                "ok",
+                "error",
                 "modelUpdate",
-                event.getModelActionHolder().getAction().getClass().getSimpleName(),
+                ((TitusModelAction)actionHolder.getAction()).getName(),
                 event.getChangeAction().getChange().getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
                 event.getModelActionHolder().getModel().name(),
                 0,
-                "New job created"
+                action.getSummary()
         );
     }
 
@@ -175,22 +182,22 @@ class JobTransactionLogger {
                                    String status,
                                    String type,
                                    String action,
-                                   JobChange.Trigger trigger,
+                                   V3JobOperations.Trigger trigger,
                                    String targetName,
                                    String entityId,
                                    String model,
                                    long executionTime,
                                    String summary) {
         return String.format(
-                "jobId=%s transactionId=%-8d status=%-5s type=%-13s action=%-20s trigger=%-10s target=%-4s entity=%s model=%-9s %-16s summary=%s",
+                "jobId=%s entity=%s transactionId=%-4d target=%-4s status=%-5s type=%-13s action=%-45s trigger=%-10s model=%-9s %-16s summary=%s",
                 jobId,
+                entityId,
                 transactionId,
+                targetName,
                 status,
                 type,
                 action,
                 trigger,
-                targetName,
-                entityId,
                 model,
                 "elapsed=" + executionTime + "ms",
                 summary

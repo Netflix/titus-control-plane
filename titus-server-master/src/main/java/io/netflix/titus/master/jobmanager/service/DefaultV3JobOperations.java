@@ -49,6 +49,7 @@ import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.DifferenceResolvers;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
@@ -64,12 +65,9 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
-import io.netflix.titus.master.jobmanager.service.common.action.job.InitiateJobKillAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.InitiateTaskKillAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.TaskChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.TaskChangeAfterStoreAction;
+import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.event.JobEventFactory;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
@@ -170,7 +168,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         if (changedEntityHolder.getEntity() instanceof Job) {
                             Job<?> job = changedEntityHolder.getEntity();
                             if (job.getStatus().getState() == JobState.Finished) {
-                                boolean isClosed = TitusModelUpdateActions.isClosed(changedEntityHolder);
+                                boolean isClosed = BasicJobActions.isClosed(changedEntityHolder);
                                 if (isClosed) {
                                     String jobId = job.getId();
                                     reconciliationFramework.findEngineByRootId(jobId).ifPresent(engine ->
@@ -332,23 +330,23 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Completable updateTask(String taskId, Function<Task, Task> changeFunction, String reason) {
-        Optional<ReconciliationEngine> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
+    public Completable updateTask(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason) {
+        Optional<ReconciliationEngine<JobChange, JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
-        ReconciliationEngine engine = engineOpt.get();
-        return engine.changeReferenceModel(new TaskChangeAction(taskId, Trigger.Mesos, changeFunction, reason)).toCompletable();
+        ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine = engineOpt.get();
+        return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, engine, changeFunction, reason)).toCompletable();
     }
 
     @Override
-    public Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction) {
-        Optional<ReconciliationEngine> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
+    public Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason) {
+        Optional<ReconciliationEngine<JobChange, JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
-        ReconciliationEngine engine = engineOpt.get();
-        return engine.changeReferenceModel(new TaskChangeAfterStoreAction(taskId, reconciliationFramework, changeFunction, store)).toCompletable();
+        ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine = engineOpt.get();
+        return engine.changeReferenceModel(BasicTaskActions.updateTaskAndWriteItToStore(taskId, engine, changeFunction, store, trigger, reason)).toCompletable();
     }
 
     @Override
@@ -375,7 +373,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     @Override
     public Observable<Void> killJob(String jobId) {
         return reconciliationFramework.findEngineByRootId(jobId)
-                .map(engine -> engine.changeReferenceModel(new InitiateJobKillAction(engine, store)))
+                .map(engine -> engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store)))
                 .orElse(Observable.error(JobManagerException.jobNotFound(jobId)));
     }
 
@@ -390,8 +388,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                     }
                     Task task = engineChildPair.getRight().getEntity();
-                    InitiateTaskKillAction killAction = new InitiateTaskKillAction(
-                            Trigger.API, task, shrink, vmService, TaskStatus.REASON_TASK_KILLED, reason
+                    ChangeAction<JobChange> killAction = KillInitiatedActions.storeAndApplyKillInitiated(
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, reason
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })

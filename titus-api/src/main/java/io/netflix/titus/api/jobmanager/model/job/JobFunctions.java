@@ -84,6 +84,14 @@ public final class JobFunctions {
                 .build();
     }
 
+    public static Job updateJobStatus(Job job, JobState jobState, String reasonCode) {
+        JobStatus newStatus = JobModel.newJobStatus()
+                .withState(jobState)
+                .withReasonCode(reasonCode)
+                .build();
+        return JobFunctions.updateJobStatus(job, newStatus);
+    }
+
     public static Job updateJobStatus(Job job, JobStatus status) {
         JobStatus currentStatus = job.getStatus();
         List<JobStatus> statusHistory = new ArrayList<>(job.getStatusHistory());

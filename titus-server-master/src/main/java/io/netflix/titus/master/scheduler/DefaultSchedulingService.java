@@ -78,6 +78,7 @@ import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.common.runtime.TitusRuntime;
@@ -642,7 +643,7 @@ public class DefaultSchedulingService implements SchedulingService {
                             }
                             return JobFunctions.updateTaskAfterScheduling(oldTask, taskStatus, twoLevelResource, taskContext);
                         };
-                        boolean updated = v3JobOperations.updateTaskAfterStore(task.getId(), changeFunction).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                        boolean updated = v3JobOperations.updateTaskAfterStore(task.getId(), changeFunction,  Trigger.Scheduler,"Task launched by Fenzo").await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                         if (updated) {
                             taskInfoList.add(taskInfo);
                         } else {

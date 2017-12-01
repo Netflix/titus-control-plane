@@ -27,14 +27,14 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
 
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.retryerFrom;
@@ -57,7 +57,7 @@ public class CreateOrReplaceBatchTaskAction extends TitusChangeAction {
                                            BatchJobTask newTask,
                                            Optional<BatchJobTask> oldTaskOpt,
                                            String summary) {
-        super(new JobChange(Trigger.Reconciler, newTask.getId(), summary));
+        super(new JobChange(V3JobOperations.Trigger.Reconciler, newTask.getId(), CreateOrReplaceBatchTaskAction.class.getSimpleName(), summary));
         this.titusStore = titusStore;
         this.newTask = newTask;
         this.oldTaskOpt = oldTaskOpt;
@@ -71,7 +71,7 @@ public class CreateOrReplaceBatchTaskAction extends TitusChangeAction {
         return titusStore.storeTask(newTask).andThen(Observable.just(Pair.of(getChange(), createTaskReplaceUpdateActions())));
     }
 
-    private TitusModelUpdateAction createOrUpdateTaskRetryer(BatchJobTask task) {
+    private TitusModelAction createOrUpdateTaskRetryer(BatchJobTask task) {
         return updateJobHolder(task.getJobId(), jobHolder -> {
             String tagName = getRetryerAttribute(task);
             Retryer retryer = (Retryer) jobHolder.getAttributes().get(tagName);
@@ -87,16 +87,16 @@ public class CreateOrReplaceBatchTaskAction extends TitusChangeAction {
             }
 
             return jobHolder.addTag(tagName, newRetryer);
-        }, Trigger.Reconciler, "Updating retry execution status for task index " + task.getIndex());
+        }, V3JobOperations.Trigger.Reconciler, "Updating retry execution status for task index " + task.getIndex());
     }
 
     private List<ModelActionHolder> createTaskReplaceUpdateActions() {
         List<ModelActionHolder> actions = new ArrayList<>();
 
-        oldTaskOpt.ifPresent(oldTask -> actions.addAll(ModelActionHolder.allModels(removeTask(oldTask.getId(), Trigger.Reconciler, "Removing replaced task"))));
+        oldTaskOpt.ifPresent(oldTask -> actions.addAll(ModelActionHolder.allModels(removeTask(oldTask.getId(), V3JobOperations.Trigger.Reconciler, "Removing replaced task"))));
         boolean shouldRetry = oldTaskOpt.map(oldTask -> TaskStatus.REASON_TASK_KILLED.equals(oldTask.getStatus().getReasonCode())).orElse(true);
         if (shouldRetry) {
-            actions.addAll(ModelActionHolder.referenceAndStore(createTask(newTask, Trigger.Reconciler, "Creating new task")));
+            actions.addAll(ModelActionHolder.referenceAndStore(createTask(newTask, V3JobOperations.Trigger.Reconciler, "Creating new task entity holder")));
             actions.add(ModelActionHolder.reference(createOrUpdateTaskRetryer(newTask)));
         }
 
@@ -114,8 +114,8 @@ public class CreateOrReplaceBatchTaskAction extends TitusChangeAction {
         BatchJobTask newTask = createNewTask(job, oldTaskOpt, index, taskId);
 
         String summary = oldTaskOpt
-                .map(oldTask -> String.format("Replacing task at index %d: old=%s, new=%s", oldTask.getIndex(), oldTask.getId(), newTask.getId()))
-                .orElseGet(() -> String.format("Creating new task at index %d: %s", newTask.getIndex(), newTask.getId()));
+                .map(oldTask -> String.format("Replacing task at index %d in DB store: old=%s, new=%s", oldTask.getIndex(), oldTask.getId(), newTask.getId()))
+                .orElseGet(() -> String.format("Creating new task at index %d in DB store: %s", newTask.getIndex(), newTask.getId()));
 
         return new CreateOrReplaceBatchTaskAction(titusStore, newTask, oldTaskOpt, summary);
     }

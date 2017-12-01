@@ -32,6 +32,7 @@ import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
+import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -60,7 +61,7 @@ public class DefaultReconciliationEngineTest {
 
     private final ExtTestSubscriber<SimpleReconcilerEvent> eventSubscriber = new ExtTestSubscriber<>();
 
-    private final Queue<List<ChangeAction>> runtimeReconcileActions = new LinkedBlockingQueue<>();
+    private final Queue<List<ChangeAction<String>>> runtimeReconcileActions = new LinkedBlockingQueue<>();
 
     @Before
     public void setUp() throws Exception {
@@ -158,8 +159,8 @@ public class DefaultReconciliationEngineTest {
         assertThat(engine.triggerEvents().hasModelUpdates()).isTrue();
     }
 
-    private List<ChangeAction> difference(EntityHolder referenceHolder, EntityHolder runtimeHolder, EntityHolder storeHolder) {
-        List<ChangeAction> next = runtimeReconcileActions.poll();
+    private List<ChangeAction<String>> difference(ReconciliationEngine<String, SimpleReconcilerEvent> engine) {
+        List<ChangeAction<String>> next = runtimeReconcileActions.poll();
         return next == null ? Collections.emptyList() : next;
     }
 

@@ -27,14 +27,14 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
 
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.retryerFrom;
@@ -57,7 +57,7 @@ public class CreateOrReplaceServiceTaskAction extends TitusChangeAction {
                                              ServiceJobTask newTask,
                                              Optional<ServiceJobTask> oldTaskOpt,
                                              String summary) {
-        super(new JobChange(Trigger.Reconciler, newTask.getId(), summary));
+        super(new JobChange(V3JobOperations.Trigger.Reconciler, newTask.getId(), summary));
         this.titusStore = titusStore;
         this.newTask = newTask;
         this.oldTaskOpt = oldTaskOpt;
@@ -71,7 +71,7 @@ public class CreateOrReplaceServiceTaskAction extends TitusChangeAction {
         return titusStore.storeTask(newTask).andThen(Observable.just(Pair.of(getChange(), createTaskReplaceUpdateActions())));
     }
 
-    private TitusModelUpdateAction createOrUpdateTaskRetryer(ServiceJobTask task) {
+    private TitusModelAction createOrUpdateTaskRetryer(ServiceJobTask task) {
         return updateJobHolder(task.getJobId(), jobHolder -> {
             String tagName = getRetryerAttribute(task);
             Retryer retryer = (Retryer) jobHolder.getAttributes().get(tagName);
@@ -87,14 +87,14 @@ public class CreateOrReplaceServiceTaskAction extends TitusChangeAction {
             }
 
             return jobHolder.addTag(tagName, newRetryer);
-        }, Trigger.Reconciler, "Updating retry execution status for task with original id " + task.getOriginalId());
+        }, V3JobOperations.Trigger.Reconciler, "Updating retry execution status for task with original id " + task.getOriginalId());
     }
 
     private List<ModelActionHolder> createTaskReplaceUpdateActions() {
         List<ModelActionHolder> actions = new ArrayList<>();
 
-        oldTaskOpt.ifPresent(oldTask -> actions.addAll(ModelActionHolder.allModels(removeTask(oldTask.getId(), Trigger.Reconciler, "Removing replaced task"))));
-        actions.addAll(ModelActionHolder.referenceAndStore(createTask(newTask, Trigger.Reconciler, "Creating new task")));
+        oldTaskOpt.ifPresent(oldTask -> actions.addAll(ModelActionHolder.allModels(removeTask(oldTask.getId(), V3JobOperations.Trigger.Reconciler, "Removing replaced task"))));
+        actions.addAll(ModelActionHolder.referenceAndStore(createTask(newTask, V3JobOperations.Trigger.Reconciler, "Creating new task")));
         actions.add(ModelActionHolder.reference(createOrUpdateTaskRetryer(newTask)));
 
         return actions;

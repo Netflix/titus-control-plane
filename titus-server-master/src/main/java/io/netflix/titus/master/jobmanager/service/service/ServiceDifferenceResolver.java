@@ -41,17 +41,18 @@ import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange.Trigger;
+import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
+import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.job.WriteJobAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.InitiateTaskKillAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.StartNewTaskAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.WriteTaskAction;
+import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RateLimiterInterceptor;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
+import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.service.action.RemoveServiceTaskAction;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.areEquivalent;
@@ -64,7 +65,7 @@ import static io.netflix.titus.master.jobmanager.service.service.action.CreateOr
 
 
 @Singleton
-public class ServiceDifferenceResolver implements ReconciliationEngine.DifferenceResolver {
+public class ServiceDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobChange, JobManagerReconcilerEvent> {
 
     private static final long NEW_TASK_BUCKET = 10;
     private static final long NEW_TASK_REFILL_INTERVAL_MS = 100;
@@ -87,6 +88,16 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
             JobStore titusStore) {
+        this(configuration, capacityGroupService, schedulingService, vmService, titusStore, Schedulers.computation());
+    }
+
+    public ServiceDifferenceResolver(
+            JobManagerConfiguration configuration,
+            ApplicationSlaManagementService capacityGroupService,
+            SchedulingService schedulingService,
+            VirtualMachineMasterService vmService,
+            JobStore titusStore,
+            Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
@@ -96,7 +107,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
                 Retryers.exponentialBackoff(5000, 5000, TimeUnit.MILLISECONDS),
-                Schedulers.computation()
+                scheduler
         );
 
         this.newTaskRateLimiterInterceptor = new RateLimiterInterceptor(
@@ -109,33 +120,33 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     }
 
     @Override
-    public List<ChangeAction> apply(EntityHolder referenceModel, EntityHolder runningModel, EntityHolder storeModel) {
-        List<ChangeAction> actions = new ArrayList<>();
-        ServiceJobView refJobView = new ServiceJobView(referenceModel);
-        actions.addAll(applyRuntime(refJobView, runningModel, storeModel));
-        actions.addAll(applyStore(refJobView, storeModel));
+    public List<ChangeAction<JobChange>> apply(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine) {
+        List<ChangeAction<JobChange>> actions = new ArrayList<>();
+        ServiceJobView refJobView = new ServiceJobView(engine.getReferenceView());
+        actions.addAll(applyRuntime(engine, refJobView, engine.getRunningView(), engine.getStoreView()));
+        actions.addAll(applyStore(engine, refJobView, engine.getStoreView()));
 
         if (actions.isEmpty()) {
-            actions.addAll(removeCompletedJob(referenceModel, storeModel, titusStore));
+            actions.addAll(removeCompletedJob(engine.getReferenceView(), engine.getStoreView(), titusStore));
         }
 
         return actions;
     }
 
-    private List<ChangeAction> applyRuntime(ServiceJobView refJobView, EntityHolder runningModel, EntityHolder storeModel) {
-        List<ChangeAction> actions = new ArrayList<>();
+    private List<ChangeAction<JobChange>> applyRuntime(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine, ServiceJobView refJobView, EntityHolder runningModel, EntityHolder storeModel) {
+        List<ChangeAction<JobChange>> actions = new ArrayList<>();
         EntityHolder referenceModel = refJobView.getJobHolder();
         ServiceJobView runningJobView = new ServiceJobView(runningModel);
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
-            return InitiateTaskKillAction.applyKillInitiated(runningJobView, vmService);
+            return KillInitiatedActions.applyKillInitiated(engine, vmService, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
         } else if (hasJobState(referenceModel, JobState.Finished)) {
             return Collections.emptyList();
         }
 
-        actions.addAll(findJobSizeInconsistencies(refJobView, storeModel));
+        actions.addAll(findJobSizeInconsistencies(engine, refJobView, storeModel));
         actions.addAll(findMissingRunningTasks(refJobView, runningJobView));
-        actions.addAll(findTaskStateTimeouts(runningJobView, configuration, clock, vmService));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService));
 
         return actions;
     }
@@ -143,12 +154,12 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     /**
      * Check that the reference job has the required number of tasks.
      */
-    private List<ChangeAction> findJobSizeInconsistencies(ServiceJobView refJobView, EntityHolder storeModel) {
+    private List<ChangeAction<JobChange>> findJobSizeInconsistencies(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine, ServiceJobView refJobView, EntityHolder storeModel) {
         boolean canUpdateStore = storeWriteRetryInterceptor.executionLimits(storeModel);
         List<ServiceJobTask> tasks = refJobView.getTasks();
         int missing = refJobView.getRequiredSize() - tasks.size();
         if (canUpdateStore && missing > 0) {
-            List<ChangeAction> missingTasks = new ArrayList<>();
+            List<ChangeAction<JobChange>> missingTasks = new ArrayList<>();
             for (int i = 0; i < missing; i++) {
                 missingTasks.add(createNewTaskAction(refJobView, Optional.empty()));
             }
@@ -158,11 +169,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             int finishedCount = (int) tasks.stream().filter(DifferenceResolverUtils::isTerminating).count();
             int toRemoveCount = -missing - finishedCount;
             if (toRemoveCount > 0) {
-                List<ChangeAction> toRemove = new ArrayList<>();
+                List<ChangeAction<JobChange>> toRemove = new ArrayList<>();
                 for (int i = tasks.size() - 1; toRemoveCount > 0 && i >= 0; i--) {
                     ServiceJobTask next = tasks.get(i);
                     if (!isTerminating(next)) {
-                        toRemove.add(new InitiateTaskKillAction(Trigger.Reconciler, next, false, vmService, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task"));
+                        toRemove.add(KillInitiatedActions.applyKillInitiated(engine, next, vmService, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task"));
                         toRemoveCount--;
                     }
                 }
@@ -183,33 +194,33 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     /**
      * Check that for each reference job task, there is a corresponding running task.
      */
-    private List<ChangeAction> findMissingRunningTasks(ServiceJobView refJobView, ServiceJobView runningJobView) {
-        List<ChangeAction> missingTasks = new ArrayList<>();
+    private List<ChangeAction<JobChange>> findMissingRunningTasks(ServiceJobView refJobView, ServiceJobView runningJobView) {
+        List<ChangeAction<JobChange>> missingTasks = new ArrayList<>();
         long allowedToRun = newTaskRateLimiterInterceptor.executionLimits(runningJobView.getJobHolder());
         List<ServiceJobTask> tasks = refJobView.getTasks();
         for (int i = 0; i < tasks.size() && allowedToRun > 0; i++) {
             ServiceJobTask refTask = tasks.get(i);
             ServiceJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
-                missingTasks.add(new StartNewTaskAction(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));
+                missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));
                 allowedToRun--;
             }
         }
         return missingTasks;
     }
 
-    private List<ChangeAction> applyStore(ServiceJobView refJobView, EntityHolder storeJob) {
+    private List<ChangeAction<JobChange>> applyStore(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine, ServiceJobView refJobView, EntityHolder storeJob) {
         if (!storeWriteRetryInterceptor.executionLimits(storeJob)) {
             return Collections.emptyList();
         }
 
-        List<ChangeAction> actions = new ArrayList<>();
+        List<ChangeAction<JobChange>> actions = new ArrayList<>();
 
         EntityHolder refJobHolder = refJobView.getJobHolder();
         Job<ServiceJobExt> refJob = refJobHolder.getEntity();
 
         if (!refJobHolder.getEntity().equals(storeJob.getEntity())) {
-            actions.add(storeWriteRetryInterceptor.apply(new WriteJobAction(titusStore, refJobHolder.getEntity())));
+            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(refJobHolder.getEntity(), titusStore)));
         }
         boolean isJobTerminating = refJob.getStatus().getState() == JobState.KillInitiated;
         for (EntityHolder referenceTask : refJobHolder.getChildren()) {
@@ -225,7 +236,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                     }
                 }
             } else {
-                actions.add(storeWriteRetryInterceptor.apply(new WriteTaskAction(titusStore, schedulingService, capacityGroupService, refJob, referenceTask.getEntity())));
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(titusStore, schedulingService, capacityGroupService, engine, referenceTask.getEntity())));
             }
         }
         return actions;

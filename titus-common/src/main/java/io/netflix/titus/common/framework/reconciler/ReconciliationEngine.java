@@ -24,8 +24,8 @@ import rx.Observable;
  */
 public interface ReconciliationEngine<CHANGE, EVENT> {
 
-    interface DifferenceResolver<CHANGE> {
-        List<ChangeAction<CHANGE>> apply(EntityHolder referenceModel, EntityHolder runningModel, EntityHolder storeModel);
+    interface DifferenceResolver<CHANGE, EVENT> {
+        List<ChangeAction<CHANGE>> apply(ReconciliationEngine<CHANGE, EVENT> engine);
     }
 
     class TriggerStatus {
