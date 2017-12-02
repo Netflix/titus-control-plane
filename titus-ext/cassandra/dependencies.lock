@@ -458,7 +458,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -923,7 +923,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1389,7 +1389,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1891,7 +1891,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2357,7 +2357,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3576,7 +3576,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -4805,7 +4805,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -6035,7 +6035,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -7265,7 +7265,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
