@@ -1,2 +1,2 @@
-Release process test
+Third party release process verification
 
