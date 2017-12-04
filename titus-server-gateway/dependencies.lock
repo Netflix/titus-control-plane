@@ -49,6 +49,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -224,7 +228,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -414,7 +418,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -588,7 +592,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -626,7 +630,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -688,6 +692,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -863,7 +871,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1053,7 +1061,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1227,7 +1235,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -1265,7 +1273,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1327,6 +1335,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -1502,7 +1514,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1692,7 +1704,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1866,7 +1878,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -1905,7 +1917,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2003,6 +2015,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -2178,7 +2194,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2368,7 +2384,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -2542,7 +2558,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -2581,7 +2597,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2643,6 +2659,10 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.spullara.cli-parser:cli-parser": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
+        },
         "com.google.api.grpc:proto-google-common-protos": {
             "locked": "0.1.9",
             "transitive": [
@@ -2818,7 +2838,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3008,7 +3028,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -3182,7 +3202,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -3221,7 +3241,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3300,7 +3320,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -3556,7 +3578,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "com.netflix.runtime:health-core",
                 "io.netflix.titus:titus-common"
@@ -3779,7 +3801,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -3949,8 +3971,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -4098,7 +4120,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -4153,7 +4175,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -4232,7 +4254,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -4488,7 +4512,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "com.netflix.runtime:health-core",
                 "io.netflix.titus:titus-common"
@@ -4711,7 +4735,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -4881,8 +4905,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -5030,7 +5054,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -5085,7 +5109,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -5164,7 +5188,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -5420,7 +5446,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "com.netflix.runtime:health-core",
                 "io.netflix.titus:titus-common"
@@ -5643,7 +5669,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -5813,8 +5839,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -5962,7 +5988,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -6018,7 +6044,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -6097,7 +6123,9 @@
         },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master"
             ]
         },
@@ -6353,7 +6381,7 @@
             ]
         },
         "com.netflix.spectator:spectator-api": {
-            "locked": "0.53.0",
+            "locked": "0.59.0",
             "transitive": [
                 "com.netflix.runtime:health-core",
                 "io.netflix.titus:titus-common"
@@ -6576,7 +6604,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.3",
+            "locked": "1.3.4",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -6746,8 +6774,8 @@
             ]
         },
         "org.assertj:assertj-core": {
-            "locked": "3.4.1",
-            "requested": "3.4.1"
+            "locked": "3.8.0",
+            "requested": "3.8.0"
         },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
@@ -6895,7 +6923,7 @@
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
@@ -6951,7 +6979,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.4",
+            "locked": "1.1.7",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]

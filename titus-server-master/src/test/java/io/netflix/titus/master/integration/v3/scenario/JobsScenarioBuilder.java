@@ -35,23 +35,61 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
+import io.netflix.titus.testkit.junit.master.TitusMasterResource;
+import io.netflix.titus.testkit.junit.master.TitusStackResource;
+import org.junit.rules.ExternalResource;
 
 import static io.netflix.titus.common.util.ExceptionExt.rethrow;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.TIMEOUT_MS;
 
 /**
  */
-public class JobsScenarioBuilder {
+public class JobsScenarioBuilder extends ExternalResource {
 
-    private final JobManagementServiceGrpc.JobManagementServiceStub client;
+    private final TitusStackResource titusStackResource;
+    private final TitusMasterResource titusMasterResource;
+
+    private EmbeddedTitusOperations titusOperations;
+    private JobManagementServiceGrpc.JobManagementServiceStub client;
 
     private final List<JobScenarioBuilder> jobScenarioBuilders = new ArrayList<>();
-    private final EmbeddedTitusOperations titusOperations;
+
+    public JobsScenarioBuilder(TitusStackResource titusStackResource) {
+        this.titusStackResource = titusStackResource;
+        this.titusMasterResource = null;
+    }
+
+    public JobsScenarioBuilder(TitusMasterResource titusMasterResource) {
+        this.titusStackResource = null;
+        this.titusMasterResource = titusMasterResource;
+    }
 
     public JobsScenarioBuilder(EmbeddedTitusOperations titusOperations) {
+        this.titusStackResource = null;
+        this.titusMasterResource = null;
         this.titusOperations = titusOperations;
+        try {
+            before();
+        } catch (Throwable error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
+    @Override
+    protected void before() throws Throwable {
+        if (titusStackResource != null) {
+            this.titusOperations = titusStackResource.getOperations();
+        }
+        if (titusMasterResource != null) {
+            this.titusOperations = titusMasterResource.getOperations();
+        }
         this.client = titusOperations.getV3GrpcClient();
-        jobScenarioBuilders.addAll(loadJobs());
+        this.jobScenarioBuilders.addAll(loadJobs());
+    }
+
+    @Override
+    protected void after() {
+        stop();
     }
 
     public void stop() {

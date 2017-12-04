@@ -19,16 +19,14 @@ package io.netflix.titus.testkit.embedded.master;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.util.Modules;
@@ -46,15 +44,18 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
 import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.model.event.AutoScaleEvent;
 import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.grpc.V3HeaderInterceptor;
 import io.netflix.titus.common.util.AwaitExt;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
@@ -69,12 +70,14 @@ import io.netflix.titus.master.cluster.LeaderElector;
 import io.netflix.titus.master.endpoint.common.SchedulerUtil;
 import io.netflix.titus.master.job.worker.WorkerStateMonitor;
 import io.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
+import io.netflix.titus.master.loadbalancer.service.NoOpLoadBalancerConnector;
 import io.netflix.titus.master.master.MasterDescription;
 import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
-import io.netflix.titus.master.scheduler.AutoScaleController;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.store.V2StorageProvider;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import io.netflix.titus.testkit.client.DefaultTitusMasterClient;
 import io.netflix.titus.testkit.client.TitusMasterClient;
@@ -89,8 +92,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import static io.netflix.titus.common.util.StringExt.concatenate;
-
 /**
  * Run TitusMaster server with mocked external integrations (mesos, storage).
  */
@@ -98,6 +99,7 @@ public class EmbeddedTitusMaster {
 
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedTitusMaster.class);
 
+    private final Properties properties;
     private final DefaultSettableConfig config;
     private final int apiPort;
     private final int grpcPort;
@@ -117,6 +119,7 @@ public class EmbeddedTitusMaster {
     private EmbeddedTitusMaster(Builder builder) {
         this.config = new DefaultSettableConfig();
 
+        this.properties = builder.props;
         this.config.setProperties(builder.props);
         this.apiPort = builder.apiPort;
         this.grpcPort = builder.grpcPort;
@@ -125,7 +128,7 @@ public class EmbeddedTitusMaster {
                 System.currentTimeMillis()
         );
         this.storageProvider = builder.storageProvider;
-        this.store = builder.store;
+        this.store = builder.store == null ? new InMemoryJobStore() : builder.store;
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
 
@@ -139,6 +142,7 @@ public class EmbeddedTitusMaster {
     }
 
     public EmbeddedTitusMaster boot() {
+        Stopwatch timer = Stopwatch.createStarted();
         logger.info("Starting Titus Master");
 
         injector = InjectorBuilder.fromModules(
@@ -152,18 +156,20 @@ public class EmbeddedTitusMaster {
                         .with(new AbstractModule() {
                                   @Override
                                   protected void configure() {
+                                      bind(SimulatedCloud.class).toInstance(simulatedCloud);
                                       bind(LeaderElector.class).to(EmbeddedLeaderElector.class);
                                       bind(MesosSchedulerDriverFactory.class).to(SimulatedMesosSchedulerDriverFactory.class);
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(EmbeddedMasterMonitor.class);
                                       bind(V2StorageProvider.class).toInstance(storageProvider);
-                                      if (store != null) {
-                                          bind(JobStore.class).toInstance(store);
-                                      }
+                                      bind(JobStore.class).toInstance(store);
 
                                       bind(VirtualMachineMasterService.class).to(EmbeddedVirtualMachineMasterService.class);
 
                                       bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
+
+                                      bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
+                                      bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
                                   }
 
                                   @Provides
@@ -192,8 +198,6 @@ public class EmbeddedTitusMaster {
         injector.getInstance(LeaderActivator.class).becomeLeader();
         injector.getInstance(AuditLogService.class).auditLogEvents().subscribe(auditLogs::add);
 
-        simulatedCloud.getAgentInstanceGroups().forEach(this::registerAgentCluster);
-
         // Since jetty API server is run on a separate thread, it may not be ready yet
         // We do not have better way, but call it until it replies.
         getClient().findAllJobs().retryWhen(attempts -> {
@@ -204,7 +208,7 @@ public class EmbeddedTitusMaster {
         ).timeout(30, TimeUnit.SECONDS).toBlocking().firstOrDefault(null);
 
         workerStateMonitor = injector.getInstance(DefaultWorkerStateMonitor.class);
-        logger.info("Embedded TitusMaster started");
+        logger.info("Embedded TitusMaster started in {}ms", timer.elapsed(TimeUnit.MILLISECONDS));
 
         return this;
     }
@@ -221,13 +225,6 @@ public class EmbeddedTitusMaster {
     }
 
     public void addAgentCluster(SimulatedTitusAgentCluster agentCluster) {
-        simulatedCloud.addInstanceGroup(agentCluster);
-        registerAgentCluster(agentCluster);
-    }
-
-    public void addAgentCluster(SimulatedTitusAgentCluster.Builder agentClusterBuilder) {
-        agentClusterBuilder.withComputeResources(simulatedCloud.getComputeResources());
-        SimulatedTitusAgentCluster agentCluster = agentClusterBuilder.build();
         simulatedCloud.addInstanceGroup(agentCluster);
         registerAgentCluster(agentCluster);
     }
@@ -273,6 +270,11 @@ public class EmbeddedTitusMaster {
         return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
     }
 
+    public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
+        LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
+        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+    }
+
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
             this.grpcChannel = ManagedChannelBuilder.forAddress("127.0.0.1", grpcPort)
@@ -286,22 +288,12 @@ public class EmbeddedTitusMaster {
         return injector.getInstance(RxEventBus.class);
     }
 
-    public Observable<AutoScaleEvent> observeAutoScaleEvents() {
-        return injector.getInstance(AutoScaleController.class).events();
+    public JobStore getStore() {
+        return store;
     }
 
     public Observable<TaskExecutorHolder> observeLaunchedTasks() {
         return getMesosSchedulerDriver().observeLaunchedTasks();
-    }
-
-    public Optional<TaskExecutorHolder> findTaskById(String taskId) {
-        for (SimulatedTitusAgentCluster cluster : simulatedCloud.getAgentInstanceGroups()) {
-            Optional<TaskExecutorHolder> holder = cluster.findTaskById(taskId);
-            if (holder.isPresent()) {
-                return holder;
-            }
-        }
-        return Optional.empty();
     }
 
     public void reboot() {
@@ -344,26 +336,6 @@ public class EmbeddedTitusMaster {
         return new Builder();
     }
 
-    /**
-     * Embedded TitusMaster with configuration tuned up for faster execution, to make test fast.
-     */
-    public static Builder testTitusMaster() {
-        return new Builder()
-                .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
-                .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
-                .withProperty("titusMaster.jobManager.reconcilerIdleTimeoutMs", "100")
-                .withProperty("titusMaster.jobManager.reconcilerActiveTimeoutMs", "10");
-    }
-
-    public static EmbeddedTitusMaster aDefaultTitusMaster() {
-        return testTitusMaster()
-                .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                .withAgentCluster(SimulatedTitusAgentCluster.aTitusAgentCluster("agentClusterOne", 0).withSize(2).withInstanceType(AwsInstanceType.M3_XLARGE))
-                .withAgentCluster(SimulatedTitusAgentCluster.aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                .build();
-    }
-
     public Observable<TaskExecutorHolder> awaitTaskExecutorHolderOf(String taskId) {
         return observeLaunchedTasks().compose(ObservableExt.head(() -> simulatedCloud.getAgentInstanceGroups().stream()
                 .flatMap(c -> c.getAgents().stream())
@@ -372,8 +344,22 @@ public class EmbeddedTitusMaster {
                 .collect(Collectors.toList())));
     }
 
+    public int getApiPort() {
+        return apiPort;
+    }
+
     public int getGrpcPort() {
         return grpcPort;
+    }
+
+    public Builder toBuilder() {
+        return new Builder()
+                .withApiPort(apiPort)
+                .withGrpcPort(grpcPort)
+                .withSimulatedCloud(simulatedCloud)
+                .withProperties(properties)
+                .withJobStore(store)
+                .withStorageProvider(storageProvider);
     }
 
     public static class Builder {
@@ -407,6 +393,11 @@ public class EmbeddedTitusMaster {
             return this;
         }
 
+        public Builder withProperties(Properties properties) {
+            props.putAll(properties);
+            return this;
+        }
+
         public Builder withStorageProvider(EmbeddedStorageProvider storageProvider) {
             this.storageProvider = storageProvider;
             return this;
@@ -414,18 +405,6 @@ public class EmbeddedTitusMaster {
 
         public Builder withJobStore(JobStore titusStore) {
             this.store = titusStore;
-            return this;
-        }
-
-        public Builder withCriticalTier(double buffer, AwsInstanceType... instanceTypes) {
-            withProperty("titus.master.capacityManagement.tiers.0.instanceTypes", concatenateInstanceTypes(instanceTypes));
-            withProperty("titus.master.capacityManagement.tiers.0.buffer", Double.toString(buffer));
-            return this;
-        }
-
-        public Builder withFlexTier(double buffer, AwsInstanceType... instanceTypes) {
-            withProperty("titus.master.capacityManagement.tiers.1.instanceTypes", concatenateInstanceTypes(instanceTypes));
-            withProperty("titus.master.capacityManagement.tiers.1.buffer", Double.toString(buffer));
             return this;
         }
 
@@ -454,7 +433,6 @@ public class EmbeddedTitusMaster {
             }
             grpcPort = grpcPort == 0 ? NetworkExt.findUnusedPort() : grpcPort;
 
-            props.put("titus.agent.agentServerGroupPattern", ".*");
             props.put("titus.master.audit.auditLogFolder", "build/auditLogs");
             props.put("titus.master.apiport", Integer.toString(apiPort));
             props.put("titus.master.grpcServer.port", Integer.toString(grpcPort));
@@ -463,41 +441,7 @@ public class EmbeddedTitusMaster {
                 storageProvider = new EmbeddedStorageProvider();
             }
 
-            if (agentClusters.isEmpty()) {
-                agentClusters.add(SimulatedTitusAgentCluster.aTitusAgentCluster("agentClusterOne", 0)
-                        .withComputeResources(simulatedCloud.getComputeResources())
-                        .withSize(2)
-                        .withInstanceType(AwsInstanceType.M3_2XLARGE)
-                        .build()
-                );
-            }
-
             return new EmbeddedTitusMaster(this);
-        }
-
-        private static String concatenateInstanceTypes(AwsInstanceType[] instanceTypes) {
-            return concatenate(instanceTypes, ",", it -> it.getDescriptor().getId());
-        }
-    }
-
-    public static class TierConfig {
-
-        private final List<String> instanceTypes;
-        private final double buffer;
-
-        @JsonCreator
-        public TierConfig(@JsonProperty("instanceTypes") List<String> instanceTypes,
-                          @JsonProperty("buffer") double buffer) {
-            this.instanceTypes = instanceTypes;
-            this.buffer = buffer;
-        }
-
-        public List<String> getInstanceTypes() {
-            return instanceTypes;
-        }
-
-        public double getBuffer() {
-            return buffer;
         }
     }
 }

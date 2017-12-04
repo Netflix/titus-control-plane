@@ -25,6 +25,8 @@ public class MetricConstants {
 
     public static final String METRIC_AGENT = METRIC_ROOT + "agent.";
 
+    public static final String METRIC_AGENT_CACHE = METRIC_ROOT + "agentCache.";
+
     public static final String METRIC_AGENT_MONITOR = METRIC_ROOT + "agentMonitor.";
 
     public static final String METRIC_CAPACITY_MANAGEMENT = METRIC_ROOT + "capacity.";
@@ -40,8 +42,6 @@ public class MetricConstants {
     public static final String METRIC_STORE = METRIC_ROOT + "store.";
 
     public static final String METRIC_TASK_MIGRATION = METRIC_ROOT + "taskMigration.";
-
-    public static final String METRIC_REST = METRIC_ROOT + "rest.";
 
     public static final String METRIC_WORKER_STATE_OBSERVER = METRIC_ROOT + "workerStateObserver.";
 }

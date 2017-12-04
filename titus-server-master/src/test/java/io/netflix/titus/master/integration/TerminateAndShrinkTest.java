@@ -25,13 +25,15 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
-import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.network.client.RxRestClientException;
 import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.testkit.client.TitusMasterClient;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.JobObserver;
 import io.netflix.titus.testkit.junit.master.TitusMasterResource;
@@ -42,12 +44,12 @@ import org.apache.log4j.Logger;
 import org.apache.mesos.Protos;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -58,17 +60,12 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         Logger.getLogger("io.netflix.titus.master.job.JobMgrUtils").setLevel(Level.DEBUG);
     }
 
+    private final TitusMasterResource titusMasterResource = new TitusMasterResource(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloud(10)));
+
+    private InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusMasterResource);
+
     @Rule
-    public final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
-                    .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
-                    .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                    .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(1).withInstanceType(AwsInstanceType.M3_XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(10).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                    .build()
-    );
+    public final RuleChain ruleChain = RuleChain.outerRule(titusMasterResource).around(instanceGroupsScenarioBuilder);
 
     private EmbeddedTitusMaster titusMaster;
 
@@ -91,13 +88,15 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
+
         titusMaster = titusMasterResource.getMaster();
 
         client = titusMaster.getClient();
         jobRunner = new JobRunner(titusMaster);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testTerminateAndShrinkScalesDownJobByOne() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -128,7 +127,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         assertThat(jobInfo.getInstancesDesired()).isEqualTo(1);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testTerminateAndShrinkRecyclesTombStonedIndexes() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -152,7 +151,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         verifyTasksHaveTheSameIndex(newTaskIds.iterator().next(), firstHolder.getTaskId());
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScaleUpWithTombStonedIndexes() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -167,7 +166,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(3, 1, 5); // Fails if job not scaled to desired level = 3
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScaleDownWithTombStonedIndexes() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(threeTaskServiceSpec);
         TaskExecutorHolder secondHolder = holders.get(1);
@@ -182,7 +181,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(1, 1, 5); // Scale down from 2 to 1
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testTombStonedTaskIsNotRunningAfterMasterReboot() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(twoTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -203,7 +202,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(2, 1, 3); // Fails if job not scaled to desired level = 2
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScalingToZeroDoesNotTerminateJob() throws Exception {
         List<TaskExecutorHolder> holders = jobRunner.runJob(oneTaskServiceSpec);
         TaskExecutorHolder firstHolder = holders.get(0);
@@ -221,7 +220,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         jobObserver.updateJobSize(1, 0, 3); // Fails if job not scaled to desired level = 1
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 30_000)
     public void testScalingBelowMinNotAllowed() throws Exception {
         TitusJobSpec myTask = new TitusJobSpec.Builder(oneTaskServiceSpec).instancesMin(1).build();
         List<TaskExecutorHolder> holders = jobRunner.runJob(myTask);
@@ -239,7 +238,6 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Ignore
     public void testScalingUpWithMultipleTombstones() throws Exception {
         TitusJobSpec largeTaskSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
                 .instancesMin(0).instancesDesired(1).instancesMax(100)

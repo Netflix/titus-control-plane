@@ -16,6 +16,7 @@
 
 package io.netflix.titus.common.util.spectator;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,8 +27,7 @@ import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
-
-import static java.util.Arrays.asList;
+import com.netflix.spectator.api.patterns.PolledMeter;
 
 /**
  * A collection of metrics for tracking successful and failed action executions.
@@ -48,15 +48,17 @@ public class ExecutionMetrics {
     public ExecutionMetrics(String root, Class<?> aClass, Registry registry) {
         this.root = root;
         this.registry = registry;
-        this.commonTags = asList(
+        this.commonTags = Collections.singletonList(
                 new BasicTag("class", aClass.getName())
         );
 
         this.successCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "success"));
         this.errorCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "failure"));
 
-        registry.gauge(registry.createId(root + ".latency", commonTags).withTag("status", "success"), successLatency);
-        registry.gauge(registry.createId(root + ".latency", commonTags).withTag("status", "failure"), failureLatency);
+        Id successLatencyId = registry.createId(root + ".latency", commonTags).withTag("status", "success");
+        PolledMeter.using(registry).withId(successLatencyId).monitorValue(successLatency);
+        Id failureLatencyId = registry.createId(root + ".latency", commonTags).withTag("status", "failure");
+        PolledMeter.using(registry).withId(failureLatencyId).monitorValue(failureLatency);
     }
 
     public void success() {
@@ -65,7 +67,7 @@ public class ExecutionMetrics {
 
     public void success(long startTime) {
         success();
-        successLatency.set(System.currentTimeMillis() - startTime);
+        successLatency.set(registry.clock().wallTime() - startTime);
         failureLatency.set(0);
     }
 
@@ -84,6 +86,6 @@ public class ExecutionMetrics {
     public void failure(Throwable error, long startTime) {
         failure(error);
         successLatency.set(0);
-        failureLatency.set(System.currentTimeMillis() - startTime);
+        failureLatency.set(registry.clock().wallTime() - startTime);
     }
 }

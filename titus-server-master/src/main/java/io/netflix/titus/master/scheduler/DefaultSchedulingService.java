@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,7 +42,6 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.fenzo.AutoScaleRule;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.ScaleDownAction;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
@@ -63,9 +61,9 @@ import com.netflix.fenzo.queues.TaskQueue;
 import com.netflix.fenzo.queues.TaskQueueException;
 import com.netflix.fenzo.queues.TaskQueueMultiException;
 import com.netflix.fenzo.queues.TaskQueues;
-import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
 import io.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import io.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
@@ -114,15 +112,12 @@ import static io.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_SERVICE;
 
 @Singleton
 public class DefaultSchedulingService implements SchedulingService {
-
-    private static final String NO_CLUSTER = "no_cluster";
+    private static final Logger logger = LoggerFactory.getLogger(DefaultSchedulingService.class);
 
     private static final String METRIC_SLA_UPDATES = METRIC_SCHEDULING_SERVICE + "slaUpdates";
-
     private static final long STORE_UPDATE_TIMEOUT_MS = 5_000;
-
-    public static final int IDLE_MACHINE_CPU_THRESHOLD = 8;
-    public static final int IDLE_MACHINE_MEMORY_THRESHOLD = 10 * 1024;
+    private static final long vmCurrentStatesCheckIntervalMillis = 10_000L;
+    private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
 
     private final VirtualMachineMasterService virtualMachineService;
     private final MasterConfiguration config;
@@ -130,8 +125,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
-    private static final Logger logger = LoggerFactory.getLogger(DefaultSchedulingService.class);
-    private static final long vmCurrentStatesCheckIntervalMillis = 10_000L;
     private TaskScheduler taskScheduler;
     private TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
@@ -139,38 +132,31 @@ public class DefaultSchedulingService implements SchedulingService {
     // Choose this max delay between scheduling iterations with care. Making it too short makes scheduler do unnecessary
     // work when assignments are not possible. On the other hand, making it too long will delay other aspects such as
     // triggerring autoscale actions, expiring mesos offers, etc.
-    private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
+
     private final ConstraintsEvaluators constraintsEvaluators;
     private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
-    private final Counter taskFailsRequestCounterId;
-    private final Counter taskFailsRequestFailedCounterId;
-    private final Counter numWorkersLaunchedId;
-    private final Counter numResourceOffersReceivedId;
-    private final Counter numResourceOffersRejectedId;
-    private final Counter numAutoScaleUpActionsId;
-    private final Counter numAutoScaleDownActionsId;
-
-    private final AtomicInteger totalActiveAgents;
+    private final AtomicLong totalTasksPerIteration;
+    private final AtomicLong assignedTasksPerIteration;
+    private final AtomicLong failedTasksPerIteration;
+    private final AtomicLong offersReceived;
+    private final AtomicLong offersRejected;
+    private final AtomicLong totalActiveAgents;
     private final AtomicLong totalDisabledAgents;
     private final AtomicLong minDisableDuration;
     private final AtomicLong maxDisableDuration;
-    private final AtomicLong totalAvailableCPUs;
-    private final AtomicLong totalAllocatedCPUs;
+    private final AtomicLong totalAvailableCpus;
+    private final AtomicLong totalAllocatedCpus;
+    private final AtomicLong cpuUtilization;
     private final AtomicLong totalAvailableMemory;
     private final AtomicLong totalAllocatedMemory;
-    private final AtomicLong totalAvailableNwMbps;
-    private final AtomicLong totalAllocatedNwMbps;
-    private final AtomicLong cpuUtilization;
     private final AtomicLong memoryUtilization;
+    private final AtomicLong totalAvailableNetworkMbps;
+    private final AtomicLong totalAllocatedNetworkMbps;
     private final AtomicLong networkUtilization;
-    private final AtomicLong dominantResUtilization;
-    private final AtomicLong numPendingWorkers;
+    private final AtomicLong dominantResourceUtilization;
 
-    private final Timer numSchedulerRunMillis;
-    private final Timer numTotalWaitTimeMillis;
-
-    private ConcurrentHashMap<String, AtomicInteger> idleAgentsByCluster = new ConcurrentHashMap<>();
+    private final Timer schedulingIterationLatency;
 
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
     private final GlobalConstraintEvaluator globalConstraintsEvaluator;
@@ -264,30 +250,47 @@ public class DefaultSchedulingService implements SchedulingService {
         virtualMachineService.setVMLeaseHandler(schedulingService::addLeases);
         taskQueueAction = taskQueue::queueTask;
 
-        taskFailsRequestCounterId = registry.counter(METRIC_SCHEDULING_SERVICE + "taskFailuresRequests");
-        taskFailsRequestFailedCounterId = registry.counter(METRIC_SCHEDULING_SERVICE + "taskFailuresRequestsLimitReached");
-        numWorkersLaunchedId = registry.counter(METRIC_SCHEDULING_SERVICE + "numWorkersLaunched");
-        numResourceOffersReceivedId = registry.counter(METRIC_SCHEDULING_SERVICE + "numResourceOffersReceived");
-        numResourceOffersRejectedId = registry.counter(METRIC_SCHEDULING_SERVICE + "numResourceOffersRejected");
-        numSchedulerRunMillis = registry.timer(METRIC_SCHEDULING_SERVICE + "schedulerRunMillis");
-        numTotalWaitTimeMillis = registry.timer(METRIC_SCHEDULING_SERVICE + "numTotalWaitTimeMillis");
-        numAutoScaleUpActionsId = registry.counter(METRIC_SCHEDULING_SERVICE + "numAutoScaleUpActions");
-        numAutoScaleDownActionsId = registry.counter(METRIC_SCHEDULING_SERVICE + "numAutoScaleDownActions");
-        totalActiveAgents = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalActiveAgents", new AtomicInteger(0));
-        totalDisabledAgents = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalDisabledAgents", new AtomicLong(0));
-        minDisableDuration = registry.gauge(METRIC_SCHEDULING_SERVICE + "minDisableDuration", new AtomicLong(0));
-        maxDisableDuration = registry.gauge(METRIC_SCHEDULING_SERVICE + "maxDisableDuration", new AtomicLong(0));
-        totalAvailableCPUs = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableCPUs", new AtomicLong(0));
-        totalAllocatedCPUs = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedCPUs", new AtomicLong(0));
-        totalAvailableMemory = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableMemory", new AtomicLong(0));
-        totalAllocatedMemory = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedMemory", new AtomicLong(0));
-        totalAvailableNwMbps = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableNwMbps", new AtomicLong(0));
-        totalAllocatedNwMbps = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedNwMbps", new AtomicLong(0));
-        cpuUtilization = registry.gauge(METRIC_SCHEDULING_SERVICE + "cpuUtilization", new AtomicLong(0));
-        memoryUtilization = registry.gauge(METRIC_SCHEDULING_SERVICE + "memoryUtilization", new AtomicLong(0));
-        networkUtilization = registry.gauge(METRIC_SCHEDULING_SERVICE + "networkUtilization", new AtomicLong(0));
-        dominantResUtilization = registry.gauge(METRIC_SCHEDULING_SERVICE + "dominantResUtilization", new AtomicLong(0));
-        numPendingWorkers = registry.gauge(METRIC_SCHEDULING_SERVICE + "pendingWorkers", new AtomicLong(0));
+        totalTasksPerIteration = new AtomicLong(0);
+        assignedTasksPerIteration = new AtomicLong(0);
+        failedTasksPerIteration = new AtomicLong(0);
+        offersReceived = new AtomicLong(0);
+        offersRejected = new AtomicLong(0);
+        totalActiveAgents = new AtomicLong(0);
+        totalDisabledAgents = new AtomicLong(0);
+        minDisableDuration = new AtomicLong(0);
+        maxDisableDuration = new AtomicLong(0);
+        totalAvailableCpus = new AtomicLong(0);
+        totalAllocatedCpus = new AtomicLong(0);
+        cpuUtilization = new AtomicLong(0);
+        totalAvailableMemory = new AtomicLong(0);
+        memoryUtilization = new AtomicLong(0);
+        totalAllocatedMemory = new AtomicLong(0);
+        totalAvailableNetworkMbps = new AtomicLong(0);
+        totalAllocatedNetworkMbps = new AtomicLong(0);
+        networkUtilization = new AtomicLong(0);
+        dominantResourceUtilization = new AtomicLong(0);
+
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration").monitorValue(totalTasksPerIteration);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration").monitorValue(assignedTasksPerIteration);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "failedTasksPerIteration").monitorValue(failedTasksPerIteration);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "offersReceived").monitorValue(offersReceived);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "offersRejected").monitorValue(offersRejected);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalActiveAgents").monitorValue(totalActiveAgents);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalDisabledAgents").monitorValue(totalDisabledAgents);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "minDisableDuration").monitorValue(minDisableDuration);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "maxDisableDuration").monitorValue(maxDisableDuration);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableCpus").monitorValue(totalAvailableCpus);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedCpus").monitorValue(totalAllocatedCpus);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "cpuUtilization").monitorValue(cpuUtilization);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableMemory").monitorValue(totalAvailableMemory);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedMemory").monitorValue(totalAllocatedMemory);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "memoryUtilization").monitorValue(memoryUtilization);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkMbps").monitorValue(totalAvailableNetworkMbps);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkMbps").monitorValue(totalAllocatedNetworkMbps);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "networkUtilization").monitorValue(networkUtilization);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "dominantResourceUtilization").monitorValue(dominantResourceUtilization);
+
+        schedulingIterationLatency = registry.timer(METRIC_SCHEDULING_SERVICE + "schedulingIterationLatency");
 
         vmCurrentStatesMap = new ConcurrentHashMap<>();
     }
@@ -376,12 +379,9 @@ public class DefaultSchedulingService implements SchedulingService {
             try {
                 switch (action.getType()) {
                     case Up:
-                        numAutoScaleUpActionsId.increment();
                         autoScaleController.handleScaleUpAction(action.getRuleName(), ((ScaleUpAction) action).getScaleUpCount());
                         break;
                     case Down:
-                        numAutoScaleDownActionsId.increment();
-
                         // The API here is misleading. The 'hosts' attribute of ScaleDownAction contains instance ids.
                         Set<String> idsToTerminate = new HashSet<>(((ScaleDownAction) action).getHosts());
                         Pair<Set<String>, Set<String>> resultPair = autoScaleController.handleScaleDownAction(action.getRuleName(), idsToTerminate);
@@ -432,7 +432,7 @@ public class DefaultSchedulingService implements SchedulingService {
                         schedulingService.requestVmCurrentStates(
                                 states -> {
                                     vmCurrentStatesMap.put(0, states);
-                                    verifyAndReportResUsageMetrics(states);
+                                    verifyAndReportResourceUsageMetrics(states);
                                     checkInactiveVMs(states);
                                     vmOps.setAgentInfos(states);
                                 }
@@ -462,10 +462,7 @@ public class DefaultSchedulingService implements SchedulingService {
             String taskId, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> action
     ) throws IllegalStateException {
         if (!taskFailuresActions.offer(Collections.singletonMap(taskId, action))) {
-            taskFailsRequestFailedCounterId.increment();
             throw new IllegalStateException("Too many concurrent requests");
-        } else {
-            taskFailsRequestCounterId.increment();
         }
     }
 
@@ -516,7 +513,6 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void schedulingResultsHandler(SchedulingResult schedulingResult) {
-        int workersLaunched = 0;
         if (!schedulingResult.getExceptions().isEmpty()) {
             logger.error("Exceptions in scheduling iteration:");
             for (Exception e : schedulingResult.getExceptions()) {
@@ -531,27 +527,22 @@ public class DefaultSchedulingService implements SchedulingService {
             checkIfExitOnSchedError("One or more errors in Fenzo scheduling iteration");
             return;
         }
-        SchedulerCounters.getInstance().incrementResourceAllocationTrials(schedulingResult.getNumAllocations());
+
+        int assignedDuringSchedulingResult = 0;
+        int failedTasksDuringSchedulingResult = 0;
+
         Map<String, VMAssignmentResult> assignmentResultMap = schedulingResult.getResultMap();
-        long now = System.currentTimeMillis();
         for (Map.Entry<String, VMAssignmentResult> aResult : assignmentResultMap.entrySet()) {
-            final List<TaskAssignmentResult> launchedTasks = launchTasks(aResult.getValue().getTasksAssigned(), aResult.getValue().getLeasesUsed());
-            for (TaskAssignmentResult r : launchedTasks) {
-                final TitusQueuableTask task = (TitusQueuableTask) r.getRequest();
-                JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(task.getId());
-                if (jobMgr != null) {
-                    numTotalWaitTimeMillis.record(now - jobMgr.getTaskCreateTime(task.getId()), TimeUnit.MILLISECONDS);
-                }
-            }
-            workersLaunched += launchedTasks.size();
+            Set<TaskAssignmentResult> tasksAssigned = aResult.getValue().getTasksAssigned();
+            launchTasks(tasksAssigned, aResult.getValue().getLeasesUsed());
+            assignedDuringSchedulingResult += tasksAssigned.size();
         }
-        // for workers that didn't get scheduled, rate limit them
-        int workersFailed = 0;
+
         List<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
         taskFailuresActions.drainTo(failActions);
         for (Map.Entry<TaskRequest, List<TaskAssignmentResult>> entry : schedulingResult.getFailures().entrySet()) {
-            final TitusQueuableTask req = (TitusQueuableTask) entry.getKey();
-            workersFailed++;
+            final TitusQueuableTask task = (TitusQueuableTask) entry.getKey();
+            failedTasksDuringSchedulingResult++;
             if (!failActions.isEmpty()) {
                 final Iterator<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> iterator =
                         failActions.iterator();
@@ -559,7 +550,7 @@ public class DefaultSchedulingService implements SchedulingService {
                     final Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>> next = iterator.next();
                     final String reqId = next.keySet().iterator().next();
                     final com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> a = next.values().iterator().next();
-                    if (req.getId().equals(reqId)) {
+                    if (task.getId().equals(reqId)) {
                         a.call(entry.getValue());
                         iterator.remove();
                     }
@@ -569,26 +560,19 @@ public class DefaultSchedulingService implements SchedulingService {
         if (!failActions.isEmpty()) { // If no such tasks for the registered actions, call them with null result
             failActions.forEach(action -> action.values().iterator().next().call(null));
         }
-        numPendingWorkers.set(workersFailed);
-        numResourceOffersReceivedId.increment(schedulingResult.getLeasesAdded());
-        numResourceOffersRejectedId.increment(schedulingResult.getLeasesRejected());
-        if ((workersFailed + workersLaunched) > 0) {
-            numWorkersLaunchedId.increment(workersLaunched);
-            numSchedulerRunMillis.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
-        }
+        totalTasksPerIteration.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
+        assignedTasksPerIteration.set(assignedDuringSchedulingResult);
+        failedTasksPerIteration.set(failedTasksDuringSchedulingResult);
+        offersReceived.set(schedulingResult.getLeasesAdded());
+        offersRejected.set(schedulingResult.getLeasesRejected());
         totalActiveAgents.set(schedulingResult.getTotalVMsCount());
-        SchedulerCounters.getInstance().endIteration(workersFailed + workersLaunched, workersLaunched, assignmentResultMap.size(),
-                schedulingResult.getLeasesRejected());
-        if (SchedulerCounters.getInstance().getCounter().getIterationNumber() % 100 == 0) {
-            logger.info("Scheduling iteration result: " + SchedulerCounters.getInstance().toJsonString());
-        }
+        schedulingIterationLatency.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
     }
 
-    private List<TaskAssignmentResult> launchTasks(Collection<TaskAssignmentResult> requests, List<VirtualMachineLease> leases) {
-        List<TaskAssignmentResult> launchedTasks = new LinkedList<>();
+    private void launchTasks(Collection<TaskAssignmentResult> requests, List<VirtualMachineLease> leases) {
         final List<Protos.TaskInfo> taskInfoList = new LinkedList<>();
-        for (TaskAssignmentResult assignmentResult : requests) {
 
+        for (TaskAssignmentResult assignmentResult : requests) {
             List<PreferentialNamedConsumableResourceSet.ConsumeResult> consumeResults = assignmentResult.getrSets();
             TitusQueuableTask task = (TitusQueuableTask) assignmentResult.getRequest();
 
@@ -682,7 +666,6 @@ public class DefaultSchedulingService implements SchedulingService {
         } else {
             virtualMachineService.launchTasks(taskInfoList, leases);
         }
-        return launchedTasks;
     }
 
     private void killBrokenTask(TitusQueuableTask task, String reason) {
@@ -761,115 +744,80 @@ public class DefaultSchedulingService implements SchedulingService {
         return vmCurrentStatesMap.get(0);
     }
 
-    private void verifyAndReportResUsageMetrics(List<VirtualMachineCurrentState> vmCurrentStates) {
-        double totalCPU = 0.0;
-        double usedCPU = 0.0;
-        double totalMemory = 0.0;
-        double usedMemory = 0.0;
-        double totalNwMbps = 0.0;
-        double usedNwMbps = 0.0;
-        long totalDisabled = 0;
-        long currentMinDisableDuration = 0;
-        long currentMaxDisableDuration = 0;
-        long now = System.currentTimeMillis();
+    private void verifyAndReportResourceUsageMetrics(List<VirtualMachineCurrentState> vmCurrentStates) {
+        try {
+            double totalCpu = 0.0;
+            double usedCpu = 0.0;
+            double totalMemory = 0.0;
+            double usedMemory = 0.0;
+            double totalNetworkMbps = 0.0;
+            double usedNetworkMbps = 0.0;
+            long totalDisabled = 0;
+            long currentMinDisableDuration = 0;
+            long currentMaxDisableDuration = 0;
+            long now = System.currentTimeMillis();
 
-        Map<String, Integer> idleAgentsByClusterName = new HashMap<>();
+            for (VirtualMachineCurrentState state : vmCurrentStates) {
+                final VirtualMachineLease currAvailableResources = state.getCurrAvailableResources();
 
-        for (VirtualMachineCurrentState state : vmCurrentStates) {
-            final VirtualMachineLease currAvailableResources = state.getCurrAvailableResources();
-
-            if (currAvailableResources != null) {
-                totalCPU += currAvailableResources.cpuCores();
-                totalMemory += currAvailableResources.memoryMB();
-                totalNwMbps += currAvailableResources.networkMbps();
-            }
-            long disableDuration = state.getDisabledUntil() - now;
-            if (disableDuration > 0) {
-                totalDisabled++;
-                currentMinDisableDuration = Math.min(currentMinDisableDuration, disableDuration);
-                currentMaxDisableDuration = Math.max(currentMinDisableDuration, disableDuration);
-            }
-            final Collection<TaskRequest> runningTasks = state.getRunningTasks();
-            if (runningTasks != null && !runningTasks.isEmpty()) {
-                for (TaskRequest t : runningTasks) {
-                    QueuableTask qt = (QueuableTask) t;
-                    if (qt instanceof ScheduledRequest) {
-                        final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(t.getId());
-                        if (jobMgr == null || !jobMgr.isTaskValid(t.getId())) {
-                            schedulingService.removeTask(qt.getId(), qt.getQAttributes(), state.getHostname());
-                        } else {
-                            usedCPU += t.getCPUs();
-                            totalCPU += t.getCPUs();
+                if (currAvailableResources != null) {
+                    totalCpu += currAvailableResources.cpuCores();
+                    totalMemory += currAvailableResources.memoryMB();
+                    totalNetworkMbps += currAvailableResources.networkMbps();
+                }
+                long disableDuration = state.getDisabledUntil() - now;
+                if (disableDuration > 0) {
+                    totalDisabled++;
+                    currentMinDisableDuration = Math.min(currentMinDisableDuration, disableDuration);
+                    currentMaxDisableDuration = Math.max(currentMinDisableDuration, disableDuration);
+                }
+                final Collection<TaskRequest> runningTasks = state.getRunningTasks();
+                if (runningTasks != null && !runningTasks.isEmpty()) {
+                    for (TaskRequest t : runningTasks) {
+                        QueuableTask task = (QueuableTask) t;
+                        if (task instanceof ScheduledRequest) {
+                            final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(t.getId());
+                            if (jobMgr == null || !jobMgr.isTaskValid(t.getId())) {
+                                schedulingService.removeTask(task.getId(), task.getQAttributes(), state.getHostname());
+                            } else {
+                                usedCpu += t.getCPUs();
+                                totalCpu += t.getCPUs();
+                                usedMemory += t.getMemory();
+                                totalMemory += t.getMemory();
+                                usedNetworkMbps += t.getNetworkMbps();
+                                totalNetworkMbps += t.getNetworkMbps();
+                            }
+                        } else if (task instanceof V3QueueableTask) {
+                            //TODO redo the metrics publishing but we should keep it the same as v2 for now
+                            usedCpu += t.getCPUs();
+                            totalCpu += t.getCPUs();
                             usedMemory += t.getMemory();
                             totalMemory += t.getMemory();
-                            usedNwMbps += t.getNetworkMbps();
-                            totalNwMbps += t.getNetworkMbps();
+                            usedNetworkMbps += t.getNetworkMbps();
+                            totalNetworkMbps += t.getNetworkMbps();
                         }
-                    } else if (qt instanceof V3QueueableTask) {
-                        //TODO redo the metrics publishing but we should keep it the same as v2 for now
-                        usedCPU += t.getCPUs();
-                        totalCPU += t.getCPUs();
-                        usedMemory += t.getMemory();
-                        totalMemory += t.getMemory();
-                        usedNwMbps += t.getNetworkMbps();
-                        totalNwMbps += t.getNetworkMbps();
                     }
                 }
             }
-            if (currAvailableResources != null) {
-                final Protos.Attribute clusterAttr = state.getCurrAvailableResources().getAttributeMap().get(config.getAutoscaleByAttributeName());
-                String clusterName;
-                AutoScaleRule rule = null;
-                if (clusterAttr != null && clusterAttr.getText().hasValue()) {
-                    clusterName = clusterAttr.getText().getValue();
-                    rule = taskScheduler.getAutoScaleRules().stream()
-                            .filter(r -> r.getRuleName().equals(clusterName))
-                            .findFirst()
-                            .orElse(null);
-                } else {
-                    clusterName = NO_CLUSTER;
-                }
 
-                boolean isIdle;
-                if (rule != null) {
-                    isIdle = !rule.idleMachineTooSmall(currAvailableResources);
-                } else {
-                    final boolean hasEnoughCpu = currAvailableResources.cpuCores() >= IDLE_MACHINE_CPU_THRESHOLD;
-                    final boolean hasEnoughMemory = currAvailableResources.memoryMB() >= IDLE_MACHINE_MEMORY_THRESHOLD;
-                    isIdle = hasEnoughCpu && hasEnoughMemory;
-                }
-                if (isIdle) {
-                    if (idleAgentsByClusterName.containsKey(clusterName)) {
-                        idleAgentsByClusterName.put(clusterName, idleAgentsByClusterName.get(clusterName) + 1);
-                    } else {
-                        idleAgentsByClusterName.put(clusterName, 1);
-                    }
-                }
-            }
-        }
-
-        publishIdleAgentsMetric(idleAgentsByClusterName);
-        totalDisabledAgents.set(totalDisabled);
-        minDisableDuration.set(currentMinDisableDuration);
-        maxDisableDuration.set(currentMaxDisableDuration);
-        totalAvailableCPUs.set((long) totalCPU);
-        totalAllocatedCPUs.set((long) usedCPU);
-        cpuUtilization.set((long) (usedCPU * 100.0 / Math.max(1.0, totalCPU)));
-        double DRU = usedCPU * 100.0 / totalCPU;
-        totalAvailableMemory.set((long) totalMemory);
-        totalAllocatedMemory.set((long) usedMemory);
-        memoryUtilization.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
-        DRU = Math.max(DRU, usedMemory * 100.0 / totalMemory);
-        totalAvailableNwMbps.set((long) totalNwMbps);
-        totalAllocatedNwMbps.set((long) usedNwMbps);
-        networkUtilization.set((long) (usedNwMbps * 100.0 / Math.max(1.0, totalNwMbps)));
-        DRU = Math.max(DRU, usedNwMbps * 100.0 / totalNwMbps);
-        dominantResUtilization.set((long) DRU);
-    }
-
-    private void publishIdleAgentsMetric(Map<String, Integer> currentIdleAgentsByCluster) {
-        for (Map.Entry<String, AtomicInteger> entry : idleAgentsByCluster.entrySet()) {
-            entry.getValue().set(currentIdleAgentsByCluster.getOrDefault(entry.getKey(), 0));
+            totalDisabledAgents.set(totalDisabled);
+            minDisableDuration.set(currentMinDisableDuration);
+            maxDisableDuration.set(currentMaxDisableDuration);
+            totalAvailableCpus.set((long) totalCpu);
+            totalAllocatedCpus.set((long) usedCpu);
+            cpuUtilization.set((long) (usedCpu * 100.0 / Math.max(1.0, totalCpu)));
+            double dominantResourceUtilization = usedCpu * 100.0 / totalCpu;
+            totalAvailableMemory.set((long) totalMemory);
+            totalAllocatedMemory.set((long) usedMemory);
+            memoryUtilization.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
+            dominantResourceUtilization = Math.max(dominantResourceUtilization, usedMemory * 100.0 / totalMemory);
+            totalAvailableNetworkMbps.set((long) totalNetworkMbps);
+            totalAllocatedNetworkMbps.set((long) usedNetworkMbps);
+            networkUtilization.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
+            dominantResourceUtilization = Math.max(dominantResourceUtilization, usedNetworkMbps * 100.0 / totalNetworkMbps);
+            this.dominantResourceUtilization.set((long) dominantResourceUtilization);
+        } catch (Exception e) {
+            logger.error("Error settings metrics with error: ", e);
         }
     }
 

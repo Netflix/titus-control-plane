@@ -88,7 +88,7 @@ public class GrpcAgentModelConverters {
                 .build();
     }
 
-    private static com.netflix.titus.grpc.protogen.AutoScaleRule toGrpcAutoScaleRule(AutoScaleRule autoScaleRule) {
+    public static com.netflix.titus.grpc.protogen.AutoScaleRule toGrpcAutoScaleRule(AutoScaleRule autoScaleRule) {
         return com.netflix.titus.grpc.protogen.AutoScaleRule.newBuilder()
                 .setMin(autoScaleRule.getMin())
                 .setMax(autoScaleRule.getMax())
@@ -136,7 +136,7 @@ public class GrpcAgentModelConverters {
         return InstanceOverrideState.None;
     }
 
-    private static com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState toGrpcLifecycleState(InstanceGroupLifecycleState state) {
+    public static com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState toGrpcLifecycleState(InstanceGroupLifecycleState state) {
         switch (state) {
             case Inactive:
                 return com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState.Inactive;

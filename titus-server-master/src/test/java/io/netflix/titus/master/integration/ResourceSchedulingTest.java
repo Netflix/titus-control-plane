@@ -25,8 +25,11 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.testkit.client.TitusMasterClient;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import io.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.JobObserver;
@@ -38,25 +41,27 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.activate;
+import static io.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class ResourceSchedulingTest extends BaseIntegrationTest {
 
-    @Rule
-    public final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
-                    .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
+    private final TitusMasterResource titusMasterResource = new TitusMasterResource(
+            basicMaster(new SimulatedCloud().createAgentInstanceGroups(
+                    new SimulatedAgentGroupDescriptor("flex1", AwsInstanceType.M3_2XLARGE.name(), 0, 1, 1, 2)
+            )).toBuilder()
                     .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
-                    .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                    .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withInstanceType(AwsInstanceType.M3_XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withIpPerEni(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
                     .build()
     );
+
+    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusMasterResource);
+
+    @Rule
+    public RuleChain ruleChain = RuleChain.outerRule(titusMasterResource).around(instanceGroupsScenarioBuilder);
 
     private EmbeddedTitusMaster titusMaster;
 
@@ -67,6 +72,8 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(activate("flex1"));
+
         titusMaster = titusMasterResource.getMaster();
         client = titusMaster.getClient();
         taskExecutorHolders = new ExtTestSubscriber<>();
@@ -78,9 +85,6 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
      */
     @Test(timeout = 30_000)
     public void checkIpPerEniLimitIsPreserved() throws Exception {
-        // FIXME Remove this once we have notification mechanism
-        Thread.sleep(500);
-
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
                 .instancesMin(1).instancesDesired(3).instancesMax(10)
                 .allocateIpAddress(true)

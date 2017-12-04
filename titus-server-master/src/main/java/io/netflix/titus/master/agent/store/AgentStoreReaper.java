@@ -24,6 +24,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
 import io.netflix.titus.api.agent.store.AgentStore;
@@ -38,6 +39,8 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
+
+import static io.netflix.titus.master.MetricConstants.METRIC_AGENT;
 
 /**
  * Removes {@link AgentInstanceGroup} entities tagged with {@link AgentStoreReaper#ATTR_REMOVED} from the store,
@@ -56,23 +59,26 @@ public class AgentStoreReaper {
     private static final long STORAGE_GC_INTERVAL_MS = 600_000;
 
     private final AgentStore agentStore;
+    private final Registry registry;
     private final Scheduler scheduler;
 
     private Subscription reaperSubscription;
 
     @Inject
-    public AgentStoreReaper(AgentStore agentStore) {
-        this(agentStore, Schedulers.computation());
+    public AgentStoreReaper(AgentStore agentStore, Registry registry) {
+        this(agentStore, registry, Schedulers.computation());
     }
 
-    public AgentStoreReaper(AgentStore agentStore, Scheduler scheduler) {
+    public AgentStoreReaper(AgentStore agentStore, Registry registry, Scheduler scheduler) {
         this.agentStore = agentStore;
+        this.registry = registry;
         this.scheduler = scheduler;
     }
 
     @Activator
     public void enterActiveMode() {
         this.reaperSubscription = ObservableExt.schedule(
+                METRIC_AGENT + "storeReaper", registry, "doStoreGarbageCollection",
                 ObservableExt.fromCallableSupplier(this::doStoreGarbageCollection),
                 STORAGE_GC_INTERVAL_MS, STORAGE_GC_INTERVAL_MS, TimeUnit.MILLISECONDS,
                 scheduler

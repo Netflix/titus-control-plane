@@ -18,52 +18,51 @@ package io.netflix.titus.master.integration.v3.job;
 
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
-import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
-import io.netflix.titus.testkit.junit.master.TitusMasterResource;
+import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.jobAccepted;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.lockTaskInState;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startJobAndMoveToKillInitiated;
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
+import static io.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 @Category(IntegrationTest.class)
 public class TaskLifecycleTest {
 
-    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName("myApp").build();
-    private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName("myApp").build();
+    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
+
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2).toMaster(master -> master
+            .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "2000")
+            .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "2000")
+            .withProperty("titusMaster.jobManager.serviceTaskInStartInitiatedStateTimeoutMs", "2000")
+            .withProperty("titusMaster.jobManager.taskInKillInitiatedStateTimeoutMs", "100")
+    ));
+
+    private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
+
+    private static final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
     @ClassRule
-    public static final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titus.master.grpcServer.v3EnabledApps", "myApp")
-                    .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "2000")
-                    .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "2000")
-                    .withProperty("titusMaster.jobManager.serviceTaskInStartInitiatedStateTimeoutMs", "2000")
-                    .withProperty("titusMaster.jobManager.taskInKillInitiatedStateTimeoutMs", "100")
-                    .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                    .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(2).withInstanceType(AwsInstanceType.M3_XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                    .build()
-    );
-
-    private static JobsScenarioBuilder jobsScenarioBuilder;
+    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @BeforeClass
     public static void setUp() throws Exception {
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusMasterResource.getOperations());
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
     }
 
     @Test(timeout = 30_000)
@@ -86,17 +85,17 @@ public class TaskLifecycleTest {
 
     @Test(timeout = 30_000)
     public void submitServiceJobStuckInLaunched() throws Exception {
-        testTaskStuckInState(ONE_TASK_SERVICE_JOB, TaskStatus.TaskState.Launched);
+        testTaskStuckInState(newJob("submitServiceJobStuckInLaunched"), TaskStatus.TaskState.Launched);
     }
 
     @Test(timeout = 30_000)
     public void submitServiceJobStuckInStartInitiated() throws Exception {
-        testTaskStuckInState(ONE_TASK_SERVICE_JOB, TaskStatus.TaskState.StartInitiated);
+        testTaskStuckInState(newJob("submitServiceJobStuckInStartInitiated"), TaskStatus.TaskState.StartInitiated);
     }
 
     @Test(timeout = 30_000)
     public void submitServiceJobStuckInKillInitiated() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
+        jobsScenarioBuilder.schedule(newJob("submitServiceJobStuckInKillInitiated"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(startJobAndMoveToKillInitiated(true))
                 .expectJobEventStreamCompletes()
         );
@@ -110,5 +109,12 @@ public class TaskLifecycleTest {
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.template(lockTaskInState(state)))
                 .expectJobEventStreamCompletes()
         );
+    }
+
+    private JobDescriptor<ServiceJobExt> newJob(String detail) {
+        return oneTaskServiceJobDescriptor().toBuilder()
+                .withApplicationName(TitusStackResource.V3_ENGINE_APP_PREFIX)
+                .withJobGroupInfo(JobGroupInfo.newBuilder().withDetail(detail).build())
+                .build();
     }
 }

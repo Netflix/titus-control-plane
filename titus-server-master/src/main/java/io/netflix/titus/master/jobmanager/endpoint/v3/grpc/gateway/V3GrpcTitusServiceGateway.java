@@ -49,12 +49,12 @@ import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
-import io.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
-import io.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import io.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import io.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
+import io.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -91,7 +91,12 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
-        io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+        io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
+        try {
+            coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+        } catch (Exception e) {
+            return Observable.error(TitusServiceException.invalidArgument(e));
+        }
         io.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
         Set<ConstraintViolation<io.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);

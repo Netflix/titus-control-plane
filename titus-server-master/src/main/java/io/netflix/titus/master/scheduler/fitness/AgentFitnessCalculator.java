@@ -35,7 +35,7 @@ public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
     private final WeightedAverageFitnessCalculator weightedAverageFitnessCalculator;
 
     public static final com.netflix.fenzo.functions.Func1<Double, Boolean> fitnessGoodEnoughFunc =
-            f -> f > 1.0;
+            f -> f > 0.9;
 
     public AgentFitnessCalculator() {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();

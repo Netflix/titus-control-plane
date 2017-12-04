@@ -92,6 +92,10 @@ public class TaskScenarioBuilder {
         return eventStreamSubscriber.getLatestItem();
     }
 
+    public boolean hasTaskExecutorHolder() {
+        return taskExecutionHolder != null;
+    }
+
     public TaskExecutorHolder getTaskExecutionHolder() {
         Preconditions.checkNotNull(taskExecutionHolder, "Task is not running yet");
         return taskExecutionHolder;
@@ -218,6 +222,18 @@ public class TaskScenarioBuilder {
         Task receivedTask = expectTaskUpdate(task -> coreTaskStates.contains(task.getStatus().getState()), "Expecting one of task states " + coreTaskStates);
 
         logger.info("[{}] Expected task state {} received in {}[ms]", discoverActiveTest(), receivedTask.getStatus().getState(), stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public TaskScenarioBuilder assertTask(Predicate<Task> predicate, String message) {
+        logger.info("[{}] Asserting task {}...", discoverActiveTest());
+
+        Preconditions.checkArgument(predicate.test(getTask()), message);
+        return this;
+    }
+
+    public TaskScenarioBuilder andThen(Runnable action) {
+        action.run();
         return this;
     }
 

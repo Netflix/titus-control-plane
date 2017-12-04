@@ -34,6 +34,7 @@ import io.netflix.titus.master.scheduler.ScheduledRequest;
 public class JobTypeFitnessCalculator implements VMTaskFitnessCalculator {
 
     private static final double EMPTY_HOST_SCORE = 0.7;
+    private static final double ZERO_SAME_JOB_TASKS_SCORE = 0.01;
 
     private enum JobType {Batch, Service}
 
@@ -61,6 +62,8 @@ public class JobTypeFitnessCalculator implements VMTaskFitnessCalculator {
         }
         if (totalTasks == 0) {
             return EMPTY_HOST_SCORE;
+        } else if (totalSameJobTasks == 0) {
+            return ZERO_SAME_JOB_TASKS_SCORE;
         }
         return (double) totalSameJobTasks / (double) totalTasks;
     }

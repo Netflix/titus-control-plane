@@ -53,7 +53,7 @@ public class DefaultTierSlaUpdater implements TierSlaUpdater {
     public DefaultTierSlaUpdater(SchedulerConfiguration schedulerConfiguration,
                                  ApplicationSlaManagementService applicationSlaManagementService,
                                  AvailableCapacityService availableCapacityService) {
-        this(schedulerConfiguration, applicationSlaManagementService, availableCapacityService, Schedulers.computation());
+        this(schedulerConfiguration, applicationSlaManagementService, availableCapacityService, Schedulers.io());
     }
 
     /**

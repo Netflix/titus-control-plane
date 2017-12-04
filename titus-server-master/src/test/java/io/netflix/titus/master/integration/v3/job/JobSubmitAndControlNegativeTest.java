@@ -41,10 +41,8 @@ import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import io.grpc.StatusRuntimeException;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.ResourceDimension;
-import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.Evaluators;
-import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -54,9 +52,11 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,24 +75,18 @@ public class JobSubmitAndControlNegativeTest {
 
     private final ServiceJobSpec.Builder SERVICE_JOB_SPEC_BUILDER = SERVICE_JOB_DESCR_BUILDER.getService().toBuilder();
 
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2));
+
+    private static final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
+
     @ClassRule
-    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStack.aTitusStack()
-            .withMaster(EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titus.master.grpcServer.v3EnabledApps", "v3App")
-                    .withProperty("titusMaster.jobManager.launchedTimeoutMs", "3000")
-                    .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                    .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(2).withInstanceType(AwsInstanceType.M3_XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                    .build())
-            .withDefaultGateway()
-            .build()
-    );
+    public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder);
 
     private static JobManagementServiceBlockingStub client;
 
     @BeforeClass
     public static void setUp() throws Exception {
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
 

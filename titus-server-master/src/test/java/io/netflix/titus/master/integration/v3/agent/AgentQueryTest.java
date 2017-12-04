@@ -19,6 +19,7 @@ package io.netflix.titus.master.integration.v3.agent;
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceBlockingStub;
+import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;
@@ -30,7 +31,7 @@ import org.junit.experimental.categories.Category;
 public class AgentQueryTest {
 
     @ClassRule
-    public static final TitusStackResource titusStackResource = TitusStackResource.aDefaultStack();
+    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStacks.basicStack(1));
 
     private static AgentManagementServiceBlockingStub client;
 

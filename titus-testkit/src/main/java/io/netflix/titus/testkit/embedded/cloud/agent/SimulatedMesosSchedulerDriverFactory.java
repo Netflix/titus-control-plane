@@ -16,17 +16,27 @@
 
 package io.netflix.titus.testkit.embedded.cloud.agent;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.netflix.titus.master.mesos.MesosSchedulerCallbackHandler;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import org.apache.mesos.Protos;
 import org.apache.mesos.SchedulerDriver;
 
 @Singleton
 public class SimulatedMesosSchedulerDriverFactory implements MesosSchedulerDriverFactory {
+
+    private final SimulatedCloud simulatedCloud;
+
+    @Inject
+    public SimulatedMesosSchedulerDriverFactory(SimulatedCloud simulatedCloud) {
+        this.simulatedCloud = simulatedCloud;
+    }
+
     @Override
     public SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, MesosSchedulerCallbackHandler scheduler) {
-        return new SimulatedMesosSchedulerDriver(framework, scheduler);
+        return new SimulatedMesosSchedulerDriver(simulatedCloud, framework, scheduler);
     }
 }

@@ -58,6 +58,11 @@ public interface InstanceCloudConnector {
     Observable<List<Instance>> getInstances(List<String> instanceIds);
 
     /**
+     * Get detailed information about instances with the given instance group id.
+     */
+    Observable<List<Instance>> getInstancesByInstanceGroupId(String instanceGroupId);
+
+    /**
      * Change instance group capacity.
      */
     Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired);
@@ -66,8 +71,8 @@ public interface InstanceCloudConnector {
      * Increase instance group size by the given number of instances. The following constraints are checked prior
      * to admitting scale up:
      * <ul>
-     *     <li>scaleUpCount >= 0 (if scaleUpCount == 0, the operation is void)</li>
-     *     <li>desired + scaleUpCount <= max instance group size (throws an error if not)</li>
+     * <li>scaleUpCount >= 0 (if scaleUpCount == 0, the operation is void)</li>
+     * <li>desired + scaleUpCount <= max instance group size (throws an error if not)</li>
      * </ul>
      *
      * @param scaleUpCount number of instances to add (must be >= 0)

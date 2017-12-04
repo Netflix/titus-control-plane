@@ -46,7 +46,11 @@ public final class AwsServerInfoResolver implements ServerInfoResolver {
 
     @Override
     public Optional<ServerInfo> resolve(String serverType) {
-        return Optional.ofNullable(AWS_SERVER_INFOS.get(serverType));
+        ServerInfo serverInfo = AWS_SERVER_INFOS.get(serverType);
+        if (serverInfo != null) {
+            return Optional.of(serverInfo);
+        }
+        return Optional.ofNullable(AWS_SERVER_INFOS.get(serverType.toUpperCase()));
     }
 
     @Override

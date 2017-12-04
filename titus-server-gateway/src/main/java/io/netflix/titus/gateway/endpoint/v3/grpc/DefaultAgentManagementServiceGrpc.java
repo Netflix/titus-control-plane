@@ -96,7 +96,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceGroupTier(TierUpdate request, StreamObserver<Empty> responseObserver) {
         Subscription subscription = agentManagementService.updateInstanceGroupTier(request).subscribe(
-                responseObserver::onCompleted,
+                () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
@@ -105,7 +105,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceOverrideState(InstanceOverrideStateUpdate request, StreamObserver<Empty> responseObserver) {
         Subscription subscription = agentManagementService.updateInstanceOverride(request).subscribe(
-                responseObserver::onCompleted,
+                () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
@@ -114,7 +114,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateAutoScalingRule(AutoScalingRuleUpdate request, StreamObserver<Empty> responseObserver) {
         Subscription subscription = agentManagementService.updateAutoScalingRule(request).subscribe(
-                responseObserver::onCompleted,
+                () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
@@ -123,7 +123,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceGroupLifecycleState(InstanceGroupLifecycleStateUpdate request, StreamObserver<Empty> responseObserver) {
         Subscription subscription = agentManagementService.updateInstanceGroupLifecycle(request).subscribe(
-                responseObserver::onCompleted,
+                () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
@@ -137,5 +137,10 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
                 responseObserver::onCompleted
         );
         attachCancellingCallback(responseObserver, subscription);
+    }
+
+    private void emitEmptyReply(StreamObserver<Empty> responseObserver) {
+        responseObserver.onNext(Empty.getDefaultInstance());
+        responseObserver.onCompleted();
     }
 }

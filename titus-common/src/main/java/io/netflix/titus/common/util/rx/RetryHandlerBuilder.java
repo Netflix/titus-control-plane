@@ -113,27 +113,25 @@ public final class RetryHandlerBuilder {
         Preconditions.checkState(retryCount > 0, "Retry count not defined");
         Preconditions.checkState(retryDelayMs > 0, "Retry delay not defined");
 
-        return failedAttempts -> {
-            return failedAttempts
-                    .doOnNext(error -> onErrorHook.call(error))
-                    .zipWith(Observable.range(0, retryCount + 1), RetryItem::new)
-                    .flatMap(retryItem -> {
-                        if (retryItem.retry == retryCount) {
-                            String errorMessage = String.format(
-                                    "Retry limit reached for %s. Last error: %s. Returning an error to the caller",
-                                    title, retryItem.cause.getMessage()
-                            );
-                            return Observable.error(new IOException(errorMessage, retryItem.cause));
-                        }
-                        long expDelay = Math.min(maxDelay, (1 << retryItem.retry) * retryDelayMs);
-                        if (retryItem.cause instanceof TimeoutException) {
-                            logger.info("Delaying timed-out {} retry by {}[ms]", title, expDelay);
-                        } else {
-                            logger.info("Delaying failed {} retry by {}[ms]", title, expDelay, retryItem.cause);
-                        }
-                        return Observable.timer(expDelay, TimeUnit.MILLISECONDS, scheduler);
-                    });
-        };
+        return failedAttempts -> failedAttempts
+                .doOnNext(error -> onErrorHook.call(error))
+                .zipWith(Observable.range(0, retryCount + 1), RetryItem::new)
+                .flatMap(retryItem -> {
+                    if (retryItem.retry == retryCount) {
+                        String errorMessage = String.format(
+                                "Retry limit reached for %s. Last error: %s. Returning an error to the caller",
+                                title, retryItem.cause.getMessage()
+                        );
+                        return Observable.error(new IOException(errorMessage, retryItem.cause));
+                    }
+                    long expDelay = Math.min(maxDelay, (1 << retryItem.retry) * retryDelayMs);
+                    if (retryItem.cause instanceof TimeoutException) {
+                        logger.info("Delaying timed-out {} retry by {}[ms]", title, expDelay);
+                    } else {
+                        logger.info("Delaying failed {} retry by {}[ms]", title, expDelay, retryItem.cause);
+                    }
+                    return Observable.timer(expDelay, TimeUnit.MILLISECONDS, scheduler);
+                });
     }
 
     public static RetryHandlerBuilder retryHandler() {

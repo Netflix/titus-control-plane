@@ -24,6 +24,7 @@ import com.netflix.archaius.ConfigProxyFactory;
 import io.netflix.titus.gateway.service.v3.internal.DefaultAgentManagementService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultAutoScalingService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultJobManagementService;
+import io.netflix.titus.gateway.service.v3.internal.DefaultLoadBalancerService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultTitusManagementService;
 
 public class V3ServiceModule extends AbstractModule {
@@ -31,6 +32,7 @@ public class V3ServiceModule extends AbstractModule {
     protected void configure() {
         bind(JobManagementService.class).to(DefaultJobManagementService.class);
         bind(AutoScalingService.class).to(DefaultAutoScalingService.class);
+        bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
         bind(TitusManagementService.class).to(DefaultTitusManagementService.class);
         bind(AgentManagementService.class).to(DefaultAgentManagementService.class);
     }

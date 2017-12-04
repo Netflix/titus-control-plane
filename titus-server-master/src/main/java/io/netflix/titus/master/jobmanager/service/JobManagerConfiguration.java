@@ -50,4 +50,7 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("0")
     long getMaxFailedTasks();
+
+    @DefaultValue("10000")
+    long getTaskLivenessPollerIntervalMs();
 }

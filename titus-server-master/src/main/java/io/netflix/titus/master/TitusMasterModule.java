@@ -41,6 +41,7 @@ import io.netflix.titus.master.endpoint.v2.validator.ValidatorConfiguration;
 import io.netflix.titus.master.job.JobModule;
 import io.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import io.netflix.titus.master.jobmanager.service.V3JobManagerModule;
+import io.netflix.titus.master.loadbalancer.LoadBalancerModule;
 import io.netflix.titus.master.master.MasterDescription;
 import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.master.master.ZookeeperMasterMonitor;
@@ -109,6 +110,7 @@ public class TitusMasterModule extends AbstractModule {
         install(new V3EndpointModule());
         install(new AgentEndpointModule());
         install(new AutoScalingModule());
+        install(new LoadBalancerModule());
 
         install(new TaskMigratorModule());
     }

@@ -19,51 +19,40 @@ package io.netflix.titus.master.integration.v3;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
-import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
-import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
-import io.netflix.titus.testkit.junit.master.TitusMasterResource;
+import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 import static io.netflix.titus.master.integration.v3.scenario.JobAsserts.jobInState;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
-import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
+import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.twoPartitionsPerTierStack;
+import static io.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 
 @Category(IntegrationTest.class)
 public class V3JobSchedulingTest {
 
-    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName("myApp").build();
+    private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 
-    private final JobStore titusStore = new InMemoryJobStore();
+    private final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierStack(2));
+
+    private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
+
+    private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
     @Rule
-    public final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            EmbeddedTitusMaster.testTitusMaster()
-                    .withProperty("titus.master.grpcServer.v3EnabledApps", "myApp")
-                    .withProperty("titusMaster.jobManager.launchedTimeoutMs", "3000")
-                    .withCriticalTier(0.1, AwsInstanceType.M3_XLARGE)
-                    .withFlexTier(0.1, AwsInstanceType.M3_2XLARGE, AwsInstanceType.G2_2XLarge)
-                    .withAgentCluster(aTitusAgentCluster("agentClusterOne", 0).withSize(2).withInstanceType(AwsInstanceType.M3_XLARGE))
-                    .withAgentCluster(aTitusAgentCluster("agentClusterTwo", 1).withSize(2).withInstanceType(AwsInstanceType.M3_2XLARGE))
-                    .withJobStore(titusStore)
-                    .build()
-    );
-
-    private EmbeddedTitusMaster titusMaster;
-
-    private JobsScenarioBuilder jobsScenarioBuilder;
+    public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @Before
     public void setUp() throws Exception {
-        titusMaster = titusMasterResource.getMaster();
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusMasterResource.getOperations());
+        instanceGroupsScenarioBuilder.synchronizeWithCloud();
     }
 
     /**
@@ -89,10 +78,10 @@ public class V3JobSchedulingTest {
         );
 
         jobsScenarioBuilder.stop();
-        titusMaster.reboot();
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusMasterResource.getOperations());
+        titusStackResource.getMaster().reboot();
 
-        jobsScenarioBuilder
+        JobsScenarioBuilder newJobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource.getOperations());
+        newJobsScenarioBuilder
                 .assertJobs(jobs -> jobs.size() == 1)
                 .takeJob(0)
                 .assertJob(jobInState(JobState.Accepted))
