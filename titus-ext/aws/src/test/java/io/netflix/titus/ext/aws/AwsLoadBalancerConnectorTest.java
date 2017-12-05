@@ -33,7 +33,7 @@ import rx.observers.TestSubscriber;
  * Tests the AWS load balancer connector. These tests should be DISABLED by default since they require
  * AWS credentials to work and are thus not portable.
  * The AWS resources to test are expected to have been created already and their info is consumed via
- * environment variables.
+ * local credential files.
  */
 public class AwsLoadBalancerConnectorTest {
     private static Logger logger = LoggerFactory.getLogger(LoadBalancerConnector.class);
