@@ -28,8 +28,10 @@ import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import io.netflix.titus.api.loadbalancer.service.LoadBalancerException;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
@@ -37,8 +39,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,17 +63,15 @@ public class DefaultLoadBalancerJobValidatorTest {
         loadBalancerStore = new InMemoryLoadBalancerStore();
         loadBalancerValidationConfiguration = mock(LoadBalancerValidationConfiguration.class);
 
-        loadBalancerValidator = DefaultLoadBalancerJobValidator.newBuilder()
-                .withV3JobOperations(jobOperations)
-                .withLoadBalancerStore(loadBalancerStore)
-                .withLoadBalancerConfiguration(loadBalancerValidationConfiguration)
-                .build();
+        loadBalancerValidator = new DefaultLoadBalancerJobValidator(jobOperations, loadBalancerStore, loadBalancerValidationConfiguration);
     }
 
     @Test
     public void testValidateJobExists() throws Exception {
         when(jobOperations.getJob(JOB_ID)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> loadBalancerValidator.validateJobId(JOB_ID)).hasMessageContaining("does not exist");
+        Throwable thrown = catchThrowable(() -> loadBalancerValidator.validateJobId(JOB_ID));
+        assertThat(thrown).isInstanceOf(JobManagerException.class);
+        assertThat(((JobManagerException)thrown).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.JobNotFound);
     }
 
     @Test
@@ -81,7 +82,9 @@ public class DefaultLoadBalancerJobValidatorTest {
                         .withState(JobState.Finished)
                         .build())
                 .build()));
-        assertThatThrownBy(() -> loadBalancerValidator.validateJobId(JOB_ID)).hasMessageContaining("is in state");
+        Throwable thrown = catchThrowable(() -> loadBalancerValidator.validateJobId(JOB_ID));
+        assertThat(thrown).isInstanceOf(JobManagerException.class);
+        assertThat(((JobManagerException)thrown).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.UnexpectedJobState);
     }
 
     @Test
@@ -94,7 +97,9 @@ public class DefaultLoadBalancerJobValidatorTest {
                 .withJobDescriptor(JobDescriptor.<BatchJobExt>newBuilder()
                         .build())
                 .build()));
-        assertThatThrownBy(() -> loadBalancerValidator.validateJobId(JOB_ID)).hasMessageContaining("is NOT of type service");
+        Throwable thrown = catchThrowable(() -> loadBalancerValidator.validateJobId(JOB_ID));
+        assertThat(thrown).isInstanceOf(JobManagerException.class);
+        assertThat(((JobManagerException)thrown).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.NotServiceJob);
     }
 
     @Test
@@ -115,7 +120,9 @@ public class DefaultLoadBalancerJobValidatorTest {
 
                         .build())
                 .build()));
-        assertThatThrownBy(() -> loadBalancerValidator.validateJobId(JOB_ID)).hasMessageContaining("Job must request a routable IP");
+        Throwable thrown = catchThrowable(() -> loadBalancerValidator.validateJobId(JOB_ID));
+        assertThat(thrown).isInstanceOf(LoadBalancerException.class);
+        assertThat(((LoadBalancerException)thrown).getErrorCode()).isEqualTo(LoadBalancerException.ErrorCode.JobNotRoutableIp);
     }
 
     @Test
@@ -142,7 +149,9 @@ public class DefaultLoadBalancerJobValidatorTest {
             loadBalancerStore.addOrUpdateLoadBalancer(new JobLoadBalancer(JOB_ID, "LoadBalancer-" + i), JobLoadBalancer.State.Associated).await(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         }
 
-        assertThatThrownBy(() -> loadBalancerValidator.validateJobId(JOB_ID)).hasMessageContaining("Number of load balancers for Job");
+        Throwable thrown = catchThrowable(() -> loadBalancerValidator.validateJobId(JOB_ID));
+        assertThat(thrown).isInstanceOf(LoadBalancerException.class);
+        assertThat(((LoadBalancerException)thrown).getErrorCode()).isEqualTo(LoadBalancerException.ErrorCode.JobMaxLoadBalancers);
     }
 
     @Test

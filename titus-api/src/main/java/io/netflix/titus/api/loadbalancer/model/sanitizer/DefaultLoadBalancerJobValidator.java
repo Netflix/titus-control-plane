@@ -16,19 +16,22 @@
 
 package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-import java.util.Optional;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.loadbalancer.service.LoadBalancerException;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Singleton
 public class DefaultLoadBalancerJobValidator implements LoadBalancerJobValidator {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerJobValidator.class);
 
@@ -46,73 +49,32 @@ public class DefaultLoadBalancerJobValidator implements LoadBalancerJobValidator
     }
 
     @Override
-    public void validateJobId(String jobId) throws Exception {
+    public void validateJobId(String jobId) throws LoadBalancerException, JobManagerException {
         // Job must exist
-        Optional<Job<?>> jobOptional = v3JobOperations.getJob(jobId);
-        if (!jobOptional.isPresent()) {
-            throw new Exception(String.format("Job %s does not exist", jobId));
-        }
+        Job<?> job = v3JobOperations.getJob(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId));
 
         // Job must be active
-        Job<?> job = jobOptional.get();
         JobState state = job.getStatus().getState();
         if (state != JobState.Accepted) {
-            throw new Exception(String.format("Job %s is in state %s, should be %s",
-                    jobId, state.name(), JobState.Accepted.name()));
+            throw JobManagerException.unexpectedJobState(job, JobState.Accepted);
         }
 
         // Must be a service job
         JobDescriptor.JobDescriptorExt extensions = job.getJobDescriptor().getExtensions();
         if (!(extensions instanceof ServiceJobExt)) {
-            throw new Exception(String.format("Job %s is NOT of type service", jobId));
+            throw JobManagerException.notServiceJob(jobId);
         }
 
         // Must have routable IP
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
         if (!containerResources.isAllocateIP()) {
-            throw new Exception(String.format("Job must request a routable IP"));
+            throw LoadBalancerException.jobNotRoutableIp(jobId);
         }
 
         // Job should have less than max current load balancer associations
         int numLoadBalancers = loadBalancerStore.retrieveLoadBalancersForJob(jobId).count().toBlocking().single();
         if (numLoadBalancers > loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob()) {
-            throw new Exception(String.format("Number of load balancers for Job %s exceeds max of %s", job, loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob()));
-        }
-    }
-
-    public static Builder newBuilder() {
-        return new Builder();
-    }
-
-    public static final class Builder {
-        private V3JobOperations v3JobOperations;
-        private LoadBalancerStore loadBalancerStore;
-        private LoadBalancerValidationConfiguration loadBalancerValidationConfiguration;
-
-        private Builder() {
-        }
-
-        public static Builder aLoadBalancerValidator() {
-            return new Builder();
-        }
-
-        public Builder withV3JobOperations(V3JobOperations v3JobOperations) {
-            this.v3JobOperations = v3JobOperations;
-            return this;
-        }
-
-        public Builder withLoadBalancerStore(LoadBalancerStore loadBalancerStore) {
-            this.loadBalancerStore = loadBalancerStore;
-            return this;
-        }
-
-        public Builder withLoadBalancerConfiguration(LoadBalancerValidationConfiguration loadBalancerValidationConfiguration) {
-            this.loadBalancerValidationConfiguration = loadBalancerValidationConfiguration;
-            return this;
-        }
-
-        public DefaultLoadBalancerJobValidator build() {
-            return new DefaultLoadBalancerJobValidator(v3JobOperations, loadBalancerStore, loadBalancerValidationConfiguration);
+            throw LoadBalancerException.jobMaxLoadBalancers(jobId, numLoadBalancers, loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob());
         }
     }
 }

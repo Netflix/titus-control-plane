@@ -18,11 +18,13 @@ package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Singleton
 public class DefaultLoadBalancerResourceValidator implements LoadBalancerResourceValidator {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerJobValidator.class);
     private static final int VALIDATION_TIMEOUT_MIN = 1;

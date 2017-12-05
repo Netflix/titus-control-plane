@@ -16,6 +16,8 @@
 
 package io.netflix.titus.api.jobmanager.service;
 
+import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 
@@ -27,6 +29,7 @@ public class JobManagerException extends RuntimeException {
         JobCreateLimited,
         JobNotFound,
         NotServiceJob,
+        UnexpectedJobState,
         UnexpectedTaskState,
         TaskNotFound,
     }
@@ -52,6 +55,13 @@ public class JobManagerException extends RuntimeException {
 
     public static JobManagerException jobNotFound(String jobId) {
         return new JobManagerException(ErrorCode.JobNotFound, format("Job with id %s does not exist", jobId));
+    }
+
+    public static JobManagerException unexpectedJobState(Job job, JobState expectedState) {
+        return new JobManagerException(
+                ErrorCode.UnexpectedJobState,
+                format("Job %s is not in the expected state %s (expected) != %s (actual)", job.getId(), expectedState, job.getStatus().getState())
+        );
     }
 
     public static JobManagerException taskNotFound(String taskId) {

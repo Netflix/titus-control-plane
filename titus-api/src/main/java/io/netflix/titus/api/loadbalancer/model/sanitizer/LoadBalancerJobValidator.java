@@ -16,6 +16,9 @@
 
 package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
+import io.netflix.titus.api.loadbalancer.service.LoadBalancerException;
+
 public interface LoadBalancerJobValidator {
 
     /**
@@ -23,5 +26,5 @@ public interface LoadBalancerJobValidator {
      * @param jobId
      * @throws Exception
      */
-    void validateJobId(String jobId) throws Exception;
+    void validateJobId(String jobId) throws LoadBalancerException, JobManagerException;
 }

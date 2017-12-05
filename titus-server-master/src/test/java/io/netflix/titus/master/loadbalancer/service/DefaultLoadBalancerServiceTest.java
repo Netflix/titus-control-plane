@@ -97,11 +97,7 @@ public class DefaultLoadBalancerServiceTest {
         loadBalancerStore = new InMemoryLoadBalancerStore();
         jobOperations = mock(V3JobOperations.class);
         LoadBalancerValidationConfiguration validationConfiguration = mockValidationConfig(30);
-        validator = DefaultLoadBalancerJobValidator.newBuilder()
-                .withLoadBalancerConfiguration(validationConfiguration)
-                .withV3JobOperations(jobOperations)
-                .withLoadBalancerStore(loadBalancerStore)
-                .build();
+        validator = new DefaultLoadBalancerJobValidator(jobOperations, loadBalancerStore, validationConfiguration);
         targetTracking = new TargetTracking();
         testScheduler = Schedulers.test();
     }
