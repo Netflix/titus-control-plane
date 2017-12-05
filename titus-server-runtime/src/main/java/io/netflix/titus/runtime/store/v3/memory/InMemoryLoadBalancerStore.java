@@ -16,6 +16,7 @@
 
 package io.netflix.titus.runtime.store.v3.memory;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -50,5 +51,16 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer) {
         return Completable.fromAction(() -> associations.remove(jobLoadBalancer));
+    }
+
+    @Override
+    public int getNumLoadBalancersForJob(String jobId) {
+        int loadBalancerCount = 0;
+        for (Map.Entry<JobLoadBalancer, JobLoadBalancer.State> entry : associations.entrySet()) {
+            if (entry.getKey().getJobId().equals(jobId)) {
+                loadBalancerCount++;
+            }
+        }
+        return loadBalancerCount;
     }
 }

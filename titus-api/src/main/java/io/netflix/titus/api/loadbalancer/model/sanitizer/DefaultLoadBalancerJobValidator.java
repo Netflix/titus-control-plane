@@ -73,7 +73,7 @@ public class DefaultLoadBalancerJobValidator implements LoadBalancerJobValidator
 
         // Job should have less than max current load balancer associations
         int maxLoadBalancers = loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob();
-        int numLoadBalancers = loadBalancerStore.retrieveLoadBalancersForJob(jobId).count().toBlocking().single();
+        int numLoadBalancers = loadBalancerStore.getNumLoadBalancersForJob(jobId);
         if (numLoadBalancers > maxLoadBalancers) {
             throw LoadBalancerException.jobMaxLoadBalancers(jobId, numLoadBalancers, maxLoadBalancers);
         }

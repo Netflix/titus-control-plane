@@ -48,4 +48,11 @@ public interface LoadBalancerStore {
      * @return
      */
     Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer);
+
+    /**
+     * Blocking call that returns the number of load balancers associated with a job.
+     * @param jobId
+     * @return Returns 0 even if jobId does not exist.
+     */
+    int getNumLoadBalancersForJob(String jobId);
 }

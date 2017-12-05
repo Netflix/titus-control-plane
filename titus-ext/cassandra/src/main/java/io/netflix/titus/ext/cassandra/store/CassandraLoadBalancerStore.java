@@ -163,6 +163,17 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .toCompletable();
     }
 
+    @Override
+    public int getNumLoadBalancersForJob(String jobId) {
+        int loadBalancerCount = 0;
+        for (Map.Entry<JobLoadBalancer, JobLoadBalancer.State> entry : loadBalancerStateMap.entrySet()) {
+            if (entry.getKey().getJobId().equals(jobId)) {
+                loadBalancerCount++;
+            }
+        }
+        return loadBalancerCount;
+    }
+
     private Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {
         return Pair.of(new JobLoadBalancer(row.getString(COLUMN_JOB_ID), row.getString(COLUMN_LOAD_BALANCER)),
                 JobLoadBalancer.State.valueOf(row.getString(COLUMN_STATE)));
