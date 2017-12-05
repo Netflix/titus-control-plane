@@ -29,8 +29,8 @@ import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeAction.TimeoutStatus;
+import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions.TimeoutStatus;
 import org.junit.Test;
 
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
@@ -38,7 +38,7 @@ import static io.netflix.titus.testkit.model.job.JobGenerator.batchJobs;
 import static io.netflix.titus.testkit.model.job.JobGenerator.batchTasks;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TaskTimeoutChangeActionTest {
+public class TaskTimeoutChangeActionsTest {
 
     private static final long DEADLINE_INTERVAL_MS = 100;
 
@@ -54,22 +54,22 @@ public class TaskTimeoutChangeActionTest {
         EntityHolder initialChild = initialRoot.getChildren().first();
 
         // Initially there is no timeout associated
-        TimeoutStatus timeoutStatus = TaskTimeoutChangeAction.getTimeoutStatus(initialChild, testClock);
+        TimeoutStatus timeoutStatus = TaskTimeoutChangeActions.getTimeoutStatus(initialChild, testClock);
         assertThat(timeoutStatus).isEqualTo(TimeoutStatus.NotSet);
 
         // Apply timeout
-        Pair<JobChange, List<ModelActionHolder>> changeUpdatesPair = new TaskTimeoutChangeAction(
+        Pair<JobChange, List<ModelActionHolder>> changeUpdatesPair = TaskTimeoutChangeActions.setTimeout(
                 launchedTask.getId(),
                 launchedTask.getStatus().getState(),
                 testClock.wallTime() + DEADLINE_INTERVAL_MS
         ).apply().toBlocking().first();
 
         EntityHolder rootWithTimeout = changeUpdatesPair.getRight().get(0).getAction().apply(initialRoot).get().getLeft();
-        assertThat(TaskTimeoutChangeAction.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.Pending);
+        assertThat(TaskTimeoutChangeActions.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.Pending);
 
         // Advance time to trigger timeout
         testClock.advanceTime(DEADLINE_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(TaskTimeoutChangeAction.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.TimedOut);
+        assertThat(TaskTimeoutChangeActions.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.TimedOut);
     }
 
     private EntityHolder rootFrom(Job<BatchJobExt> job, BatchJobTask task) {

@@ -20,7 +20,7 @@ import javax.validation.constraints.Min;
 
 /**
  */
-public class ExponentialBackoffRetryPolicy extends RetryPolicy {
+public class ExponentialBackoffRetryPolicy extends RetryPolicy<ExponentialBackoffRetryPolicy, ExponentialBackoffRetryPolicyBuilder> {
 
     @Min(value = 0, message = "Delay cannot be negative")
     private final long initialDelayMs;
@@ -78,40 +78,16 @@ public class ExponentialBackoffRetryPolicy extends RetryPolicy {
                 '}';
     }
 
-    public static Builder newBuilder() {
-        return new Builder();
+    @Override
+    public ExponentialBackoffRetryPolicyBuilder toBuilder() {
+        return newBuilder()
+                .withInitialDelayMs(initialDelayMs)
+                .withMaxDelayMs(maxDelayMs)
+                .withRetries(getRetries());
     }
 
-    public static final class Builder {
-        private long initialDelayMs;
-        private long maxDelayMs;
-        private int retries;
-
-        private Builder() {
-        }
-
-        public Builder withInitialDelayMs(long initialDelayMs) {
-            this.initialDelayMs = initialDelayMs;
-            return this;
-        }
-
-        public Builder withMaxDelayMs(long maxDelayMs) {
-            this.maxDelayMs = maxDelayMs;
-            return this;
-        }
-
-        public Builder withRetries(int retries) {
-            this.retries = retries;
-            return this;
-        }
-
-        public Builder but() {
-            return newBuilder().withInitialDelayMs(initialDelayMs).withMaxDelayMs(maxDelayMs).withRetries(retries);
-        }
-
-        public ExponentialBackoffRetryPolicy build() {
-            ExponentialBackoffRetryPolicy exponentialBackoffRetryPolicy = new ExponentialBackoffRetryPolicy(retries, initialDelayMs, maxDelayMs);
-            return exponentialBackoffRetryPolicy;
-        }
+    public static ExponentialBackoffRetryPolicyBuilder newBuilder() {
+        return new ExponentialBackoffRetryPolicyBuilder();
     }
+
 }

@@ -9,6 +9,7 @@ import java.util.function.Function;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -29,6 +30,10 @@ public class JobsScenarioBuilder {
     public static final long RECONCILER_ACTIVE_TIMEOUT_MS = 50L;
     public static final long RECONCILER_IDLE_TIMEOUT_MS = 50;
 
+    public static final long LAUNCHED_TIMEOUT_MS = 5_000;
+    public static final long START_INITIATED_TIMEOUT_MS = 10_000;
+    public static final long KILL_INITIATED_TIMEOUT_MS = 30_000;
+
     private final TestScheduler testScheduler = Schedulers.test();
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
@@ -47,6 +52,11 @@ public class JobsScenarioBuilder {
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
 
+        when(configuration.getTaskInLaunchedStateTimeoutMs()).thenReturn(LAUNCHED_TIMEOUT_MS);
+        when(configuration.getBatchTaskInStartInitiatedStateTimeoutMs()).thenReturn(START_INITIATED_TIMEOUT_MS);
+        when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
+        when(configuration.getTaskKillAttempts()).thenReturn(2L);
+
         jobStore.events().subscribe(storeEvents);
 
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
@@ -55,6 +65,7 @@ public class JobsScenarioBuilder {
                 schedulingService,
                 vmService,
                 jobStore,
+                Clocks.testScheduler(testScheduler),
                 testScheduler
         );
         ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(

@@ -19,10 +19,11 @@ package io.netflix.titus.api.jobmanager.model.job;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Preconditions;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
@@ -45,10 +46,75 @@ public final class JobFunctions {
         return isV2JobId(taskId);
     }
 
-    public static void checkBatchIndexInvariant(Job<BatchJobExt> job, int index) {
-        int size = job.getJobDescriptor().getExtensions().getSize();
-        Preconditions.checkArgument(index >= 0, "Batch task index must be >= 0");
-        Preconditions.checkArgument(index < size, "Batch task index must be < job size(%s)", size);
+    public static Job changeJobStatus(Job job, JobState jobState, String reasonCode) {
+        JobStatus newStatus = JobModel.newJobStatus()
+                .withState(jobState)
+                .withReasonCode(reasonCode)
+                .build();
+        return JobFunctions.changeJobStatus(job, newStatus);
+    }
+
+    public static Job changeJobStatus(Job job, JobStatus status) {
+        JobStatus currentStatus = job.getStatus();
+        List<JobStatus> statusHistory = new ArrayList<>(job.getStatusHistory());
+        statusHistory.add(currentStatus);
+        return job.toBuilder()
+                .withStatus(status)
+                .withStatusHistory(statusHistory)
+                .build();
+    }
+
+    public static Task changeTaskStatus(Task task, TaskStatus status) {
+        return taskStatusChangeBuilder(task, status).build();
+    }
+
+    public static Task changeTaskStatus(Task task, TaskState taskState, String reasonCode, String reasonMessage) {
+        TaskStatus newStatus = JobModel.newTaskStatus()
+                .withState(taskState)
+                .withReasonCode(reasonCode)
+                .withReasonMessage(reasonMessage)
+                .build();
+        return taskStatusChangeBuilder(task, newStatus).build();
+    }
+
+    public static Task addAllocatedResourcesToTask(Task task, TaskStatus status, TwoLevelResource twoLevelResource, Map<String, String> taskContext) {
+        return taskStatusChangeBuilder(task, status)
+                .withTwoLevelResources(twoLevelResource)
+                .withTaskContext(taskContext)
+                .build();
+    }
+
+    public static BatchJobTask createNewBatchTask(Job<?> job, int index) {
+        String taskId = UUID.randomUUID().toString();
+        return BatchJobTask.newBuilder()
+                .withId(taskId)
+                .withJobId(job.getId())
+                .withIndex(index)
+                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
+                .withOriginalId(taskId)
+                .build();
+    }
+
+    public static BatchJobTask createBatchTaskReplacement(BatchJobTask oldTask) {
+        String taskId = UUID.randomUUID().toString();
+        return BatchJobTask.newBuilder()
+                .withId(taskId)
+                .withJobId(oldTask.getJobId())
+                .withIndex(oldTask.getIndex())
+                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
+                .withOriginalId(oldTask.getOriginalId())
+                .withResubmitOf(oldTask.getId())
+                .withResubmitNumber(oldTask.getResubmitNumber() + 1)
+                .build();
+    }
+
+    private static Task.TaskBuilder taskStatusChangeBuilder(Task task, TaskStatus status) {
+        TaskStatus currentStatus = task.getStatus();
+        List<TaskStatus> statusHistory = new ArrayList<>(task.getStatusHistory());
+        statusHistory.add(currentStatus);
+        return task.toBuilder()
+                .withStatus(status)
+                .withStatusHistory(statusHistory);
     }
 
     public static Retryer retryerFrom(RetryPolicy retryPolicy, int remainingRetries) {
@@ -64,50 +130,19 @@ public final class JobFunctions {
         throw new IllegalArgumentException("Unknown RetryPolicy type " + retryPolicy.getClass());
     }
 
-    public static Task updateTaskStatus(Task task, TaskStatus status) {
-        return taskStatusChangeBuilder(task, status).build();
+    public static Retryer retryer(Job<?> job, Task task) {
+        RetryPolicy retryPolicy = getRetryPolicy(job);
+        int remainingRetries = retryPolicy.getRetries() - task.getResubmitNumber();
+        return retryerFrom(retryPolicy, remainingRetries);
     }
 
-    public static Task updateTaskStatus(Task task, TaskState taskState, String reasonCode, String reasonMessage) {
-        TaskStatus newStatus = JobModel.newTaskStatus()
-                .withState(taskState)
-                .withReasonCode(reasonCode)
-                .withReasonMessage(reasonMessage)
-                .build();
-        return taskStatusChangeBuilder(task, newStatus).build();
+    public static RetryPolicy getRetryPolicy(Job<?> job) {
+        JobDescriptor.JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
+        return ext instanceof BatchJobExt ? ((BatchJobExt) ext).getRetryPolicy() : ((ServiceJobExt) ext).getRetryPolicy();
     }
 
-    public static Task updateTaskAfterScheduling(Task task, TaskStatus status, TwoLevelResource twoLevelResource, Map<String, String> taskContext) {
-        return taskStatusChangeBuilder(task, status)
-                .withTwoLevelResources(twoLevelResource)
-                .withTaskContext(taskContext)
-                .build();
-    }
-
-    public static Job updateJobStatus(Job job, JobState jobState, String reasonCode) {
-        JobStatus newStatus = JobModel.newJobStatus()
-                .withState(jobState)
-                .withReasonCode(reasonCode)
-                .build();
-        return JobFunctions.updateJobStatus(job, newStatus);
-    }
-
-    public static Job updateJobStatus(Job job, JobStatus status) {
-        JobStatus currentStatus = job.getStatus();
-        List<JobStatus> statusHistory = new ArrayList<>(job.getStatusHistory());
-        statusHistory.add(currentStatus);
-        return job.toBuilder()
-                .withStatus(status)
-                .withStatusHistory(statusHistory)
-                .build();
-    }
-
-    private static Task.TaskBuilder taskStatusChangeBuilder(Task task, TaskStatus status) {
-        TaskStatus currentStatus = task.getStatus();
-        List<TaskStatus> statusHistory = new ArrayList<>(task.getStatusHistory());
-        statusHistory.add(currentStatus);
-        return task.toBuilder()
-                .withStatus(status)
-                .withStatusHistory(statusHistory);
+    public static JobDescriptor<BatchJobExt> changeRetryLimit(JobDescriptor<BatchJobExt> input, int retryLimit) {
+        RetryPolicy newRetryPolicy = input.getExtensions().getRetryPolicy().toBuilder().withRetries(retryLimit).build();
+        return input.but(jd -> input.getExtensions().toBuilder().withRetryPolicy(newRetryPolicy).build());
     }
 }

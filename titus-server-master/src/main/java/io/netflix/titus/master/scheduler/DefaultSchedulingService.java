@@ -90,6 +90,7 @@ import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.JobMgr;
 import io.netflix.titus.master.job.V2JobOperations;
+import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.TaskInfoFactory;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
@@ -605,45 +606,18 @@ public class DefaultSchedulingService implements SchedulingService {
                     Task v3Task = v3JobAndTask.get().getRight();
                     final VirtualMachineLease lease = leases.get(0);
                     try {
+                        Map<String, String> attributesMap = getAttributesMap(lease);
                         Protos.TaskInfo taskInfo = v3TaskInfoFactory.newTaskInfo(
-                                task, v3Job, v3Task, lease.hostname(), getAttributesMap(lease), lease.getOffer().getSlaveId(),
+                                task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
                                 consumeResult);
 
-                        TaskStatus taskStatus = JobModel.newTaskStatus()
-                                .withState(TaskState.Launched)
-                                .withReasonCode("scheduled")
-                                .withReasonMessage("Fenzo task placement")
-                                .build();
+                        boolean updated = v3JobOperations.updateTaskAfterStore(
+                                task.getId(),
+                                JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap),
+                                Trigger.Scheduler,
+                                "Task launched by Fenzo"
+                        ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
-                        TwoLevelResource twoLevelResource = TwoLevelResource.newBuilder()
-                                .withName(consumeResult.getAttrName())
-                                .withValue(consumeResult.getResName())
-                                .withIndex(consumeResult.getIndex())
-                                .build();
-
-                        Map<String, String> taskContext = new HashMap<>();
-                        taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, lease.hostname());
-
-                        Map<String, Protos.Attribute> attributes = lease.getAttributeMap();
-                        if (!isNullOrEmpty(attributes)) {
-                            getAttributesMap(lease).forEach((k, v) -> taskContext.put("agent." + k, v));
-
-                            // TODO Some agent attribute names are configurable, some not. We need to clean this up.
-                            addAttributeToContext(attributes, config.getHostZoneAttributeName()).ifPresent(value ->
-                                    taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE, value)
-                            );
-                            addAttributeToContext(attributes, "id").ifPresent(value ->
-                                    taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, value)
-                            );
-                        }
-
-                        Function<Task, Task> changeFunction = oldTask -> {
-                            if (oldTask.getStatus().getState() != TaskState.Accepted) {
-                                throw JobManagerException.unexpectedTaskState(oldTask, TaskState.Accepted);
-                            }
-                            return JobFunctions.updateTaskAfterScheduling(oldTask, taskStatus, twoLevelResource, taskContext);
-                        };
-                        boolean updated = v3JobOperations.updateTaskAfterStore(task.getId(), changeFunction,  Trigger.Scheduler,"Task launched by Fenzo").await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                         if (updated) {
                             taskInfoList.add(taskInfo);
                         } else {
@@ -676,11 +650,6 @@ public class DefaultSchedulingService implements SchedulingService {
                 e -> logger.warn("Failed to terminate task {}", task.getId(), e),
                 () -> logger.warn("Terminated task {} as launch operation could not be completed", task.getId())
         );
-    }
-
-    private Optional<String> addAttributeToContext(Map<String, Protos.Attribute> attributes, String name) {
-        Protos.Attribute attribute = attributes.get(name);
-        return (attribute != null) ? Optional.of(attribute.getText().getValue()) : Optional.empty();
     }
 
     private Map<String, String> getAttributesMap(VirtualMachineLease virtualMachineLease) {

@@ -53,7 +53,7 @@ public class BasicJobActions {
                             .jobMaybeUpdate(entityHolder -> {
                                 Job job = entityHolder.getEntity();
                                 if (job.getStatus().getState() != JobState.Finished) {
-                                    Job newJob = JobFunctions.updateJobStatus(job, JobState.Finished, TaskStatus.REASON_NORMAL);
+                                    Job newJob = JobFunctions.changeJobStatus(job, JobState.Finished, TaskStatus.REASON_NORMAL);
                                     return Optional.of(entityHolder.setEntity(newJob));
                                 }
                                 return Optional.empty();

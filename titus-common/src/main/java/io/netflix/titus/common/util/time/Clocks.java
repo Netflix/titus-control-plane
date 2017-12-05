@@ -16,8 +16,11 @@
 
 package io.netflix.titus.common.util.time;
 
+import java.util.concurrent.TimeUnit;
+
 import io.netflix.titus.common.util.time.internal.DefaultTestClock;
 import io.netflix.titus.common.util.time.internal.SystemClock;
+import rx.schedulers.TestScheduler;
 
 /**
  */
@@ -29,5 +32,25 @@ public class Clocks {
 
     public static TestClock test() {
         return new DefaultTestClock();
+    }
+
+    public static TestClock testScheduler(TestScheduler testScheduler) {
+        return new TestClock() {
+            @Override
+            public long advanceTime(long interval, TimeUnit timeUnit) {
+                testScheduler.advanceTimeBy(interval, timeUnit);
+                return testScheduler.now();
+            }
+
+            @Override
+            public long nanoTime() {
+                return TimeUnit.MILLISECONDS.toNanos(testScheduler.now());
+            }
+
+            @Override
+            public long wallTime() {
+                return testScheduler.now();
+            }
+        };
     }
 }

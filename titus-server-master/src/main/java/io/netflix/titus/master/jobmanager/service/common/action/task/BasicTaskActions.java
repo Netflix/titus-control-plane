@@ -127,7 +127,7 @@ public class BasicTaskActions {
                                                             && TaskStatus.REASON_SCALED_DOWN.equals(oldTask.getStatus().getReasonCode())) {
 
                                                         TaskStatus newStatus = newTask.getStatus().toBuilder().withReasonCode(TaskStatus.REASON_SCALED_DOWN).build();
-                                                        newTask = JobFunctions.updateTaskStatus(newTask, newStatus);
+                                                        newTask = JobFunctions.changeTaskStatus(newTask, newStatus);
                                                     }
                                                 }
 

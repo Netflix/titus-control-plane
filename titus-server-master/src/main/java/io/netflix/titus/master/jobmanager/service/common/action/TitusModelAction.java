@@ -78,6 +78,14 @@ public abstract class TitusModelAction implements ModelAction {
                 .summary(sourceChangeAction.summary);
     }
 
+    public static Builder newModelUpdate(String name, TitusChangeAction sourceChangeAction) {
+        JobChange jobChange = sourceChangeAction.getChange();
+        return new Builder(name)
+                .id(jobChange.getId())
+                .trigger(jobChange.getTrigger())
+                .summary(jobChange.getSummary());
+    }
+
     public static class Builder {
 
         private final String name;

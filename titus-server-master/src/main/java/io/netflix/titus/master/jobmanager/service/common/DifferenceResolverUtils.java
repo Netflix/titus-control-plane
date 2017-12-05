@@ -42,7 +42,7 @@ import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
-import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 
 /**
@@ -116,7 +116,7 @@ public class DifferenceResolverUtils {
         runningJobView.getJobHolder().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
             TaskState taskState = task.getStatus().getState();
-            TaskTimeoutChangeAction.TimeoutStatus timeoutStatus = TaskTimeoutChangeAction.getTimeoutStatus(taskHolder, clock);
+            TaskTimeoutChangeActions.TimeoutStatus timeoutStatus = TaskTimeoutChangeActions.getTimeoutStatus(taskHolder, clock);
             switch (timeoutStatus) {
                 case Ignore:
                 case Pending:
@@ -137,28 +137,34 @@ public class DifferenceResolverUtils {
                             break;
                     }
                     if (timeoutMs > 0) {
-                        actions.add(new TaskTimeoutChangeAction(taskHolder.getId(), task.getStatus().getState(), clock.wallTime() + timeoutMs));
+                        actions.add(TaskTimeoutChangeActions.setTimeout(taskHolder.getId(), task.getStatus().getState(), clock.wallTime() + timeoutMs));
                     }
                     break;
                 case TimedOut:
                     if (task.getStatus().getState() == TaskState.KillInitiated) {
-                        actions.add(
-                                BasicTaskActions.updateTaskInRunningModel(task.getId(),
-                                        V3JobOperations.Trigger.Reconciler,
-                                        engine,
-                                        taskParam -> taskParam.toBuilder()
-                                                .withStatus(taskParam.getStatus().toBuilder()
-                                                        .withState(TaskState.Finished)
-                                                        .withReasonCode(TaskStatus.REASON_STUCK_IN_STATE)
-                                                        .withReasonMessage("stuck in " + taskState + "state")
-                                                        .build()
-                                                )
-                                                .build(),
-                                        "TimedOut in KillInitiated state"
-                                )
-                        );
+                        int attempts = TaskTimeoutChangeActions.getKillInitiatedAttempts(taskHolder) + 1;
+                        if (attempts >= configuration.getTaskKillAttempts()) {
+                            actions.add(
+                                    BasicTaskActions.updateTaskInRunningModel(task.getId(),
+                                            V3JobOperations.Trigger.Reconciler,
+                                            engine,
+                                            taskParam -> taskParam.toBuilder()
+                                                    .withStatus(taskParam.getStatus().toBuilder()
+                                                            .withState(TaskState.Finished)
+                                                            .withReasonCode(TaskStatus.REASON_STUCK_IN_STATE)
+                                                            .withReasonMessage("stuck in " + taskState + "state")
+                                                            .build()
+                                                    )
+                                                    .build(),
+                                            "TimedOut in KillInitiated state"
+                                    )
+                            );
+                        } else {
+                            actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), clock.wallTime() + configuration.getTaskInKillInitiatedStateTimeoutMs()));
+                            actions.add(KillInitiatedActions.applyKillInitiated(engine, task, vmService, TaskStatus.REASON_STUCK_IN_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
+                        }
                     } else {
-                        actions.add(KillInitiatedActions.applyKillInitiated(engine, task, vmService, TaskStatus.REASON_STUCK_IN_STATE, "stuck in " + taskState + "state"));
+                        actions.add(KillInitiatedActions.applyKillInitiated(engine, task, vmService, TaskStatus.REASON_STUCK_IN_STATE, "Task stuck in " + taskState + " state"));
                     }
                     break;
             }

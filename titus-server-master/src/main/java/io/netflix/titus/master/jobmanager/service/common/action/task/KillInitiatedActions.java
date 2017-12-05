@@ -51,8 +51,6 @@ import rx.functions.Action0;
  */
 public class KillInitiatedActions {
 
-    private static final String SUMMARY = "Changing task state to KillInitiated and killing it on VM";
-
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
@@ -67,7 +65,7 @@ public class KillInitiatedActions {
                             .withState(JobState.KillInitiated)
                             .withReasonCode(TaskStatus.REASON_JOB_KILLED).withReasonMessage("External job termination request")
                             .build();
-                    Job jobWithKillInitiated = JobFunctions.updateJobStatus(job, newStatus);
+                    Job jobWithKillInitiated = JobFunctions.changeJobStatus(job, newStatus);
 
                     TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
                             .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated)));
@@ -91,14 +89,14 @@ public class KillInitiatedActions {
         return TitusChangeAction.newAction("killInitiated")
                 .id(taskId)
                 .trigger(V3JobOperations.Trigger.API)
-                .summary(SUMMARY)
+                .summary(reason)
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.toTaskObservable(engine, taskId).flatMap(task -> {
                             TaskState taskState = task.getStatus().getState();
                             if (taskState == TaskState.KillInitiated || taskState == TaskState.Finished) {
                                 return Observable.just(Collections.<ModelActionHolder>emptyList());
                             }
-                            Task taskWithKillInitiated = JobFunctions.updateTaskStatus(task, TaskState.KillInitiated, reasonCode, reason);
+                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(task, TaskState.KillInitiated, reasonCode, reason);
 
                             Action0 killAction = () -> vmService.killTask(taskId);
                             Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId()).map(current -> {
@@ -114,7 +112,7 @@ public class KillInitiatedActions {
                                 return updateActions;
                             }).orElse(Collections.emptyList());
 
-                            return jobStore.storeTask(taskWithKillInitiated)
+                            return jobStore.updateTask(taskWithKillInitiated)
                                     .andThen(Completable.fromAction(killAction))
                                     .andThen(Observable.fromCallable(modelUpdateActions));
                         }));
@@ -133,18 +131,18 @@ public class KillInitiatedActions {
         return TitusChangeAction.newAction("killInitiated")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
-                .summary(SUMMARY)
+                .summary(reason)
                 .applyModelUpdates(self ->
                         JobEntityHolders.expectTask(engine, task.getId())
                                 .map(current -> {
                                     TaskState taskState = current.getStatus().getState();
-                                    if (taskState == TaskState.KillInitiated || taskState == TaskState.Finished) {
+                                    if (taskState == TaskState.Finished) {
                                         return Collections.<ModelActionHolder>emptyList();
                                     }
 
                                     vmService.killTask(task.getId());
 
-                                    Task taskWithKillInitiated = JobFunctions.updateTaskStatus(current, TaskState.KillInitiated, reasonCode, reason);
+                                    Task taskWithKillInitiated = JobFunctions.changeTaskStatus(current, TaskState.KillInitiated, reasonCode, reason);
                                     return ModelActionHolder.referenceAndRunning(TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated));
                                 }).orElse(Collections.emptyList()));
     }

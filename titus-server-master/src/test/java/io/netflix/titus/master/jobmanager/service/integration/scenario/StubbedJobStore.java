@@ -16,17 +16,21 @@
 
 package io.netflix.titus.master.jobmanager.service.integration.scenario;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
+import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import org.assertj.core.api.Assertions;
 import rx.Completable;
 import rx.Observable;
 import rx.subjects.PublishSubject;
@@ -67,6 +71,49 @@ class StubbedJobStore implements JobStore {
                     }
                     return false;
                 });
+    }
+
+    public Task expectTaskInStore(String jobId, int taskIdx, int resubmit) {
+        Optional<Task> match = findTask(jobId, taskIdx, resubmit, tasks);
+
+        Assertions.assertThat(match)
+                .describedAs("No batch task {job=%s, index=%s, resubmit=%s} found in task active store", jobId, taskIdx, resubmit)
+                .isPresent();
+        return match.get();
+    }
+
+    public Task expectTaskInStoreOrStoreArchive(String jobId, int taskIdx, int resubmit) {
+        Optional<Task> match = findTask(jobId, taskIdx, resubmit, tasks);
+        if(!match.isPresent()) {
+            match = findTask(jobId, taskIdx, resubmit, archivedTasks);
+        }
+
+        Assertions.assertThat(match)
+                .describedAs("No batch task {job=%s, index=%s, resubmit=%s} found in task active store or archive", jobId, taskIdx, resubmit)
+                .isPresent();
+        return match.get();
+    }
+
+    public Task expectTaskInStoreArchive(String jobId, int taskIdx, int resubmit) {
+        Optional<Task> match = findTask(jobId, taskIdx, resubmit, archivedTasks);
+
+        Assertions.assertThat(match)
+                .describedAs("No batch task {job=%s, index=%s, resubmit=%s} found in task archive", jobId, taskIdx, resubmit)
+                .isPresent();
+        return match.get();
+    }
+
+    private Optional<Task> findTask(String jobId, int taskIdx, int resubmit, Map<String, Task> taskMap) {
+        return taskMap.values().stream().filter(task -> {
+            if (!task.getJobId().equals(jobId)) {
+                return false;
+            }
+            if (!(task instanceof BatchJobTask)) {
+                return false;
+            }
+            BatchJobTask batchJobTask = (BatchJobTask) task;
+            return batchJobTask.getIndex() == taskIdx && batchJobTask.getResubmitNumber() == resubmit;
+        }).findFirst();
     }
 
     @Override

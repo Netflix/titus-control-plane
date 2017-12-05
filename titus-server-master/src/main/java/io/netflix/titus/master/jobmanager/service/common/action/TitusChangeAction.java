@@ -48,8 +48,11 @@ public abstract class TitusChangeAction implements ChangeAction<JobChange> {
     }
 
     public static Builder newInterceptor(String name, TitusChangeAction changeAction) {
-        return new Builder(name + '(' + changeAction.getChange().getName() + ')')
-                ;
+        JobChange jobChange = changeAction.getChange();
+        return new Builder(name + '(' + jobChange.getName() + ')')
+                .id(jobChange.getId())
+                .trigger(jobChange.getTrigger())
+                .summary(name + ": " + jobChange.getSummary());
     }
 
     public static class Builder {

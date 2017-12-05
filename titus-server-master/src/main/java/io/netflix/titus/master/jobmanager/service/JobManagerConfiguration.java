@@ -42,6 +42,9 @@ public interface JobManagerConfiguration {
     @DefaultValue("600000")
     long getTaskInKillInitiatedStateTimeoutMs();
 
+    @DefaultValue("2")
+    long getTaskKillAttempts();
+
     @DefaultValue("12000")
     long getMaxActiveJobs();
 

@@ -18,30 +18,18 @@ package io.netflix.titus.api.jobmanager.model.job.retry;
 
 /**
  */
-public class ImmediateRetryPolicy extends RetryPolicy {
+public class ImmediateRetryPolicy extends RetryPolicy<ImmediateRetryPolicy, ImmediateRetryPolicyBuilder> {
 
     public ImmediateRetryPolicy(int retries) {
         super(retries);
     }
 
-    public static Builder newBuilder() {
-        return new Builder();
+    @Override
+    public ImmediateRetryPolicyBuilder toBuilder() {
+        return new ImmediateRetryPolicyBuilder().withRetries(getRetries());
     }
 
-    public static final class Builder {
-        private int retries;
-
-        private Builder() {
-        }
-
-        public Builder withRetries(int retries) {
-            this.retries = retries;
-            return this;
-        }
-
-        public ImmediateRetryPolicy build() {
-            ImmediateRetryPolicy immediateRetryPolicy = new ImmediateRetryPolicy(retries);
-            return immediateRetryPolicy;
-        }
+    public static ImmediateRetryPolicyBuilder newBuilder() {
+        return new ImmediateRetryPolicyBuilder();
     }
 }

@@ -56,7 +56,7 @@ import io.netflix.titus.master.service.management.ApplicationSlaManagementServic
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-import static io.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskAction.createOrReplaceTaskAction;
+import static io.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskActions.createOrReplaceTaskAction;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.areEquivalent;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.findTaskStateTimeouts;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.hasJobState;
@@ -78,7 +78,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private final RetryActionInterceptor storeWriteRetryInterceptor;
     private final RateLimiterInterceptor newTaskRateLimiterInterceptor;
 
-    private final Clock clock = Clocks.system();
+    private final Clock clock;
 
     @Inject
     public BatchDifferenceResolver(
@@ -87,7 +87,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
             JobStore titusStore) {
-        this(configuration, capacityGroupService, schedulingService, vmService, titusStore, Schedulers.computation());
+        this(configuration, capacityGroupService, schedulingService, vmService, titusStore, Clocks.system(), Schedulers.computation());
     }
 
     public BatchDifferenceResolver(
@@ -96,12 +96,14 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
             JobStore titusStore,
+            Clock clock,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
         this.titusStore = titusStore;
+        this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",

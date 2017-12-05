@@ -21,8 +21,11 @@ import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
+import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicyBuilder;
 import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
+import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicyBuilder;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
+import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicyBuilder;
 
 /**
  * A collection of factory, and help methods operating on job data model.
@@ -88,15 +91,15 @@ public final class JobModel {
         return Container.newBuilder(container);
     }
 
-    public static ImmediateRetryPolicy.Builder newImmediateRetryPolicy() {
+    public static ImmediateRetryPolicyBuilder newImmediateRetryPolicy() {
         return ImmediateRetryPolicy.newBuilder();
     }
 
-    public static DelayedRetryPolicy.Builder newDelayedRetryPolicy() {
+    public static DelayedRetryPolicyBuilder newDelayedRetryPolicy() {
         return DelayedRetryPolicy.newBuilder();
     }
 
-    public static ExponentialBackoffRetryPolicy.Builder newExponentialBackoffRetryPolicy() {
+    public static ExponentialBackoffRetryPolicyBuilder newExponentialBackoffRetryPolicy() {
         return ExponentialBackoffRetryPolicy.newBuilder();
     }
 
