@@ -72,9 +72,10 @@ public class DefaultLoadBalancerJobValidator implements LoadBalancerJobValidator
         }
 
         // Job should have less than max current load balancer associations
+        int maxLoadBalancers = loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob();
         int numLoadBalancers = loadBalancerStore.retrieveLoadBalancersForJob(jobId).count().toBlocking().single();
-        if (numLoadBalancers > loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob()) {
-            throw LoadBalancerException.jobMaxLoadBalancers(jobId, numLoadBalancers, loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob());
+        if (numLoadBalancers > maxLoadBalancers) {
+            throw LoadBalancerException.jobMaxLoadBalancers(jobId, numLoadBalancers, maxLoadBalancers);
         }
     }
 }
