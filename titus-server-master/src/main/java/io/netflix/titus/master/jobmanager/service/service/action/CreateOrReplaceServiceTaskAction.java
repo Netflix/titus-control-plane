@@ -31,8 +31,6 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.retry.Retryer;
-import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
@@ -57,18 +55,18 @@ public class CreateOrReplaceServiceTaskAction extends TitusChangeAction {
                                              ServiceJobTask newTask,
                                              Optional<ServiceJobTask> oldTaskOpt,
                                              String summary) {
-        super(new JobChange(V3JobOperations.Trigger.Reconciler, newTask.getId(), summary));
+        super(V3JobOperations.Trigger.Reconciler, newTask.getId(), "createOrReplaceServiceTask", summary);
         this.titusStore = titusStore;
         this.newTask = newTask;
         this.oldTaskOpt = oldTaskOpt;
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
+    public Observable<List<ModelActionHolder>> apply() {
         if (oldTaskOpt.isPresent()) {
-            return titusStore.replaceTask(oldTaskOpt.get(), newTask).andThen(Observable.just(Pair.of(getChange(), createTaskReplaceUpdateActions())));
+            return titusStore.replaceTask(oldTaskOpt.get(), newTask).andThen(Observable.just(createTaskReplaceUpdateActions()));
         }
-        return titusStore.storeTask(newTask).andThen(Observable.just(Pair.of(getChange(), createTaskReplaceUpdateActions())));
+        return titusStore.storeTask(newTask).andThen(Observable.just(createTaskReplaceUpdateActions()));
     }
 
     private TitusModelAction createOrUpdateTaskRetryer(ServiceJobTask task) {

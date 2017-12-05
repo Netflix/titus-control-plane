@@ -28,7 +28,6 @@ import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
-import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions.TimeoutStatus;
 import org.junit.Test;
@@ -58,13 +57,13 @@ public class TaskTimeoutChangeActionsTest {
         assertThat(timeoutStatus).isEqualTo(TimeoutStatus.NotSet);
 
         // Apply timeout
-        Pair<JobChange, List<ModelActionHolder>> changeUpdatesPair = TaskTimeoutChangeActions.setTimeout(
+        List<ModelActionHolder> modelActionHolders = TaskTimeoutChangeActions.setTimeout(
                 launchedTask.getId(),
                 launchedTask.getStatus().getState(),
                 testClock.wallTime() + DEADLINE_INTERVAL_MS
         ).apply().toBlocking().first();
 
-        EntityHolder rootWithTimeout = changeUpdatesPair.getRight().get(0).getAction().apply(initialRoot).get().getLeft();
+        EntityHolder rootWithTimeout = modelActionHolders.get(0).getAction().apply(initialRoot).get().getLeft();
         assertThat(TaskTimeoutChangeActions.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.Pending);
 
         // Advance time to trigger timeout

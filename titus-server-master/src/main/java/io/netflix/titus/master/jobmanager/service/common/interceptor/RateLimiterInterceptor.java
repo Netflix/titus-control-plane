@@ -25,7 +25,6 @@ import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 
@@ -53,8 +52,8 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
                 );
     }
 
-    private List<ModelActionHolder> handleSuccess(TitusChangeAction delegate, Pair<JobChange, List<ModelActionHolder>> result) {
-        return CollectionsExt.copyAndAdd(result.getRight(), createRateLimiterModelAction(delegate));
+    private List<ModelActionHolder> handleSuccess(TitusChangeAction delegate, List<ModelActionHolder> result) {
+        return CollectionsExt.copyAndAdd(result, createRateLimiterModelAction(delegate));
     }
 
     private List<ModelActionHolder> handleError(TitusChangeAction delegate, Throwable error) {
@@ -62,7 +61,7 @@ public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long
     }
 
     private ModelActionHolder createRateLimiterModelAction(TitusChangeAction delegate) {
-        TitusModelAction modelAction = TitusModelAction.newModelUpdate("rateLimiter(" + delegate.getChange().getName() + ')', delegate)
+        TitusModelAction modelAction = TitusModelAction.newModelUpdate("rateLimiter(" + delegate.getName() + ')', delegate)
                 .summary("Acquire rate limiter token from its tokenBucket")
                 .jobMaybeUpdate(rootHolder -> {
                     ImmutableTokenBucket lastTokenBucket = (ImmutableTokenBucket) rootHolder.getAttributes().getOrDefault(attrName, initialTokenBucket);

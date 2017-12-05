@@ -23,24 +23,49 @@ import java.util.function.Function;
 import com.google.common.base.Preconditions;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
-import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import rx.Observable;
 
 /**
  */
-public abstract class TitusChangeAction implements ChangeAction<JobChange> {
+public abstract class TitusChangeAction implements ChangeAction {
 
-    private final JobChange change;
+    private final V3JobOperations.Trigger trigger;
+    private final String id;
+    private final String name;
+    private final String summary;
 
-    protected TitusChangeAction(JobChange change) {
-        this.change = change;
+    protected TitusChangeAction(TitusChangeAction delegate) {
+        this.trigger = delegate.getTrigger();
+        this.id = delegate.getId();
+        this.name = delegate.getName();
+        this.summary = delegate.getSummary();
     }
 
-    public JobChange getChange() {
-        return change;
+    public TitusChangeAction(Trigger trigger, String id, String name, String summary) {
+        this.trigger = trigger;
+        this.id = id;
+        this.name = name;
+        this.summary = summary;
+    }
+
+    public Trigger getTrigger() {
+        return trigger;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getSummary() {
+        return summary;
     }
 
     public static Builder newAction(String name) {
@@ -48,11 +73,10 @@ public abstract class TitusChangeAction implements ChangeAction<JobChange> {
     }
 
     public static Builder newInterceptor(String name, TitusChangeAction changeAction) {
-        JobChange jobChange = changeAction.getChange();
-        return new Builder(name + '(' + jobChange.getName() + ')')
-                .id(jobChange.getId())
-                .trigger(jobChange.getTrigger())
-                .summary(name + ": " + jobChange.getSummary());
+        return new Builder(name + '(' + changeAction.getName() + ')')
+                .id(changeAction.getId())
+                .trigger(changeAction.getTrigger())
+                .summary(name + ": " + changeAction.getSummary());
     }
 
     public static class Builder {
@@ -92,52 +116,48 @@ public abstract class TitusChangeAction implements ChangeAction<JobChange> {
         }
 
         public TitusChangeAction changeWithModelUpdate(Function<Builder, Observable<ModelActionHolder>> actionFun) {
-            JobChange jobChange = newJobChange();
-            return new TitusChangeAction(newJobChange()) {
+            check();
+            return new TitusChangeAction(trigger, id, name, summary) {
                 @Override
-                public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
-                    return actionFun.apply(Builder.this).map(modelActionHolder -> Pair.of(jobChange, Collections.singletonList(modelActionHolder)));
+                public Observable<List<ModelActionHolder>> apply() {
+                    return actionFun.apply(Builder.this).map(Collections::singletonList);
                 }
             };
         }
 
         public TitusChangeAction changeWithModelUpdates(Function<Builder, Observable<List<ModelActionHolder>>> actionFun) {
-            JobChange jobChange = newJobChange();
-            return new TitusChangeAction(jobChange) {
+            check();
+            return new TitusChangeAction(trigger, id, name, summary) {
                 @Override
-                public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
-                    return actionFun.apply(Builder.this).map(modelActionHolders -> Pair.of(jobChange, modelActionHolders));
+                public Observable<List<ModelActionHolder>> apply() {
+                    return actionFun.apply(Builder.this);
                 }
             };
         }
 
         public TitusChangeAction applyModelUpdate(Function<Builder, ModelActionHolder> actionFun) {
-            JobChange jobChange = newJobChange();
-            return new TitusChangeAction(newJobChange()) {
+            check();
+            return new TitusChangeAction(trigger, id, name, summary) {
                 @Override
-                public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
-                    return Observable.fromCallable(() -> actionFun.apply(Builder.this))
-                            .map(modelActionHolder -> Pair.of(jobChange, Collections.singletonList(modelActionHolder)));
+                public Observable<List<ModelActionHolder>> apply() {
+                    return Observable.fromCallable(() -> actionFun.apply(Builder.this)).map(Collections::singletonList);
                 }
             };
         }
 
         public TitusChangeAction applyModelUpdates(Function<Builder, List<ModelActionHolder>> actionFun) {
-            JobChange jobChange = newJobChange();
-            return new TitusChangeAction(newJobChange()) {
+            check();
+            return new TitusChangeAction(trigger, id, name, summary) {
                 @Override
-                public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
-                    return Observable.fromCallable(() -> actionFun.apply(Builder.this))
-                            .map(modelActionHolders -> Pair.of(jobChange, modelActionHolders));
+                public Observable<List<ModelActionHolder>> apply() {
+                    return Observable.fromCallable(() -> actionFun.apply(Builder.this));
                 }
             };
         }
 
-        private JobChange newJobChange() {
+        private void check() {
             Preconditions.checkState(id != null, "Job or task id not defined");
             Preconditions.checkState(trigger != null, "Trigger not defined");
-
-            return new JobChange(trigger, id, name, summary);
         }
     }
 }

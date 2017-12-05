@@ -21,8 +21,6 @@ import java.util.List;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
-import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
@@ -32,11 +30,11 @@ public class RemoveServiceTaskAction extends TitusChangeAction {
     private static final String MESSAGE = "Removing finished task";
 
     public RemoveServiceTaskAction(ServiceJobTask finishedTask) {
-        super(new JobChange(V3JobOperations.Trigger.Reconciler, finishedTask.getId(), MESSAGE));
+        super(V3JobOperations.Trigger.Reconciler, finishedTask.getId(), "removeServiceTask", MESSAGE);
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
-        return Observable.just(Pair.of(getChange(), ModelActionHolder.allModels(TitusModelUpdateActions.removeTask(getChange().getId(), getChange().getTrigger(), MESSAGE))));
+    public Observable<List<ModelActionHolder>> apply() {
+        return Observable.just(ModelActionHolder.allModels(TitusModelUpdateActions.removeTask(getId(), getTrigger(), MESSAGE)));
     }
 }

@@ -45,18 +45,18 @@ import rx.Scheduler;
 import rx.Subscriber;
 import rx.subjects.PublishSubject;
 
-public class DefaultReconciliationFramework<CHANGE, EVENT> implements ReconciliationFramework<CHANGE, EVENT> {
+public class DefaultReconciliationFramework<EVENT> implements ReconciliationFramework<EVENT> {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultReconciliationFramework.class);
 
-    private final Function<EntityHolder, ReconciliationEngine<CHANGE, EVENT>> engineFactory;
+    private final Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory;
     private final long idleTimeoutMs;
     private final long activeTimeoutMs;
 
-    private final Set<ReconciliationEngine<CHANGE, EVENT>> engines = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<ReconciliationEngine<EVENT>> engines = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    private final BlockingQueue<Pair<ReconciliationEngine<CHANGE, EVENT>, Subscriber<ReconciliationEngine>>> enginesAdded = new LinkedBlockingQueue<>();
-    private final BlockingQueue<Pair<ReconciliationEngine<CHANGE, EVENT>, Subscriber<Void>>> enginesToRemove = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<ReconciliationEngine<EVENT>, Subscriber<ReconciliationEngine>>> enginesAdded = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<ReconciliationEngine<EVENT>, Subscriber<Void>>> enginesToRemove = new LinkedBlockingQueue<>();
 
     private IndexSet<EntityHolder> indexSet;
 
@@ -68,7 +68,7 @@ public class DefaultReconciliationFramework<CHANGE, EVENT> implements Reconcilia
     private final PublishSubject<Observable<EVENT>> eventsMergeSubject = PublishSubject.create();
     private final Observable<EVENT> eventsObservable;
 
-    public DefaultReconciliationFramework(Function<EntityHolder, ReconciliationEngine<CHANGE, EVENT>> engineFactory,
+    public DefaultReconciliationFramework(Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory,
                                           long idleTimeoutMs,
                                           long activeTimeoutMs,
                                           Map<Object, Comparator<EntityHolder>> indexComparators,
@@ -124,7 +124,7 @@ public class DefaultReconciliationFramework<CHANGE, EVENT> implements Reconcilia
     }
 
     @Override
-    public Observable<ReconciliationEngine<CHANGE, EVENT>> newEngine(EntityHolder bootstrapModel) {
+    public Observable<ReconciliationEngine<EVENT>> newEngine(EntityHolder bootstrapModel) {
         return Observable.unsafeCreate(subscriber -> {
             if (!runnable) {
                 subscriber.onError(new IllegalStateException("Reconciliation engine is stopped"));
@@ -152,12 +152,12 @@ public class DefaultReconciliationFramework<CHANGE, EVENT> implements Reconcilia
     }
 
     @Override
-    public Optional<ReconciliationEngine<CHANGE, EVENT>> findEngineByRootId(String id) {
+    public Optional<ReconciliationEngine<EVENT>> findEngineByRootId(String id) {
         return engines.stream().filter(e -> e.getReferenceView().getId().equals(id)).findFirst();
     }
 
     @Override
-    public Optional<Pair<ReconciliationEngine<CHANGE, EVENT>, EntityHolder>> findEngineByChildId(String childId) {
+    public Optional<Pair<ReconciliationEngine<EVENT>, EntityHolder>> findEngineByChildId(String childId) {
         for (ReconciliationEngine engine : engines) {
             Optional<EntityHolder> childHolder = engine.getReferenceView().getChildren().stream().filter(c -> c.getId().equals(childId)).findFirst();
             if (childHolder.isPresent()) {
@@ -189,12 +189,12 @@ public class DefaultReconciliationFramework<CHANGE, EVENT> implements Reconcilia
 
     private long doLoop() {
         // Add new engines.
-        List<Pair<ReconciliationEngine<CHANGE, EVENT>, Subscriber<ReconciliationEngine>>> recentlyAdded = new ArrayList<>();
+        List<Pair<ReconciliationEngine<EVENT>, Subscriber<ReconciliationEngine>>> recentlyAdded = new ArrayList<>();
         enginesAdded.drainTo(recentlyAdded);
         recentlyAdded.forEach(pair -> engines.add(pair.getLeft()));
 
         // Remove engines.
-        List<Pair<ReconciliationEngine<CHANGE, EVENT>, Subscriber<Void>>> recentlyRemoved = new ArrayList<>();
+        List<Pair<ReconciliationEngine<EVENT>, Subscriber<Void>>> recentlyRemoved = new ArrayList<>();
         enginesToRemove.drainTo(recentlyRemoved);
         shutdownEnginesToRemove(recentlyRemoved);
 
@@ -239,7 +239,7 @@ public class DefaultReconciliationFramework<CHANGE, EVENT> implements Reconcilia
         return pendingChangeActions ? activeTimeoutMs : idleTimeoutMs;
     }
 
-    private void shutdownEnginesToRemove(List<Pair<ReconciliationEngine<CHANGE, EVENT>, Subscriber<Void>>> toRemove) {
+    private void shutdownEnginesToRemove(List<Pair<ReconciliationEngine<EVENT>, Subscriber<Void>>> toRemove) {
         toRemove.forEach(pair -> {
             ReconciliationEngine e = pair.getLeft();
             if (e instanceof DefaultReconciliationEngine) {

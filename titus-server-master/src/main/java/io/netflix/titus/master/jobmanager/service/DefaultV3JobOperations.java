@@ -64,7 +64,6 @@ import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
@@ -107,7 +106,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
-    private final ReconciliationFramework<JobChange, JobManagerReconcilerEvent> reconciliationFramework;
+    private final ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final SchedulingService schedulingService;
     private final ApplicationSlaManagementService capacityGroupService;
@@ -300,7 +299,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public List<Task> getTasks(String jobId) {
-        ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine = reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId));
+        ReconciliationEngine<JobManagerReconcilerEvent> engine = reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId));
         return engine.orderedView(IndexKind.StatusCreationTime).stream().map(h -> (Task) h.getEntity()).collect(Collectors.toList());
     }
 
@@ -331,21 +330,21 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Completable updateTask(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason) {
-        Optional<ReconciliationEngine<JobChange, JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
+        Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
-        ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine = engineOpt.get();
+        ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
         return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, engine, changeFunction, reason)).toCompletable();
     }
 
     @Override
     public Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason) {
-        Optional<ReconciliationEngine<JobChange, JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
+        Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
-        ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine = engineOpt.get();
+        ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
         return engine.changeReferenceModel(BasicTaskActions.updateTaskAndWriteItToStore(taskId, engine, changeFunction, store, trigger, reason)).toCompletable();
     }
 
@@ -388,7 +387,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                     }
                     Task task = engineChildPair.getRight().getEntity();
-                    ChangeAction<JobChange> killAction = KillInitiatedActions.storeAndApplyKillInitiated(
+                    ChangeAction killAction = KillInitiatedActions.storeAndApplyKillInitiated(
                             engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, reason
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);

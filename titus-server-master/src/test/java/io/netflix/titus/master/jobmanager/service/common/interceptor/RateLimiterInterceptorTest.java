@@ -28,9 +28,7 @@ import io.netflix.titus.common.util.limiter.ImmutableLimiters;
 import io.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
-import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.SampleTitusChangeActions;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
@@ -76,10 +74,10 @@ public class RateLimiterInterceptorTest {
     }
 
     private ModelAction executeRateLimitedAction(TitusChangeAction changeAction) {
-        ExtTestSubscriber<Pair<JobChange, List<ModelActionHolder>>> testSubscriber = new ExtTestSubscriber<>();
+        ExtTestSubscriber<List<ModelActionHolder>> testSubscriber = new ExtTestSubscriber<>();
         rateLimiterInterceptor.apply(changeAction).apply().subscribe(testSubscriber);
 
-        ModelAction updateAction = testSubscriber.takeNext().getRight().get(0).getAction();
+        ModelAction updateAction = testSubscriber.takeNext().get(0).getAction();
         assertThat(updateAction).isInstanceOf(TitusModelAction.class);
         return updateAction;
     }

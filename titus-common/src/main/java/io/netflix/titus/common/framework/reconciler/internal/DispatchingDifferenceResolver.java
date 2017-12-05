@@ -24,16 +24,16 @@ import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 
-public class DispatchingDifferenceResolver<CHANGE, EVENT> implements DifferenceResolver<CHANGE, EVENT> {
+public class DispatchingDifferenceResolver<EVENT> implements DifferenceResolver<EVENT> {
 
-    private final Function<EntityHolder, DifferenceResolver<CHANGE, EVENT>> dispatcherFun;
+    private final Function<EntityHolder, DifferenceResolver<EVENT>> dispatcherFun;
 
-    public DispatchingDifferenceResolver(Function<EntityHolder, DifferenceResolver<CHANGE, EVENT>> dispatcherFun) {
+    public DispatchingDifferenceResolver(Function<EntityHolder, DifferenceResolver<EVENT>> dispatcherFun) {
         this.dispatcherFun = dispatcherFun;
     }
 
     @Override
-    public List<ChangeAction<CHANGE>> apply(ReconciliationEngine<CHANGE, EVENT> engine) {
+    public List<ChangeAction> apply(ReconciliationEngine<EVENT> engine) {
         return dispatcherFun.apply(engine.getReferenceView()).apply(engine);
     }
 }

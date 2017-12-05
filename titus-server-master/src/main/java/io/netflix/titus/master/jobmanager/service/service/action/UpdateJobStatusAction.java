@@ -25,8 +25,6 @@ import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
 import rx.Observable;
@@ -37,13 +35,13 @@ public class UpdateJobStatusAction extends TitusChangeAction {
     private final boolean enabled;
 
     public UpdateJobStatusAction(ReconciliationEngine engine, boolean enabled) {
-        super(new JobChange(V3JobOperations.Trigger.API, engine.getReferenceView().getId(), "Job status update requested: enabled=" + enabled));
+        super(V3JobOperations.Trigger.API, engine.getReferenceView().getId(), "updateJobStatus", "Job status update requested: enabled=" + enabled);
         this.engine = engine;
         this.enabled = enabled;
     }
 
     @Override
-    public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
+    public Observable<List<ModelActionHolder>> apply() {
         Job<ServiceJobExt> job = engine.getReferenceView().getEntity();
 
         JobDescriptor<ServiceJobExt> jobDescriptor = job.getJobDescriptor().toBuilder()
@@ -55,12 +53,8 @@ public class UpdateJobStatusAction extends TitusChangeAction {
 
         Job<ServiceJobExt> updatedJob = job.toBuilder().withJobDescriptor(jobDescriptor).build();
 
-        return Observable.just(Pair.of(getChange(),
-                Collections.singletonList(ModelActionHolder.reference(TitusModelUpdateActions.updateJob(
-                        updatedJob,
-                        V3JobOperations.Trigger.API,
-                        getChange().getSummary()
-                        )
-                ))));
+        return Observable.just(Collections.singletonList(
+                ModelActionHolder.reference(TitusModelUpdateActions.updateJob(updatedJob, V3JobOperations.Trigger.API, getSummary()))
+        ));
     }
 }

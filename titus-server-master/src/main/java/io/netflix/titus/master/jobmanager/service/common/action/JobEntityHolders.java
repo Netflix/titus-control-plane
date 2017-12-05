@@ -17,7 +17,7 @@ import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
  */
 public final class JobEntityHolders {
 
-    public static Optional<Task> expectTask(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine, String taskId) {
+    public static Optional<Task> expectTask(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
         Optional<EntityHolder> taskHolder = engine.getReferenceView().findById(taskId);
         if (taskHolder.isPresent()) {
             return Optional.of(taskHolder.get().getEntity());
@@ -26,7 +26,7 @@ public final class JobEntityHolders {
         return Optional.empty();
     }
 
-    public static Observable<Task> toTaskObservable(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine, String taskId) {
+    public static Observable<Task> toTaskObservable(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
         return Observable.fromCallable(() -> expectTask(engine, taskId).orElse(null)).filter(Objects::nonNull);
     }
 

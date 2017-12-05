@@ -27,7 +27,6 @@ import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.retry.Retryers;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.SampleTitusChangeActions;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;
@@ -52,14 +51,14 @@ public class RetryActionInterceptorTest {
 
     private final RetryActionInterceptor retryInterceptor = new RetryActionInterceptor(ATTR_NAME, RETRY_POLICY, testScheduler);
 
-    private final ExtTestSubscriber<Pair<JobChange, List<ModelActionHolder>>> testSubscriber = new ExtTestSubscriber<>();
+    private final ExtTestSubscriber<List<ModelActionHolder>> testSubscriber = new ExtTestSubscriber<>();
 
     @Test
     public void testSuccessfulActionsPassThrough() throws Exception {
         retryInterceptor.apply(SampleTitusChangeActions.successfulJob()).apply().subscribe(testSubscriber);
 
-        Pair<JobChange, List<ModelActionHolder>> updateAction = testSubscriber.takeNext();
-        assertThat(updateAction.getRight().get(0).getAction()).isInstanceOf(RetryActionInterceptor.RemoveRetryRecord.class);
+        List<ModelActionHolder> updateAction = testSubscriber.takeNext();
+        assertThat(updateAction.get(0).getAction()).isInstanceOf(RetryActionInterceptor.RemoveRetryRecord.class);
 
         testSubscriber.assertOnCompleted();
     }
@@ -83,12 +82,12 @@ public class RetryActionInterceptorTest {
     }
 
     private ModelAction expectUpdateActionOfType(TitusChangeAction changeAction, Class<? extends ModelAction> updateActionType) {
-        ExtTestSubscriber<Pair<JobChange, List<ModelActionHolder>>> testSubscriber = new ExtTestSubscriber<>();
+        ExtTestSubscriber<List<ModelActionHolder>> testSubscriber = new ExtTestSubscriber<>();
         retryInterceptor.apply(changeAction).apply().subscribe(testSubscriber);
 
-        Pair<JobChange, List<ModelActionHolder>> updateAction = testSubscriber.takeNext();
-        assertThat(updateAction.getRight().get(0).getAction()).isInstanceOf(updateActionType);
-        return updateAction.getRight().get(0).getAction();
+        List<ModelActionHolder> updateAction = testSubscriber.takeNext();
+        assertThat(updateAction.get(0).getAction()).isInstanceOf(updateActionType);
+        return updateAction.get(0).getAction();
     }
 
     private EntityHolder expectAboveExecutionLimits(ModelAction updateAction, EntityHolder model) {

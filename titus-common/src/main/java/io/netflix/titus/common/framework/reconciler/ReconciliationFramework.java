@@ -27,7 +27,7 @@ import rx.Observable;
  * {@link ReconciliationFramework} manages lifecycle of multiple {@link ReconciliationEngine} instances, as well
  * as orchestrates their reconciliation processes.
  */
-public interface ReconciliationFramework<CHANGE, EVENT> {
+public interface ReconciliationFramework<EVENT> {
 
     /**
      * Starts the framework
@@ -49,12 +49,12 @@ public interface ReconciliationFramework<CHANGE, EVENT> {
     /**
      * @return {@link ReconciliationEngine} with root node having the given id or {@link Optional#empty()}.
      */
-    Optional<ReconciliationEngine<CHANGE, EVENT>> findEngineByRootId(String id);
+    Optional<ReconciliationEngine<EVENT>> findEngineByRootId(String id);
 
     /**
      * @return parent and its child node with the given child id or {@link Optional#empty()}.
      */
-    Optional<Pair<ReconciliationEngine<CHANGE, EVENT>, EntityHolder>> findEngineByChildId(String childId);
+    Optional<Pair<ReconciliationEngine<EVENT>, EntityHolder>> findEngineByChildId(String childId);
 
     /**
      * Returns all roots of {@link ReconciliationEngine} instances ordered by the requested ordering criteria. The returned
@@ -67,10 +67,10 @@ public interface ReconciliationFramework<CHANGE, EVENT> {
     /**
      * Creates a new reconciliation engine.
      */
-    Observable<ReconciliationEngine<CHANGE, EVENT>> newEngine(EntityHolder bootstrapModel);
+    Observable<ReconciliationEngine<EVENT>> newEngine(EntityHolder bootstrapModel);
 
     /**
      * Removes an existing reconciliation engine.
      */
-    Completable removeEngine(ReconciliationEngine<CHANGE, EVENT> engine);
+    Completable removeEngine(ReconciliationEngine<EVENT> engine);
 }

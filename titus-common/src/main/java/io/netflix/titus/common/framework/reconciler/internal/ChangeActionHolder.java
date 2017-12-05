@@ -2,17 +2,17 @@ package io.netflix.titus.common.framework.reconciler.internal;
 
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 
-final class ChangeActionHolder<CHANGE> {
+final class ChangeActionHolder {
 
-    private final ChangeAction<CHANGE> changeAction;
+    private final ChangeAction changeAction;
     private final long transactionId;
 
-    ChangeActionHolder(ChangeAction<CHANGE> changeAction, long transactionId) {
+    ChangeActionHolder(ChangeAction changeAction, long transactionId) {
         this.changeAction = changeAction;
         this.transactionId = transactionId;
     }
 
-    ChangeAction<CHANGE> getChangeAction() {
+    ChangeAction getChangeAction() {
         return changeAction;
     }
 

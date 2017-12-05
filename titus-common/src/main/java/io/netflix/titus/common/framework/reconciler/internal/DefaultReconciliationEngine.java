@@ -44,17 +44,17 @@ import rx.subscriptions.Subscriptions;
 
 /**
  */
-public class DefaultReconciliationEngine<CHANGE, EVENT> implements ReconciliationEngine<CHANGE, EVENT> {
+public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<EVENT> {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultReconciliationEngine.class);
 
     private final AtomicLong nextTransactionId = new AtomicLong();
 
-    private final ReconcileEventFactory<CHANGE, EVENT> eventFactory;
-    private final ModelHolder<CHANGE, EVENT> modelHolder;
+    private final ReconcileEventFactory<EVENT> eventFactory;
+    private final ModelHolder<EVENT> modelHolder;
 
-    private final BlockingQueue<Pair<ChangeActionHolder<CHANGE>, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
-    private final BlockingQueue<Pair<ChangeActionHolder<CHANGE>, List<ModelActionHolder>>> modelActionHolders = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<ChangeActionHolder, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<ChangeActionHolder, List<ModelActionHolder>>> modelActionHolders = new LinkedBlockingQueue<>();
 
     private IndexSet<EntityHolder> indexSet;
 
@@ -67,9 +67,9 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
     private boolean firstTrigger;
 
     public DefaultReconciliationEngine(EntityHolder bootstrapModel,
-                                       DifferenceResolver<CHANGE, EVENT> runningDifferenceResolver,
+                                       DifferenceResolver<EVENT> runningDifferenceResolver,
                                        Map<Object, Comparator<EntityHolder>> indexComparators,
-                                       ReconcileEventFactory<CHANGE, EVENT> eventFactory) {
+                                       ReconcileEventFactory<EVENT> eventFactory) {
         this.eventFactory = eventFactory;
         this.indexSet = IndexSet.newIndexSet(indexComparators);
         this.modelHolder = new ModelHolder<>(this, bootstrapModel, runningDifferenceResolver);
@@ -107,7 +107,7 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
 
         // Compute the current difference between the reference and persistent/runtime models, and create a list
         // of actions to correct that. The returned action set can be run in parallel.
-        List<ChangeAction<CHANGE>> reconcileActions = modelHolder.resolveDifference();
+        List<ChangeAction> reconcileActions = modelHolder.resolveDifference();
         if (!reconcileActions.isEmpty()) {
             startReconcileAction(reconcileActions);
             return new TriggerStatus(true, modelUpdates);
@@ -116,11 +116,11 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
     }
 
     @Override
-    public Observable<Void> changeReferenceModel(ChangeAction<CHANGE> referenceUpdate) {
+    public Observable<Void> changeReferenceModel(ChangeAction referenceUpdate) {
         return Observable.unsafeCreate(subscriber -> {
             long transactionId = nextTransactionId.getAndIncrement();
             eventSubject.onNext(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
-            referenceChangeActions.add(Pair.of(new ChangeActionHolder<>(referenceUpdate, transactionId), (Subscriber<Void>) subscriber));
+            referenceChangeActions.add(Pair.of(new ChangeActionHolder(referenceUpdate, transactionId), (Subscriber<Void>) subscriber));
         });
     }
 
@@ -160,7 +160,7 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
     }
 
     private void applyModelUpdates() {
-        Pair<ChangeActionHolder<CHANGE>, List<ModelActionHolder>> next;
+        Pair<ChangeActionHolder, List<ModelActionHolder>> next;
         while ((next = modelActionHolders.poll()) != null) {
             for (ModelActionHolder updateAction : next.getRight()) {
                 EntityHolder rootHolder;
@@ -177,7 +177,7 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
                     default:
                         return;
                 }
-                final Pair<ChangeActionHolder<CHANGE>, List<ModelActionHolder>> finalNext = next;
+                final Pair<ChangeActionHolder, List<ModelActionHolder>> finalNext = next;
                 try {
                     updateAction.getAction().apply(rootHolder).ifPresent(newRootAndChangedItem -> {
                         EntityHolder newRoot = newRootAndChangedItem.getLeft();
@@ -226,20 +226,20 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
     }
 
     private boolean startNextReferenceChangeAction() {
-        Pair<ChangeActionHolder<CHANGE>, Subscriber<Void>> next;
+        Pair<ChangeActionHolder, Subscriber<Void>> next;
         while ((next = referenceChangeActions.poll()) != null) {
             Subscriber<Void> subscriber = next.getRight();
             if (!subscriber.isUnsubscribed()) {
-                ChangeActionHolder<CHANGE> actionHolder = next.getLeft();
+                ChangeActionHolder actionHolder = next.getLeft();
                 Stopwatch timer = Stopwatch.createStarted();
 
-                final Pair<ChangeActionHolder<CHANGE>, Subscriber<Void>> finalNext = next;
+                final Pair<ChangeActionHolder, Subscriber<Void>> finalNext = next;
                 Subscription subscription = actionHolder.getChangeAction().apply()
                         .doOnUnsubscribe(subscriber::unsubscribe)
                         .subscribe(
-                                resultPair -> {
-                                    eventSubject.onNext(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), resultPair.getLeft(), timer.elapsed(TimeUnit.MILLISECONDS), actionHolder.getTransactionId()));
-                                    registerModelUpdateRequest(finalNext.getLeft(), resultPair.getRight());
+                                modelActionHolderList -> {
+                                    eventSubject.onNext(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), timer.elapsed(TimeUnit.MILLISECONDS), actionHolder.getTransactionId()));
+                                    registerModelUpdateRequest(finalNext.getLeft(), modelActionHolderList);
                                 },
                                 e -> {
                                     eventSubject.onNext(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, timer.elapsed(TimeUnit.MILLISECONDS), actionHolder.getTransactionId()));
@@ -256,7 +256,7 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
         return false;
     }
 
-    private void registerModelUpdateRequest(ChangeActionHolder<CHANGE> changeActionHolder, List<ModelActionHolder> stateChange) {
+    private void registerModelUpdateRequest(ChangeActionHolder changeActionHolder, List<ModelActionHolder> stateChange) {
         modelActionHolders.add(Pair.of(changeActionHolder, stateChange));
     }
 
@@ -271,16 +271,16 @@ public class DefaultReconciliationEngine<CHANGE, EVENT> implements Reconciliatio
         return !finished;
     }
 
-    private void startReconcileAction(List<ChangeAction<CHANGE>> reconcileActions) {
+    private void startReconcileAction(List<ChangeAction> reconcileActions) {
         List<Subscription> subscriptions = new ArrayList<>(reconcileActions.size());
-        for (ChangeAction<CHANGE> action : reconcileActions) {
+        for (ChangeAction action : reconcileActions) {
             long transactionId = nextTransactionId.getAndIncrement();
             Stopwatch timer = Stopwatch.createStarted();
             eventSubject.onNext(eventFactory.newBeforeChangeEvent(this, action, transactionId));
             Subscription subscription = action.apply().subscribe(
-                    resultPair -> {
-                        registerModelUpdateRequest(new ChangeActionHolder<>(action, transactionId), resultPair.getRight());
-                        eventSubject.onNext(eventFactory.newAfterChangeEvent(this, action, resultPair.getLeft(), timer.elapsed(TimeUnit.MILLISECONDS), transactionId));
+                    modelActionHolders -> {
+                        registerModelUpdateRequest(new ChangeActionHolder(action, transactionId), modelActionHolders);
+                        eventSubject.onNext(eventFactory.newAfterChangeEvent(this, action, timer.elapsed(TimeUnit.MILLISECONDS), transactionId));
                     },
                     e -> {
                         eventSubject.onNext(eventFactory.newChangeErrorEvent(this, action, e, timer.elapsed(TimeUnit.MILLISECONDS), transactionId));

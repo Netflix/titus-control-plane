@@ -27,7 +27,7 @@ import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEve
 
 /**
  */
-public class SimpleReconcilerEventFactory implements ReconcileEventFactory<String, SimpleReconcilerEvent> {
+public class SimpleReconcilerEventFactory implements ReconcileEventFactory<SimpleReconcilerEvent> {
 
     @Override
     public SimpleReconcilerEvent newBeforeChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long transactionId) {
@@ -35,7 +35,7 @@ public class SimpleReconcilerEventFactory implements ReconcileEventFactory<Strin
     }
 
     @Override
-    public SimpleReconcilerEvent newAfterChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, String change, long executionTimeMs, long transactionId) {
+    public SimpleReconcilerEvent newAfterChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long executionTimeMs, long transactionId) {
         return new SimpleReconcilerEvent(EventType.Changed, changeAction.toString(), Optional.empty());
     }
 

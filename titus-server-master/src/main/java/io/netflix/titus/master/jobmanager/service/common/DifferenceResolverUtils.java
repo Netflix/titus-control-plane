@@ -38,7 +38,6 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
@@ -107,12 +106,12 @@ public class DifferenceResolverUtils {
     /**
      * Find all tasks that are stuck in a specific state
      */
-    public static List<ChangeAction<JobChange>> findTaskStateTimeouts(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine,
-                                                                      JobView runningJobView,
-                                                                      JobManagerConfiguration configuration,
-                                                                      Clock clock,
-                                                                      VirtualMachineMasterService vmService) {
-        List<ChangeAction<JobChange>> actions = new ArrayList<>();
+    public static List<ChangeAction> findTaskStateTimeouts(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                           JobView runningJobView,
+                                                           JobManagerConfiguration configuration,
+                                                           Clock clock,
+                                                           VirtualMachineMasterService vmService) {
+        List<ChangeAction> actions = new ArrayList<>();
         runningJobView.getJobHolder().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
             TaskState taskState = task.getStatus().getState();
@@ -172,7 +171,7 @@ public class DifferenceResolverUtils {
         return actions;
     }
 
-    public static List<ChangeAction<JobChange>> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
+    public static List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
         if (!hasJobState(referenceModel, JobState.Finished)) {
             if (allDone(storeModel)) {
                 return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId()));

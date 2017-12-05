@@ -17,7 +17,6 @@
 package io.netflix.titus.master.jobmanager.service.event;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 
 /**
@@ -44,17 +43,11 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     public static class JobAfterChangeReconcilerEvent extends JobChangeReconcilerEvent {
 
-        private final JobChange jobChange;
         private final long executionTimeMs;
 
-        public JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, JobChange jobChange, long executionTimeMs, long transactionId) {
+        public JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long executionTimeMs, long transactionId) {
             super(job, changeAction, transactionId);
-            this.jobChange = jobChange;
             this.executionTimeMs = executionTimeMs;
-        }
-
-        public JobChange getJobChange() {
-            return jobChange;
         }
 
         public long getExecutionTimeMs() {

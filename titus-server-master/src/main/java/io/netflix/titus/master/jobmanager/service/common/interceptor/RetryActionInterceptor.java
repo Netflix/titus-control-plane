@@ -27,7 +27,6 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.Differe
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
@@ -80,15 +79,14 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         private final TitusChangeAction delegate;
 
         RetryChangeAction(TitusChangeAction delegate) {
-            super(delegate.getChange());
+            super(delegate);
             this.delegate = delegate;
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelActionHolder>>> apply() {
-            return delegate.apply().map(changeUpdatesPair ->
-                    changeUpdatesPair.mapRight(updates -> CollectionsExt.copyAndAdd(updates, ModelActionHolder.store(new RemoveRetryRecord(delegate))))
-            ).onErrorReturn(e -> Pair.of(getChange(), Collections.singletonList(ModelActionHolder.store(new RetryModelUpdateAction(delegate, e)))));
+        public Observable<List<ModelActionHolder>> apply() {
+            return delegate.apply().map(modelActionHolders -> CollectionsExt.copyAndAdd(modelActionHolders, ModelActionHolder.store(new RemoveRetryRecord(delegate)))
+            ).onErrorReturn(e -> Collections.singletonList(ModelActionHolder.store(new RetryModelUpdateAction(delegate, e))));
         }
     }
 
@@ -96,9 +94,9 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
 
         RetryModelUpdateAction(TitusChangeAction delegate, Throwable e) {
             super(
-                    delegate.getChange().getTrigger(),
-                    delegate.getChange().getId(),
-                    "Report failure of: " + delegate.getChange().getSummary() + '(' + e.getMessage() + ')'
+                    delegate.getTrigger(),
+                    delegate.getId(),
+                    "Report failure of: " + delegate.getSummary() + '(' + e.getMessage() + ')'
             );
         }
 
@@ -128,8 +126,8 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
     class RemoveRetryRecord extends TitusModelAction {
         RemoveRetryRecord(TitusChangeAction delegate) {
             super(
-                    delegate.getChange().getTrigger(),
-                    delegate.getChange().getId(),
+                    delegate.getTrigger(),
+                    delegate.getId(),
                     "Cleaning up after successful action execution"
             );
         }

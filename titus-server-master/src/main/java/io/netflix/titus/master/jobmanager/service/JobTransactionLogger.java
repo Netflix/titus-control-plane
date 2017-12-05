@@ -4,7 +4,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobAfterChangeReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobBeforeChangeReconcilerEvent;
@@ -28,7 +28,7 @@ class JobTransactionLogger {
 
     private static final Logger logger = LoggerFactory.getLogger(JobTransactionLogger.class.getSimpleName());
 
-    static Subscription logEvents(ReconciliationFramework<JobChange, JobManagerReconcilerEvent> reconciliationFramework) {
+    static Subscription logEvents(ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework) {
         return reconciliationFramework.events().subscribe(
                 event -> logger.info(doFormat(event)),
                 e -> logger.error("Event stream terminated with an error", e),
@@ -59,62 +59,62 @@ class JobTransactionLogger {
     }
 
     private static String logJobBeforeChangeReconcilerEvent(JobBeforeChangeReconcilerEvent event) {
-        JobChange jobChange = event.getChangeAction().getChange();
+        TitusChangeAction changeAction = event.getChangeAction();
         String jobId = event.getJob().getId();
-        String entityId = jobChange.getId();
+        String entityId = changeAction.getId();
 
         return doFormat(
                 jobId,
                 event.getTransactionId(),
                 "ok",
                 "beforeChange",
-                event.getChangeAction().getChange().getName(),
-                jobChange.getTrigger(),
+                event.getChangeAction().getName(),
+                changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
                 "",
                 0,
-                jobChange.getSummary()
+                changeAction.getSummary()
         );
     }
 
     private static String logJobAfterChangeReconcilerEvent(JobAfterChangeReconcilerEvent event) {
-        JobChange jobChange = event.getChangeAction().getChange();
+        TitusChangeAction changeAction = event.getChangeAction();
         String jobId = event.getJob().getId();
-        String entityId = jobChange.getId();
+        String entityId = changeAction.getId();
 
         return doFormat(
                 jobId,
                 event.getTransactionId(),
                 "ok",
                 "afterChange",
-                event.getChangeAction().getChange().getName(),
-                jobChange.getTrigger(),
+                event.getChangeAction().getName(),
+                changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
                 "",
                 event.getExecutionTimeMs(),
-                jobChange.getSummary()
+                changeAction.getSummary()
         );
     }
 
     private static String logJobChangeErrorReconcilerEvent(JobChangeErrorReconcilerEvent event) {
-        JobChange jobChange = event.getChangeAction().getChange();
+        TitusChangeAction changeAction = event.getChangeAction();
         String jobId = event.getJob().getId();
-        String entityId = jobChange.getId();
+        String entityId = changeAction.getId();
 
         return doFormat(
                 jobId,
                 event.getTransactionId(),
                 "error",
                 "afterChange",
-                event.getChangeAction().getChange().getName(),
-                jobChange.getTrigger(),
+                event.getChangeAction().getName(),
+                changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
                 "",
                 event.getExecutionTimeMs(),
-                event.getError().getMessage() + '(' + jobChange.getSummary() + ')'
+                event.getError().getMessage() + '(' + changeAction.getSummary() + ')'
         );
     }
 
@@ -146,8 +146,8 @@ class JobTransactionLogger {
                 event.getTransactionId(),
                 "ok",
                 "modelUpdate",
-                ((TitusModelAction)actionHolder.getAction()).getName(),
-                event.getChangeAction().getChange().getTrigger(),
+                ((TitusModelAction) actionHolder.getAction()).getName(),
+                event.getChangeAction().getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
                 actionHolder.getModel().name(),
@@ -167,8 +167,8 @@ class JobTransactionLogger {
                 event.getTransactionId(),
                 "error",
                 "modelUpdate",
-                ((TitusModelAction)actionHolder.getAction()).getName(),
-                event.getChangeAction().getChange().getTrigger(),
+                ((TitusModelAction) actionHolder.getAction()).getName(),
+                event.getChangeAction().getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
                 event.getModelActionHolder().getModel().name(),

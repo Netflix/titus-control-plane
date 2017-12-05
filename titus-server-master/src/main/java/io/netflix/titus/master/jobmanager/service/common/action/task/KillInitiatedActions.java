@@ -37,7 +37,6 @@ import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.master.VirtualMachineMasterService;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -54,7 +53,7 @@ public class KillInitiatedActions {
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
-    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine, JobStore titusStore) {
+    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore) {
         return TitusChangeAction.newAction("initiateJobKillAction")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -79,13 +78,13 @@ public class KillInitiatedActions {
      * All models are updated when both operations complete.
      * This method is used for user initiated kill operations, so the store operation happens before response is sent back to the user.
      */
-    public static ChangeAction<JobChange> storeAndApplyKillInitiated(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine,
-                                                                     VirtualMachineMasterService vmService,
-                                                                     JobStore jobStore,
-                                                                     String taskId,
-                                                                     boolean shrink,
-                                                                     String reasonCode,
-                                                                     String reason) {
+    public static ChangeAction storeAndApplyKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                          VirtualMachineMasterService vmService,
+                                                          JobStore jobStore,
+                                                          String taskId,
+                                                          boolean shrink,
+                                                          String reasonCode,
+                                                          String reason) {
         return TitusChangeAction.newAction("killInitiated")
                 .id(taskId)
                 .trigger(V3JobOperations.Trigger.API)
@@ -123,11 +122,11 @@ public class KillInitiatedActions {
      * Only reference and running models are updated. Store model will be synchronized in next reconciliation cycle.
      * This method is used for internal state reconciliation.
      */
-    public static ChangeAction<JobChange> applyKillInitiated(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine,
-                                                             Task task,
-                                                             VirtualMachineMasterService vmService,
-                                                             String reasonCode,
-                                                             String reason) {
+    public static ChangeAction applyKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                  Task task,
+                                                  VirtualMachineMasterService vmService,
+                                                  String reasonCode,
+                                                  String reason) {
         return TitusChangeAction.newAction("killInitiated")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
@@ -152,11 +151,11 @@ public class KillInitiatedActions {
      * Only reference and running models are updated. Store model will be synchronized in next reconciliation cycle.
      * This method is used for internal state reconciliation.
      */
-    public static List<ChangeAction<JobChange>> applyKillInitiated(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine,
-                                                                   VirtualMachineMasterService vmService,
-                                                                   String reasonCode,
-                                                                   String reason) {
-        List<ChangeAction<JobChange>> result = new ArrayList<>();
+    public static List<ChangeAction> applyKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                        VirtualMachineMasterService vmService,
+                                                        String reasonCode,
+                                                        String reason) {
+        List<ChangeAction> result = new ArrayList<>();
         engine.getRunningView().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
             TaskState state = task.getStatus().getState();

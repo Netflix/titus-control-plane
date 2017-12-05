@@ -22,7 +22,6 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.common.V3QAttributes;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -45,7 +44,7 @@ public class BasicTaskActions {
      * This action is used when handling user initiated updates.
      */
     public static TitusChangeAction updateTaskAndWriteItToStore(String taskId,
-                                                                ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine,
+                                                                ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                                 Function<Task, Task> changeFunction,
                                                                 JobStore jobStore,
                                                                 Trigger trigger,
@@ -72,7 +71,7 @@ public class BasicTaskActions {
     public static TitusChangeAction writeReferenceTaskToStore(JobStore titusStore,
                                                               SchedulingService schedulingService,
                                                               ApplicationSlaManagementService capacityGroupService,
-                                                              ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine,
+                                                              ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                               String taskId) {
         return TitusChangeAction.newAction("writeReferenceTaskToStore")
                 .trigger(V3JobOperations.Trigger.Reconciler)
@@ -109,7 +108,7 @@ public class BasicTaskActions {
      */
     public static TitusChangeAction updateTaskInRunningModel(String taskId,
                                                              Trigger trigger,
-                                                             ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine,
+                                                             ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                              Function<Task, Task> changeFunction,
                                                              String reason) {
         return TitusChangeAction.newAction("updateTaskInRunningModel")

@@ -11,7 +11,6 @@ import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import io.netflix.titus.master.jobmanager.service.common.action.JobChange;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -25,7 +24,7 @@ public class BasicJobActions {
      * Write an updated job record to a store. This command calls {@link JobStore#updateJob(Job)}, which assumes
      * that the job record was created already.
      */
-    public static TitusChangeAction updateJobInStore(ReconciliationEngine<JobChange, JobManagerReconcilerEvent> engine, JobStore titusStore) {
+    public static TitusChangeAction updateJobInStore(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore) {
         return TitusChangeAction.newAction("updateJobInStore")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.Reconciler)

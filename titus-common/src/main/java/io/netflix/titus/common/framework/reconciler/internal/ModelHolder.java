@@ -25,16 +25,16 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.Differe
 
 /**
  */
-class ModelHolder<CHANGE, EVENT> {
+class ModelHolder<EVENT> {
 
-    private final ReconciliationEngine<CHANGE, EVENT> engine;
-    private final DifferenceResolver<CHANGE, EVENT> differenceResolver;
+    private final ReconciliationEngine<EVENT> engine;
+    private final DifferenceResolver<EVENT> differenceResolver;
 
     private EntityHolder reference;
     private EntityHolder running;
     private EntityHolder store;
 
-    ModelHolder(ReconciliationEngine<CHANGE, EVENT> engine, EntityHolder bootstrapModel, DifferenceResolver<CHANGE, EVENT> differenceResolver) {
+    ModelHolder(ReconciliationEngine<EVENT> engine, EntityHolder bootstrapModel, DifferenceResolver<EVENT> differenceResolver) {
         this.engine = engine;
         this.differenceResolver = differenceResolver;
         this.reference = bootstrapModel;
@@ -66,7 +66,7 @@ class ModelHolder<CHANGE, EVENT> {
         this.store = store;
     }
 
-    List<ChangeAction<CHANGE>> resolveDifference() {
+    List<ChangeAction> resolveDifference() {
         return differenceResolver.apply(engine);
     }
 }
