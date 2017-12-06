@@ -110,7 +110,8 @@ public class DifferenceResolverUtils {
                                                            JobView runningJobView,
                                                            JobManagerConfiguration configuration,
                                                            Clock clock,
-                                                           VirtualMachineMasterService vmService) {
+                                                           VirtualMachineMasterService vmService,
+                                                           JobStore jobStore) {
         List<ChangeAction> actions = new ArrayList<>();
         runningJobView.getJobHolder().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
@@ -160,10 +161,10 @@ public class DifferenceResolverUtils {
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), clock.wallTime() + configuration.getTaskInKillInitiatedStateTimeoutMs()));
-                            actions.add(KillInitiatedActions.applyKillInitiated(engine, task, vmService, TaskStatus.REASON_STUCK_IN_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
+                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
                         }
                     } else {
-                        actions.add(KillInitiatedActions.applyKillInitiated(engine, task, vmService, TaskStatus.REASON_STUCK_IN_STATE, "Task stuck in " + taskState + " state"));
+                        actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Task stuck in " + taskState + " state"));
                     }
                     break;
             }

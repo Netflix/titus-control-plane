@@ -16,6 +16,8 @@
 
 package io.netflix.titus.api.jobmanager.service;
 
+import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 
@@ -29,6 +31,8 @@ public class JobManagerException extends RuntimeException {
         NotServiceJob,
         UnexpectedTaskState,
         TaskNotFound,
+        JobTerminating,
+        TaskTerminating,
     }
 
     private final ErrorCode errorCode;
@@ -67,5 +71,19 @@ public class JobManagerException extends RuntimeException {
                 ErrorCode.UnexpectedTaskState,
                 format("Task %s is not in the expected state %s (expected) != %s (actual)", task.getId(), expectedState, task.getStatus().getState())
         );
+    }
+
+    public static Throwable jobTerminating(Job<?> job) {
+        if(job.getStatus().getState() == JobState.Finished) {
+            return new JobManagerException(ErrorCode.JobTerminating, format("Job %s is terminated", job.getId()));
+        }
+        return new JobManagerException(ErrorCode.JobTerminating, format("Job %s is in the termination process", job.getId()));
+    }
+
+    public static Throwable taskTerminating(Task task) {
+        if(task.getStatus().getState() == TaskState.Finished) {
+            return new JobManagerException(ErrorCode.TaskTerminating, format("Task %s is terminated", task.getId()));
+        }
+        return new JobManagerException(ErrorCode.TaskTerminating, format("Task %s is in the termination process", task.getId()));
     }
 }

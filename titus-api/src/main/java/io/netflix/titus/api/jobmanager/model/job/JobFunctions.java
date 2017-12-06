@@ -141,6 +141,11 @@ public final class JobFunctions {
         return ext instanceof BatchJobExt ? ((BatchJobExt) ext).getRetryPolicy() : ((ServiceJobExt) ext).getRetryPolicy();
     }
 
+    public static JobDescriptor<BatchJobExt> changeBatchJobSize(JobDescriptor<BatchJobExt> input, int size) {
+        BatchJobExt ext = input.getExtensions().toBuilder().withSize(size).build();
+        return input.toBuilder().withExtensions(ext).build();
+    }
+
     public static JobDescriptor<BatchJobExt> changeRetryLimit(JobDescriptor<BatchJobExt> input, int retryLimit) {
         RetryPolicy newRetryPolicy = input.getExtensions().getRetryPolicy().toBuilder().withRetries(retryLimit).build();
         return input.but(jd -> input.getExtensions().toBuilder().withRetryPolicy(newRetryPolicy).build());

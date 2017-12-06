@@ -72,7 +72,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService schedulingService;
     private final VirtualMachineMasterService vmService;
-    private final JobStore titusStore;
+    private final JobStore jobStore;
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
     private final RateLimiterInterceptor newTaskRateLimiterInterceptor;
@@ -85,8 +85,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
-            JobStore titusStore) {
-        this(configuration, capacityGroupService, schedulingService, vmService, titusStore, Clocks.system(), Schedulers.computation());
+            JobStore jobStore) {
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, Clocks.system(), Schedulers.computation());
     }
 
     public BatchDifferenceResolver(
@@ -94,14 +94,14 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
-            JobStore titusStore,
+            JobStore jobStore,
             Clock clock,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
-        this.titusStore = titusStore;
+        this.jobStore = jobStore;
         this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
@@ -128,7 +128,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         actions.addAll(applyStore(engine, refJobView, storeModel));
 
         if (actions.isEmpty()) {
-            actions.addAll(removeCompletedJob(engine.getReferenceView(), storeModel, titusStore));
+            actions.addAll(removeCompletedJob(engine.getReferenceView(), storeModel, jobStore));
         }
 
         return actions;
@@ -140,14 +140,14 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         BatchJobView runningJobView = new BatchJobView(runningModel);
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
-            return KillInitiatedActions.applyKillInitiated(engine, vmService, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
+            return KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
         } else if (hasJobState(referenceModel, JobState.Finished)) {
             return Collections.emptyList();
         }
 
         actions.addAll(findJobSizeInconsistencies(refJobView, storeModel));
         actions.addAll(findMissingRunningTasks(refJobView, runningJobView));
-        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
 
         return actions;
     }
@@ -172,7 +172,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private TitusChangeAction createNewTaskAction(BatchJobView refJobView, int taskIndex) {
         return newTaskRateLimiterInterceptor.apply(
                 storeWriteRetryInterceptor.apply(
-                        createOrReplaceTaskAction(titusStore, refJobView.getJob(), refJobView.getTasks(), taskIndex)
+                        createOrReplaceTaskAction(jobStore, refJobView.getJob(), refJobView.getTasks(), taskIndex)
                 )
         );
     }
@@ -206,7 +206,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         Job<BatchJobExt> refJob = refJobHolder.getEntity();
 
         if (!refJobHolder.getEntity().equals(storeJob.getEntity())) {
-            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(engine, titusStore)));
+            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(engine, jobStore)));
         }
         boolean isJobTerminating = refJob.getStatus().getState() == JobState.KillInitiated;
         for (EntityHolder referenceTask : refJobHolder.getChildren()) {
@@ -219,7 +219,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 }
             } else {
                 Task task = referenceTask.getEntity();
-                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(titusStore, schedulingService, capacityGroupService, engine, task.getId())));
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, task.getId())));
             }
         }
         return actions;

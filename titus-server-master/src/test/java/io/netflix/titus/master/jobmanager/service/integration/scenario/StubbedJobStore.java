@@ -84,7 +84,7 @@ class StubbedJobStore implements JobStore {
 
     public Task expectTaskInStoreOrStoreArchive(String jobId, int taskIdx, int resubmit) {
         Optional<Task> match = findTask(jobId, taskIdx, resubmit, tasks);
-        if(!match.isPresent()) {
+        if (!match.isPresent()) {
             match = findTask(jobId, taskIdx, resubmit, archivedTasks);
         }
 
@@ -92,6 +92,15 @@ class StubbedJobStore implements JobStore {
                 .describedAs("No batch task {job=%s, index=%s, resubmit=%s} found in task active store or archive", jobId, taskIdx, resubmit)
                 .isPresent();
         return match.get();
+    }
+
+    public Task expectTaskInStoreOrStoreArchive(String taskId) {
+        Task task = tasks.getOrDefault(taskId, archivedTasks.get(taskId));
+
+        Assertions.assertThat(task)
+                .describedAs("No batch task %s found in task active store or archive", taskId)
+                .isNotNull();
+        return task;
     }
 
     public Task expectTaskInStoreArchive(String jobId, int taskIdx, int resubmit) {
@@ -153,11 +162,19 @@ class StubbedJobStore implements JobStore {
         return Completable.fromAction(() -> {
             Job<?> removedJob = jobs.remove(job.getId());
             if (removedJob != null) {
-                tasks.values().stream().filter(task -> task.getJobId().equals(job.getId())).forEach(task -> {
-                    tasks.remove(task.getId());
-                    archivedTasks.put(task.getId(), task);
-                    eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
-                });
+                // We sort tasks by index, to make events more predictable for easier evaluation in test code.
+                tasks.values().stream()
+                        .sorted((task1, task2) -> {
+                            BatchJobTask batchTask1 = (BatchJobTask) task1;
+                            BatchJobTask batchTask2 = (BatchJobTask) task2;
+                            return Integer.compare(batchTask1.getIndex(), batchTask2.getIndex());
+                        })
+                        .filter(task -> task.getJobId().equals(job.getId()))
+                        .forEach(task -> {
+                            tasks.remove(task.getId());
+                            archivedTasks.put(task.getId(), task);
+                            eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
+                        });
                 archivedJobs.put(removedJob.getId(), removedJob);
                 eventSubject.onNext(Pair.of(StoreEvent.JobRemoved, job));
             }

@@ -14,6 +14,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
+import io.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder.EventHolder;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import io.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
@@ -102,8 +103,8 @@ public class JobsScenarioBuilder {
     public JobsScenarioBuilder scheduleBatchJob(JobDescriptor<BatchJobExt> jobDescriptor,
                                                 Function<JobScenarioBuilder<BatchJobExt>, JobScenarioBuilder<BatchJobExt>> jobScenario) {
 
-        ExtTestSubscriber<JobManagerEvent<?>> jobEventsSubscriber = new ExtTestSubscriber<>();
-        ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber = new ExtTestSubscriber<>();
+        EventHolder<JobManagerEvent<?>> jobEventsSubscriber = new EventHolder<>(jobStore);
+        EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber = new EventHolder<>(jobStore);
         AtomicReference<String> jobIdRef = new AtomicReference<>();
 
         jobOperations.createJob(jobDescriptor).doOnNext(jobId -> {

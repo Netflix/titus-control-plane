@@ -73,7 +73,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService schedulingService;
     private final VirtualMachineMasterService vmService;
-    private final JobStore titusStore;
+    private final JobStore jobStore;
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
     private final RateLimiterInterceptor newTaskRateLimiterInterceptor;
@@ -86,8 +86,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
-            JobStore titusStore) {
-        this(configuration, capacityGroupService, schedulingService, vmService, titusStore, Schedulers.computation());
+            JobStore jobStore) {
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, Schedulers.computation());
     }
 
     public ServiceDifferenceResolver(
@@ -95,13 +95,13 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
-            JobStore titusStore,
+            JobStore jobStore,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
-        this.titusStore = titusStore;
+        this.jobStore = jobStore;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
@@ -126,7 +126,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         actions.addAll(applyStore(engine, refJobView, engine.getStoreView()));
 
         if (actions.isEmpty()) {
-            actions.addAll(removeCompletedJob(engine.getReferenceView(), engine.getStoreView(), titusStore));
+            actions.addAll(removeCompletedJob(engine.getReferenceView(), engine.getStoreView(), jobStore));
         }
 
         return actions;
@@ -138,14 +138,14 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         ServiceJobView runningJobView = new ServiceJobView(runningModel);
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
-            return KillInitiatedActions.applyKillInitiated(engine, vmService, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
+            return KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
         } else if (hasJobState(referenceModel, JobState.Finished)) {
             return Collections.emptyList();
         }
 
         actions.addAll(findJobSizeInconsistencies(engine, refJobView, storeModel));
         actions.addAll(findMissingRunningTasks(refJobView, runningJobView));
-        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
 
         return actions;
     }
@@ -172,7 +172,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 for (int i = tasks.size() - 1; toRemoveCount > 0 && i >= 0; i--) {
                     ServiceJobTask next = tasks.get(i);
                     if (!isTerminating(next)) {
-                        toRemove.add(KillInitiatedActions.applyKillInitiated(engine, next, vmService, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task"));
+                        toRemove.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, next, vmService, jobStore, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task"));
                         toRemoveCount--;
                     }
                 }
@@ -185,7 +185,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private TitusChangeAction createNewTaskAction(ServiceJobView refJobView, Optional<ServiceJobTask> previousTask) {
         return newTaskRateLimiterInterceptor.apply(
                 storeWriteRetryInterceptor.apply(
-                        createOrReplaceTaskAction(titusStore, refJobView.getJob(), refJobView.getTasks(), previousTask)
+                        createOrReplaceTaskAction(jobStore, refJobView.getJob(), refJobView.getTasks(), previousTask)
                 )
         );
     }
@@ -219,7 +219,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         Job<ServiceJobExt> refJob = refJobHolder.getEntity();
 
         if (!refJobHolder.getEntity().equals(storeJob.getEntity())) {
-            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(refJobHolder.getEntity(), titusStore)));
+            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(refJobHolder.getEntity(), jobStore)));
         }
         boolean isJobTerminating = refJob.getStatus().getState() == JobState.KillInitiated;
         for (EntityHolder referenceTask : refJobHolder.getChildren()) {
@@ -235,7 +235,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                     }
                 }
             } else {
-                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(titusStore, schedulingService, capacityGroupService, engine, referenceTask.getEntity())));
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, referenceTask.getEntity())));
             }
         }
         return actions;

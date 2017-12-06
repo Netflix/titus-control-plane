@@ -16,11 +16,18 @@
 
 package io.netflix.titus.master.jobmanager.service.integration.scenario;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
@@ -34,11 +41,13 @@ import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedVirtualMachineMasterService.MesosEvent;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
+import rx.Subscriber;
 import rx.schedulers.TestScheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,9 +55,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     private final String jobId;
-    private final ExtTestSubscriber<JobManagerEvent<?>> jobEventsSubscriber;
-    private final ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber;
-    private final ExtTestSubscriber<Pair<MesosEvent, String>> mesosEventsSubscriber = new ExtTestSubscriber<>();
+    private final EventHolder<JobManagerEvent<?>> jobEventsSubscriber;
+    private final EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber;
+    private final EventHolder<Pair<MesosEvent, String>> mesosEventsSubscriber;
 
     private final V3JobOperations jobOperations;
     private final StubbedSchedulingService schedulingService;
@@ -57,8 +66,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     private final TestScheduler testScheduler;
 
     public JobScenarioBuilder(String jobId,
-                              ExtTestSubscriber<JobManagerEvent<?>> jobEventsSubscriber,
-                              ExtTestSubscriber<Pair<StoreEvent, ?>> storeEventsSubscriber,
+                              EventHolder<JobManagerEvent<?>> jobEventsSubscriber,
+                              EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber,
                               V3JobOperations jobOperations,
                               StubbedSchedulingService schedulingService,
                               StubbedJobStore jobStore,
@@ -73,6 +82,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         this.vmService = vmService;
         this.testScheduler = testScheduler;
 
+        this.mesosEventsSubscriber = new EventHolder<>(this.jobStore);
+
         vmService.events().filter(pair -> jobOperations.findTaskById(pair.getRight()).isPresent()).subscribe(mesosEventsSubscriber);
     }
 
@@ -86,8 +97,41 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
+    public JobScenarioBuilder<E> expectFailure(Callable<?> action, Consumer<Throwable> errorEvaluator) {
+        try {
+            action.call();
+            throw new IllegalStateException("Expected action to fail");
+        } catch (Exception e) {
+            errorEvaluator.accept(e);
+        }
+        return this;
+    }
+
     public JobScenarioBuilder<E> advance(long time, TimeUnit timeUnit) {
         testScheduler.advanceTimeBy(time, timeUnit);
+        return this;
+    }
+
+    public JobScenarioBuilder<E> inActiveTasks(BiFunction<Integer, Integer, Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>>> templateFun) {
+        List<Task> activeTasks = jobOperations.getTasks(jobId);
+        activeTasks.forEach(task -> {
+            BatchJobTask batchTask = (BatchJobTask) task;
+            templateFun.apply(batchTask.getIndex(), batchTask.getResubmitNumber()).apply(this);
+        });
+        return this;
+    }
+
+    public JobScenarioBuilder<E> allActiveTasks(Consumer<Task> consumer) {
+        List<Task> activeTasks = jobOperations.getTasks(jobId);
+        activeTasks.forEach(consumer);
+        return this;
+    }
+
+    public JobScenarioBuilder<E> inAllTasks(Collection<Task> tasks, BiFunction<Integer, Integer, JobScenarioBuilder<E>> templateFun) {
+        tasks.forEach(task -> {
+            BatchJobTask batchJobTask = (BatchJobTask) task;
+            templateFun.apply(batchJobTask.getIndex(), batchJobTask.getResubmitNumber());
+        });
         return this;
     }
 
@@ -96,22 +140,44 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> ignoreAvailableEvents() {
-        while (jobEventsSubscriber.takeNext() != null) {
-        }
-        while (storeEventsSubscriber.takeNext() != null) {
-        }
+        jobEventsSubscriber.ignoreAvailableEvents();
+        storeEventsSubscriber.ignoreAvailableEvents();
         return this;
     }
 
+    public JobScenarioBuilder<E> killJob() {
+        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
+        jobOperations.killJob(jobId).subscribe(subscriber);
+
+        advance();
+
+        Throwable error = subscriber.getError();
+        if (error != null) {
+            if (error instanceof RuntimeException) {
+                throw (RuntimeException) error;
+            }
+            throw new RuntimeException(error);
+        }
+        subscriber.assertOnCompleted();
+
+        return this;
+    }
 
     public JobScenarioBuilder<E> killTask(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
-        AtomicBoolean done = new AtomicBoolean();
-        jobOperations.killTask(task.getId(), false, "Task kill requested by a user")
-                .doOnCompleted(() -> done.set(true)).subscribe();
+        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
+        jobOperations.killTask(task.getId(), false, "Task kill requested by a user").subscribe(subscriber);
 
         advance();
-        assertThat(done.get()).isTrue();
+
+        Throwable error = subscriber.getError();
+        if (error != null) {
+            if (error instanceof RuntimeException) {
+                throw (RuntimeException) error;
+            }
+            throw new RuntimeException(error);
+        }
+        subscriber.assertOnCompleted();
 
         return this;
     }
@@ -138,7 +204,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectJobEvent(Consumer<Job<?>> check) {
-        JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNext);
+        JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNextJobEvent);
         assertThat(event).describedAs("No job update event for job: %s", jobId).isNotNull();
         assertThat(event).isInstanceOf(JobUpdateEvent.class);
 
@@ -152,7 +218,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     private TaskUpdateEvent expectBatchTaskEvent(int taskIdx, int resubmit) {
         jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
 
-        JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNext);
+        JobManagerEvent<?> event = autoAdvance(() -> jobEventsSubscriber.takeNextTaskEvent(taskIdx, resubmit));
         assertThat(event).isNotNull();
         assertThat(event).isInstanceOf(TaskUpdateEvent.class);
 
@@ -181,7 +247,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectNoTaskStateChangeEvent() {
-        JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNext);
+        JobManagerEvent<?> event = autoAdvance(jobEventsSubscriber::takeNextTaskEvent);
         assertThat(event).isNull();
         return this;
     }
@@ -196,7 +262,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectJobUpdatedInStore(Consumer<Job<?>> check) {
-        Pair<StoreEvent, ?> storeEventPair = storeEventsSubscriber.takeNext();
+        Pair<StoreEvent, ?> storeEventPair = autoAdvance((storeEventsSubscriber::takeNextJobStoreEvent));
         assertThat(storeEventPair.getLeft()).isEqualTo(StoreEvent.JobUpdated);
 
         Job<?> job = (Job<?>) storeEventPair.getRight();
@@ -206,7 +272,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectJobArchivedInStore() {
-        Pair<StoreEvent, ?> storeEventPair = storeEventsSubscriber.takeNext();
+        Pair<StoreEvent, ?> storeEventPair = storeEventsSubscriber.takeNextJobStoreEvent();
         assertThat(storeEventPair.getLeft()).isEqualTo(StoreEvent.JobRemoved);
         return this;
     }
@@ -236,10 +302,16 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> expectMesosTaskKill(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
-        Pair<MesosEvent, String> mesosEvent = mesosEventsSubscriber.takeNext();
+        Pair<MesosEvent, String> mesosEvent = mesosEventsSubscriber.takeNextMesosEvent(taskIdx, resubmit);
         assertThat(mesosEvent).describedAs("Expected task kill sent to Mesos").isNotNull();
         assertThat(mesosEvent.getLeft()).isEqualTo(MesosEvent.TaskKillRequest);
         assertThat(mesosEvent.getRight()).isEqualTo(task.getId());
+        return this;
+    }
+
+    public JobScenarioBuilder<E> expectNoMesosEvent() {
+        Pair<MesosEvent, String> event = autoAdvance(mesosEventsSubscriber::takeNext);
+        assertThat(event).isNull();
         return this;
     }
 
@@ -288,14 +360,15 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     private Task expectTaskEvent(int taskIdx, int resubmit, StoreEvent eventType) {
-        Task lastInStore = (eventType == StoreEvent.TaskRemoved)
+        Task lastInStore = autoAdvance(() -> eventType == StoreEvent.TaskRemoved
                 ? jobStore.expectTaskInStoreArchive(jobId, taskIdx, resubmit)
-                : jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
+                : jobStore.expectTaskInStore(jobId, taskIdx, resubmit)
+        );
 
-        Pair<StoreEvent, ?> storeEventPair = storeEventsSubscriber.takeNext();
+        Pair<StoreEvent, Task> storeEventPair = storeEventsSubscriber.takeNextTaskStoreEvent(taskIdx, resubmit);
         assertThat(storeEventPair.getLeft()).isEqualTo(eventType);
 
-        Task task = (Task) storeEventPair.getRight();
+        Task task = storeEventPair.getRight();
         assertThat(task.getId())
                 .describedAs("Task version in store different from the task in the store event: %s != %s", lastInStore.getId(), task.getId())
                 .isEqualTo(lastInStore.getId());
@@ -339,12 +412,137 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     private <T> T autoAdvance(Supplier<T> action) {
-        T result = action.get();
-        if (result == null) {
+        return ExceptionExt.doTry(action).orElseGet(() -> {
             advance();
             return action.get();
-        } else {
-            return result;
+        });
+    }
+
+    String getJobId() {
+        return jobId;
+    }
+
+    /**
+     * Returns tasks in strict order.
+     */
+    List<Task> getActiveTasks() {
+        return jobOperations.getTasks(jobId).stream().sorted((task1, task2) -> {
+            BatchJobTask batchTask1 = (BatchJobTask) task1;
+            BatchJobTask batchTask2 = (BatchJobTask) task2;
+            return Integer.compare(batchTask1.getIndex(), batchTask2.getIndex());
+        }).collect(Collectors.toList());
+    }
+
+    static class EventHolder<EVENT> extends Subscriber<EVENT> {
+
+        private final StubbedJobStore jobStore;
+        private final List<EVENT> events = new ArrayList<>();
+
+        EventHolder(StubbedJobStore jobStore) {
+            this.jobStore = jobStore;
+        }
+
+        @Override
+        public void onCompleted() {
+        }
+
+        @Override
+        public void onError(Throwable e) {
+        }
+
+        @Override
+        public void onNext(EVENT e) {
+            events.add(e);
+        }
+
+        EVENT takeNext() {
+            if (events.isEmpty()) {
+                return null;
+            }
+            return events.remove(0);
+        }
+
+        Pair<StoreEvent, Job> takeNextJobStoreEvent() {
+            Iterator<EVENT> it = events.iterator();
+            while (it.hasNext()) {
+                Pair<StoreEvent, ?> event = (Pair<StoreEvent, ?>) it.next();
+                if (event.getRight() instanceof Job) {
+                    it.remove();
+                    return Pair.of(event.getLeft(), (Job) event.getRight());
+                }
+            }
+            return null;
+        }
+
+        Pair<StoreEvent, Task> takeNextTaskStoreEvent(int index, int resubmit) {
+            Iterator<EVENT> it = events.iterator();
+            while (it.hasNext()) {
+                Pair<StoreEvent, ?> event = (Pair<StoreEvent, ?>) it.next();
+                if (event.getRight() instanceof BatchJobTask) {
+                    BatchJobTask task = (BatchJobTask) event.getRight();
+                    if (task.getIndex() == index && task.getResubmitNumber() == resubmit) {
+                        it.remove();
+                        return Pair.of(event.getLeft(), task);
+                    }
+                }
+            }
+            return null;
+        }
+
+        JobUpdateEvent takeNextJobEvent() {
+            Iterator<EVENT> it = events.iterator();
+            while (it.hasNext()) {
+                JobManagerEvent<?> event = (JobManagerEvent<?>) it.next();
+                if (event instanceof JobUpdateEvent) {
+                    it.remove();
+                    return (JobUpdateEvent) event;
+                }
+            }
+            return null;
+        }
+
+        TaskUpdateEvent takeNextTaskEvent() {
+            Iterator<EVENT> it = events.iterator();
+            while (it.hasNext()) {
+                JobManagerEvent<?> event = (JobManagerEvent<?>) it.next();
+                if (event instanceof TaskUpdateEvent) {
+                    it.remove();
+                    return (TaskUpdateEvent) event;
+                }
+            }
+            return null;
+        }
+
+        public TaskUpdateEvent takeNextTaskEvent(int taskIdx, int resubmit) {
+            Iterator<EVENT> it = events.iterator();
+            while (it.hasNext()) {
+                JobManagerEvent<?> event = (JobManagerEvent<?>) it.next();
+                if (event instanceof TaskUpdateEvent) {
+                    BatchJobTask task = (BatchJobTask) ((TaskUpdateEvent) event).getCurrentTask();
+                    if (task.getIndex() == taskIdx && task.getResubmitNumber() == resubmit) {
+                        it.remove();
+                        return (TaskUpdateEvent) event;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public Pair<MesosEvent, String> takeNextMesosEvent(int taskIdx, int resubmit) {
+            Iterator<EVENT> it = events.iterator();
+            while (it.hasNext()) {
+                Pair<MesosEvent, String> event = (Pair<MesosEvent, String>) it.next();
+                BatchJobTask task = (BatchJobTask) jobStore.expectTaskInStoreOrStoreArchive(event.getRight());
+                if (task.getIndex() == taskIdx && task.getResubmitNumber() == resubmit) {
+                    it.remove();
+                    return event;
+                }
+            }
+            return null;
+        }
+
+        void ignoreAvailableEvents() {
+            events.clear();
         }
     }
 }

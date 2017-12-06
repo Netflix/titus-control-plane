@@ -69,7 +69,7 @@ public class KillInitiatedActions {
                     TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
                             .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated)));
 
-                    return titusStore.updateJob(job).andThen(Observable.just(ModelActionHolder.allModels(modelUpdateAction)));
+                    return titusStore.updateJob(jobWithKillInitiated).andThen(Observable.just(ModelActionHolder.allModels(modelUpdateAction)));
                 });
     }
 
@@ -78,14 +78,14 @@ public class KillInitiatedActions {
      * All models are updated when both operations complete.
      * This method is used for user initiated kill operations, so the store operation happens before response is sent back to the user.
      */
-    public static ChangeAction storeAndApplyKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+    public static ChangeAction userInitiateTaskKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                           VirtualMachineMasterService vmService,
                                                           JobStore jobStore,
                                                           String taskId,
                                                           boolean shrink,
                                                           String reasonCode,
                                                           String reason) {
-        return TitusChangeAction.newAction("killInitiated")
+        return TitusChangeAction.newAction("userInitiateTaskKill")
                 .id(taskId)
                 .trigger(V3JobOperations.Trigger.API)
                 .summary(reason)
@@ -119,48 +119,55 @@ public class KillInitiatedActions {
 
     /**
      * For an active task send kill command to Mesos, and change its state to {@link TaskState#KillInitiated}.
-     * Only reference and running models are updated. Store model will be synchronized in next reconciliation cycle.
      * This method is used for internal state reconciliation.
      */
-    public static ChangeAction applyKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
-                                                  Task task,
-                                                  VirtualMachineMasterService vmService,
-                                                  String reasonCode,
-                                                  String reason) {
-        return TitusChangeAction.newAction("killInitiated")
+    public static ChangeAction reconcilerInitiatedTaskKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                                    Task task,
+                                                                    VirtualMachineMasterService vmService,
+                                                                    JobStore jobStore,
+                                                                    String reasonCode,
+                                                                    String reason) {
+        return TitusChangeAction.newAction("reconcilerInitiatedTaskKill")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary(reason)
-                .applyModelUpdates(self ->
-                        JobEntityHolders.expectTask(engine, task.getId())
-                                .map(current -> {
-                                    TaskState taskState = current.getStatus().getState();
-                                    if (taskState == TaskState.Finished) {
-                                        return Collections.<ModelActionHolder>emptyList();
-                                    }
+                .changeWithModelUpdates(self ->
+                        JobEntityHolders.toTaskObservable(engine, task.getId()).flatMap(currentTask -> {
+                            TaskState taskState = currentTask.getStatus().getState();
+                            if (taskState == TaskState.Finished) {
+                                return Observable.just(Collections.<ModelActionHolder>emptyList());
+                            }
 
-                                    vmService.killTask(task.getId());
+                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason);
+                            TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
 
-                                    Task taskWithKillInitiated = JobFunctions.changeTaskStatus(current, TaskState.KillInitiated, reasonCode, reason);
-                                    return ModelActionHolder.referenceAndRunning(TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated));
-                                }).orElse(Collections.emptyList()));
+                            // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
+                            if (taskState == TaskState.KillInitiated) {
+                                vmService.killTask(currentTask.getId());
+                                return Observable.just(ModelActionHolder.referenceAndRunning(taskUpdateAction));
+                            }
+
+                            return jobStore.updateTask(taskWithKillInitiated)
+                                    .andThen(Completable.fromAction(() -> vmService.killTask(currentTask.getId())))
+                                    .andThen(Observable.fromCallable(() -> ModelActionHolder.allModels(taskUpdateAction)));
+                        }));
     }
 
     /**
      * For all active tasks, send kill command to Mesos, and change their state to {@link TaskState#KillInitiated}.
-     * Only reference and running models are updated. Store model will be synchronized in next reconciliation cycle.
      * This method is used for internal state reconciliation.
      */
-    public static List<ChangeAction> applyKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
-                                                        VirtualMachineMasterService vmService,
-                                                        String reasonCode,
-                                                        String reason) {
+    public static List<ChangeAction> reconcilerInitiatedAllTasksKillInitiated(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                                              VirtualMachineMasterService vmService,
+                                                                              JobStore jobStore,
+                                                                              String reasonCode,
+                                                                              String reason) {
         List<ChangeAction> result = new ArrayList<>();
         engine.getRunningView().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
             TaskState state = task.getStatus().getState();
             if (state != TaskState.KillInitiated && state != TaskState.Finished) {
-                result.add(applyKillInitiated(engine, task, vmService, reasonCode, reason));
+                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, reasonCode, reason));
             }
         });
         return result;

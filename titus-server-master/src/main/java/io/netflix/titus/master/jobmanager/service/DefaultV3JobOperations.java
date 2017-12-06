@@ -372,7 +372,14 @@ public class DefaultV3JobOperations implements V3JobOperations {
     @Override
     public Observable<Void> killJob(String jobId) {
         return reconciliationFramework.findEngineByRootId(jobId)
-                .map(engine -> engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store)))
+                .map(engine -> {
+                    Job<?> job = engine.getReferenceView().getEntity();
+                    JobState jobState = job.getStatus().getState();
+                    if(jobState == JobState.KillInitiated || jobState == JobState.Finished) {
+                        return Observable.<Void>error(JobManagerException.jobTerminating(job));
+                    }
+                    return engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store));
+                })
                 .orElse(Observable.error(JobManagerException.jobNotFound(jobId)));
     }
 
@@ -380,14 +387,19 @@ public class DefaultV3JobOperations implements V3JobOperations {
     public Observable<Void> killTask(String taskId, boolean shrink, String reason) {
         return reconciliationFramework.findEngineByChildId(taskId)
                 .map(engineChildPair -> {
+                    Task task = engineChildPair.getRight().getEntity();
+                    TaskState taskState = task.getStatus().getState();
+                    if(taskState == TaskState.KillInitiated || taskState == TaskState.Finished) {
+                        return Observable.<Void>error(JobManagerException.taskTerminating(task));
+                    }
+
                     if (shrink) {
                         Job<?> job = engineChildPair.getLeft().getReferenceView().getEntity();
                         if (!(job.getJobDescriptor().getExtensions() instanceof ServiceJobExt)) {
                             return Observable.<Void>error(JobManagerException.notServiceJob(job.getId()));
                         }
                     }
-                    Task task = engineChildPair.getRight().getEntity();
-                    ChangeAction killAction = KillInitiatedActions.storeAndApplyKillInitiated(
+                    ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
                             engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, reason
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);

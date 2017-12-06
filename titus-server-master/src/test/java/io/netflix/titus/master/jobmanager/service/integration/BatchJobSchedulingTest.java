@@ -22,10 +22,12 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import org.junit.Test;
 
+import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.changeBatchJobSize;
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.changeRetryLimit;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,10 +37,10 @@ public class BatchJobSchedulingTest {
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder();
 
     /**
-     * Run single task batch job that terminates with exit code 0.
+     * Run single batch task that terminates with exit code 0.
      */
     @Test
-    public void testContainerFinishOkAndNoRetry() throws Exception {
+    public void testRunAndCompleteOkOneJobTask() throws Exception {
         jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -47,10 +49,26 @@ public class BatchJobSchedulingTest {
     }
 
     /**
+     * Run multiple batch tasks that terminates with exit code 0.
+     */
+    @Test
+    public void testRunAndCompleteOkJobWithManyTasks() throws Exception {
+        JobDescriptor<BatchJobExt> twoTaskJob = changeBatchJobSize(oneTaskBatchJobDescriptor(), 2);
+        jobsScenarioBuilder.scheduleBatchJob(twoTaskJob, jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.triggerMesosFinishedEvent(taskIdx, resubmit, 0))
+                .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
+        );
+    }
+
+    /**
      * Check that containers terminating with exit code 0 are not restarted.
      */
     @Test
-    public void testContainerFinishOkAndOneRetry() throws Exception {
+    public void testTaskCompletedOkIsNotRestarted() throws Exception {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
         jobsScenarioBuilder.scheduleBatchJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
@@ -63,7 +81,7 @@ public class BatchJobSchedulingTest {
      * Check that containers that fail with non zero exit code, and are not retryable, are not restarted.
      */
     @Test
-    public void testContainerFinishWitNonZeroErrorCodeAndNoRetry() throws Exception {
+    public void testFailedTaskWithNoRetriesFinishesImmediately() throws Exception {
         jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -75,13 +93,33 @@ public class BatchJobSchedulingTest {
      * Check container restart for failing containers that are retryable.
      */
     @Test
-    public void testContainerFinishWitNonZeroErrorCodeAndOneRetry() throws Exception {
+    public void testFailedTaskWithRetriesIsResubmitted() throws Exception {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
         jobsScenarioBuilder.scheduleBatchJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.failRetryableTask(0, 0))
                 .template(ScenarioTemplates.failLastRetryableTask(0, 1))
+        );
+    }
+
+    /**
+     * Check that in a job with multiple tasks, if some tasks complete and some fail, only the latter are resubmitted.
+     */
+    @Test
+    public void testOnlyFailedTasksAreResubmittedInMultiTaskJob() throws Exception {
+        JobDescriptor<BatchJobExt> twoTaskJob = changeRetryLimit(changeBatchJobSize(oneTaskBatchJobDescriptor(), 2), 1);
+        jobsScenarioBuilder.scheduleBatchJob(twoTaskJob, jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
+                .template(ScenarioTemplates.triggerMesosFinishedEvent(0, 0, 0))
+                .template(ScenarioTemplates.triggerMesosFinishedEvent(1, 0, -1))
+                .template(ScenarioTemplates.acceptTask(1, 1))
+                .template(ScenarioTemplates.startTask(1, 1, TaskState.Started))
+                .template(ScenarioTemplates.triggerMesosFinishedEvent(1, 1, 0))
+                .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
         );
     }
 
@@ -135,10 +173,49 @@ public class BatchJobSchedulingTest {
                     assertThat(task.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_TASK_KILLED);
                 })
                 .expectBatchTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_TASK_KILLED)
-                .killTask(0, 0)
+                .expectFailure(() -> jobScenario.killTask(0, 0), error -> {
+                    assertThat(error).isInstanceOf(JobManagerException.class);
+                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.TaskTerminating);
+                })
                 .advance()
                 .expectNoStoreUpdate()
                 .expectNoTaskStateChangeEvent()
+        );
+    }
+
+    /**
+     * Check that killing a job with running task, terminates the task first.
+     */
+    @Test
+    public void testKillingJobInAcceptedState() throws Exception {
+        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
+                .template(ScenarioTemplates.killJob())
+                .expectMesosTaskKill(0, 0)
+                .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
+                .expectBatchTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .triggerMesosFinishedEvent(0, 0, -1)
+                .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_FAILED))
+        );
+    }
+
+    @Test
+    public void testKillingJobInKillInitiatedState() throws Exception {
+        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
+                .template(ScenarioTemplates.killJob())
+                .expectMesosTaskKill(0, 0)
+                .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
+                .expectBatchTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .expectFailure(jobScenario::killJob, error -> {
+                    assertThat(error).isInstanceOf(JobManagerException.class);
+                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.JobTerminating);
+                })
+                .expectNoStoreUpdate()
+                .expectNoTaskStateChangeEvent()
+                .expectNoMesosEvent()
         );
     }
 
