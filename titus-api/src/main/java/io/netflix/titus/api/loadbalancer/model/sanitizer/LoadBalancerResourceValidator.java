@@ -16,11 +16,13 @@
 
 package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
+import rx.Completable;
+
 public interface LoadBalancerResourceValidator {
     /**
      * Validates that a load balancer can be associated with a Job.
      * @param loadBalancerId
-     * @throws Exception
+     * @return
      */
-    void validateLoadBalancer(String loadBalancerId) throws Exception;
+    Completable validateLoadBalancer(String loadBalancerId);
 }

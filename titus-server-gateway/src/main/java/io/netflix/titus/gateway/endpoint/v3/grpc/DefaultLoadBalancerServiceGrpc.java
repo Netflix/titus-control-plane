@@ -59,7 +59,10 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     public void addLoadBalancer(AddLoadBalancerRequest request, StreamObserver<Empty> responseObserver) {
         logger.debug("Received add load balancer request {}", request);
         Subscription subscription = loadBalancerService.addLoadBalancer(request).subscribe(
-                responseObserver::onCompleted,
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);

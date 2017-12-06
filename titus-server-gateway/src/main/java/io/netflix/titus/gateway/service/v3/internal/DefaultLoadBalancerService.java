@@ -66,16 +66,12 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Override
     public Completable addLoadBalancer(AddLoadBalancerRequest addLoadBalancerRequest) {
-        try {
-            validator.validateLoadBalancer(addLoadBalancerRequest.getLoadBalancerId().getId());
-        } catch (Exception e) {
-            return Completable.error(TitusServiceException.invalidArgument(e.getMessage()));
-        }
-
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            client.addLoadBalancer(addLoadBalancerRequest, simpleStreamObserver);
-        });
+        return validator.validateLoadBalancer(addLoadBalancerRequest.getLoadBalancerId().getId())
+                .onErrorResumeNext(e -> Completable.error(TitusServiceException.invalidArgument(e.getMessage())))
+                .andThen(toCompletable(emitter -> {
+                    StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+                    client.addLoadBalancer(addLoadBalancerRequest, simpleStreamObserver);
+                }));
     }
 
     @Override

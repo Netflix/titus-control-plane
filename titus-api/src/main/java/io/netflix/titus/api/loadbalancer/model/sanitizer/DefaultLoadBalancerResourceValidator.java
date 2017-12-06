@@ -16,18 +16,17 @@
 
 package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Completable;
 
 @Singleton
 public class DefaultLoadBalancerResourceValidator implements LoadBalancerResourceValidator {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerJobValidator.class);
-    private static final int VALIDATION_TIMEOUT_MIN = 1;
 
     private final LoadBalancerConnector loadBalancerConnector;
 
@@ -37,9 +36,9 @@ public class DefaultLoadBalancerResourceValidator implements LoadBalancerResourc
     }
 
     @Override
-    public void validateLoadBalancer(String loadBalancerId) throws Exception {
+    public Completable validateLoadBalancer(String loadBalancerId) {
         // We depend on the load balancer implementation-specific connector to indicate
         // what makes a load balancer ID valid or not.
-        loadBalancerConnector.isValid(loadBalancerId).await(VALIDATION_TIMEOUT_MIN, TimeUnit.MINUTES);
+        return loadBalancerConnector.isValid(loadBalancerId);
     }
 }
