@@ -91,7 +91,7 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         if (retryPolicy != null ? !retryPolicy.equals(that.retryPolicy) : that.retryPolicy != null) {
             return false;
         }
-        if (serviceJobProcesses != null ? serviceJobProcesses.equals(that.serviceJobProcesses) : that.serviceJobProcesses != null) {
+        if (serviceJobProcesses != null ? !serviceJobProcesses.equals(that.serviceJobProcesses) : that.serviceJobProcesses != null) {
             return false;
         }
 

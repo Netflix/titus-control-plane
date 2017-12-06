@@ -2,9 +2,11 @@ package io.netflix.titus.api.jobmanager.model.job;
 
 
 public class ServiceJobProcesses {
-    private final boolean disableIncreaseDesired;
+    private boolean disableIncreaseDesired;
 
-    private final boolean disableDecreaseDesired;
+    private boolean disableDecreaseDesired;
+
+    public ServiceJobProcesses() {}
 
     public ServiceJobProcesses(boolean disableIncreaseDesired, boolean disableDecreaseDesired) {
         this.disableIncreaseDesired = disableIncreaseDesired;
