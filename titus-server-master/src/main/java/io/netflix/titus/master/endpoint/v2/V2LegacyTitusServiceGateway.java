@@ -43,6 +43,8 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.model.v2.JobSla;
@@ -56,6 +58,7 @@ import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
+import io.netflix.titus.api.store.v2.V2StageMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.DateTimeExt;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -291,6 +294,20 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
             try {
                 apiOperations.updateInstanceCounts(jobId, SERVICE_STAGE, min, desired, max, user);
                 subscriber.onCompleted();
+            } catch (JobManagerException e) {
+                subscriber.onError(TitusServiceException.newBuilder(ErrorCode.JOB_UPDATE_NOT_ALLOWED, e.getMessage()).withCause(e).build());
+            } catch (InvalidJobException e) {
+                subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
+            }
+        });
+    }
+
+    @Override
+    public Observable<Void> updateJobProcesses(String user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired) {
+        return newObservable(subscriber -> {
+            try {
+                apiOperations.updateJobProcesses(jobId, SERVICE_STAGE, disableIncreaseDesired, disableDecreaseDesired, user);
+                subscriber.onCompleted();
             } catch (InvalidJobException e) {
                 subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
             }
@@ -364,7 +381,8 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
 
     private TitusJobInfo buildTitusJobInfo(V2JobMetadata jobMetadata, boolean includeArchivedTasks, Set<TitusTaskState> taskStates) {
         List<TaskInfo> tasks = new ArrayList<>();
-        List<V2WorkerMetadata> allWorkers = new ArrayList<>(jobMetadata.getStageMetadata(1).getAllWorkers());
+        V2StageMetadata stageMetadata = jobMetadata.getStageMetadata(1);
+        List<V2WorkerMetadata> allWorkers = new ArrayList<>(stageMetadata.getAllWorkers());
 
         if (includeArchivedTasks) {
             final Set<String> currentWorkerInstanceIds = allWorkers.stream().map(V2WorkerMetadata::getWorkerInstanceId).collect(Collectors.toCollection(HashSet::new));
@@ -418,7 +436,7 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
                 contextResolver.resolveContext(jobMetadata.getJobId()), jobSpec.getRetries(), jobSpec.getRuntimeLimitSecs(), jobSpec.isAllocateIpAddress(),
                 jobSpec.getIamProfile(), jobSpec.getSecurityGroups(), jobSpec.getEfs(), jobSpec.getEfsMounts(),
                 DateTimeExt.toUtcDateTimeString(jobMetadata.getSubmittedAt()),
-                jobSpec.getSoftConstraints(), jobSpec.getHardConstraints(), tasks, auditLogs);
+                jobSpec.getSoftConstraints(), jobSpec.getHardConstraints(), tasks, auditLogs, stageMetadata.getJobProcesses());
     }
 
     private String getWorkerZone(V2WorkerMetadata mwmd) {

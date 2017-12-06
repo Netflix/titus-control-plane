@@ -95,6 +95,11 @@ public interface TitusServiceGateway<USER, JOB_SPEC, JOB_TYPE extends Enum<JOB_T
     Observable<Void> resizeJob(USER user, String jobId, int desired, int min, int max);
 
     /**
+     * Update job processes
+     */
+    Observable<Void> updateJobProcesses(USER user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired);
+
+    /**
      * Change job 'inService' status.
      *
      * @return emits error if the job is not found or it is not a service job

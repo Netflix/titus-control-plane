@@ -20,6 +20,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
@@ -34,6 +35,8 @@ public interface JobManagementService {
     Observable<String> createJob(JobDescriptor jobDescriptor);
 
     Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate);
+
+    Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate);
 
     Completable changeJobInServiceStatus(JobStatusUpdate statusUpdate);
 

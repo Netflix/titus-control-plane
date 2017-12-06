@@ -318,6 +318,18 @@ public class V2GrpcTitusServiceGateway
     }
 
     @Override
+    public Observable<Void> updateJobProcesses(String user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired) {
+        return newObservable(subscriber -> {
+            try {
+                apiOperations.updateJobProcesses(jobId, SERVICE_STAGE, disableIncreaseDesired, disableDecreaseDesired, user);
+                subscriber.onCompleted();
+            } catch (Exception e) {
+                subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
+            }
+        });
+    }
+
+    @Override
     public Observable<Void> changeJobInServiceStatus(String user, String serviceJobId, boolean inService) {
         return newObservable(subscriber -> {
             try {

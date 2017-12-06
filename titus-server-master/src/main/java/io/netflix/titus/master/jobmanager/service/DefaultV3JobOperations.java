@@ -42,6 +42,7 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -71,6 +72,7 @@ import io.netflix.titus.master.jobmanager.service.common.action.task.TaskChangeA
 import io.netflix.titus.master.jobmanager.service.common.action.task.TaskChangeAfterStoreAction;
 import io.netflix.titus.master.jobmanager.service.service.action.UpdateJobCapacityAction;
 import io.netflix.titus.master.jobmanager.service.service.action.UpdateJobStatusAction;
+import io.netflix.titus.master.jobmanager.service.service.action.UpdateServiceJobProcessesAction;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
@@ -344,10 +346,34 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     if (!(job.getJobDescriptor().getExtensions() instanceof ServiceJobExt)) {
                         return Observable.error(JobManagerException.notServiceJob(jobId));
                     }
+
+                    Job<ServiceJobExt> serviceJob = (Job<ServiceJobExt>) job;
+                    if (isDesiredCapacityInvalid(capacity, serviceJob)) {
+                        return Observable.error(JobManagerException.invalidDesiredCapacity(jobId, capacity.getDesired(),
+                                serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
+                    }
+
+
                     return engine.changeReferenceModel(new UpdateJobCapacityAction(engine, capacity));
                 }
         );
     }
+
+
+    @Override
+    public Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses) {
+        return Observable.fromCallable(() ->
+                reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
+        ).flatMap(engine -> {
+                    Job<?> job = engine.getReferenceView().getEntity();
+                    if (!(job.getJobDescriptor().getExtensions() instanceof ServiceJobExt)) {
+                        return Observable.error(JobManagerException.notServiceJob(jobId));
+                    }
+                    return engine.changeReferenceModel(new UpdateServiceJobProcessesAction(engine, serviceJobProcesses));
+                }
+        );
+    }
+
 
     @Override
     public Observable<Void> updateJobStatus(String serviceJobId, boolean enabled) {
@@ -423,5 +449,13 @@ public class DefaultV3JobOperations implements V3JobOperations {
         Task task1 = holder1.getEntity();
         Task task2 = holder2.getEntity();
         return Long.compare(task1.getStatus().getTimestamp(), task2.getStatus().getTimestamp());
+    }
+
+    private boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {
+        ServiceJobProcesses serviceJobProcesses = serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses();
+        Capacity currentCapacity = serviceJob.getJobDescriptor().getExtensions().getCapacity();
+        return (serviceJobProcesses.isDisableIncreaseDesired() && targetCapacity.getDesired() > currentCapacity.getDesired()) ||
+                (serviceJobProcesses.isDisableDecreaseDesired() && targetCapacity.getDesired() < currentCapacity.getDesired());
+
     }
 }

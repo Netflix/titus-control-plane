@@ -128,7 +128,7 @@ public class GrpcAgentModelConverters {
 
     public static InstanceOverrideState toCoreOverrideState(com.netflix.titus.grpc.protogen.InstanceOverrideState overrideState) {
         switch (overrideState) {
-            case None:
+            case NotOverriden:
                 return InstanceOverrideState.None;
             case Quarantined:
                 return InstanceOverrideState.Quarantined;
@@ -182,7 +182,7 @@ public class GrpcAgentModelConverters {
     public static com.netflix.titus.grpc.protogen.InstanceOverrideState toGrpcOverrideState(InstanceOverrideState state) {
         switch (state) {
             case None:
-                return com.netflix.titus.grpc.protogen.InstanceOverrideState.None;
+                return com.netflix.titus.grpc.protogen.InstanceOverrideState.NotOverriden;
             case Quarantined:
                 return com.netflix.titus.grpc.protogen.InstanceOverrideState.Quarantined;
         }

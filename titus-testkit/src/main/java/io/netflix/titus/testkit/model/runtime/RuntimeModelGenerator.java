@@ -31,6 +31,7 @@ import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.JobSla;
 import io.netflix.titus.api.model.v2.MachineDefinition;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.V2JobDurationType;
 import io.netflix.titus.api.model.v2.V2JobState;
@@ -217,7 +218,8 @@ public class RuntimeModelGenerator {
                 schedulingInfo.getSecurityGroups(),
                 schedulingInfo.getAllocateIP(),
                 schedulingInfo.getScalingPolicy(),
-                schedulingInfo.getScalable()
+                schedulingInfo.getScalable(),
+                ServiceJobProcesses.newBuilder().build()
         );
         jobMetadata.addJobStageIfAbsent(stage);
 

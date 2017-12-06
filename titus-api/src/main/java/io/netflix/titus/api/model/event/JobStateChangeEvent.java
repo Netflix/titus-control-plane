@@ -21,7 +21,7 @@ package io.netflix.titus.api.model.event;
  */
 public class JobStateChangeEvent<SOURCE> extends SchedulingEvent<SOURCE> {
 
-    public enum JobState {Created, Resized, Activated, Deactivated, Finished}
+    public enum JobState {Created, Resized, Activated, Deactivated, DisabledIncreaseDesired, DisabledDecreaseDesired, Finished}
 
     private final JobState jobState;
 
