@@ -84,10 +84,10 @@ public class RuntimeModelGenerator {
     private final Map<String, V2JobMetadata> archivedJobsMetadata = new HashMap<>();
 
     public V2JobDefinition newJobDefinition(JobType jobType, String name) {
-        return newJobDefinition(jobType, name, null, null);
+        return newJobDefinition(jobType, name, null, null, 0.0);
     }
 
-    public V2JobDefinition newJobDefinition(JobType jobType, String name, String capacityGroup, Long runtimeLimitSecs) {
+    public V2JobDefinition newJobDefinition(JobType jobType, String name, String capacityGroup, Long runtimeLimitSecs, double gpu) {
         List<String> securityGroups = asList("sg-0001", "sg-0002");
 
         List<Parameter> parameters = new ArrayList<>();
@@ -126,7 +126,7 @@ public class RuntimeModelGenerator {
         );
 
         MachineDefinition machineDefinition = new MachineDefinition(
-                1, 1024, 100, 512, jobType == JobType.Service ? 1 : 0, Collections.emptyMap()
+                1, 1024, 100, 512, jobType == JobType.Service ? 1 : 0, gpu > 0.0 ? Collections.singletonMap("gpu", 1.0) : Collections.emptyMap()
         );
 
         StageScalingPolicy scalingPolicy;
@@ -175,12 +175,16 @@ public class RuntimeModelGenerator {
         return newJobMetadata(newJobDefinition(jobType, name));
     }
 
+    public V2JobMetadata newJobMetadata(JobType jobType, String name, double gpu) {
+        return newJobMetadata(newJobDefinition(jobType, name, null, null, gpu));
+    }
+
     public V2JobMetadata newJobMetadata(JobType jobType, String name, String capacityGroup) {
-        return newJobMetadata(newJobDefinition(jobType, name, capacityGroup, null));
+        return newJobMetadata(newJobDefinition(jobType, name, capacityGroup, null, 0.0));
     }
 
     public V2JobMetadata newJobMetadata(JobType jobType, String name, String capacityGroup, Long runtimeLimitSeconds) {
-        return newJobMetadata(newJobDefinition(jobType, name, capacityGroup, runtimeLimitSeconds));
+        return newJobMetadata(newJobDefinition(jobType, name, capacityGroup, runtimeLimitSeconds, 0.0));
     }
 
 
