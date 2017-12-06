@@ -1,16 +1,12 @@
 package io.netflix.titus.api.jobmanager.model.job;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ServiceJobProcesses {
     private final boolean disableIncreaseDesired;
 
     private final boolean disableDecreaseDesired;
 
-    @JsonCreator
-    public ServiceJobProcesses(@JsonProperty("disableIncreaseDesired") boolean disableIncreaseDesired,
-                               @JsonProperty("disableDecreaseDesired") boolean disableDecreaseDesired) {
+    public ServiceJobProcesses(boolean disableIncreaseDesired, boolean disableDecreaseDesired) {
         this.disableIncreaseDesired = disableIncreaseDesired;
         this.disableDecreaseDesired = disableDecreaseDesired;
     }
