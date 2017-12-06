@@ -2664,7 +2664,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.12.0",
+            "locked": "2.13.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -3548,7 +3548,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.12.0",
+            "locked": "2.13.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -4432,7 +4432,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.12.0",
+            "locked": "2.13.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -5317,7 +5317,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.12.0",
+            "locked": "2.13.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
