@@ -22,9 +22,9 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.model.MigrationPolicy;
 import io.netflix.titus.api.model.v2.JobConstraints;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 
 public class TitusJobInfo {
 

@@ -19,9 +19,9 @@ package io.netflix.titus.api.store.v2;
 import java.util.Collection;
 import java.util.List;
 
-import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.MachineDefinition;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 
 public interface V2StageMetadata {

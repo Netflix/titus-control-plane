@@ -28,12 +28,12 @@ import com.google.inject.Injector;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
 import io.netflix.titus.api.audit.service.AuditLogService;
-import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
 import io.netflix.titus.api.model.event.JobStateChangeEvent.JobState;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
@@ -263,7 +263,8 @@ public class ServiceJobMgr extends BaseJobMgr {
         if (jobProcesses != null) {
             int targetDesired = scalingPolicy.getDesired() - 1;
             if (isTargetDesiredCountInvalid(targetDesired, scalingPolicy, jobProcesses)) {
-                throw JobManagerException.invalidDesiredCapacity(jobId, targetDesired, jobProcesses);
+                throw new JobUpdateException(String.format("Invalid desired capacity %s for jobId = %s with " +
+                        "current job processes %s", targetDesired, jobId, jobProcesses));
             }
         }
 
@@ -313,7 +314,8 @@ public class ServiceJobMgr extends BaseJobMgr {
             ServiceJobProcesses jobProcesses = serviceStage.getJobProcesses();
             if (jobProcesses != null) {
                 if (isTargetDesiredCountInvalid(desired, scalingPolicy, jobProcesses)) {
-                    throw JobManagerException.invalidDesiredCapacity(jobId, desired, jobProcesses);
+                    throw new JobUpdateException(String.format("Invalid desired capacity %s for jobId = %s with " +
+                            "current job processes %s", desired, jobId, jobProcesses));
                 }
             }
 
@@ -567,7 +569,8 @@ public class ServiceJobMgr extends BaseJobMgr {
         }
     }
 
-    private boolean isTargetDesiredCountInvalid(int targetDesired, StageScalingPolicy stageScalingPolicy, ServiceJobProcesses jobProcesses) {
+    private boolean isTargetDesiredCountInvalid(int targetDesired, StageScalingPolicy stageScalingPolicy,
+                                                ServiceJobProcesses jobProcesses) {
         return (jobProcesses.isDisableIncreaseDesired() && targetDesired > stageScalingPolicy.getDesired()) ||
                 (jobProcesses.isDisableDecreaseDesired() && targetDesired < stageScalingPolicy.getDesired());
     }

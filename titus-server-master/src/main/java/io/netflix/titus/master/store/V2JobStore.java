@@ -38,9 +38,9 @@ import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
-import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.model.event.TaskStateChangeEvent;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;

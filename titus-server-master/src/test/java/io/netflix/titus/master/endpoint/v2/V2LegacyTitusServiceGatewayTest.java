@@ -21,8 +21,8 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
-import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
@@ -39,6 +39,7 @@ import io.netflix.titus.master.endpoint.common.ContextResolver;
 import io.netflix.titus.master.endpoint.common.EmptyContextResolver;
 import io.netflix.titus.master.endpoint.v2.rest.RestConfig;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.master.job.JobUpdateException;
 import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import io.netflix.titus.master.scheduler.SchedulingService;
@@ -49,7 +50,6 @@ import io.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import org.junit.Before;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
@@ -156,7 +156,8 @@ public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestComp
             ServiceJobProcesses jobProcesses = stage.getJobProcesses();
             if ((jobProcesses.isDisableDecreaseDesired() && desired < current.getDesired()) ||
                     (jobProcesses.isDisableIncreaseDesired() && desired > current.getDesired())) {
-                throw JobManagerException.invalidDesiredCapacity(jobId, desired, jobProcesses);
+                throw new JobUpdateException(String.format("Invalid desired capacity %s for jobId = %s with " +
+                        "current job processes %s", desired, jobId, jobProcesses));
             }
 
             return null;

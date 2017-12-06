@@ -43,6 +43,7 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;

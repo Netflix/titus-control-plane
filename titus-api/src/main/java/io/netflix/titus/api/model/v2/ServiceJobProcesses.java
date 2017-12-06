@@ -1,12 +1,19 @@
-package io.netflix.titus.api.jobmanager.model.job;
+package io.netflix.titus.api.model.v2;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServiceJobProcesses {
+    private static Logger logger = LoggerFactory.getLogger(ServiceJobProcesses.class);
     private boolean disableIncreaseDesired;
 
     private boolean disableDecreaseDesired;
 
-    public ServiceJobProcesses(boolean disableIncreaseDesired, boolean disableDecreaseDesired) {
+    @JsonCreator
+    public ServiceJobProcesses(@JsonProperty("disableIncreaseDesired") boolean disableIncreaseDesired,
+                               @JsonProperty("disableDecreaseDesired") boolean disableDecreaseDesired) {
         this.disableIncreaseDesired = disableIncreaseDesired;
         this.disableDecreaseDesired = disableDecreaseDesired;
     }
