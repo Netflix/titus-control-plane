@@ -14,24 +14,15 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.loadbalancer.service;
+package io.netflix.titus.api.loadbalancer.model.sanitizer;
 
-import java.util.Set;
-
-import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import rx.Completable;
 
-/**
- * Test helper class that intentionally does nothing on register/deregister and returns success.
- */
-public class NoOpLoadBalancerConnector implements LoadBalancerConnector {
-    @Override
-    public Completable registerAll(String loadBalancerId, Set<String> ipAddresses) {
-        return Completable.complete();
-    }
-
-    @Override
-    public Completable deregisterAll(String loadBalancerId, Set<String> ipAddresses) {
-        return Completable.complete();
-    }
+public interface LoadBalancerResourceValidator {
+    /**
+     * Validates that a load balancer can be associated with a Job.
+     * @param loadBalancerId
+     * @return
+     */
+    Completable validateLoadBalancer(String loadBalancerId);
 }

@@ -16,12 +16,12 @@
 
 package io.netflix.titus.runtime.store.v3.memory;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,6 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     private static Logger logger = LoggerFactory.getLogger(InMemoryLoadBalancerStore.class);
 
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
-    private final ConcurrentMap<LoadBalancerTarget, LoadBalancerTarget.State> targets = new ConcurrentHashMap<>();
 
     @Override
     public Observable<LoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
@@ -52,5 +51,16 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer) {
         return Completable.fromAction(() -> associations.remove(jobLoadBalancer));
+    }
+
+    @Override
+    public int getNumLoadBalancersForJob(String jobId) {
+        int loadBalancerCount = 0;
+        for (Map.Entry<JobLoadBalancer, JobLoadBalancer.State> entry : associations.entrySet()) {
+            if (entry.getKey().getJobId().equals(jobId)) {
+                loadBalancerCount++;
+            }
+        }
+        return loadBalancerCount;
     }
 }

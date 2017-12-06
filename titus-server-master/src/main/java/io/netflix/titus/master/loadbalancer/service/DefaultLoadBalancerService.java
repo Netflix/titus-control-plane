@@ -32,8 +32,10 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -59,6 +61,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private final LoadBalancerConfiguration configuration;
     private final LoadBalancerStore loadBalancerStore;
     private final V3JobOperations v3JobOperations;
+    private final LoadBalancerJobValidator validator;
 
     private final TargetTracking targetTracking;
     private final AssociationsTracking associationsTracking = new AssociationsTracking();
@@ -74,8 +77,9 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                       LoadBalancerConfiguration configuration,
                                       LoadBalancerConnector loadBalancerConnector,
                                       LoadBalancerStore loadBalancerStore,
-                                      V3JobOperations v3JobOperations) {
-        this(runtime, configuration, loadBalancerConnector, loadBalancerStore, v3JobOperations, new TargetTracking(), Schedulers.computation());
+                                      V3JobOperations v3JobOperations,
+                                      LoadBalancerJobValidator validator) {
+        this(runtime, configuration, loadBalancerConnector, loadBalancerStore, v3JobOperations, new TargetTracking(), validator, Schedulers.computation());
     }
 
     @VisibleForTesting
@@ -85,6 +89,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                LoadBalancerStore loadBalancerStore,
                                V3JobOperations v3JobOperations,
                                TargetTracking targetTracking,
+                               LoadBalancerJobValidator validator,
                                Scheduler scheduler) {
         this.runtime = runtime;
         this.configuration = configuration;
@@ -94,6 +99,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         this.targetTracking = targetTracking;
         this.batcher = new Batcher(configuration.getBatch().getTimeoutMs(), configuration.getBatch().getSize(),
                 loadBalancerConnector, targetTracking, scheduler);
+        this.validator = validator;
     }
 
     @Override
@@ -105,6 +111,12 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Override
     public Completable addLoadBalancer(String jobId, String loadBalancerId) {
+        try {
+            validator.validateJobId(jobId);
+        } catch (Exception e) {
+            return Completable.error(TitusServiceException.invalidArgument(e.getMessage()));
+        }
+
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
                 .andThen(Completable.fromAction(() -> {
