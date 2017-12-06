@@ -18,6 +18,7 @@ package io.netflix.titus.api.jobmanager.service;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 
@@ -32,6 +33,7 @@ public class JobManagerException extends RuntimeException {
         UnexpectedJobState,
         UnexpectedTaskState,
         TaskNotFound,
+        InvalidDesiredCapacity,
     }
 
     private final ErrorCode errorCode;
@@ -76,6 +78,14 @@ public class JobManagerException extends RuntimeException {
         return new JobManagerException(
                 ErrorCode.UnexpectedTaskState,
                 format("Task %s is not in the expected state %s (expected) != %s (actual)", task.getId(), expectedState, task.getStatus().getState())
+        );
+    }
+
+    public static JobManagerException invalidDesiredCapacity(String jobId, int targetDesired, ServiceJobProcesses serviceJobProcesses) {
+        return new JobManagerException(
+                ErrorCode.InvalidDesiredCapacity,
+                format("Job %s can not be updated to desired capacity of %s, disableIncreaseDesired %s, disableDecreaseDesired %s",
+                        jobId, targetDesired, serviceJobProcesses.isDisableIncreaseDesired(), serviceJobProcesses.isDisableDecreaseDesired())
         );
     }
 }

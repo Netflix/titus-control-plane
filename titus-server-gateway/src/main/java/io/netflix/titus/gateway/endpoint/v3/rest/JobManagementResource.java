@@ -39,9 +39,11 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -83,6 +85,18 @@ public class JobManagementResource {
                 .setCapacity(capacity)
                 .build();
         return Responses.fromCompletable(jobManagementService.updateJobCapacity(jobCapacityUpdate));
+    }
+
+    @PUT
+    @ApiOperation("Update an existing job's processes")
+    @Path("/jobs/{jobId}/jobprocesses")
+    public Response setJobProcesses(@PathParam("jobId") String jobId,
+                                    ServiceJobSpec.ServiceJobProcesses jobProcesses) {
+        JobProcessesUpdate jobProcessesUpdate = JobProcessesUpdate.newBuilder()
+                .setJobId(jobId)
+                .setServiceJobProcesses(jobProcesses)
+                .build();
+        return Responses.fromCompletable(jobManagementService.updateJobProcesses(jobProcessesUpdate));
     }
 
     @POST

@@ -54,6 +54,7 @@ import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.JobSla;
 import io.netflix.titus.api.model.v2.MachineDefinition;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.V2JobDurationType;
 import io.netflix.titus.api.model.v2.V2JobState;
@@ -76,6 +77,8 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.api.jobmanager.model.job.Container.*;
+import static io.netflix.titus.api.jobmanager.model.job.Container.RESOURCE_GPU;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_ERROR;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
@@ -142,6 +145,8 @@ public final class V2GrpcModelConverters {
                 .setDiskMB((int) machineDefinition.getDiskMB())
                 .setNetworkMbps((int) machineDefinition.getNetworkMbps())
                 .setAllocateIP(stageMetadata.getAllocateIP());
+        applyNotNull(machineDefinition.getScalars(), scalars -> applyNotNull(scalars.get(RESOURCE_GPU), gpu -> resourcesBuilder.setGpu(gpu.intValue())));
+
         List<com.netflix.titus.grpc.protogen.ContainerResources.EfsMount> efsMounts = toGrpcEfsMounts(parameters);
         if (!efsMounts.isEmpty()) {
             resourcesBuilder.addAllEfsMounts(efsMounts);
@@ -191,7 +196,17 @@ public final class V2GrpcModelConverters {
             serviceJobBuilder.setRetryPolicy(RetryPolicy.newBuilder().setImmediate(RetryPolicy.Immediate.getDefaultInstance()));
             serviceJobBuilder.setEnabled(Parameters.getInService(parameters));
 
+            ServiceJobProcesses jobProcesses = stageMetadata.getJobProcesses();
+            if (jobProcesses != null) {
+                ServiceJobSpec.ServiceJobProcesses serviceJobProcesses = ServiceJobSpec.ServiceJobProcesses.newBuilder()
+                        .setDisableDecreaseDesired(jobProcesses.isDisableDecreaseDesired())
+                        .setDisableIncreaseDesired(jobProcesses.isDisableIncreaseDesired())
+                        .build();
+                serviceJobBuilder.setServiceJobProcesses(serviceJobProcesses);
+            }
+
             descriptorBuilder.setService(serviceJobBuilder);
+
         } else {
             BatchJobSpec.Builder batchJobBuilder = BatchJobSpec.newBuilder();
             batchJobBuilder.setSize(stageMetadata.getNumWorkers());
@@ -588,7 +603,7 @@ public final class V2GrpcModelConverters {
 
     public static MachineDefinition toMachineDefinition(com.netflix.titus.grpc.protogen.ContainerResources resources) {
         double gpu = resources.getGpu();
-        final Map<String, Double> scalars = gpu > 0 ? Collections.singletonMap("gpu", gpu) : Collections.emptyMap();
+        final Map<String, Double> scalars = gpu > 0 ? Collections.singletonMap(RESOURCE_GPU, gpu) : Collections.emptyMap();
 
         return new MachineDefinition(
                 resources.getCpu(),

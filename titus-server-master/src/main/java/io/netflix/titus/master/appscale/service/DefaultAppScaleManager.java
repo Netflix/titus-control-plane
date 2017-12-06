@@ -57,6 +57,7 @@ import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.master.job.V2JobMgrIntf;
 import io.netflix.titus.master.job.V2JobOperations;
+import io.netflix.titus.master.job.service.ServiceJobMgr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -497,6 +498,10 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
             if (v2JobMgr == null) {
                 throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
+            }
+
+            if (!(v2JobMgr instanceof ServiceJobMgr)) {
+                throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.notServiceJob(jobId));
             }
 
             V2JobDefinition jobDefinition = v2JobOperations.getJobMgr(jobId).getJobDefinition();

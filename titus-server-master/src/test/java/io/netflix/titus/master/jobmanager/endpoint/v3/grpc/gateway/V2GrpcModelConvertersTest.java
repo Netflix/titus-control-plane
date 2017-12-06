@@ -181,7 +181,7 @@ public class V2GrpcModelConvertersTest {
 
     @Test
     public void testToGrpcJobDescriptor() throws Exception {
-        V2JobMetadata v2Job = generator.newJobMetadata(Parameters.JobType.Batch, "myJob");
+        V2JobMetadata v2Job = generator.newJobMetadata(Parameters.JobType.Batch, "myJob", 1.0);
         JobDescriptor v3JobDescriptor = V2GrpcModelConverters.toGrpcJobDescriptor(v2Job);
         compare(v3JobDescriptor, v2Job);
     }
@@ -274,6 +274,15 @@ public class V2GrpcModelConvertersTest {
         assertThat(container.getResources().getMemoryMB()).isEqualTo((int) v2Stage.getMachineDefinition().getMemoryMB());
         assertThat(container.getResources().getDiskMB()).isEqualTo((int) v2Stage.getMachineDefinition().getDiskMB());
         assertThat(container.getResources().getNetworkMbps()).isEqualTo((int) v2Stage.getMachineDefinition().getNetworkMbps());
+        Map<String, Double> scalars = v2Stage.getMachineDefinition().getScalars();
+        int gpu = 0;
+        if (scalars != null) {
+            Double scalarGpu = scalars.get("gpu");
+            if (scalarGpu != null) {
+                gpu = scalarGpu.intValue();
+            }
+        }
+        assertThat(container.getResources().getGpu()).isEqualTo(gpu);
         assertThat(container.getEntryPointList().get(0)).isEqualTo(Parameters.getEntryPoint(v2Job.getParameters()));
         assertThat(container.getEnvMap()).isEqualTo(Parameters.getEnv(v2Job.getParameters()));
         assertThat(container.getSoftConstraints().getConstraintsCount()).isEqualTo(v2Stage.getSoftConstraints().size());

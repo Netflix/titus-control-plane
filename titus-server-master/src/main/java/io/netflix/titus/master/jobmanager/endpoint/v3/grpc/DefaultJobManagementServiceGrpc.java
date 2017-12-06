@@ -35,10 +35,12 @@ import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.Page;
+import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
@@ -172,6 +174,24 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             Capacity taskInstances = request.getCapacity();
             serviceGateway.resizeJob(
                     userId, request.getJobId(), taskInstances.getDesired(), taskInstances.getMin(), taskInstances.getMax()
+            ).subscribe(
+                    nothing -> {
+                    },
+                    e -> safeOnError(logger, e, responseObserver),
+                    () -> {
+                        responseObserver.onNext(Empty.getDefaultInstance());
+                        responseObserver.onCompleted();
+                    }
+            );
+        });
+    }
+
+    @Override
+    public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
+        execute(responseObserver, userId -> {
+            ServiceJobSpec.ServiceJobProcesses serviceJobProcesses = request.getServiceJobProcesses();
+            serviceGateway.updateJobProcesses(
+                    userId, request.getJobId(), serviceJobProcesses.getDisableDecreaseDesired(), serviceJobProcesses.getDisableIncreaseDesired()
             ).subscribe(
                     nothing -> {
                     },

@@ -36,6 +36,7 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
@@ -81,6 +82,7 @@ import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_KI
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_OBSERVE_JOB;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_OBSERVE_JOBS;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_CAPACITY;
+import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_PROCESSES;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_STATUS;
 import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
 import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
@@ -143,6 +145,17 @@ public class DefaultJobManagementService implements JobManagementService {
                     ClientCall clientCall = call(METHOD_UPDATE_JOB_CAPACITY, jobCapacityUpdate, streamObserver);
                     GrpcUtil.attachCancellingCallback(emitter, clientCall);
                 });
+    }
+
+    @Override
+    public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
+        return toCompletable(
+                emitter ->  {
+                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
+                    ClientCall clientCall = call(METHOD_UPDATE_JOB_PROCESSES, jobProcessesUpdate, streamObserver);
+                    GrpcUtil.attachCancellingCallback(emitter, clientCall);
+                }
+        );
     }
 
     @Override

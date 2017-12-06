@@ -19,6 +19,7 @@ package io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -211,11 +212,11 @@ public class V2GrpcTitusServiceGateway
         Set<String> jobIds = queryCriteria.getJobIds();
         boolean hasJobIds = !jobIds.isEmpty();
         List<V2JobMetadata> jobs = hasJobIds ? getSortedJobsByIds(jobIds) : getAllSortedJobs();
+        boolean includeArchived = queryCriteria.getTaskStates().contains(TaskStatus.TaskState.Finished);
 
         V2TaskQueryCriteriaEvaluator criteriaEvaluator = new V2TaskQueryCriteriaEvaluator(queryCriteria);
         List<Pair<V2JobMetadata, V2WorkerMetadata>> filtered = jobs.stream()
-                .flatMap(job -> job.getStageMetadata(1)
-                        .getAllWorkers().stream()
+                .flatMap(job -> getSortedWorkersForJob(job, includeArchived).stream()
                         .map(task -> Pair.of(job, task))
                 )
                 .filter(criteriaEvaluator)
@@ -267,6 +268,18 @@ public class V2GrpcTitusServiceGateway
         return jobs;
     }
 
+    private List<V2WorkerMetadata> getSortedWorkersForJob(V2JobMetadata job, boolean includeArchived) {
+        List<V2WorkerMetadata> workers = new ArrayList<>(job.getStageMetadata(1).getAllWorkers());
+        if (includeArchived) {
+            final Set<String> currentWorkerInstanceIds = workers.stream().map(V2WorkerMetadata::getWorkerInstanceId).collect(Collectors.toCollection(HashSet::new));
+            final List<? extends V2WorkerMetadata> archivedWorkers = apiOperations.getArchivedWorkers(job.getJobId());
+            final List<? extends V2WorkerMetadata> archivedWorkersOnly = archivedWorkers.stream().filter(w -> !currentWorkerInstanceIds.contains(w.getWorkerInstanceId())).collect(Collectors.toList());
+            workers.addAll(archivedWorkersOnly);
+        }
+        workers.sort(Comparator.comparing(V2WorkerMetadata::getWorkerInstanceId));
+        return workers;
+    }
+
     private Page checkPageIsPresent(Optional<Page> optionalPage) {
         Preconditions.checkArgument(optionalPage.isPresent(), "Expected page object");
         Page page = optionalPage.get();
@@ -299,6 +312,18 @@ public class V2GrpcTitusServiceGateway
                 apiOperations.updateInstanceCounts(jobId, SERVICE_STAGE, min, desired, max, user);
                 subscriber.onCompleted();
             } catch (InvalidJobException e) {
+                subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
+            }
+        });
+    }
+
+    @Override
+    public Observable<Void> updateJobProcesses(String user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired) {
+        return newObservable(subscriber -> {
+            try {
+                apiOperations.updateJobProcesses(jobId, SERVICE_STAGE, disableIncreaseDesired, disableDecreaseDesired, user);
+                subscriber.onCompleted();
+            } catch (Exception e) {
                 subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
             }
         });

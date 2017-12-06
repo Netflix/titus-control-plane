@@ -27,10 +27,13 @@ import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
+import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
 import io.netflix.titus.api.model.event.JobStateChangeEvent.JobState;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
@@ -44,7 +47,6 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.master.JobSchedulingInfo;
 import io.netflix.titus.master.MetricConstants;
-import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.BaseJobMgr;
 import io.netflix.titus.master.job.JobManagerConfiguration;
@@ -257,6 +259,16 @@ public class ServiceJobMgr extends BaseJobMgr {
         V2StageMetadata stageMetadata = jobMetadata.getStageMetadata(1);
         StageScalingPolicy scalingPolicy = stageMetadata.getScalingPolicy();
 
+        ServiceJobProcesses jobProcesses = stageMetadata.getJobProcesses();
+        if (jobProcesses != null) {
+            int targetDesired = scalingPolicy.getDesired() - 1;
+            if (isTargetDesiredCountInvalid(targetDesired, scalingPolicy, jobProcesses)) {
+                throw new JobUpdateException(String.format("Invalid desired capacity %s for jobId = %s with " +
+                        "current job processes %s", targetDesired, jobId, jobProcesses));
+            }
+        }
+
+
         if (scalingPolicy.getMin() < scalingPolicy.getDesired()) {
             boolean succeeded = super.killWorker(taskId, user, "shrinking job", true);
             if (succeeded && logger.isDebugEnabled()) {
@@ -295,11 +307,49 @@ public class ServiceJobMgr extends BaseJobMgr {
             logger.info("Updating instance counts: min={}, desired={}, max={}, user={}", min, desired, max, user);
 
             long startTime = System.currentTimeMillis();
-            V2StageMetadataWritable serviceStage = (V2StageMetadataWritable) jobMetadata.getStageMetadata(1);
+            V2StageMetadataWritable serviceStage = (V2StageMetadataWritable) jobMetadata.getStageMetadata(stageNum);
             StageScalingPolicy scalingPolicy = serviceStage.getScalingPolicy();
-            updateInstanceCounts(min, desired, max, user, scalingPolicy.getDesired());
 
+            // check job processes
+            ServiceJobProcesses jobProcesses = serviceStage.getJobProcesses();
+            if (jobProcesses != null) {
+                if (isTargetDesiredCountInvalid(desired, scalingPolicy, jobProcesses)) {
+                    throw new JobUpdateException(String.format("Invalid desired capacity %s for jobId = %s with " +
+                            "current job processes %s", desired, jobId, jobProcesses));
+                }
+            }
+
+            updateInstanceCounts(min, desired, max, user, scalingPolicy.getDesired());
             logger.info("Scaling policy updated in {}[ms]", System.currentTimeMillis() - startTime);
+        } catch (JobManagerException e) {
+            logger.warn(jobId + ": JobManagerException in updating instance counts - " + e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.warn(jobId + ": unexpected exception locking job metadata: " + e.getMessage(), e);
+            throw new InvalidJobException(jobId, e);
+        }
+    }
+
+    public void updateJobProcesses(int stageNum, boolean disableIncreaseDesired, boolean disableDecreaseDesired, String user) throws InvalidJobException {
+        final V2JobMetadataWritable jobMetadata = (V2JobMetadataWritable) getJobMetadata();
+        try (AutoCloseable ignored = jobMetadata.obtainLock()) {
+            V2StageMetadataWritable serviceStage = (V2StageMetadataWritable) jobMetadata.getStageMetadata(stageNum);
+            ServiceJobProcesses jobProcesses = ServiceJobProcesses.newBuilder().withDisableIncreaseDesired(disableIncreaseDesired).withDisableDecreaseDesired(disableDecreaseDesired).build();
+            serviceStage.setJobProcesses(jobProcesses);
+            store.updateStage(serviceStage);
+            logger.info("{} : Updated JobProcesses disableIncreaseDesired={}, disableDecreaseDesired={}, user={}", jobId, disableIncreaseDesired, disableDecreaseDesired, user);
+
+            auditLogService.submit(
+                    new AuditLogEvent(AuditLogEvent.Type.JOB_PROCESSES_UPDATE, jobId,
+                            String.format("disableIncreaseDesired=%s, disableDecreaseDesired=%s, user=%s", disableIncreaseDesired, disableDecreaseDesired, user),
+                            System.currentTimeMillis()));
+            if (disableDecreaseDesired) {
+                eventBus.publish(new JobStateChangeEvent<>(jobId, JobState.DisabledDecreaseDesired, System.currentTimeMillis(), jobMetadata));
+            }
+            if (disableIncreaseDesired) {
+                eventBus.publish(new JobStateChangeEvent<>(jobId, JobState.DisabledIncreaseDesired, System.currentTimeMillis(), jobMetadata));
+            }
+
         } catch (Exception e) {
             logger.warn(jobId + ": unexpected exception locking job metadata: " + e.getMessage(), e);
             throw new InvalidJobException(jobId, e);
@@ -517,5 +567,11 @@ public class ServiceJobMgr extends BaseJobMgr {
         } catch (IOException e) {
             logger.error("Error storing workers of job " + jobId + " - " + e.getMessage(), e);
         }
+    }
+
+    private boolean isTargetDesiredCountInvalid(int targetDesired, StageScalingPolicy stageScalingPolicy,
+                                                ServiceJobProcesses jobProcesses) {
+        return (jobProcesses.isDisableIncreaseDesired() && targetDesired > stageScalingPolicy.getDesired()) ||
+                (jobProcesses.isDisableDecreaseDesired() && targetDesired < stageScalingPolicy.getDesired());
     }
 }

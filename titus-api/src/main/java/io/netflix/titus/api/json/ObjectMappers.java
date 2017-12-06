@@ -79,6 +79,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.Owner;
 import io.netflix.titus.api.jobmanager.model.job.SecurityProfile;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -97,6 +98,7 @@ import io.netflix.titus.api.jobmanager.store.mixin.BatchJobTaskMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.CapacityMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.ContainerMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.ContainerResourcesMixin;
+import io.netflix.titus.api.jobmanager.store.mixin.ServiceJobProcessesMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.SystemDefaultMigrationPolicyMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.DelayedRetryPolicyMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.ImageMixin;
@@ -340,6 +342,7 @@ public class ObjectMappers {
         objectMapper.addMixIn(SecurityProfile.class, SecurityProfileMixin.class);
         objectMapper.addMixIn(Container.class, ContainerMixin.class);
         objectMapper.addMixIn(Image.class, ImageMixin.class);
+        objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
 
         return objectMapper;
     }

@@ -159,6 +159,14 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     }
 
     @Override
+    public Observable<Void> updateJobProcesses(String user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired) {
+        if (JobFunctions.isV2JobId(jobId)) {
+            return v2EngineGateway.updateJobProcesses(user, jobId, disableDecreaseDesired, disableIncreaseDesired);
+        }
+        return v3EngineGateway.updateJobProcesses(user, jobId, disableDecreaseDesired, disableIncreaseDesired);
+    }
+
+    @Override
     public Observable<Void> changeJobInServiceStatus(String user, String serviceJobId, boolean inService) {
         if (JobFunctions.isV2JobId(serviceJobId)) {
             return v2EngineGateway.changeJobInServiceStatus(user, serviceJobId, inService);

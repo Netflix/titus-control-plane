@@ -38,6 +38,7 @@ public class AuditLogEvent {
         JOB_SCALE_UP,
         JOB_SCALE_DOWN,
         JOB_SCALE_UPDATE,
+        JOB_PROCESSES_UPDATE,
         JOB_IN_SERVICE_STATUS_CHANGE,
         WORKER_START,
         WORKER_TERMINATE,
