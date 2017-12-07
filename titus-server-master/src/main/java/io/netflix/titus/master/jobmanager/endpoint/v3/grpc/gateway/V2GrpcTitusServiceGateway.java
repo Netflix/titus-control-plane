@@ -119,6 +119,7 @@ public class V2GrpcTitusServiceGateway
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
         return newObservable(subscriber -> {
+            V2JobDefinition jobDefinition = null;
             try {
                 // Map to the new core model to validate the data.
                 io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
@@ -128,17 +129,29 @@ public class V2GrpcTitusServiceGateway
                     return;
                 }
 
-                V2JobDefinition jobDefinition = V2GrpcModelConverters.toV2JobDefinition(jobDescriptor);
+                jobDefinition = V2GrpcModelConverters.toV2JobDefinition(jobDescriptor);
+
+                Optional<String> reserveStatus = jobSubmitLimiter.reserveId(jobDefinition);
+                if (reserveStatus.isPresent()) {
+                    subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, reserveStatus.get()).build());
+                    return;
+                }
                 Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDefinition);
+
                 if (limited.isPresent()) {
                     subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, limited.get()).build());
-                } else {
-                    String jobId = v2JobOperations.submit(jobDefinition);
-                    subscriber.onNext(jobId);
-                    subscriber.onCompleted();
+                    return;
                 }
+
+                String jobId = v2JobOperations.submit(jobDefinition);
+                subscriber.onNext(jobId);
+                subscriber.onCompleted();
             } catch (IllegalArgumentException e) {
                 subscriber.onError(TitusServiceException.invalidArgument(e));
+            } finally {
+                if (jobDefinition != null) {
+                    jobSubmitLimiter.releaseId(jobDefinition);
+                }
             }
         });
     }
