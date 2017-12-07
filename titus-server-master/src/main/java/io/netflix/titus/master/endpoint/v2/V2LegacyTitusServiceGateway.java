@@ -153,16 +153,28 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
                     null,
                     null
             );
-            Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDefinition);
-            if (limited.isPresent()) {
-                subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, limited.get()).build());
-            } else {
-                try {
-                    subscriber.onNext(v2JobOperations.submit(jobDefinition));
-                    subscriber.onCompleted();
-                } catch (IllegalArgumentException e) {
-                    subscriber.onError(TitusServiceException.invalidArgument(e));
+
+
+            try {
+                Optional<String> reserveStatus = jobSubmitLimiter.reserveId(jobDefinition);
+                if (reserveStatus.isPresent()) {
+                    subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, reserveStatus.get()).build());
+                    return;
                 }
+                Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDefinition);
+
+                if (limited.isPresent()) {
+                    subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, limited.get()).build());
+                } else {
+                    try {
+                        subscriber.onNext(v2JobOperations.submit(jobDefinition));
+                        subscriber.onCompleted();
+                    } catch (IllegalArgumentException e) {
+                        subscriber.onError(TitusServiceException.invalidArgument(e));
+                    }
+                }
+            } finally {
+                jobSubmitLimiter.releaseId(jobDefinition);
             }
         });
     }
