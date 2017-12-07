@@ -18,6 +18,8 @@ package io.netflix.titus.master.jobmanager.service.limiter;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -39,6 +41,8 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
     private final JobManagerConfiguration configuration;
     private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
+
+    private final ConcurrentMap<String, Boolean> reservedJobIdSequences = new ConcurrentHashMap<>();
 
     @Inject
     public DefaultJobSubmitLimiter(JobManagerConfiguration configuration,
@@ -64,6 +68,26 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
 
     }
 
+    @Override
+    public <JOB_DESCR> Optional<String> reserveId(JOB_DESCR jobDescriptor) {
+        String idSeq = createJobIdSequenceFrom(jobDescriptor);
+        if (idSeq == null) {
+            return Optional.empty();
+        }
+        if (reservedJobIdSequences.putIfAbsent(idSeq, true) == null) {
+            return Optional.empty();
+        }
+        return Optional.of("Job sequence id reserved by another pending job create request: " + idSeq);
+    }
+
+    @Override
+    public <JOB_DESCR> void releaseId(JOB_DESCR jobDescriptor) {
+        String idSeq = createJobIdSequenceFrom(jobDescriptor);
+        if (idSeq != null) {
+            reservedJobIdSequences.remove(idSeq);
+        }
+    }
+
     private Optional<String> checkActiveJobLimit() {
         int totalJobs = v2JobOperations.getAllJobMgrs().size() + v3JobOperations.getJobs().size();
         long limit = configuration.getMaxActiveJobs();
@@ -74,10 +98,7 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
     }
 
     private <JOB_DESCR> Optional<String> checkJobIdSequence(JOB_DESCR jobDescriptor) {
-        String jobIdSequence = jobDescriptor instanceof JobDescriptor
-                ? formatJobGroupName((JobDescriptor<?>) jobDescriptor)
-                : Parameters.getJobIdSequence(((V2JobDefinition) jobDescriptor).getParameters());
-
+        String jobIdSequence = createJobIdSequenceFrom(jobDescriptor);
         if (jobIdSequence == null) {
             return Optional.empty();
         }
@@ -89,6 +110,12 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
         return isJobSequenceInV3Engine(jobIdSequence).map(existingJobId ->
                 String.format("Constraint violation - job with group sequence %s exists (%s)", jobIdSequence, existingJobId)
         );
+    }
+
+    private <JOB_DESCR> String createJobIdSequenceFrom(JOB_DESCR jobDescriptor) {
+        return jobDescriptor instanceof JobDescriptor
+                ? formatJobGroupName((JobDescriptor<?>) jobDescriptor)
+                : Parameters.getJobIdSequence(((V2JobDefinition) jobDescriptor).getParameters());
     }
 
     private Optional<String> isJobSequenceInV2Engine(String newJobIdSequence) {
