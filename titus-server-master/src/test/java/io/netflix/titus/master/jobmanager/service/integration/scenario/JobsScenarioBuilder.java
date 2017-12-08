@@ -10,6 +10,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.common.util.time.Clocks;
+import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -56,17 +57,19 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskInLaunchedStateTimeoutMs()).thenReturn(LAUNCHED_TIMEOUT_MS);
         when(configuration.getBatchTaskInStartInitiatedStateTimeoutMs()).thenReturn(START_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
+        when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
 
         jobStore.events().subscribe(storeEvents);
 
+        TestClock clock = Clocks.testScheduler(testScheduler);
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
                 configuration,
                 capacityGroupService,
                 schedulingService,
                 vmService,
                 jobStore,
-                Clocks.testScheduler(testScheduler),
+                clock,
                 testScheduler
         );
         ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(
@@ -75,6 +78,7 @@ public class JobsScenarioBuilder {
                 schedulingService,
                 vmService,
                 jobStore,
+                clock,
                 testScheduler
         );
         this.jobOperations = new DefaultV3JobOperations(
@@ -98,6 +102,10 @@ public class JobsScenarioBuilder {
     public JobsScenarioBuilder advance() {
         testScheduler.advanceTimeBy(JobsScenarioBuilder.RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
+    }
+
+    public <E extends JobDescriptorExt> JobScenarioBuilder<E> getJobScenario(int idx) {
+        return (JobScenarioBuilder<E>) jobScenarioBuilders.get(idx);
     }
 
     public <E extends JobDescriptorExt> JobsScenarioBuilder scheduleJob(JobDescriptor<E> jobDescriptor,

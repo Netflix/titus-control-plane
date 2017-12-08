@@ -160,9 +160,13 @@ public class ScenarioTemplates {
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> failRetryableTask(int taskIdx, int resubmit) {
+        return failRetryableTask(taskIdx, resubmit, 0);
+    }
+
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> failRetryableTask(int taskIdx, int resubmit, long delayMs) {
         return jobScenario -> jobScenario
                 .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_FAILED)
-                .template(cleanAfterFinishedTaskAndRetry(taskIdx, resubmit, TaskStatus.REASON_FAILED));
+                .template(cleanAfterFinishedTaskAndRetry(taskIdx, resubmit, TaskStatus.REASON_FAILED, delayMs));
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> killJob() {
@@ -224,7 +228,7 @@ public class ScenarioTemplates {
                 .expectMesosTaskKill(taskIdx, resubmit);
     }
 
-    public static Function<JobScenarioBuilder<BatchJobExt>, JobScenarioBuilder<BatchJobExt>> failLastBatchRetryableTask(int taskIdx, int resubmit) {
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> failLastBatchRetryableTask(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
                 .template(triggerMesosFinishedEvent(taskIdx, resubmit, -1))
                 .advance()
@@ -236,17 +240,31 @@ public class ScenarioTemplates {
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> cleanAfterFinishedTaskAndRetry(int taskIdx, int resubmit, String reasonCode) {
+        return cleanAfterFinishedTaskAndRetry(taskIdx, resubmit, reasonCode, 0);
+    }
+
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> cleanAfterFinishedTaskAndRetry(int taskIdx, int resubmit, String reasonCode, long retryDelayMs) {
         int nextResubmit = resubmit + 1;
-        return jobScenario -> jobScenario
-                .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
-                    assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished);
-                    assertThat(task.getStatus().getReasonCode()).isEqualTo(reasonCode);
-                })
-                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Finished, reasonCode)
-                .advance()
-                .expectTaskAddedToStore(taskIdx, nextResubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Accepted))
-                .expectedTaskArchivedInStore(taskIdx, resubmit)
-                .expectTaskStateChangeEvent(taskIdx, nextResubmit, TaskState.Accepted)
-                .expectScheduleRequest(taskIdx, nextResubmit);
+        return jobScenario -> {
+            jobScenario
+                    .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
+                        assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished);
+                        assertThat(task.getStatus().getReasonCode()).isEqualTo(reasonCode);
+                    })
+                    .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Finished, reasonCode);
+
+            if (retryDelayMs > 0) {
+                jobScenario
+                        .advance(retryDelayMs / 2, TimeUnit.MILLISECONDS)
+                        .expectNoStoreUpdate()
+                        .advance(retryDelayMs / 2, TimeUnit.MILLISECONDS);
+            }
+
+            return jobScenario
+                    .expectTaskAddedToStore(taskIdx, nextResubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Accepted))
+                    .expectedTaskArchivedInStore(taskIdx, resubmit)
+                    .expectTaskStateChangeEvent(taskIdx, nextResubmit, TaskState.Accepted)
+                    .expectScheduleRequest(taskIdx, nextResubmit);
+        };
     }
 }

@@ -145,6 +145,7 @@ public class DifferenceResolverUtils {
                             actions.add(
                                     BasicTaskActions.updateTaskInRunningModel(task.getId(),
                                             V3JobOperations.Trigger.Reconciler,
+                                            configuration,
                                             engine,
                                             taskParam -> taskParam.toBuilder()
                                                     .withStatus(taskParam.getStatus().toBuilder()

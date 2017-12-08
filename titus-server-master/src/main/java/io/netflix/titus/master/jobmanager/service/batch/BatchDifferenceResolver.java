@@ -43,6 +43,7 @@ import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
+import io.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
@@ -171,7 +172,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private TitusChangeAction createNewTaskAction(BatchJobView refJobView, int taskIndex) {
         return newTaskRateLimiterInterceptor.apply(
                 storeWriteRetryInterceptor.apply(
-                        createOrReplaceTaskAction(jobStore, refJobView.getJob(), refJobView.getTasks(), taskIndex)
+                        createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), taskIndex, clock)
                 )
         );
     }
@@ -213,7 +214,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             boolean refAndStoreInSync = storeHolder.isPresent() && areEquivalent(storeHolder.get(), referenceTask);
             if (refAndStoreInSync) {
                 BatchJobTask task = storeHolder.get().getEntity();
-                if (!isJobTerminating && shouldRetry(refJob, task)) {
+                if (!isJobTerminating && shouldRetry(refJob, task) && TaskRetryers.shouldRetryNow(referenceTask, clock)) {
                     actions.add(createNewTaskAction(refJobView, task.getIndex()));
                 }
             } else {

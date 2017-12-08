@@ -1,5 +1,8 @@
 package io.netflix.titus.master.jobmanager.service.common.action.task;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -18,11 +21,14 @@ import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import io.netflix.titus.common.util.DateTimeExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.common.V3QAttributes;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
+import io.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -33,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
+import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 import static io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction.newModelUpdate;
 
 public class BasicTaskActions {
@@ -81,7 +88,7 @@ public class BasicTaskActions {
                     Optional<EntityHolder> taskHolder = engine.getReferenceView().findById(taskId);
                     if (!taskHolder.isPresent()) {
                         // Should never happen
-                        logger.warn("Reference task with id {} not found.", taskId);
+                        codeInvariants().inconsistent("Reference task with id %s not found.", taskId);
                         return Observable.empty();
                     }
                     Task referenceTask = taskHolder.get().getEntity();
@@ -104,10 +111,12 @@ public class BasicTaskActions {
     }
 
     /**
-     * Update a task in the reference and running models.
+     * Update a task in the reference and running models. If a task moves to Finished state, add retry delay information
+     * to the task, and to task entity holder (see {@link TaskRetryers}).
      */
     public static TitusChangeAction updateTaskInRunningModel(String taskId,
                                                              Trigger trigger,
+                                                             JobManagerConfiguration configuration,
                                                              ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                              Function<Task, Task> changeFunction,
                                                              String reason) {
@@ -116,24 +125,53 @@ public class BasicTaskActions {
                 .trigger(trigger)
                 .summary(reason)
                 .applyModelUpdates(self -> {
-                            TitusModelAction modelUpdateAction = newModelUpdate(self).taskMaybeUpdate(jobHolder ->
-                                    JobEntityHolders.expectTask(engine, taskId).map(oldTask -> {
-                                                Task newTask = changeFunction.apply(oldTask);
+                            Optional<EntityHolder> taskOptional = JobEntityHolders.expectTaskHolder(engine, taskId);
+                            if (!taskOptional.isPresent()) {
+                                return Collections.emptyList();
+                            }
+                            EntityHolder taskHolder = taskOptional.get();
+                            Task oldTask = taskHolder.getEntity();
+                            Task newTask = changeFunction.apply(oldTask);
 
-                                                if (oldTask instanceof ServiceJobTask) {
-                                                    if (oldTask.getStatus().getState() == TaskState.KillInitiated
-                                                            && newTask.getStatus().getState() == TaskState.Finished
-                                                            && TaskStatus.REASON_SCALED_DOWN.equals(oldTask.getStatus().getReasonCode())) {
+                            // In case of scale down request, copy reason code into Finished state.
+                            if (oldTask instanceof ServiceJobTask) {
+                                if (oldTask.getStatus().getState() == TaskState.KillInitiated
+                                        && newTask.getStatus().getState() == TaskState.Finished
+                                        && TaskStatus.REASON_SCALED_DOWN.equals(oldTask.getStatus().getReasonCode())) {
 
-                                                        TaskStatus newStatus = newTask.getStatus().toBuilder().withReasonCode(TaskStatus.REASON_SCALED_DOWN).build();
-                                                        newTask = JobFunctions.changeTaskStatus(newTask, newStatus);
-                                                    }
-                                                }
+                                    TaskStatus newStatus = newTask.getStatus().toBuilder().withReasonCode(TaskStatus.REASON_SCALED_DOWN).build();
+                                    newTask = JobFunctions.changeTaskStatus(newTask, newStatus);
+                                }
+                            }
 
-                                                return JobEntityHolders.addTask(jobHolder, newTask);
-                                            }
-                                    ));
-                            return ModelActionHolder.referenceAndRunning(modelUpdateAction);
+                            // Handle separately reference and runtime models, as only reference model gets retry attributes.
+                            List<ModelActionHolder> modelActionHolders = new ArrayList<>();
+
+                            // Add ratyer data to task context.
+                            EntityHolder newTaskHolder;
+                            if (newTask.getStatus().getState() == TaskState.Finished) {
+                                long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(taskHolder, configuration.getTaskRetryerResetTimeMs());
+                                String retryDelayString = DateTimeExt.toTimeUnitString(retryDelayMs);
+
+                                newTask = newTask.toBuilder()
+                                        .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_RETRY_DELAY, retryDelayString)
+                                        .build();
+                                newTaskHolder = taskHolder.
+                                        setEntity(newTask)
+                                        .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs);
+
+                                modelActionHolders.add(
+                                        ModelActionHolder.reference(newModelUpdate(self)
+                                                .summary("Setting retry delay on task in Finished state: %s", retryDelayString)
+                                                .addTaskHolder(newTaskHolder))
+                                );
+                            } else {
+                                modelActionHolders.add(ModelActionHolder.reference(newModelUpdate(self).taskUpdate(newTask)));
+                            }
+
+                    modelActionHolders.add(ModelActionHolder.running(newModelUpdate(self).taskUpdate(newTask)));
+
+                            return modelActionHolders;
                         }
                 );
     }

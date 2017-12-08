@@ -42,6 +42,7 @@ import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
+import io.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
@@ -77,7 +78,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final RetryActionInterceptor storeWriteRetryInterceptor;
     private final RateLimiterInterceptor newTaskRateLimiterInterceptor;
 
-    private final Clock clock = Clocks.system();
+    private final Clock clock;
 
     @Inject
     public ServiceDifferenceResolver(
@@ -86,7 +87,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore) {
-        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, Schedulers.computation());
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, Clocks.system(), Schedulers.computation());
     }
 
     public ServiceDifferenceResolver(
@@ -95,12 +96,14 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
+            Clock clock,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
         this.jobStore = jobStore;
+        this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
@@ -181,8 +184,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         return Collections.emptyList();
     }
 
-    private TitusChangeAction createNewTaskAction(ServiceJobView refJobView, Optional<ServiceJobTask> previousTask) {
-        return newTaskRateLimiterInterceptor.apply(storeWriteRetryInterceptor.apply(createOrReplaceTaskAction(jobStore, refJobView.getJob(), previousTask)));
+    private TitusChangeAction createNewTaskAction(ServiceJobView refJobView, Optional<EntityHolder> previousTask) {
+        return newTaskRateLimiterInterceptor.apply(storeWriteRetryInterceptor.apply(createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), previousTask, clock)));
     }
 
     /**
@@ -225,9 +228,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 if (task.getStatus().getState() == TaskState.Finished) {
                     if (isJobTerminating || task.getStatus().getReasonCode().equals(TaskStatus.REASON_SCALED_DOWN)) {
                         actions.add(removeFinishedServiceTaskAction(task));
-                    } else {
-                        // TODO Delay task placement
-                        actions.add(createNewTaskAction(refJobView, Optional.of(task)));
+                    } else if (TaskRetryers.shouldRetryNow(referenceTask, clock)) {
+                        actions.add(createNewTaskAction(refJobView, Optional.of(referenceTask)));
                     }
                 }
             } else {

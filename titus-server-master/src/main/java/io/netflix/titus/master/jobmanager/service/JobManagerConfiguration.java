@@ -42,6 +42,13 @@ public interface JobManagerConfiguration {
     @DefaultValue("600000")
     long getTaskInKillInitiatedStateTimeoutMs();
 
+    /**
+     * Minimum amount of time a task should stay in Started state, before the retryer that is associated with it is
+     * restarted.
+     */
+    @DefaultValue("300000")
+    long getTaskRetryerResetTimeMs();
+
     @DefaultValue("2")
     long getTaskKillAttempts();
 

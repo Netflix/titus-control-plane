@@ -62,7 +62,7 @@ public class TaskTimeoutChangeActions {
         return TitusChangeAction.newAction("setTimeout")
                 .id(taskId)
                 .trigger(Trigger.Reconciler)
-                .summary("Setting timeout for task in state: %s (deadline %s)", taskState, DateTimeExt.toUtcDateTimeString(deadlineMs))
+                .summary("Setting timeout for task in state %s: %s", taskState, DateTimeExt.toTimeUnitString(deadlineMs))
                 .applyModelUpdate(self -> {
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self)
                             .taskMaybeUpdate(jobHolder ->

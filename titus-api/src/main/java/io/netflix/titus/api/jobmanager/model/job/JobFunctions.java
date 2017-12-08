@@ -19,12 +19,14 @@ package io.netflix.titus.api.jobmanager.model.job;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
+import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.common.util.retry.Retryer;
@@ -124,52 +126,6 @@ public final class JobFunctions {
                 .build();
     }
 
-    public static BatchJobTask createNewBatchTask(Job<?> job, int index) {
-        String taskId = UUID.randomUUID().toString();
-        return BatchJobTask.newBuilder()
-                .withId(taskId)
-                .withJobId(job.getId())
-                .withIndex(index)
-                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
-                .withOriginalId(taskId)
-                .build();
-    }
-
-    public static ServiceJobTask createNewServiceTask(Job<?> job) {
-        String taskId = UUID.randomUUID().toString();
-        return ServiceJobTask.newBuilder()
-                .withId(taskId)
-                .withJobId(job.getId())
-                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
-                .withOriginalId(taskId)
-                .build();
-    }
-
-    public static BatchJobTask createBatchTaskReplacement(BatchJobTask oldTask) {
-        String taskId = UUID.randomUUID().toString();
-        return BatchJobTask.newBuilder()
-                .withId(taskId)
-                .withJobId(oldTask.getJobId())
-                .withIndex(oldTask.getIndex())
-                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
-                .withOriginalId(oldTask.getOriginalId())
-                .withResubmitOf(oldTask.getId())
-                .withResubmitNumber(oldTask.getResubmitNumber() + 1)
-                .build();
-    }
-
-    public static ServiceJobTask createServiceTaskReplacement(ServiceJobTask oldTask) {
-        String taskId = UUID.randomUUID().toString();
-        return ServiceJobTask.newBuilder()
-                .withId(taskId)
-                .withJobId(oldTask.getJobId())
-                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
-                .withOriginalId(oldTask.getOriginalId())
-                .withResubmitOf(oldTask.getId())
-                .withResubmitNumber(oldTask.getResubmitNumber() + 1)
-                .build();
-    }
-
     private static Task.TaskBuilder taskStatusChangeBuilder(Task task, TaskStatus status) {
         TaskStatus currentStatus = task.getStatus();
         List<TaskStatus> statusHistory = new ArrayList<>(task.getStatusHistory());
@@ -179,32 +135,80 @@ public final class JobFunctions {
                 .withStatusHistory(statusHistory);
     }
 
-    public static Retryer retryerFrom(RetryPolicy retryPolicy, int remainingRetries) {
-        if (remainingRetries <= 0) {
-            return Retryers.never();
-        }
+    public static Retryer retryerFrom(RetryPolicy retryPolicy) {
         if (retryPolicy instanceof ImmediateRetryPolicy) {
-            return Retryers.immediate(remainingRetries);
+            return Retryers.immediate();
         }
         if (retryPolicy instanceof DelayedRetryPolicy) {
-            return Retryers.interval(((DelayedRetryPolicy) retryPolicy).getDelayMs(), TimeUnit.MILLISECONDS, remainingRetries);
+            return Retryers.interval(((DelayedRetryPolicy) retryPolicy).getDelayMs(), TimeUnit.MILLISECONDS);
+        }
+        if (retryPolicy instanceof ExponentialBackoffRetryPolicy) {
+            ExponentialBackoffRetryPolicy exponential = (ExponentialBackoffRetryPolicy) retryPolicy;
+            return Retryers.exponentialBackoff(exponential.getInitialDelayMs(), exponential.getMaxDelayMs(), TimeUnit.MILLISECONDS);
         }
         throw new IllegalArgumentException("Unknown RetryPolicy type " + retryPolicy.getClass());
     }
 
-    public static Retryer retryer(Job<?> job, Task task) {
+    public static Retryer retryer(Job<?> job) {
         RetryPolicy retryPolicy = getRetryPolicy(job);
-        int remainingRetries = retryPolicy.getRetries() - task.getResubmitNumber();
-        return retryerFrom(retryPolicy, remainingRetries);
+        return retryerFrom(retryPolicy);
     }
 
     public static RetryPolicy getRetryPolicy(Job<?> job) {
-        JobDescriptor.JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
+        JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
         return ext instanceof BatchJobExt ? ((BatchJobExt) ext).getRetryPolicy() : ((ServiceJobExt) ext).getRetryPolicy();
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> changeRetryPolicy(JobDescriptor<E> input, RetryPolicy retryPolicy) {
+        if (input.getExtensions() instanceof BatchJobExt) {
+            JobDescriptor<BatchJobExt> batchJob = (JobDescriptor<BatchJobExt>) input;
+            return (JobDescriptor<E>) batchJob.but(jd -> batchJob.getExtensions().toBuilder().withRetryPolicy(retryPolicy).build());
+        }
+        JobDescriptor<ServiceJobExt> serviceJob = (JobDescriptor<ServiceJobExt>) input;
+        return (JobDescriptor<E>) serviceJob.but(jd -> serviceJob.getExtensions().toBuilder().withRetryPolicy(retryPolicy).build());
     }
 
     public static JobDescriptor<BatchJobExt> changeRetryLimit(JobDescriptor<BatchJobExt> input, int retryLimit) {
         RetryPolicy newRetryPolicy = input.getExtensions().getRetryPolicy().toBuilder().withRetries(retryLimit).build();
         return input.but(jd -> input.getExtensions().toBuilder().withRetryPolicy(newRetryPolicy).build());
+    }
+
+    public static Optional<Long> getTimeInState(Task task, TaskState checkedState) {
+        return findTaskStatus(task, checkedState).map(checkedStatus -> {
+            TaskState currentState = task.getStatus().getState();
+            if (currentState == checkedState) {
+                return System.currentTimeMillis() - task.getStatus().getTimestamp();
+            }
+            if (checkedState.ordinal() > currentState.ordinal()) {
+                return 0L;
+            }
+            return findStatusAfter(task, checkedState).map(after -> after.getTimestamp() - checkedStatus.getTimestamp()).orElse(0L);
+        });
+    }
+
+    private static Optional<TaskStatus> findTaskStatus(Task task, TaskState checkedState) {
+        if (task.getStatus().getState() == checkedState) {
+            return Optional.of(task.getStatus());
+        }
+        return task.getStatusHistory().stream().filter(s -> s.getState() == checkedState).findFirst();
+    }
+
+    private static Optional<TaskStatus> findStatusAfter(Task task, TaskState before) {
+        int beforeOrdinal = before.ordinal();
+        TaskStatus after = null;
+        for (TaskStatus status : task.getStatusHistory()) {
+            int statusOrdinal = status.getState().ordinal();
+            if (statusOrdinal > beforeOrdinal) {
+                if (after == null) {
+                    after = status;
+                } else if (after.getState().ordinal() > statusOrdinal) {
+                    after = status;
+                }
+            }
+        }
+        if (after == null && task.getStatus().getState().ordinal() > beforeOrdinal) {
+            after = task.getStatus();
+        }
+        return Optional.ofNullable(after);
     }
 }

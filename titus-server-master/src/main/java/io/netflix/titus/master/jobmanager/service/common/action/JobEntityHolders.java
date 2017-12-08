@@ -17,13 +17,17 @@ import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
  */
 public final class JobEntityHolders {
 
-    public static Optional<Task> expectTask(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
+    public static Optional<EntityHolder> expectTaskHolder(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
         Optional<EntityHolder> taskHolder = engine.getReferenceView().findById(taskId);
         if (taskHolder.isPresent()) {
-            return Optional.of(taskHolder.get().getEntity());
+            return Optional.of(taskHolder.get());
         }
         codeInvariants().inconsistent("Expected to find task %s owned by job %s", taskId, engine.getReferenceView().getId());
         return Optional.empty();
+    }
+
+    public static Optional<Task> expectTask(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
+        return expectTaskHolder(engine, taskId).map(EntityHolder::getEntity);
     }
 
     public static Observable<Task> toTaskObservable(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {

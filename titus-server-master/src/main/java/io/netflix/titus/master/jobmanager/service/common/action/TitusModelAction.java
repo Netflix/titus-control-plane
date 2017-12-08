@@ -155,13 +155,8 @@ public abstract class TitusModelAction implements ModelAction {
             return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder, newTask));
         }
 
-        public TitusModelAction addTask(Task newTask) {
-            this.id = newTask.getId();
-            return taskUpdate(jobHolder -> {
-                EntityHolder newTaskHolder = EntityHolder.newRoot(newTask.getId(), newTask);
-                EntityHolder newRoot = jobHolder.addChild(newTaskHolder);
-                return Pair.of(newRoot, newTaskHolder);
-            });
+        public TitusModelAction addTaskHolder(EntityHolder taskHolder) {
+            return taskUpdate(jobHolder -> Pair.of(jobHolder.addChild(taskHolder), taskHolder));
         }
 
         public TitusModelAction removeTask(Task task) {
