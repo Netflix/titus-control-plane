@@ -47,20 +47,20 @@ public class LargestPerTimeBucket implements EmissionStrategy {
     }
 
     /**
-     * Compute the order in which batches should be emitted.
+     * Compute the order in which candidates should be emitted.
      *
-     * @param batches all batches to be emitted
-     * @param <T>     type of updates in the batch
-     * @param <I>     type of the index of each batch
-     * @return a <tt>Queue</tt> representing the order in which batches should be emitted
+     * @param candidates all candidates to be emitted
+     * @param <T>        type of items in the batch
+     * @param <I>        type of the index of each batch
+     * @return a <tt>Queue</tt> representing the order in which candidates should be emitted
      */
     @Override
-    public <T extends Update<?>, I> Queue<Batch<T, I>> compute(Stream<Batch<T, I>> batches) {
-        // TODO: break too large batches by a configurable maxBatchSize
+    public <T extends Batchable<?>, I> Queue<Batch<T, I>> compute(Stream<Batch<T, I>> candidates) {
+        // TODO: break too large candidates by a configurable maxBatchSize
 
         final Instant now = Instant.ofEpochMilli(scheduler.now());
         final Instant cutLine = now.minus(minimumTimeInQueueMs, ChronoUnit.MILLIS);
-        final Stream<Batch<T, I>> inQueueMinimumRequired = batches.filter(
+        final Stream<Batch<T, I>> inQueueMinimumRequired = candidates.filter(
                 batch -> !batch.getOldestItemTimestamp().isAfter(cutLine)
         );
 
@@ -69,7 +69,7 @@ public class LargestPerTimeBucket implements EmissionStrategy {
         return queue;
     }
 
-    private <T extends Update<?>, I> int compare(Batch<T, I> one, Batch<T, I> other) {
+    private <T extends Batchable<?>, I> int compare(Batch<T, I> one, Batch<T, I> other) {
         final long oneTimeBucket = bucketFor(one.getOldestItemTimestamp());
         final long otherTimeBucket = bucketFor(other.getOldestItemTimestamp());
 

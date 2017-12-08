@@ -27,7 +27,7 @@ import java.util.Objects;
  * @param <I> type of the batch identifier (index)
  * @param <T> type of items in the batch
  */
-public class Batch<T extends Update<?>, I> {
+public class Batch<T extends Batchable<?>, I> {
     private static final Comparator<Batch<?, ?>> COMPARING_BY_SIZE = Comparator.comparingInt(b -> b.getItems().size());
 
     public static Comparator<Batch<?, ?>> bySize() {
@@ -39,11 +39,11 @@ public class Batch<T extends Update<?>, I> {
     private final Instant oldestItemTimestamp;
 
     @SafeVarargs
-    public static <T extends Update<?>, I> Batch<T, I> of(I index, T... items) {
+    public static <T extends Batchable<?>, I> Batch<T, I> of(I index, T... items) {
         return of(index, Arrays.asList(items));
     }
 
-    public static <T extends Update<?>, I> Batch<T, I> of(I index, List<T> items) {
+    public static <T extends Batchable<?>, I> Batch<T, I> of(I index, List<T> items) {
         return new Batch<>(index, items);
     }
 
@@ -51,8 +51,8 @@ public class Batch<T extends Update<?>, I> {
         this.index = index;
         this.items = Collections.unmodifiableList(items);
         // TODO: consider precomputing this as items are accumulated for a batch
-        this.oldestItemTimestamp = items.stream().min(Comparator.comparing(Update::getTimestamp))
-                .map(Update::getTimestamp)
+        this.oldestItemTimestamp = items.stream().min(Comparator.comparing(Batchable::getTimestamp))
+                .map(Batchable::getTimestamp)
                 .orElse(Instant.now());
     }
 

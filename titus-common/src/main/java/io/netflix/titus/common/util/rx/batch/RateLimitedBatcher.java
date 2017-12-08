@@ -43,12 +43,13 @@ import rx.plugins.RxJavaHooks;
  * gets exhausted, emission of batches to downstream subscribers is paused with an exponential backoff strategy up to
  * <tt>maxDelay</tt>.
  * <p>
- * Updates are removed from the (in-memory) pending buffer right after they are emitted, but concurrent operations
- * are allowed while batches are being emitted (flushed). It is possible that a particular update is replaced in the
- * in-memory buffer while it is being emitted. To avoid losing the most recent update, they are compared with
+ * Items are removed from the (in-memory) pending buffer right after they are emitted, but concurrent operations are
+ * allowed while batches are being emitted (flushed). It is possible that a particular item is replaced in the in-memory
+ * buffer while it is being emitted. To avoid losing the most recent item, they are compared with
  * {@link Object#equals(Object)} and removed atomically from the buffer only when considered equal
- * (with <tt>compareAndRemove</tt> semantics). Implementations of {@link Update} are encouraged to implement
- * <tt>equals</tt> in a way that two updates causing the system to be in the same final state to be considered equal.
+ * (with <tt>compareAndRemove</tt> semantics). Implementations of {@link Batchable} are encouraged to implement
+ * <tt>equals</tt> in a way that two {@link Batchable} causing the system to be in the same final state are considered
+ * equal.
  * <p>
  * A single instance of this operator can be used in multiple different rxJava streams, in which case the same
  * {@link TokenBucket} will be shared across all of them, and all work will be scheduled on the same {@link Scheduler.Worker}.
@@ -56,20 +57,20 @@ import rx.plugins.RxJavaHooks;
  * Example usage:
  * <pre>
  * {@code
- * RateLimitedBatcher<MyUpdate, IndexType> batcher = RateLimitedBatcher.create(...);
- * Observable<MyUpdate> source = ...;
+ * RateLimitedBatcher<SomeOperation, IndexType> batcher = RateLimitedBatcher.create(...);
+ * Observable<SomeOperation> source = ...;
  * source.lift(RateLimitedBatcher.create(...))
- *     .subscribe(Batch<MyUpdate, IndexType> batch -> {
+ *     .subscribe(Batch<SomeOperation, IndexType> batch -> {
  *         // batch.getIndex() is of type IndexType, and will be provided by an IndexExtractor
  *         processBatch(batch.getItems());
  *     });
  * }
  * </pre>
  *
- * @param <T> updates to be queued and batched
+ * @param <T> type of items to be queued and batched
  * @param <I> type of the value (an index, usually a field of T, provided by <tt>IndexExtractor</tt>) to batch by
  */
-public class RateLimitedBatcher<T extends Update<?>, I> implements Observable.Operator<Batch<T, I>, T> {
+public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable.Operator<Batch<T, I>, T> {
     private final Logger logger = LoggerFactory.getLogger(RateLimitedBatcher.class);
 
     private final Scheduler.Worker worker;
@@ -80,7 +81,7 @@ public class RateLimitedBatcher<T extends Update<?>, I> implements Observable.Op
     private final long initialDelayMs;
     private final long maxDelayMs;
 
-    public static <T extends Update<?>, I>
+    public static <T extends Batchable<?>, I>
     RateLimitedBatcher<T, I> create(Scheduler scheduler, TokenBucket tokenBucket, long initialDelay, long maxDelay,
                                     IndexExtractor<T, I> indexExtractor, EmissionStrategy emissionStrategy) {
         return new RateLimitedBatcher<T, I>(scheduler, tokenBucket, initialDelay, maxDelay, indexExtractor, emissionStrategy);
@@ -135,11 +136,11 @@ public class RateLimitedBatcher<T extends Update<?>, I> implements Observable.Op
      */
     private final class Flusher {
         /**
-         * each batch is an immutable Map (indexed by <tt>Update#getIdentifier()</tt>), and modifications are applied
+         * each batch is an immutable Map (indexed by <tt>Batchable#getIdentifier()</tt>), and modifications are applied
          * with copy-on-write
          */
         private final ConcurrentHashMultiMap<I, T> pending =
-                new ConcurrentHashMultiMap<>(Update::getIdentifier, this::isHigherPriorityOrNewer);
+                new ConcurrentHashMultiMap<>(Batchable::getIdentifier, this::isHigherPriorityOrNewer);
         /**
          * all calls to on{Next,Error,Completed} need to be serialized in a synchronized(this) block so we respect the
          * <tt>Observable</tt> protocol (onError or onCompleted are called only once, and no items are delivered with
@@ -168,18 +169,18 @@ public class RateLimitedBatcher<T extends Update<?>, I> implements Observable.Op
 
         /**
          * On a conflict, replace the existing value if the new one has higher priority, or the same priority but is
-         * different (as per {@link Update#isEquivalent(Update)}) and a more recent timestamp. That way, older items
-         * are only replaced by newer updates doing something different.
+         * different (as per {@link Batchable#isEquivalent(Batchable)}) and a more recent timestamp. That way, older
+         * items are only replaced by newer items doing something different.
          * <p>
          * Same priority and same timestamp is also replaced (last with the same timestamp wins) as long as they are
-         * different updates {@link Update#isEquivalent(Update)}
+         * different (by {@link Batchable#isEquivalent(Batchable)}).
          *
          * @param existing    old value
          * @param replacement new value
          * @return true when the existing value should be replaced by the new value
          */
         private boolean isHigherPriorityOrNewer(T existing, T replacement) {
-            final int priorityComparison = Update.byPriority().compare(replacement, existing);
+            final int priorityComparison = Batchable.byPriority().compare(replacement, existing);
             if (priorityComparison != 0) {
                 return priorityComparison > 0; // always keep the one with higher priority
             }
@@ -234,7 +235,7 @@ public class RateLimitedBatcher<T extends Update<?>, I> implements Observable.Op
                 }
                 /*
                  * Only remove sent items if they have not been modified in the pending data structure to avoid losing
-                 * updates that were replaced while being emitted.
+                 * items that were replaced while being emitted.
                  *
                  * Partial failures in the batch consider the whole batch as done.
                  */

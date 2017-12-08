@@ -26,11 +26,11 @@ public interface EmissionStrategy {
     /**
      * Compute the order in which batches should be emitted.
      *
-     * @param batches all batches to be emitted
-     * @param <T>     type of updates in the batch
-     * @param <I>     type of the index of each batch
+     * @param candidates all batches to be emitted
+     * @param <T>        type of items in the batch
+     * @param <I>        type of the index of each batch
      * @return a <tt>Queue</tt> representing the order in which batches should be emitted
      */
-    <T extends Update<?>, I> Queue<Batch<T, I>> compute(Stream<Batch<T, I>> batches);
+    <T extends Batchable<?>, I> Queue<Batch<T, I>> compute(Stream<Batch<T, I>> candidates);
 }
 

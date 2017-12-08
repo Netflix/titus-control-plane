@@ -18,7 +18,7 @@ package io.netflix.titus.common.util.rx.batch;
 
 import java.time.Instant;
 
-class MockUpdate implements Update<String> {
+class BatchableOperationMock implements Batchable<String> {
     private final Priority priority;
     private final Instant timestamp;
     private final String resourceId;
@@ -26,7 +26,7 @@ class MockUpdate implements Update<String> {
     private final String state;
     private final String identifier;
 
-    MockUpdate(Priority priority, Instant timestamp, String resourceId, String subResourceId, String state) {
+    BatchableOperationMock(Priority priority, Instant timestamp, String resourceId, String subResourceId, String state) {
         this.priority = priority;
         this.timestamp = timestamp;
         this.resourceId = resourceId;
@@ -60,11 +60,11 @@ class MockUpdate implements Update<String> {
     }
 
     @Override
-    public boolean isEquivalent(Update<?> other) {
-        if (!(other instanceof MockUpdate)) {
+    public boolean isEquivalent(Batchable<?> other) {
+        if (!(other instanceof BatchableOperationMock)) {
             return false;
         }
-        MockUpdate otherMock = (MockUpdate) other;
+        BatchableOperationMock otherMock = (BatchableOperationMock) other;
         return priority.equals(otherMock.priority) && resourceId.equals(otherMock.resourceId)
                 && subResourceId.equals(otherMock.subResourceId) && state.equals(otherMock.state);
     }

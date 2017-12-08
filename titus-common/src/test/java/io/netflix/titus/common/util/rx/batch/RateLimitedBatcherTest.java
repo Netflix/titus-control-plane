@@ -78,8 +78,8 @@ public class RateLimitedBatcherTest {
     @Test
     public void emitAccordingToStrategy() {
         final int initialDelay = minimumTimeInQueueMs;
-        final RateLimitedBatcher<MockUpdate, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, initialDelay, Long.MAX_VALUE, MockUpdate::getResourceId, strategy
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, initialDelay, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
         );
 
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
@@ -87,34 +87,34 @@ public class RateLimitedBatcherTest {
         final Instant firstBucket = start.plus(ofMillis(timeWindowBucketSizeMs));
         final Instant secondBucket = firstBucket.plus(ofMillis(timeWindowBucketSizeMs));
 
-        final List<Batch<MockUpdate, String>> expected = Arrays.asList(
+        final List<Batch<BatchableOperationMock, String>> expected = Arrays.asList(
                 // older bucket
                 Batch.of("resource1",
-                        new MockUpdate(LOW, start, "resource1", "sub1", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(start), "resource1", "sub2", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(firstBucket), "resource1", "sub3", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(secondBucket), "resource1", "sub4", "create")
+                        new BatchableOperationMock(LOW, start, "resource1", "sub1", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(start), "resource1", "sub2", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(firstBucket), "resource1", "sub3", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(secondBucket), "resource1", "sub4", "create")
                 ),
                 // larger in firstBucket
                 Batch.of("resource2",
-                        new MockUpdate(LOW, randomWithinBucket(firstBucket), "resource2", "sub1", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(firstBucket), "resource2", "sub2", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(secondBucket), "resource2", "sub3", "create")
+                        new BatchableOperationMock(LOW, randomWithinBucket(firstBucket), "resource2", "sub1", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(firstBucket), "resource2", "sub2", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(secondBucket), "resource2", "sub3", "create")
                 ),
                 // larger in secondBucket
                 Batch.of("resource3",
-                        new MockUpdate(LOW, randomWithinBucket(secondBucket), "resource3", "sub1", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(secondBucket), "resource3", "sub2", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(secondBucket), "resource3", "sub3", "create")
+                        new BatchableOperationMock(LOW, randomWithinBucket(secondBucket), "resource3", "sub1", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(secondBucket), "resource3", "sub2", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(secondBucket), "resource3", "sub3", "create")
                 ),
                 // last
                 Batch.of("resource4",
-                        new MockUpdate(LOW, randomWithinBucket(secondBucket), "resource4", "sub1", "create"),
-                        new MockUpdate(LOW, randomWithinBucket(secondBucket), "resource4", "sub2", "create")
+                        new BatchableOperationMock(LOW, randomWithinBucket(secondBucket), "resource4", "sub1", "create"),
+                        new BatchableOperationMock(LOW, randomWithinBucket(secondBucket), "resource4", "sub2", "create")
                 )
         );
 
-        final AssertableSubscriber<Batch<MockUpdate, String>> subscriber = Observable.from(toUpdateList(expected))
+        final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = Observable.from(toUpdateList(expected))
                 .lift(batcher)
                 .test();
 
@@ -123,13 +123,13 @@ public class RateLimitedBatcherTest {
                 .assertValueCount(expected.size())
                 .assertCompleted();
 
-        final List<Batch<MockUpdate, String>> events = subscriber.getOnNextEvents();
+        final List<Batch<BatchableOperationMock, String>> events = subscriber.getOnNextEvents();
         assertThat(events).hasSize(expected.size());
         for (int i = 0; i < expected.size(); i++) {
-            final Batch<MockUpdate, String> actual = events.get(i);
-            final Batch<MockUpdate, String> expectedBatch = expected.get(i);
-            final List<MockUpdate> expectedUpdates = expectedBatch.getItems();
-            final MockUpdate[] expectedUpdatesArray = expectedUpdates.toArray(new MockUpdate[expectedUpdates.size()]);
+            final Batch<BatchableOperationMock, String> actual = events.get(i);
+            final Batch<BatchableOperationMock, String> expectedBatch = expected.get(i);
+            final List<BatchableOperationMock> expectedUpdates = expectedBatch.getItems();
+            final BatchableOperationMock[] expectedUpdatesArray = expectedUpdates.toArray(new BatchableOperationMock[expectedUpdates.size()]);
 
             assertThat(actual).isNotNull();
             assertThat(actual.getIndex()).isEqualTo(expectedBatch.getIndex());
@@ -146,15 +146,15 @@ public class RateLimitedBatcherTest {
         final List<Integer> delays = Arrays.asList(initialDelayMs, 2 * initialDelayMs, 4 * initialDelayMs, 8 * initialDelayMs, maxDelayMs);
         final long afterAllDelays = delays.stream().mapToLong(Integer::longValue).sum() + 2 * maxDelayMs /* two extra round at the end */;
 
-        final RateLimitedBatcher<MockUpdate, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, initialDelayMs, maxDelayMs, MockUpdate::getResourceId, strategy
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, initialDelayMs, maxDelayMs, BatchableOperationMock::getResourceId, strategy
         );
 
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
-        final MockUpdate update = new MockUpdate(LOW, now.minus(ofSeconds(5)), "resource1", "sub1", "create");
-        final MockUpdate updateAfterDelays = new MockUpdate(LOW, now.plus(ofMillis(afterAllDelays)), "resource2", "sub1", "create");
-        final Observable<MockUpdate> updates = Observable.from(Arrays.asList(update, updateAfterDelays));
-        final AssertableSubscriber<Batch<MockUpdate, String>> subscriber = updates.lift(batcher).test();
+        final BatchableOperationMock update = new BatchableOperationMock(LOW, now.minus(ofSeconds(5)), "resource1", "sub1", "create");
+        final BatchableOperationMock updateAfterDelays = new BatchableOperationMock(LOW, now.plus(ofMillis(afterAllDelays)), "resource2", "sub1", "create");
+        final Observable<BatchableOperationMock> updates = Observable.from(Arrays.asList(update, updateAfterDelays));
+        final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
 
         int attempts = 0;
         for (int delay : delays) {
@@ -196,16 +196,16 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void pendingItemsAreFlushedAfterUpstreamCompletes() {
-        final RateLimitedBatcher<MockUpdate, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, MockUpdate::getResourceId, strategy
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
         );
 
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
-        final MockUpdate first = new MockUpdate(LOW, now.minus(ofSeconds(5)), "resource1", "sub1", "create");
-        final MockUpdate second = new MockUpdate(LOW, now.minus(ofSeconds(3)), "resource2", "sub1", "create");
-        final Observable<MockUpdate> updates = Observable.from(Arrays.asList(first, second));
+        final BatchableOperationMock first = new BatchableOperationMock(LOW, now.minus(ofSeconds(5)), "resource1", "sub1", "create");
+        final BatchableOperationMock second = new BatchableOperationMock(LOW, now.minus(ofSeconds(3)), "resource2", "sub1", "create");
+        final Observable<BatchableOperationMock> updates = Observable.from(Arrays.asList(first, second));
 
-        final AssertableSubscriber<Batch<MockUpdate, String>> subscriber = updates.lift(batcher).test();
+        final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
         testScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
         //noinspection unchecked
         subscriber.assertNoErrors()
@@ -219,17 +219,17 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void minimumTimeInQueue() {
-        final RateLimitedBatcher<MockUpdate, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, 1, Long.MAX_VALUE, MockUpdate::getResourceId, strategy
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, 1, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
         );
 
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
-        final List<MockUpdate> updatesList = Arrays.asList(
-                new MockUpdate(LOW, now, "resource1", "sub2", "create"),
-                new MockUpdate(LOW, now.minus(ofMillis(minimumTimeInQueueMs + 1)), "resource1", "sub1", "create")
+        final List<BatchableOperationMock> updatesList = Arrays.asList(
+                new BatchableOperationMock(LOW, now, "resource1", "sub2", "create"),
+                new BatchableOperationMock(LOW, now.minus(ofMillis(minimumTimeInQueueMs + 1)), "resource1", "sub1", "create")
         );
 
-        final AssertableSubscriber<Batch<MockUpdate, String>> subscriber = Observable.from(updatesList).lift(batcher).test();
+        final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = Observable.from(updatesList).lift(batcher).test();
         testScheduler.triggerActions();
         subscriber.assertNoTerminalEvent().assertNoValues();
 
@@ -244,8 +244,8 @@ public class RateLimitedBatcherTest {
     public void keepUpdatesWithHighestPriorityInEachBatch() {
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Instant moreRecent = now.plus(ofMillis(1));
-        final MockUpdate lowPriority = new MockUpdate(LOW, moreRecent, "resource3", "sub2", "create");
-        final MockUpdate highPriority = new MockUpdate(HIGH, now, "resource3", "sub2", "remove");
+        final BatchableOperationMock lowPriority = new BatchableOperationMock(LOW, moreRecent, "resource3", "sub2", "create");
+        final BatchableOperationMock highPriority = new BatchableOperationMock(HIGH, now, "resource3", "sub2", "remove");
 
         assertEmitSingleAfterReceiving(highPriority, lowPriority, highPriority);
     }
@@ -254,8 +254,8 @@ public class RateLimitedBatcherTest {
     public void keepMostRecentUpdatesInEachBatch() {
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Instant moreRecent = now.plus(ofMillis(1));
-        final MockUpdate old = new MockUpdate(LOW, now, "resource2", "sub2", "create");
-        final MockUpdate recent = new MockUpdate(LOW, moreRecent, "resource2", "sub2", "remove");
+        final BatchableOperationMock old = new BatchableOperationMock(LOW, now, "resource2", "sub2", "create");
+        final BatchableOperationMock recent = new BatchableOperationMock(LOW, moreRecent, "resource2", "sub2", "remove");
 
         assertEmitSingleAfterReceiving(recent, old, recent);
     }
@@ -264,23 +264,23 @@ public class RateLimitedBatcherTest {
     public void doNotReplaceOlderUpdatesDoingTheSame() {
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Instant moreRecent = now.plus(ofSeconds(10));
-        final MockUpdate old = new MockUpdate(LOW, now, "resource1", "sub2", "create");
-        final MockUpdate recentDoingTheSame = new MockUpdate(LOW, moreRecent, "resource1", "sub2", "create");
+        final BatchableOperationMock old = new BatchableOperationMock(LOW, now, "resource1", "sub2", "create");
+        final BatchableOperationMock recentDoingTheSame = new BatchableOperationMock(LOW, moreRecent, "resource1", "sub2", "create");
 
         assertEmitSingleAfterReceiving(old, old, recentDoingTheSame);
     }
 
-    public void assertEmitSingleAfterReceiving(MockUpdate expected, MockUpdate... receiving) {
-        final RateLimitedBatcher<MockUpdate, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, MockUpdate::getResourceId, strategy
+    public void assertEmitSingleAfterReceiving(BatchableOperationMock expected, BatchableOperationMock... receiving) {
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
         );
-        final Subject<MockUpdate, MockUpdate> updates = PublishSubject.<MockUpdate>create().toSerialized();
+        final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
 
-        final AssertableSubscriber<Batch<MockUpdate, String>> subscriber = updates.lift(batcher).test();
+        final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
         testScheduler.triggerActions();
         subscriber.assertNoTerminalEvent().assertNoValues();
 
-        for (MockUpdate received : receiving) {
+        for (BatchableOperationMock received : receiving) {
             updates.onNext(received);
         }
 
@@ -292,12 +292,12 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void onCompletedIsNotSentAfterOnError() {
-        final RateLimitedBatcher<MockUpdate, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, MockUpdate::getResourceId, strategy
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
         );
-        final Subject<MockUpdate, MockUpdate> updates = PublishSubject.<MockUpdate>create().toSerialized();
+        final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
 
-        final AssertableSubscriber<Batch<MockUpdate, String>> subscriber = updates.lift(batcher).test();
+        final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
         testScheduler.triggerActions();
         subscriber.assertNoTerminalEvent().assertNoValues();
 
@@ -311,12 +311,12 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void onErrorIsNotSentAfterOnCompleted() {
-        final RateLimitedBatcher<MockUpdate, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, MockUpdate::getResourceId, strategy
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
         );
-        final Subject<MockUpdate, MockUpdate> updates = PublishSubject.<MockUpdate>create().toSerialized();
+        final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
 
-        final AssertableSubscriber<Batch<MockUpdate, String>> subscriber = updates.lift(batcher).test();
+        final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
         testScheduler.triggerActions();
         subscriber.assertNoTerminalEvent().assertNoValues();
 
@@ -329,7 +329,7 @@ public class RateLimitedBatcherTest {
         subscriber.assertNoErrors();
     }
 
-    private <T extends Update<I>, I> List<T> toUpdateList(List<Batch<T, I>> expected) {
+    private <T extends Batchable<I>, I> List<T> toUpdateList(List<Batch<T, I>> expected) {
         List<T> updates = expected.stream()
                 .flatMap(batch -> batch.getItems().stream())
                 .collect(Collectors.toList());

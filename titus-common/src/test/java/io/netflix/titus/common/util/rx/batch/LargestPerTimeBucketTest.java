@@ -46,25 +46,25 @@ public class LargestPerTimeBucketTest {
     public void filterOutBatchesNotQueueingForAMinimumPeriod() {
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Instant past = now.minus(ofMinutes(10));
-        final Stream<Batch<MockUpdate, String>> batches = Stream.of(
+        final Stream<Batch<BatchableOperationMock, String>> batches = Stream.of(
                 Batch.of("first",
                         // only has recent items
-                        new MockUpdate(LOW, now, "first", "sub1", "some"),
-                        new MockUpdate(HIGH, now, "first", "sub2", "some"),
-                        new MockUpdate(LOW, now, "first", "sub3", "some")
+                        new BatchableOperationMock(LOW, now, "first", "sub1", "some"),
+                        new BatchableOperationMock(HIGH, now, "first", "sub2", "some"),
+                        new BatchableOperationMock(LOW, now, "first", "sub3", "some")
                 ),
                 Batch.of("second",
-                        new MockUpdate(LOW, now, "second", "sub1", "some"),
-                        new MockUpdate(LOW, now, "second", "sub2", "some"),
-                        new MockUpdate(HIGH, past, "second", "sub3", "some")
+                        new BatchableOperationMock(LOW, now, "second", "sub1", "some"),
+                        new BatchableOperationMock(LOW, now, "second", "sub2", "some"),
+                        new BatchableOperationMock(HIGH, past, "second", "sub3", "some")
                 ),
                 Batch.of("third",
-                        new MockUpdate(LOW, past, "third", "sub1", "someState")
+                        new BatchableOperationMock(LOW, past, "third", "sub1", "someState")
                 )
         );
 
         EmissionStrategy strategy = new LargestPerTimeBucket(300_000 /* 5min */, NO_BUCKETS, testScheduler);
-        Queue<Batch<MockUpdate, String>> toEmit = strategy.compute(batches);
+        Queue<Batch<BatchableOperationMock, String>> toEmit = strategy.compute(batches);
         // first was filtered out
         assertThat(toEmit).hasSize(2);
         assertThat(toEmit.poll().getIndex()).isEqualTo("second");
@@ -75,31 +75,31 @@ public class LargestPerTimeBucketTest {
     public void batchesWithOlderItemsGoFirst() {
         final long groupInBucketsOfMs = 1;
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
-        final Stream<Batch<MockUpdate, String>> batches = Stream.of(
+        final Stream<Batch<BatchableOperationMock, String>> batches = Stream.of(
                 Batch.of("first",
-                        new MockUpdate(LOW, now, "first", "sub1", "foo"),
-                        new MockUpdate(LOW, now.minus(ofSeconds(1)), "first", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now, "first", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now.minus(ofSeconds(1)), "first", "sub2", "foo")
                 ),
                 Batch.of("second",
-                        new MockUpdate(HIGH, now.minus(ofSeconds(2)), "second", "sub1", "foo"),
-                        new MockUpdate(LOW, now, "second", "sub2", "foo")
+                        new BatchableOperationMock(HIGH, now.minus(ofSeconds(2)), "second", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now, "second", "sub2", "foo")
                 ),
                 Batch.of("third",
-                        new MockUpdate(LOW, now.minus(ofMillis(2_001)), "third", "sub1", "foo"),
-                        new MockUpdate(LOW, now, "third", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now.minus(ofMillis(2_001)), "third", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now, "third", "sub2", "foo")
                 ),
                 Batch.of("fourth",
-                        new MockUpdate(LOW, now.minus(ofMinutes(1)), "fourth", "sub1", "foo"),
-                        new MockUpdate(HIGH, now, "third", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now.minus(ofMinutes(1)), "fourth", "sub1", "foo"),
+                        new BatchableOperationMock(HIGH, now, "third", "sub2", "foo")
                 ),
                 Batch.of("fifth",
-                        new MockUpdate(LOW, now.minus(ofMillis(1)), "fifth", "sub1", "foo"),
-                        new MockUpdate(LOW, now, "third", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now.minus(ofMillis(1)), "fifth", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now, "third", "sub2", "foo")
                 )
         );
 
         EmissionStrategy strategy = new LargestPerTimeBucket(0, groupInBucketsOfMs, testScheduler);
-        Queue<Batch<MockUpdate, String>> toEmit = strategy.compute(batches);
+        Queue<Batch<BatchableOperationMock, String>> toEmit = strategy.compute(batches);
         assertThat(toEmit).hasSize(5);
         assertThat(toEmit.poll().getIndex()).isEqualTo("fourth");
         assertThat(toEmit.poll().getIndex()).isEqualTo("third");
@@ -113,24 +113,24 @@ public class LargestPerTimeBucketTest {
         final long groupInBucketsOfMs = 60_000 /* 1min */;
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Instant past = now.minus(ofMinutes(10));
-        final Stream<Batch<MockUpdate, String>> batches = Stream.of(
+        final Stream<Batch<BatchableOperationMock, String>> batches = Stream.of(
                 // first and second are in the same minute
                 Batch.of("smaller",
-                        new MockUpdate(LOW, now, "smaller", "sub1", "foo"),
-                        new MockUpdate(LOW, past.minus(ofSeconds(10)), "smaller", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now, "smaller", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, past.minus(ofSeconds(10)), "smaller", "sub2", "foo")
                 ),
                 Batch.of("bigger",
-                        new MockUpdate(LOW, past, "bigger", "sub1", "foo"),
-                        new MockUpdate(HIGH, now.minus(ofMinutes(5)), "bigger", "sub2", "foo"),
-                        new MockUpdate(LOW, now, "bigger", "sub3", "foo")
+                        new BatchableOperationMock(LOW, past, "bigger", "sub1", "foo"),
+                        new BatchableOperationMock(HIGH, now.minus(ofMinutes(5)), "bigger", "sub2", "foo"),
+                        new BatchableOperationMock(LOW, now, "bigger", "sub3", "foo")
                 ),
                 Batch.of("older",
-                        new MockUpdate(LOW, now.minus(ofMinutes(15)), "older", "sub1", "foo")
+                        new BatchableOperationMock(LOW, now.minus(ofMinutes(15)), "older", "sub1", "foo")
                 )
         );
 
         EmissionStrategy strategy = new LargestPerTimeBucket(0, groupInBucketsOfMs, testScheduler);
-        Queue<Batch<MockUpdate, String>> toEmit = strategy.compute(batches);
+        Queue<Batch<BatchableOperationMock, String>> toEmit = strategy.compute(batches);
         assertThat(toEmit).hasSize(3);
         assertThat(toEmit.poll().getIndex()).isEqualTo("older");
         assertThat(toEmit.poll().getIndex()).isEqualTo("bigger");
