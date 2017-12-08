@@ -26,6 +26,7 @@ import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsR
 import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsResult;
 import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.common.util.CollectionsExt;
@@ -44,14 +45,20 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     private final AmazonElasticLoadBalancingAsync client;
     private final Scheduler scheduler;
 
+    private final Registry registry;
+    private static final String METRIC_AWS_API_ERROR = "titus.loadbalancer.connector.awsApiError";
+    private static final String METRIC_TAG_METHOD_NAME = "awsMethod";
+    private static final String METRIC_TAG_ERROR_TYPE = "errorType";
+
     @Inject
-    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client) {
-        this(client, Schedulers.computation());
+    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Registry registry) {
+        this(client, Schedulers.computation(), registry);
     }
 
-    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler) {
+    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler, Registry registry) {
         this.client = client;
         this.scheduler = scheduler;
+        this.registry = registry;
     }
 
     @Override
@@ -74,7 +81,10 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
         return AwsObservableExt.asyncActionCompletable(factory -> client.registerTargetsAsync(request, factory.handler(
                 (req, resp) -> logger.debug("Registered targets {}", resp),
-                (t) -> logger.error("Error registering targets on " + loadBalancerId, t)
+                (t) -> {
+                    logger.error("Error registering targets on " + loadBalancerId, t);
+                    recordAwsErrorMetric("registerTargets", t);
+                }
         ))).observeOn(scheduler);
     }
 
@@ -97,7 +107,10 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
         return AwsObservableExt.asyncActionCompletable(factory -> client.deregisterTargetsAsync(request, factory.handler(
                 (req, resp) -> logger.debug("Deregistered targets {}", resp),
-                (t) -> logger.error("Error deregistering targets on " + loadBalancerId, t)
+                (t) -> {
+                    logger.error("Error deregistering targets on " + loadBalancerId, t);
+                    recordAwsErrorMetric("deregisterTargets", t);
+                }
         ))).observeOn(scheduler);
     }
 
@@ -108,6 +121,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
 
         Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(factory -> client.describeTargetGroupsAsync(request, factory.handler()));
         return resultSingle
+                .doOnError(throwable -> recordAwsErrorMetric("describeTargetGroups", throwable))
                 .flatMapObservable(result -> Observable.from(result.getTargetGroups()))
                 .flatMap(targetGroup -> {
                     if (targetGroup.getTargetType().equals(AWS_IP_TARGET_TYPE)) {
@@ -117,5 +131,16 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                 })
                 .observeOn(scheduler)
                 .toCompletable();
+    }
+
+    private void recordAwsErrorMetric(String awsMethod, Throwable thrown) {
+        String errorType = "other";
+        if (thrown.getMessage().contains("Rate exceeded")) {
+            errorType = "ratelimit";
+        }
+        registry.counter(METRIC_AWS_API_ERROR,
+                METRIC_TAG_METHOD_NAME, awsMethod,
+                METRIC_TAG_ERROR_TYPE, errorType
+        ).increment();
     }
 }
