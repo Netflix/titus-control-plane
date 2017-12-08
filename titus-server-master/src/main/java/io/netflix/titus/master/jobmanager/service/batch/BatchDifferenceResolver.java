@@ -59,7 +59,6 @@ import static io.netflix.titus.master.jobmanager.service.batch.action.CreateOrRe
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.areEquivalent;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.findTaskStateTimeouts;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.hasJobState;
-import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.removeCompletedJob;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.shouldRetry;
 
 @Singleton
@@ -223,6 +222,20 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             }
         }
         return actions;
+    }
+
+    private static List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
+        if (!hasJobState(referenceModel, JobState.Finished)) {
+            if (DifferenceResolverUtils.allDone(storeModel)) {
+                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId()));
+            }
+        } else {
+            if (!BasicJobActions.isClosed(referenceModel)) {
+                return Collections.singletonList(BasicJobActions.removeJobFromStore(referenceModel.getEntity(), titusStore));
+            }
+
+        }
+        return Collections.emptyList();
     }
 
     static class BatchJobView extends DifferenceResolverUtils.JobView<BatchJobExt, BatchJobTask> {

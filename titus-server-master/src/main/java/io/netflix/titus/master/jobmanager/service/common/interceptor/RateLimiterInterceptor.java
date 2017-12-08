@@ -29,7 +29,7 @@ import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeActio
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 
 /**
- * {@link ChangeAction} interceptor that tracks and limits execution rate of an action.Rate limiting is controlled by
+ * {@link ChangeAction} interceptor that tracks and limits execution rate of an action. Rate limiting is controlled by
  * the provided token bucket.
  */
 public class RateLimiterInterceptor implements TitusChangeActionInterceptor<Long> {

@@ -17,7 +17,6 @@
 package io.netflix.titus.master.jobmanager.service.common;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,7 +37,6 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
@@ -170,20 +168,6 @@ public class DifferenceResolverUtils {
             }
         });
         return actions;
-    }
-
-    public static List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
-        if (!hasJobState(referenceModel, JobState.Finished)) {
-            if (allDone(storeModel)) {
-                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId()));
-            }
-        } else {
-            if (!BasicJobActions.isClosed(referenceModel)) {
-                return Collections.singletonList(BasicJobActions.removeJobFromStore(referenceModel.getEntity(), titusStore));
-            }
-
-        }
-        return Collections.emptyList();
     }
 
     public static class JobView<EXT extends JobDescriptor.JobDescriptorExt, TASK extends Task> {

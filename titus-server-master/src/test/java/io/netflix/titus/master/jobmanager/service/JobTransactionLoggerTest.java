@@ -16,8 +16,6 @@
 
 package io.netflix.titus.master.jobmanager.service;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,17 +23,16 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
-import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,8 +48,19 @@ public class JobTransactionLoggerTest {
         Job previousJob = createJob();
         Job currentJob = previousJob.toBuilder().withStatus(JobStatus.newBuilder().withState(JobState.Finished).build()).build();
 
-        ModelActionHolder modelActionHolder = ModelActionHolder.reference(TitusModelUpdateActions.updateJob(previousJob, V3JobOperations.Trigger.API, "test"));
-        TitusChangeAction changeAction = createChangeAction(previousJob, modelActionHolder);
+        ModelActionHolder modelActionHolder = ModelActionHolder.reference(
+                TitusModelAction.newModelUpdate("testModelAction")
+                        .job(previousJob)
+                        .trigger(Trigger.API)
+                        .summary("Job model update")
+                        .jobUpdate(jobHolder -> jobHolder.setEntity(currentJob))
+        );
+
+        TitusChangeAction changeAction = TitusChangeAction.newAction("testChangeAction")
+                .job(previousJob)
+                .trigger(Trigger.API)
+                .summary("Job update")
+                .applyModelUpdate(self -> modelActionHolder);
 
         JobManagerReconcilerEvent jobReconcilerEvent = new JobModelUpdateReconcilerEvent(
                 previousJob,
@@ -74,14 +82,5 @@ public class JobTransactionLoggerTest {
                 .withStatus(JobModel.newJobStatus().withState(JobState.Accepted).build())
                 .withJobDescriptor(JobModel.newJobDescriptor().build())
                 .build();
-    }
-
-    private TitusChangeAction createChangeAction(Job job, ModelActionHolder modelActionHolder) {
-        return new TitusChangeAction(V3JobOperations.Trigger.API, job.getId(), "testChangeAction", "Job update") {
-            @Override
-            public Observable<List<ModelActionHolder>> apply() {
-                return Observable.just(Collections.singletonList(modelActionHolder));
-            }
-        };
     }
 }

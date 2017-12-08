@@ -155,6 +155,23 @@ public abstract class TitusModelAction implements ModelAction {
             return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder, newTask));
         }
 
+        public TitusModelAction addTask(Task newTask) {
+            this.id = newTask.getId();
+            return taskUpdate(jobHolder -> {
+                EntityHolder newTaskHolder = EntityHolder.newRoot(newTask.getId(), newTask);
+                EntityHolder newRoot = jobHolder.addChild(newTaskHolder);
+                return Pair.of(newRoot, newTaskHolder);
+            });
+        }
+
+        public TitusModelAction removeTask(Task task) {
+            this.id = task.getId();
+            return jobMaybeUpdate(jobHolder -> {
+                Pair<EntityHolder, Optional<EntityHolder>> result = jobHolder.removeChild(id);
+                return result.getRight().map(removed -> result.getLeft());
+            });
+        }
+
         private Pair<EntityHolder, EntityHolder> verify(Pair<EntityHolder, EntityHolder> modelUpdate) {
             Object root = modelUpdate.getLeft().getEntity();
             Preconditions.checkArgument(root instanceof Job, "Root entity not Job instance, but %s", root.getClass());

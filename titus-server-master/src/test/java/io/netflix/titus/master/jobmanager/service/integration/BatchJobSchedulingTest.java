@@ -23,6 +23,7 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
+import io.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import org.junit.Test;
@@ -41,7 +42,7 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testRunAndCompleteOkOneJobTask() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.finishSingleTaskJob(0, 0, TaskStatus.REASON_NORMAL, 0))
@@ -54,7 +55,7 @@ public class BatchJobSchedulingTest {
     @Test
     public void testRunAndCompleteOkJobWithManyTasks() throws Exception {
         JobDescriptor<BatchJobExt> twoTaskJob = changeBatchJobSize(oneTaskBatchJobDescriptor(), 2);
-        jobsScenarioBuilder.scheduleBatchJob(twoTaskJob, jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
                 .expectJobEvent()
                 .advance()
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
@@ -70,7 +71,7 @@ public class BatchJobSchedulingTest {
     @Test
     public void testTaskCompletedOkIsNotRestarted() throws Exception {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
-        jobsScenarioBuilder.scheduleBatchJob(jobWithOneRetry, jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.finishSingleTaskJob(0, 0, TaskStatus.REASON_NORMAL, 0))
@@ -82,7 +83,7 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testFailedTaskWithNoRetriesFinishesImmediately() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.finishSingleTaskJob(0, 0, TaskStatus.REASON_FAILED, -1))
@@ -95,11 +96,11 @@ public class BatchJobSchedulingTest {
     @Test
     public void testFailedTaskWithRetriesIsResubmitted() throws Exception {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
-        jobsScenarioBuilder.scheduleBatchJob(jobWithOneRetry, jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.failRetryableTask(0, 0))
-                .template(ScenarioTemplates.failLastRetryableTask(0, 1))
+                .template(ScenarioTemplates.failLastBatchRetryableTask(0, 1))
         );
     }
 
@@ -109,7 +110,7 @@ public class BatchJobSchedulingTest {
     @Test
     public void testOnlyFailedTasksAreResubmittedInMultiTaskJob() throws Exception {
         JobDescriptor<BatchJobExt> twoTaskJob = changeRetryLimit(changeBatchJobSize(oneTaskBatchJobDescriptor(), 2), 1);
-        jobsScenarioBuilder.scheduleBatchJob(twoTaskJob, jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
                 .expectJobEvent()
                 .advance()
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
@@ -152,10 +153,11 @@ public class BatchJobSchedulingTest {
      */
     private void testKillingRetryableTaskInActiveState(TaskState taskState) throws Exception {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
-        jobsScenarioBuilder.scheduleBatchJob(jobWithOneRetry, jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, taskState))
-                .template(ScenarioTemplates.killRetryableTask(0, 0))
+                .template(ScenarioTemplates.killBatchTask(0, 0))
+                .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
         );
     }
 
@@ -164,7 +166,7 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testKillingTaskInKillInitiatedState() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .killTask(0, 0)
@@ -172,10 +174,10 @@ public class BatchJobSchedulingTest {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated);
                     assertThat(task.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_TASK_KILLED);
                 })
-                .expectBatchTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_TASK_KILLED)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_TASK_KILLED)
                 .expectFailure(() -> jobScenario.killTask(0, 0), error -> {
                     assertThat(error).isInstanceOf(JobManagerException.class);
-                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.TaskTerminating);
+                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(ErrorCode.TaskTerminating);
                 })
                 .advance()
                 .expectNoStoreUpdate()
@@ -188,30 +190,27 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testKillingJobInAcceptedState() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.killJob())
-                .expectMesosTaskKill(0, 0)
-                .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
-                .expectBatchTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
-                .triggerMesosFinishedEvent(0, 0, -1)
-                .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_FAILED))
+                .template(ScenarioTemplates.reconcilerTaskKill(0, 0))
+                .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_TASK_KILLED))
         );
     }
 
     @Test
     public void testKillingJobInKillInitiatedState() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.killJob())
                 .expectMesosTaskKill(0, 0)
                 .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
-                .expectBatchTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
                 .expectFailure(jobScenario::killJob, error -> {
                     assertThat(error).isInstanceOf(JobManagerException.class);
-                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.JobTerminating);
+                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(ErrorCode.JobTerminating);
                 })
                 .expectNoStoreUpdate()
                 .expectNoTaskStateChangeEvent()
@@ -224,7 +223,7 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testTaskLaunchingTimeout() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Launched))
                 .advance()
@@ -239,7 +238,7 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testStartInitiatedTimeout() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.StartInitiated))
                 .advance()
@@ -255,13 +254,33 @@ public class BatchJobSchedulingTest {
      */
     @Test
     public void testKillReattemptsInKillInitiatedTimeout() throws Exception {
-        jobsScenarioBuilder.scheduleBatchJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.StartInitiated))
                 .template(ScenarioTemplates.killTask(0, 0))
                 .template(ScenarioTemplates.passKillInitiatedTimeoutWithKillReattempt(0, 0))
                 .template(ScenarioTemplates.passFinalKillInitiatedTimeout())
                 .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_STUCK_IN_STATE))
+        );
+    }
+
+    @Test
+    public void testJobCapacityUpdateNotPossibleForBatchJob() throws Exception {
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .expectFailure(() -> jobScenario.changeCapacity(0, 5, 10), error -> {
+                    assertThat(error).isInstanceOf(JobManagerException.class);
+                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(ErrorCode.NotServiceJob);
+                })
+        );
+    }
+
+    @Test
+    public void testJobEnableStatusNotPossibleForBatchJob() throws Exception {
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .expectFailure(() -> jobScenario.changeJobEnabledStatus(false), error -> {
+                    assertThat(error).isInstanceOf(JobManagerException.class);
+                    assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(ErrorCode.NotServiceJob);
+                })
         );
     }
 }

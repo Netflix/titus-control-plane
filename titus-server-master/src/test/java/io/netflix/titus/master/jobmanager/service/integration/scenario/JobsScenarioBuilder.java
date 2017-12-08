@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
@@ -100,8 +100,8 @@ public class JobsScenarioBuilder {
         return this;
     }
 
-    public JobsScenarioBuilder scheduleBatchJob(JobDescriptor<BatchJobExt> jobDescriptor,
-                                                Function<JobScenarioBuilder<BatchJobExt>, JobScenarioBuilder<BatchJobExt>> jobScenario) {
+    public <E extends JobDescriptorExt> JobsScenarioBuilder scheduleJob(JobDescriptor<E> jobDescriptor,
+                                                                        Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> jobScenario) {
 
         EventHolder<JobManagerEvent<?>> jobEventsSubscriber = new EventHolder<>(jobStore);
         EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber = new EventHolder<>(jobStore);
@@ -117,7 +117,7 @@ public class JobsScenarioBuilder {
         String jobId = jobIdRef.get();
         assertThat(jobId).describedAs("Job not created").isNotNull();
 
-        JobScenarioBuilder<BatchJobExt> jobScenarioBuilder = new JobScenarioBuilder<>(jobId, jobEventsSubscriber, storeEventsSubscriber, jobOperations, schedulingService, jobStore, vmService, testScheduler);
+        JobScenarioBuilder<E> jobScenarioBuilder = new JobScenarioBuilder<>(jobId, jobEventsSubscriber, storeEventsSubscriber, jobOperations, schedulingService, jobStore, vmService, testScheduler);
         jobScenarioBuilders.add(jobScenarioBuilder);
         jobScenario.apply(jobScenarioBuilder);
         return this;

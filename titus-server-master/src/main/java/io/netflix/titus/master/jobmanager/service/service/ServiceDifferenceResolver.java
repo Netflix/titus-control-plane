@@ -27,6 +27,7 @@ import javax.inject.Singleton;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
+import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
@@ -48,7 +49,6 @@ import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiat
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RateLimiterInterceptor;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import io.netflix.titus.master.jobmanager.service.service.action.RemoveServiceTaskAction;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Scheduler;
@@ -57,10 +57,9 @@ import rx.schedulers.Schedulers;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.areEquivalent;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.findTaskStateTimeouts;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.hasJobState;
-import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.hasReachedRetryLimit;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.isTerminating;
-import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.removeCompletedJob;
-import static io.netflix.titus.master.jobmanager.service.service.action.CreateOrReplaceServiceTaskAction.createOrReplaceTaskAction;
+import static io.netflix.titus.master.jobmanager.service.service.action.BasicServiceTaskActions.removeFinishedServiceTaskAction;
+import static io.netflix.titus.master.jobmanager.service.service.action.CreateOrReplaceServiceTaskActions.createOrReplaceTaskAction;
 
 
 @Singleton
@@ -183,11 +182,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     }
 
     private TitusChangeAction createNewTaskAction(ServiceJobView refJobView, Optional<ServiceJobTask> previousTask) {
-        return newTaskRateLimiterInterceptor.apply(
-                storeWriteRetryInterceptor.apply(
-                        createOrReplaceTaskAction(jobStore, refJobView.getJob(), refJobView.getTasks(), previousTask)
-                )
-        );
+        return newTaskRateLimiterInterceptor.apply(storeWriteRetryInterceptor.apply(createOrReplaceTaskAction(jobStore, refJobView.getJob(), previousTask)));
     }
 
     /**
@@ -219,7 +214,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         Job<ServiceJobExt> refJob = refJobHolder.getEntity();
 
         if (!refJobHolder.getEntity().equals(storeJob.getEntity())) {
-            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(refJobHolder.getEntity(), jobStore)));
+            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(engine, jobStore)));
         }
         boolean isJobTerminating = refJob.getStatus().getState() == JobState.KillInitiated;
         for (EntityHolder referenceTask : refJobHolder.getChildren()) {
@@ -229,16 +224,32 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 ServiceJobTask task = storeHolder.get().getEntity();
                 if (task.getStatus().getState() == TaskState.Finished) {
                     if (isJobTerminating || task.getStatus().getReasonCode().equals(TaskStatus.REASON_SCALED_DOWN)) {
-                        actions.add(new RemoveServiceTaskAction(task));
-                    } else if (!hasReachedRetryLimit(refJob, task)) {
+                        actions.add(removeFinishedServiceTaskAction(task));
+                    } else {
+                        // TODO Delay task placement
                         actions.add(createNewTaskAction(refJobView, Optional.of(task)));
                     }
                 }
             } else {
-                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, referenceTask.getEntity())));
+                Task task = referenceTask.getEntity();
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, task.getId())));
             }
         }
         return actions;
+    }
+
+    private List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
+        if (!hasJobState(referenceModel, JobState.Finished)) {
+            if (hasJobState(referenceModel, JobState.KillInitiated) && DifferenceResolverUtils.allDone(storeModel)) {
+                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId()));
+            }
+        } else {
+            if (!BasicJobActions.isClosed(referenceModel)) {
+                return Collections.singletonList(BasicJobActions.removeJobFromStore(referenceModel.getEntity(), titusStore));
+            }
+
+        }
+        return Collections.emptyList();
     }
 
     private static class ServiceJobView extends DifferenceResolverUtils.JobView<ServiceJobExt, ServiceJobTask> {

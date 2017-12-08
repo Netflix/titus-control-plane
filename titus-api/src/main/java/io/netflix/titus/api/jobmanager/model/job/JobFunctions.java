@@ -46,6 +46,14 @@ public final class JobFunctions {
         return isV2JobId(taskId);
     }
 
+    public static boolean isBatchJob(Job<?> job) {
+        return job.getJobDescriptor().getExtensions() instanceof BatchJobExt;
+    }
+
+    public static boolean isServiceJob(Job<?> job) {
+        return job.getJobDescriptor().getExtensions() instanceof ServiceJobExt;
+    }
+
     public static Job changeJobStatus(Job job, JobState jobState, String reasonCode) {
         JobStatus newStatus = JobModel.newJobStatus()
                 .withState(jobState)
@@ -62,6 +70,38 @@ public final class JobFunctions {
                 .withStatus(status)
                 .withStatusHistory(statusHistory)
                 .build();
+    }
+
+    public static JobDescriptor<BatchJobExt> changeBatchJobSize(JobDescriptor<BatchJobExt> jobDescriptor, int size) {
+        BatchJobExt ext = jobDescriptor.getExtensions().toBuilder().withSize(size).build();
+        return jobDescriptor.toBuilder().withExtensions(ext).build();
+    }
+
+    public static JobDescriptor<ServiceJobExt> changeServiceJobCapacity(JobDescriptor<ServiceJobExt> jobDescriptor, int size) {
+        return changeServiceJobCapacity(jobDescriptor, Capacity.newBuilder().withMin(size).withDesired(size).withMax(size).build());
+    }
+
+    public static JobDescriptor<ServiceJobExt> changeServiceJobCapacity(JobDescriptor<ServiceJobExt> jobDescriptor, Capacity capacity) {
+        return jobDescriptor.toBuilder()
+                .withExtensions(jobDescriptor.getExtensions().toBuilder()
+                        .withCapacity(capacity)
+                        .build()
+                )
+                .build();
+    }
+
+    public static Job<ServiceJobExt> changeServiceJobCapacity(Job<ServiceJobExt> job, Capacity capacity) {
+        return job.toBuilder().withJobDescriptor(changeServiceJobCapacity(job.getJobDescriptor(), capacity)).build();
+    }
+
+    public static Job<ServiceJobExt> changeJobEnabledStatus(Job<ServiceJobExt> job, boolean enabled) {
+        JobDescriptor<ServiceJobExt> jobDescriptor = job.getJobDescriptor().toBuilder()
+                .withExtensions(job.getJobDescriptor().getExtensions().toBuilder()
+                        .withEnabled(enabled)
+                        .build()
+                )
+                .build();
+        return job.toBuilder().withJobDescriptor(jobDescriptor).build();
     }
 
     public static Task changeTaskStatus(Task task, TaskStatus status) {
@@ -95,12 +135,34 @@ public final class JobFunctions {
                 .build();
     }
 
+    public static ServiceJobTask createNewServiceTask(Job<?> job) {
+        String taskId = UUID.randomUUID().toString();
+        return ServiceJobTask.newBuilder()
+                .withId(taskId)
+                .withJobId(job.getId())
+                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
+                .withOriginalId(taskId)
+                .build();
+    }
+
     public static BatchJobTask createBatchTaskReplacement(BatchJobTask oldTask) {
         String taskId = UUID.randomUUID().toString();
         return BatchJobTask.newBuilder()
                 .withId(taskId)
                 .withJobId(oldTask.getJobId())
                 .withIndex(oldTask.getIndex())
+                .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
+                .withOriginalId(oldTask.getOriginalId())
+                .withResubmitOf(oldTask.getId())
+                .withResubmitNumber(oldTask.getResubmitNumber() + 1)
+                .build();
+    }
+
+    public static ServiceJobTask createServiceTaskReplacement(ServiceJobTask oldTask) {
+        String taskId = UUID.randomUUID().toString();
+        return ServiceJobTask.newBuilder()
+                .withId(taskId)
+                .withJobId(oldTask.getJobId())
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
                 .withOriginalId(oldTask.getOriginalId())
                 .withResubmitOf(oldTask.getId())
@@ -139,11 +201,6 @@ public final class JobFunctions {
     public static RetryPolicy getRetryPolicy(Job<?> job) {
         JobDescriptor.JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
         return ext instanceof BatchJobExt ? ((BatchJobExt) ext).getRetryPolicy() : ((ServiceJobExt) ext).getRetryPolicy();
-    }
-
-    public static JobDescriptor<BatchJobExt> changeBatchJobSize(JobDescriptor<BatchJobExt> input, int size) {
-        BatchJobExt ext = input.getExtensions().toBuilder().withSize(size).build();
-        return input.toBuilder().withExtensions(ext).build();
     }
 
     public static JobDescriptor<BatchJobExt> changeRetryLimit(JobDescriptor<BatchJobExt> input, int retryLimit) {
