@@ -23,7 +23,6 @@ import com.netflix.archaius.ConfigProxyFactory;
 import io.netflix.titus.api.agent.store.AgentStore;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 
 public class CassandraStoreModule extends AbstractModule {
     @Override
@@ -31,7 +30,6 @@ public class CassandraStoreModule extends AbstractModule {
         bind(AgentStore.class).to(CassandraAgentStore.class);
         bind(AppScalePolicyStore.class).to(CassAppScalePolicyStore.class);
         bind(JobStore.class).to(CassandraJobStore.class);
-        bind(LoadBalancerStore.class).to(CassandraLoadBalancerStore.class);
     }
 
     @Provides
