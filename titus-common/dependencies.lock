@@ -313,7 +313,7 @@
             "requested": "4.3.9.RELEASE"
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+"
         }
     },
@@ -631,7 +631,7 @@
             "requested": "4.3.9.RELEASE"
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+"
         }
     },
@@ -960,7 +960,7 @@
             "requested": "4.3.9.RELEASE"
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+"
         }
     },
@@ -1325,7 +1325,7 @@
             "requested": "4.3.9.RELEASE"
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+"
         }
     },
@@ -1654,7 +1654,7 @@
             "requested": "4.3.9.RELEASE"
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+"
         }
     },
@@ -2566,7 +2566,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-common"
@@ -3487,7 +3487,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-common"
@@ -4409,7 +4409,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-common"
@@ -5331,7 +5331,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7",
+            "locked": "1.1.7.1",
             "requested": "1.1.+",
             "transitive": [
                 "io.netflix.titus:titus-common"
