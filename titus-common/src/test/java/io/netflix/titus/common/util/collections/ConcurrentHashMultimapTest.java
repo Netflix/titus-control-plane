@@ -36,7 +36,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-public class ConcurrentHashMultiMapTest {
+public class ConcurrentHashMultimapTest {
 
     private static final int MINIMUM_THREADS = 10;
     private static final int MAXIMUM_THREADS = 20;
@@ -45,19 +45,19 @@ public class ConcurrentHashMultiMapTest {
     private static final int POSSIBLE_RANDOM_IDS = 128;
     private static final int POSSIBLE_RANDOM_VALUES = 10;
 
-    private ConcurrentHashMultiMap<String, TestEntity> multiMap;
+    private ConcurrentHashMultimap<String, TestEntity> multiMap;
 
     @Before
     public void setUp() throws Exception {
-        multiMap = new ConcurrentHashMultiMap<>(TestEntity.idExtractor, TestEntity.lastWins);
+        multiMap = new ConcurrentHashMultimap<>(TestEntity.idExtractor, TestEntity.lastWins);
     }
 
     @Test
     public void customizableConflictResolution() throws Exception {
-        final ConcurrentHashMultiMap.ConflictResolver<TestEntity> onlyReplaceV1 =
+        final ConcurrentHashMultimap.ConflictResolver<TestEntity> onlyReplaceV1 =
                 (old, replacement) -> old.value.contains("v1");
-        ConcurrentHashMultiMap<String, TestEntity> multiMapThatOnlyReplacesV1 =
-                new ConcurrentHashMultiMap<>(TestEntity.idExtractor, onlyReplaceV1);
+        ConcurrentHashMultimap<String, TestEntity> multiMapThatOnlyReplacesV1 =
+                new ConcurrentHashMultimap<>(TestEntity.idExtractor, onlyReplaceV1);
 
         multiMapThatOnlyReplacesV1.put("first", new TestEntity("1", "v1"));
         assertThat(multiMapThatOnlyReplacesV1.put("first", new TestEntity("1", "v2"))).isTrue();
@@ -374,8 +374,8 @@ public class ConcurrentHashMultiMapTest {
     }
 
     private static class TestEntity {
-        static final ConcurrentHashMultiMap.ValueIdentityExtractor<TestEntity> idExtractor = e -> e.id;
-        static final ConcurrentHashMultiMap.ConflictResolver<TestEntity> lastWins = (original, replacement) -> true;
+        static final ConcurrentHashMultimap.ValueIdentityExtractor<TestEntity> idExtractor = e -> e.id;
+        static final ConcurrentHashMultimap.ConflictResolver<TestEntity> lastWins = (original, replacement) -> true;
 
         final String id;
         final String value;

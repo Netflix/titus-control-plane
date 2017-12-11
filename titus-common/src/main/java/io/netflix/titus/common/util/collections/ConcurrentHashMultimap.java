@@ -58,12 +58,12 @@ import io.netflix.titus.common.util.CollectionsExt;
  * @param <V> type of values. Operations on values will use <tt>equals()</tt>, so it is hightly recommended it is properly implemented
  */
 @ParametersAreNonnullByDefault
-public class ConcurrentHashMultiMap<K, V> implements Multimap<K, V> {
+public class ConcurrentHashMultimap<K, V> implements Multimap<K, V> {
     private final ConcurrentMap<K, Map<Object, V>> entries = new ConcurrentHashMap<>();
     private final ValueIdentityExtractor<V> valueIdentityExtractor;
     private final ConflictResolver<V> defaultConflictResolver;
 
-    public ConcurrentHashMultiMap(ValueIdentityExtractor<V> valueIdentityExtractor, ConflictResolver<V> conflictResolver) {
+    public ConcurrentHashMultimap(ValueIdentityExtractor<V> valueIdentityExtractor, ConflictResolver<V> conflictResolver) {
         this.valueIdentityExtractor = valueIdentityExtractor;
         this.defaultConflictResolver = conflictResolver;
     }

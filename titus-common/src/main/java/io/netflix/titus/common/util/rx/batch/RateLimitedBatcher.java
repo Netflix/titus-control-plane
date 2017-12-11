@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
-import io.netflix.titus.common.util.collections.ConcurrentHashMultiMap;
+import io.netflix.titus.common.util.collections.ConcurrentHashMultimap;
 import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,8 +139,8 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
          * each batch is an immutable Map (indexed by <tt>Batchable#getIdentifier()</tt>), and modifications are applied
          * with copy-on-write
          */
-        private final ConcurrentHashMultiMap<I, T> pending =
-                new ConcurrentHashMultiMap<>(Batchable::getIdentifier, this::isHigherPriorityOrNewer);
+        private final ConcurrentHashMultimap<I, T> pending =
+                new ConcurrentHashMultimap<>(Batchable::getIdentifier, this::isHigherPriorityOrNewer);
         /**
          * all calls to on{Next,Error,Completed} need to be serialized in a synchronized(this) block so we respect the
          * <tt>Observable</tt> protocol (onError or onCompleted are called only once, and no items are delivered with
