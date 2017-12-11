@@ -57,7 +57,7 @@ public class ScenarioTemplates {
     /**
      * KillInitiated state is volatile. To force a task to stay in it forever, set lock = true.
      */
-    public static Function<JobScenarioBuilder, JobScenarioBuilder> startJobAndMoveToKillInitiated(boolean lock) {
+    public static Function<JobScenarioBuilder, JobScenarioBuilder> startJobAndMoveTasksToKillInitiated(boolean lock) {
         return jobScenarioBuilder -> {
             jobScenarioBuilder.template(startJob(TaskState.Started));
 

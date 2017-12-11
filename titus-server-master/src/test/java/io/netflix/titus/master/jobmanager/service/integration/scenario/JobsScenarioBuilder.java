@@ -32,6 +32,8 @@ public class JobsScenarioBuilder {
     public static final long RECONCILER_ACTIVE_TIMEOUT_MS = 50L;
     public static final long RECONCILER_IDLE_TIMEOUT_MS = 50;
 
+    public static final int ACTIVE_NOT_STARTED_TASKS_LIMIT = 5;
+
     public static final long LAUNCHED_TIMEOUT_MS = 5_000;
     public static final long START_INITIATED_TIMEOUT_MS = 10_000;
     public static final long KILL_INITIATED_TIMEOUT_MS = 30_000;
@@ -54,6 +56,7 @@ public class JobsScenarioBuilder {
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
 
+        when(configuration.getActiveNotStartedTasksLimit()).thenReturn(ACTIVE_NOT_STARTED_TASKS_LIMIT);
         when(configuration.getTaskInLaunchedStateTimeoutMs()).thenReturn(LAUNCHED_TIMEOUT_MS);
         when(configuration.getBatchTaskInStartInitiatedStateTimeoutMs()).thenReturn(START_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);

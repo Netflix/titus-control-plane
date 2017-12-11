@@ -17,7 +17,10 @@
 package io.netflix.titus.master.jobmanager.service.common;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -169,6 +172,23 @@ public class DifferenceResolverUtils {
             }
         });
         return actions;
+    }
+
+    public static int countActiveNotStartedTasks(EntityHolder refJobHolder, EntityHolder runningJobHolder) {
+        Set<String> pendingTaskIds = new HashSet<>();
+
+        Consumer<EntityHolder> countingFun = jobHolder -> {
+            jobHolder.getChildren().forEach(taskHolder -> {
+                TaskState state = ((Task) taskHolder.getEntity()).getStatus().getState();
+                if (state != TaskState.Started && state != TaskState.Finished) {
+                    pendingTaskIds.add(taskHolder.getId());
+                }
+            });
+        };
+        countingFun.accept(refJobHolder);
+        countingFun.accept(runningJobHolder);
+
+        return pendingTaskIds.size();
     }
 
     public static class JobView<EXT extends JobDescriptor.JobDescriptorExt, TASK extends Task> {

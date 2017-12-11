@@ -145,6 +145,11 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
+    public JobScenarioBuilder<E> allTasks(Consumer<List<Task>> templateFun) {
+        templateFun.accept(jobOperations.getTasks(jobId));
+        return this;
+    }
+
     public JobScenarioBuilder<E> inAllTasks(Collection<Task> tasks, BiFunction<Integer, Integer, JobScenarioBuilder<E>> templateFun) {
         tasks.forEach(task -> templateFun.apply(jobStore.getIndex(task.getId()), task.getResubmitNumber()));
         return this;
@@ -200,8 +205,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> killTask(int taskIdx, int resubmit) {
-        Task task = findTaskInActiveState(taskIdx, resubmit);
+    public JobScenarioBuilder<E> killTask(Task task) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.killTask(task.getId(), false, "Task kill requested by a user").subscribe(subscriber);
 
@@ -209,6 +213,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         checkOperationSubscriberAndThrowExceptionIfError(subscriber);
 
         return this;
+    }
+
+    public JobScenarioBuilder<E> killTask(int taskIdx, int resubmit) {
+        return killTask(findTaskInActiveState(taskIdx, resubmit));
     }
 
     public JobScenarioBuilder<E> assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
@@ -348,6 +356,12 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
+    public JobScenarioBuilder<E> expectNoStoreUpdate(int taskIdx, int resubmit) {
+        Pair<StoreEvent, ?> event = autoAdvance(() -> storeEventsSubscriber.takeNextTaskStoreEvent(taskIdx, resubmit));
+        assertThat(event).isNull();
+        return this;
+    }
+
     public JobScenarioBuilder<E> expectNoStoreUpdate() {
         Pair<StoreEvent, ?> event = autoAdvance(storeEventsSubscriber::takeNext);
         assertThat(event).isNull();
@@ -409,6 +423,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.Finished, TaskStatus.REASON_NORMAL, 0);
     }
 
+    public JobScenarioBuilder<E> triggerMesosFinishedEvent(Task task, int errorCode, String reasonCode) {
+        return triggerMesosEvent(task, TaskState.Finished, reasonCode, errorCode);
+    }
+
     public JobScenarioBuilder<E> triggerMesosFinishedEvent(int taskIdx, int resubmit, int errorCode, String reasonCode) {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.Finished, reasonCode, errorCode);
     }
@@ -432,7 +450,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     private JobScenarioBuilder<E> triggerMesosEvent(int taskIdx, int resubmit, TaskState taskState, String reason, int errorCode) {
         Task task = jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
+        return triggerMesosEvent(task, taskState, reason, errorCode);
+    }
 
+    private JobScenarioBuilder<E> triggerMesosEvent(Task task, TaskState taskState, String reason, int errorCode) {
         String reasonMessage;
         if (taskState == TaskState.Finished) {
             reasonMessage = errorCode == 0 ? "Completed successfully" : "Container terminated with an error " + errorCode;

@@ -26,7 +26,6 @@ import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 
@@ -163,10 +162,10 @@ public class ScenarioTemplates {
         return failRetryableTask(taskIdx, resubmit, 0);
     }
 
-    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> failRetryableTask(int taskIdx, int resubmit, long delayMs) {
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> failRetryableTask(int taskIdx, int resubmit, long expectedRetryDelayMs) {
         return jobScenario -> jobScenario
                 .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_FAILED)
-                .template(cleanAfterFinishedTaskAndRetry(taskIdx, resubmit, TaskStatus.REASON_FAILED, delayMs));
+                .template(cleanAfterFinishedTaskAndRetry(taskIdx, resubmit, TaskStatus.REASON_FAILED, expectedRetryDelayMs));
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> killJob() {
@@ -243,7 +242,7 @@ public class ScenarioTemplates {
         return cleanAfterFinishedTaskAndRetry(taskIdx, resubmit, reasonCode, 0);
     }
 
-    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> cleanAfterFinishedTaskAndRetry(int taskIdx, int resubmit, String reasonCode, long retryDelayMs) {
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> cleanAfterFinishedTaskAndRetry(int taskIdx, int resubmit, String reasonCode, long expectedRetryDelayMs) {
         int nextResubmit = resubmit + 1;
         return jobScenario -> {
             jobScenario
@@ -253,11 +252,11 @@ public class ScenarioTemplates {
                     })
                     .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Finished, reasonCode);
 
-            if (retryDelayMs > 0) {
+            if (expectedRetryDelayMs > 0) {
                 jobScenario
-                        .advance(retryDelayMs / 2, TimeUnit.MILLISECONDS)
-                        .expectNoStoreUpdate()
-                        .advance(retryDelayMs / 2, TimeUnit.MILLISECONDS);
+                        .advance(expectedRetryDelayMs / 2, TimeUnit.MILLISECONDS)
+                        .expectNoStoreUpdate(taskIdx, nextResubmit)
+                        .advance(expectedRetryDelayMs / 2, TimeUnit.MILLISECONDS);
             }
 
             return jobScenario
