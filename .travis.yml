@@ -7,6 +7,8 @@ script: "./buildViaTravis.sh"
 cache:
   directories:
   - "$HOME/.gradle"
+git:
+  depth: 200
 env:
   global:
   - secure: XXShF1fEVYEThw7yAlt6jukaJZRdMgeNhOKHEurKHCpKk75E9N+pNgvLimu1KPZztWy+hN+8jMViI5SA3K/qU3FUwVGuT6fBoukASwTvBb4Bt/3++FLS4xD77l+ch0wIJYjqbC+6O5dE8wRzoxlgL/WuLjMOaMFPvHdWrPeqKSiXRcGZkGfqFJAvOj890JOMw4nESp30pX76780ICTlU0hT+iE0BqPcex4ShYqWidVa3MOqXSoeJSBYldwQGshMH5OM07D8Sg5ueaiWnSlss4jDL/BUMsQElP4sqlNn/ufTc0g/z9XRFvDfSmfyjQIj9o2HUaxp1Ae5vHs5JzyArpbVrnWv14GeinpAx4pMy4XAm4j6HE/+9y/7SeuKaN0Jn89H2E9RO8qiV+Cn79TxKGt5UEMr4RPQWodLscoBxtMbjwfHsM5GJo6z3Z0LVgJlBGOOk08B2uly0BE9/v0X7GwxiUqhjJwK3Nv3WxvUYSdt6B6Y+sj56xah17dzuCQnc9lRIci3BLT7/2qMrdk3bHYJmiwC1cSsk55VsrfKq/6RlKAHxYzKZOELpHq3kd4g0IYd+lmnbw3aaOF32jDDyi/Wks1DmQTO7X4f/0ur3NTFJuXPDZn/hTHDiQQ77MflPDpysAmuqtehxbP6iqEN+RZti2PEcSqSWNKhl/03DAK4=

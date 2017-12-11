@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
@@ -39,6 +40,7 @@ import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.job.V2JobMgrIntf;
+import io.netflix.titus.master.job.service.ServiceJobMgr;
 import io.netflix.titus.master.store.MetadataUtils;
 import io.netflix.titus.master.store.NamedJob;
 import io.netflix.titus.master.store.V2JobStore;
@@ -257,6 +259,22 @@ public class ApiOperationsImpl implements ApiOperations {
             throw new InvalidJobException(jobId);
         }
         jobMgr.updateInstances(stageNum, min, desired, max, user);
+    }
+
+    @Override
+    public void updateJobProcesses(String jobId, int stageNum, boolean disableIncreaseDesired, boolean disableDecreaseDesired, String user) throws InvalidJobException {
+        awaitReady();
+        V2JobMgrIntf jobMgr = jobStatusLookup.get(jobId);
+        if (jobMgr == null) {
+            throw new InvalidJobException(jobId);
+        }
+
+        if (!(jobMgr instanceof ServiceJobMgr)) {
+            throw JobManagerException.notServiceJob(jobId);
+        }
+
+        ServiceJobMgr serviceJobMgr = (ServiceJobMgr) jobMgr;
+        serviceJobMgr.updateJobProcesses(stageNum, disableIncreaseDesired, disableDecreaseDesired, user);
     }
 
     @Override

@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -63,6 +64,8 @@ public interface V3JobOperations {
     }
 
     Observable<Void> updateJobCapacity(String jobId, Capacity capacity);
+
+    Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses);
 
     Observable<Void> updateJobStatus(String serviceJobId, boolean enabled);
 

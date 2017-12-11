@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagemen
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -48,6 +49,7 @@ public class TitusGatewayGrpcServer {
     private final JobManagementServiceImplBase jobManagementService;
     private final AgentManagementServiceImplBase agentManagementService;
     private final AutoScalingServiceGrpc.AutoScalingServiceImplBase appAutoScalingService;
+    private final LoadBalancerServiceGrpc.LoadBalancerServiceImplBase loadBalancerService;
     private final io.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration config;
 
     private final AtomicBoolean started = new AtomicBoolean();
@@ -58,30 +60,36 @@ public class TitusGatewayGrpcServer {
             JobManagementServiceImplBase jobManagementService,
             AgentManagementServiceImplBase agentManagementService,
             AutoScalingServiceGrpc.AutoScalingServiceImplBase appAutoScalingService,
+            LoadBalancerServiceGrpc.LoadBalancerServiceImplBase loadBalancerService,
             GrpcEndpointConfiguration config) {
         this.jobManagementService = jobManagementService;
         this.agentManagementService = agentManagementService;
         this.appAutoScalingService = appAutoScalingService;
+        this.loadBalancerService = loadBalancerService;
         this.config = config;
     }
 
     @PostConstruct
     public void start() throws Exception {
         if (!started.getAndSet(true)) {
-            this.server = configure(ServerBuilder.forPort(config.getPort()))
-                    .addService(ServerInterceptors.intercept(
-                            jobManagementService,
-                            createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
-                    ))
-                    .addService(ServerInterceptors.intercept(
-                            agentManagementService,
-                            createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
-                    ))
-                    .addService(ServerInterceptors.intercept(
-                            appAutoScalingService,
-                            createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
-                    ))
-                    .build();
+            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(config.getPort()));
+            serverBuilder.addService(ServerInterceptors.intercept(
+                    jobManagementService,
+                    createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
+            )).addService(ServerInterceptors.intercept(
+                    agentManagementService,
+                    createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
+            )).addService(ServerInterceptors.intercept(
+                    appAutoScalingService,
+                    createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
+            ));
+
+            if (config.getLoadBalancerGrpcEnabled()) {
+                serverBuilder.addService(ServerInterceptors.intercept(
+                        loadBalancerService,
+                        createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())));
+            }
+            this.server = serverBuilder.build();
 
             LOG.info("Starting gRPC server on port {}.", config.getPort());
             try {

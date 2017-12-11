@@ -44,6 +44,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.Owner;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -194,6 +195,13 @@ public final class V3GrpcModelConverters {
         }
     }
 
+    public static ServiceJobProcesses toCoreServiceJobProcesses(ServiceJobSpec.ServiceJobProcesses serviceJobProcesses) {
+        return JobModel.newServiceJobProcesses()
+                .withDisableIncreaseDesired(serviceJobProcesses.getDisableIncreaseDesired())
+                .withDisableDecreaseDesired(serviceJobProcesses.getDisableDecreaseDesired())
+                .build();
+    }
+
     private static MigrationPolicy toCoreMigrationPolicy(com.netflix.titus.grpc.protogen.MigrationPolicy grpcMigrationPolicy) {
         switch (grpcMigrationPolicy.getPolicyCase()) {
             case SYSTEMDEFAULT:
@@ -234,6 +242,7 @@ public final class V3GrpcModelConverters {
                 .withRetryPolicy(toCoreRetryPolicy(serviceSpec.getRetryPolicy()))
                 .withMigrationPolicy(toCoreMigrationPolicy(serviceSpec.getMigrationPolicy()))
                 .withEnabled(serviceSpec.getEnabled())
+                .withServiceJobProcesses(toCoreServiceJobProcesses(serviceSpec.getServiceJobProcesses()))
                 .build();
     }
 

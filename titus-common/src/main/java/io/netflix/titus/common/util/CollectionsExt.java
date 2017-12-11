@@ -191,6 +191,7 @@ public final class CollectionsExt {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
+    @SafeVarargs
     public static <T> List<T> merge(List<T>... lists) {
         if (isNullOrEmpty(lists)) {
             return Collections.emptyList();
@@ -202,6 +203,7 @@ public final class CollectionsExt {
         return result;
     }
 
+    @SafeVarargs
     public static <T> Set<T> merge(Set<T>... sets) {
         if (isNullOrEmpty(sets)) {
             return Collections.emptySet();
@@ -213,6 +215,7 @@ public final class CollectionsExt {
         return result;
     }
 
+    @SafeVarargs
     public static <K, V> Map<K, V> merge(Map<K, V>... maps) {
         if (isNullOrEmpty(maps)) {
             return Collections.emptyMap();
@@ -224,12 +227,14 @@ public final class CollectionsExt {
         return result;
     }
 
+    @SafeVarargs
     public static <T> Set<T> asSet(T... values) {
         Set<T> newSet = new HashSet<>();
         Collections.addAll(newSet, values);
         return newSet;
     }
 
+    @SafeVarargs
     public static <T> Map<T, T> asMap(T... values) {
         Preconditions.checkArgument(values.length % 2 == 0, "Expected even number of arguments");
         Map<T, T> result = new HashMap<>();

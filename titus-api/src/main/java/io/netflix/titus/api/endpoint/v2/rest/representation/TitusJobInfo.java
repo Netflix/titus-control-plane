@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.netflix.titus.api.model.MigrationPolicy;
 import io.netflix.titus.api.model.v2.JobConstraints;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 
 public class TitusJobInfo {
 
@@ -67,6 +68,7 @@ public class TitusJobInfo {
     private final List<JobConstraints> hardConstraints;
     private final List<TaskInfo> tasks;
     private final List<AuditLog> auditLogs;
+    private ServiceJobProcesses jobProcesses;
 
     @JsonCreator
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -109,7 +111,9 @@ public class TitusJobInfo {
                         @JsonProperty("softConstraints") List<JobConstraints> softConstraints,
                         @JsonProperty("hardConstraints") List<JobConstraints> hardConstraints,
                         @JsonProperty("tasks") List<TaskInfo> tasks,
-                        @JsonProperty("auditLogs") List<AuditLog> auditLogs) {
+                        @JsonProperty("auditLogs") List<AuditLog> auditLogs,
+                        @JsonProperty("jobProcesses") ServiceJobProcesses jobProcesses
+    ) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -150,6 +154,7 @@ public class TitusJobInfo {
         this.hardConstraints = hardConstraints;
         this.tasks = tasks;
         this.auditLogs = auditLogs;
+        this.jobProcesses = jobProcesses;
     }
 
     public String getId() {
@@ -310,5 +315,9 @@ public class TitusJobInfo {
 
     public List<AuditLog> getAuditLogs() {
         return auditLogs;
+    }
+
+    public ServiceJobProcesses getJobProcesses() {
+        return jobProcesses;
     }
 }

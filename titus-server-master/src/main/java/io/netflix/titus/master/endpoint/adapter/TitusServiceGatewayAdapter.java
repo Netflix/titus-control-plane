@@ -78,6 +78,11 @@ public abstract class TitusServiceGatewayAdapter<USER, JOB_SPEC, JOB_TYPE extend
     }
 
     @Override
+    public Observable<Void> updateJobProcesses(USER user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired) {
+        return adapt(delegate.updateJobProcesses(user, jobId, disableDecreaseDesired, disableIncreaseDesired));
+    }
+
+    @Override
     public Observable<Void> changeJobInServiceStatus(USER user, String serviceJobId, boolean inService) {
         return adapt(delegate.changeJobInServiceStatus(user, serviceJobId, inService));
     }

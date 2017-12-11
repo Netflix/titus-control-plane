@@ -20,7 +20,17 @@ import java.util.Optional;
 public interface JobSubmitLimiter {
 
     /**
-     * Check if it is ok to schedule a given job. If not, result contains a reason message.
+     * Check if it is ok to schedule a given job. If not, the result contains a reason message.
      */
     <JOB_DESCR> Optional<String> checkIfAllowed(JOB_DESCR jobDescriptor);
+
+    /**
+     * Reserve job id sequence. If reservation fails, the result contains a reason message.
+     */
+    <JOB_DESCR> Optional<String> reserveId(JOB_DESCR jobDescriptor);
+
+    /**
+     * Release job id sequence.
+     */
+    <JOB_DESCR> void releaseId(JOB_DESCR jobDescriptor);
 }

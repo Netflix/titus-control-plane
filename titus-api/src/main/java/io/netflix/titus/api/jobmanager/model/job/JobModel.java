@@ -39,6 +39,10 @@ public final class JobModel {
         return Capacity.newBuilder();
     }
 
+    public static ServiceJobProcesses.Builder newServiceJobProcesses() {
+        return ServiceJobProcesses.newBuilder();
+    }
+
     public static Capacity.Builder newCapacity(Capacity capacity) {
         return Capacity.newBuilder(capacity);
     }

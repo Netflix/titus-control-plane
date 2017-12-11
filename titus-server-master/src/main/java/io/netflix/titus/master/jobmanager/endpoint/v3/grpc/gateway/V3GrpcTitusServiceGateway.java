@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -171,6 +172,13 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
                 jobId,
                 JobModel.newCapacity().withMin(min).withDesired(desired).withMax(max).build()
         );
+    }
+
+    @Override
+    public Observable<Void> updateJobProcesses(String user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired) {
+        ServiceJobProcesses serviceJobProcesses = ServiceJobProcesses.newBuilder().withDisableDecreaseDesired(disableDecreaseDesired)
+                .withDisableIncreaseDesired(disableIncreaseDesired).build();
+        return jobOperations.updateServiceJobProcesses(jobId, serviceJobProcesses);
     }
 
     @Override

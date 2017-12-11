@@ -19,6 +19,7 @@ package io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -118,6 +119,7 @@ public class V2GrpcTitusServiceGateway
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
         return newObservable(subscriber -> {
+            V2JobDefinition jobDefinition = null;
             try {
                 // Map to the new core model to validate the data.
                 io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
@@ -127,17 +129,29 @@ public class V2GrpcTitusServiceGateway
                     return;
                 }
 
-                V2JobDefinition jobDefinition = V2GrpcModelConverters.toV2JobDefinition(jobDescriptor);
+                jobDefinition = V2GrpcModelConverters.toV2JobDefinition(jobDescriptor);
+
+                Optional<String> reserveStatus = jobSubmitLimiter.reserveId(jobDefinition);
+                if (reserveStatus.isPresent()) {
+                    subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, reserveStatus.get()).build());
+                    return;
+                }
                 Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDefinition);
+
                 if (limited.isPresent()) {
                     subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, limited.get()).build());
-                } else {
-                    String jobId = v2JobOperations.submit(jobDefinition);
-                    subscriber.onNext(jobId);
-                    subscriber.onCompleted();
+                    return;
                 }
+
+                String jobId = v2JobOperations.submit(jobDefinition);
+                subscriber.onNext(jobId);
+                subscriber.onCompleted();
             } catch (IllegalArgumentException e) {
                 subscriber.onError(TitusServiceException.invalidArgument(e));
+            } finally {
+                if (jobDefinition != null) {
+                    jobSubmitLimiter.releaseId(jobDefinition);
+                }
             }
         });
     }
@@ -211,11 +225,11 @@ public class V2GrpcTitusServiceGateway
         Set<String> jobIds = queryCriteria.getJobIds();
         boolean hasJobIds = !jobIds.isEmpty();
         List<V2JobMetadata> jobs = hasJobIds ? getSortedJobsByIds(jobIds) : getAllSortedJobs();
+        boolean includeArchived = queryCriteria.getTaskStates().contains(TaskStatus.TaskState.Finished);
 
         V2TaskQueryCriteriaEvaluator criteriaEvaluator = new V2TaskQueryCriteriaEvaluator(queryCriteria);
         List<Pair<V2JobMetadata, V2WorkerMetadata>> filtered = jobs.stream()
-                .flatMap(job -> job.getStageMetadata(1)
-                        .getAllWorkers().stream()
+                .flatMap(job -> getSortedWorkersForJob(job, includeArchived).stream()
                         .map(task -> Pair.of(job, task))
                 )
                 .filter(criteriaEvaluator)
@@ -267,6 +281,18 @@ public class V2GrpcTitusServiceGateway
         return jobs;
     }
 
+    private List<V2WorkerMetadata> getSortedWorkersForJob(V2JobMetadata job, boolean includeArchived) {
+        List<V2WorkerMetadata> workers = new ArrayList<>(job.getStageMetadata(1).getAllWorkers());
+        if (includeArchived) {
+            final Set<String> currentWorkerInstanceIds = workers.stream().map(V2WorkerMetadata::getWorkerInstanceId).collect(Collectors.toCollection(HashSet::new));
+            final List<? extends V2WorkerMetadata> archivedWorkers = apiOperations.getArchivedWorkers(job.getJobId());
+            final List<? extends V2WorkerMetadata> archivedWorkersOnly = archivedWorkers.stream().filter(w -> !currentWorkerInstanceIds.contains(w.getWorkerInstanceId())).collect(Collectors.toList());
+            workers.addAll(archivedWorkersOnly);
+        }
+        workers.sort(Comparator.comparing(V2WorkerMetadata::getWorkerInstanceId));
+        return workers;
+    }
+
     private Page checkPageIsPresent(Optional<Page> optionalPage) {
         Preconditions.checkArgument(optionalPage.isPresent(), "Expected page object");
         Page page = optionalPage.get();
@@ -299,6 +325,18 @@ public class V2GrpcTitusServiceGateway
                 apiOperations.updateInstanceCounts(jobId, SERVICE_STAGE, min, desired, max, user);
                 subscriber.onCompleted();
             } catch (InvalidJobException e) {
+                subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
+            }
+        });
+    }
+
+    @Override
+    public Observable<Void> updateJobProcesses(String user, String jobId, boolean disableDecreaseDesired, boolean disableIncreaseDesired) {
+        return newObservable(subscriber -> {
+            try {
+                apiOperations.updateJobProcesses(jobId, SERVICE_STAGE, disableIncreaseDesired, disableDecreaseDesired, user);
+                subscriber.onCompleted();
+            } catch (Exception e) {
                 subscriber.onError(TitusServiceException.jobNotFound(jobId, e));
             }
         });

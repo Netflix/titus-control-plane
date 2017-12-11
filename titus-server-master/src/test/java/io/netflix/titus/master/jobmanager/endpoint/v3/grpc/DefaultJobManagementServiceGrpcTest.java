@@ -25,10 +25,12 @@ import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Pagination;
+import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusServiceGateway;
@@ -45,6 +47,7 @@ import static io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.to
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -90,6 +93,18 @@ public class DefaultJobManagementServiceGrpcTest {
         service.updateJobCapacity(update, response);
 
         verify(gateway, times(1)).resizeJob("unitTest", JOB.getId(), 1, 2, 3);
+    }
+
+    @Test
+    public void testUpdateJobProcesses() throws Exception {
+        when(gateway.updateJobProcesses(any(), any(), anyBoolean(), anyBoolean())).thenReturn(Observable.empty());
+        TestStreamObserver<Empty> response = new TestStreamObserver<>();
+        JobProcessesUpdate jobProcessesUpdate = JobProcessesUpdate.newBuilder().setJobId(JOB.getId()).setServiceJobProcesses(
+                ServiceJobSpec.ServiceJobProcesses.newBuilder().setDisableDecreaseDesired(true).setDisableIncreaseDesired(false).build()
+        ).build();
+        service.updateJobProcesses(jobProcessesUpdate, response);
+        verify(gateway, times(1)).updateJobProcesses("unitTest", JOB.getId(),
+                true, false);
     }
 
     @Test

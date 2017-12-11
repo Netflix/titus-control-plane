@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.MachineDefinition;
+import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 
 public interface V2StageMetadata {
@@ -55,4 +56,6 @@ public interface V2StageMetadata {
     V2WorkerMetadata getWorkerByIndex(int workerIndex) throws InvalidJobException;
 
     V2WorkerMetadata getWorkerByWorkerNumber(int workerNumber) throws InvalidJobException;
+
+    ServiceJobProcesses getJobProcesses();
 }

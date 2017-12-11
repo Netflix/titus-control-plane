@@ -53,6 +53,7 @@ import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
 import io.netflix.titus.master.job.V2JobMgrIntf;
 import io.netflix.titus.master.job.V2JobOperations;
+import io.netflix.titus.master.job.service.ServiceJobMgr;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -351,7 +352,7 @@ public class DefaultAppScaleManagerTest {
 
 
     private V2JobOperations mockV2Operations() {
-        V2JobMgrIntf mockJobMgr = mock(V2JobMgrIntf.class);
+        V2JobMgrIntf mockJobMgr = mock(ServiceJobMgr.class);
         V2JobOperations mockV2JobOperations = mock(V2JobOperations.class);
         V2JobDefinition mockJobDefinition = mock(V2JobDefinition.class);
         StageSchedulingInfo mockStageSchedulingInfo = mock(StageSchedulingInfo.class);

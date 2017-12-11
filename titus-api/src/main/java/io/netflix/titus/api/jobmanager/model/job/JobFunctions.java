@@ -106,6 +106,12 @@ public final class JobFunctions {
         return job.toBuilder().withJobDescriptor(jobDescriptor).build();
     }
 
+    public static Job<ServiceJobExt> changeServiceJobProcesses(Job<ServiceJobExt> job, ServiceJobProcesses processes) {
+        return job.toBuilder().withJobDescriptor(job.getJobDescriptor().but(jd ->
+                jd.getExtensions().toBuilder().withServiceJobProcesses(processes).build()
+        )).build();
+    }
+
     public static Task changeTaskStatus(Task task, TaskStatus status) {
         return taskStatusChangeBuilder(task, status).build();
     }

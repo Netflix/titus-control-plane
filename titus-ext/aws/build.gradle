@@ -20,4 +20,7 @@ dependencies {
 
     compile "com.amazonaws:aws-java-sdk-ec2:${awsSdkVersion}"
     compile "com.amazonaws:aws-java-sdk-autoscaling:${awsSdkVersion}"
+    compile "com.amazonaws:aws-java-sdk-elasticloadbalancingv2:${awsSdkVersion}"
+
+    testCompile project(':titus-testkit')
 }
