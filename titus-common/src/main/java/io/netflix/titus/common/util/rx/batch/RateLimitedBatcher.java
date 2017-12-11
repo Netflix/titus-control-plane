@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
+import rx.exceptions.Exceptions;
 import rx.plugins.RxJavaHooks;
 
 
@@ -134,6 +135,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
     /**
      * Continually flushes pending batches to downstream subscribers
      */
+    // FIXME: replace synchronized loops with an event loop (action queue) to respect the Observable contract
     private final class Flusher {
         /**
          * each batch is an immutable Map (indexed by <tt>Batchable#getIdentifier()</tt>), and modifications are applied
@@ -230,8 +232,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
                         logger.info("Ending the flush loop, onError was called and onNext can not be called anymore");
                         return;
                     }
-                    // TODO: capture rate limit exceptions from downstream and apply exponential backoff here too
-                    downstream.onNext(next);
+                    onNextSafe(next);
                 }
                 /*
                  * Only remove sent items if they have not been modified in the pending data structure to avoid losing
@@ -246,6 +247,20 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
 
             logger.debug("All pending items flushed, scheduling another round");
             worker.schedule(this::flushPending);
+        }
+
+        /**
+         * swallow downstream exceptions and keep the event loop running
+         */
+        private void onNextSafe(Batch<T, I> next) {
+            // TODO: consider terminating the event loop, unsubscribing from upstream and sending an onError downstream
+            // TODO: capture rate limit exceptions from downstream and apply exponential backoff here too
+            try {
+                downstream.onNext(next);
+            } catch (Throwable ex) {
+                Exceptions.throwIfFatal(ex);
+                logger.error("onNext failed, ignoring batch " + next.getIndex().toString(), ex);
+            }
         }
 
         private void scheduleNextWhenRateLimited() {

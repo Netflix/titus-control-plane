@@ -29,6 +29,7 @@ import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
+import rx.Subscriber;
 import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
@@ -329,6 +330,31 @@ public class RateLimitedBatcherTest {
         subscriber.assertNoErrors();
     }
 
+    @Test
+    public void ignoreErrorsFromDownstream() {
+        final Instant now = Instant.ofEpochMilli(testScheduler.now());
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
+                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
+        );
+        final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
+
+        final AssertableSubscriber<?> subscriber = updates.lift(batcher)
+                .lift(new ExceptionThrowingOperator("some error happened"))
+                .test();
+        testScheduler.triggerActions();
+        subscriber.assertNoTerminalEvent().assertNoValues();
+
+        for (int i = 0; i < 10; i++) {
+            updates.onNext(new BatchableOperationMock(Low, now, "resource2", "sub2", "create"));
+            testScheduler.advanceTimeBy(minimumTimeInQueueMs, TimeUnit.MILLISECONDS);
+            subscriber.assertNoTerminalEvent().assertNoValues();
+        }
+
+        updates.onCompleted();
+        testScheduler.advanceTimeBy(minimumTimeInQueueMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNoValues().assertCompleted();
+    }
+
     private <T extends Batchable<I>, I> List<T> toUpdateList(List<Batch<T, I>> expected) {
         List<T> updates = expected.stream()
                 .flatMap(batch -> batch.getItems().stream())
@@ -342,4 +368,31 @@ public class RateLimitedBatcherTest {
 
     }
 
+    private static class ExceptionThrowingOperator implements Observable.Operator<Object, Batch<?, ?>> {
+        private final String errorMessage;
+
+        private ExceptionThrowingOperator(String errorMessage) {
+            this.errorMessage = errorMessage;
+        }
+
+        @Override
+        public Subscriber<? super Batch<?, ?>> call(Subscriber<? super Object> child) {
+            return new Subscriber<Batch<?, ?>>() {
+                @Override
+                public void onCompleted() {
+                    child.onCompleted();
+                }
+
+                @Override
+                public void onError(Throwable e) {
+                    child.onError(e);
+                }
+
+                @Override
+                public void onNext(Batch<?, ?> batch) {
+                    throw new RuntimeException(errorMessage);
+                }
+            };
+        }
+    }
 }
