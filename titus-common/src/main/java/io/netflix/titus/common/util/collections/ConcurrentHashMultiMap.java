@@ -30,8 +30,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -57,6 +57,7 @@ import io.netflix.titus.common.util.CollectionsExt;
  * @param <K> type of keys. They must have a correct implementations of <tt>equals()</tt> and <tt>hashCode()</tt>
  * @param <V> type of values. Operations on values will use <tt>equals()</tt>, so it is hightly recommended it is properly implemented
  */
+@ParametersAreNonnullByDefault
 public class ConcurrentHashMultiMap<K, V> implements Multimap<K, V> {
     private final ConcurrentMap<K, Map<Object, V>> entries = new ConcurrentHashMap<>();
     private final ValueIdentityExtractor<V> valueIdentityExtractor;
@@ -76,13 +77,13 @@ public class ConcurrentHashMultiMap<K, V> implements Multimap<K, V> {
      * @return true if the Map was updated, false if the existing value was kept, as per conflict resolution (ConflictResolver).
      */
     @Override
-    public boolean put(K key, V value) {
+    public boolean put(@Nullable K key, @Nullable V value) {
         Preconditions.checkNotNull(key);
         Preconditions.checkNotNull(value);
         return putWithConflictResolution(key, value, defaultConflictResolver);
     }
 
-    private boolean putWithConflictResolution(@Nonnull K key, @Nonnull V newValue, @Nonnull ConflictResolver<V> conflictResolver) {
+    private boolean putWithConflictResolution(K key, V newValue, ConflictResolver<V> conflictResolver) {
         // this can be updated multiple times by the compute call below. The last write wins. Never rely on its default value.
         final AtomicBoolean modified = new AtomicBoolean(false);
         final Object id = valueIdentityExtractor.apply(newValue);
@@ -134,7 +135,7 @@ public class ConcurrentHashMultiMap<K, V> implements Multimap<K, V> {
      * @param value to be removed from the key
      * @return true if the <tt>MultiMap</tt> changed
      */
-    public boolean removeIf(@Nonnull K key, @Nonnull V value, Predicate<V> match) {
+    public boolean removeIf(K key, V value, Predicate<V> match) {
         // this can be updated multiple times by the compute call below. The last write wins. Never rely on its default value.
         final AtomicBoolean modified = new AtomicBoolean(false);
         final Object id = valueIdentityExtractor.apply(value);
@@ -169,7 +170,8 @@ public class ConcurrentHashMultiMap<K, V> implements Multimap<K, V> {
      * @return if the <tt>MultiMap</tt> was modified
      */
     @Override
-    public boolean putAll(@Nullable K key, @Nonnull Iterable<? extends V> values) {
+    public boolean putAll(@Nullable K key, Iterable<? extends V> values) {
+        Preconditions.checkNotNull(key);
         return StreamSupport.stream(values.spliterator(), false)
                 .map(value -> put(key, value))
                 .reduce(false, (acc, modified) -> acc || modified);
@@ -183,7 +185,7 @@ public class ConcurrentHashMultiMap<K, V> implements Multimap<K, V> {
      * @return if the <tt>MultiMap</tt> was modified
      */
     @Override
-    public boolean putAll(@Nonnull Multimap<? extends K, ? extends V> values) {
+    public boolean putAll(Multimap<? extends K, ? extends V> values) {
         return values.asMap().entrySet().stream()
                 .map(entry -> putAll(entry.getKey(), entry.getValue()))
                 .reduce(false, (acc, modified) -> acc || modified);
@@ -201,7 +203,8 @@ public class ConcurrentHashMultiMap<K, V> implements Multimap<K, V> {
      * @return this breaks the contract of the MultiMap interface and does not return the modified items
      */
     @Override
-    public Collection<V> replaceValues(@Nullable K key, @Nonnull Iterable<? extends V> values) {
+    public Collection<V> replaceValues(@Nullable K key, Iterable<? extends V> values) {
+        Preconditions.checkNotNull(key);
         values.forEach(v -> putWithConflictResolution(key, v, (e, n) -> true));
         return ImmutableList.of();
     }
