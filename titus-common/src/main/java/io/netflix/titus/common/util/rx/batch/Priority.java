@@ -17,5 +17,5 @@
 package io.netflix.titus.common.util.rx.batch;
 
 public enum Priority {
-    LOW, HIGH
+    Low, High
 }
