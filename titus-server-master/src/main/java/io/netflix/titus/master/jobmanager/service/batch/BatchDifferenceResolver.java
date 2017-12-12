@@ -40,8 +40,10 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.retry.Retryers;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.time.Clocks;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
 import io.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
@@ -50,7 +52,9 @@ import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskAc
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
+import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
@@ -70,6 +74,9 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private final VirtualMachineMasterService vmService;
     private final JobStore jobStore;
 
+    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
+    private final GlobalConstraintEvaluator globalConstraintEvaluator;
+
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
     private final Clock clock;
@@ -80,8 +87,10 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
-            JobStore jobStore) {
-        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, Clocks.system(), Schedulers.computation());
+            JobStore jobStore,
+            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+            GlobalConstraintEvaluator globalConstraintEvaluator) {
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer, globalConstraintEvaluator, Clocks.system(), Schedulers.computation());
     }
 
     public BatchDifferenceResolver(
@@ -90,6 +99,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
+            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+            GlobalConstraintEvaluator globalConstraintEvaluator,
             Clock clock,
             Scheduler scheduler) {
         this.configuration = configuration;
@@ -97,6 +108,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         this.schedulingService = schedulingService;
         this.vmService = vmService;
         this.jobStore = jobStore;
+        this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
+        this.globalConstraintEvaluator = globalConstraintEvaluator;
         this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
@@ -137,7 +150,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         }
 
         actions.addAll(findJobSizeInconsistencies(refJobView, storeModel, allowedNewTasks));
-        actions.addAll(findMissingRunningTasks(refJobView, runningJobView));
+        actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
 
         return actions;
@@ -170,13 +183,20 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     /**
      * Check that for each reference job task, there is a corresponding running task.
      */
-    private List<ChangeAction> findMissingRunningTasks(BatchJobView refJobView, BatchJobView runningJobView) {
+    private List<ChangeAction> findMissingRunningTasks(ReconciliationEngine<JobManagerReconcilerEvent> engine, BatchJobView refJobView, BatchJobView runningJobView) {
         List<ChangeAction> missingTasks = new ArrayList<>();
         List<BatchJobTask> tasks = refJobView.getTasks();
         for (BatchJobTask refTask : tasks) {
             BatchJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
-                missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));
+                missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService,
+                        schedulingService,
+                        runningJobView.getJob(),
+                        refTask,
+                        () -> JobManagerUtil.filterActiveTaskIds(engine),
+                        constraintEvaluatorTransformer,
+                        globalConstraintEvaluator
+                ));
             }
         }
         return missingTasks;

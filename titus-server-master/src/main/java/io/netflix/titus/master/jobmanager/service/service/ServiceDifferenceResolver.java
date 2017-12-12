@@ -39,8 +39,10 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.retry.Retryers;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.time.Clocks;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
 import io.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
@@ -49,7 +51,9 @@ import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskAc
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
+import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
@@ -70,6 +74,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final SchedulingService schedulingService;
     private final VirtualMachineMasterService vmService;
     private final JobStore jobStore;
+    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
+    private final GlobalConstraintEvaluator globalConstraintEvaluator;
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
@@ -81,8 +87,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
-            JobStore jobStore) {
-        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, Clocks.system(), Schedulers.computation());
+            JobStore jobStore,
+            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+            GlobalConstraintEvaluator globalConstraintEvaluator) {
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer, globalConstraintEvaluator, Clocks.system(), Schedulers.computation());
     }
 
     public ServiceDifferenceResolver(
@@ -91,6 +99,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
+            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+            GlobalConstraintEvaluator globalConstraintEvaluator,
             Clock clock,
             Scheduler scheduler) {
         this.configuration = configuration;
@@ -98,6 +108,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.schedulingService = schedulingService;
         this.vmService = vmService;
         this.jobStore = jobStore;
+        this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
+        this.globalConstraintEvaluator = globalConstraintEvaluator;
         this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
@@ -137,7 +149,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
 
         actions.addAll(findJobSizeInconsistencies(engine, refJobView, storeModel, allowedNewTasks));
-        actions.addAll(findMissingRunningTasks(refJobView, runningJobView));
+        actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
 
         return actions;
@@ -183,13 +195,21 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     /**
      * Check that for each reference job task, there is a corresponding running task.
      */
-    private List<ChangeAction> findMissingRunningTasks(ServiceJobView refJobView, ServiceJobView runningJobView) {
+    private List<ChangeAction> findMissingRunningTasks(ReconciliationEngine<JobManagerReconcilerEvent> engine, ServiceJobView refJobView, ServiceJobView runningJobView) {
         List<ChangeAction> missingTasks = new ArrayList<>();
         List<ServiceJobTask> tasks = refJobView.getTasks();
         for (ServiceJobTask refTask : tasks) {
             ServiceJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
-                missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));
+                missingTasks.add(BasicTaskActions.scheduleTask(
+                        capacityGroupService,
+                        schedulingService,
+                        refJobView.getJob(),
+                        refTask,
+                        () -> JobManagerUtil.filterActiveTaskIds(engine),
+                        constraintEvaluatorTransformer,
+                        globalConstraintEvaluator
+                ));
             }
         }
         return missingTasks;
@@ -222,7 +242,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
             if (refAndStoreInSync) {
                 TaskState currentTaskState = refTask.getStatus().getState();
-                if(currentTaskState == TaskState.Finished) {
+                if (currentTaskState == TaskState.Finished) {
                     if (isJobTerminating || TaskStatus.REASON_SCALED_DOWN.equals(storeTask.getStatus().getReasonCode())) {
                         actions.add(removeFinishedServiceTaskAction(storeTask));
                     } else if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTaskHolder, clock)) {

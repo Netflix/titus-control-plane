@@ -16,7 +16,9 @@
 
 package io.netflix.titus.master.scheduler;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -32,44 +34,46 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
-public class ConstraintsEvaluators {
+public class V2ConstraintEvaluatorTransformer implements ConstraintEvaluatorTransformer<JobConstraints> {
 
     private static final int EXPECTED_NUM_ZONES = 3;
     private static ExclusiveHostConstraint exclusiveHostConstraint = new ExclusiveHostConstraint();
-    private static final Logger logger = LoggerFactory.getLogger(ConstraintsEvaluators.class);
+    private static final Logger logger = LoggerFactory.getLogger(V2ConstraintEvaluatorTransformer.class);
 
     private final MasterConfiguration config;
 
     @Inject
-    public ConstraintsEvaluators(MasterConfiguration config) {
+    public V2ConstraintEvaluatorTransformer(MasterConfiguration config) {
         this.config = config;
     }
 
-    public ConstraintEvaluator hardConstraint(JobConstraints constraint, final Set<String> coTasks) {
+    @Override
+    public Optional<ConstraintEvaluator> hardConstraint(JobConstraints constraint, Supplier<Set<String>> activeTasksGetter) {
         switch (constraint) {
             case ExclusiveHost:
-                return exclusiveHostConstraint;
+                return Optional.of(exclusiveHostConstraint);
             case UniqueHost:
-                return new UniqueHostAttrConstraint(s -> coTasks);
+                return Optional.of(new UniqueHostAttrConstraint(s -> activeTasksGetter.get()));
             case ZoneBalance:
-                return new BalancedHostAttrConstraint(s -> coTasks, zoneAttributeName(), EXPECTED_NUM_ZONES);
+                return Optional.of(new BalancedHostAttrConstraint(s -> activeTasksGetter.get(), zoneAttributeName(), EXPECTED_NUM_ZONES));
             default:
                 logger.error("Unknown job hard constraint " + constraint);
-                return null;
+                return Optional.empty();
         }
     }
 
-    public VMTaskFitnessCalculator softConstraint(JobConstraints constraint, final Set<String> coTasks) {
+    @Override
+    public Optional<VMTaskFitnessCalculator> softConstraint(JobConstraints constraint, Supplier<Set<String>> activeTasksGetter) {
         switch (constraint) {
             case ExclusiveHost:
-                return AsSoftConstraint.get(exclusiveHostConstraint);
+                return Optional.of(AsSoftConstraint.get(exclusiveHostConstraint));
             case UniqueHost:
-                return AsSoftConstraint.get(new UniqueHostAttrConstraint(s -> coTasks));
+                return Optional.of(AsSoftConstraint.get(new UniqueHostAttrConstraint(s -> activeTasksGetter.get())));
             case ZoneBalance:
-                return new BalancedHostAttrConstraint(s -> coTasks, zoneAttributeName(), EXPECTED_NUM_ZONES).asSoftConstraint();
+                return Optional.of(new BalancedHostAttrConstraint(s -> activeTasksGetter.get(), zoneAttributeName(), EXPECTED_NUM_ZONES).asSoftConstraint());
             default:
                 logger.error("Unknown job soft constraint " + constraint);
-                return null;
+                return Optional.empty();
         }
     }
 

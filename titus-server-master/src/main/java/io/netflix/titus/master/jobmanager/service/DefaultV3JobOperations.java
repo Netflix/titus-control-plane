@@ -73,7 +73,9 @@ import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEven
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
+import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
+import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.slf4j.Logger;
@@ -90,8 +92,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultV3JobOperations.class);
 
-    public static final String BATCH_RESOLVER = "batchResolver";
-    public static final String SERVICE_RESOLVER = "serviceResolver";
+    static final String BATCH_RESOLVER = "batchResolver";
+    static final String SERVICE_RESOLVER = "serviceResolver";
 
     private static final long RECONCILER_SHUTDOWN_TIMEOUT_MS = 30_000;
     private static final int MAX_RETRIEVE_TASK_CONCURRENCY = 1_000;
@@ -108,6 +110,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private final JobManagerConfiguration jobManagerConfiguration;
     private final SchedulingService schedulingService;
     private final ApplicationSlaManagementService capacityGroupService;
+    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
+    private final GlobalConstraintEvaluator globalConstraintEvaluator;
     private final Subscription transactionLoggerSubscription;
 
     @SuppressWarnings("unchecked")
@@ -118,8 +122,10 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   JobStore store,
                                   SchedulingService schedulingService,
                                   VirtualMachineMasterService vmService,
-                                  ApplicationSlaManagementService capacityGroupService) {
-        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, vmService, capacityGroupService, Schedulers.computation());
+                                  ApplicationSlaManagementService capacityGroupService,
+                                  ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                  GlobalConstraintEvaluator globalConstraintEvaluator) {
+        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, vmService, capacityGroupService, constraintEvaluatorTransformer, globalConstraintEvaluator, Schedulers.computation());
     }
 
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
@@ -129,10 +135,14 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   SchedulingService schedulingService,
                                   VirtualMachineMasterService vmService,
                                   ApplicationSlaManagementService capacityGroupService,
+                                  ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                  GlobalConstraintEvaluator globalConstraintEvaluator,
                                   Scheduler scheduler) {
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
+        this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
+        this.globalConstraintEvaluator = globalConstraintEvaluator;
 
         DifferenceResolver<JobManagerReconcilerEvent> dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
             Job<?> job = rootModel.getEntity();
@@ -220,7 +230,15 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 try {
                     Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
                     String host = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-                    schedulingService.initRunningTask(new V3QueueableTask(tierAssignment.getLeft(), tierAssignment.getRight(), job, task), host);
+                    schedulingService.initRunningTask(new V3QueueableTask(
+                            tierAssignment.getLeft(),
+                            tierAssignment.getRight(),
+                            job,
+                            task,
+                            () -> Collections.emptySet(), // FIXME To do better we need to improve the reconciliation engine bootstrap mechanism.
+                            constraintEvaluatorTransformer,
+                            globalConstraintEvaluator
+                    ), host);
                 } catch (Exception e) {
                     logger.error("Failed to initialize taskId: {} with error:", task.getId(), e);
                     failedTaskIds.add(task.getId());

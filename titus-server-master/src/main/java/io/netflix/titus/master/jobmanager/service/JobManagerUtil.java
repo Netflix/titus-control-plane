@@ -19,8 +19,11 @@ package io.netflix.titus.master.jobmanager.service;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
@@ -36,9 +39,11 @@ import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
@@ -53,6 +58,17 @@ public final class JobManagerUtil {
     private static final ObjectMapper mapper = ObjectMappers.defaultMapper();
 
     private JobManagerUtil() {
+    }
+
+    public static Set<String> filterActiveTaskIds(ReconciliationEngine<JobManagerReconcilerEvent> engine) {
+        return engine.getRunningView().getChildren().stream()
+                .map(taskHolder -> {
+                    Task task = taskHolder.getEntity();
+                    TaskState state = task.getStatus().getState();
+                    return state != TaskState.Finished ? task.getId() : null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     public static Pair<Tier, String> getTierAssignment(Job<?> job, ApplicationSlaManagementService capacityGroupService) {
