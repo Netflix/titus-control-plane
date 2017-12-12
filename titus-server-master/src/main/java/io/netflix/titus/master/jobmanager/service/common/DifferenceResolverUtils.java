@@ -177,14 +177,12 @@ public class DifferenceResolverUtils {
     public static int countActiveNotStartedTasks(EntityHolder refJobHolder, EntityHolder runningJobHolder) {
         Set<String> pendingTaskIds = new HashSet<>();
 
-        Consumer<EntityHolder> countingFun = jobHolder -> {
-            jobHolder.getChildren().forEach(taskHolder -> {
-                TaskState state = ((Task) taskHolder.getEntity()).getStatus().getState();
-                if (state != TaskState.Started && state != TaskState.Finished) {
-                    pendingTaskIds.add(taskHolder.getId());
-                }
-            });
-        };
+        Consumer<EntityHolder> countingFun = jobHolder -> jobHolder.getChildren().forEach(taskHolder -> {
+            TaskState state = ((Task) taskHolder.getEntity()).getStatus().getState();
+            if (state != TaskState.Started && state != TaskState.Finished) {
+                pendingTaskIds.add(taskHolder.getId());
+            }
+        });
         countingFun.accept(refJobHolder);
         countingFun.accept(runningJobHolder);
 
@@ -198,6 +196,7 @@ public class DifferenceResolverUtils {
         private final List<TASK> tasks;
         private final int requiredSize;
 
+        @SuppressWarnings("unchecked")
         public JobView(EntityHolder jobHolder) {
             this.job = jobHolder.getEntity();
             this.jobHolder = jobHolder;

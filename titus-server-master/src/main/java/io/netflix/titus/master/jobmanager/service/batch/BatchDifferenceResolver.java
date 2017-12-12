@@ -173,8 +173,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private List<ChangeAction> findMissingRunningTasks(BatchJobView refJobView, BatchJobView runningJobView) {
         List<ChangeAction> missingTasks = new ArrayList<>();
         List<BatchJobTask> tasks = refJobView.getTasks();
-        for (int i = 0; i < tasks.size(); i++) {
-            BatchJobTask refTask = tasks.get(i);
+        for (BatchJobTask refTask : tasks) {
             BatchJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
                 missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));

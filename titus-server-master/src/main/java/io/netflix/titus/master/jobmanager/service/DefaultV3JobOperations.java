@@ -98,7 +98,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private enum IndexKind {StatusCreationTime}
 
-    private Map<Object, Comparator<EntityHolder>> indexComparators = Collections.singletonMap(
+    private final Map<Object, Comparator<EntityHolder>> indexComparators = Collections.singletonMap(
             IndexKind.StatusCreationTime, DefaultV3JobOperations::compareByStatusCreationTime
     );
 
@@ -110,6 +110,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private final ApplicationSlaManagementService capacityGroupService;
     private final Subscription transactionLoggerSubscription;
 
+    @SuppressWarnings("unchecked")
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
                                   @Named(BATCH_RESOLVER) DifferenceResolver batchDifferenceResolver,
@@ -122,8 +123,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
-                                  @Named(BATCH_RESOLVER) DifferenceResolver batchDifferenceResolver,
-                                  @Named(SERVICE_RESOLVER) DifferenceResolver serviceDifferenceResolver,
+                                  @Named(BATCH_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
+                                  @Named(SERVICE_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                   JobStore store,
                                   SchedulingService schedulingService,
                                   VirtualMachineMasterService vmService,
@@ -133,7 +134,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
 
-        DifferenceResolver dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
+        DifferenceResolver<JobManagerReconcilerEvent> dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
             Job<?> job = rootModel.getEntity();
             JobDescriptor.JobDescriptorExt extensions = job.getJobDescriptor().getExtensions();
             if (extensions instanceof BatchJobExt) {

@@ -41,6 +41,7 @@ import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelCo
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import io.netflix.titus.runtime.endpoint.common.QueryUtils;
 
+@SuppressWarnings("ALL")
 public class V2AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements Predicate<Pair<V2JobMetadata, TASK_OR_SET>> {
 
     private final Predicate<Pair<V2JobMetadata, TASK_OR_SET>> queryPredicate;

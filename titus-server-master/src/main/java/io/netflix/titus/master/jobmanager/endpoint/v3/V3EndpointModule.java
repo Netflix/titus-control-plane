@@ -16,10 +16,14 @@
 
 package io.netflix.titus.master.jobmanager.endpoint.v3;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
-import com.netflix.titus.grpc.protogen.*;
+import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.TaskStatus;
@@ -41,9 +45,6 @@ import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V3GrpcTitusSe
 import io.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
 
 import static io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.RoutingGrpcTitusServiceGateway.NAME_V2_ENGINE_GATEWAY;
 import static io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.RoutingGrpcTitusServiceGateway.NAME_V3_ENGINE_GATEWAY;
@@ -81,11 +82,7 @@ public class V3EndpointModule extends AbstractModule {
             MasterMonitor masterMonitor,
             LeaderActivator leaderActivator,
             GrpcEndpointConfiguration configuration) {
-
         RoutingGrpcTitusServiceGateway serviceGateway = new RoutingGrpcTitusServiceGateway(v2EngineGateway, v3EngineGateway, configuration);
-        LegacyTitusServiceGatewayGuard<String, JobDescriptor, JobSpecCase, Job, com.netflix.titus.grpc.protogen.Task, TaskStatus.TaskState> serviceGuard =
-                new LegacyTitusServiceGatewayGuard<>(serviceGateway, apiOperations, masterMonitor, leaderActivator);
-
-        return serviceGuard;
+        return new LegacyTitusServiceGatewayGuard<>(serviceGateway, apiOperations, masterMonitor, leaderActivator);
     }
 }

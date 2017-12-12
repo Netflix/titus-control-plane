@@ -186,8 +186,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private List<ChangeAction> findMissingRunningTasks(ServiceJobView refJobView, ServiceJobView runningJobView) {
         List<ChangeAction> missingTasks = new ArrayList<>();
         List<ServiceJobTask> tasks = refJobView.getTasks();
-        for (int i = 0; i < tasks.size(); i++) {
-            ServiceJobTask refTask = tasks.get(i);
+        for (ServiceJobTask refTask : tasks) {
             ServiceJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
                 missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));

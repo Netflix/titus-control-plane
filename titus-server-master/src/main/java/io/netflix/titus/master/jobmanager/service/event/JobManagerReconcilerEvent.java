@@ -25,7 +25,7 @@ public abstract class JobManagerReconcilerEvent {
     private final Job<?> job;
     private final long transactionId;
 
-    protected JobManagerReconcilerEvent(Job<?> job, long transactionId) {
+    JobManagerReconcilerEvent(Job<?> job, long transactionId) {
         this.job = job;
         this.transactionId = transactionId;
     }

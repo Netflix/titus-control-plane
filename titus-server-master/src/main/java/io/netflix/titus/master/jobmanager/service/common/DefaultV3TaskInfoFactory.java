@@ -70,6 +70,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         this.iamArnPrefix = ARN_PREFIX + accountId + ARN_SUFFIX;
     }
 
+    @Override
     public Protos.TaskInfo newTaskInfo(TitusQueuableTask<Job, Task> fenzoTask,
                                        Job<?> job,
                                        Task task,

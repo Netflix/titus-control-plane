@@ -110,7 +110,7 @@ public class CreateOrReplaceServiceTaskActions {
         return actions;
     }
 
-    public static ServiceJobTask createNewServiceTask(Job<?> job, long timestamp) {
+    private static ServiceJobTask createNewServiceTask(Job<?> job, long timestamp) {
         String taskId = UUID.randomUUID().toString();
         return ServiceJobTask.newBuilder()
                 .withId(taskId)
@@ -120,7 +120,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .build();
     }
 
-    public static ServiceJobTask createServiceTaskReplacement(ServiceJobTask oldTask, long timestamp) {
+    private static ServiceJobTask createServiceTaskReplacement(ServiceJobTask oldTask, long timestamp) {
         String taskId = UUID.randomUUID().toString();
         return ServiceJobTask.newBuilder()
                 .withId(taskId)

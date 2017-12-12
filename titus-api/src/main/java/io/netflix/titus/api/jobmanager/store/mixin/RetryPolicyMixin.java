@@ -19,6 +19,7 @@ package io.netflix.titus.api.jobmanager.store.mixin;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
+import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 
 @JsonTypeInfo(
@@ -28,6 +29,7 @@ import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = ImmediateRetryPolicy.class, name = "immediateRetryPolicy"),
         @JsonSubTypes.Type(value = DelayedRetryPolicy.class, name = "delayedRetryPolicy"),
+        @JsonSubTypes.Type(value = ExponentialBackoffRetryPolicy.class, name = "exponentialBackoffRetryPolicy"),
 })
 public abstract class RetryPolicyMixin {
 }

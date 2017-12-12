@@ -77,7 +77,6 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.netflix.titus.api.jobmanager.model.job.Container.*;
 import static io.netflix.titus.api.jobmanager.model.job.Container.RESOURCE_GPU;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_ERROR;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
@@ -696,9 +695,7 @@ public final class V2GrpcModelConverters {
 
     public static Constraints toGrpcJobConstraintList(List<JobConstraints> constraints) {
         Constraints.Builder builder = Constraints.newBuilder();
-        constraints.forEach(c -> {
-            builder.putConstraints(c.name(), "true");
-        });
+        constraints.forEach(c -> builder.putConstraints(c.name(), "true"));
         return builder.build();
     }
 

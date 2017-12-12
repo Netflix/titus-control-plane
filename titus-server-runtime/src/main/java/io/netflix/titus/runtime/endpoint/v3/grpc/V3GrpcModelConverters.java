@@ -59,6 +59,7 @@ import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
+import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.api.model.EfsMount;
@@ -412,6 +413,13 @@ public final class V3GrpcModelConverters {
             builder.setDelayed(com.netflix.titus.grpc.protogen.RetryPolicy.Delayed.newBuilder()
                     .setRetries(retryPolicy.getRetries())
                     .setDelayMs(delayed.getDelayMs())
+            );
+        } else if (retryPolicy instanceof ExponentialBackoffRetryPolicy) {
+            ExponentialBackoffRetryPolicy exponential = (ExponentialBackoffRetryPolicy) retryPolicy;
+            builder.setExponentialBackOff(com.netflix.titus.grpc.protogen.RetryPolicy.ExponentialBackOff.newBuilder()
+                    .setInitialDelayMs(exponential.getInitialDelayMs())
+                    .setMaxDelayIntervalMs(exponential.getMaxDelayMs())
+                    .setRetries(retryPolicy.getRetries())
             );
         } else {
             throw new IllegalStateException("Unknown retry policy " + retryPolicy);

@@ -92,11 +92,11 @@ public abstract class TitusModelAction implements ModelAction {
         private Trigger trigger;
         private String summary = "None";
 
-        public Builder(String name) {
+        private Builder(String name) {
             this.name = name;
         }
 
-        public Builder id(String id) {
+        private Builder id(String id) {
             this.id = id;
             return this;
         }

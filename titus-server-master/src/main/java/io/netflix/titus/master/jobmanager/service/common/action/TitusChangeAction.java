@@ -86,7 +86,7 @@ public abstract class TitusChangeAction implements ChangeAction {
         String summary = "None";
         Trigger trigger;
 
-        public Builder(String name) {
+        private Builder(String name) {
             this.name = name;
         }
 

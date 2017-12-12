@@ -61,7 +61,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     private static final Logger logger = LoggerFactory.getLogger(V3GrpcTitusServiceGateway.class);
 
-    public static JobChangeNotification SNAPSHOT_END_MARKER = JobChangeNotification.newBuilder().setSnapshotEnd(
+    static final JobChangeNotification SNAPSHOT_END_MARKER = JobChangeNotification.newBuilder().setSnapshotEnd(
             JobChangeNotification.SnapshotEnd.newBuilder()
     ).build();
 
@@ -114,6 +114,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
                 .orElseGet(() -> Observable.error(JobManagerException.jobNotFound(jobId)));
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Override
     public Pair<List<Job>, Pagination> findJobsByCriteria(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Optional<Page> pageOpt) {
         Page page = pageOpt.get();
@@ -134,6 +135,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         return Pair.of(jobs, new Pagination(page, false, 1, jobs.size()));
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Override
     public Pair<List<com.netflix.titus.grpc.protogen.Task>, Pagination> findTasksByCriteria(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Optional<Page> pageOpt) {
         Page page = pageOpt.get();

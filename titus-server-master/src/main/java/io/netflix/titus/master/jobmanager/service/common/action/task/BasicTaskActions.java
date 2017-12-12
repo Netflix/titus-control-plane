@@ -35,16 +35,12 @@ import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEven
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 import static io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction.newModelUpdate;
 
 public class BasicTaskActions {
-
-    private static final Logger logger = LoggerFactory.getLogger(BasicTaskActions.class);
 
     /**
      * Update a task, and write it to store before updating reference and store models.
@@ -147,7 +143,7 @@ public class BasicTaskActions {
                             // Handle separately reference and runtime models, as only reference model gets retry attributes.
                             List<ModelActionHolder> modelActionHolders = new ArrayList<>();
 
-                            // Add ratyer data to task context.
+                            // Add retryer data to task context.
                             EntityHolder newTaskHolder;
                             if (newTask.getStatus().getState() == TaskState.Finished) {
                                 long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(taskHolder, configuration.getTaskRetryerResetTimeMs());
@@ -169,7 +165,7 @@ public class BasicTaskActions {
                                 modelActionHolders.add(ModelActionHolder.reference(newModelUpdate(self).taskUpdate(newTask)));
                             }
 
-                    modelActionHolders.add(ModelActionHolder.running(newModelUpdate(self).taskUpdate(newTask)));
+                            modelActionHolders.add(ModelActionHolder.running(newModelUpdate(self).taskUpdate(newTask)));
 
                             return modelActionHolders;
                         }
