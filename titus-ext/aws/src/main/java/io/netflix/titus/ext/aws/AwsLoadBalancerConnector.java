@@ -19,6 +19,7 @@ package io.netflix.titus.ext.aws;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
@@ -30,6 +31,8 @@ import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.guice.ProxyType;
+import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -38,6 +41,8 @@ import rx.Scheduler;
 import rx.Single;
 import rx.schedulers.Schedulers;
 
+@Singleton
+@ProxyConfiguration(types = {ProxyType.Logging, ProxyType.Spectator})
 public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     private static final Logger logger = LoggerFactory.getLogger(AwsLoadBalancerConnector.class);
     private static final String AWS_IP_TARGET_TYPE = "ip";
