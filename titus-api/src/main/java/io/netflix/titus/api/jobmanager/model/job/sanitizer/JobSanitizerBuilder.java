@@ -21,7 +21,6 @@ import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import io.netflix.titus.api.jobmanager.model.job.Job;
-import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
@@ -58,12 +57,6 @@ public class JobSanitizerBuilder {
                 .addTemplateResolver(path -> {
                     if (path.endsWith("capacityGroup")) {
                         return Optional.of(DEFAULT_CAPACITY_GROUP);
-                    }
-                    if (path.endsWith("container.securityProfile.securityGroups")) {
-                        return Optional.of(jobConfiguration.getDefaultSecurityGroups());
-                    }
-                    if (path.endsWith("container.securityProfile.iamRole")) {
-                        return Optional.of(jobConfiguration.getDefaultIamRole());
                     }
                     return Optional.empty();
                 })

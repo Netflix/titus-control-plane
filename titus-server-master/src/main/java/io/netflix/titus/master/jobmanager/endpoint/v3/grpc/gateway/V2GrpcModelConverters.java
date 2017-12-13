@@ -382,7 +382,7 @@ public final class V2GrpcModelConverters {
 
     public static TaskStatus toGrpcTaskStatus(V2WorkerMetadata worker) {
         V2JobState v2JobState = worker.getState();
-        JobCompletedReason reason = worker.getReason();
+        JobCompletedReason reasonCode = worker.getReason();
         TaskStatus.Builder stateBuilder = TaskStatus.newBuilder();
         String finalReason = null;
         switch (v2JobState) {
@@ -409,7 +409,7 @@ public final class V2GrpcModelConverters {
                 break;
             case Failed:
                 String grpcReason;
-                switch (reason) {
+                switch (reasonCode) {
                     case Normal:
                         grpcReason = REASON_NORMAL;
                         break;
@@ -438,8 +438,10 @@ public final class V2GrpcModelConverters {
         }
         if (finalReason != null) {
             stateBuilder.setReasonMessage(finalReason);
-        } else if (reason != null) {
-            stateBuilder.setReasonMessage(reason.toString());
+        } else {
+            stateBuilder.setReasonMessage("v2ReasonCode=" + (reasonCode == null ? "<not set>" : reasonCode) +
+                    ", v2ReasonMessage=" + (worker.getCompletionMessage() == null ? "<not set>" : worker.getCompletionMessage())
+            );
         }
         return stateBuilder.build();
     }

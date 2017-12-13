@@ -21,10 +21,8 @@ import java.util.List;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
-import io.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
@@ -117,27 +115,6 @@ public class JobSubmitAndControlBasicTest {
                 .allTasks(completeTask())
                 .template(jobFinished())
                 .expectJobEventStreamCompletes()
-        );
-    }
-
-    @Test(timeout = 30_000)
-    public void testJobSubmitWithNoSecurityProfile() throws Exception {
-        JobDescriptor<BatchJobExt> jobWithNoSecurityProfile = ONE_TASK_BATCH_JOB.but(j -> j.getContainer().but(c -> SecurityProfile.newBuilder().build()));
-        jobsScenarioBuilder.schedule(jobWithNoSecurityProfile, jobScenarioBuilder -> jobScenarioBuilder
-                .assertJob(job -> {
-                            JobConfiguration jobConfiguration = titusMaster.getInstance(JobConfiguration.class);
-
-                            SecurityProfile securityProfile = job.getJobDescriptor().getContainer().getSecurityProfile();
-                            if (!securityProfile.getIamRole().equals(jobConfiguration.getDefaultIamRole())) {
-                                return false;
-                            }
-                            if (!securityProfile.getSecurityGroups().equals(jobConfiguration.getDefaultSecurityGroups())) {
-                                return false;
-                            }
-                            return true;
-                        }
-                )
-                .killJob()
         );
     }
 
