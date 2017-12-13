@@ -28,9 +28,12 @@ import java.util.stream.Collectors;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.netflix.fenzo.VirtualMachineLease;
+import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
@@ -38,6 +41,8 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.job.V2JobOperations;
+import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.ExecutorID;
 import org.apache.mesos.Protos.FrameworkID;
@@ -54,7 +59,6 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
-import rx.functions.Func0;
 
 import static io.netflix.titus.master.mesos.MesosTracer.logMesosCallbackDebug;
 import static io.netflix.titus.master.mesos.MesosTracer.logMesosCallbackError;
@@ -67,7 +71,8 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private Observer<String> vmLeaseRescindedObserver;
     private Observer<Status> vmTaskStatusObserver;
     private static final Logger logger = LoggerFactory.getLogger(MesosSchedulerCallbackHandler.class);
-    private Func0<List<V2WorkerMetadata>> runningWorkersGetter;
+    private final V2JobOperations v2JobOperations;
+    private final V3JobOperations v3JobOperations;
     private volatile ScheduledFuture reconcilerFuture = null;
     private final MasterConfiguration config;
     private AtomicLong lastOfferReceivedAt = new AtomicLong(System.currentTimeMillis());
@@ -97,16 +102,18 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             .build();
 
     public MesosSchedulerCallbackHandler(
-            com.netflix.fenzo.functions.Action1<List<? extends VirtualMachineLease>> leaseHandler,
+            Action1<List<? extends VirtualMachineLease>> leaseHandler,
             Observer<String> vmLeaseRescindedObserver,
             Observer<Status> vmTaskStatusObserver,
-            Func0<List<V2WorkerMetadata>> runningWorkersGetter,
+            V2JobOperations v2JobOperations,
+            V3JobOperations v3JobOperations,
             MasterConfiguration config,
             Registry registry) {
         this.leaseHandler = leaseHandler;
         this.vmLeaseRescindedObserver = vmLeaseRescindedObserver;
         this.vmTaskStatusObserver = vmTaskStatusObserver;
-        this.runningWorkersGetter = runningWorkersGetter;
+        this.v2JobOperations = v2JobOperations;
+        this.v3JobOperations = v3JobOperations;
         this.config = config;
         numMesosRegistered = registry.counter(MetricConstants.METRIC_MESOS + "numMesosRegistered");
         numMesosDisconnects = registry.counter(MetricConstants.METRIC_MESOS + "numMesosDisconnects");
@@ -256,7 +263,16 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
     private void reconcileTasksKnownToUs(SchedulerDriver driver) {
         final List<TaskStatus> tasksToInitialize = new ArrayList<>();
-        for (V2WorkerMetadata mwmd : runningWorkersGetter.call()) {
+
+        List<V2WorkerMetadata> runningWorkers = new ArrayList<>();
+        v2JobOperations.getAllJobMgrs().forEach(m -> {
+                    List<V2WorkerMetadata> tasks = m.getWorkers().stream()
+                            .filter(t -> V2JobState.isRunningState(t.getState()))
+                            .collect(Collectors.toList());
+                    runningWorkers.addAll(tasks);
+                }
+        );
+        for (V2WorkerMetadata mwmd : runningWorkers) {
             tasksToInitialize.add(TaskStatus.newBuilder()
                     .setTaskId(
                             Protos.TaskID.newBuilder()
@@ -270,6 +286,20 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                     .setSlaveId(SlaveID.newBuilder().setValue(mwmd.getSlaveID()).build())
                     .build()
             );
+        }
+        for (Task task : v3JobOperations.getTasks()) {
+            io.netflix.titus.api.jobmanager.model.job.TaskState taskState = task.getStatus().getState();
+            if (io.netflix.titus.api.jobmanager.model.job.TaskState.isRunning(taskState)) {
+                String taskHost = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+                if (taskHost != null) {
+                    tasksToInitialize.add(TaskStatus.newBuilder()
+                            .setTaskId(Protos.TaskID.newBuilder().setValue(task.getId()).build())
+                            .setState(TaskState.TASK_RUNNING)
+                            .setSlaveId(SlaveID.newBuilder().setValue(taskHost).build())
+                            .build()
+                    );
+                }
+            }
         }
         if (!tasksToInitialize.isEmpty()) {
             Protos.Status status = traceMesosRequest(

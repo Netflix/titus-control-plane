@@ -28,17 +28,25 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import io.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import io.netflix.titus.master.jobmanager.service.common.DefaultV3TaskInfoFactory;
+import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.limiter.DefaultJobSubmitLimiter;
 import io.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import io.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import org.apache.mesos.Protos;
 
+import static io.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory.BATCH_RESOLVER;
+import static io.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory.SERVICE_RESOLVER;
+
 public class V3JobManagerModule extends AbstractModule {
+
+    private static final TypeLiteral<DifferenceResolver<JobManagerReconcilerEvent>> JOB_DIFFERENCE_RESOLVER =
+            new TypeLiteral<DifferenceResolver<JobManagerReconcilerEvent>>() {
+            };
 
     @Override
     protected void configure() {
-        bind(Key.get(DifferenceResolver.class, Names.named(DefaultV3JobOperations.BATCH_RESOLVER))).to(BatchDifferenceResolver.class);
-        bind(Key.get(DifferenceResolver.class, Names.named(DefaultV3JobOperations.SERVICE_RESOLVER))).to(ServiceDifferenceResolver.class);
+        bind(Key.get(JOB_DIFFERENCE_RESOLVER, Names.named(BATCH_RESOLVER))).to(BatchDifferenceResolver.class);
+        bind(Key.get(JOB_DIFFERENCE_RESOLVER, Names.named(SERVICE_RESOLVER))).to(ServiceDifferenceResolver.class);
 
         bind(V3JobOperations.class).to(DefaultV3JobOperations.class);
         bind(JobSubmitLimiter.class).to(DefaultJobSubmitLimiter.class);

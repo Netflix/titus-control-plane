@@ -133,18 +133,20 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                     if (jobAndTaskOpt.isPresent()) {
                         Task task = jobAndTaskOpt.get().getRight();
                         TaskState newState = V2JobState.toV3TaskState(args.getState());
-                        TaskStatus taskStatus = JobModel.newTaskStatus()
-                                .withState(newState)
-                                .withReasonCode(V2JobState.toV3ReasonCode(args.getState(), args.getReason()))
-                                .withReasonMessage("Mesos task state change event: " + args.getMessage())
-                                .withTimestamp(args.getTimestamp())
-                                .build();
-                        // Failures are logged only, as the reconciler will take care of it if needed.
-                        final Function<Task, Task> updater = JobManagerUtil.newTaskStateUpdater(taskStatus, args.getData());
-                        v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + newState).subscribe(
-                                () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
-                                e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
-                        );
+                        if (task.getStatus().getState() != newState) {
+                            TaskStatus taskStatus = JobModel.newTaskStatus()
+                                    .withState(newState)
+                                    .withReasonCode(V2JobState.toV3ReasonCode(args.getState(), args.getReason()))
+                                    .withReasonMessage("Mesos task state change event: " + args.getMessage())
+                                    .withTimestamp(args.getTimestamp())
+                                    .build();
+                            // Failures are logged only, as the reconciler will take care of it if needed.
+                            final Function<Task, Task> updater = JobManagerUtil.newTaskStateUpdater(taskStatus, args.getData());
+                            v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + newState).subscribe(
+                                    () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
+                                    e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
+                            );
+                        }
                         return;
                     }
                 }

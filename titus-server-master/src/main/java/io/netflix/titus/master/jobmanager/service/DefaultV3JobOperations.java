@@ -16,11 +16,7 @@
 
 package io.netflix.titus.master.jobmanager.service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -29,7 +25,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -44,47 +39,33 @@ import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
-import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
-import io.netflix.titus.common.framework.reconciler.DifferenceResolvers;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
-import io.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationEngine;
-import io.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationFramework;
 import io.netflix.titus.common.util.guice.ProxyType;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
-import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
-import io.netflix.titus.master.jobmanager.service.event.JobEventFactory;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
-import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
-import io.netflix.titus.master.scheduler.SchedulingService;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
-import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
-import rx.Scheduler;
 import rx.Subscription;
-import rx.schedulers.Schedulers;
 
 @Singleton
 @ProxyConfiguration(types = ProxyType.ActiveGuard)
@@ -92,79 +73,32 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultV3JobOperations.class);
 
-    static final String BATCH_RESOLVER = "batchResolver";
-    static final String SERVICE_RESOLVER = "serviceResolver";
+    enum IndexKind {StatusCreationTime}
 
     private static final long RECONCILER_SHUTDOWN_TIMEOUT_MS = 30_000;
-    private static final int MAX_RETRIEVE_TASK_CONCURRENCY = 1_000;
-
-    private enum IndexKind {StatusCreationTime}
-
-    private final Map<Object, Comparator<EntityHolder>> indexComparators = Collections.singletonMap(
-            IndexKind.StatusCreationTime, DefaultV3JobOperations::compareByStatusCreationTime
-    );
 
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
-    private final ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
     private final JobManagerConfiguration jobManagerConfiguration;
-    private final SchedulingService schedulingService;
-    private final ApplicationSlaManagementService capacityGroupService;
-    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
-    private final GlobalConstraintEvaluator globalConstraintEvaluator;
-    private final Subscription transactionLoggerSubscription;
+    private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
 
-    @SuppressWarnings("unchecked")
+    private ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
+    private Subscription transactionLoggerSubscription;
+
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
-                                  @Named(BATCH_RESOLVER) DifferenceResolver batchDifferenceResolver,
-                                  @Named(SERVICE_RESOLVER) DifferenceResolver serviceDifferenceResolver,
                                   JobStore store,
-                                  SchedulingService schedulingService,
                                   VirtualMachineMasterService vmService,
-                                  ApplicationSlaManagementService capacityGroupService,
-                                  ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-                                  GlobalConstraintEvaluator globalConstraintEvaluator) {
-        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, vmService, capacityGroupService, constraintEvaluatorTransformer, globalConstraintEvaluator, Schedulers.computation());
-    }
-
-    public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
-                                  @Named(BATCH_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
-                                  @Named(SERVICE_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
-                                  JobStore store,
-                                  SchedulingService schedulingService,
-                                  VirtualMachineMasterService vmService,
-                                  ApplicationSlaManagementService capacityGroupService,
-                                  ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-                                  GlobalConstraintEvaluator globalConstraintEvaluator,
-                                  Scheduler scheduler) {
+                                  JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory) {
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
-        this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
-        this.globalConstraintEvaluator = globalConstraintEvaluator;
+        this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
+    }
 
-        DifferenceResolver<JobManagerReconcilerEvent> dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
-            Job<?> job = rootModel.getEntity();
-            JobDescriptor.JobDescriptorExt extensions = job.getJobDescriptor().getExtensions();
-            if (extensions instanceof BatchJobExt) {
-                return batchDifferenceResolver;
-            } else if (extensions instanceof ServiceJobExt) {
-                return serviceDifferenceResolver;
-            } else {
-                throw new IllegalStateException("Unsupported job type " + extensions.getClass());
-            }
-        });
-
-        this.reconciliationFramework = new DefaultReconciliationFramework<>(
-                bootstrapModel -> new DefaultReconciliationEngine<>(bootstrapModel, dispatchingResolver, indexComparators, new JobEventFactory()),
-                jobManagerConfiguration.getReconcilerIdleTimeoutMs(),
-                jobManagerConfiguration.getReconcilerActiveTimeoutMs(),
-                indexComparators,
-                scheduler
-        );
-        this.schedulingService = schedulingService;
-        this.capacityGroupService = capacityGroupService;
+    @Activator
+    public void enterActiveMode() {
+        this.reconciliationFramework = jobReconciliationFrameworkFactory.newInstance();
         this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework);
 
         // Remove finished jobs from the reconciliation framework.
@@ -193,90 +127,16 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 e -> logger.error("Event stream terminated with an error", e),
                 () -> logger.info("Event stream completed")
         );
-    }
 
-    @Activator
-    public void enterActiveMode() {
-        // load all job/task pairs
-        List<Pair<Job, List<Task>>> pairs;
-        try {
-            pairs = store.init().andThen(store.retrieveJobs().toList().flatMap(retrievedJobs -> {
-                List<Observable<Pair<Job, List<Task>>>> retrieveTasksObservables = new ArrayList<>();
-                for (Job job : retrievedJobs) {
-                    Observable<Pair<Job, List<Task>>> retrieveTasksObservable = store.retrieveTasksForJob(job.getId())
-                            .toList()
-                            .map(taskList -> new Pair<>(job, taskList));
-                    retrieveTasksObservables.add(retrieveTasksObservable);
-                }
-                return Observable.merge(retrieveTasksObservables, MAX_RETRIEVE_TASK_CONCURRENCY);
-            })).toList().toBlocking().singleOrDefault(Collections.emptyList());
-            logger.info("{} jobs loaded from store", pairs.size());
-        } catch (Exception e) {
-            logger.error("Failed to load jobs from the store during initialization:", e);
-            throw new IllegalStateException("Failed to load jobs from the store during initialization", e);
-        }
-
-        //TODO sanitize each record to make sure the data is correct
-        //TODO sanitize the data based on all records loaded to verify things like unique ENI assignments
-
-        // initialize fenzo with running tasks
-        List<String> failedTaskIds = new ArrayList<>();
-        for (Pair<Job, List<Task>> pair : pairs) {
-            Job job = pair.getLeft();
-            for (Task task : pair.getRight()) {
-                if (task.getStatus().getState() == TaskState.Accepted) {
-                    continue;
-                }
-                try {
-                    Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
-                    String host = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-                    schedulingService.initRunningTask(new V3QueueableTask(
-                            tierAssignment.getLeft(),
-                            tierAssignment.getRight(),
-                            job,
-                            task,
-                            () -> Collections.emptySet(), // FIXME To do better we need to improve the reconciliation engine bootstrap mechanism.
-                            constraintEvaluatorTransformer,
-                            globalConstraintEvaluator
-                    ), host);
-                } catch (Exception e) {
-                    logger.error("Failed to initialize taskId: {} with error:", task.getId(), e);
-                    failedTaskIds.add(task.getId());
-                }
-            }
-        }
-
-        if (!failedTaskIds.isEmpty()) {
-            logger.info("Failed to initialize {} tasks with ids: {}", failedTaskIds.size(), failedTaskIds);
-        }
-        if (failedTaskIds.size() > jobManagerConfiguration.getMaxFailedTasks()) {
-            String message = String.format("Exiting because the number of failed tasks was greater than %s", failedTaskIds.size());
-            logger.error(message);
-            throw new IllegalStateException(message);
-        }
-
-        // create entity holders
-        List<EntityHolder> entityHolders = new ArrayList<>();
-        for (Pair<Job, List<Task>> pair : pairs) {
-            Job job = pair.getLeft();
-            EntityHolder entityHolder = EntityHolder.newRoot(job.getId(), job);
-            for (Task task : pair.getRight()) {
-                entityHolder = entityHolder.addChild(EntityHolder.newRoot(task.getId(), task));
-            }
-            entityHolders.add(entityHolder);
-        }
-
-        // create engines and start reconciliation framework
-        for (EntityHolder entityHolder : entityHolders) {
-            reconciliationFramework.newEngine(entityHolder).subscribe();
-        }
         reconciliationFramework.start();
     }
 
     @PreDestroy
     public void shutdown() {
-        transactionLoggerSubscription.unsubscribe();
-        reconciliationFramework.stop(RECONCILER_SHUTDOWN_TIMEOUT_MS);
+        ObservableExt.safeUnsubscribe(transactionLoggerSubscription);
+        if (reconciliationFramework != null) {
+            reconciliationFramework.stop(RECONCILER_SHUTDOWN_TIMEOUT_MS);
+        }
     }
 
     @Override
@@ -381,7 +241,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
         );
     }
 
-
     @Override
     public Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses) {
         return inServiceJob(jobId).flatMap(engine -> {
@@ -393,7 +252,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 }
         );
     }
-
 
     @Override
     public Observable<Void> updateJobStatus(String jobId, boolean enabled) {
@@ -483,17 +341,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private Pair<Job<?>, List<Task>> toJobTasksPair(EntityHolder jobHolder) {
         List<Task> tasks = jobHolder.getChildren().stream().map(childHolder -> (Task) childHolder.getEntity()).collect(Collectors.toList());
         return Pair.of(jobHolder.getEntity(), tasks);
-    }
-
-    private static int compareByStatusCreationTime(EntityHolder holder1, EntityHolder holder2) {
-        if (holder1.getEntity() instanceof Job) {
-            Job job1 = holder1.getEntity();
-            Job job2 = holder2.getEntity();
-            return Long.compare(job1.getStatus().getTimestamp(), job2.getStatus().getTimestamp());
-        }
-        Task task1 = holder1.getEntity();
-        Task task2 = holder2.getEntity();
-        return Long.compare(task1.getStatus().getTimestamp(), task2.getStatus().getTimestamp());
     }
 
     private Observable<JobManagerEvent<?>> toJobManagerEvents(Observable<JobManagerReconcilerEvent> events) {

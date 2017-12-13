@@ -31,10 +31,12 @@ import io.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
+import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +48,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
  * These integration tests validate proper plumbing of gRPC client requests
  * through the Gateway and Master servers.
  */
+@Category(IntegrationTest.class)
 public class LoadBalancerGrpcTest {
     private final Logger logger = LoggerFactory.getLogger(LoadBalancerGrpcTest.class);
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;

@@ -15,6 +15,7 @@ import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import io.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory;
 import io.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder.EventHolder;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
@@ -99,15 +100,19 @@ public class JobsScenarioBuilder {
         );
         this.jobOperations = new DefaultV3JobOperations(
                 configuration,
-                batchDifferenceResolver,
-                serviceDifferenceResolver,
                 jobStore,
-                schedulingService,
                 vmService,
-                capacityGroupService,
-                constraintEvaluatorTransformer,
-                globalConstraintEvaluator,
-                testScheduler
+                new JobReconciliationFrameworkFactory(
+                        configuration,
+                        batchDifferenceResolver,
+                        serviceDifferenceResolver,
+                        jobStore,
+                        schedulingService,
+                        capacityGroupService,
+                        globalConstraintEvaluator,
+                        constraintEvaluatorTransformer,
+                        testScheduler
+                )
         );
         jobOperations.enterActiveMode();
     }

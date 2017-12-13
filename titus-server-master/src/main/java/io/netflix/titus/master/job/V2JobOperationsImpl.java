@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -38,6 +37,7 @@ import com.netflix.fenzo.triggers.TriggerOperator;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
+import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.V2JobState;
@@ -45,14 +45,12 @@ import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
 import io.netflix.titus.api.model.v2.parameter.Parameters.JobType;
 import io.netflix.titus.api.store.v2.InvalidJobException;
-import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.JobSchedulingInfo;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.VirtualMachineMasterService;
-import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.batch.BatchJobMgr;
 import io.netflix.titus.master.job.service.ServiceJobMgr;
@@ -122,14 +120,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
         this.eventBus = eventBus;
         this.registry = registry;
         this.namedJobReplaySubject = ReplaySubject.create();
-
         this.vmService = vmService;
-        vmService.setRunningWorkersGetter(() -> {
-            List<V2WorkerMetadata> runningWorkers = new ArrayList<>();
-            jobMgrConcurrentMap.values().forEach(m -> runningWorkers.addAll(m.getWorkers().stream()
-                    .filter(t -> V2JobState.isRunningState(t.getState())).collect(Collectors.toList())));
-            return runningWorkers;
-        });
 
         this.jobSchedulingObserver = ReplaySubject.create();
         this.namedJobs = new NamedJobs(

@@ -31,14 +31,16 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
 import com.netflix.spectator.api.Registry;
-import io.netflix.titus.api.store.v2.V2WorkerMetadata;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import org.apache.mesos.Protos;
@@ -48,7 +50,6 @@ import org.apache.mesos.SchedulerDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
-import rx.functions.Func0;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
@@ -72,11 +73,11 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     private Subject<String, String> vmLeaseRescindedObserver;
     private Subject<Status, Status> vmTaskStatusObserver;
     private ObjectMapper mapper = new ObjectMapper();
-    private Func0<List<V2WorkerMetadata>> runningWorkersGetter;
     private final AtomicBoolean initializationDone = new AtomicBoolean(false);
     private double offerSecDelayInterval = 5;
     private Action1<List<? extends VirtualMachineLease>> leaseHandler = null;
     private final MesosSchedulerDriverFactory mesosDriverFactory;
+    private final Injector injector;
     private final Registry metricsRegistry;
     private boolean active;
     private final BlockingQueue<String> killQueue = new LinkedBlockingQueue<>();
@@ -86,10 +87,12 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
                                                 SchedulerConfiguration schedulerConfiguration,
                                                 MesosMasterResolver mesosMasterResolver,
                                                 MesosSchedulerDriverFactory mesosDriverFactory,
+                                                Injector injector,
                                                 Registry metricsRegistry) {
         this.config = config;
         this.mesosMasterResolver = mesosMasterResolver;
         this.mesosDriverFactory = mesosDriverFactory;
+        this.injector = injector;
         this.metricsRegistry = metricsRegistry;
         this.vmLeaseRescindedObserver = PublishSubject.create();
         this.vmTaskStatusObserver = PublishSubject.create();
@@ -192,11 +195,6 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     }
 
     @Override
-    public void setRunningWorkersGetter(Func0<List<V2WorkerMetadata>> runningWorkersGetter) {
-        this.runningWorkersGetter = runningWorkersGetter;
-    }
-
-    @Override
     public void setVMLeaseHandler(Action1<List<? extends VirtualMachineLease>> leaseHandler) {
         this.leaseHandler = virtualMachineLeases -> {
             drainKillTaskQueue();
@@ -216,6 +214,10 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
 
     @Activator(after = SchedulingService.class)
     public void enterActiveMode() {
+        // Due to circular dependency, we need to differ services access until the activation phase.
+        V2JobOperations v2JobOperations = injector.getInstance(V2JobOperations.class);
+        V3JobOperations v3JobOperations = injector.getInstance(V3JobOperations.class);
+
         logger.info("Registering Titus Framework with Mesos");
 
         if (!initializationDone.compareAndSet(false, true)) {
@@ -223,7 +225,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         }
 
         mesosCallbackHandler = new MesosSchedulerCallbackHandler(leaseHandler, vmLeaseRescindedObserver, vmTaskStatusObserver,
-                runningWorkersGetter, config, metricsRegistry);
+                v2JobOperations, v3JobOperations, config, metricsRegistry);
 
         FrameworkInfo framework = FrameworkInfo.newBuilder()
                 .setUser("root") // Fix to root, to enable running master as non-root

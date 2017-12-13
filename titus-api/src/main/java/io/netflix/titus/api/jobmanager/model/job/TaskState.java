@@ -53,5 +53,9 @@ public enum TaskState {
     /**
      * A task finished or was forced by a user to terminate. All resources previously assigned to this task are released.
      */
-    Finished
+    Finished;
+
+    public static boolean isRunning(TaskState taskState) {
+        return taskState != TaskState.Accepted && taskState != TaskState.Finished;
+    }
 }
