@@ -16,8 +16,11 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +38,8 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
+import io.netflix.titus.api.loadbalancer.model.TargetState;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
@@ -42,6 +47,8 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.rx.batch.Batch;
+import io.netflix.titus.common.util.rx.batch.Priority;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
@@ -56,6 +63,7 @@ import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.app
 import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.count;
 import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.mockConfiguration;
 import static io.netflix.titus.master.loadbalancer.service.LoadBalancerTests.mockValidationConfig;
+import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -63,7 +71,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -72,6 +79,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DefaultLoadBalancerServiceTest {
+
+    private static final int MIN_TIME_IN_QUEUE_MS = 1_000;
+    private static final int FLUSH_WAIT_TIME_MS = 2 * MIN_TIME_IN_QUEUE_MS;
 
     private TitusRuntime runtime;
     private LoadBalancerConnector client;
@@ -100,7 +110,7 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void addLoadBalancerRegistersTasks() throws Exception {
+    public void addLoadBalancerRegistersTasks() {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
 
@@ -114,16 +124,16 @@ public class DefaultLoadBalancerServiceTest {
                 LoadBalancerTests.buildTasks(1, jobId, TaskState.Disconnected)
         ));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(5, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
         verify(jobOperations).getTasks(jobId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 5));
@@ -131,7 +141,7 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void targetsAreBufferedUpToATimeout() throws Exception {
+    public void targetsAreBufferedUpToATimeout() {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
 
@@ -145,11 +155,11 @@ public class DefaultLoadBalancerServiceTest {
                 LoadBalancerTests.buildTasks(1, jobId, TaskState.Disconnected)
         ));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(1000, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration,
                 client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
         verify(jobOperations).getTasks(jobId);
@@ -158,7 +168,7 @@ public class DefaultLoadBalancerServiceTest {
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
 
-        testScheduler.advanceTimeBy(5_001, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 3));
@@ -166,21 +176,20 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void emptyBatchesAreFilteredOut() throws Exception {
+    public void emptyBatchesAreFilteredOut() {
         defaultStubs();
 
-        LoadBalancerConfiguration configuration = mockConfiguration(1000, 5_000);
-        LoadBalancerValidationConfiguration validationConfiguration = mockValidationConfig(30);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration,
-                client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client,
+                loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
 
-        testScheduler.advanceTimeBy(5_001, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
@@ -188,7 +197,7 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void addSkipLoadBalancerOperationsOnErrors() throws Exception {
+    public void addSkipLoadBalancerOperationsOnErrors() {
         final String firstJobId = UUID.randomUUID().toString();
         final String secondJobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
@@ -199,18 +208,17 @@ public class DefaultLoadBalancerServiceTest {
         applyValidGetJobMock(jobOperations, secondJobId);
         when(jobOperations.getTasks(secondJobId)).thenReturn(LoadBalancerTests.buildTasksStarted(2, secondJobId));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(2, 5_000);
-        LoadBalancerValidationConfiguration validationConfiguration = mockValidationConfig(30);
-        DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client,
+                loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         // first fails and gets skipped after being saved, so convergence can pick it up later
         assertTrue(service.addLoadBalancer(firstJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(firstJobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertNoValues();
         verify(jobOperations, never()).getTasks(firstJobId);
@@ -221,7 +229,7 @@ public class DefaultLoadBalancerServiceTest {
         assertTrue(service.addLoadBalancer(secondJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(secondJobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(jobOperations).getTasks(secondJobId);
@@ -230,7 +238,7 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void multipleLoadBalancersPerJob() throws Exception {
+    public void multipleLoadBalancersPerJob() {
         final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
         final String jobId = UUID.randomUUID().toString();
         final String firstLoadBalancerId = "lb-" + UUID.randomUUID().toString();
@@ -249,12 +257,11 @@ public class DefaultLoadBalancerServiceTest {
                 LoadBalancerTests.buildTasks(1, jobId, TaskState.Disconnected)
         ));
 
-        final int batchSize = 2 * numberOfStartedTasks; // expect 1 operation per <loadBalancer, task> pair
-        LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
                 runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         // associate two load balancers to the same job
 
@@ -264,9 +271,10 @@ public class DefaultLoadBalancerServiceTest {
                 .containsOnly(firstLoadBalancerId, secondLoadBalancerId);
         verify(jobOperations, times(2)).getTasks(jobId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
-        testSubscriber.assertNoErrors().assertValueCount(1);
+        // 1 batch per loadbalancer
+        testSubscriber.assertNoErrors().assertValueCount(2);
         verify(client).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
@@ -289,8 +297,11 @@ public class DefaultLoadBalancerServiceTest {
 
             taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp));
         }
-        testScheduler.triggerActions();
-        testSubscriber.assertNoErrors().assertValueCount(2);
+
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
+        // 2 more batches (one per load balancer)
+        testSubscriber.assertNoErrors().assertValueCount(4);
         verify(client, times(2)).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client, times(2)).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
@@ -298,27 +309,26 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void targetsAreBufferedInBatches() throws Exception {
+    public void targetsAreBufferedInBatches() {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
         final ThreadLocalRandom random = ThreadLocalRandom.current();
         final int batchSize = random.nextInt(5, 20);
-        final int extra = random.nextInt(1, batchSize);
 
         defaultStubs();
         applyValidGetJobMock(jobOperations, jobId);
-        when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(batchSize + extra, jobId));
+        when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(batchSize, jobId));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
                 runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
@@ -326,86 +336,98 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void batchesWithErrorsAreSkipped() throws Exception {
+    public void batchesWithErrorsAreSkipped() {
         final String jobId = UUID.randomUUID().toString();
-        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final String firstLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final String secondLoadBalancerId = "lb-" + UUID.randomUUID().toString();
         final ThreadLocalRandom random = ThreadLocalRandom.current();
         final int batchSize = random.nextInt(3, 10);
-        final int extra = random.nextInt(1, batchSize);
 
-        when(client.registerAll(any(), any())).thenReturn(Completable.error(new RuntimeException()))
-                .thenReturn(Completable.complete());
+        when(client.registerAll(eq(firstLoadBalancerId), any())).thenReturn(Completable.error(new RuntimeException()));
+        when(client.registerAll(eq(secondLoadBalancerId), any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
         applyValidGetJobMock(jobOperations, jobId);
-        // 2 batches
-        when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(2 * batchSize + extra, jobId));
+        when(jobOperations.getTasks(jobId)).thenReturn(LoadBalancerTests.buildTasksStarted(batchSize, jobId));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(batchSize, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
                 runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
-        assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+        assertTrue(service.addLoadBalancer(jobId, firstLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertTrue(service.addLoadBalancer(jobId, secondLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(jobId).toBlocking().toIterable())
+                .containsExactlyInAnyOrder(firstLoadBalancerId, secondLoadBalancerId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         // first errored and got skipped
         testSubscriber.assertNoErrors().assertValueCount(1);
-        verify(client, times(2)).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
-        verify(client, atMost(2)).deregisterAll(eq(loadBalancerId), argThat(CollectionsExt::isNullOrEmpty));
+        verify(client).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
+        verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
+        verify(client, never()).deregisterAll(any(), any());
     }
 
     @Test
-    public void removeLoadBalancerDeregisterKnownTargets() throws Exception {
+    public void removeLoadBalancerDeregisterKnownTargets() {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        final Instant past = Instant.ofEpochMilli(testScheduler.now()).minus(ofSeconds(10));
 
         defaultStubs();
 
         assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
                 .await(100, TimeUnit.MILLISECONDS));
-        final Map<LoadBalancerTarget, LoadBalancerTarget.State> existingTargets = CollectionsExt.<LoadBalancerTarget, LoadBalancerTarget.State>newHashMap()
-                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-1", "1.1.1.1"), LoadBalancerTarget.State.Registered)
-                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-2", "2.2.2.2"), LoadBalancerTarget.State.Registered)
+        final Collection<TargetStateBatchable> existingTargets = Arrays.asList(
+                new TargetStateBatchable(Priority.High, past, new TargetState(
+                        new LoadBalancerTarget(jobLoadBalancer, "Task-1", "1.1.1.1"), State.Registered)
+                ),
+                new TargetStateBatchable(Priority.High, past, new TargetState(
+                        new LoadBalancerTarget(jobLoadBalancer, "Task-2", "2.2.2.2"), State.Registered)
+                ),
                 // should keep retrying targets that already have been marked to be deregistered
-                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-3", "3.3.3.3"), LoadBalancerTarget.State.Deregistered)
-                .entry(new LoadBalancerTarget(jobLoadBalancer, "Task-4", "4.4.4.4"), LoadBalancerTarget.State.Deregistered)
-                .toMap();
+                new TargetStateBatchable(Priority.High, past, new TargetState(
+                        new LoadBalancerTarget(jobLoadBalancer, "Task-3", "3.3.3.3"), State.Deregistered)
+                ),
+                new TargetStateBatchable(Priority.High, past, new TargetState(
+                        new LoadBalancerTarget(jobLoadBalancer, "Task-4", "4.4.4.4"), State.Deregistered)
+                )
+        );
         assertTrue(targetTracking.updateTargets(existingTargets).await(100, TimeUnit.MILLISECONDS));
-        assertEquals(count(targetTracking.retrieveTargets(jobLoadBalancer)), 4);
+        assertEquals(4, count(targetTracking.retrieveTargets(jobLoadBalancer)));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(4, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         assertTrue(service.removeLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         final LoadBalancerState loadBalancerState = loadBalancerStore.retrieveLoadBalancersForJob(jobId).toBlocking().first();
-        assertEquals(loadBalancerState.getLoadBalancerId(), loadBalancerId);
-        assertEquals(loadBalancerState.getState(), JobLoadBalancer.State.Dissociated);
+        assertEquals(loadBalancerId, loadBalancerState.getLoadBalancerId());
+        assertEquals(JobLoadBalancer.State.Dissociated, loadBalancerState.getState());
         assertFalse(service.getJobLoadBalancers(jobId).toBlocking().getIterator().hasNext());
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 4));
 
         // all successfully deregistered are gone
-        assertEquals(count(targetTracking.retrieveTargets(jobLoadBalancer)), 0);
+        assertEquals(0, count(targetTracking.retrieveTargets(jobLoadBalancer)));
     }
 
     @Test
-    public void removeSkipLoadBalancerOperationsOnErrors() throws Exception {
+    public void removeSkipLoadBalancerOperationsOnErrors() {
         final String firstJobId = UUID.randomUUID().toString();
         final String secondJobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
         final JobLoadBalancer firstLoadBalancer = new JobLoadBalancer(firstJobId, loadBalancerId);
         final JobLoadBalancer secondLoadBalancer = new JobLoadBalancer(secondJobId, loadBalancerId);
+        final Instant past = Instant.ofEpochMilli(testScheduler.now()).minus(ofSeconds(10));
 
         defaultStubs();
         loadBalancerStore = spy(loadBalancerStore);
@@ -415,45 +437,49 @@ public class DefaultLoadBalancerServiceTest {
                 .await(100, TimeUnit.MILLISECONDS));
         assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(secondLoadBalancer, JobLoadBalancer.State.Associated)
                 .await(100, TimeUnit.MILLISECONDS));
-        Map<LoadBalancerTarget, LoadBalancerTarget.State> existingTargets = CollectionsExt.<LoadBalancerTarget, LoadBalancerTarget.State>newHashMap()
-                .entry(new LoadBalancerTarget(secondLoadBalancer, "Task-1", "1.1.1.1"), LoadBalancerTarget.State.Registered)
-                .entry(new LoadBalancerTarget(secondLoadBalancer, "Task-2", "2.2.2.2"), LoadBalancerTarget.State.Registered)
-                .toMap();
+        final List<TargetStateBatchable> existingTargets = Arrays.asList(
+                new TargetStateBatchable(Priority.High, past, new TargetState(
+                        new LoadBalancerTarget(secondLoadBalancer, "Task-1", "1.1.1.1"), State.Registered)
+                ),
+                new TargetStateBatchable(Priority.High, past, new TargetState(
+                        new LoadBalancerTarget(secondLoadBalancer, "Task-2", "2.2.2.2"), State.Registered)
+                )
+        );
         assertTrue(targetTracking.updateTargets(existingTargets).await(100, TimeUnit.MILLISECONDS));
-        assertEquals(count(targetTracking.retrieveTargets(secondLoadBalancer)), 2);
+        assertEquals(2, count(targetTracking.retrieveTargets(secondLoadBalancer)));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(2, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
                 runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         // first fails
         assertTrue(service.removeLoadBalancer(firstJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertFalse(service.getJobLoadBalancers(firstJobId).toBlocking().getIterator().hasNext());
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).deregisterAll(any(), any());
         verify(client, never()).registerAll(any(), any());
-        assertEquals(count(targetTracking.retrieveTargets(secondLoadBalancer)), 2);
+        assertEquals(2, count(targetTracking.retrieveTargets(secondLoadBalancer)));
 
         // second succeeds
         assertTrue(service.removeLoadBalancer(secondJobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertFalse(service.getJobLoadBalancers(firstJobId).toBlocking().getIterator().hasNext());
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == 2));
         // all successfully deregistered are gone
-        assertEquals(count(targetTracking.retrieveTargets(secondLoadBalancer)), 0);
+        assertEquals(0, count(targetTracking.retrieveTargets(secondLoadBalancer)));
     }
 
     @Test
-    public void goneJobsAreSkipped() throws Exception {
+    public void goneJobsAreSkipped() {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
 
@@ -462,16 +488,16 @@ public class DefaultLoadBalancerServiceTest {
         // job is gone somewhere in the middle after its pipeline starts
         when(jobOperations.getTasks(jobId)).thenThrow(JobManagerException.jobNotFound(jobId));
 
-        LoadBalancerConfiguration configuration = mockConfiguration(1, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
                 runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         // job errored and got skipped
         testSubscriber.assertNoErrors().assertValueCount(0);
@@ -480,7 +506,7 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     @Test
-    public void newTasksGetRegistered() throws Exception {
+    public void newTasksGetRegistered() {
         final String jobId = UUID.randomUUID().toString();
         final String taskId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
@@ -492,16 +518,17 @@ public class DefaultLoadBalancerServiceTest {
         when(jobOperations.getTasks(jobId)).thenReturn(Collections.emptyList());
         applyValidGetJobMock(jobOperations, jobId);
 
-        LoadBalancerConfiguration configuration = mockConfiguration(1, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
                 runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
@@ -524,31 +551,31 @@ public class DefaultLoadBalancerServiceTest {
 
         // events with no state transition gets ignored
         taskEvents.onNext(TaskUpdateEvent.newTask(null, launched));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
-        testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
 
         // events to !Started states get ignored
         taskEvents.onNext(TaskUpdateEvent.taskChange(null, startingWithIp, launched));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
-        testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
 
         // finally detect the task is UP and gets registered
         taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
-        testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(set -> set.contains("1.2.3.4")));
         verify(client, never()).deregisterAll(eq(loadBalancerId), any());
     }
 
     @Test
-    public void finishedTasksGetDeregistered() throws Exception {
+    public void finishedTasksGetDeregistered() {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
         final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
@@ -559,16 +586,17 @@ public class DefaultLoadBalancerServiceTest {
         when(jobOperations.getTasks(jobId)).thenReturn(Collections.emptyList());
         applyValidGetJobMock(jobOperations, jobId);
 
-        LoadBalancerConfiguration configuration = mockConfiguration(1, 5_000);
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
                 runtime, configuration, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
 
-        final AssertableSubscriber<Batch> testSubscriber = service.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
 
-        testScheduler.triggerActions();
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
@@ -582,9 +610,10 @@ public class DefaultLoadBalancerServiceTest {
         Task noIpFinished = noIp.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, noIpFinished, noIp));
 
-        testScheduler.triggerActions();
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, noIpFinished, noIp));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
@@ -600,9 +629,10 @@ public class DefaultLoadBalancerServiceTest {
         Task firstFinished = first.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, firstFinished, first));
 
-        testScheduler.triggerActions();
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, firstFinished, first));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("1.1.1.1")));
@@ -615,9 +645,10 @@ public class DefaultLoadBalancerServiceTest {
         Task secondKilling = second.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.KillInitiated).build())
                 .build();
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, secondKilling, second));
 
-        testScheduler.triggerActions();
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, secondKilling, second));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
         testSubscriber.assertNoErrors().assertValueCount(2);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("2.2.2.2")));
@@ -630,9 +661,10 @@ public class DefaultLoadBalancerServiceTest {
         Task thirdDisconnected = third.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Disconnected).build())
                 .build();
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, thirdDisconnected, third));
 
-        testScheduler.triggerActions();
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, thirdDisconnected, third));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
         testSubscriber.assertNoErrors().assertValueCount(3);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("3.3.3.3")));

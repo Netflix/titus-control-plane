@@ -16,6 +16,7 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -31,7 +32,10 @@ import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.Deactivator;
+import io.netflix.titus.common.util.limiter.Limiters;
+import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.common.util.rx.batch.Batch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -78,7 +82,13 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         this.loadBalancerStore = loadBalancerStore;
         this.scheduler = scheduler;
         this.validator = validator;
-        this.engine = new LoadBalancerEngine(configuration, v3JobOperations, loadBalancerStore, targetTracking, loadBalancerConnector, scheduler);
+
+        final long burst = configuration.getRateLimitBurst();
+        final long refillPerSec = configuration.getRateLimitRefillPerSec();
+        final TokenBucket connectorTokenBucket = Limiters.createFixedIntervalTokenBucket("loadBalancerConnector",
+                burst, burst, refillPerSec, 1, TimeUnit.SECONDS);
+        this.engine = new LoadBalancerEngine(configuration, v3JobOperations, loadBalancerStore, targetTracking,
+                loadBalancerConnector, connectorTokenBucket, scheduler);
 
     }
 
@@ -118,8 +128,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         loadBalancerBatches = runtime.persistentStream(events())
                 .subscribeOn(scheduler)
                 .subscribe(
-                        batch -> logger.info("Load balancer batch completed. Registered {}, deregistered {}",
-                                batch.getToRegister().size(), batch.getToDeregister().size()),
+                        batch -> logger.info("Load balancer {} batch completed. Size {}", batch.getIndex(), batch.size()),
                         e -> logger.error("Error while processing load balancer batch", e),
                         () -> logger.info("Load balancer batch stream closed")
                 );
@@ -136,7 +145,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     }
 
     @VisibleForTesting
-    Observable<Batch> events() {
+    Observable<Batch<TargetStateBatchable, String>> events() {
         return engine.events();
     }
 }

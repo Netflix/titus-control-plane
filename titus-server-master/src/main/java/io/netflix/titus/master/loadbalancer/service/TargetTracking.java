@@ -17,7 +17,6 @@
 package io.netflix.titus.master.loadbalancer.service;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -46,17 +45,19 @@ class TargetTracking {
         );
     }
 
-    Completable updateTargets(Map<LoadBalancerTarget, LoadBalancerTarget.State> update) {
-        if (CollectionsExt.isNullOrEmpty(update)) {
+    Completable updateTargets(Collection<TargetStateBatchable> updates) {
+        if (CollectionsExt.isNullOrEmpty(updates)) {
             return Completable.complete();
         }
-        return Completable.fromAction(() -> update.forEach(targets::put));
+        return Completable.fromAction(() ->
+                updates.forEach(update -> targets.put(update.getIdentifier(), update.getState()))
+        );
     }
 
-    Completable removeTargets(Collection<LoadBalancerTarget> remove) {
-        if (CollectionsExt.isNullOrEmpty(remove)) {
+    public Completable removeTargets(Collection<LoadBalancerTarget> toRemove) {
+        if (CollectionsExt.isNullOrEmpty(toRemove)) {
             return Completable.complete();
         }
-        return Completable.fromAction(() -> targets.keySet().removeAll(remove));
+        return Completable.fromAction(() -> toRemove.forEach(targets::remove));
     }
 }

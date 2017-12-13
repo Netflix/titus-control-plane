@@ -22,15 +22,36 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.master.loadBalancer")
 public interface LoadBalancerConfiguration {
     interface Batch {
-        @DefaultValue("100")
-        int getSize();
+        /**
+         * Minimum time that items are held in a buffer for batching
+         */
+        @DefaultValue("1000")
+        long getMinTimeMs();
 
+        /**
+         * Maximum time that items are held in a buffer for batching (times are increased with exponential backoff)
+         */
+        @DefaultValue("60000")
+        long getMaxTimeMs();
+
+        /**
+         * Size of the time bucket to group batches when sorting them by timestamp, so bigger batches in the same bucket
+         * are picked first.
+         * <p>
+         * This provides a knob to control how to favor larger batches vs older batches first.
+         */
         @DefaultValue("5000")
-        long getTimeoutMs();
+        long getBucketSizeMs();
     }
 
     Batch getBatch();
 
     @DefaultValue("false")
     boolean isEngineEnabled();
+
+    @DefaultValue("4")
+    long getRateLimitBurst();
+
+    @DefaultValue("20")
+    long getRateLimitRefillPerSec();
 }

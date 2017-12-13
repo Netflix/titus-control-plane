@@ -58,6 +58,7 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.rx.batch.Batch;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
@@ -80,7 +81,7 @@ public class LoadBalancerTests {
 
     static public LoadBalancerService getMockLoadBalancerService() {
         final TitusRuntime runtime = new DefaultTitusRuntime(new NoopRegistry());
-        final LoadBalancerConfiguration loadBalancerConfig = mockConfiguration(5, 5_000);
+        final LoadBalancerConfiguration loadBalancerConfig = mockConfiguration(5_000);
         final LoadBalancerConnector client = mock(LoadBalancerConnector.class);
         final V3JobOperations jobOperations = mock(V3JobOperations.class);
         when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
@@ -91,7 +92,7 @@ public class LoadBalancerTests {
 
         final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(
                 runtime, loadBalancerConfig, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
-        final AssertableSubscriber<Batch> testSubscriber = loadBalancerService.events().test();
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = loadBalancerService.events().test();
 
         return loadBalancerService;
     }
@@ -118,12 +119,18 @@ public class LoadBalancerTests {
         ).collect(Collectors.toList());
     }
 
-    static LoadBalancerConfiguration mockConfiguration(int batchSize, long batchTimeoutMs) {
+    static LoadBalancerConfiguration mockConfiguration(long minTimeInQueueMs) {
         final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
+        // numbers close to Long.MAX_VALUE will trigger integer overflow bugs in the DefaultTokenBucket impl
+        when(configuration.getRateLimitBurst()).thenReturn(Long.MAX_VALUE / 100);
+        when(configuration.getRateLimitRefillPerSec()).thenReturn(Long.MAX_VALUE / 100);
+
         final LoadBalancerConfiguration.Batch batchConfig = mock(LoadBalancerConfiguration.Batch.class);
         when(configuration.getBatch()).thenReturn(batchConfig);
-        when(batchConfig.getSize()).thenReturn(batchSize);
-        when(batchConfig.getTimeoutMs()).thenReturn(batchTimeoutMs);
+        when(batchConfig.getBucketSizeMs()).thenReturn(minTimeInQueueMs);
+        when(batchConfig.getMaxTimeMs()).thenReturn(Long.MAX_VALUE);
+        when(batchConfig.getMinTimeMs()).thenReturn(minTimeInQueueMs);
+
         return configuration;
     }
 
@@ -226,6 +233,7 @@ public class LoadBalancerTests {
 
     /**
      * Configures a V3 mock to return job from getJobs() that passes validation.
+     *
      * @param mockedV3Ops
      * @return
      */
