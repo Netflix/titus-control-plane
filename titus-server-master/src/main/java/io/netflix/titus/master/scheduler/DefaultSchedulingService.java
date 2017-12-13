@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -71,14 +70,10 @@ import io.netflix.titus.api.agent.service.AgentManagementFunctions;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.Task;
-import io.netflix.titus.api.jobmanager.model.job.TaskState;
-import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import io.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
-import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.common.runtime.TitusRuntime;
@@ -99,7 +94,6 @@ import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.scheduler.fitness.AgentFitnessCalculator;
 import io.netflix.titus.master.store.InvalidJobStateChangeException;
 import io.netflix.titus.master.taskmigration.TaskMigrator;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +103,6 @@ import rx.Subscription;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
-import static io.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static io.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_SERVICE;
 
 @Singleton
@@ -135,7 +128,7 @@ public class DefaultSchedulingService implements SchedulingService {
     // work when assignments are not possible. On the other hand, making it too long will delay other aspects such as
     // triggerring autoscale actions, expiring mesos offers, etc.
 
-    private final ConstraintsEvaluators constraintsEvaluators;
+    private final ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer;
     private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
     private final AtomicLong totalTasksPerIteration;
@@ -186,7 +179,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     MasterConfiguration config,
                                     SchedulerConfiguration schedulerConfiguration,
                                     GlobalConstraintEvaluator globalConstraintsEvaluator,
-                                    ConstraintsEvaluators constraintsEvaluators,
+                                    ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
@@ -195,7 +188,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TitusRuntime titusRuntime) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, config, schedulerConfiguration,
-                globalConstraintsEvaluator, constraintsEvaluators,
+                globalConstraintsEvaluator, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
                 tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators, taskMigrator,
                 titusRuntime
@@ -212,7 +205,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     MasterConfiguration config,
                                     SchedulerConfiguration schedulerConfiguration,
                                     GlobalConstraintEvaluator globalConstraintsEvaluator,
-                                    ConstraintsEvaluators constraintsEvaluators,
+                                    ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
@@ -229,7 +222,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.virtualMachineService = virtualMachineService;
         this.config = config;
         this.schedulerConfiguration = schedulerConfiguration;
-        this.constraintsEvaluators = constraintsEvaluators;
+        this.v2ConstraintEvaluatorTransformer = v2ConstraintEvaluatorTransformer;
         this.threadScheduler = threadScheduler;
         this.tierSlaUpdater = tierSlaUpdater;
         this.registry = registry;
@@ -317,8 +310,8 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public ConstraintsEvaluators getConstraintsEvaluators() {
-        return constraintsEvaluators;
+    public ConstraintEvaluatorTransformer<JobConstraints> getV2ConstraintEvaluatorTransformer() {
+        return v2ConstraintEvaluatorTransformer;
     }
 
     private void setupVmOps(final String attrName) {
@@ -337,11 +330,11 @@ public class DefaultSchedulingService implements SchedulingService {
                                             attribute.getText().getValue());
                             for (TaskRequest r : currentState.getRunningTasks()) {
                                 if (r instanceof ScheduledRequest) {
-                                    // TODO need to remove dependency on WorkerNaming
                                     final WorkerNaming.JobWorkerIdPair j = WorkerNaming.getJobAndWorkerId(r.getId());
-                                    s.addJob(new VMOperations.JobOnVMInfo(j.jobId, -1, j.workerIndex, j.workerNumber));
+                                    s.addJob(new VMOperations.JobOnVMInfo(j.jobId, r.getId()));
                                 } else if (r instanceof V3QueueableTask) {
-                                    s.addJob(new VMOperations.JobOnVMInfo(((V3QueueableTask) r).getJob().getId(), -1, 0, 0));
+                                    V3QueueableTask v3Task = (V3QueueableTask) r;
+                                    s.addJob(new VMOperations.JobOnVMInfo(v3Task.getJob().getId(), v3Task.getId()));
                                 }
                             }
                             result.add(s);

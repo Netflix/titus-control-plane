@@ -26,6 +26,7 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
+import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import rx.functions.Action1;
 
@@ -45,7 +46,7 @@ public interface SchedulingService {
 
     GlobalConstraintEvaluator getGlobalConstraints();
 
-    ConstraintsEvaluators getConstraintsEvaluators();
+    ConstraintEvaluatorTransformer<JobConstraints> getV2ConstraintEvaluatorTransformer();
 
     /**
      * Register an action to receive list of tasks in Fenzo. The action is called when results from the latest

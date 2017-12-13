@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.netflix.fenzo.queues.QAttributes;
 import io.netflix.titus.api.jobmanager.model.job.Job;
@@ -32,7 +34,9 @@ import io.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
+import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import rx.Observable;
@@ -178,14 +182,25 @@ public class BasicTaskActions {
     public static TitusChangeAction scheduleTask(ApplicationSlaManagementService capacityGroupService,
                                                  SchedulingService schedulingService,
                                                  Job<?> job,
-                                                 Task task) {
+                                                 Task task,
+                                                 Supplier<Set<String>> activeTasksGetter,
+                                                 ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                                 GlobalConstraintEvaluator globalConstraintEvaluator) {
         return TitusChangeAction.newAction("scheduleTask")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary("Adding task to scheduler")
                 .applyModelUpdate(self -> {
                     Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
-                    schedulingService.getTaskQueueAction().call(new V3QueueableTask(tierAssignment.getLeft(), tierAssignment.getRight(), job, task));
+                    schedulingService.getTaskQueueAction().call(new V3QueueableTask(
+                            tierAssignment.getLeft(),
+                            tierAssignment.getRight(),
+                            job,
+                            task,
+                            activeTasksGetter,
+                            constraintEvaluatorTransformer,
+                            globalConstraintEvaluator
+                    ));
 
                     TitusModelAction modelUpdateAction = newModelUpdate(self)
                             .summary("Creating new task entity holder")

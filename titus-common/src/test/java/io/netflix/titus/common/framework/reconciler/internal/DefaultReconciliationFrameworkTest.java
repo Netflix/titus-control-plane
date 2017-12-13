@@ -16,6 +16,7 @@
 
 package io.netflix.titus.common.framework.reconciler.internal;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +58,7 @@ public class DefaultReconciliationFrameworkTest {
             .build();
 
     private final DefaultReconciliationFramework<SimpleReconcilerEvent> framework = new DefaultReconciliationFramework<>(
+            Collections.emptyList(),
             engineFactory,
             IDLE_TIMEOUT_MS,
             ACTIVE_TIMEOUT_MS,

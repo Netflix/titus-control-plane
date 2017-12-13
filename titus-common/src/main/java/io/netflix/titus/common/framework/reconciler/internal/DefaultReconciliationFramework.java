@@ -68,7 +68,8 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private final PublishSubject<Observable<EVENT>> eventsMergeSubject = PublishSubject.create();
     private final Observable<EVENT> eventsObservable;
 
-    public DefaultReconciliationFramework(Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory,
+    public DefaultReconciliationFramework(List<ReconciliationEngine<EVENT>> bootstrapEngines,
+                                          Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory,
                                           long idleTimeoutMs,
                                           long activeTimeoutMs,
                                           Map<Object, Comparator<EntityHolder>> indexComparators,
@@ -83,6 +84,9 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         this.activeTimeoutMs = activeTimeoutMs;
         this.worker = scheduler.createWorker();
         this.eventsObservable = Observable.merge(eventsMergeSubject);
+
+        engines.addAll(bootstrapEngines);
+        updateIndexSet();
     }
 
     @Override

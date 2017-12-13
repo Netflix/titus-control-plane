@@ -20,18 +20,14 @@ import java.util.List;
 
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
-import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import org.apache.mesos.Protos;
 import rx.Observable;
-import rx.functions.Func0;
 
 public interface VirtualMachineMasterService {
 
     void launchTasks(List<Protos.TaskInfo> requests, List<VirtualMachineLease> leases);
 
     void rejectLease(VirtualMachineLease lease);
-
-    void setRunningWorkersGetter(Func0<List<V2WorkerMetadata>> runningWorkersGetter);
 
     void killTask(String taskId);
 

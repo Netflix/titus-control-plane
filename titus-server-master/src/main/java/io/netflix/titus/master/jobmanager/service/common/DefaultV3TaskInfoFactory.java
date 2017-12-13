@@ -26,6 +26,7 @@ import javax.inject.Singleton;
 
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
+import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Image;
@@ -133,6 +134,11 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         containerInfoBuilder.putTitusProvidedEnv("TITUS_JOB_ID", task.getJobId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ID", task.getId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INSTANCE_ID", task.getId());
+        containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ORIGINAL_ID", task.getOriginalId());
+        if (task instanceof BatchJobTask) {
+            BatchJobTask batchJobTask = (BatchJobTask) task;
+            containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INDEX", "" + batchJobTask.getIndex());
+        }
 
         // AWS Values
         // Configure IAM Role

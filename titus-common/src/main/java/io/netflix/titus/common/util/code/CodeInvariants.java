@@ -9,6 +9,20 @@ public class CodeInvariants {
 
     private static CodeInvariants INSTANCE = new CodeInvariants();
 
+    public CodeInvariants isTrue(boolean condition, String message, Object... args) {
+        if (!condition) {
+            inconsistent(message, args);
+        }
+        return this;
+    }
+
+    public CodeInvariants notNull(Object value, String message, Object... args) {
+        if (value == null) {
+            inconsistent(message, args);
+        }
+        return this;
+    }
+
     public CodeInvariants inconsistent(String message, Object... args) {
         if (args.length == 0) {
             logger.warn(message);

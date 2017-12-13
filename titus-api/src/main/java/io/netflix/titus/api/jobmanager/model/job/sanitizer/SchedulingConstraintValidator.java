@@ -23,6 +23,7 @@ import java.lang.annotation.Target;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.Constraint;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
@@ -37,7 +38,12 @@ import static java.lang.annotation.ElementType.PARAMETER;
 
 public class SchedulingConstraintValidator implements ConstraintValidator<SchedulingConstraintValidator.SchedulingConstraint, Map<String, String>> {
 
-    private static final Set<String> CONSTRAINT_NAMES = asSet("UniqueHost", "ExclusiveHost", "ZoneBalance");
+    /**
+     * In V3 IDL we define names with first lower case latter, but actual implementation originally assumed names starting with upper case letter.
+     * To avoid compatibility issues we will ignore case for constraint names.
+     * TODO Convert names to IDL defined format when job is created.
+     */
+    private static final Set<String> CONSTRAINT_NAMES = asSet("uniquehost", "exclusivehost", "zonebalance");
 
     @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER})
     @Retention(RetentionPolicy.RUNTIME)
@@ -70,7 +76,8 @@ public class SchedulingConstraintValidator implements ConstraintValidator<Schedu
 
     @Override
     public boolean isValid(Map<String, String> value, ConstraintValidatorContext context) {
-        HashSet<String> unknown = new HashSet<>(value.keySet());
+        Set<String> namesInLowerCase = value.keySet().stream().map(String::toLowerCase).collect(Collectors.toSet());
+        HashSet<String> unknown = new HashSet<>(namesInLowerCase);
         unknown.removeAll(CONSTRAINT_NAMES);
         if (unknown.isEmpty()) {
             return true;

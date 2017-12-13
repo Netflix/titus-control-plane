@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import com.netflix.fenzo.ConstraintEvaluator;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -14,10 +15,13 @@ import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import io.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory;
 import io.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder.EventHolder;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import io.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
+import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.schedulers.Schedulers;
@@ -52,6 +56,8 @@ public class JobsScenarioBuilder {
 
     private final List<JobScenarioBuilder<?>> jobScenarioBuilders = new ArrayList<>();
 
+    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = null;
+
     public JobsScenarioBuilder() {
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
@@ -66,12 +72,18 @@ public class JobsScenarioBuilder {
         jobStore.events().subscribe(storeEvents);
 
         TestClock clock = Clocks.testScheduler(testScheduler);
+
+        GlobalConstraintEvaluator globalConstraintEvaluator = (taskRequest, targetVM, taskTrackerState) ->
+                new ConstraintEvaluator.Result(true, null);
+
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
                 configuration,
                 capacityGroupService,
                 schedulingService,
                 vmService,
                 jobStore,
+                constraintEvaluatorTransformer,
+                globalConstraintEvaluator,
                 clock,
                 testScheduler
         );
@@ -81,18 +93,26 @@ public class JobsScenarioBuilder {
                 schedulingService,
                 vmService,
                 jobStore,
+                constraintEvaluatorTransformer,
+                globalConstraintEvaluator,
                 clock,
                 testScheduler
         );
         this.jobOperations = new DefaultV3JobOperations(
                 configuration,
-                batchDifferenceResolver,
-                serviceDifferenceResolver,
                 jobStore,
-                schedulingService,
                 vmService,
-                capacityGroupService,
-                testScheduler
+                new JobReconciliationFrameworkFactory(
+                        configuration,
+                        batchDifferenceResolver,
+                        serviceDifferenceResolver,
+                        jobStore,
+                        schedulingService,
+                        capacityGroupService,
+                        globalConstraintEvaluator,
+                        constraintEvaluatorTransformer,
+                        testScheduler
+                )
         );
         jobOperations.enterActiveMode();
     }

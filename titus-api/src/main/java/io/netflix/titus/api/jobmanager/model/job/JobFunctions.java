@@ -56,6 +56,14 @@ public final class JobFunctions {
         return job.getJobDescriptor().getExtensions() instanceof ServiceJobExt;
     }
 
+    public static boolean isBatchTask(Task task) {
+        return task instanceof BatchJobTask;
+    }
+
+    public static boolean isServiceTask(Task task) {
+        return task instanceof ServiceJobTask;
+    }
+
     public static Job changeJobStatus(Job job, JobState jobState, String reasonCode) {
         JobStatus newStatus = JobModel.newJobStatus()
                 .withState(jobState)
