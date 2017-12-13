@@ -61,6 +61,7 @@ import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
@@ -150,7 +151,7 @@ public class DefaultJobManagementService implements JobManagementService {
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
         return toCompletable(
-                emitter ->  {
+                emitter -> {
                     StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
                     ClientCall clientCall = call(METHOD_UPDATE_JOB_PROCESSES, jobProcessesUpdate, streamObserver);
                     GrpcUtil.attachCancellingCallback(emitter, clientCall);
@@ -280,12 +281,13 @@ public class DefaultJobManagementService implements JobManagementService {
     private Observable<Job> retrieveArchivedJob(String jobId) {
         return store.retrieveArchivedJob(jobId)
                 .onErrorResumeNext(e -> {
-                    JobStoreException storeException = (JobStoreException) e;
-                    if (storeException.getErrorCode().equals(JobStoreException.ErrorCode.JOB_DOES_NOT_EXIST)) {
-                        return Observable.error(TitusServiceException.jobNotFound(jobId));
-                    } else {
-                        return Observable.error(TitusServiceException.unexpected("Not able to retrieve the job: %s", jobId));
+                    if (e instanceof JobStoreException) {
+                        JobStoreException storeException = (JobStoreException) e;
+                        if (storeException.getErrorCode().equals(JobStoreException.ErrorCode.JOB_DOES_NOT_EXIST)) {
+                            return Observable.error(TitusServiceException.jobNotFound(jobId));
+                        }
                     }
+                    return Observable.error(TitusServiceException.unexpected("Not able to retrieve the job: %s (%s)", jobId, ExceptionExt.toMessageChain(e)));
                 }).map(V3GrpcModelConverters::toGrpcJob);
     }
 
@@ -315,12 +317,13 @@ public class DefaultJobManagementService implements JobManagementService {
     private Observable<Task> retrieveArchivedTask(String taskId) {
         return store.retrieveArchivedTask(taskId)
                 .onErrorResumeNext(e -> {
-                    JobStoreException storeException = (JobStoreException) e;
-                    if (storeException.getErrorCode().equals(JobStoreException.ErrorCode.TASK_DOES_NOT_EXIST)) {
-                        return Observable.error(TitusServiceException.taskNotFound(taskId));
-                    } else {
-                        return Observable.error(TitusServiceException.unexpected("Not able to retrieve the task: %s", taskId));
+                    if (e instanceof JobStoreException) {
+                        JobStoreException storeException = (JobStoreException) e;
+                        if (storeException.getErrorCode().equals(JobStoreException.ErrorCode.TASK_DOES_NOT_EXIST)) {
+                            return Observable.error(TitusServiceException.taskNotFound(taskId));
+                        }
                     }
+                    return Observable.error(TitusServiceException.unexpected("Not able to retrieve the task: %s (%s)", taskId, ExceptionExt.toMessageChain(e)));
                 }).map(task -> V3GrpcModelConverters.toGrpcTask(task, logStorageInfo));
     }
 
