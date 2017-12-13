@@ -50,7 +50,6 @@ public class Container {
     @Valid
     private final ContainerResources containerResources;
 
-    @Template
     @Valid
     private final SecurityProfile securityProfile;
 

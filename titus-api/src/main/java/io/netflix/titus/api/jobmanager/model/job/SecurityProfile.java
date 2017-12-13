@@ -18,12 +18,10 @@ package io.netflix.titus.api.jobmanager.model.job;
 
 import java.util.List;
 import java.util.Map;
-import javax.validation.constraints.Size;
 
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
 import io.netflix.titus.common.model.sanitizer.NeverNull;
-import io.netflix.titus.common.model.sanitizer.Template;
 import io.netflix.titus.common.util.CollectionsExt;
 
 import static io.netflix.titus.common.util.CollectionsExt.nonNull;
@@ -35,13 +33,9 @@ public class SecurityProfile {
 
     private static final SecurityProfile EMPTY = newBuilder().build();
 
-    @Template
-    @Size(min = 1, message = "At least one security group must be specified")
     @FieldInvariant(value = "@asserts.isValidSyntax(value)", message = "Syntactically invalid security group ids: #{value}")
     private final List<String> securityGroups;
 
-    @Template
-    @Size(min = 1, message = "Empty value not allowed")
     private final String iamRole;
 
     @CollectionInvariants
