@@ -18,7 +18,6 @@ package io.netflix.titus.api.jobmanager.model.job.sanitizer;
 
 import java.util.Collections;
 import java.util.Set;
-
 import javax.validation.ConstraintViolation;
 
 import com.google.common.collect.ImmutableMap;
@@ -72,25 +71,20 @@ public class JobModelSanitizationTest {
     }
 
     @Test
-    public void testBatchJobWithMissingSecurityGroups() throws Exception {
+    public void testBatchJobWithInvalidSecurityGroups() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor();
         JobDescriptor<BatchJobExt> noSecurityProfileDescriptor = JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
                         .withSecurityProfile(
                                 JobModel.newSecurityProfile(jobDescriptor.getContainer().getSecurityProfile())
-                                        .withSecurityGroups(Collections.emptyList())
-                                        .withIamRole("")
+                                        .withSecurityGroups(Collections.singletonList("abcd"))
                                         .build())
                         .build()
                 ).build();
         Job<BatchJobExt> job = JobGenerator.batchJobs(noSecurityProfileDescriptor).getValue();
 
         // Security group violation expected
-        assertThat(entitySanitizer.validate(job)).hasSize(2);
-
-        // Now do cleanup
-        Job<BatchJobExt> sanitized = entitySanitizer.sanitize(job).get();
-        assertThat(entitySanitizer.validate(sanitized)).isEmpty();
+        assertThat(entitySanitizer.validate(job)).hasSize(1);
     }
 
     @Test

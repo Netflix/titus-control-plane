@@ -123,13 +123,15 @@ public class V2GrpcTitusServiceGateway
             try {
                 // Map to the new core model to validate the data.
                 io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
-                Set<ConstraintViolation<io.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor));
+                io.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitized = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
+                Set<ConstraintViolation<io.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitized);
                 if (!violations.isEmpty()) {
                     subscriber.onError(TitusServiceException.invalidArgument(violations));
                     return;
                 }
 
-                jobDefinition = V2GrpcModelConverters.toV2JobDefinition(jobDescriptor);
+                // We map back to GRPC/protobuf model to propagated sanitizer updates to V2 engine.
+                jobDefinition = V2GrpcModelConverters.toV2JobDefinition(V3GrpcModelConverters.toGrpcJobDescriptor(sanitized));
 
                 Optional<String> reserveStatus = jobSubmitLimiter.reserveId(jobDefinition);
                 if (reserveStatus.isPresent()) {

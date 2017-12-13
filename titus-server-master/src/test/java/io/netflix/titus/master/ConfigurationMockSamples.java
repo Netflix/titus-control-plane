@@ -28,8 +28,6 @@ import static org.mockito.Mockito.when;
  */
 public class ConfigurationMockSamples {
 
-    public static final String agentClusterAttributeName = "cluster";
-
     public static MasterConfiguration withExecutionEnvironment(MasterConfiguration mock) {
         when(mock.getRegion()).thenReturn("us-east-1");
         return mock;

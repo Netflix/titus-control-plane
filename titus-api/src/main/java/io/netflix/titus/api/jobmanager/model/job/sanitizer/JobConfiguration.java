@@ -54,8 +54,14 @@ public interface JobConfiguration {
     @DefaultValue("" + MAX_RUNTIME_LIMIT_SEC)
     long getMaxRuntimeLimitSec();
 
+    /**
+     * Default security group only set in V2 engine.
+     */
     List<String> getDefaultSecurityGroups();
 
+    /**
+     * Default IAM profile only set in V2 engine.
+     */
     @DefaultValue("")
     String getDefaultIamRole();
 }
