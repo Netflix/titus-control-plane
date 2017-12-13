@@ -215,8 +215,8 @@ public class JobSubmitAndControlBasicTest {
     public void testEnableDisableServiceJob() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.jobAccepted())
-                .updateJobStatus(true)
                 .updateJobStatus(false)
+                .updateJobStatus(true)
         );
     }
 }

@@ -160,6 +160,7 @@ public final class JobDescriptorGenerator {
                         .withCapacity(Capacity.newBuilder().withMin(0).withDesired(1).withMax(2).build())
                         .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(0).build())
                         .withMigrationPolicy(JobModel.newSystemDefaultMigrationPolicy().build())
+                        .withEnabled(true)
                         .withServiceJobProcesses(ServiceJobProcesses.newBuilder().build())
                         .build()
                 )

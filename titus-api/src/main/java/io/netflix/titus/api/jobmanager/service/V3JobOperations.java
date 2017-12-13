@@ -21,12 +21,12 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
@@ -35,6 +35,14 @@ import rx.Observable;
  *
  */
 public interface V3JobOperations {
+
+    enum Trigger {
+        API,
+        Mesos,
+        Reconciler,
+        Scheduler,
+        TaskMigration,
+    }
 
     Observable<String> createJob(JobDescriptor<?> jobDescriptor);
 
@@ -69,15 +77,15 @@ public interface V3JobOperations {
      * Applies the provided update function to a task before persisting it to a store. In case of system failure
      * the update may be lost.
      */
-    Completable updateTask(String taskId, Function<Task, Task> changeFunction, String reason);
+    Completable updateTask(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason);
 
     /**
      * Applies the provided update function to a task, and persists it in the store before updating the internal model.
      * This call guarantees system consistency in case of crashes/failovers.
      */
-    Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction);
+    Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason);
 
-    Observable<JobManagerEvent> observeJobs();
+    Observable<JobManagerEvent<?>> observeJobs();
 
-    Observable<JobManagerEvent> observeJob(String jobId);
+    Observable<JobManagerEvent<?>> observeJob(String jobId);
 }

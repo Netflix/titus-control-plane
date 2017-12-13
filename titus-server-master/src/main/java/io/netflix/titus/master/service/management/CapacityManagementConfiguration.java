@@ -22,8 +22,6 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.master.capacityManagement")
 public interface CapacityManagementConfiguration {
 
-    String DEFAULT_INSTANCE_TYPE = "DEFAULT";
-
     interface ResourceDimensionConfiguration {
         @DefaultValue("2")
         double getCPU();

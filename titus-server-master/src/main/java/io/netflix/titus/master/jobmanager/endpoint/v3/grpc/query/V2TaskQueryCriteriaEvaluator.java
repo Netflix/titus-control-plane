@@ -33,6 +33,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.job.JobMgrUtils;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
 
+@SuppressWarnings("SimplifiableIfStatement")
 public class V2TaskQueryCriteriaEvaluator extends V2AbstractQueryCriteriaEvaluator<V2WorkerMetadata> {
 
     public V2TaskQueryCriteriaEvaluator(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria) {

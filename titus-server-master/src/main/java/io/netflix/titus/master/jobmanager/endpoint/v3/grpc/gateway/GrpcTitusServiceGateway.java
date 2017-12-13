@@ -28,6 +28,7 @@ import rx.Observable;
 /**
  * {@link TitusServiceGateway} with GRPC type parameters resolved.
  */
+@SuppressWarnings("unchecked")
 public interface GrpcTitusServiceGateway extends
         TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> {
 

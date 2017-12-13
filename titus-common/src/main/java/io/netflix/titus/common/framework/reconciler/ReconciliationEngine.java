@@ -22,10 +22,10 @@ import rx.Observable;
 
 /**
  */
-public interface ReconciliationEngine<CHANGE> {
+public interface ReconciliationEngine<EVENT> {
 
-    interface DifferenceResolver<CHANGE> {
-        List<ChangeAction<CHANGE>> apply(EntityHolder referenceModel, EntityHolder runningModel, EntityHolder storeModel);
+    interface DifferenceResolver<EVENT> {
+        List<ChangeAction> apply(ReconciliationEngine<EVENT> engine);
     }
 
     class TriggerStatus {
@@ -73,7 +73,7 @@ public interface ReconciliationEngine<CHANGE> {
      * Multiple change requests are processed in order of arrival, one at a time. If action execution deadline is
      * crossed, it is rejected. The deadline value must be always greater than the execution timeout.
      */
-    Observable<Void> changeReferenceModel(ChangeAction<CHANGE> changeAction);
+    Observable<Void> changeReferenceModel(ChangeAction changeAction);
 
     /**
      * Returns immutable reference model.
@@ -95,5 +95,5 @@ public interface ReconciliationEngine<CHANGE> {
     /**
      * Emits an event for each requested system change , and reconciliation action.
      */
-    Observable<ReconcilerEvent> events();
+    Observable<EVENT> events();
 }

@@ -20,17 +20,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import rx.Observable;
 import rx.Scheduler;
 
@@ -81,31 +79,29 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         private final TitusChangeAction delegate;
 
         RetryChangeAction(TitusChangeAction delegate) {
-            super(delegate.getChange());
+            super(delegate);
             this.delegate = delegate;
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
-            return delegate.apply().map(changeUpdatesPair ->
-                    changeUpdatesPair.mapRight(updates -> CollectionsExt.copyAndAdd(updates, new RemoveRetryRecord(delegate)))
-            ).onErrorReturn(e -> Pair.of(getChange(), Collections.singletonList(new RetryModelUpdateAction(delegate, e))));
+        public Observable<List<ModelActionHolder>> apply() {
+            return delegate.apply().map(modelActionHolders -> CollectionsExt.copyAndAdd(modelActionHolders, ModelActionHolder.store(new RemoveRetryRecord(delegate)))
+            ).onErrorReturn(e -> Collections.singletonList(ModelActionHolder.store(new RetryModelUpdateAction(delegate, e))));
         }
     }
 
-    class RetryModelUpdateAction extends TitusModelUpdateAction {
+    class RetryModelUpdateAction extends TitusModelAction {
 
         RetryModelUpdateAction(TitusChangeAction delegate, Throwable e) {
-            super(ActionKind.Job,
-                    Model.Store,
-                    delegate.getChange().getTrigger(),
-                    delegate.getChange().getId(),
-                    "Report failure of: " + delegate.getChange().getSummary() + '(' + e.getMessage() + ')'
+            super(
+                    delegate.getTrigger(),
+                    delegate.getId(),
+                    "Report failure of: " + delegate.getSummary() + '(' + e.getMessage() + ')'
             );
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             RetryRecord retryRecord = (RetryRecord) rootHolder.getAttributes().get(attrName);
 
             RetryRecord newRecord;
@@ -113,7 +109,7 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
             if (retryRecord == null) {
                 newRecord = new RetryRecord(initialRetryPolicy, now, 1);
             } else if (!retryRecord.getRetryPolicy().getDelayMs().isPresent()) { // Retry limit reached
-                return Pair.of(rootHolder, Optional.empty());
+                return Optional.empty();
             } else {
                 // Only increment retry for actions that happened after the last failure time
                 long nextRetryTime = retryRecord.getLastFailureTime() + retryRecord.getRetryPolicy().getDelayMs().get();
@@ -123,27 +119,26 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
             }
 
             EntityHolder newRoot = rootHolder.addTag(attrName, newRecord);
-            return Pair.of(newRoot, Optional.of(newRoot));
+            return Optional.of(Pair.of(newRoot, newRoot));
         }
     }
 
-    class RemoveRetryRecord extends TitusModelUpdateAction {
+    class RemoveRetryRecord extends TitusModelAction {
         RemoveRetryRecord(TitusChangeAction delegate) {
-            super(ActionKind.Job,
-                    Model.Store,
-                    delegate.getChange().getTrigger(),
-                    delegate.getChange().getId(),
+            super(
+                    delegate.getTrigger(),
+                    delegate.getId(),
                     "Cleaning up after successful action execution"
             );
         }
 
         @Override
-        public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
+        public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
             if (rootHolder.getAttributes().containsKey(attrName)) {
                 EntityHolder newRoot = rootHolder.removeTag(attrName);
-                return Pair.of(newRoot, Optional.of(newRoot));
+                return Optional.of(Pair.of(newRoot, newRoot));
             }
-            return Pair.of(rootHolder, Optional.empty());
+            return Optional.empty();
         }
     }
 

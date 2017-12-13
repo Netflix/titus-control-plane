@@ -53,7 +53,7 @@ import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.jobAccepted;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.launchJob;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startJob;
-import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startJobAndMoveToKillInitiated;
+import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startJobAndMoveTasksToKillInitiated;
 import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
@@ -275,7 +275,7 @@ public class JobCriteriaQueryTest {
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(startJob(TaskStatus.TaskState.StartInitiated)));
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(startJob(TaskStatus.TaskState.Started)));
         if (!v2Mode) {
-            jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(startJobAndMoveToKillInitiated(true)));
+            jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(startJobAndMoveTasksToKillInitiated(true)));
         }
 
         testSearchByTaskState("Launched", jobsScenarioBuilder.takeJobId(0), jobsScenarioBuilder.takeTaskId(0, 0));

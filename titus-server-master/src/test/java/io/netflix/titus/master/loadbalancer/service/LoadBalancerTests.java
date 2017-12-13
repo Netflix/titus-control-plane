@@ -37,7 +37,6 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Image;
@@ -51,19 +50,14 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
-import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
-import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
@@ -141,16 +135,6 @@ public class LoadBalancerTests {
 
     static <T> long count(Observable<T> items) {
         return StreamSupport.<T>stream(items.toBlocking().toIterable().spliterator(), false).count();
-    }
-
-    static TitusModelUpdateAction mockUpdateAction(String taskId) {
-        return new TitusModelUpdateAction(
-                ActionKind.Task, ModelUpdateAction.Model.Reference, JobManagerEvent.Trigger.Mesos, taskId, "test") {
-            @Override
-            public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
-                return Pair.of(rootHolder, Optional.empty());
-            }
-        };
     }
 
     /**

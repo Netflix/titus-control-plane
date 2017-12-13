@@ -82,6 +82,10 @@ public final class CollectionsExt {
         return it.hasNext() ? it.next() : null;
     }
 
+    public static <T> T last(List<T> list) {
+        return list.isEmpty() ? null : list.get(list.size() - 1);
+    }
+
     public static <T> T getOrDefault(T[] array, int idx, T defaultValue) {
         Preconditions.checkArgument(idx >= 0, "Index cannot be negative number");
         if (array == null || array.length <= idx) {

@@ -19,19 +19,23 @@ package io.netflix.titus.master.jobmanager.service.common.interceptor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
+import io.netflix.titus.common.framework.reconciler.ModelAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.limiter.ImmutableLimiters;
 import io.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
-import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.SampleTitusChangeActions;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
+import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;
 
+import static io.netflix.titus.testkit.model.job.JobGenerator.batchJobs;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RateLimiterInterceptorTest {
@@ -53,12 +57,14 @@ public class RateLimiterInterceptorTest {
 
     @Test
     public void testRateLimiting() throws Exception {
+        Job<BatchJobExt> job = batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue();
+
         // Use all tokens
-        EntityHolder nextRoot = EntityHolder.newRoot("rootId", "data");
+        EntityHolder nextRoot = EntityHolder.newRoot("root", job);
         for (int i = 0; i < BUCKET_SIZE; i++) {
             assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(BUCKET_SIZE - i);
-            ModelUpdateAction updateAction = expectUpdateActionOfType(SampleTitusChangeActions.successfulJob(), RateLimiterInterceptor.UpdateRateLimiterStateAction.class);
-            nextRoot = updateAction.apply(nextRoot).getRight().get();
+            ModelAction updateAction = executeRateLimitedAction(SampleTitusChangeActions.successfulJob());
+            nextRoot = updateAction.apply(nextRoot).get().getRight();
         }
         assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(0);
 
@@ -67,12 +73,12 @@ public class RateLimiterInterceptorTest {
         assertThat(rateLimiterInterceptor.executionLimits(nextRoot)).isEqualTo(1);
     }
 
-    private ModelUpdateAction expectUpdateActionOfType(TitusChangeAction changeAction, Class<? extends ModelUpdateAction> updateActionType) {
-        ExtTestSubscriber<Pair<JobChange, List<ModelUpdateAction>>> testSubscriber = new ExtTestSubscriber<>();
+    private ModelAction executeRateLimitedAction(TitusChangeAction changeAction) {
+        ExtTestSubscriber<List<ModelActionHolder>> testSubscriber = new ExtTestSubscriber<>();
         rateLimiterInterceptor.apply(changeAction).apply().subscribe(testSubscriber);
 
-        ModelUpdateAction updateAction = testSubscriber.takeNext().getRight().get(0);
-        assertThat(updateAction).isInstanceOf(updateActionType);
+        ModelAction updateAction = testSubscriber.takeNext().get(0).getAction();
+        assertThat(updateAction).isInstanceOf(TitusModelAction.class);
         return updateAction;
     }
 }

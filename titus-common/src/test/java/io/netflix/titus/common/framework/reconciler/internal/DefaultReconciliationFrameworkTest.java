@@ -47,7 +47,7 @@ public class DefaultReconciliationFrameworkTest {
 
     private final TestScheduler testScheduler = Schedulers.test();
 
-    private final Function<EntityHolder, ReconciliationEngine<String>> engineFactory = mock(Function.class);
+    private final Function<EntityHolder, ReconciliationEngine<SimpleReconcilerEvent>> engineFactory = mock(Function.class);
     private final ReconciliationEngine engine1 = mock(ReconciliationEngine.class);
     private final ReconciliationEngine engine2 = mock(ReconciliationEngine.class);
 
@@ -56,7 +56,7 @@ public class DefaultReconciliationFrameworkTest {
             .put("descending", Comparator.<EntityHolder, String>comparing(EntityHolder::getEntity).reversed())
             .build();
 
-    private final DefaultReconciliationFramework<String> framework = new DefaultReconciliationFramework<String>(
+    private final DefaultReconciliationFramework<SimpleReconcilerEvent> framework = new DefaultReconciliationFramework<>(
             engineFactory,
             IDLE_TIMEOUT_MS,
             ACTIVE_TIMEOUT_MS,

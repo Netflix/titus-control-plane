@@ -88,7 +88,15 @@ public class ExceptionExt {
     public static <T> Optional<T> doTry(Callable<T> callable) {
         try {
             return Optional.ofNullable(callable.call());
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            return Optional.empty();
+        }
+    }
+
+    public static <T> Optional<T> doTry(Supplier<T> callable) {
+        try {
+            return Optional.ofNullable(callable.get());
+        } catch (Throwable e) {
             return Optional.empty();
         }
     }

@@ -24,9 +24,10 @@ import rx.Completable;
 import rx.Observable;
 
 /**
- * TODO Assign ChangeAction and its ModelUpdateAction(s) a unique id
+ * {@link ReconciliationFramework} manages lifecycle of multiple {@link ReconciliationEngine} instances, as well
+ * as orchestrates their reconciliation processes.
  */
-public interface ReconciliationFramework<CHANGE> {
+public interface ReconciliationFramework<EVENT> {
 
     /**
      * Starts the framework
@@ -37,24 +38,23 @@ public interface ReconciliationFramework<CHANGE> {
      * Stops the reconciliation framework
      *
      * @return true if it was stopped in the specified timeout
-     * @param timeoutMs
      */
     boolean stop(long timeoutMs);
 
     /**
      * Event stream of changes in the engine.
      */
-    Observable<ReconcilerEvent> events();
+    Observable<EVENT> events();
 
     /**
      * @return {@link ReconciliationEngine} with root node having the given id or {@link Optional#empty()}.
      */
-    Optional<ReconciliationEngine<CHANGE>> findEngineByRootId(String id);
+    Optional<ReconciliationEngine<EVENT>> findEngineByRootId(String id);
 
     /**
      * @return parent and its child node with the given child id or {@link Optional#empty()}.
      */
-    Optional<Pair<ReconciliationEngine<CHANGE>, EntityHolder>> findEngineByChildId(String childId);
+    Optional<Pair<ReconciliationEngine<EVENT>, EntityHolder>> findEngineByChildId(String childId);
 
     /**
      * Returns all roots of {@link ReconciliationEngine} instances ordered by the requested ordering criteria. The returned
@@ -67,10 +67,10 @@ public interface ReconciliationFramework<CHANGE> {
     /**
      * Creates a new reconciliation engine.
      */
-    Observable<ReconciliationEngine<CHANGE>> newEngine(EntityHolder bootstrapModel);
+    Observable<ReconciliationEngine<EVENT>> newEngine(EntityHolder bootstrapModel);
 
     /**
      * Removes an existing reconciliation engine.
      */
-    Completable removeEngine(ReconciliationEngine<CHANGE> engine);
+    Completable removeEngine(ReconciliationEngine<EVENT> engine);
 }

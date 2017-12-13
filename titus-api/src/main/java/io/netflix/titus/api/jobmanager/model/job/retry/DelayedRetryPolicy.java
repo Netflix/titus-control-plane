@@ -21,7 +21,7 @@ import javax.validation.constraints.Min;
 
 /**
  */
-public class DelayedRetryPolicy extends RetryPolicy {
+public class DelayedRetryPolicy extends RetryPolicy<DelayedRetryPolicy, DelayedRetryPolicyBuilder> {
 
     @Min(value = 0, message = "Delay cannot be negative")
     private final long delayMs;
@@ -68,30 +68,15 @@ public class DelayedRetryPolicy extends RetryPolicy {
                 '}';
     }
 
-    public static DelayedRetryPolicy.Builder newBuilder() {
-        return new DelayedRetryPolicy.Builder();
+    @Override
+    public DelayedRetryPolicyBuilder toBuilder() {
+        return newBuilder()
+                .withDelay(delayMs, TimeUnit.MILLISECONDS)
+                .withRetries(getRetries());
     }
 
-    public static final class Builder {
-        private long delayMs;
-        private int retries;
-
-        private Builder() {
-        }
-
-        public DelayedRetryPolicy.Builder withDelay(long delay, TimeUnit timeUnit) {
-            this.delayMs = timeUnit.toMillis(delay);
-            return this;
-        }
-
-        public DelayedRetryPolicy.Builder withRetries(int retries) {
-            this.retries = retries;
-            return this;
-        }
-
-        public DelayedRetryPolicy build() {
-            DelayedRetryPolicy retryPolicy = new DelayedRetryPolicy(delayMs, retries);
-            return retryPolicy;
-        }
+    public static DelayedRetryPolicyBuilder newBuilder() {
+        return new DelayedRetryPolicyBuilder();
     }
+
 }

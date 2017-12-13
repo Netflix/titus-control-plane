@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -29,52 +30,49 @@ import javax.inject.Singleton;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
+import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import io.netflix.titus.common.util.limiter.ImmutableLimiters;
 import io.netflix.titus.common.util.retry.Retryers;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
-import io.netflix.titus.master.jobmanager.service.common.action.job.WriteJobAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.InitiateTaskKillAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.StartNewTaskAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.WriteTaskAction;
-import io.netflix.titus.master.jobmanager.service.common.interceptor.RateLimiterInterceptor;
+import io.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
+import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-import static io.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskAction.createOrReplaceTaskAction;
+import static io.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskActions.createOrReplaceTaskAction;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.areEquivalent;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.findTaskStateTimeouts;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.hasJobState;
-import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.removeCompletedJob;
 import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.shouldRetry;
 
 @Singleton
-public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceResolver {
-
-    private static final long NEW_TASK_BUCKET = 10;
-    private static final long NEW_TASK_REFILL_INTERVAL_MS = 100;
+public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobManagerReconcilerEvent> {
 
     private final JobManagerConfiguration configuration;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService schedulingService;
     private final VirtualMachineMasterService vmService;
-    private final JobStore titusStore;
+    private final JobStore jobStore;
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
-    private final RateLimiterInterceptor newTaskRateLimiterInterceptor;
 
-    private final Clock clock = Clocks.system();
+    private final Clock clock;
 
     @Inject
     public BatchDifferenceResolver(
@@ -82,56 +80,65 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
-            JobStore titusStore) {
+            JobStore jobStore) {
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, Clocks.system(), Schedulers.computation());
+    }
+
+    public BatchDifferenceResolver(
+            JobManagerConfiguration configuration,
+            ApplicationSlaManagementService capacityGroupService,
+            SchedulingService schedulingService,
+            VirtualMachineMasterService vmService,
+            JobStore jobStore,
+            Clock clock,
+            Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
-        this.titusStore = titusStore;
+        this.jobStore = jobStore;
+        this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
                 Retryers.exponentialBackoff(5000, 5000, TimeUnit.MILLISECONDS),
-                Schedulers.computation()
-        );
-
-        this.newTaskRateLimiterInterceptor = new RateLimiterInterceptor(
-                "newTask",
-                ImmutableLimiters.tokenBucket(
-                        NEW_TASK_BUCKET,
-                        ImmutableLimiters.refillAtFixedInterval(1, NEW_TASK_REFILL_INTERVAL_MS, TimeUnit.MILLISECONDS)
-                )
+                scheduler
         );
     }
 
     @Override
-    public List<ChangeAction> apply(EntityHolder referenceModel, EntityHolder runningModel, EntityHolder storeModel) {
+    public List<ChangeAction> apply(ReconciliationEngine<JobManagerReconcilerEvent> engine) {
         List<ChangeAction> actions = new ArrayList<>();
-        BatchJobView refJobView = new BatchJobView(referenceModel);
-        actions.addAll(applyRuntime(refJobView, runningModel, storeModel));
-        actions.addAll(applyStore(refJobView, storeModel));
+        BatchJobView refJobView = new BatchJobView(engine.getReferenceView());
+        EntityHolder storeModel = engine.getStoreView();
+
+        int activeNotStartedTasks = DifferenceResolverUtils.countActiveNotStartedTasks(refJobView.getJobHolder(), engine.getRunningView());
+        AtomicInteger allowedNewTasks = new AtomicInteger(Math.max(0, configuration.getActiveNotStartedTasksLimit() - activeNotStartedTasks));
+
+        actions.addAll(applyStore(engine, refJobView, storeModel, allowedNewTasks));
+        actions.addAll(applyRuntime(engine, refJobView, engine.getRunningView(), storeModel, allowedNewTasks));
 
         if (actions.isEmpty()) {
-            actions.addAll(removeCompletedJob(referenceModel, storeModel, titusStore));
+            actions.addAll(removeCompletedJob(engine.getReferenceView(), storeModel, jobStore));
         }
 
         return actions;
     }
 
-    private List<ChangeAction> applyRuntime(BatchJobView refJobView, EntityHolder runningModel, EntityHolder storeModel) {
+    private List<ChangeAction> applyRuntime(ReconciliationEngine<JobManagerReconcilerEvent> engine, BatchJobView refJobView, EntityHolder runningModel, EntityHolder storeModel, AtomicInteger allowedNewTasks) {
         List<ChangeAction> actions = new ArrayList<>();
         EntityHolder referenceModel = refJobView.getJobHolder();
         BatchJobView runningJobView = new BatchJobView(runningModel);
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
-            return InitiateTaskKillAction.applyKillInitiated(runningJobView, vmService);
+            return KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
         } else if (hasJobState(referenceModel, JobState.Finished)) {
             return Collections.emptyList();
         }
 
-        actions.addAll(findJobSizeInconsistencies(refJobView, storeModel));
+        actions.addAll(findJobSizeInconsistencies(refJobView, storeModel, allowedNewTasks));
         actions.addAll(findMissingRunningTasks(refJobView, runningJobView));
-        actions.addAll(findTaskStateTimeouts(runningJobView, configuration, clock, vmService));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
 
         return actions;
     }
@@ -139,12 +146,13 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     /**
      * Check that the reference job has the required number of tasks.
      */
-    private List<ChangeAction> findJobSizeInconsistencies(BatchJobView refJobView, EntityHolder storeModel) {
+    private List<ChangeAction> findJobSizeInconsistencies(BatchJobView refJobView, EntityHolder storeModel, AtomicInteger allowedNewTasks) {
         boolean canUpdateStore = storeWriteRetryInterceptor.executionLimits(storeModel);
         if (canUpdateStore && refJobView.getTasks().size() < refJobView.getRequiredSize()) {
             List<ChangeAction> missingTasks = new ArrayList<>();
-            for (int i = 0; i < refJobView.getRequiredSize(); i++) {
+            for (int i = 0; i < refJobView.getRequiredSize() && allowedNewTasks.get() > 0; i++) {
                 if (!refJobView.getIndexes().contains(i)) {
+                    allowedNewTasks.decrementAndGet();
                     missingTasks.add(createNewTaskAction(refJobView, i));
                 }
             }
@@ -154,10 +162,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     }
 
     private TitusChangeAction createNewTaskAction(BatchJobView refJobView, int taskIndex) {
-        return newTaskRateLimiterInterceptor.apply(
-                storeWriteRetryInterceptor.apply(
-                        createOrReplaceTaskAction(titusStore, refJobView.getJob(), refJobView.getTasks(), taskIndex)
-                )
+        return storeWriteRetryInterceptor.apply(
+                createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), taskIndex, clock)
         );
     }
 
@@ -166,20 +172,17 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
      */
     private List<ChangeAction> findMissingRunningTasks(BatchJobView refJobView, BatchJobView runningJobView) {
         List<ChangeAction> missingTasks = new ArrayList<>();
-        long allowedToRun = newTaskRateLimiterInterceptor.executionLimits(runningJobView.getJobHolder());
         List<BatchJobTask> tasks = refJobView.getTasks();
-        for (int i = 0; i < tasks.size() && allowedToRun > 0; i++) {
-            BatchJobTask refTask = tasks.get(i);
+        for (BatchJobTask refTask : tasks) {
             BatchJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
-                missingTasks.add(new StartNewTaskAction(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));
-                allowedToRun--;
+                missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService, schedulingService, runningJobView.getJob(), refTask));
             }
         }
         return missingTasks;
     }
 
-    private List<ChangeAction> applyStore(BatchJobView refJobView, EntityHolder storeJob) {
+    private List<ChangeAction> applyStore(ReconciliationEngine<JobManagerReconcilerEvent> engine, BatchJobView refJobView, EntityHolder storeJob, AtomicInteger allowedNewTasks) {
         if (!storeWriteRetryInterceptor.executionLimits(storeJob)) {
             return Collections.emptyList();
         }
@@ -190,22 +193,45 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         Job<BatchJobExt> refJob = refJobHolder.getEntity();
 
         if (!refJobHolder.getEntity().equals(storeJob.getEntity())) {
-            actions.add(storeWriteRetryInterceptor.apply(new WriteJobAction(titusStore, refJobHolder.getEntity())));
+            actions.add(storeWriteRetryInterceptor.apply(BasicJobActions.updateJobInStore(engine, jobStore)));
         }
         boolean isJobTerminating = refJob.getStatus().getState() == JobState.KillInitiated;
         for (EntityHolder referenceTask : refJobHolder.getChildren()) {
+
             Optional<EntityHolder> storeHolder = storeJob.findById(referenceTask.getId());
+            BatchJobTask storeTask = storeHolder.get().getEntity();
+
             boolean refAndStoreInSync = storeHolder.isPresent() && areEquivalent(storeHolder.get(), referenceTask);
+            boolean shouldRetry = !isJobTerminating && shouldRetry(refJob, referenceTask.getEntity()) && allowedNewTasks.get() > 0;
+
             if (refAndStoreInSync) {
-                BatchJobTask task = storeHolder.get().getEntity();
-                if (!isJobTerminating && shouldRetry(refJob, task)) {
-                    actions.add(createNewTaskAction(refJobView, task.getIndex()));
+                if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTask, clock)) {
+                    actions.add(createNewTaskAction(refJobView, storeTask.getIndex()));
                 }
             } else {
-                actions.add(storeWriteRetryInterceptor.apply(new WriteTaskAction(titusStore, schedulingService, capacityGroupService, refJob, referenceTask.getEntity())));
+                Task task = referenceTask.getEntity();
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, task.getId())));
+            }
+            // Both current and delayed retries are counted
+            if (shouldRetry) {
+                allowedNewTasks.decrementAndGet();
             }
         }
         return actions;
+    }
+
+    private static List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
+        if (!hasJobState(referenceModel, JobState.Finished)) {
+            if (DifferenceResolverUtils.allDone(storeModel)) {
+                return Collections.singletonList(BasicJobActions.completeJob(referenceModel.getId()));
+            }
+        } else {
+            if (!BasicJobActions.isClosed(referenceModel)) {
+                return Collections.singletonList(BasicJobActions.removeJobFromStore(referenceModel.getEntity(), titusStore));
+            }
+
+        }
+        return Collections.emptyList();
     }
 
     static class BatchJobView extends DifferenceResolverUtils.JobView<BatchJobExt, BatchJobTask> {

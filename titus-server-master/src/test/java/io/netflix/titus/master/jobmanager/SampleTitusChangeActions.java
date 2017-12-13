@@ -20,12 +20,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.service.common.action.ActionKind;
-import io.netflix.titus.api.jobmanager.service.common.action.JobChange;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusChangeAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import rx.Observable;
 
 /**
@@ -35,22 +33,22 @@ public final class SampleTitusChangeActions {
 
 
     public static TitusChangeAction successfulJob() {
-        return new SuccessfulChangeAction(ActionKind.Job, JobManagerEvent.Trigger.API, "jobId");
+        return new SuccessfulChangeAction(V3JobOperations.Trigger.API, "jobId");
     }
 
     public static TitusChangeAction failingJob(int failureCount) {
-        return new FailingChangeAction(ActionKind.Job, JobManagerEvent.Trigger.API, "jobId", failureCount);
+        return new FailingChangeAction(V3JobOperations.Trigger.API, "jobId", failureCount);
     }
 
     private static class SuccessfulChangeAction extends TitusChangeAction {
 
-        private SuccessfulChangeAction(ActionKind actionKind, JobManagerEvent.Trigger trigger, String id) {
-            super(new JobChange(actionKind, trigger, id, "Simulated successful action"));
+        private SuccessfulChangeAction(Trigger trigger, String id) {
+            super(trigger, id, "simulatedChangeAction", "Simulated successful action");
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
-            return Observable.just(Pair.of(getChange(), Collections.emptyList()));
+        public Observable<List<ModelActionHolder>> apply() {
+            return Observable.just(Collections.emptyList());
         }
     }
 
@@ -58,17 +56,17 @@ public final class SampleTitusChangeActions {
 
         private final AtomicInteger failureCounter;
 
-        protected FailingChangeAction(ActionKind actionKind, JobManagerEvent.Trigger trigger, String id, int failureCount) {
-            super(new JobChange(actionKind, trigger, id, "Simulated initial failure repeated " + failureCount + " times"));
+        protected FailingChangeAction(Trigger trigger, String id, int failureCount) {
+            super(trigger, id, "simulatedFailingAction", "Simulated initial failure repeated " + failureCount + " times");
             this.failureCounter = new AtomicInteger(failureCount);
         }
 
         @Override
-        public Observable<Pair<JobChange, List<ModelUpdateAction>>> apply() {
+        public Observable<List<ModelActionHolder>> apply() {
             if (failureCounter.decrementAndGet() >= 0) {
                 return Observable.error(new RuntimeException("Simulated failure; remaining failures=" + failureCounter.get()));
             }
-            return Observable.just(Pair.of(getChange(), Collections.emptyList()));
+            return Observable.just(Collections.emptyList());
         }
     }
 }
