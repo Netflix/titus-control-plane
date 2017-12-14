@@ -16,7 +16,7 @@
 
 package io.netflix.titus.common.util.spectator;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,12 +28,12 @@ import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import com.netflix.spectator.api.patterns.PolledMeter;
+import io.netflix.titus.common.util.CollectionsExt;
 
 /**
  * A collection of metrics for tracking successful and failed action executions.
  */
 public class ExecutionMetrics {
-
     private final String root;
     private final Registry registry;
     private final List<Tag> commonTags;
@@ -46,11 +46,13 @@ public class ExecutionMetrics {
     private final AtomicLong failureLatency = new AtomicLong();
 
     public ExecutionMetrics(String root, Class<?> aClass, Registry registry) {
+        this(root, aClass, registry, new ArrayList<>());
+    }
+
+    public ExecutionMetrics(String root, Class<?> aClass, Registry registry, List<Tag> additionalTags) {
         this.root = root;
         this.registry = registry;
-        this.commonTags = Collections.singletonList(
-                new BasicTag("class", aClass.getName())
-        );
+        this.commonTags = CollectionsExt.copyAndAdd(additionalTags, new BasicTag("class", aClass.getName()));
 
         this.successCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "success"));
         this.errorCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "failure"));

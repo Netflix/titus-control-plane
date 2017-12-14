@@ -29,6 +29,7 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
+import io.netflix.titus.common.util.guice.ContainerEventBusModule;
 import io.netflix.titus.gateway.connector.titusmaster.TitusMasterConnectorModule;
 import io.netflix.titus.gateway.endpoint.GrpcModule;
 import io.netflix.titus.gateway.endpoint.JerseyModule;
@@ -61,6 +62,8 @@ public final class TitusGatewayModule extends AbstractModule {
         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
         bind(Registry.class).toInstance(new DefaultRegistry());
         bind(TitusRuntime.class).to(DefaultTitusRuntime.class);
+
+        install(new ContainerEventBusModule());
 
         install(new TitusEntitySanitizerModule());
 
