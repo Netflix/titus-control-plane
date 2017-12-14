@@ -32,9 +32,9 @@ public class AwsLoadBalancerConnectorMetrics {
     private static final Logger logger = LoggerFactory.getLogger(AwsLoadBalancerMethods.class);
 
     public enum AwsLoadBalancerMethods {
-        registerTargets,
-        deregisterTargets,
-        describeTargetGroups
+        RegisterTargets,
+        DeregisterTargets,
+        DescribeTargetGroups
     }
 
     private static final String METRICS_ROOT = "titus.loadbalancer.connector";
@@ -50,8 +50,9 @@ public class AwsLoadBalancerConnectorMetrics {
             // Create ExecutionMetrics that are preconfigured with the appropriate tags. This
             // allows latency metrics to be collected per method.
             List<Tag> tags = new ArrayList<>();
-            tags.add(new BasicTag("method", methodName.name()));
-            methodMetricsMap.put(methodName.name(),
+            String methodNameStr = methodName.name();
+            tags.add(new BasicTag("method", methodNameStr));
+            methodMetricsMap.put(methodNameStr,
                     new ExecutionMetrics(METRICS_ROOT, AwsLoadBalancerConnector.class, registry, tags));
         }
     }
@@ -67,18 +68,19 @@ public class AwsLoadBalancerConnectorMetrics {
         getOrCreateMetrics(method).failure(error, startTime);
     }
 
-    // Creates an execution metric for the method if it doesn't exist. Returns the
+    // Creates an execution metric for the methodName if it doesn't exist. Returns the
     // metric if it exists already.
-    private ExecutionMetrics getOrCreateMetrics(AwsLoadBalancerMethods method) {
-        if (methodMetricsMap.containsKey(method.name())) {
-            return methodMetricsMap.get(method.name());
+    private ExecutionMetrics getOrCreateMetrics(AwsLoadBalancerMethods methodName) {
+        String methodNameStr = methodName.name();
+        if (methodMetricsMap.containsKey(methodNameStr)) {
+            return methodMetricsMap.get(methodNameStr);
         }
 
         List<Tag> tags = new ArrayList<>();
-        tags.add(new BasicTag("method", method.name()));
+        tags.add(new BasicTag("methodName", methodNameStr));
         ExecutionMetrics metric = new ExecutionMetrics(METRICS_ROOT, AwsLoadBalancerConnector.class, registry, tags);
 
-        methodMetricsMap.put(method.name(), metric);
+        methodMetricsMap.put(methodNameStr, metric);
         return metric;
     }
 }

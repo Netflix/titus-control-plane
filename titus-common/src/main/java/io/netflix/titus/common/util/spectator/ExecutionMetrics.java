@@ -28,6 +28,7 @@ import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import com.netflix.spectator.api.patterns.PolledMeter;
+import io.netflix.titus.common.util.CollectionsExt;
 
 /**
  * A collection of metrics for tracking successful and failed action executions.
@@ -51,8 +52,7 @@ public class ExecutionMetrics {
     public ExecutionMetrics(String root, Class<?> aClass, Registry registry, List<Tag> additionalTags) {
         this.root = root;
         this.registry = registry;
-        additionalTags.add(new BasicTag("class", aClass.getName()));
-        this.commonTags = additionalTags;
+        this.commonTags = CollectionsExt.copyAndAdd(additionalTags, new BasicTag("class", aClass.getName()));
 
         this.successCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "success"));
         this.errorCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "failure"));

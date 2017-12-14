@@ -49,6 +49,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     private static final String AWS_IP_TARGET_TYPE = "ip";
 
     private final AmazonElasticLoadBalancingAsync client;
+    private final Registry registry;
     private final Scheduler scheduler;
 
     private AwsLoadBalancerConnectorMetrics connectorMetrics;
@@ -61,6 +62,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler, Registry registry) {
         this.client = client;
         this.scheduler = scheduler;
+        this.registry = registry;
         this.connectorMetrics = new AwsLoadBalancerConnectorMetrics(registry);
     }
 
@@ -81,16 +83,16 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                 .withTargetGroupArn(loadBalancerId)
                 .withTargets(targetDescriptions);
 
-        long startTime = System.currentTimeMillis();
+        long startTime = registry.clock().wallTime();
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
         return AwsObservableExt.asyncActionCompletable(factory -> client.registerTargetsAsync(request, factory.handler(
                 (req, resp) -> {
                     logger.debug("Registered targets {}", resp);
-                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.registerTargets, startTime);
+                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.RegisterTargets, startTime);
                 },
                 (t) -> {
                     logger.error("Error registering targets on " + loadBalancerId, t);
-                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.registerTargets, t, startTime);
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.RegisterTargets, t, startTime);
                 }
         ))).observeOn(scheduler);
     }
@@ -111,16 +113,16 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                         ipAddress -> new TargetDescription().withId(ipAddress)
                 ).collect(Collectors.toSet()));
 
-        long startTime = System.currentTimeMillis();
+        long startTime = registry.clock().wallTime();
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
         return AwsObservableExt.asyncActionCompletable(factory -> client.deregisterTargetsAsync(request, factory.handler(
                 (req, resp) -> {
                     logger.debug("Deregistered targets {}", resp);
-                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.deregisterTargets, startTime);
+                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DeregisterTargets, startTime);
                 },
                 (t) -> {
                     logger.error("Error deregistering targets on " + loadBalancerId, t);
-                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.deregisterTargets, t, startTime);
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DeregisterTargets, t, startTime);
                 }
         ))).observeOn(scheduler);
     }
@@ -130,14 +132,14 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         final DescribeTargetGroupsRequest request = new DescribeTargetGroupsRequest()
                 .withTargetGroupArns(loadBalancerId);
 
-        long startTime = System.currentTimeMillis();
+        long startTime = registry.clock().wallTime();
         Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(factory -> client.describeTargetGroupsAsync(request, factory.handler()));
         return resultSingle
                 .doOnError(throwable -> {
-                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.describeTargetGroups, throwable, startTime);
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetGroups, throwable, startTime);
                 })
                 .flatMapObservable(result -> {
-                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.describeTargetGroups, startTime);
+                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetGroups, startTime);
                     return  Observable.from(result.getTargetGroups());
                 })
                 .flatMap(targetGroup -> {
