@@ -32,6 +32,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Timer;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
@@ -48,6 +51,10 @@ import rx.subjects.PublishSubject;
 public class DefaultReconciliationFramework<EVENT> implements ReconciliationFramework<EVENT> {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultReconciliationFramework.class);
+
+    private static final String ROOT_METRIC_NAME = "titus.reconciliation.framework.";
+    private static final String LOOP_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "executionTime";
+    private static final String LAST_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "lastExecutionTime";
 
     private final Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory;
     private final long idleTimeoutMs;
@@ -68,11 +75,15 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private final PublishSubject<Observable<EVENT>> eventsMergeSubject = PublishSubject.create();
     private final Observable<EVENT> eventsObservable;
 
+    private final Timer loopExecutionTime;
+    private volatile long lastExecutionTimeMs;
+
     public DefaultReconciliationFramework(List<ReconciliationEngine<EVENT>> bootstrapEngines,
                                           Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory,
                                           long idleTimeoutMs,
                                           long activeTimeoutMs,
                                           Map<Object, Comparator<EntityHolder>> indexComparators,
+                                          Registry registry,
                                           Scheduler scheduler) {
         Preconditions.checkArgument(idleTimeoutMs > 0, "idleTimeout <= 0 (%s)", idleTimeoutMs);
         Preconditions.checkArgument(activeTimeoutMs <= idleTimeoutMs, "activeTimeout(%s) > idleTimeout(%s)", activeTimeoutMs, idleTimeoutMs);
@@ -84,6 +95,10 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         this.activeTimeoutMs = activeTimeoutMs;
         this.worker = scheduler.createWorker();
         this.eventsObservable = Observable.merge(eventsMergeSubject);
+
+        this.loopExecutionTime = registry.timer(LOOP_EXECUTION_TIME_METRIC);
+        this.lastExecutionTimeMs = scheduler.now();
+        PolledMeter.using(registry).withName(LAST_EXECUTION_TIME_METRIC).monitorValue(this, self -> scheduler.now() - self.lastExecutionTimeMs);
 
         engines.addAll(bootstrapEngines);
         updateIndexSet();
@@ -181,12 +196,17 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
             return;
         }
         worker.schedule(() -> {
+            long startTimeMs = worker.now();
             try {
                 long nextDelayMs = doLoop();
                 doSchedule(nextDelayMs);
             } catch (Exception e) {
                 logger.warn("Unexpected error in the reconciliation loop", e);
                 doSchedule(idleTimeoutMs);
+            } finally {
+                long now = worker.now();
+                lastExecutionTimeMs = now;
+                loopExecutionTime.record(now - startTimeMs, TimeUnit.MILLISECONDS);
             }
         }, delayMs, TimeUnit.MILLISECONDS);
     }

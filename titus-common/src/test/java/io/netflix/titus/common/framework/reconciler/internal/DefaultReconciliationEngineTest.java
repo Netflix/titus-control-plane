@@ -28,12 +28,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelAction;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
+import io.netflix.titus.common.util.time.Clocks;
+import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
@@ -50,13 +53,22 @@ public class DefaultReconciliationEngineTest {
 
     private final TestScheduler testScheduler = Schedulers.test();
 
+    private final TestClock clock = Clocks.testScheduler(testScheduler);
+
     private final Map<Object, Comparator<EntityHolder>> indexComparators = ImmutableMap.<Object, Comparator<EntityHolder>>builder()
             .put("ascending", Comparator.comparing(EntityHolder::getEntity))
             .put("descending", Comparator.<EntityHolder, String>comparing(EntityHolder::getEntity).reversed())
             .build();
 
     private final DefaultReconciliationEngine<SimpleReconcilerEvent> engine = new DefaultReconciliationEngine<>(
-            EntityHolder.newRoot("myRoot", "myEntity"), this::difference, indexComparators, new SimpleReconcilerEventFactory()
+            EntityHolder.newRoot("myRoot", "myEntity"),
+            this::difference,
+            indexComparators,
+            new SimpleReconcilerEventFactory(),
+            changeAction -> Collections.emptyList(),
+            event -> Collections.emptyList(),
+            new DefaultRegistry(),
+            clock
     );
 
     private final ExtTestSubscriber<SimpleReconcilerEvent> eventSubscriber = new ExtTestSubscriber<>();

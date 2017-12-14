@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 public class CodeInvariants {
 
-    private static final Logger logger = LoggerFactory.getLogger("CodeInvariants");
+    private static final Logger logger = LoggerFactory.getLogger(CodeInvariants.class);
 
     private static CodeInvariants INSTANCE = new CodeInvariants();
 
@@ -35,6 +35,10 @@ public class CodeInvariants {
         }
 
         return this;
+    }
+
+    public void unexpectedError(String message, Exception e) {
+        logger.warn(message, e);
     }
 
     public static CodeInvariants codeInvariants() {

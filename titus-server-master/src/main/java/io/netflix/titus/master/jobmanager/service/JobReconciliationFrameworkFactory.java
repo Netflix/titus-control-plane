@@ -10,6 +10,9 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.BasicTag;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Tag;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
@@ -19,6 +22,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.model.Tier;
+import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.DifferenceResolvers;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
@@ -26,9 +30,12 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.Differe
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import io.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationFramework;
+import io.netflix.titus.common.util.time.Clock;
+import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations.IndexKind;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.event.JobEventFactory;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
@@ -70,6 +77,8 @@ public class JobReconciliationFrameworkFactory {
     private final ApplicationSlaManagementService capacityGroupService;
     private final GlobalConstraintEvaluator globalConstraintEvaluator;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
+    private final Registry registry;
+    private final Clock clock;
     private final Scheduler scheduler;
 
     @Inject
@@ -80,8 +89,9 @@ public class JobReconciliationFrameworkFactory {
                                              SchedulingService schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
                                              GlobalConstraintEvaluator globalConstraintEvaluator,
-                                             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer) {
-        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService, globalConstraintEvaluator, constraintEvaluatorTransformer, Schedulers.computation());
+                                             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                             Registry registry) {
+        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService, globalConstraintEvaluator, constraintEvaluatorTransformer, registry, Clocks.system(), Schedulers.computation());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -92,6 +102,8 @@ public class JobReconciliationFrameworkFactory {
                                              ApplicationSlaManagementService capacityGroupService,
                                              GlobalConstraintEvaluator globalConstraintEvaluator,
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                             Registry registry,
+                                             Clock clock,
                                              Scheduler scheduler) {
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.store = store;
@@ -99,6 +111,8 @@ public class JobReconciliationFrameworkFactory {
         this.capacityGroupService = capacityGroupService;
         this.globalConstraintEvaluator = globalConstraintEvaluator;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
+        this.registry = registry;
+        this.clock = clock;
         this.scheduler = scheduler;
 
         this.dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
@@ -145,6 +159,7 @@ public class JobReconciliationFrameworkFactory {
                 jobManagerConfiguration.getReconcilerIdleTimeoutMs(),
                 jobManagerConfiguration.getReconcilerActiveTimeoutMs(),
                 INDEX_COMPARATORS,
+                registry,
                 scheduler
         );
     }
@@ -158,7 +173,27 @@ public class JobReconciliationFrameworkFactory {
     }
 
     private ReconciliationEngine<JobManagerReconcilerEvent> newEngine(EntityHolder bootstrapModel) {
-        return new DefaultReconciliationEngine<>(bootstrapModel, dispatchingResolver, INDEX_COMPARATORS, JOB_EVENT_FACTORY);
+        return new DefaultReconciliationEngine<>(bootstrapModel,
+                dispatchingResolver,
+                INDEX_COMPARATORS,
+                JOB_EVENT_FACTORY,
+                this::extraChangeActionTags,
+                this::extraModelActionTags,
+                registry,
+                clock
+        );
+    }
+
+    private List<Tag> extraChangeActionTags(ChangeAction changeAction) {
+        if (changeAction instanceof TitusChangeAction) {
+            TitusChangeAction titusChangeAction = (TitusChangeAction) changeAction;
+            return Collections.singletonList(new BasicTag("action", titusChangeAction.getName()));
+        }
+        return Collections.emptyList();
+    }
+
+    private List<Tag> extraModelActionTags(JobManagerReconcilerEvent event) {
+        return Collections.singletonList(new BasicTag("event", event.getClass().getSimpleName()));
     }
 
     private Optional<Throwable> addTaskToFenzo(ReconciliationEngine<JobManagerReconcilerEvent> engine, Job job, Task task) {

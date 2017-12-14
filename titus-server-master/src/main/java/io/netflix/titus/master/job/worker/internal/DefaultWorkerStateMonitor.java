@@ -134,12 +134,21 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                         Task task = jobAndTaskOpt.get().getRight();
                         TaskState newState = V2JobState.toV3TaskState(args.getState());
                         if (task.getStatus().getState() != newState) {
+
+                            String reasonCode = V2JobState.toV3ReasonCode(args.getState(), args.getReason());
+
+                            // We send kill operation even if task is in Accepted state, but if the latter is the case
+                            // we do not want to report Mesos 'lost' state in task status.
+                            if (isKillConfirmationForTaskInAcceptedState(task, newState, reasonCode)) {
+                                reasonCode = TaskStatus.REASON_TASK_KILLED;
+                            }
                             TaskStatus taskStatus = JobModel.newTaskStatus()
                                     .withState(newState)
-                                    .withReasonCode(V2JobState.toV3ReasonCode(args.getState(), args.getReason()))
+                                    .withReasonCode(reasonCode)
                                     .withReasonMessage("Mesos task state change event: " + args.getMessage())
                                     .withTimestamp(args.getTimestamp())
                                     .build();
+
                             // Failures are logged only, as the reconciler will take care of it if needed.
                             final Function<Task, Task> updater = JobManagerUtil.newTaskStateUpdater(taskStatus, args.getData());
                             v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + newState).subscribe(
@@ -154,6 +163,27 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
             }
         });
         allStatusSubject = PublishSubject.create();
+    }
+
+    /**
+     * Check if task moved directly from Accepted to KillInitiated.
+     */
+    private boolean isKillConfirmationForTaskInAcceptedState(Task task, TaskState newState, String reasonCode) {
+        if (newState != TaskState.Finished && !TaskStatus.REASON_TASK_LOST.equals(reasonCode)) {
+            return false;
+        }
+        TaskState currentState = task.getStatus().getState();
+        if (currentState != TaskState.Accepted && currentState != TaskState.KillInitiated) {
+            return false;
+        }
+        if (task.getStatusHistory().size() > 1) {
+            return false;
+        }
+        if (task.getStatusHistory().isEmpty()) {
+            return true;
+        }
+        TaskState stateInHistory = task.getStatusHistory().get(0).getState();
+        return stateInHistory == TaskState.Accepted;
     }
 
     private void killOrphanedTask(Status status) {

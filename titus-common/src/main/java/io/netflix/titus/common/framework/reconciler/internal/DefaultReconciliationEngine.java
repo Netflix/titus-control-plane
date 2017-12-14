@@ -26,13 +26,16 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
-import com.google.common.base.Stopwatch;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Tag;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +44,8 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.subjects.PublishSubject;
 import rx.subscriptions.Subscriptions;
+
+import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
 /**
  */
@@ -55,6 +60,8 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
 
     private final BlockingQueue<Pair<ChangeActionHolder, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
     private final BlockingQueue<Pair<ChangeActionHolder, List<ModelActionHolder>>> modelActionHolders = new LinkedBlockingQueue<>();
+    private final ReconciliationEngineMetrics<EVENT> metrics;
+    private final Clock clock;
 
     private IndexSet<EntityHolder> indexSet;
 
@@ -69,64 +76,85 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     public DefaultReconciliationEngine(EntityHolder bootstrapModel,
                                        DifferenceResolver<EVENT> runningDifferenceResolver,
                                        Map<Object, Comparator<EntityHolder>> indexComparators,
-                                       ReconcileEventFactory<EVENT> eventFactory) {
+                                       ReconcileEventFactory<EVENT> eventFactory,
+                                       Function<ChangeAction, List<Tag>> extraChangeActionTags,
+                                       Function<EVENT, List<Tag>> extraModelActionTags,
+                                       Registry registry,
+                                       Clock clock) {
         this.eventFactory = eventFactory;
         this.indexSet = IndexSet.newIndexSet(indexComparators);
+        this.clock = clock;
         this.modelHolder = new ModelHolder<>(this, bootstrapModel, runningDifferenceResolver);
         this.firstTrigger = true;
+        this.metrics = new ReconciliationEngineMetrics<>(bootstrapModel.getId(), extraChangeActionTags, extraModelActionTags, registry, clock);
         indexEntityHolder(bootstrapModel);
     }
 
     @Override
     public TriggerStatus triggerEvents() {
+        long startTimeNs = clock.nanoTime();
+        try {
         /*
           We need to emit first holder state after initialization, but we can do this only after {@link ReconcileEventFactory}
           has a chance to subscribe. Alternatively we could shift the logic to {@link ReconcileEventFactory}, but this
           would create two sources of events for an engine.
          */
-        if (firstTrigger) {
-            firstTrigger = false;
-            eventSubject.onNext(eventFactory.newModelEvent(this, modelHolder.getReference()));
-        }
+            if (firstTrigger) {
+                firstTrigger = false;
+                emitEvent(eventFactory.newModelEvent(this, modelHolder.getReference()));
+            }
 
-        // Always apply known runtime state changes first.
-        boolean modelUpdates = !modelActionHolders.isEmpty();
-        if (modelUpdates) {
-            applyModelUpdates();
-        }
+            // Always apply known runtime state changes first.
+            boolean modelUpdates = !modelActionHolders.isEmpty();
+            if (modelUpdates) {
+                applyModelUpdates();
+            }
 
-        // If there are pending changes (user triggered or reconciliation) do nothing.
-        if (hasRunningReferenceStateUpdate() || hasRunningReconciliationActions()) {
-            return new TriggerStatus(true, modelUpdates);
-        }
+            // If there are pending changes (user triggered or reconciliation) do nothing.
+            if (hasRunningReferenceStateUpdate() || hasRunningReconciliationActions()) {
+                return new TriggerStatus(true, modelUpdates);
+            }
 
-        // Start next reference change action, if present and exit.
-        if (startNextReferenceChangeAction()) {
-            return new TriggerStatus(true, modelUpdates);
-        }
+            // Start next reference change action, if present and exit.
+            if (startNextReferenceChangeAction()) {
+                return new TriggerStatus(true, modelUpdates);
+            }
 
-        // Compute the current difference between the reference and persistent/runtime models, and create a list
-        // of actions to correct that. The returned action set can be run in parallel.
-        List<ChangeAction> reconcileActions = modelHolder.resolveDifference();
-        if (!reconcileActions.isEmpty()) {
-            startReconcileAction(reconcileActions);
-            return new TriggerStatus(true, modelUpdates);
+            // Compute the current difference between the reference and persistent/runtime models, and create a list
+            // of actions to correct that. The returned action set can be run in parallel.
+            List<ChangeAction> reconcileActions = modelHolder.resolveDifference();
+            if (!reconcileActions.isEmpty()) {
+                startReconcileAction(reconcileActions);
+                return new TriggerStatus(true, modelUpdates);
+            }
+            return new TriggerStatus(false, modelUpdates);
+        } catch (Exception e) {
+            metrics.evaluated(clock.nanoTime() - startTimeNs, e);
+            codeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
+
+            return new TriggerStatus(true, false);
+        } finally {
+            metrics.evaluated(clock.nanoTime() - startTimeNs);
         }
-        return new TriggerStatus(false, modelUpdates);
     }
 
     @Override
     public Observable<Void> changeReferenceModel(ChangeAction referenceUpdate) {
         return Observable.unsafeCreate(subscriber -> {
             long transactionId = nextTransactionId.getAndIncrement();
-            eventSubject.onNext(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
-            referenceChangeActions.add(Pair.of(new ChangeActionHolder(referenceUpdate, transactionId), (Subscriber<Void>) subscriber));
+            emitEvent(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
+            referenceChangeActions.add(Pair.of(new ChangeActionHolder(referenceUpdate, transactionId, clock.wallTime()), (Subscriber<Void>) subscriber));
         });
     }
 
     @Override
     public EntityHolder getReferenceView() {
         return modelHolder.getReference();
+    }
+
+    @Override
+    public EntityHolder getRunningView() {
+        return modelHolder.getRunning();
     }
 
     @Override
@@ -137,11 +165,6 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     @Override
     public <ORDER_BY> List<EntityHolder> orderedView(ORDER_BY orderingCriteria) {
         return indexSet.getOrdered(orderingCriteria);
-    }
-
-    @Override
-    public EntityHolder getRunningView() {
-        return modelHolder.getRunning();
     }
 
     @Override
@@ -157,6 +180,8 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
         startedReconciliationActionSubscriptions = Collections.emptyList();
 
         eventSubject.onCompleted();
+
+        metrics.shutdown();
     }
 
     private void applyModelUpdates() {
@@ -200,10 +225,10 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                                 modelHolder.setStore(newRoot);
                                 break;
                         }
-                        eventSubject.onNext(eventFactory.newModelUpdateEvent(this, finalNext.getLeft().getChangeAction(), updateAction, changedItem, previousHolder, finalNext.getLeft().getTransactionId()));
+                        emitEvent(eventFactory.newModelUpdateEvent(this, finalNext.getLeft().getChangeAction(), updateAction, changedItem, previousHolder, finalNext.getLeft().getTransactionId()));
                     });
                 } catch (Exception e) {
-                    eventSubject.onNext(eventFactory.newModelUpdateErrorEvent(this, finalNext.getLeft().getChangeAction(), updateAction, rootHolder, e, next.getLeft().getTransactionId()));
+                    emitEvent(eventFactory.newModelUpdateErrorEvent(this, finalNext.getLeft().getChangeAction(), updateAction, rootHolder, e, next.getLeft().getTransactionId()));
                     logger.warn("Failed to update running state of {} ({})", next.getClass().getSimpleName(), e.toString());
                 }
             }
@@ -231,22 +256,30 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             Subscriber<Void> subscriber = next.getRight();
             if (!subscriber.isUnsubscribed()) {
                 ChangeActionHolder actionHolder = next.getLeft();
-                Stopwatch timer = Stopwatch.createStarted();
+                long startTimeNs = clock.nanoTime();
+                metrics.changeActionStarted(actionHolder);
 
                 final Pair<ChangeActionHolder, Subscriber<Void>> finalNext = next;
                 Subscription subscription = actionHolder.getChangeAction().apply()
-                        .doOnUnsubscribe(subscriber::unsubscribe)
+                        .doOnUnsubscribe(() -> {
+                            metrics.changeActionUnsubscribed(actionHolder, clock.nanoTime() - startTimeNs);
+                            subscriber.unsubscribe();
+                        })
                         .subscribe(
                                 modelActionHolderList -> {
-                                    eventSubject.onNext(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), timer.elapsed(TimeUnit.MILLISECONDS), actionHolder.getTransactionId()));
+                                    emitEvent(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), passedMs(startTimeNs), actionHolder.getTransactionId()));
                                     registerModelUpdateRequest(finalNext.getLeft(), modelActionHolderList);
                                 },
                                 e -> {
-                                    eventSubject.onNext(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, timer.elapsed(TimeUnit.MILLISECONDS), actionHolder.getTransactionId()));
+                                    metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs, e);
+                                    emitEvent(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, passedMs(startTimeNs), actionHolder.getTransactionId()));
                                     subscriber.onError(e);
                                 },
                                 // TODO Make sure always one element is emitted
-                                subscriber::onCompleted
+                                () -> {
+                                    metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs);
+                                    subscriber.onCompleted();
+                                }
                         );
                 subscriber.add(Subscriptions.create(subscription::unsubscribe));
                 startedReferenceChangeActionSubscription = Optional.of(subscription);
@@ -275,18 +308,26 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
         List<Subscription> subscriptions = new ArrayList<>(reconcileActions.size());
         for (ChangeAction action : reconcileActions) {
             long transactionId = nextTransactionId.getAndIncrement();
-            Stopwatch timer = Stopwatch.createStarted();
-            eventSubject.onNext(eventFactory.newBeforeChangeEvent(this, action, transactionId));
-            Subscription subscription = action.apply().subscribe(
-                    modelActionHolders -> {
-                        registerModelUpdateRequest(new ChangeActionHolder(action, transactionId), modelActionHolders);
-                        eventSubject.onNext(eventFactory.newAfterChangeEvent(this, action, timer.elapsed(TimeUnit.MILLISECONDS), transactionId));
-                    },
-                    e -> {
-                        eventSubject.onNext(eventFactory.newChangeErrorEvent(this, action, e, timer.elapsed(TimeUnit.MILLISECONDS), transactionId));
-                        logger.debug("Action execution error", e);
-                    }
-            );
+            ChangeActionHolder changeActionHolder = new ChangeActionHolder(action, transactionId, clock.wallTime());
+
+            long startTimeNs = clock.nanoTime();
+            metrics.reconcileActionStarted(changeActionHolder);
+
+            emitEvent(eventFactory.newBeforeChangeEvent(this, action, transactionId));
+            Subscription subscription = action.apply()
+                    .doOnUnsubscribe(() -> metrics.reconcileActionUnsubscribed(changeActionHolder, clock.nanoTime() - startTimeNs))
+                    .subscribe(
+                            modelActionHolders -> {
+                                registerModelUpdateRequest(changeActionHolder, modelActionHolders);
+                                emitEvent(eventFactory.newAfterChangeEvent(this, action, passedMs(startTimeNs), transactionId));
+                            },
+                            e -> {
+                                metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs, e);
+                                emitEvent(eventFactory.newChangeErrorEvent(this, action, e, passedMs(startTimeNs), transactionId));
+                                logger.debug("Action execution error", e);
+                            },
+                            () -> metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs)
+                    );
             subscriptions.add(subscription);
         }
         this.startedReconciliationActionSubscriptions = subscriptions;
@@ -294,5 +335,20 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
 
     private void indexEntityHolder(EntityHolder entityHolder) {
         indexSet = indexSet.apply(entityHolder.getChildren());
+    }
+
+    private void emitEvent(EVENT event) {
+        long startTimeNs = clock.nanoTime();
+        try {
+            eventSubject.onNext(event);
+            metrics.emittedEvent(event, clock.nanoTime() - startTimeNs);
+        } catch (Exception e) {
+            metrics.emittedEvent(event, clock.nanoTime() - startTimeNs, e);
+            logger.error("Bad subscriber", e);
+        }
+    }
+
+    private long passedMs(long startTimeNs) {
+        return TimeUnit.NANOSECONDS.toMillis(clock.nanoTime() - startTimeNs);
     }
 }
