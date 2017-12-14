@@ -49,35 +49,21 @@ public interface VMOperations {
 
     class JobOnVMInfo {
         private final String jobId;
-        private final int stage;
-        private final int workerIndex;
-        private final int workerNumber;
+        private final String taskId;
 
         @JsonCreator
         public JobOnVMInfo(@JsonProperty("jobId") String jobId,
-                           @JsonProperty("stage") int stage,
-                           @JsonProperty("workerIndex") int workerIndex,
-                           @JsonProperty("workerNumber") int workerNumber) {
+                           @JsonProperty("taskId") String taskId) {
             this.jobId = jobId;
-            this.stage = stage;
-            this.workerIndex = workerIndex;
-            this.workerNumber = workerNumber;
+            this.taskId = taskId;
         }
 
         public String getJobId() {
             return jobId;
         }
 
-        public int getStage() {
-            return stage;
-        }
-
-        public int getWorkerIndex() {
-            return workerIndex;
-        }
-
-        public int getWorkerNumber() {
-            return workerNumber;
+        public String getTaskId() {
+            return taskId;
         }
     }
 

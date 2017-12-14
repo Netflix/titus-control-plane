@@ -35,4 +35,5 @@ public class TaskAttributes {
     public static String TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID = "v2.taskInstanceId";
     public static String TASK_ATTRIBUTES_RESUBMIT_NUMBER = "task.resubmitNumber";
     public static String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
+    public static String TASK_ATTRIBUTES_RETRY_DELAY = "task.retryDelay";
 }

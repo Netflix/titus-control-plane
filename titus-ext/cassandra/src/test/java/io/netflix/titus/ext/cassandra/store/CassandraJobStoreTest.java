@@ -23,6 +23,7 @@ import com.datastax.driver.core.Session;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
 import io.netflix.titus.api.jobmanager.model.job.Task;
@@ -30,6 +31,7 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -280,7 +282,15 @@ public class CassandraJobStoreTest {
     }
 
     private Job<ServiceJobExt> createServiceJobObject() {
-        return JobGenerator.serviceJobs(JobDescriptorGenerator.oneTaskServiceJobDescriptor()).getValue();
+        ExponentialBackoffRetryPolicy exponential = JobModel.newExponentialBackoffRetryPolicy()
+                .withInitialDelayMs(10)
+                .withMaxDelayMs(100)
+                .withRetries(5)
+                .build();
+        JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor().but(jd ->
+                jd.getExtensions().toBuilder().withRetryPolicy(exponential).build()
+        );
+        return JobGenerator.serviceJobs(jobDescriptor).getValue();
     }
 
     private Task createTaskObject(Job<BatchJobExt> job) {

@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.grpc.protogen.BatchJobSpec;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Constraints;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.LogLocation;
 import com.netflix.titus.grpc.protogen.MountPerm;
@@ -48,13 +49,17 @@ import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
+import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
+import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.api.model.EfsMount;
@@ -409,6 +414,13 @@ public final class V3GrpcModelConverters {
                     .setRetries(retryPolicy.getRetries())
                     .setDelayMs(delayed.getDelayMs())
             );
+        } else if (retryPolicy instanceof ExponentialBackoffRetryPolicy) {
+            ExponentialBackoffRetryPolicy exponential = (ExponentialBackoffRetryPolicy) retryPolicy;
+            builder.setExponentialBackOff(com.netflix.titus.grpc.protogen.RetryPolicy.ExponentialBackOff.newBuilder()
+                    .setInitialDelayMs(exponential.getInitialDelayMs())
+                    .setMaxDelayIntervalMs(exponential.getMaxDelayMs())
+                    .setRetries(retryPolicy.getRetries())
+            );
         } else {
             throw new IllegalStateException("Unknown retry policy " + retryPolicy);
         }
@@ -606,6 +618,24 @@ public final class V3GrpcModelConverters {
         return com.netflix.titus.grpc.protogen.MigrationDetails.newBuilder()
                 .setNeedsMigration(migrationDetails.isNeedsMigration())
                 .setDeadline(migrationDetails.getDeadline())
+                .build();
+    }
+
+    public static JobChangeNotification toGrpcJobChangeNotification(JobManagerEvent<?> event, LogStorageInfo<Task> logStorageInfo) {
+        if (event instanceof JobUpdateEvent) {
+            JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+            return JobChangeNotification.newBuilder()
+                    .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder()
+                            .setJob(toGrpcJob(jobUpdateEvent.getCurrent()))
+                    ).build();
+        }
+
+        TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+        return JobChangeNotification.newBuilder()
+                .setTaskUpdate(
+                        JobChangeNotification.TaskUpdate.newBuilder().
+                                setTask(toGrpcTask(taskUpdateEvent.getCurrent(), logStorageInfo))
+                )
                 .build();
     }
 }

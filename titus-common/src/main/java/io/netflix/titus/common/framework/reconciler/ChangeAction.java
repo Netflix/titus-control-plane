@@ -18,15 +18,14 @@ package io.netflix.titus.common.framework.reconciler;
 
 import java.util.List;
 
-import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
 
 /**
  */
-public abstract class ChangeAction<CHANGE> {
+public interface ChangeAction {
 
     /**
      * Performs changes on external resources, and if successful emits corresponding model updates.
      */
-    public abstract Observable<Pair<CHANGE, List<ModelUpdateAction>>> apply();
+    Observable<List<ModelActionHolder>> apply();
 }

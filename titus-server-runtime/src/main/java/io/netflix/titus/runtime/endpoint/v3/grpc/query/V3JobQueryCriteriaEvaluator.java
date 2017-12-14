@@ -26,11 +26,15 @@ import java.util.stream.Collectors;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+
+import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
 /**
  */
@@ -45,6 +49,7 @@ public class V3JobQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluato
         applyTaskIds(criteria.getTaskIds()).ifPresent(predicates::add);
         applyTaskStates(criteria.getTaskStates()).ifPresent(predicates::add);
         applyTaskStateReasons(criteria.getTaskStateReasons());
+        applyNeedsMigration(criteria.isNeedsMigration()).ifPresent(predicates::add);
         return predicates;
     }
 
@@ -77,5 +82,20 @@ public class V3JobQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluato
             List<Task> tasks = jobAndTasks.getRight();
             return tasks.stream().anyMatch(t -> taskStateReasons.contains(t.getStatus().getReasonCode()));
         });
+    }
+
+    private static Optional<Predicate<Pair<Job<?>, List<Task>>>> applyNeedsMigration(boolean needsMigration) {
+        if (!needsMigration) {
+            return Optional.empty();
+        }
+        return Optional.of(jobAndTasks -> jobAndTasks.getRight().stream().anyMatch(t -> {
+            if (!JobFunctions.isServiceTask(t)) {
+                return false;
+            }
+            ServiceJobTask serviceTask = (ServiceJobTask) t;
+
+            codeInvariants().notNull(serviceTask.getMigrationDetails(), "MigrationDetails is null in task: %s", t.getId());
+            return serviceTask.getMigrationDetails() != null && serviceTask.getMigrationDetails().isNeedsMigration();
+        }));
     }
 }

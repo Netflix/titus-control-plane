@@ -22,15 +22,27 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.ScaleDownOrderEvaluator;
+import io.netflix.titus.api.model.v2.JobConstraints;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.scheduler.autoscale.DefaultAutoScaleController;
 import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.TitusInactiveClusterScaleDownConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.ZoneBalancedClusterScaleDownConstraintEvaluator;
 
 public final class SchedulerModule extends AbstractModule {
+
+    private static final TypeLiteral<ConstraintEvaluatorTransformer<JobConstraints>> V2_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE =
+            new TypeLiteral<ConstraintEvaluatorTransformer<JobConstraints>>() {
+            };
+
+    private static final TypeLiteral<ConstraintEvaluatorTransformer<Pair<String, String>>> V3_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE =
+            new TypeLiteral<ConstraintEvaluatorTransformer<Pair<String, String>>>() {
+            };
+
     @Override
     protected void configure() {
         bind(VMOperations.class).to(VMOperationsImpl.class);
@@ -38,7 +50,10 @@ public final class SchedulerModule extends AbstractModule {
         bind(ScaleDownOrderEvaluator.class).to(TitusInactiveClusterScaleDownConstraintEvaluator.class);
         bind(AutoScaleController.class).to(DefaultAutoScaleController.class);
         bind(SchedulingService.class).to(DefaultSchedulingService.class).asEagerSingleton();
+
         bind(GlobalConstraintEvaluator.class).to(TitusGlobalConstraintEvaluator.class);
+        bind(V2_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE).to(V2ConstraintEvaluatorTransformer.class);
+        bind(V3_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE).to(V3ConstraintEvaluatorTransformer.class);
     }
 
     @Provides

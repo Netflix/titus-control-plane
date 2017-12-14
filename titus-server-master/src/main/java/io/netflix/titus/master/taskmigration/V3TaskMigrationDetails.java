@@ -28,6 +28,7 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.common.util.tuple.Pair;
 
 public class V3TaskMigrationDetails implements TaskMigrationDetails {
@@ -138,7 +139,7 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                         return serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build();
                     }
                     return t;
-                }, "Updating migration details").await(30_000, TimeUnit.MILLISECONDS);
+                }, Trigger.TaskMigration, "Updating migration details").await(30_000, TimeUnit.MILLISECONDS);
             }
         }
     }

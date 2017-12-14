@@ -32,6 +32,7 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
@@ -132,18 +133,20 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                     if (jobAndTaskOpt.isPresent()) {
                         Task task = jobAndTaskOpt.get().getRight();
                         TaskState newState = V2JobState.toV3TaskState(args.getState());
-                        TaskStatus taskStatus = JobModel.newTaskStatus()
-                                .withState(newState)
-                                .withReasonCode(V2JobState.toV3ReasonCode(args.getState(), args.getReason()))
-                                .withReasonMessage("Mesos task state change event: " + args.getMessage())
-                                .withTimestamp(args.getTimestamp())
-                                .build();
-                        // Failures are logged only, as the reconciler will take care of it if needed.
-                        final Function<Task, Task> updater = JobManagerUtil.newTaskStateUpdater(taskStatus, args.getData());
-                        v3JobOperations.updateTask(task.getId(), updater, "Mesos -> " + newState).subscribe(
-                                () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
-                                e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
-                        );
+                        if (task.getStatus().getState() != newState) {
+                            TaskStatus taskStatus = JobModel.newTaskStatus()
+                                    .withState(newState)
+                                    .withReasonCode(V2JobState.toV3ReasonCode(args.getState(), args.getReason()))
+                                    .withReasonMessage("Mesos task state change event: " + args.getMessage())
+                                    .withTimestamp(args.getTimestamp())
+                                    .build();
+                            // Failures are logged only, as the reconciler will take care of it if needed.
+                            final Function<Task, Task> updater = JobManagerUtil.newTaskStateUpdater(taskStatus, args.getData());
+                            v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + newState).subscribe(
+                                    () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
+                                    e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
+                            );
+                        }
                         return;
                     }
                 }

@@ -56,7 +56,7 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
     private final MasterConfiguration config;
     private final WorkerRequest request;
     private final String requestId;
-    private final ConstraintsEvaluators constraintsEvaluators;
+    private final ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer;
     private final V2JobDurationType durationType;
     private final int workerIndex;
     private final int workerNumber;
@@ -103,7 +103,7 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
     }
 
     public ScheduledRequest(V2JobMgrIntf jobMgr, V2WorkerMetadata task, WorkerRequest request, MasterConfiguration config,
-                            ConstraintsEvaluators constraintsEvaluators,
+                            ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                             GlobalConstraintEvaluator globalConstraintsEvaluator,
                             ApplicationSlaManagementService applicationSlaManagementService) {
         this.config = config;
@@ -114,7 +114,7 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
         this.machineDefinition = request.getDefinition();
         this.stageNum = request.getWorkerStage();
         this.durationType = jobMgr.getJobMetadata().getSla().getDurationType();
-        this.constraintsEvaluators = constraintsEvaluators;
+        this.v2ConstraintEvaluatorTransformer = v2ConstraintEvaluatorTransformer;
         requestId = WorkerNaming.getWorkerName(jobMgr.getJobId(), workerIndex, workerNumber);
         final List<V2WorkerMetadata.TwoLevelResource> twoLevelResources = request.getTwoLevelResource();
         if (twoLevelResources != null && !twoLevelResources.isEmpty()) {
@@ -168,13 +168,13 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
         }
         if (stageHC != null && !stageHC.isEmpty()) {
             for (JobConstraints c : stageHC) {
-                hardConstraints.add(constraintsEvaluators.hardConstraint(c, coTasks));
+                v2ConstraintEvaluatorTransformer.hardConstraint(c, () -> coTasks).ifPresent(hardConstraints::add);
             }
         }
         if (stageSC != null && !stageSC.isEmpty()) {
             softConstraints = new ArrayList<>();
             for (JobConstraints c : stageSC) {
-                softConstraints.add(constraintsEvaluators.softConstraint(c, coTasks));
+                v2ConstraintEvaluatorTransformer.softConstraint(c, () -> coTasks).ifPresent(softConstraints::add);
             }
         }
     }

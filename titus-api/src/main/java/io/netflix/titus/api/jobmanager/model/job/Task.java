@@ -235,6 +235,14 @@ public abstract class Task {
             return withTwoLevelResources(asList(twoLevelResources));
         }
 
+        public B addToTaskContext(String key, String value) {
+            if (taskContext == null) {
+                return withTaskContext(Collections.singletonMap(key, value));
+            }
+
+            return withTaskContext(CollectionsExt.copyAndAdd(taskContext, key, value));
+        }
+
         public B withTaskContext(Map<String, String> taskContext) {
             this.taskContext = taskContext;
             return self();

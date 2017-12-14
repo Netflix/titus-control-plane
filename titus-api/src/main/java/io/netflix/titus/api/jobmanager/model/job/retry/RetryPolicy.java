@@ -20,7 +20,7 @@ import javax.validation.constraints.Min;
 
 /**
  */
-public abstract class RetryPolicy {
+public abstract class RetryPolicy<P extends RetryPolicy<P, B>, B extends RetryPolicy.RetryPolicyBuilder<P, B>> {
 
     @Min(value = 0, message = "Required 0 or a positive number")
     private final int retries;
@@ -57,5 +57,23 @@ public abstract class RetryPolicy {
         return getClass().getSimpleName() + "{" +
                 "retries=" + retries +
                 '}';
+    }
+
+    public abstract B toBuilder();
+
+    public static abstract class RetryPolicyBuilder<P extends RetryPolicy<P, B>, B extends RetryPolicyBuilder<P, B>> {
+
+        protected int retries;
+
+        public B withRetries(int retries) {
+            this.retries = retries;
+            return self();
+        }
+
+        public abstract P build();
+
+        private B self() {
+            return (B) this;
+        }
     }
 }

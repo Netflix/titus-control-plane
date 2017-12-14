@@ -43,6 +43,8 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
+import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -51,7 +53,6 @@ import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
 import io.netflix.titus.api.model.v2.parameter.Parameter;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
@@ -353,28 +354,36 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     Observable<AutoScalableTarget> v3LiveStreamTargetUpdates() {
         return v3JobOperations.observeJobs()
-                .flatMap(jobManagerEvent -> Observable.just(jobManagerEvent)
-                        .filter(jme -> v3JobOperations.getJob(jme.getId()).isPresent())
-                        .map(jme -> jme.getId())
-                        .flatMap(jobId -> appScalePolicyStore.retrievePoliciesForJob(jobId))
-                        .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
-                                getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
-                        .flatMap(autoScalingPolicy -> updateScalableTargetForJob(autoScalingPolicy.getRefId(),
-                                autoScalingPolicy.getJobId()))
-                        .doOnError(e -> log.error("Exception in v3LiveStreamTargetUpdates -> ", e))
-                        .onErrorResumeNext(e -> Observable.empty()));
+                .filter(event -> {
+                    if (event instanceof JobUpdateEvent) {
+                        JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+                        return jobUpdateEvent.getCurrent().getStatus().getState() != JobState.Finished;
+                    }
+                    return false;
+                })
+                .cast(JobUpdateEvent.class)
+                .flatMap(event -> appScalePolicyStore.retrievePoliciesForJob(event.getCurrent().getId()))
+                .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
+                        getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
+                .flatMap(autoScalingPolicy -> updateScalableTargetForJob(autoScalingPolicy.getRefId(),
+                        autoScalingPolicy.getJobId()))
+                .doOnError(e -> log.error("Exception in v3LiveStreamTargetUpdates -> ", e))
+                .onErrorResumeNext(e -> Observable.empty());
     }
 
     Observable<AutoScalingPolicy> v3LiveStreamPolicyCleanup() {
         return v3JobOperations.observeJobs()
-                .flatMap(jobManagerEvent -> Observable.just(jobManagerEvent)
-                        .filter(jme -> jme.getEventType() == ReconcilerEvent.EventType.Changed)
-                        .filter(jme -> !v3JobOperations.getJob(jme.getId()).isPresent())
-                        .map(jme -> jobManagerEvent.getId())
-                        .flatMap(jobId -> removePoliciesForJob(jobId))
-                        .doOnError(e -> log.error("Exception in v3LiveStreamPolicyCleanup -> ", e))
-                        .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty())));
-
+                .filter(event -> {
+                    if (event instanceof JobUpdateEvent) {
+                        JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+                        return jobUpdateEvent.getCurrent().getStatus().getState() != JobState.Finished;
+                    }
+                    return false;
+                })
+                .cast(JobUpdateEvent.class)
+                .flatMap(event -> removePoliciesForJob(event.getCurrent().getId()))
+                .doOnError(e -> log.error("Exception in v3LiveStreamPolicyCleanup -> ", e))
+                .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty()));
     }
 
     @Override

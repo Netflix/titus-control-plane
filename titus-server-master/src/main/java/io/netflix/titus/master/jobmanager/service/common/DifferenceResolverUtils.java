@@ -17,12 +17,13 @@
 package io.netflix.titus.master.jobmanager.service.common;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
@@ -31,18 +32,18 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
+import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import io.netflix.titus.master.jobmanager.service.common.action.TitusModelUpdateActions;
-import io.netflix.titus.master.jobmanager.service.common.action.job.CompleteJobAction;
-import io.netflix.titus.master.jobmanager.service.common.action.job.RemoveJobAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.InitiateTaskKillAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.TaskChangeAction;
-import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
+import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
+import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 
 /**
  * Collection of functions useful for batch and service difference resolvers.
@@ -106,15 +107,17 @@ public class DifferenceResolverUtils {
     /**
      * Find all tasks that are stuck in a specific state
      */
-    public static List<ChangeAction> findTaskStateTimeouts(JobView runningJobView,
+    public static List<ChangeAction> findTaskStateTimeouts(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                           JobView runningJobView,
                                                            JobManagerConfiguration configuration,
                                                            Clock clock,
-                                                           VirtualMachineMasterService vmService) {
+                                                           VirtualMachineMasterService vmService,
+                                                           JobStore jobStore) {
         List<ChangeAction> actions = new ArrayList<>();
         runningJobView.getJobHolder().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
             TaskState taskState = task.getStatus().getState();
-            TaskTimeoutChangeAction.TimeoutStatus timeoutStatus = TaskTimeoutChangeAction.getTimeoutStatus(taskHolder, clock);
+            TaskTimeoutChangeActions.TimeoutStatus timeoutStatus = TaskTimeoutChangeActions.getTimeoutStatus(taskHolder, clock);
             switch (timeoutStatus) {
                 case Ignore:
                 case Pending:
@@ -135,27 +138,35 @@ public class DifferenceResolverUtils {
                             break;
                     }
                     if (timeoutMs > 0) {
-                        actions.add(new TaskTimeoutChangeAction(taskHolder.getId(), task.getStatus().getState(), clock.wallTime() + timeoutMs));
+                        actions.add(TaskTimeoutChangeActions.setTimeout(taskHolder.getId(), task.getStatus().getState(), clock.wallTime() + timeoutMs));
                     }
                     break;
                 case TimedOut:
                     if (task.getStatus().getState() == TaskState.KillInitiated) {
-                        actions.add(
-                                new TaskChangeAction(task.getId(),
-                                        JobManagerEvent.Trigger.Reconciler,
-                                        taskParam -> taskParam.toBuilder()
-                                                .withStatus(taskParam.getStatus().toBuilder()
-                                                        .withState(TaskState.Finished)
-                                                        .withReasonCode(TaskStatus.REASON_STUCK_IN_STATE)
-                                                        .withReasonMessage("stuck in " + taskState + "state")
-                                                        .build()
-                                                )
-                                                .build(),
-                                        "TimedOut in KillInitiated state"
-                                )
-                        );
+                        int attempts = TaskTimeoutChangeActions.getKillInitiatedAttempts(taskHolder) + 1;
+                        if (attempts >= configuration.getTaskKillAttempts()) {
+                            actions.add(
+                                    BasicTaskActions.updateTaskInRunningModel(task.getId(),
+                                            V3JobOperations.Trigger.Reconciler,
+                                            configuration,
+                                            engine,
+                                            taskParam -> taskParam.toBuilder()
+                                                    .withStatus(taskParam.getStatus().toBuilder()
+                                                            .withState(TaskState.Finished)
+                                                            .withReasonCode(TaskStatus.REASON_STUCK_IN_STATE)
+                                                            .withReasonMessage("stuck in " + taskState + "state")
+                                                            .build()
+                                                    )
+                                                    .build(),
+                                            "TimedOut in KillInitiated state"
+                                    )
+                            );
+                        } else {
+                            actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), clock.wallTime() + configuration.getTaskInKillInitiatedStateTimeoutMs()));
+                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
+                        }
                     } else {
-                        actions.add(new InitiateTaskKillAction(JobManagerEvent.Trigger.Reconciler, task, false, vmService, TaskStatus.REASON_STUCK_IN_STATE, "stuck in " + taskState + "state"));
+                        actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Task stuck in " + taskState + " state"));
                     }
                     break;
             }
@@ -163,18 +174,19 @@ public class DifferenceResolverUtils {
         return actions;
     }
 
-    public static List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {
-        if (!hasJobState(referenceModel, JobState.Finished)) {
-            if (allDone(storeModel)) {
-                return Collections.singletonList(new CompleteJobAction(referenceModel.getId()));
-            }
-        } else {
-            if (!TitusModelUpdateActions.isClosed(referenceModel)) {
-                return Collections.singletonList(new RemoveJobAction(referenceModel.getEntity(), titusStore));
-            }
+    public static int countActiveNotStartedTasks(EntityHolder refJobHolder, EntityHolder runningJobHolder) {
+        Set<String> pendingTaskIds = new HashSet<>();
 
-        }
-        return Collections.emptyList();
+        Consumer<EntityHolder> countingFun = jobHolder -> jobHolder.getChildren().forEach(taskHolder -> {
+            TaskState state = ((Task) taskHolder.getEntity()).getStatus().getState();
+            if (state != TaskState.Started && state != TaskState.Finished) {
+                pendingTaskIds.add(taskHolder.getId());
+            }
+        });
+        countingFun.accept(refJobHolder);
+        countingFun.accept(runningJobHolder);
+
+        return pendingTaskIds.size();
     }
 
     public static class JobView<EXT extends JobDescriptor.JobDescriptorExt, TASK extends Task> {
@@ -184,6 +196,7 @@ public class DifferenceResolverUtils {
         private final List<TASK> tasks;
         private final int requiredSize;
 
+        @SuppressWarnings("unchecked")
         public JobView(EntityHolder jobHolder) {
             this.job = jobHolder.getEntity();
             this.jobHolder = jobHolder;

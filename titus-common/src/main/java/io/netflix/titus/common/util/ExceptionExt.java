@@ -18,7 +18,6 @@ package io.netflix.titus.common.util;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 /**
@@ -73,24 +72,33 @@ public class ExceptionExt {
         }
     }
 
-    public static <T> T throwTimeout(Supplier<T> action) throws TimeoutException {
-        try {
-            return action.get();
-        } catch (RuntimeException e) {
-            Throwable cause = e.getCause();
-            if (cause != null && cause instanceof TimeoutException) {
-                throw (TimeoutException) cause;
-            }
-            throw e;
-        }
-    }
-
     public static <T> Optional<T> doTry(Callable<T> callable) {
         try {
             return Optional.ofNullable(callable.call());
-        } catch (Exception e) {
+        } catch (Throwable e) {
             return Optional.empty();
         }
+    }
+
+    public static <T> Optional<T> doTry(Supplier<T> callable) {
+        try {
+            return Optional.ofNullable(callable.get());
+        } catch (Throwable e) {
+            return Optional.empty();
+        }
+    }
+
+    public static String toMessageChain(Throwable error) {
+        StringBuilder sb = new StringBuilder();
+        Throwable current = error;
+        while (current != null) {
+            sb.append('(').append(current.getClass().getSimpleName()).append(')').append(' ').append(current.getMessage());
+            if (current.getCause() != null) {
+                sb.append(" -CAUSED BY-> ");
+            }
+            current = current.getCause();
+        }
+        return sb.toString();
     }
 
     public static class UncheckedExceptionWrapper extends RuntimeException {

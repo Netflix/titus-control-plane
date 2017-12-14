@@ -17,7 +17,6 @@
 package io.netflix.titus.common.framework.reconciler.internal;
 
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -31,16 +30,14 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction.Model;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent.EventType;
-import io.netflix.titus.common.framework.reconciler.ReconcilerUtil;
+import io.netflix.titus.common.framework.reconciler.ModelAction;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
+import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
@@ -51,8 +48,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class DefaultReconciliationEngineTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultReconciliationEngineTest.class);
-
     private final TestScheduler testScheduler = Schedulers.test();
 
     private final Map<Object, Comparator<EntityHolder>> indexComparators = ImmutableMap.<Object, Comparator<EntityHolder>>builder()
@@ -60,7 +55,7 @@ public class DefaultReconciliationEngineTest {
             .put("descending", Comparator.<EntityHolder, String>comparing(EntityHolder::getEntity).reversed())
             .build();
 
-    private final DefaultReconciliationEngine<String> engine = new DefaultReconciliationEngine(
+    private final DefaultReconciliationEngine<SimpleReconcilerEvent> engine = new DefaultReconciliationEngine<>(
             EntityHolder.newRoot("myRoot", "myEntity"), this::difference, indexComparators, new SimpleReconcilerEventFactory()
     );
 
@@ -71,7 +66,6 @@ public class DefaultReconciliationEngineTest {
     @Before
     public void setUp() throws Exception {
         engine.events().cast(SimpleReconcilerEvent.class).subscribe(eventSubscriber);
-        ReconcilerUtil.logEvents(engine.events(), logger);
     }
 
     @Test
@@ -165,39 +159,34 @@ public class DefaultReconciliationEngineTest {
         assertThat(engine.triggerEvents().hasModelUpdates()).isTrue();
     }
 
-    private List<ChangeAction> difference(EntityHolder referenceHolder, EntityHolder runtimeHolder, EntityHolder storeHolder) {
+    private List<ChangeAction> difference(ReconciliationEngine<SimpleReconcilerEvent> engine) {
         List<ChangeAction> next = runtimeReconcileActions.poll();
         return next == null ? Collections.emptyList() : next;
     }
 
-    class RootSetupChangeAction extends ChangeAction {
+    class RootSetupChangeAction implements ChangeAction {
 
         @Override
-        public Observable<Pair<String, List<ModelUpdateAction>>> apply() {
-            return Observable.just(Pair.of("Root setup",
-                    Arrays.asList(
-                            new SimpleModelUpdateAction(Model.Reference, EntityHolder.newRoot("root#0", "ROOT"), true),
-                            new SimpleModelUpdateAction(Model.Running, EntityHolder.newRoot("root#0", "ROOT"), true)
-                    ))
-            );
+        public Observable<List<ModelActionHolder>> apply() {
+            return Observable.just(ModelActionHolder.referenceAndRunning(new SimpleModelUpdateAction(EntityHolder.newRoot("root#0", "ROOT"), true)));
         }
     }
 
-    class SlowChangeAction extends ChangeAction<String> {
+    class SlowChangeAction implements ChangeAction {
 
         private volatile boolean unsubscribed;
 
         @Override
-        public Observable<Pair<String, List<ModelUpdateAction>>> apply() {
+        public Observable<List<ModelActionHolder>> apply() {
             return Observable.timer(1, TimeUnit.SECONDS, testScheduler).map(tick -> {
-                        ModelUpdateAction updateAction = new SimpleModelUpdateAction(Model.Reference, EntityHolder.newRoot("root#0", "ROOT"), true);
-                        return Pair.of("Slow change", singletonList(updateAction));
+                        ModelAction updateAction = new SimpleModelUpdateAction(EntityHolder.newRoot("root#0", "ROOT"), true);
+                        return ModelActionHolder.referenceList(updateAction);
                     }
             ).doOnUnsubscribe(() -> unsubscribed = true);
         }
     }
 
-    class AddChildAction extends ChangeAction<String> {
+    class AddChildAction implements ChangeAction {
 
         private final String childId;
 
@@ -206,13 +195,13 @@ public class DefaultReconciliationEngineTest {
         }
 
         @Override
-        public Observable<Pair<String, List<ModelUpdateAction>>> apply() {
-            SimpleModelUpdateAction updateAction = new SimpleModelUpdateAction(Model.Reference, EntityHolder.newRoot(childId, childId), false);
-            return Observable.just(Pair.of("Child added: " + childId, singletonList(updateAction)));
+        public Observable<List<ModelActionHolder>> apply() {
+            SimpleModelUpdateAction updateAction = new SimpleModelUpdateAction(EntityHolder.newRoot(childId, childId), false);
+            return Observable.just(ModelActionHolder.referenceList(updateAction));
         }
     }
 
-    class RemoveChildAction extends ChangeAction<String> {
+    class RemoveChildAction implements ChangeAction {
 
         private final String childId;
 
@@ -221,14 +210,12 @@ public class DefaultReconciliationEngineTest {
         }
 
         @Override
-        public Observable<Pair<String, List<ModelUpdateAction>>> apply() {
-            ModelUpdateAction updateAction = new ModelUpdateAction(childId, Model.Reference) {
-                @Override
-                public Pair<EntityHolder, Optional<EntityHolder>> apply(EntityHolder rootHolder) {
-                    return rootHolder.removeChild(childId);
-                }
+        public Observable<List<ModelActionHolder>> apply() {
+            ModelAction updateAction = rootHolder -> {
+                Pair<EntityHolder, Optional<EntityHolder>> result = rootHolder.removeChild(childId);
+                return result.getRight().map(removed -> Pair.of(result.getLeft(), removed));
             };
-            return Observable.just(Pair.of("Child removed: " + childId, singletonList(updateAction)));
+            return Observable.just(ModelActionHolder.referenceList(updateAction));
         }
     }
 }

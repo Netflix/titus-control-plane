@@ -79,6 +79,7 @@ import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
 /**
  * {@link TitusServiceGateway} implementation bridging GRPC/v3 API to legacy Titus runtime.
  */
+@SuppressWarnings("unchecked")
 public class V2GrpcTitusServiceGateway
         extends V2EngineTitusServiceGateway<String, JobDescriptor, JobDescriptor.JobSpecCase, Job, Task, TaskStatus.TaskState>
         implements GrpcTitusServiceGateway {

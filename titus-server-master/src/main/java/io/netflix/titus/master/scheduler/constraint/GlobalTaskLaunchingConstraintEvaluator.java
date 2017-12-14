@@ -24,6 +24,7 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
@@ -37,10 +38,13 @@ import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintEvaluator {
 
     private final SchedulerConfiguration schedulerConfiguration;
+    private final V3JobOperations v3JobOperations;
 
     @Inject
-    public GlobalTaskLaunchingConstraintEvaluator(SchedulerConfiguration schedulerConfiguration) {
+    public GlobalTaskLaunchingConstraintEvaluator(SchedulerConfiguration schedulerConfiguration,
+                                                  V3JobOperations v3JobOperations) {
         this.schedulerConfiguration = schedulerConfiguration;
+        this.v3JobOperations = v3JobOperations;
     }
 
     @Override
@@ -64,8 +68,11 @@ public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintE
             return state == V2JobState.Accepted || state == V2JobState.Launched || state == V2JobState.StartInitiated;
         } else if (request instanceof V3QueueableTask) {
             Task task = ((V3QueueableTask) request).getTask();
-            TaskState state = task.getStatus().getState();
-            return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
+            return v3JobOperations.findTaskById(task.getId())
+                    .map(current -> {
+                        TaskState state = current.getRight().getStatus().getState();
+                        return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
+                    }).orElse(false);
         }
         return false;
     }

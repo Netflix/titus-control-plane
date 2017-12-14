@@ -30,9 +30,9 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.event.TaskStateChangeEvent;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
@@ -131,21 +131,18 @@ public class ElasticsearchTaskDocumentPublisher {
 
     private Observable<TaskDocument> v3TasksStream() {
         Observable<Optional<TaskDocument>> optionalTaskDocuments = v3JobOperations.observeJobs()
-                .filter(TaskUpdateEvent.class::isInstance)
+                .filter(event -> event instanceof TaskUpdateEvent)
+                .cast(TaskUpdateEvent.class)
                 .map(event -> {
                     //TODO this event needs to also include the job information
-                    TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
-                    Optional<Task> taskOpt = taskUpdateEvent.getTask();
-                    if (taskOpt.isPresent()) {
-                        Task task = taskOpt.get();
-                        Optional<Job<?>> jobOpt = v3JobOperations.getJob(task.getJobId());
-                        if (jobOpt.isPresent()) {
-                            Job job = jobOpt.get();
-                            TaskDocument taskDocument = TaskDocument.fromV3Task(task, job, taskDateFormat, taskDocumentContext);
-                            return Optional.of(taskDocument);
-                        } else {
-                            logger.warn("Job metadata is not present for jobId: {}", task.getJobId());
-                        }
+                    Task task = event.getCurrentTask();
+                    Optional<Job<?>> jobOpt = v3JobOperations.getJob(task.getJobId());
+                    if (jobOpt.isPresent()) {
+                        Job job = jobOpt.get();
+                        TaskDocument taskDocument = TaskDocument.fromV3Task(task, job, taskDateFormat, taskDocumentContext);
+                        return Optional.of(taskDocument);
+                    } else {
+                        logger.warn("Job metadata is not present for jobId: {}", task.getJobId());
                     }
                     return Optional.empty();
                 });

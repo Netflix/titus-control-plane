@@ -27,6 +27,9 @@ import java.util.TreeSet;
 import io.netflix.titus.common.util.tuple.Pair;
 
 /**
+ * Composite entity hierarchy. The parent-child association runs from parent to child only. {@link EntityHolder} instances
+ * are immutable, thus each change produces a new version of an entity. Also each child update requires update of a parent
+ * entity, when the reference to the child changes (a new version is created).
  */
 public class EntityHolder {
 

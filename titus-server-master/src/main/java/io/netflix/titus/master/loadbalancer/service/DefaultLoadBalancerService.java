@@ -25,9 +25,9 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
-import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
@@ -36,7 +36,6 @@ import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidato
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.api.service.TitusServiceException;
-import io.netflix.titus.common.framework.reconciler.ModelUpdateAction;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.Deactivator;
@@ -175,7 +174,6 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         Observable<TaskUpdateEvent> stateTransitions = v3JobOperations.observeJobs()
                 .filter(TaskUpdateEvent.class::isInstance)
                 .cast(TaskUpdateEvent.class)
-                .filter(event -> event.getModel() == ModelUpdateAction.Model.Reference && event.getTask().isPresent())
                 .filter(StreamHelpers::isStateTransition);
 
         final Observable<LoadBalancerTarget> toRegister = Observable.merge(
@@ -193,7 +191,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private Observable<LoadBalancerTarget> registerFromEvents(Observable<TaskUpdateEvent> events) {
         // Optional.empty() tasks have been already filtered out
         //noinspection ConstantConditions
-        Observable<Task> tasks = events.map(event -> event.getTask().get())
+        Observable<Task> tasks = events.map(TaskUpdateEvent::getCurrentTask)
                 .filter(StreamHelpers::isStartedWithIp);
         return targetsForTrackedTasks(tasks);
     }
@@ -201,7 +199,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private Observable<LoadBalancerTarget> deregisterFromEvents(Observable<TaskUpdateEvent> events) {
         // Optional.empty() tasks have been already filtered out
         //noinspection ConstantConditions
-        Observable<Task> tasks = events.map(event -> event.getTask().get())
+        Observable<Task> tasks = events.map(TaskUpdateEvent::getCurrentTask)
                 .filter(StreamHelpers::isTerminalWithIp);
         return targetsForTrackedTasks(tasks);
     }
@@ -264,8 +262,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private static final class StreamHelpers {
 
         static boolean isStateTransition(TaskUpdateEvent event) {
-            final Task currentTask = event.getTask().get();
-            final Optional<Task> previousTask = event.getPreviousTaskVersion();
+            final Task currentTask = event.getCurrentTask();
+            final Optional<Task> previousTask = event.getPreviousTask();
             boolean identical = previousTask.map(previous -> previous == currentTask).orElse(false);
             return !identical && previousTask
                     .map(previous -> !previous.getStatus().getState().equals(currentTask.getStatus().getState()))

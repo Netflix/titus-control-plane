@@ -42,7 +42,7 @@ import rx.schedulers.Schedulers;
 /**
  * Supplementary metrics based on both job/task state, and elapsed time. These metrics cannot be computed only
  * in response to system state change events. Instead, they are recomputed at regular interval.
- *
+ * <p>
  * TODO V3 job manager integration
  */
 @Singleton
@@ -102,9 +102,9 @@ public class TaskLivenessMetrics {
         this.subscription = ObservableExt.schedule(
                 ROOT_METRIC_NAME + "scheduler", registry, "TaskLivenessRefreshAction",
                 Completable.fromAction(this::refresh), intervalMs, intervalMs, TimeUnit.MILLISECONDS, Schedulers.computation()
-        ).subscribe(result -> {
-            result.ifPresent(error -> logger.warn("Task liveness metrics refresh error", error));
-        });
+        ).subscribe(result ->
+                result.ifPresent(error -> logger.warn("Task liveness metrics refresh error", error))
+        );
     }
 
     @PreDestroy

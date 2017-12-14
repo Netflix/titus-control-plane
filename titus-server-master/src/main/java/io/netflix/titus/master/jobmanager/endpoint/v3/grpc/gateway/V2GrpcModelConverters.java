@@ -697,9 +697,7 @@ public final class V2GrpcModelConverters {
 
     public static Constraints toGrpcJobConstraintList(List<JobConstraints> constraints) {
         Constraints.Builder builder = Constraints.newBuilder();
-        constraints.forEach(c -> {
-            builder.putConstraints(c.name(), "true");
-        });
+        constraints.forEach(c -> builder.putConstraints(c.name(), "true"));
         return builder.build();
     }
 

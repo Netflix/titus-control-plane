@@ -28,7 +28,7 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
-import io.netflix.titus.master.scheduler.ConstraintsEvaluators;
+import io.netflix.titus.master.scheduler.V2ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import rx.functions.Action1;
@@ -77,7 +77,7 @@ class StubbedSchedulingService implements SchedulingService {
     }
 
     @Override
-    public ConstraintsEvaluators getConstraintsEvaluators() {
+    public V2ConstraintEvaluatorTransformer getV2ConstraintEvaluatorTransformer() {
         return null;
     }
 

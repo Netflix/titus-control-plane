@@ -28,7 +28,7 @@ public final class DifferenceResolvers {
     private DifferenceResolvers() {
     }
 
-    public static DifferenceResolver dispatcher(Function<EntityHolder, DifferenceResolver> dispatcherFun) {
-        return new DispatchingDifferenceResolver(dispatcherFun);
+    public static <EVENT> DifferenceResolver<EVENT> dispatcher(Function<EntityHolder, DifferenceResolver<EVENT>> dispatcherFun) {
+        return new DispatchingDifferenceResolver<>(dispatcherFun);
     }
 }

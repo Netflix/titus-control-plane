@@ -20,19 +20,22 @@ import java.util.List;
 
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
+import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 
 /**
  */
-class ModelHolder<CHANGE> {
+class ModelHolder<EVENT> {
 
-    private final DifferenceResolver differenceResolver;
+    private final ReconciliationEngine<EVENT> engine;
+    private final DifferenceResolver<EVENT> differenceResolver;
 
     private EntityHolder reference;
     private EntityHolder running;
     private EntityHolder store;
 
-    ModelHolder(EntityHolder bootstrapModel, DifferenceResolver differenceResolver) {
+    ModelHolder(ReconciliationEngine<EVENT> engine, EntityHolder bootstrapModel, DifferenceResolver<EVENT> differenceResolver) {
+        this.engine = engine;
         this.differenceResolver = differenceResolver;
         this.reference = bootstrapModel;
         this.store = bootstrapModel;
@@ -63,7 +66,7 @@ class ModelHolder<CHANGE> {
         this.store = store;
     }
 
-    List<ChangeAction<CHANGE>> resolveDifference() {
-        return differenceResolver.apply(reference, running, store);
+    List<ChangeAction> resolveDifference() {
+        return differenceResolver.apply(engine);
     }
 }

@@ -18,30 +18,27 @@ package io.netflix.titus.master.loadbalancer.service;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.NoopRegistry;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
-import io.netflix.titus.api.jobmanager.model.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.model.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
-import io.netflix.titus.api.jobmanager.service.common.action.TitusModelUpdateAction;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerJobValidator;
-import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
-import io.netflix.titus.common.framework.reconciler.ReconcilerEvent;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
@@ -234,7 +231,7 @@ public class DefaultLoadBalancerServiceTest {
 
     @Test
     public void multipleLoadBalancersPerJob() throws Exception {
-        final PublishSubject<JobManagerEvent> taskEvents = PublishSubject.create();
+        final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
         final String jobId = UUID.randomUUID().toString();
         final String firstLoadBalancerId = "lb-" + UUID.randomUUID().toString();
         final String secondLoadBalancerId = "lb-" + UUID.randomUUID().toString();
@@ -290,13 +287,7 @@ public class DefaultLoadBalancerServiceTest {
                     .withStatus(TaskStatus.newBuilder().withState(TaskState.Started).build())
                     .build();
 
-            taskEvents.onNext(new TaskUpdateEvent(
-                    ReconcilerEvent.EventType.ModelUpdated,
-                    LoadBalancerTests.mockUpdateAction(taskId),
-                    Optional.of(started),
-                    Optional.of(startingWithIp),
-                    Optional.empty()
-            ));
+            taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp));
         }
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(2);
@@ -493,7 +484,7 @@ public class DefaultLoadBalancerServiceTest {
         final String jobId = UUID.randomUUID().toString();
         final String taskId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
-        final PublishSubject<JobManagerEvent> taskEvents = PublishSubject.create();
+        final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
 
         when(client.registerAll(any(), any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
@@ -532,39 +523,24 @@ public class DefaultLoadBalancerServiceTest {
                 .build();
 
         // events with no state transition gets ignored
-        taskEvents.onNext(new TaskUpdateEvent(
-                ReconcilerEvent.EventType.ModelUpdated,
-                mock(TitusModelUpdateAction.class),
-                Optional.of(launched),
-                Optional.empty(),
-                Optional.empty()
-        ));
+        taskEvents.onNext(TaskUpdateEvent.newTask(null, launched));
+
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
 
         // events to !Started states get ignored
-        taskEvents.onNext(new TaskUpdateEvent(
-                ReconcilerEvent.EventType.ModelUpdated,
-                LoadBalancerTests.mockUpdateAction(taskId),
-                Optional.of(startingWithIp),
-                Optional.of(launched),
-                Optional.empty()
-        ));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, startingWithIp, launched));
+
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
 
         // finally detect the task is UP and gets registered
-        taskEvents.onNext(new TaskUpdateEvent(
-                ReconcilerEvent.EventType.ModelUpdated,
-                LoadBalancerTests.mockUpdateAction(taskId),
-                Optional.of(started),
-                Optional.of(startingWithIp),
-                Optional.empty()
-        ));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp));
+
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(set -> set.contains("1.2.3.4")));
@@ -575,7 +551,7 @@ public class DefaultLoadBalancerServiceTest {
     public void finishedTasksGetDeregistered() throws Exception {
         final String jobId = UUID.randomUUID().toString();
         final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
-        final PublishSubject<JobManagerEvent> taskEvents = PublishSubject.create();
+        final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
 
         when(client.registerAll(any(), any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
@@ -606,13 +582,8 @@ public class DefaultLoadBalancerServiceTest {
         Task noIpFinished = noIp.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
-        taskEvents.onNext(new TaskUpdateEvent(
-                ReconcilerEvent.EventType.ModelUpdated,
-                LoadBalancerTests.mockUpdateAction(noIp.getId()),
-                Optional.of(noIpFinished),
-                Optional.of(noIp),
-                Optional.empty()
-        ));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, noIpFinished, noIp));
+
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(0);
         verify(client, never()).registerAll(any(), any());
@@ -629,13 +600,8 @@ public class DefaultLoadBalancerServiceTest {
         Task firstFinished = first.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
-        taskEvents.onNext(new TaskUpdateEvent(
-                ReconcilerEvent.EventType.ModelUpdated,
-                LoadBalancerTests.mockUpdateAction(first.getId()),
-                Optional.of(firstFinished),
-                Optional.of(first),
-                Optional.empty()
-        ));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, firstFinished, first));
+
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
@@ -649,13 +615,8 @@ public class DefaultLoadBalancerServiceTest {
         Task secondKilling = second.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.KillInitiated).build())
                 .build();
-        taskEvents.onNext(new TaskUpdateEvent(
-                ReconcilerEvent.EventType.ModelUpdated,
-                LoadBalancerTests.mockUpdateAction(second.getId()),
-                Optional.of(secondKilling),
-                Optional.of(second),
-                Optional.empty()
-        ));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, secondKilling, second));
+
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(2);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
@@ -669,13 +630,8 @@ public class DefaultLoadBalancerServiceTest {
         Task thirdDisconnected = third.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Disconnected).build())
                 .build();
-        taskEvents.onNext(new TaskUpdateEvent(
-                ReconcilerEvent.EventType.ModelUpdated,
-                LoadBalancerTests.mockUpdateAction(third.getId()),
-                Optional.of(thirdDisconnected),
-                Optional.of(third),
-                Optional.empty()
-        ));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, thirdDisconnected, third));
+
         testScheduler.triggerActions();
         testSubscriber.assertNoErrors().assertValueCount(3);
         verify(client, never()).registerAll(eq(loadBalancerId), any());

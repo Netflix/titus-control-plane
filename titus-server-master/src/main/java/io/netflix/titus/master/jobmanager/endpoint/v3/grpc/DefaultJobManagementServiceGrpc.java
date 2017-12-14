@@ -89,13 +89,14 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
-        execute(responseObserver, userId -> {
-            serviceGateway.createJob(request).subscribe(
-                    jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
-                    e -> safeOnError(logger, e, responseObserver),
-                    responseObserver::onCompleted
-            );
-        });
+        execute(responseObserver, userId ->
+                serviceGateway.createJob(
+                        request
+                ).subscribe(
+                        jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
+                        e -> safeOnError(logger, e, responseObserver),
+                        responseObserver::onCompleted
+                ));
     }
 
     @Override
@@ -206,50 +207,51 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, userId -> {
-            serviceGateway.changeJobInServiceStatus(
-                    userId, request.getId(), request.getEnableStatus()
-            ).subscribe(
-                    nothing -> {
-                    },
-                    e -> safeOnError(logger, e, responseObserver),
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    }
-            );
-        });
+        execute(responseObserver, userId ->
+                serviceGateway.changeJobInServiceStatus(
+                        userId, request.getId(), request.getEnableStatus()
+                ).subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                ));
     }
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, userId -> {
-            serviceGateway.killJob(userId, request.getId()).subscribe(
-                    nothing -> {
-                    },
-                    e -> safeOnError(logger, e, responseObserver),
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    }
-            );
-        });
+        execute(responseObserver, userId ->
+                serviceGateway.killJob(
+                        userId, request.getId()
+                ).subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                ));
     }
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         // TODO shrink?
-        execute(responseObserver, userId -> {
-            serviceGateway.killTask(userId, request.getTaskId(), request.getShrink()).subscribe(
-                    nothing -> {
-                    },
-                    e -> safeOnError(logger, e, responseObserver),
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    }
-            );
-        });
+        execute(responseObserver, userId ->
+                serviceGateway.killTask(
+                        userId, request.getTaskId(), request.getShrink()
+                ).subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                ));
     }
 
     @Override
