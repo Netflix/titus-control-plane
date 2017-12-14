@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import com.netflix.fenzo.ConstraintEvaluator;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -111,6 +112,8 @@ public class JobsScenarioBuilder {
                         capacityGroupService,
                         globalConstraintEvaluator,
                         constraintEvaluatorTransformer,
+                        new DefaultRegistry(),
+                        clock,
                         testScheduler
                 )
         );

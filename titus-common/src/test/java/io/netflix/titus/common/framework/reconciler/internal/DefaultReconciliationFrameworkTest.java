@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.TriggerStatus;
@@ -63,6 +64,7 @@ public class DefaultReconciliationFrameworkTest {
             IDLE_TIMEOUT_MS,
             ACTIVE_TIMEOUT_MS,
             indexComparators,
+            new DefaultRegistry(),
             testScheduler
     );
 
