@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.ext.aws;
+package io.netflix.titus.ext.aws.loadbalancer;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,6 +33,7 @@ import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.guice.ProxyType;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
+import io.netflix.titus.ext.aws.AwsObservableExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -50,10 +51,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     private final AmazonElasticLoadBalancingAsync client;
     private final Scheduler scheduler;
 
-    private final Registry registry;
-    private static final String METRIC_AWS_API_ERROR = "titus.loadbalancer.connector.awsApiError";
-    private static final String METRIC_TAG_METHOD_NAME = "awsMethod";
-    private static final String METRIC_TAG_ERROR_TYPE = "errorType";
+    private AwsLoadBalancerConnectorMetrics connectorMetrics;
 
     @Inject
     public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Registry registry) {
@@ -63,7 +61,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler, Registry registry) {
         this.client = client;
         this.scheduler = scheduler;
-        this.registry = registry;
+        this.connectorMetrics = new AwsLoadBalancerConnectorMetrics(registry);
     }
 
     @Override
@@ -83,12 +81,16 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                 .withTargetGroupArn(loadBalancerId)
                 .withTargets(targetDescriptions);
 
+        long startTime = System.currentTimeMillis();
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
         return AwsObservableExt.asyncActionCompletable(factory -> client.registerTargetsAsync(request, factory.handler(
-                (req, resp) -> logger.debug("Registered targets {}", resp),
+                (req, resp) -> {
+                    logger.debug("Registered targets {}", resp);
+                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.registerTargets, startTime);
+                },
                 (t) -> {
                     logger.error("Error registering targets on " + loadBalancerId, t);
-                    recordAwsErrorMetric("registerTargets", t);
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.registerTargets, t, startTime);
                 }
         ))).observeOn(scheduler);
     }
@@ -109,12 +111,16 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                         ipAddress -> new TargetDescription().withId(ipAddress)
                 ).collect(Collectors.toSet()));
 
+        long startTime = System.currentTimeMillis();
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
         return AwsObservableExt.asyncActionCompletable(factory -> client.deregisterTargetsAsync(request, factory.handler(
-                (req, resp) -> logger.debug("Deregistered targets {}", resp),
+                (req, resp) -> {
+                    logger.debug("Deregistered targets {}", resp);
+                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.deregisterTargets, startTime);
+                },
                 (t) -> {
                     logger.error("Error deregistering targets on " + loadBalancerId, t);
-                    recordAwsErrorMetric("deregisterTargets", t);
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.deregisterTargets, t, startTime);
                 }
         ))).observeOn(scheduler);
     }
@@ -124,10 +130,16 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         final DescribeTargetGroupsRequest request = new DescribeTargetGroupsRequest()
                 .withTargetGroupArns(loadBalancerId);
 
+        long startTime = System.currentTimeMillis();
         Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(factory -> client.describeTargetGroupsAsync(request, factory.handler()));
         return resultSingle
-                .doOnError(throwable -> recordAwsErrorMetric("describeTargetGroups", throwable))
-                .flatMapObservable(result -> Observable.from(result.getTargetGroups()))
+                .doOnError(throwable -> {
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.describeTargetGroups, throwable, startTime);
+                })
+                .flatMapObservable(result -> {
+                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.describeTargetGroups, startTime);
+                    return  Observable.from(result.getTargetGroups());
+                })
                 .flatMap(targetGroup -> {
                     if (targetGroup.getTargetType().equals(AWS_IP_TARGET_TYPE)) {
                         return Observable.empty();
@@ -136,16 +148,5 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                 })
                 .observeOn(scheduler)
                 .toCompletable();
-    }
-
-    private void recordAwsErrorMetric(String awsMethod, Throwable thrown) {
-        String errorType = "other";
-        if (thrown.getMessage().contains("Rate exceeded")) {
-            errorType = "ratelimit";
-        }
-        registry.counter(METRIC_AWS_API_ERROR,
-                METRIC_TAG_METHOD_NAME, awsMethod,
-                METRIC_TAG_ERROR_TYPE, errorType
-        ).increment();
     }
 }

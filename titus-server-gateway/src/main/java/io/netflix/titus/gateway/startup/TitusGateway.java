@@ -24,9 +24,11 @@ import java.util.Properties;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
+import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.sampullara.cli.Args;
 import com.sampullara.cli.Argument;
+import io.netflix.titus.common.util.guice.ContainerEventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +47,7 @@ public class TitusGateway {
         }
 
         try {
-            InjectorBuilder.fromModules(
+            LifecycleInjector injector = InjectorBuilder.fromModules(
                     new TitusGatewayModule(),
                     new Archaius2JettyModule(),
                     new ArchaiusModule() {
@@ -55,7 +57,9 @@ public class TitusGateway {
                                     .build());
                             bindApplicationConfigurationOverride().toInstance(loadPropertiesFile(propertiesFile));
                         }
-                    }).createInjector().awaitTermination();
+                    }).createInjector();
+            injector.getInstance(ContainerEventBus.class).submitInOrder(new ContainerEventBus.ContainerStartedEvent());
+            injector.awaitTermination();
         } catch (Exception e) {
             logger.error("Unexpected error: " + e.getMessage(), e);
             System.exit(2);
