@@ -19,6 +19,7 @@ package io.netflix.titus.master.jobmanager.service.integration;
 import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -157,7 +158,7 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, taskState))
                 .template(ScenarioTemplates.killBatchTask(0, 0))
-                .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
+                .template(ScenarioTemplates.acceptTask(0, 1))
         );
     }
 
@@ -196,6 +197,22 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.killJob())
                 .template(ScenarioTemplates.reconcilerTaskKill(0, 0))
                 .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_TASK_KILLED))
+        );
+    }
+
+    /**
+     * Check that killing a job with a failed tasks, terminates the job.
+     */
+    @Test
+    public void testKillingJobInAcceptedStateWithFailedTasks() throws Exception {
+        JobDescriptor<BatchJobExt> jobWithRetries = JobFunctions.changeRetryLimit(oneTaskBatchJobDescriptor(), 2);
+        jobsScenarioBuilder.scheduleJob(jobWithRetries, jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
+                // Fail the task just before job kill operation is triggered
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .template(ScenarioTemplates.killJob())
+                .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_TASK_LOST))
         );
     }
 

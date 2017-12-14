@@ -55,19 +55,19 @@ public class TaskTimeoutChangeActions {
     );
 
 
-    public static TitusChangeAction setTimeout(String taskId, TaskState taskState, long deadlineMs) {
+    public static TitusChangeAction setTimeout(String taskId, TaskState taskState, long timeoutMs, Clock clock) {
         String tagName = STATE_TAGS.get(taskState);
         Preconditions.checkArgument(tagName != null, "Timeout not tracked for state %s", taskState);
 
         return TitusChangeAction.newAction("setTimeout")
                 .id(taskId)
                 .trigger(Trigger.Reconciler)
-                .summary("Setting timeout for task in state %s: %s", taskState, DateTimeExt.toTimeUnitString(deadlineMs))
+                .summary("Setting timeout for task in state %s: %s", taskState, DateTimeExt.toTimeUnitString(timeoutMs))
                 .applyModelUpdate(self -> {
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self)
                             .taskMaybeUpdate(jobHolder ->
                                     jobHolder.findById(taskId).map(taskHolder -> {
-                                        EntityHolder newTaskHolder = taskHolder.addTag(tagName, deadlineMs);
+                                        EntityHolder newTaskHolder = taskHolder.addTag(tagName, clock.wallTime() + timeoutMs);
                                         if (taskState == TaskState.KillInitiated) {
                                             newTaskHolder = newTaskHolder.addTag(KILL_INITIATED_ATTEMPT_TAG, 0);
                                         }

@@ -12,6 +12,7 @@ import javax.inject.Singleton;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -207,10 +208,13 @@ public class JobReconciliationFrameworkFactory {
             pairs = store.init().andThen(store.retrieveJobs().toList().flatMap(retrievedJobs -> {
                 List<Observable<Pair<Job, List<Task>>>> retrieveTasksObservables = new ArrayList<>();
                 for (Job job : retrievedJobs) {
-                    Observable<Pair<Job, List<Task>>> retrieveTasksObservable = store.retrieveTasksForJob(job.getId())
-                            .toList()
-                            .map(taskList -> new Pair<>(job, taskList));
-                    retrieveTasksObservables.add(retrieveTasksObservable);
+                    // TODO Finished jobs that were not archived immediately should be moved by background archive process
+                    if (job.getStatus().getState() != JobState.Finished) {
+                        Observable<Pair<Job, List<Task>>> retrieveTasksObservable = store.retrieveTasksForJob(job.getId())
+                                .toList()
+                                .map(taskList -> new Pair<>(job, taskList));
+                        retrieveTasksObservables.add(retrieveTasksObservable);
+                    }
                 }
                 return Observable.merge(retrieveTasksObservables, MAX_RETRIEVE_TASK_CONCURRENCY);
             })).toList().toBlocking().singleOrDefault(Collections.emptyList());

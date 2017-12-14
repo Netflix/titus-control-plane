@@ -132,12 +132,18 @@ public class JobSubmitAndControlBasicTest {
     @Test(timeout = 30_000)
     public void testSubmitSimpleBatchJobAndKillTask() throws Exception {
         JobDescriptor<BatchJobExt> retryableJob = ONE_TASK_BATCH_JOB.but(jd -> jd.getExtensions().toBuilder()
-                .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(3).build())
+                .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(1).build())
         );
         jobsScenarioBuilder.schedule(retryableJob, jobScenarioBuilder -> jobScenarioBuilder
                 .template(startTasksInNewJob())
                 .allTasks(TaskScenarioBuilder::killTask)
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.KillInitiated, TaskState.Finished))
+                .expectTaskInSlot(0, 1)
+                .inTask(0, 1, TaskScenarioBuilder::killTask)
+                .inTask(0, 1, taskScenarioBuilder -> taskScenarioBuilder
+                        .expectStateUpdateSkipOther(TaskState.KillInitiated)
+                        .expectStateUpdates(TaskState.Finished)
+                )
                 .template(jobFinished())
                 .expectJobEventStreamCompletes()
         );
