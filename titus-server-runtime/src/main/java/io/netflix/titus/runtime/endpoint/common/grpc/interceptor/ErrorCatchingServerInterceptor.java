@@ -60,8 +60,8 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                 @Override
                 public void close(Status status, Metadata trailers) {
                     if (status.getCode() != Status.Code.OK) {
-                        logger.info("Returning exception to the client: {}", status.toString());
                         Pair<Status, Metadata> pair = ErrorResponses.of(status, trailers, debug);
+                        logger.info("Returning exception to the client: {}", formatStatus(pair.getLeft()));
                         safeClose(() -> super.close(pair.getLeft(), pair.getRight()));
                     }
                     safeClose(() -> super.close(status, trailers));
@@ -91,6 +91,13 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                 }
             }
         };
+    }
+
+    private String formatStatus(Status status) {
+        return "{code=" + status.getCode()
+                + ", description=" + status.getDescription()
+                + ", error=" + (status.getCause() == null ? "N/A" : status.getCause().getMessage())
+                + '}';
     }
 
     private void safeClose(Runnable action) {

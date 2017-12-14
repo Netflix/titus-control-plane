@@ -142,9 +142,14 @@ public final class ErrorResponses {
                 case JobNotFound:
                 case TaskNotFound:
                     return Status.NOT_FOUND;
+                case JobTerminating:
+                case TaskTerminating:
                 case NotServiceJob:
+                case UnexpectedJobState:
                 case UnexpectedTaskState:
                     return Status.FAILED_PRECONDITION;
+                case InvalidDesiredCapacity:
+                    return Status.INVALID_ARGUMENT;
             }
         }
         return Status.INTERNAL;
