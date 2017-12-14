@@ -60,7 +60,8 @@ public class TaskTimeoutChangeActionsTest {
         List<ModelActionHolder> modelActionHolders = TaskTimeoutChangeActions.setTimeout(
                 launchedTask.getId(),
                 launchedTask.getStatus().getState(),
-                testClock.wallTime() + DEADLINE_INTERVAL_MS
+                DEADLINE_INTERVAL_MS,
+                testClock
         ).apply().toBlocking().first();
 
         EntityHolder rootWithTimeout = modelActionHolders.get(0).getAction().apply(initialRoot).get().getLeft();

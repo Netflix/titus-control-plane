@@ -193,7 +193,7 @@ public final class JobFunctions {
             if (currentState == checkedState) {
                 return System.currentTimeMillis() - task.getStatus().getTimestamp();
             }
-            if (checkedState.ordinal() > currentState.ordinal()) {
+            if (TaskState.isAfter(checkedState, currentState)) {
                 return 0L;
             }
             return findStatusAfter(task, checkedState).map(after -> after.getTimestamp() - checkedStatus.getTimestamp()).orElse(0L);
@@ -208,19 +208,17 @@ public final class JobFunctions {
     }
 
     private static Optional<TaskStatus> findStatusAfter(Task task, TaskState before) {
-        int beforeOrdinal = before.ordinal();
         TaskStatus after = null;
         for (TaskStatus status : task.getStatusHistory()) {
-            int statusOrdinal = status.getState().ordinal();
-            if (statusOrdinal > beforeOrdinal) {
+            if (TaskState.isAfter(status.getState(), before)) {
                 if (after == null) {
                     after = status;
-                } else if (after.getState().ordinal() > statusOrdinal) {
+                } else if (TaskState.isAfter(after.getState(), status.getState())) {
                     after = status;
                 }
             }
         }
-        if (after == null && task.getStatus().getState().ordinal() > beforeOrdinal) {
+        if (after == null && TaskState.isAfter(task.getStatus().getState(), before)) {
             after = task.getStatus();
         }
         return Optional.ofNullable(after);

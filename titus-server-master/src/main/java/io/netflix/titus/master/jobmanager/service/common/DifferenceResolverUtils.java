@@ -59,8 +59,8 @@ public class DifferenceResolverUtils {
     }
 
     public static boolean shouldRetry(Job<?> job, Task task) {
-        TaskStatus status = task.getStatus();
-        if (status.getState() != TaskState.Finished) {
+        TaskStatus taskStatus = task.getStatus();
+        if (taskStatus.getState() != TaskState.Finished || job.getStatus().getState() != JobState.Accepted) {
             return false;
         }
         if (hasReachedRetryLimit(job, task)) {
@@ -69,8 +69,8 @@ public class DifferenceResolverUtils {
         if (!isBatch(job)) {
             return true;
         }
-        String reasonCode = status.getReasonCode();
-        return !TaskStatus.REASON_NORMAL.equals(reasonCode) && !TaskStatus.REASON_TASK_KILLED.equals(reasonCode);
+        String reasonCode = taskStatus.getReasonCode();
+        return !TaskStatus.REASON_NORMAL.equals(reasonCode);
     }
 
     public static boolean hasReachedRetryLimit(Job<?> refJob, Task task) {
@@ -138,7 +138,7 @@ public class DifferenceResolverUtils {
                             break;
                     }
                     if (timeoutMs > 0) {
-                        actions.add(TaskTimeoutChangeActions.setTimeout(taskHolder.getId(), task.getStatus().getState(), clock.wallTime() + timeoutMs));
+                        actions.add(TaskTimeoutChangeActions.setTimeout(taskHolder.getId(), task.getStatus().getState(), timeoutMs, clock));
                     }
                     break;
                 case TimedOut:

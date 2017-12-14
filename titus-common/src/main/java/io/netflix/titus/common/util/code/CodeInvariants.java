@@ -38,9 +38,6 @@ public class CodeInvariants {
     }
 
     public static CodeInvariants codeInvariants() {
-        if (INSTANCE == null) {
-            INSTANCE = new CodeInvariants();
-        }
         return INSTANCE;
     }
 }

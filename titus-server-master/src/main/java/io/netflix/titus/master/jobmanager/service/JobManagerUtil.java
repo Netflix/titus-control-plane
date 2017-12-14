@@ -87,7 +87,7 @@ public final class JobManagerUtil {
         return oldTask -> {
             // De-duplicate task status updates. For example 'Launched' state is reported from two places, so we got
             // 'Launched' state update twice.
-            if (oldTask.getStatus().getState() == taskStatus.getState()) {
+            if (!TaskState.isBefore(oldTask.getStatus().getState(), taskStatus.getState())) {
                 return oldTask;
             }
 

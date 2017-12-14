@@ -32,6 +32,7 @@ import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
@@ -395,9 +396,15 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             data = new String(taskStatus.getData().toByteArray());
             logMesosCallbackDebug("Mesos status object data: %s", data);
         }
-        WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
-        final Status status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
-                taskStatus.getMessage(), data, state);
+        final Status status;
+        if (JobFunctions.isV2Task(taskId)) {
+            WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
+            status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
+                    taskStatus.getMessage(), data, state);
+        } else {
+            status = new Status("<v3Job>", taskId, -1, -1, -1, Status.TYPE.ERROR,
+                    taskStatus.getMessage(), data, state);
+        }
         status.setReason(reason);
 
         logger.debug("Publishing task status: {}", status);

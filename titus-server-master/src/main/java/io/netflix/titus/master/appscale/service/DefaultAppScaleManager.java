@@ -376,7 +376,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .filter(event -> {
                     if (event instanceof JobUpdateEvent) {
                         JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
-                        return jobUpdateEvent.getCurrent().getStatus().getState() != JobState.Finished;
+                        return jobUpdateEvent.getCurrent().getStatus().getState() == JobState.Finished;
                     }
                     return false;
                 })

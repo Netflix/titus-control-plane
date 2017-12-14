@@ -58,4 +58,18 @@ public enum TaskState {
     public static boolean isRunning(TaskState taskState) {
         return taskState != TaskState.Accepted && taskState != TaskState.Finished;
     }
+
+    public static boolean isBefore(TaskState checked, TaskState reference) {
+        if (checked == TaskState.Disconnected || reference == TaskState.Disconnected) {
+            return false;
+        }
+        return checked.ordinal() < reference.ordinal();
+    }
+
+    public static boolean isAfter(TaskState checked, TaskState reference) {
+        if (checked == TaskState.Disconnected || reference == TaskState.Disconnected) {
+            return false;
+        }
+        return checked.ordinal() > reference.ordinal();
+    }
 }
