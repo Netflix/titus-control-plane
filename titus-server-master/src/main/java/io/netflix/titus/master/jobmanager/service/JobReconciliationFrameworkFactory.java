@@ -11,6 +11,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.BasicTag;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import io.netflix.titus.api.jobmanager.model.job.Job;
@@ -33,6 +34,7 @@ import io.netflix.titus.common.framework.reconciler.internal.DefaultReconciliati
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations.IndexKind;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
@@ -59,6 +61,8 @@ public class JobReconciliationFrameworkFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(JobReconciliationFrameworkFactory.class);
 
+    private static final String ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.bootstrap.";
+
     static final String BATCH_RESOLVER = "batchResolver";
     static final String SERVICE_RESOLVER = "serviceResolver";
 
@@ -80,6 +84,11 @@ public class JobReconciliationFrameworkFactory {
     private final Registry registry;
     private final Clock clock;
     private final Scheduler scheduler;
+
+    private final Gauge loadedJobs;
+    private final Gauge loadedTasks;
+    private final Gauge storeLoadTimeMs;
+    private final Gauge badTasks;
 
     @Inject
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -115,6 +124,11 @@ public class JobReconciliationFrameworkFactory {
         this.clock = clock;
         this.scheduler = scheduler;
 
+        this.loadedJobs = registry.gauge(ROOT_METRIC_NAME + "loadedJobs");
+        this.loadedTasks = registry.gauge(ROOT_METRIC_NAME + "loadedTasks");
+        this.storeLoadTimeMs = registry.gauge(ROOT_METRIC_NAME + "storeLoadTimeMs");
+        this.badTasks = registry.gauge(ROOT_METRIC_NAME + "badTasks");
+
         this.dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
             Job<?> job = rootModel.getEntity();
             JobDescriptor.JobDescriptorExt extensions = job.getJobDescriptor().getExtensions();
@@ -143,6 +157,8 @@ public class JobReconciliationFrameworkFactory {
                 addTaskToFenzo(engine, job, task).ifPresent(error -> failedTaskIds.add(task.getId()));
             }
         }
+
+        badTasks.set(failedTaskIds.size());
 
         if (!failedTaskIds.isEmpty()) {
             logger.info("Failed to initialize {} tasks with ids: {}", failedTaskIds.size(), failedTaskIds);
@@ -237,6 +253,8 @@ public class JobReconciliationFrameworkFactory {
     }
 
     private List<Pair<Job, List<Task>>> loadJobsAndTasksFromStore() {
+        long startTime = clock.wallTime();
+
         // load all job/task pairs
         List<Pair<Job, List<Task>>> pairs;
         try {
@@ -253,10 +271,17 @@ public class JobReconciliationFrameworkFactory {
                 }
                 return Observable.merge(retrieveTasksObservables, MAX_RETRIEVE_TASK_CONCURRENCY);
             })).toList().toBlocking().singleOrDefault(Collections.emptyList());
-            logger.info("{} jobs loaded from store", pairs.size());
+
+            int taskCount = pairs.stream().map(p -> p.getRight().size()).reduce(0, (a, v) -> a + v);
+            loadedJobs.set(pairs.size());
+            loadedTasks.set(taskCount);
+
+            logger.info("{} jobs and {} tasks loaded from store in {}ms", pairs.size(), taskCount, clock.wallTime() - startTime);
         } catch (Exception e) {
             logger.error("Failed to load jobs from the store during initialization:", e);
             throw new IllegalStateException("Failed to load jobs from the store during initialization", e);
+        } finally {
+            storeLoadTimeMs.set(clock.wallTime() - startTime);
         }
         return pairs;
     }
