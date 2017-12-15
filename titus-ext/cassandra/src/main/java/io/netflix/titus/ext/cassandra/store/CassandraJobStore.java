@@ -40,12 +40,17 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.jobmanager.store.JobStoreException;
 import io.netflix.titus.api.json.ObjectMappers;
+import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 
+import static io.netflix.titus.common.util.guice.ProxyType.Logging;
+import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
+
 @Singleton
+@ProxyConfiguration(types = {Logging, Spectator})
 public class CassandraJobStore implements JobStore {
     private static final int MAX_BUCKET_SIZE = 10_000;
     private static final int MAX_RETRIEVE_CONCURRENCY = 1_000;

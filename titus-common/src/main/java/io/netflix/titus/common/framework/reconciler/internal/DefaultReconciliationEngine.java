@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -260,9 +261,12 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                 metrics.changeActionStarted(actionHolder);
 
                 final Pair<ChangeActionHolder, Subscriber<Void>> finalNext = next;
+                AtomicBoolean released = new AtomicBoolean(false);
                 Subscription subscription = actionHolder.getChangeAction().apply()
                         .doOnUnsubscribe(() -> {
-                            metrics.changeActionUnsubscribed(actionHolder, clock.nanoTime() - startTimeNs);
+                            if (released.getAndSet(true)) {
+                                metrics.changeActionUnsubscribed(actionHolder, clock.nanoTime() - startTimeNs);
+                            }
                             subscriber.unsubscribe();
                         })
                         .subscribe(
@@ -271,13 +275,17 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                                     registerModelUpdateRequest(finalNext.getLeft(), modelActionHolderList);
                                 },
                                 e -> {
-                                    metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs, e);
+                                    if (released.getAndSet(true)) {
+                                        metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs, e);
+                                    }
                                     emitEvent(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, passedMs(startTimeNs), actionHolder.getTransactionId()));
                                     subscriber.onError(e);
                                 },
                                 // TODO Make sure always one element is emitted
                                 () -> {
-                                    metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs);
+                                    if (released.getAndSet(true)) {
+                                        metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs);
+                                    }
                                     subscriber.onCompleted();
                                 }
                         );
@@ -314,19 +322,30 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             metrics.reconcileActionStarted(changeActionHolder);
 
             emitEvent(eventFactory.newBeforeChangeEvent(this, action, transactionId));
+            AtomicBoolean released = new AtomicBoolean(false);
             Subscription subscription = action.apply()
-                    .doOnUnsubscribe(() -> metrics.reconcileActionUnsubscribed(changeActionHolder, clock.nanoTime() - startTimeNs))
+                    .doOnUnsubscribe(() -> {
+                        if (released.getAndSet(true)) {
+                            metrics.reconcileActionUnsubscribed(changeActionHolder, clock.nanoTime() - startTimeNs);
+                        }
+                    })
                     .subscribe(
                             modelActionHolders -> {
                                 registerModelUpdateRequest(changeActionHolder, modelActionHolders);
                                 emitEvent(eventFactory.newAfterChangeEvent(this, action, passedMs(startTimeNs), transactionId));
                             },
                             e -> {
-                                metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs, e);
+                                if (released.getAndSet(true)) {
+                                    metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs, e);
+                                }
                                 emitEvent(eventFactory.newChangeErrorEvent(this, action, e, passedMs(startTimeNs), transactionId));
                                 logger.debug("Action execution error", e);
                             },
-                            () -> metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs)
+                            () -> {
+                                if (released.getAndSet(true)) {
+                                    metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs);
+                                }
+                            }
                     );
             subscriptions.add(subscription);
         }
