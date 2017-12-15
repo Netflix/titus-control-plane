@@ -3,6 +3,11 @@ package io.netflix.titus.common.util.code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * {@link CodeInvariants} registers code invariant violations in functions or entities, which are usually not fatal
+ * (system self-corrects itself), but are important to track and fix. Current implementation writes violations to
+ * a log. Possible extensions in the future include metrics or writing to an external event stream.
+ */
 public class CodeInvariants {
 
     private static final Logger logger = LoggerFactory.getLogger(CodeInvariants.class);

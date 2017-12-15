@@ -99,6 +99,7 @@ public class JobsScenarioBuilder {
                 clock,
                 testScheduler
         );
+        DefaultRegistry registry = new DefaultRegistry();
         this.jobOperations = new DefaultV3JobOperations(
                 configuration,
                 jobStore,
@@ -112,10 +113,11 @@ public class JobsScenarioBuilder {
                         capacityGroupService,
                         globalConstraintEvaluator,
                         constraintEvaluatorTransformer,
-                        new DefaultRegistry(),
+                        registry,
                         clock,
                         testScheduler
-                )
+                ),
+                registry
         );
         jobOperations.enterActiveMode();
     }

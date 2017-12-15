@@ -16,12 +16,12 @@
 
 package io.netflix.titus.master.job;
 
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
@@ -30,24 +30,15 @@ import io.netflix.titus.common.util.spectator.SpectatorExt.FsmMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.netflix.titus.common.util.CollectionsExt.asSet;
+import static io.netflix.titus.api.model.v2.V2JobState.toV3TaskState;
 import static io.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_JOB;
 
 /**
  * Job related metrics.
  */
-public class JobMetrics {
+public class V2JobMetrics {
 
-    private static final Logger logger = LoggerFactory.getLogger(JobMetrics.class);
-
-    private static final Set<V2JobState> TRACKED_STATES = asSet(
-            V2JobState.Accepted,
-            V2JobState.Launched,
-            V2JobState.StartInitiated,
-            V2JobState.Started,
-            V2JobState.Completed,
-            V2JobState.Failed
-    );
+    private static final Logger logger = LoggerFactory.getLogger(V2JobMetrics.class);
 
     private final Id taskRootId;
 
@@ -57,7 +48,7 @@ public class JobMetrics {
     private final ConcurrentMap<V2WorkerMetadata, TaskMetricHolder> taskMetrics = new ConcurrentHashMap<>();
     private final String capacityGroup;
 
-    public JobMetrics(String jobId, boolean serviceJob, String applicationName, String capacityGroup, Registry registry) {
+    public V2JobMetrics(String jobId, boolean serviceJob, String applicationName, String capacityGroup, Registry registry) {
         this.capacityGroup = capacityGroup;
         this.serviceJob = serviceJob;
         this.registry = registry;
@@ -72,14 +63,16 @@ public class JobMetrics {
 
         TaskMetricHolder taskMetricH = taskMetrics.computeIfAbsent(task, myTask -> new TaskMetricHolder(task));
         logger.debug("State transition change for task {} ({}): {}", task.getWorkerInstanceId(), task, task.getState());
-        taskMetricH.transition(task.getState());
+
+        TaskState v3TaskState = toV3TaskState(task.getState());
+        taskMetricH.transition(v3TaskState);
 
         // Look at all tasks, in case something leaked
         taskMetrics.entrySet().forEach(e -> {
             V2WorkerMetadata t = e.getKey();
             if (V2JobState.isTerminalState(t.getState())) {
                 logger.debug("Removing task {} ({}): {}", t.getWorkerInstanceId(), t, t.getState());
-                e.getValue().transition(t.getState());
+                e.getValue().transition(v3TaskState);
                 taskMetrics.remove(t);
             }
         });
@@ -89,7 +82,7 @@ public class JobMetrics {
         taskMetrics.entrySet().forEach(e -> {
             V2WorkerMetadata t = e.getKey();
             if (V2JobState.isTerminalState(t.getState())) {
-                e.getValue().transition(t.getState());
+                e.getValue().transition(toV3TaskState(t.getState()));
             } else {
                 logger.warn("Job {} finished with task in non-final state {}", t.getJobId(), t.getWorkerInstanceId());
             }
@@ -117,13 +110,13 @@ public class JobMetrics {
     }
 
     private class TaskMetricHolder {
-        private final FsmMetrics<V2JobState> stateMetrics;
+        private final FsmMetrics<TaskState> stateMetrics;
 
         private TaskMetricHolder(V2WorkerMetadata task) {
-            this.stateMetrics = SpectatorExt.fsmMetrics(TRACKED_STATES, stateIdOf(task), V2JobState::isTerminalState, registry);
+            this.stateMetrics = SpectatorExt.fsmMetrics(TaskState.setOfAll(), stateIdOf(task), TaskState::isTerminalState, registry);
         }
 
-        private void transition(V2JobState state) {
+        private void transition(TaskState state) {
             stateMetrics.transition(state);
         }
     }

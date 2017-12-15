@@ -27,6 +27,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -85,15 +86,19 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
     private Subscription transactionLoggerSubscription;
 
+    private final V3JobMetricsCollector jobMetricsCollector;
+
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
                                   JobStore store,
                                   VirtualMachineMasterService vmService,
-                                  JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory) {
+                                  JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
+                                  Registry registry) {
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
+        this.jobMetricsCollector = new V3JobMetricsCollector(registry);
     }
 
     @Activator
@@ -101,26 +106,21 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.reconciliationFramework = jobReconciliationFrameworkFactory.newInstance();
         this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework);
 
+        reconciliationFramework.orderedView(IndexKind.StatusCreationTime).forEach(jobHolder -> {
+            Job<?> job = jobHolder.getEntity();
+            jobHolder.getChildren().forEach(taskHolder -> jobMetricsCollector.updateTaskMetrics(job, taskHolder.getEntity()));
+        });
+
         // Remove finished jobs from the reconciliation framework.
         reconciliationFramework.events().subscribe(
                 event -> {
                     if (event instanceof JobModelUpdateReconcilerEvent) {
                         JobModelUpdateReconcilerEvent jobUpdateEvent = (JobModelUpdateReconcilerEvent) event;
                         EntityHolder changedEntityHolder = jobUpdateEvent.getChangedEntityHolder();
-                        if (changedEntityHolder.getEntity() instanceof Job) {
-                            Job<?> job = changedEntityHolder.getEntity();
-                            if (job.getStatus().getState() == JobState.Finished) {
-                                boolean isClosed = BasicJobActions.isClosed(changedEntityHolder);
-                                if (isClosed) {
-                                    String jobId = job.getId();
-                                    reconciliationFramework.findEngineByRootId(jobId).ifPresent(engine ->
-                                            reconciliationFramework.removeEngine(engine).subscribe(
-                                                    () -> logger.info("Removed reconciliation engine of job {}", jobId),
-                                                    e -> logger.warn("Could not remove reconciliation engine of job {}", jobId, e)
-                                            )
-                                    );
-                                }
-                            }
+                        if (handleJobCompletedEvent(changedEntityHolder)) {
+                            jobMetricsCollector.removeJob(changedEntityHolder.getId());
+                        } else {
+                            jobMetricsCollector.updateTaskMetrics(jobUpdateEvent);
                         }
                     }
                 },
@@ -129,6 +129,26 @@ public class DefaultV3JobOperations implements V3JobOperations {
         );
 
         reconciliationFramework.start();
+    }
+
+    private boolean handleJobCompletedEvent(EntityHolder changedEntityHolder) {
+        if (changedEntityHolder.getEntity() instanceof Job) {
+            Job<?> job = changedEntityHolder.getEntity();
+            if (job.getStatus().getState() == JobState.Finished) {
+                boolean isClosed = BasicJobActions.isClosed(changedEntityHolder);
+                if (isClosed) {
+                    String jobId = job.getId();
+                    reconciliationFramework.findEngineByRootId(jobId).ifPresent(engine ->
+                            reconciliationFramework.removeEngine(engine).subscribe(
+                                    () -> logger.info("Removed reconciliation engine of job {}", jobId),
+                                    e -> logger.warn("Could not remove reconciliation engine of job {}", jobId, e)
+                            )
+                    );
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @PreDestroy

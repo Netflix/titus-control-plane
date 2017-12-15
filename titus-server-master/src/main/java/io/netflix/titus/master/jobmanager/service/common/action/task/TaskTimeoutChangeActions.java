@@ -45,15 +45,17 @@ public class TaskTimeoutChangeActions {
 
     public enum TimeoutStatus {Ignore, NotSet, Pending, TimedOut}
 
-    private static final String TIMEOUT_KILL_INITIATED_TAG = "timeout.killInitiated";
     private static final String KILL_INITIATED_ATTEMPT_TAG = "timeout.killInitiatedAttempt";
 
-    private static final Map<TaskState, String> STATE_TAGS = ImmutableMap.of(
-            TaskState.Launched, "timeout.launched",
-            TaskState.StartInitiated, "timeout.startInitiated",
-            TaskState.KillInitiated, TIMEOUT_KILL_INITIATED_TAG
-    );
+    private static final String LAUNCHED_STATE_TIMEOUT_TAG = "timeout.launched";
+    private static final String START_INITIATED_TIMEOUT_TAG = "timeout.startInitiated";
+    private static final String KILL_INITIATED_TIMEOUT_TAG = "timeout.killInitiated";
 
+    private static final Map<TaskState, String> STATE_TAGS = ImmutableMap.of(
+            TaskState.Launched, LAUNCHED_STATE_TIMEOUT_TAG,
+            TaskState.StartInitiated, START_INITIATED_TIMEOUT_TAG,
+            TaskState.KillInitiated, KILL_INITIATED_TIMEOUT_TAG
+    );
 
     public static TitusChangeAction setTimeout(String taskId, TaskState taskState, long timeoutMs, Clock clock) {
         String tagName = STATE_TAGS.get(taskState);
@@ -88,7 +90,7 @@ public class TaskTimeoutChangeActions {
                                     jobHolder.findById(taskId).map(taskHolder -> {
                                         int attempt = (int) taskHolder.getAttributes().getOrDefault(KILL_INITIATED_ATTEMPT_TAG, 0);
                                         EntityHolder newTaskHolder = taskHolder
-                                                .addTag(TIMEOUT_KILL_INITIATED_TAG, deadlineMs)
+                                                .addTag(KILL_INITIATED_TIMEOUT_TAG, deadlineMs)
                                                 .addTag(KILL_INITIATED_ATTEMPT_TAG, attempt + 1);
                                         return Pair.of(jobHolder.addChild(newTaskHolder), newTaskHolder);
                                     }));

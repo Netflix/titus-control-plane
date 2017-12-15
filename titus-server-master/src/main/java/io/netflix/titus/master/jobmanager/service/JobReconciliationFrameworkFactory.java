@@ -88,7 +88,7 @@ public class JobReconciliationFrameworkFactory {
     private final Gauge loadedJobs;
     private final Gauge loadedTasks;
     private final Gauge storeLoadTimeMs;
-    private final Gauge badTasks;
+    private final Gauge failedToAddToFenzoTasks;
 
     @Inject
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -127,7 +127,7 @@ public class JobReconciliationFrameworkFactory {
         this.loadedJobs = registry.gauge(ROOT_METRIC_NAME + "loadedJobs");
         this.loadedTasks = registry.gauge(ROOT_METRIC_NAME + "loadedTasks");
         this.storeLoadTimeMs = registry.gauge(ROOT_METRIC_NAME + "storeLoadTimeMs");
-        this.badTasks = registry.gauge(ROOT_METRIC_NAME + "badTasks");
+        this.failedToAddToFenzoTasks = registry.gauge(ROOT_METRIC_NAME + "failedToAddToFenzoTasks");
 
         this.dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
             Job<?> job = rootModel.getEntity();
@@ -147,24 +147,24 @@ public class JobReconciliationFrameworkFactory {
 
         // initialize fenzo with running tasks
         List<ReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
-        List<String> failedTaskIds = new ArrayList<>();
+        List<String> failedToAddToFenzoTaskIds = new ArrayList<>();
         for (Pair<Job, List<Task>> pair : jobsAndTasks) {
             Job job = pair.getLeft();
             List<Task> tasks = pair.getRight();
             ReconciliationEngine<JobManagerReconcilerEvent> engine = newEngine(job, tasks);
             engines.add(engine);
             for (Task task : tasks) {
-                addTaskToFenzo(engine, job, task).ifPresent(error -> failedTaskIds.add(task.getId()));
+                addTaskToFenzo(engine, job, task).ifPresent(error -> failedToAddToFenzoTaskIds.add(task.getId()));
             }
         }
 
-        badTasks.set(failedTaskIds.size());
+        failedToAddToFenzoTasks.set(failedToAddToFenzoTaskIds.size());
 
-        if (!failedTaskIds.isEmpty()) {
-            logger.info("Failed to initialize {} tasks with ids: {}", failedTaskIds.size(), failedTaskIds);
+        if (!failedToAddToFenzoTaskIds.isEmpty()) {
+            logger.info("Failed to initialize {} tasks with ids: {}", failedToAddToFenzoTaskIds.size(), failedToAddToFenzoTaskIds);
         }
-        if (failedTaskIds.size() > jobManagerConfiguration.getMaxFailedTasks()) {
-            String message = String.format("Exiting because the number of failed tasks was greater than %s", failedTaskIds.size());
+        if (failedToAddToFenzoTaskIds.size() > jobManagerConfiguration.getMaxFailedTasks()) {
+            String message = String.format("Exiting because the number of failed tasks was greater than %s", failedToAddToFenzoTaskIds.size());
             logger.error(message);
             throw new IllegalStateException(message);
         }

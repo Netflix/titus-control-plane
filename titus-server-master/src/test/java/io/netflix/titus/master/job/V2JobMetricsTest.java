@@ -37,13 +37,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class JobMetricsTest {
+public class V2JobMetricsTest {
 
     private final Registry registry = new DefaultRegistry();
 
     @Test
     public void testContainerLifecycleMetrics() throws Exception {
-        JobMetrics jobMetrics = new JobMetrics("myJob", true, "myApp", "myCapacityGroup", registry);
+        V2JobMetrics jobMetrics = new V2JobMetrics("myJob", true, "myApp", "myCapacityGroup", registry);
 
         V2WorkerMetadata task = mock(V2WorkerMetadata.class);
         when(task.getJobId()).thenReturn("myJob");
