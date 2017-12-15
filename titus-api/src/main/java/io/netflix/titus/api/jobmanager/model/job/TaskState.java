@@ -16,6 +16,10 @@
 
 package io.netflix.titus.api.jobmanager.model.job;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  *
  */
@@ -55,8 +59,14 @@ public enum TaskState {
      */
     Finished;
 
+    private static final Set<TaskState> SET_OF_ALL = new HashSet<>(Arrays.asList(TaskState.values()));
+
     public static boolean isRunning(TaskState taskState) {
         return taskState != TaskState.Accepted && taskState != TaskState.Finished;
+    }
+
+    public static boolean isTerminalState(TaskState taskState) {
+        return taskState == TaskState.Finished;
     }
 
     public static boolean isBefore(TaskState checked, TaskState reference) {
@@ -71,5 +81,9 @@ public enum TaskState {
             return false;
         }
         return checked.ordinal() > reference.ordinal();
+    }
+
+    public static Set<TaskState> setOfAll() {
+        return SET_OF_ALL;
     }
 }

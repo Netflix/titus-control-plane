@@ -105,7 +105,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
     protected final NamedJob namedJob;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     protected final V2JobDefinition jobDefinition;
-    protected final JobMetrics jobMetrics;
+    protected final V2JobMetrics jobMetrics;
     private final ExcludedAgentsTracker excludedAgentsTracker;
     protected V2JobStore store = null;
     private Consumer<String> taskKillAction = null;
@@ -168,7 +168,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         if (Strings.isNullOrEmpty(capacityGroup)) {
             capacityGroup = "UNKNOWN";
         }
-        this.jobMetrics = new JobMetrics(jobId, serviceJob, appName, capacityGroup, registry);
+        this.jobMetrics = new V2JobMetrics(jobId, serviceJob, appName, capacityGroup, registry);
         this.excludedAgentsTracker = new ExcludedAgentsTracker(jobId, appName, jobManagerConfiguration, registry);
 
         workerNumberGenerator = new WorkerNumberGenerator(jobId);
@@ -222,7 +222,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         this.taskKillAction = killAction;
     }
 
-    public JobMetrics getJobMetrics() {
+    public V2JobMetrics getJobMetrics() {
         return jobMetrics;
     }
 
