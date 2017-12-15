@@ -20,8 +20,10 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsyncClientBuilder;
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetGroupNotFoundException;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.ext.aws.loadbalancer.AwsLoadBalancerConnector;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -52,7 +54,7 @@ public class AwsLoadBalancerConnectorTest {
                 .withCredentials(credentialsProvider)
                 .withRegion(REGION)
                 .build();
-        awsLoadBalancerConnector = new AwsLoadBalancerConnector(albClient);
+        awsLoadBalancerConnector = new AwsLoadBalancerConnector(albClient, new DefaultRegistry());
     }
 
     @Ignore("AWS dependencies")

@@ -26,6 +26,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.ext.aws.loadbalancer.AwsLoadBalancerConnector;
 
 public class AwsModule extends AbstractModule {
     @Override
