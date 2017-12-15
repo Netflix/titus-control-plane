@@ -261,10 +261,10 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                 metrics.changeActionStarted(actionHolder);
 
                 final Pair<ChangeActionHolder, Subscriber<Void>> finalNext = next;
-                AtomicBoolean released = new AtomicBoolean(false);
+                AtomicBoolean notClosed = new AtomicBoolean(true);
                 Subscription subscription = actionHolder.getChangeAction().apply()
                         .doOnUnsubscribe(() -> {
-                            if (released.getAndSet(true)) {
+                            if (notClosed.getAndSet(false)) {
                                 metrics.changeActionUnsubscribed(actionHolder, clock.nanoTime() - startTimeNs);
                             }
                             subscriber.unsubscribe();
@@ -275,7 +275,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                                     registerModelUpdateRequest(finalNext.getLeft(), modelActionHolderList);
                                 },
                                 e -> {
-                                    if (released.getAndSet(true)) {
+                                    if (notClosed.getAndSet(false)) {
                                         metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs, e);
                                     }
                                     emitEvent(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, passedMs(startTimeNs), actionHolder.getTransactionId()));
@@ -283,7 +283,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                                 },
                                 // TODO Make sure always one element is emitted
                                 () -> {
-                                    if (released.getAndSet(true)) {
+                                    if (notClosed.getAndSet(false)) {
                                         metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs);
                                     }
                                     subscriber.onCompleted();
@@ -322,10 +322,10 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             metrics.reconcileActionStarted(changeActionHolder);
 
             emitEvent(eventFactory.newBeforeChangeEvent(this, action, transactionId));
-            AtomicBoolean released = new AtomicBoolean(false);
+            AtomicBoolean notClosed = new AtomicBoolean(true);
             Subscription subscription = action.apply()
                     .doOnUnsubscribe(() -> {
-                        if (released.getAndSet(true)) {
+                        if (notClosed.getAndSet(false)) {
                             metrics.reconcileActionUnsubscribed(changeActionHolder, clock.nanoTime() - startTimeNs);
                         }
                     })
@@ -335,14 +335,14 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                                 emitEvent(eventFactory.newAfterChangeEvent(this, action, passedMs(startTimeNs), transactionId));
                             },
                             e -> {
-                                if (released.getAndSet(true)) {
+                                if (notClosed.getAndSet(false)) {
                                     metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs, e);
                                 }
                                 emitEvent(eventFactory.newChangeErrorEvent(this, action, e, passedMs(startTimeNs), transactionId));
                                 logger.debug("Action execution error", e);
                             },
                             () -> {
-                                if (released.getAndSet(true)) {
+                                if (notClosed.getAndSet(false)) {
                                     metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs);
                                 }
                             }
