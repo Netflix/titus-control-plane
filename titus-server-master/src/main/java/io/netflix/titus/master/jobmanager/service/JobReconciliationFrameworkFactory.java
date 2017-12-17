@@ -69,7 +69,7 @@ public class JobReconciliationFrameworkFactory {
     static final String BATCH_RESOLVER = "batchResolver";
     static final String SERVICE_RESOLVER = "serviceResolver";
 
-    private static final int MAX_RETRIEVE_TASK_CONCURRENCY = 1_000;
+    private static final int MAX_RETRIEVE_TASK_CONCURRENCY = 100;
 
     private static final JobEventFactory JOB_EVENT_FACTORY = new JobEventFactory();
 

@@ -335,7 +335,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                     }
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, reason
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, String.format("%s (shrink=%s)", reason, shrink)
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })
