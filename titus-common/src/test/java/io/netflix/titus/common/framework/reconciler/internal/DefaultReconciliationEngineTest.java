@@ -62,6 +62,7 @@ public class DefaultReconciliationEngineTest {
 
     private final DefaultReconciliationEngine<SimpleReconcilerEvent> engine = new DefaultReconciliationEngine<>(
             EntityHolder.newRoot("myRoot", "myEntity"),
+            true,
             this::difference,
             indexComparators,
             new SimpleReconcilerEventFactory(),

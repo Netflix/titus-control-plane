@@ -162,7 +162,7 @@ public class DifferenceResolverUtils {
                                     )
                             );
                         } else {
-                            actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), clock.wallTime() + configuration.getTaskInKillInitiatedStateTimeoutMs()));
+                            actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));
                             actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
                         }
                     } else {

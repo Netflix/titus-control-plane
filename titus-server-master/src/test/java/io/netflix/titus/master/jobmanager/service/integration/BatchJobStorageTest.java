@@ -18,6 +18,10 @@ package io.netflix.titus.master.jobmanager.service.integration;
 
 import org.junit.Test;
 
+/**
+ * TODO Bootstrap with task {Accepted, KillInitiated} states (should not be added back to Fenzo)
+ * TODO Verify timeout setup for tasks loaded from store
+ */
 public class BatchJobStorageTest {
 
     @Test

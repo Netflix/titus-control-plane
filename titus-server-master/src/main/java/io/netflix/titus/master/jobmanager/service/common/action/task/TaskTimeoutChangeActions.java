@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
@@ -28,6 +29,7 @@ import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.DateTimeExt;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 
@@ -79,7 +81,25 @@ public class TaskTimeoutChangeActions {
                 });
     }
 
-    public static TitusChangeAction incrementTaskKillAttempt(String taskId, long deadlineMs) {
+    public static EntityHolder setTimeoutOnRestoreFromStore(JobManagerConfiguration configuration, EntityHolder taskHolder, Clock clock) {
+        Task task = taskHolder.getEntity();
+        switch (task.getStatus().getState()) {
+            case Launched:
+                return taskHolder.addTag(LAUNCHED_STATE_TIMEOUT_TAG, clock.wallTime() + configuration.getTaskInLaunchedStateTimeoutMs());
+            case StartInitiated:
+                long timeoutMs = JobFunctions.isServiceTask(task)
+                        ? configuration.getServiceTaskInStartInitiatedStateTimeoutMs()
+                        : configuration.getBatchTaskInStartInitiatedStateTimeoutMs();
+                return taskHolder.addTag(START_INITIATED_TIMEOUT_TAG, clock.wallTime() + timeoutMs);
+            case KillInitiated:
+                return taskHolder
+                        .addTag(KILL_INITIATED_TIMEOUT_TAG, clock.wallTime() + configuration.getTaskInKillInitiatedStateTimeoutMs())
+                        .addTag(KILL_INITIATED_ATTEMPT_TAG, 0);
+        }
+        return taskHolder;
+    }
+
+    public static TitusChangeAction incrementTaskKillAttempt(String taskId, long deadlineMs, Clock clock) {
         return TitusChangeAction.newAction("anotherKillAttempt")
                 .id(taskId)
                 .trigger(Trigger.Reconciler)
@@ -90,7 +110,7 @@ public class TaskTimeoutChangeActions {
                                     jobHolder.findById(taskId).map(taskHolder -> {
                                         int attempt = (int) taskHolder.getAttributes().getOrDefault(KILL_INITIATED_ATTEMPT_TAG, 0);
                                         EntityHolder newTaskHolder = taskHolder
-                                                .addTag(KILL_INITIATED_TIMEOUT_TAG, deadlineMs)
+                                                .addTag(KILL_INITIATED_TIMEOUT_TAG, clock.wallTime() + deadlineMs)
                                                 .addTag(KILL_INITIATED_ATTEMPT_TAG, attempt + 1);
                                         return Pair.of(jobHolder.addChild(newTaskHolder), newTaskHolder);
                                     }));

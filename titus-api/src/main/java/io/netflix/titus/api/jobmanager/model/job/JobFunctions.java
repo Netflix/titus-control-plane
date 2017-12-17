@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -29,6 +31,7 @@ import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.retry.Retryers;
 
@@ -198,6 +201,28 @@ public final class JobFunctions {
             }
             return findStatusAfter(task, checkedState).map(after -> after.getTimestamp() - checkedStatus.getTimestamp()).orElse(0L);
         });
+    }
+
+    public static boolean hasTransition(Task task, TaskState... expectedStates) {
+        TaskState taskState = task.getStatus().getState();
+        if (expectedStates.length == 0) {
+            return false;
+        }
+        List<TaskStatus> statusHistory = task.getStatusHistory();
+        if (expectedStates.length == 1) {
+            return statusHistory.isEmpty() && taskState == expectedStates[0];
+        }
+        if (taskState != expectedStates[expectedStates.length - 1]) {
+            return false;
+        }
+        int expectedHistoryLen = expectedStates.length - 1;
+        if (expectedHistoryLen != statusHistory.size()) {
+            return false;
+        }
+        Set<TaskState> expectedPreviousStates = CollectionsExt.asSet(expectedStates, 0, expectedHistoryLen);
+        Set<TaskState> historyStates = task.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
+
+        return expectedPreviousStates.equals(historyStates);
     }
 
     private static Optional<TaskStatus> findTaskStatus(Task task, TaskState checkedState) {
