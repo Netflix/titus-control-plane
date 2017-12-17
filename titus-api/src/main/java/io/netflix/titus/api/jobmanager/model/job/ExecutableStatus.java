@@ -84,7 +84,7 @@ public abstract class ExecutableStatus<STATE extends Enum<STATE>> {
 
     @Override
     public String toString() {
-        return "ExecutableStatus{" +
+        return getClass().getSimpleName() + "{" +
                 "state=" + state +
                 ", reasonCode='" + reasonCode + '\'' +
                 ", reasonMessage='" + reasonMessage + '\'' +

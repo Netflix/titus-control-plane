@@ -19,6 +19,7 @@ package io.netflix.titus.master.jobmanager.service.common;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -150,14 +151,15 @@ public class DifferenceResolverUtils {
                                             V3JobOperations.Trigger.Reconciler,
                                             configuration,
                                             engine,
-                                            taskParam -> taskParam.toBuilder()
+                                            taskParam -> Optional.of(taskParam.toBuilder()
                                                     .withStatus(taskParam.getStatus().toBuilder()
                                                             .withState(TaskState.Finished)
                                                             .withReasonCode(TaskStatus.REASON_STUCK_IN_STATE)
                                                             .withReasonMessage("stuck in " + taskState + "state")
                                                             .build()
                                                     )
-                                                    .build(),
+                                                    .build()
+                                            ),
                                             "TimedOut in KillInitiated state"
                                     )
                             );

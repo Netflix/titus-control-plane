@@ -118,7 +118,7 @@ public class BasicTaskActions {
                                                              Trigger trigger,
                                                              JobManagerConfiguration configuration,
                                                              ReconciliationEngine<JobManagerReconcilerEvent> engine,
-                                                             Function<Task, Task> changeFunction,
+                                                             Function<Task, Optional<Task>> changeFunction,
                                                              String reason) {
         return TitusChangeAction.newAction("updateTaskInRunningModel")
                 .id(taskId)
@@ -131,7 +131,11 @@ public class BasicTaskActions {
                             }
                             EntityHolder taskHolder = taskOptional.get();
                             Task oldTask = taskHolder.getEntity();
-                            Task newTask = changeFunction.apply(oldTask);
+                            Optional<Task> maybeNewTask = changeFunction.apply(oldTask);
+                            if (!maybeNewTask.isPresent()) {
+                                return Collections.emptyList();
+                            }
+                            Task newTask = maybeNewTask.get();
 
                             // In case of scale down request, copy reason code into Finished state.
                             if (oldTask instanceof ServiceJobTask) {

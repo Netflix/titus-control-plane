@@ -77,13 +77,15 @@ public interface V3JobOperations {
      * Applies the provided update function to a task before persisting it to a store. In case of system failure
      * the update may be lost.
      */
-    Completable updateTask(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason);
+    Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason);
 
     /**
-     * Applies the provided update function to a task, and persists it in the store before updating the internal model.
-     * This call guarantees system consistency in case of crashes/failovers.
+     * Called by scheduler when a task is assigned to an agent. The new task state is written to store first, and next
+     * internal models are updated.
+     * <p>
+     * TODO 'Launched' state means two things today. Task placement by Fenzo, and Mesos 'Launched'. It makes sense to separate the two.
      */
-    Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason);
+    Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction);
 
     Observable<JobManagerEvent<?>> observeJobs();
 

@@ -16,6 +16,8 @@
 
 package io.netflix.titus.api.jobmanager.model.job;
 
+import java.util.Objects;
+
 import io.netflix.titus.common.model.sanitizer.NeverNull;
 
 /**
@@ -44,6 +46,16 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
 
     public TaskStatus(TaskState taskState, String reasonCode, String reasonMessage, long timestamp) {
         super(taskState, reasonCode, reasonMessage, timestamp);
+    }
+
+    public static boolean areEquivalent(TaskStatus first, TaskStatus second) {
+        if (first.getState() != second.getState()) {
+            return false;
+        }
+        if (!Objects.equals(first.getReasonCode(), second.getReasonCode())) {
+            return false;
+        }
+        return Objects.equals(first.getReasonMessage(), second.getReasonMessage());
     }
 
     public Builder toBuilder() {

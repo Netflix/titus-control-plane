@@ -150,8 +150,8 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                                     .build();
 
                             // Failures are logged only, as the reconciler will take care of it if needed.
-                            final Function<Task, Task> updater = JobManagerUtil.newTaskStateUpdater(taskStatus, args.getData());
-                            v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + newState).subscribe(
+                            final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getData());
+                            v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus).subscribe(
                                     () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
                                     e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
                             );

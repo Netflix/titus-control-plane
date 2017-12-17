@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- *
+ * TODO Add 'Scheduled' state in between 'Accepted' and 'Launched' states to denote Fenzo task placement decision.
  */
 public enum TaskState {
     /**
@@ -62,7 +62,18 @@ public enum TaskState {
     private static final Set<TaskState> SET_OF_ALL = new HashSet<>(Arrays.asList(TaskState.values()));
 
     public static boolean isRunning(TaskState taskState) {
-        return taskState != TaskState.Accepted && taskState != TaskState.Finished;
+        switch (taskState) {
+            case Launched:
+            case StartInitiated:
+            case Started:
+            case KillInitiated:
+            case Disconnected:
+                return true;
+            case Accepted:
+            case Finished:
+            default:
+                return false;
+        }
     }
 
     public static boolean isTerminalState(TaskState taskState) {

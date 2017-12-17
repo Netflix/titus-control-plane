@@ -136,9 +136,9 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                                 .withNeedsMigration(true)
                                 .withDeadline(migrationDeadline)
                                 .build();
-                        return serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build();
+                        return Optional.of(serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build());
                     }
-                    return t;
+                    return Optional.empty();
                 }, Trigger.TaskMigration, "Updating migration details").await(30_000, TimeUnit.MILLISECONDS);
             }
         }
