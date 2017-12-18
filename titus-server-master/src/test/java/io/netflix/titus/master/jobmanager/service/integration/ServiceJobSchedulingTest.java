@@ -130,7 +130,23 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobCapacityUpdateToIdenticalAsCurrentCapacity() throws Exception {
+    public void testTaskTerminateAndShrinkReducesJobSize() throws Exception {
+        JobDescriptor<ServiceJobExt> twoTaskJob = changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 3);
+        jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .killTaskAndShrink(0, 0)
+                .killTaskAndShrink(1, 0)
+                .advance()
+                .advance()
+                .expectServiceJobEvent(job -> assertThat(job.getJobDescriptor().getExtensions().getCapacity().getDesired()).isEqualTo(2))
+                .expectServiceJobEvent(job -> assertThat(job.getJobDescriptor().getExtensions().getCapacity().getDesired()).isEqualTo(1))
+        );
+    }
+
+    @Test
+    public void testJobCapacityUpdateToIdenticalAsCurrentCapacityIsNoOp() throws Exception {
         Capacity fixedCapacity = Capacity.newBuilder().withMin(1).withDesired(1).withMax(1).build();
         JobDescriptor<ServiceJobExt> job = JobFunctions.changeServiceJobCapacity(oneTaskServiceJobDescriptor(), fixedCapacity);
 
@@ -146,16 +162,17 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobCapacityUpdateWhenJobInKillInitiatedState() throws Exception {
+    public void testJobCapacityUpdateWhenJobInKillInitiatedStateIsIgnored() throws Exception {
         Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(2).withMax(5).build();
 
         jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.killJob())
                 .template(ScenarioTemplates.changeJobCapacity(newCapacity))
                 .advance()
-                .expectTaskInActiveState(1, 0, TaskState.Accepted)
+                .advance()
+                .expectNoJobStateChangeEvent()
         );
-
     }
 
     @Test

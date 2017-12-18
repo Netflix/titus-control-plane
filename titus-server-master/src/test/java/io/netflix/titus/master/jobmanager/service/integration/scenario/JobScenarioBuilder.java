@@ -220,6 +220,20 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return killTask(findTaskInActiveState(taskIdx, resubmit));
     }
 
+    public JobScenarioBuilder<E> killTaskAndShrink(Task task) {
+        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
+        jobOperations.killTask(task.getId(), true, "Task terminate & shrink requested by a user").subscribe(subscriber);
+
+        advance();
+        checkOperationSubscriberAndThrowExceptionIfError(subscriber);
+
+        return this;
+    }
+
+    public JobScenarioBuilder<E> killTaskAndShrink(int taskIdx, int resubmit) {
+        return killTaskAndShrink(findTaskInActiveState(taskIdx, resubmit));
+    }
+
     public JobScenarioBuilder<E> assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
         Job<?> job = jobOperations.getJob(jobId).orElseThrow(() -> new IllegalStateException("Unknown job: " + jobId));
         assertThat(JobFunctions.isServiceJob(job)).describedAs("Not a service job: %s", jobId).isTrue();

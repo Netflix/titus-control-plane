@@ -292,7 +292,7 @@ public class JobReconciliationFrameworkFactory {
      */
     private boolean isTaskEffectivelyFinished(Task task) {
         TaskState taskState = task.getStatus().getState();
-        return taskState == TaskState.Finished || JobFunctions.hasTransition(task, TaskState.Accepted, TaskState.KillInitiated);
+        return taskState == TaskState.Finished || JobFunctions.containsExactlyTaskStates(task, TaskState.Accepted, TaskState.KillInitiated);
     }
 
     /**

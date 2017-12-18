@@ -204,9 +204,9 @@ public final class JobFunctions {
     }
 
     /**
-     * Check that the given task transition through the expected states. Duplicates of a state are collapsed into single state.
+     * Check that the given task transitioned through the expected states. Duplicates of a state are collapsed into single state.
      */
-    public static boolean hasTransition(Task task, TaskState... expectedStates) {
+    public static boolean containsExactlyTaskStates(Task task, TaskState... expectedStates) {
         if (expectedStates.length == 0) {
             return false;
         }

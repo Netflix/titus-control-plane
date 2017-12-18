@@ -61,6 +61,6 @@ public class JobFunctionsTest {
                         TaskStatus.newBuilder().withState(TaskState.StartInitiated).withReasonCode("step2").withTimestamp(100).build()
                 )
                 .build();
-        assertThat(JobFunctions.hasTransition(task, TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated, TaskState.KillInitiated)).isTrue();
+        assertThat(JobFunctions.containsExactlyTaskStates(task, TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated, TaskState.KillInitiated)).isTrue();
     }
 }
