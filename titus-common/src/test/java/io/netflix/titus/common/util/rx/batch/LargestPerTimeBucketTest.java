@@ -114,7 +114,7 @@ public class LargestPerTimeBucketTest {
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Instant past = now.minus(ofMinutes(10));
         final Stream<Batch<BatchableOperationMock, String>> batches = Stream.of(
-                // first and second are in the same minute
+                // 1-3 are in the same minute
                 Batch.of("smaller",
                         new BatchableOperationMock(Low, now, "smaller", "sub1", "foo"),
                         new BatchableOperationMock(Low, past.minus(ofSeconds(10)), "smaller", "sub2", "foo")
@@ -124,16 +124,22 @@ public class LargestPerTimeBucketTest {
                         new BatchableOperationMock(High, now.minus(ofMinutes(5)), "bigger", "sub2", "foo"),
                         new BatchableOperationMock(Low, now, "bigger", "sub3", "foo")
                 ),
+                Batch.of("slightlyOlder",
+                        new BatchableOperationMock(Low, now, "slightlyOlder", "sub1", "foo"),
+                        new BatchableOperationMock(Low, past.minus(ofSeconds(11)), "slightlyOlder", "sub2", "foo")
+                ),
                 Batch.of("older",
-                        new BatchableOperationMock(Low, now.minus(ofMinutes(15)), "older", "sub1", "foo")
+                        new BatchableOperationMock(Low, past.minus(ofMinutes(5)), "older", "sub1", "foo")
                 )
         );
 
         EmissionStrategy strategy = new LargestPerTimeBucket(0, groupInBucketsOfMs, testScheduler);
         Queue<Batch<BatchableOperationMock, String>> toEmit = strategy.compute(batches);
-        assertThat(toEmit).hasSize(3);
+        assertThat(toEmit).hasSize(4);
         assertThat(toEmit.poll().getIndex()).isEqualTo("older");
+        // all following are in the same time bucket. Bigger go first, if same size, order by timestamp
         assertThat(toEmit.poll().getIndex()).isEqualTo("bigger");
+        assertThat(toEmit.poll().getIndex()).isEqualTo("slightlyOlder");
         assertThat(toEmit.poll().getIndex()).isEqualTo("smaller");
     }
 }
