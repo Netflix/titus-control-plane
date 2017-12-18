@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobGroupInfo;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -208,7 +209,12 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         if (!whiteListRegExpStr.equals(configuration.getV3EnabledApps())) {
             resetWhiteListRegExp();
         }
-        return whiteListRegExp.map(re -> re.matcher(jobDescriptor.getApplicationName()).matches()).orElse(false);
+        return whiteListRegExp.map(re -> re.matcher(buildJobGroupId(jobDescriptor)).matches()).orElse(false);
+    }
+
+    private String buildJobGroupId(JobDescriptor jobDescriptor) {
+        JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
+        return jobDescriptor.getApplicationName() + '-' + jobGroupInfo.getStack() + '-' + jobGroupInfo.getDetail() + '-' + jobGroupInfo.getSequence();
     }
 
     private void resetWhiteListRegExp() {
