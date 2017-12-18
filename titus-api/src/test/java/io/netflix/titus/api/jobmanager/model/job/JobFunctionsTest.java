@@ -48,4 +48,19 @@ public class JobFunctionsTest {
         assertThat(JobFunctions.getTimeInState(task, TaskState.KillInitiated).get()).isGreaterThan(0);
         assertThat(JobFunctions.getTimeInState(task, TaskState.Finished)).isEmpty();
     }
+
+    @Test
+    public void testHasTransition() throws Exception {
+        TaskStatus checked = TaskStatus.newBuilder().withState(TaskState.KillInitiated).withTimestamp(1000).build();
+        Task task = REFERENCE_TASK.toBuilder()
+                .withStatus(checked)
+                .withStatusHistory(
+                        TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(0).build(),
+                        TaskStatus.newBuilder().withState(TaskState.Launched).withTimestamp(100).build(),
+                        TaskStatus.newBuilder().withState(TaskState.StartInitiated).withReasonCode("step1").withTimestamp(100).build(),
+                        TaskStatus.newBuilder().withState(TaskState.StartInitiated).withReasonCode("step2").withTimestamp(100).build()
+                )
+                .build();
+        assertThat(JobFunctions.containsExactlyTaskStates(task, TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated, TaskState.KillInitiated)).isTrue();
+    }
 }

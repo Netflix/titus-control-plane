@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -16,6 +15,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -38,6 +38,7 @@ import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.jobmanager.service.DefaultV3JobOperations.IndexKind;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import io.netflix.titus.master.jobmanager.service.event.JobEventFactory;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
@@ -63,10 +64,12 @@ public class JobReconciliationFrameworkFactory {
 
     private static final String ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.bootstrap.";
 
+    private enum TaskFenzoCheck {AddedToFenzo, EffectivelyFinished, FenzoAddError, Inconsistent}
+
     static final String BATCH_RESOLVER = "batchResolver";
     static final String SERVICE_RESOLVER = "serviceResolver";
 
-    private static final int MAX_RETRIEVE_TASK_CONCURRENCY = 1_000;
+    private static final int MAX_RETRIEVE_TASK_CONCURRENCY = 100;
 
     private static final JobEventFactory JOB_EVENT_FACTORY = new JobEventFactory();
 
@@ -148,30 +151,40 @@ public class JobReconciliationFrameworkFactory {
         // initialize fenzo with running tasks
         List<ReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
         List<String> failedToAddToFenzoTaskIds = new ArrayList<>();
+        List<String> inconsistentTaskIds = new ArrayList<>();
         for (Pair<Job, List<Task>> pair : jobsAndTasks) {
             Job job = pair.getLeft();
             List<Task> tasks = pair.getRight();
-            ReconciliationEngine<JobManagerReconcilerEvent> engine = newEngine(job, tasks);
+            ReconciliationEngine<JobManagerReconcilerEvent> engine = newRestoredEngine(job, tasks);
             engines.add(engine);
             for (Task task : tasks) {
-                addTaskToFenzo(engine, job, task).ifPresent(error -> failedToAddToFenzoTaskIds.add(task.getId()));
+                TaskFenzoCheck check = addTaskToFenzo(engine, job, task);
+                if (check == TaskFenzoCheck.FenzoAddError) {
+                    failedToAddToFenzoTaskIds.add(task.getId());
+                } else if (check == TaskFenzoCheck.Inconsistent) {
+                    inconsistentTaskIds.add(task.getId());
+                }
             }
         }
 
         failedToAddToFenzoTasks.set(failedToAddToFenzoTaskIds.size());
 
-        if (!failedToAddToFenzoTaskIds.isEmpty()) {
-            logger.info("Failed to initialize {} tasks with ids: {}", failedToAddToFenzoTaskIds.size(), failedToAddToFenzoTaskIds);
+        if (!inconsistentTaskIds.isEmpty()) {
+            logger.info("Found {} task with inconsistent state: {}", inconsistentTaskIds.size(), inconsistentTaskIds);
         }
-        if (failedToAddToFenzoTaskIds.size() > jobManagerConfiguration.getMaxFailedTasks()) {
-            String message = String.format("Exiting because the number of failed tasks was greater than %s", failedToAddToFenzoTaskIds.size());
+        if (!failedToAddToFenzoTaskIds.isEmpty()) {
+            logger.info("Failed to add to Fenzo {} tasks: {}", failedToAddToFenzoTaskIds.size(), failedToAddToFenzoTaskIds);
+        }
+        int failedTotal = inconsistentTaskIds.size() + failedToAddToFenzoTaskIds.size();
+        if (failedTotal > jobManagerConfiguration.getMaxFailedTasks()) {
+            String message = String.format("Exiting because the number of failed tasks (%s) was greater than allowed maximum (%s)", failedTotal, failedToAddToFenzoTaskIds.size());
             logger.error(message);
             throw new IllegalStateException(message);
         }
 
         return new DefaultReconciliationFramework<>(
                 engines,
-                this::newEngine,
+                bootstrapModel -> newEngine(bootstrapModel, true),
                 jobManagerConfiguration.getReconcilerIdleTimeoutMs(),
                 jobManagerConfiguration.getReconcilerActiveTimeoutMs(),
                 INDEX_COMPARATORS,
@@ -180,16 +193,19 @@ public class JobReconciliationFrameworkFactory {
         );
     }
 
-    private ReconciliationEngine<JobManagerReconcilerEvent> newEngine(Job job, List<Task> tasks) {
+    private ReconciliationEngine<JobManagerReconcilerEvent> newRestoredEngine(Job job, List<Task> tasks) {
         EntityHolder jobHolder = EntityHolder.newRoot(job.getId(), job);
         for (Task task : tasks) {
-            jobHolder = jobHolder.addChild(EntityHolder.newRoot(task.getId(), task));
+            EntityHolder taskHolder = EntityHolder.newRoot(task.getId(), task);
+            EntityHolder decorated = TaskTimeoutChangeActions.setTimeoutOnRestoreFromStore(jobManagerConfiguration, taskHolder, clock);
+            jobHolder = jobHolder.addChild(decorated);
         }
-        return newEngine(jobHolder);
+        return newEngine(jobHolder, false);
     }
 
-    private ReconciliationEngine<JobManagerReconcilerEvent> newEngine(EntityHolder bootstrapModel) {
+    private ReconciliationEngine<JobManagerReconcilerEvent> newEngine(EntityHolder bootstrapModel, boolean newlyCreated) {
         return new DefaultReconciliationEngine<>(bootstrapModel,
+                newlyCreated,
                 dispatchingResolver,
                 INDEX_COMPARATORS,
                 JOB_EVENT_FACTORY,
@@ -212,7 +228,15 @@ public class JobReconciliationFrameworkFactory {
         return Collections.singletonList(new BasicTag("event", event.getClass().getSimpleName()));
     }
 
-    private Optional<Throwable> addTaskToFenzo(ReconciliationEngine<JobManagerReconcilerEvent> engine, Job job, Task task) {
+    /**
+     * We need to report three situations here:
+     * <ul>
+     * <li>task ok in final state, and should not be added to Fenzo</li>
+     * <li>task ok, and should not be added to Fenzo</li>
+     * <li>task has inconsistent state, and because of that should not be added</li>
+     * </ul>
+     */
+    private TaskFenzoCheck addTaskToFenzo(ReconciliationEngine<JobManagerReconcilerEvent> engine, Job job, Task task) {
         TaskState taskState = task.getStatus().getState();
         if (taskState == TaskState.Accepted) {
             try {
@@ -229,27 +253,58 @@ public class JobReconciliationFrameworkFactory {
                 schedulingService.getTaskQueueAction().call(queueableTask);
             } catch (Exception e) {
                 logger.error("Failed to add Accepted task to Fenzo queue: {} with error:", task.getId(), e);
-                return Optional.of(e);
+                return TaskFenzoCheck.FenzoAddError;
             }
-        } else if (taskState != TaskState.Finished) {
-            try {
-                Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
-                String host = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-                schedulingService.initRunningTask(new V3QueueableTask(
-                        tierAssignment.getLeft(),
-                        tierAssignment.getRight(),
-                        job,
-                        task,
-                        () -> JobManagerUtil.filterActiveTaskIds(engine),
-                        constraintEvaluatorTransformer,
-                        globalConstraintEvaluator
-                ), host);
-            } catch (Exception e) {
-                logger.error("Failed to initialize running task in Fenzo: {} with error:", task.getId(), e);
-                return Optional.of(e);
-            }
+            return TaskFenzoCheck.AddedToFenzo;
         }
-        return Optional.empty();
+
+        if (isTaskEffectivelyFinished(task)) {
+            return TaskFenzoCheck.EffectivelyFinished;
+        }
+
+        if (!hasPlacedTaskConsistentState(task)) {
+            return TaskFenzoCheck.Inconsistent;
+        }
+
+        try {
+            Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
+            String host = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+            schedulingService.initRunningTask(new V3QueueableTask(
+                    tierAssignment.getLeft(),
+                    tierAssignment.getRight(),
+                    job,
+                    task,
+                    () -> JobManagerUtil.filterActiveTaskIds(engine),
+                    constraintEvaluatorTransformer,
+                    globalConstraintEvaluator
+            ), host);
+        } catch (Exception e) {
+            logger.error("Failed to initialize running task in Fenzo: {} with error:", task.getId(), e);
+            return TaskFenzoCheck.FenzoAddError;
+        }
+        return TaskFenzoCheck.AddedToFenzo;
+    }
+
+    /**
+     * If the task is in KillInitiated state without resources assigned (this may happen for transition Accepted -> KillInitiated,
+     * as we always run through that state), do not add the task to Fenzo, as it was never assigned to any host, and we do
+     * not plan to run it. If the task is in Finished state, obviously it should not be added as well.
+     */
+    private boolean isTaskEffectivelyFinished(Task task) {
+        TaskState taskState = task.getStatus().getState();
+        return taskState == TaskState.Finished || JobFunctions.containsExactlyTaskStates(task, TaskState.Accepted, TaskState.KillInitiated);
+    }
+
+    /**
+     * Check if task holds consistent state, and can be added to Fenzo
+     */
+    private boolean hasPlacedTaskConsistentState(Task task) {
+        String host = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+        if (host == null) {
+            logger.warn("Task {} in state {} has no host assigned. Ignoring it.", task.getId(), task.getStatus().getState());
+            return false;
+        }
+        return true;
     }
 
     private List<Pair<Job, List<Task>>> loadJobsAndTasksFromStore() {

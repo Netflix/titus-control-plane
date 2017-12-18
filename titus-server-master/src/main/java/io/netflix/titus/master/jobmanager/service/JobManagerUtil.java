@@ -50,6 +50,7 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.apache.mesos.Protos;
 
 import static io.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
+import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
 /**
  * Collection of common functions.
@@ -83,16 +84,28 @@ public final class JobManagerUtil {
         return Pair.of(applicationSLA.getTier(), capacityGroup);
     }
 
-    public static Function<Task, Task> newTaskStateUpdater(TaskStatus taskStatus, String statusData) {
+    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, String statusData) {
         return oldTask -> {
-            // De-duplicate task status updates. For example 'Launched' state is reported from two places, so we got
-            // 'Launched' state update twice.
-            if (!TaskState.isBefore(oldTask.getStatus().getState(), taskStatus.getState())) {
-                return oldTask;
+            TaskState oldState = oldTask.getStatus().getState();
+            TaskState newState = newTaskStatus.getState();
+
+            // De-duplicate task status updates. 'Launched' state is reported from two places, so we get
+            // 'Launched' state update twice. For other states there may be multiple updates, each with different reason.
+            // For example in 'StartInitiated', multiple updates are send reporting progress of a container setup.
+            if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus()) && StringExt.isEmpty(statusData)) {
+                return Optional.empty();
+            }
+            if (newState == oldState && newState == TaskState.Launched) {
+                return Optional.empty();
+            }
+            // Sanity check. If we got earlier task state, it is state model invariant violation.
+            if (TaskState.isBefore(newState, oldState)) {
+                codeInvariants().inconsistent("Received task state update to a previous state: current=", oldState, newState);
+                return Optional.empty();
             }
 
-            final Task newTask = JobFunctions.changeTaskStatus(oldTask, taskStatus);
-            return parseDetails(statusData).map(details -> {
+            final Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
+            Task newTaskWithPlacementData = parseDetails(statusData).map(details -> {
                 if (details.getNetworkConfiguration() != null && !StringExt.isEmpty(details.getNetworkConfiguration().getIpAddress())) {
                     return newTask.toBuilder()
                             .withTaskContext(CollectionsExt.copyAndAdd(
@@ -102,6 +115,7 @@ public final class JobManagerUtil {
                 }
                 return newTask;
             }).orElse(newTask);
+            return Optional.of(newTaskWithPlacementData);
         };
     }
 

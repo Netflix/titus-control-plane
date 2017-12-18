@@ -72,7 +72,6 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
-import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
@@ -604,11 +603,9 @@ public class DefaultSchedulingService implements SchedulingService {
                                 task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
                                 consumeResult);
 
-                        boolean updated = v3JobOperations.updateTaskAfterStore(
+                        boolean updated = v3JobOperations.recordTaskPlacement(
                                 task.getId(),
-                                JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap),
-                                Trigger.Scheduler,
-                                "Task launched by Fenzo"
+                                JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap)
                         ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
                         if (updated) {

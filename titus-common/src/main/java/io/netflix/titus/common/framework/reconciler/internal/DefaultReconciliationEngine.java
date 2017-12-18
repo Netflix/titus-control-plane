@@ -75,6 +75,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     private boolean firstTrigger;
 
     public DefaultReconciliationEngine(EntityHolder bootstrapModel,
+                                       boolean newlyCreated,
                                        DifferenceResolver<EVENT> runningDifferenceResolver,
                                        Map<Object, Comparator<EntityHolder>> indexComparators,
                                        ReconcileEventFactory<EVENT> eventFactory,
@@ -86,7 +87,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
         this.indexSet = IndexSet.newIndexSet(indexComparators);
         this.clock = clock;
         this.modelHolder = new ModelHolder<>(this, bootstrapModel, runningDifferenceResolver);
-        this.firstTrigger = true;
+        this.firstTrigger = newlyCreated;
         this.metrics = new ReconciliationEngineMetrics<>(bootstrapModel.getId(), extraChangeActionTags, extraModelActionTags, registry, clock);
         indexEntityHolder(bootstrapModel);
     }

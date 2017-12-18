@@ -234,6 +234,17 @@ public final class CollectionsExt {
         return newSet;
     }
 
+    public static <T> Set<T> asSet(T[] values, int from, int to) {
+        Preconditions.checkArgument(from >= 0, "Invalid sub-sequence first position: %s", from);
+        Preconditions.checkArgument(to >= from && to <= values.length, "Invalid sub-sequence last to position: %s", to);
+
+        Set<T> newSet = new HashSet<>();
+        for (int i = from; i < to; i++) {
+            newSet.add(values[i]);
+        }
+        return newSet;
+    }
+
     @SafeVarargs
     public static <T> Map<T, T> asMap(T... values) {
         Preconditions.checkArgument(values.length % 2 == 0, "Expected even number of arguments");

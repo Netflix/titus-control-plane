@@ -39,6 +39,7 @@ import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import io.netflix.titus.common.util.ExceptionExt;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.subjects.PublishSubject;
 
 public class DefaultReconciliationFramework<EVENT> implements ReconciliationFramework<EVENT> {
@@ -74,6 +76,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
     private final PublishSubject<Observable<EVENT>> eventsMergeSubject = PublishSubject.create();
     private final Observable<EVENT> eventsObservable;
+    private final Subscription internalEventSubscription;
 
     private final Timer loopExecutionTime;
     private volatile long lastExecutionTimeMs;
@@ -94,13 +97,18 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         this.idleTimeoutMs = idleTimeoutMs;
         this.activeTimeoutMs = activeTimeoutMs;
         this.worker = scheduler.createWorker();
-        this.eventsObservable = Observable.merge(eventsMergeSubject);
+        this.eventsObservable = Observable.merge(eventsMergeSubject).share();
+
+        // To keep eventsObservable permanently active.
+        this.internalEventSubscription = eventsObservable.subscribe(ObservableExt.silentSubscriber());
 
         this.loopExecutionTime = registry.timer(LOOP_EXECUTION_TIME_METRIC);
         this.lastExecutionTimeMs = scheduler.now();
         PolledMeter.using(registry).withName(LAST_EXECUTION_TIME_METRIC).monitorValue(this, self -> scheduler.now() - self.lastExecutionTimeMs);
 
         engines.addAll(bootstrapEngines);
+        bootstrapEngines.forEach(engine -> eventsMergeSubject.onNext(engine.events()));
+
         updateIndexSet();
     }
 
@@ -130,6 +138,9 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
             latch.countDown();
         });
         ExceptionExt.silent(() -> latch.await(timeoutMs, TimeUnit.MILLISECONDS));
+
+        internalEventSubscription.unsubscribe();
+
         return latch.getCount() == 0;
     }
 

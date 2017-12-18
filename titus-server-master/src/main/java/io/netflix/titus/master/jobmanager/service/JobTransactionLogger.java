@@ -20,13 +20,13 @@ import rx.Subscription;
 /**
  * Log all events in the following format:
  * <br/>
- * 'jobId=..., transactionId=..., status=ok,    type=beforeChange, action=..., trigger=User , target=job , entityId=..., model=         , elapsedMs=..., summary=...'
+ * 'jobId=..., transactionId=..., status=ok,    type=beforeChange,           action=..., trigger=User , target=job , entityId=..., elapsedMs=..., summary=...'
  * <br/>
- * 'jobId=..., transactionId=..., status=error, type=modelUpdate,  action=..., trigger=Mesos, target=task, entityId=..., model=Reference, elapsedMs=..., summary=...'
+ * 'jobId=..., transactionId=..., status=error, type=modelUpdate/reference,  action=..., trigger=Mesos, target=task, entityId=..., elapsedMs=..., summary=...'
  */
 class JobTransactionLogger {
 
-    private static final Logger logger = LoggerFactory.getLogger(JobTransactionLogger.class.getSimpleName());
+    private static final Logger logger = LoggerFactory.getLogger("JobTransactionLogger");
 
     static Subscription logEvents(ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework) {
         return reconciliationFramework.events().subscribe(
@@ -72,7 +72,6 @@ class JobTransactionLogger {
                 changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
-                "",
                 0,
                 changeAction.getSummary()
         );
@@ -92,7 +91,6 @@ class JobTransactionLogger {
                 changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
-                "",
                 event.getExecutionTimeMs(),
                 changeAction.getSummary()
         );
@@ -112,7 +110,6 @@ class JobTransactionLogger {
                 changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
-                "",
                 event.getExecutionTimeMs(),
                 event.getError().getMessage() + '(' + changeAction.getSummary() + ')'
         );
@@ -124,12 +121,11 @@ class JobTransactionLogger {
                 jobId,
                 event.getTransactionId(),
                 "ok",
-                "modelUpdate",
+                "modelUpdate/" + Model.Reference.name(),
                 "initial",
                 V3JobOperations.Trigger.API,
                 "job",
                 jobId,
-                Model.Reference.name(),
                 0,
                 "New job created"
         );
@@ -145,12 +141,11 @@ class JobTransactionLogger {
                 jobId,
                 event.getTransactionId(),
                 "ok",
-                "modelUpdate",
+                "modelUpdate/" + actionHolder.getModel().name(),
                 ((TitusModelAction) actionHolder.getAction()).getName(),
                 event.getChangeAction().getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
-                actionHolder.getModel().name(),
                 0,
                 action.getSummary()
         );
@@ -166,12 +161,11 @@ class JobTransactionLogger {
                 jobId,
                 event.getTransactionId(),
                 "error",
-                "modelUpdate",
+                "modelUpdate/" + event.getModelActionHolder().getModel().name(),
                 ((TitusModelAction) actionHolder.getAction()).getName(),
                 event.getChangeAction().getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
-                event.getModelActionHolder().getModel().name(),
                 0,
                 action.getSummary()
         );
@@ -185,11 +179,10 @@ class JobTransactionLogger {
                                    V3JobOperations.Trigger trigger,
                                    String targetName,
                                    String entityId,
-                                   String model,
                                    long executionTime,
                                    String summary) {
         return String.format(
-                "jobId=%s entity=%s transactionId=%-4d target=%-4s status=%-5s type=%-13s action=%-45s trigger=%-10s model=%-9s %-16s summary=%s",
+                "jobId=%s entity=%s transactionId=%-4d target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s summary=%s",
                 jobId,
                 entityId,
                 transactionId,
@@ -198,7 +191,6 @@ class JobTransactionLogger {
                 type,
                 action,
                 trigger,
-                model,
                 "elapsed=" + executionTime + "ms",
                 summary
         );

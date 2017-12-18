@@ -34,6 +34,7 @@ import rx.Notification;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Single;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -235,6 +236,30 @@ public class ObservableExt {
                 subscription.unsubscribe();
             }
         }
+    }
+
+    /**
+     * Subscriber that swallows all {@link Observable} notifications. {@link Observable#subscribe()} throws an
+     * exception back to the caller if the subscriber does not provide {@link Subscriber#onError(Throwable)} method
+     * implementation.
+     */
+    public static <T> Subscriber<T> silentSubscriber() {
+        return new Subscriber<T>() {
+            @Override
+            public void onNext(T t) {
+                // Do nothing
+            }
+
+            @Override
+            public void onCompleted() {
+                // Do nothing
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                // Do nothing
+            }
+        };
     }
 
     /**

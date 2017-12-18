@@ -46,6 +46,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
+import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
@@ -55,6 +56,9 @@ import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
+import io.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
+import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
@@ -67,6 +71,8 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
+
+import static io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction.newModelUpdate;
 
 @Singleton
 @ProxyConfiguration(types = ProxyType.ActiveGuard)
@@ -226,7 +232,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Completable updateTask(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason) {
+    public Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason) {
         Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
@@ -236,13 +242,27 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Completable updateTaskAfterStore(String taskId, Function<Task, Task> changeFunction, Trigger trigger, String reason) {
+    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction) {
         Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
         ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
-        return engine.changeReferenceModel(BasicTaskActions.updateTaskAndWriteItToStore(taskId, engine, changeFunction, store, trigger, reason)).toCompletable();
+
+        TitusChangeAction changeAction = TitusChangeAction.newAction("recordTaskPlacement")
+                .id(taskId)
+                .trigger(Trigger.Scheduler)
+                .summary("Scheduler assigned task to an agent")
+                .changeWithModelUpdates(self ->
+                        JobEntityHolders.expectTask(engine, taskId)
+                                .map(task -> {
+                                    Task newTask = changeFunction.apply(task);
+                                    TitusModelAction modelUpdate = newModelUpdate(self).taskUpdate(newTask);
+                                    return store.updateTask(newTask).andThen(Observable.just(ModelActionHolder.allModels(modelUpdate)));
+                                })
+                                .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
+                );
+        return engine.changeReferenceModel(changeAction).toCompletable();
     }
 
     @Override
@@ -315,7 +335,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                     }
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, reason
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, String.format("%s (shrink=%s)", reason, shrink)
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })

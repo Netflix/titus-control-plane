@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -29,6 +31,7 @@ import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.retry.Retryers;
 
@@ -198,6 +201,28 @@ public final class JobFunctions {
             }
             return findStatusAfter(task, checkedState).map(after -> after.getTimestamp() - checkedStatus.getTimestamp()).orElse(0L);
         });
+    }
+
+    /**
+     * Check that the given task transitioned through the expected states. Duplicates of a state are collapsed into single state.
+     */
+    public static boolean containsExactlyTaskStates(Task task, TaskState... expectedStates) {
+        if (expectedStates.length == 0) {
+            return false;
+        }
+
+        TaskState taskState = task.getStatus().getState();
+        List<TaskStatus> statusHistory = task.getStatusHistory();
+        if (expectedStates.length == 1 && statusHistory.isEmpty()) {
+            return taskState == expectedStates[0];
+        }
+
+        // For non-single state values, we have to eliminate possible duplicates.
+        Set<TaskState> expectedPreviousStates = CollectionsExt.asSet(expectedStates);
+        Set<TaskState> taskStates = statusHistory.stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
+        taskStates.add(taskState);
+
+        return expectedPreviousStates.equals(taskStates);
     }
 
     private static Optional<TaskStatus> findTaskStatus(Task task, TaskState checkedState) {

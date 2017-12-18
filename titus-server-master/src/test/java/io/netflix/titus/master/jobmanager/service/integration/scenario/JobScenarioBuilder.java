@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -219,6 +220,20 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return killTask(findTaskInActiveState(taskIdx, resubmit));
     }
 
+    public JobScenarioBuilder<E> killTaskAndShrink(Task task) {
+        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
+        jobOperations.killTask(task.getId(), true, "Task terminate & shrink requested by a user").subscribe(subscriber);
+
+        advance();
+        checkOperationSubscriberAndThrowExceptionIfError(subscriber);
+
+        return this;
+    }
+
+    public JobScenarioBuilder<E> killTaskAndShrink(int taskIdx, int resubmit) {
+        return killTaskAndShrink(findTaskInActiveState(taskIdx, resubmit));
+    }
+
     public JobScenarioBuilder<E> assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
         Job<?> job = jobOperations.getJob(jobId).orElseThrow(() -> new IllegalStateException("Unknown job: " + jobId));
         assertThat(JobFunctions.isServiceJob(job)).describedAs("Not a service job: %s", jobId).isTrue();
@@ -399,8 +414,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         );
 
         AtomicBoolean done = new AtomicBoolean();
-        jobOperations.updateTaskAfterStore(task.getId(), changeFunction, Trigger.Scheduler, "Task launched by Fenzo")
-                .subscribe(() -> done.set(true));
+        jobOperations.recordTaskPlacement(task.getId(), changeFunction).subscribe(() -> done.set(true));
         advance();
         assertThat(done.get()).isTrue();
 
@@ -471,7 +485,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 .withTimestamp(testScheduler.now())
                 .build();
 
-        Function<Task, Task> changeFunction = JobManagerUtil.newTaskStateUpdater(taskStatus, data);
+        Function<Task, Optional<Task>> changeFunction = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, data);
 
         jobOperations.updateTask(task.getId(),
                 changeFunction,

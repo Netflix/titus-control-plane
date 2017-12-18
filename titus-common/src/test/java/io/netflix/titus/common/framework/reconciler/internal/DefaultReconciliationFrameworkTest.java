@@ -19,6 +19,7 @@ package io.netflix.titus.common.framework.reconciler.internal;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -27,12 +28,15 @@ import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.TriggerStatus;
+import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
+import rx.subjects.PublishSubject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,6 +85,29 @@ public class DefaultReconciliationFrameworkTest {
     @After
     public void tearDown() throws Exception {
         framework.stop(STOP_TIMEOUT_MS);
+    }
+
+    @Test
+    public void testBootstrapEngineInitialization() throws Exception {
+        ReconciliationEngine<SimpleReconcilerEvent> bootstrapEngine = mock(ReconciliationEngine.class);
+        PublishSubject<SimpleReconcilerEvent> eventSubject = PublishSubject.create();
+        when(bootstrapEngine.events()).thenReturn(eventSubject);
+        when(bootstrapEngine.triggerEvents()).thenReturn(new TriggerStatus(true, true));
+
+        DefaultReconciliationFramework<SimpleReconcilerEvent> framework = new DefaultReconciliationFramework<>(
+                Collections.singletonList(bootstrapEngine),
+                engineFactory,
+                IDLE_TIMEOUT_MS,
+                ACTIVE_TIMEOUT_MS,
+                indexComparators,
+                new DefaultRegistry(),
+                testScheduler
+        );
+        framework.start();
+        AssertableSubscriber<SimpleReconcilerEvent> eventSubscriber = framework.events().test();
+
+        eventSubject.onNext(new SimpleReconcilerEvent(EventType.Changed, "test", Optional.empty()));
+        eventSubscriber.assertValueCount(1);
     }
 
     @Test
