@@ -203,26 +203,26 @@ public final class JobFunctions {
         });
     }
 
+    /**
+     * Check that the given task transition through the expected states. Duplicates of a state are collapsed into single state.
+     */
     public static boolean hasTransition(Task task, TaskState... expectedStates) {
-        TaskState taskState = task.getStatus().getState();
         if (expectedStates.length == 0) {
             return false;
         }
-        List<TaskStatus> statusHistory = task.getStatusHistory();
-        if (expectedStates.length == 1) {
-            return statusHistory.isEmpty() && taskState == expectedStates[0];
-        }
-        if (taskState != expectedStates[expectedStates.length - 1]) {
-            return false;
-        }
-        int expectedHistoryLen = expectedStates.length - 1;
-        if (expectedHistoryLen != statusHistory.size()) {
-            return false;
-        }
-        Set<TaskState> expectedPreviousStates = CollectionsExt.asSet(expectedStates, 0, expectedHistoryLen);
-        Set<TaskState> historyStates = task.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
 
-        return expectedPreviousStates.equals(historyStates);
+        TaskState taskState = task.getStatus().getState();
+        List<TaskStatus> statusHistory = task.getStatusHistory();
+        if (expectedStates.length == 1 && statusHistory.isEmpty()) {
+            return taskState == expectedStates[0];
+        }
+
+        // For non-single state values, we have to eliminate possible duplicates.
+        Set<TaskState> expectedPreviousStates = CollectionsExt.asSet(expectedStates);
+        Set<TaskState> taskStates = statusHistory.stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
+        taskStates.add(taskState);
+
+        return expectedPreviousStates.equals(taskStates);
     }
 
     private static Optional<TaskStatus> findTaskStatus(Task task, TaskState checkedState) {
