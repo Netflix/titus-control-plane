@@ -168,9 +168,8 @@ public final class CollectionsExt {
             return Collections.emptySet();
         }
         Set<T> result = new HashSet<>(original);
-        result.removeAll(toRemove);
-        if (toRemove.isEmpty()) {
-            return new HashSet<>(original);
+        if (!toRemove.isEmpty()) {
+            result.removeAll(toRemove);
         }
         return result;
     }
