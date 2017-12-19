@@ -36,7 +36,7 @@ import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
 import io.netflix.titus.api.loadbalancer.model.TargetState;
@@ -405,9 +405,9 @@ public class DefaultLoadBalancerServiceTest {
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
         assertTrue(service.removeLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        final LoadBalancerState loadBalancerState = loadBalancerStore.retrieveLoadBalancersForJob(jobId).toBlocking().first();
-        assertEquals(loadBalancerId, loadBalancerState.getLoadBalancerId());
-        assertEquals(JobLoadBalancer.State.Dissociated, loadBalancerState.getState());
+        final JobLoadBalancerState jobLoadBalancerState = loadBalancerStore.retrieveLoadBalancersForJob(jobId).toBlocking().first();
+        assertEquals(loadBalancerId, jobLoadBalancerState.getLoadBalancerId());
+        assertEquals(JobLoadBalancer.State.Dissociated, jobLoadBalancerState.getState());
         assertFalse(service.getJobLoadBalancers(jobId).toBlocking().getIterator().hasNext());
 
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);

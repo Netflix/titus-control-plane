@@ -24,7 +24,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -96,7 +96,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Observable<String> getJobLoadBalancers(String jobId) {
         return loadBalancerStore.retrieveLoadBalancersForJob(jobId)
                 .filter(loadBalancerState -> loadBalancerState.getState() == JobLoadBalancer.State.Associated)
-                .map(LoadBalancerState::getLoadBalancerId);
+                .map(JobLoadBalancerState::getLoadBalancerId);
     }
 
     @Override
