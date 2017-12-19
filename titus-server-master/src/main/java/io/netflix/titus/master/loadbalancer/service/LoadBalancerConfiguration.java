@@ -54,4 +54,7 @@ public interface LoadBalancerConfiguration {
 
     @DefaultValue("20")
     long getRateLimitRefillPerSec();
+
+    @DefaultValue("30000")
+    long getReconciliationDelayMs();
 }

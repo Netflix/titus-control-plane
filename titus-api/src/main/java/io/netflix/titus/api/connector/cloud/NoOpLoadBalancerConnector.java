@@ -16,18 +16,16 @@
 
 package io.netflix.titus.api.connector.cloud;
 
+import java.util.Collections;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import rx.Completable;
+import rx.Single;
 
 /**
  * Test helper class that intentionally does nothing on register/deregister and returns success.
  */
 public class NoOpLoadBalancerConnector implements LoadBalancerConnector {
-    private static Logger logger = LoggerFactory.getLogger(NoOpLoadBalancerConnector.class);
     @Override
     public Completable registerAll(String loadBalancerId, Set<String> ipAddresses) {
         return Completable.complete();
@@ -39,5 +37,12 @@ public class NoOpLoadBalancerConnector implements LoadBalancerConnector {
     }
 
     @Override
-    public Completable isValid(String loadBalancerId) { return Completable.complete(); }
+    public Completable isValid(String loadBalancerId) {
+        return Completable.complete();
+    }
+
+    @Override
+    public Single<Set<String>> getRegisteredIps(String loadBalancerId) {
+        return Single.just(Collections.emptySet());
+    }
 }

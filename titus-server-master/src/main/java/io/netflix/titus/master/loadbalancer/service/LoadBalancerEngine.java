@@ -59,8 +59,9 @@ class LoadBalancerEngine {
     private final V3JobOperations v3JobOperations;
     private final TargetTracking targetTracking;
     private final TokenBucket connectorTokenBucket;
-    private final Scheduler scheduler;
     private final LoadBalancerConnector connector;
+    private final LoadBalancerReconciler reconciler;
+    private final Scheduler scheduler;
 
     LoadBalancerEngine(LoadBalancerConfiguration configuration, V3JobOperations v3JobOperations,
                        LoadBalancerStore loadBalancerStore, TargetTracking targetTracking,
@@ -72,6 +73,7 @@ class LoadBalancerEngine {
         this.targetTracking = targetTracking;
         this.connector = loadBalancerConnector;
         this.connectorTokenBucket = connectorTokenBucket;
+        this.reconciler = new LoadBalancerReconciler(loadBalancerStore, connector, v3JobOperations, configuration.getReconciliationDelayMs(), scheduler);
         this.scheduler = scheduler;
     }
 
@@ -100,7 +102,8 @@ class LoadBalancerEngine {
                 registerFromAssociations(pendingAssociations),
                 deregisterFromDissociations(pendingDissociations),
                 registerFromEvents(stateTransitions),
-                deregisterFromEvents(stateTransitions)
+                deregisterFromEvents(stateTransitions),
+                reconciler.events()
         );
 
         return updates
@@ -195,7 +198,7 @@ class LoadBalancerEngine {
     private Observable<TargetStateBatchable> registerFromAssociations(Observable<JobLoadBalancer> pendingAssociations) {
         return pendingAssociations
                 .filter(jobLoadBalancer -> v3JobOperations.getJob(jobLoadBalancer.getJobId()).isPresent())
-                .flatMap(jobLoadBalancer -> Observable.from(targetsForJob(jobLoadBalancer))
+                .flatMap(jobLoadBalancer -> Observable.from(reconciler.targetsForJob(jobLoadBalancer))
                         .doOnError(e -> logger.error("Error loading targets for jobId " + jobLoadBalancer.getJobId(), e))
                         .onErrorResumeNext(Observable.empty()))
                 .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, State.Registered)))
@@ -214,20 +217,6 @@ class LoadBalancerEngine {
                 .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, State.Deregistered)))
                 .doOnError(e -> logger.error("Error fetching targets to deregister", e))
                 .retry();
-    }
-
-    /**
-     * Valid targets are tasks in the Started state that have ip addresses associated to them.
-     */
-    private List<LoadBalancerTarget> targetsForJob(JobLoadBalancer jobLoadBalancer) {
-        return v3JobOperations.getTasks(jobLoadBalancer.getJobId()).stream()
-                .filter(TaskHelpers::isStartedWithIp)
-                .map(task -> new LoadBalancerTarget(
-                        jobLoadBalancer,
-                        task.getId(),
-                        task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)
-                ))
-                .collect(Collectors.toList());
     }
 
     private RateLimitedBatcher<TargetStateBatchable, String> buildBatcher() {

@@ -104,7 +104,7 @@ public class LoadBalancerTests {
                 .withId(UUID.randomUUID().toString())
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Started).build())
                 .withTaskContext(CollectionsExt.asMap(
-                        TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, String.format("%1$d.%1$d.%1$d.%1$d", i)
+                        TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, String.format("%1$d.%1$d.%1$d.%1$d", i + 1)
                 ))
                 .build()
         ).collect(Collectors.toList());

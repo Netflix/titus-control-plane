@@ -19,6 +19,7 @@ package io.netflix.titus.api.connector.cloud;
 import java.util.Set;
 
 import rx.Completable;
+import rx.Single;
 
 public interface LoadBalancerConnector {
     /**
@@ -35,4 +36,6 @@ public interface LoadBalancerConnector {
      * Checks if a load balancer ID is valid for use.
      */
     Completable isValid(String loadBalancerId);
+
+    Single<Set<String>> getRegisteredIps(String loadBalancerId);
 }
