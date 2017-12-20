@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
 import com.google.protobuf.Empty;
 import com.netflix.spectator.api.NoopRegistry;
@@ -58,14 +57,11 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
-import io.netflix.titus.common.util.rx.batch.Batch;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.mockito.stubbing.OngoingStubbing;
-import rx.Observable;
-import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
@@ -82,19 +78,18 @@ public class LoadBalancerTests {
     static public LoadBalancerService getMockLoadBalancerService() {
         final TitusRuntime runtime = new DefaultTitusRuntime(new NoopRegistry());
         final LoadBalancerConfiguration loadBalancerConfig = mockConfiguration(5_000);
-        final LoadBalancerConnector client = mock(LoadBalancerConnector.class);
-        final V3JobOperations jobOperations = mock(V3JobOperations.class);
-        when(jobOperations.observeJobs()).thenReturn(PublishSubject.create());
+        final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
+        final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
+        when(v3JobOperations.observeJobs()).thenReturn(PublishSubject.create());
+        final JobOperations jobOperations = new JobOperations(v3JobOperations);
+        final LoadBalancerReconciler reconciler = mock(LoadBalancerReconciler.class);
+        when(reconciler.events()).thenReturn(PublishSubject.create());
         final LoadBalancerStore loadBalancerStore = new InMemoryLoadBalancerStore();
         final LoadBalancerJobValidator validator = new NoOpLoadBalancerJobValidator();
-        final TargetTracking targetTracking = new TargetTracking();
         final TestScheduler testScheduler = Schedulers.test();
 
-        final DefaultLoadBalancerService loadBalancerService = new DefaultLoadBalancerService(
-                runtime, loadBalancerConfig, client, loadBalancerStore, jobOperations, targetTracking, validator, testScheduler);
-        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = loadBalancerService.events().test();
-
-        return loadBalancerService;
+        return new DefaultLoadBalancerService(runtime, loadBalancerConfig, connector, loadBalancerStore, jobOperations,
+                reconciler, validator, testScheduler);
     }
 
     // Started tasks have IPs assigned to them
@@ -140,19 +135,11 @@ public class LoadBalancerTests {
         return config;
     }
 
-    static <T> long count(Observable<T> items) {
-        return StreamSupport.<T>stream(items.toBlocking().toIterable().spliterator(), false).count();
-    }
-
     /**
      * Common testing helper that gets load balancers for a job, ensures the gRPC request was
      * successful, and returns the load balancer ids as a set.
-     *
-     * @param jobIdStr
-     * @param getJobLoadBalancers
-     * @return
      */
-    static public Set<LoadBalancerId> getLoadBalancersForJob(String jobIdStr,
+    public static Set<LoadBalancerId> getLoadBalancersForJob(String jobIdStr,
                                                              BiConsumer<JobId, TestStreamObserver<GetLoadBalancerResult>> getJobLoadBalancers) {
         JobId jobId = JobId.newBuilder().setId(jobIdStr).build();
 
@@ -167,20 +154,15 @@ public class LoadBalancerTests {
         }
 
         assertThat(getResponse.hasError()).isFalse();
-        return new HashSet<LoadBalancerId>(result.getLoadBalancersList());
+        return new HashSet<>(result.getLoadBalancersList());
     }
 
     /**
      * Common testing helper that adds a specified number of random load balancer ids to
      * a specified number of jobs. The helper ensures the gRPC request was successful and
      * returns the job ids and load balancer ids as a map.
-     *
-     * @param numJobs
-     * @param numLoadBalancersPerJob
-     * @param putLoadBalancer
-     * @return
      */
-    static public Map<String, Set<LoadBalancerId>> putLoadBalancersPerJob(int numJobs, int numLoadBalancersPerJob,
+    public static Map<String, Set<LoadBalancerId>> putLoadBalancersPerJob(int numJobs, int numLoadBalancersPerJob,
                                                                           BiConsumer<AddLoadBalancerRequest, TestStreamObserver<Empty>> putLoadBalancer) {
         // Create job entries
         Map<String, Set<LoadBalancerId>> jobIdToLoadBalancersMap = new ConcurrentHashMap<>();
@@ -213,12 +195,8 @@ public class LoadBalancerTests {
     /**
      * Common testing helper that removes a load balancer id from a job. The helper ensures the
      * gRPC request was successful.
-     *
-     * @param jobId
-     * @param loadBalancerId
-     * @param removeLoadBalancers
      */
-    static public void removeLoadBalancerFromJob(String jobId, LoadBalancerId loadBalancerId,
+    public static void removeLoadBalancerFromJob(String jobId, LoadBalancerId loadBalancerId,
                                                  BiConsumer<RemoveLoadBalancerRequest, TestStreamObserver<Empty>> removeLoadBalancers) {
         RemoveLoadBalancerRequest request = RemoveLoadBalancerRequest.newBuilder()
                 .setJobId(jobId)
@@ -233,11 +211,8 @@ public class LoadBalancerTests {
 
     /**
      * Configures a V3 mock to return job from getJobs() that passes validation.
-     *
-     * @param mockedV3Ops
-     * @return
      */
-    static public OngoingStubbing<?> applyValidGetJobMock(V3JobOperations mockedV3Ops, String jobId) {
+    static OngoingStubbing<?> applyValidGetJobMock(V3JobOperations mockedV3Ops, String jobId) {
         return when(mockedV3Ops.getJob(jobId)).thenReturn(Optional.of(Job.<ServiceJobExt>newBuilder()
                 .withId(jobId)
                 .withStatus(JobStatus.newBuilder()
