@@ -16,11 +16,13 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -41,6 +43,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final String UNKNOWN_JOB = "UNKNOWN-JOB";
     private static final String UNKNOWN_TASK = "UNKNOWN-TASK";
 
+    private final ConcurrentHashMap<LoadBalancerTarget, Instant> ignored = new ConcurrentHashMap<>();
+
     private final LoadBalancerStore store;
     private final LoadBalancerConnector connector;
     private final JobOperations jobOperations;
@@ -55,13 +59,20 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         this.store = store;
         this.connector = connector;
         this.jobOperations = jobOperations;
-        this.delayMs = configuration.getReconciliationDelayMs();
+        this.delayMs = configuration.getReconciliation().getDelayMs();
         this.scheduler = scheduler;
     }
 
     @Override
+    public void ignoreEventsFor(LoadBalancerTarget target, long period, TimeUnit unit) {
+        Duration periodDuration = Duration.ofMillis(unit.toMillis(period));
+        Instant untilWhen = Instant.ofEpochMilli(scheduler.now()).plus(periodDuration);
+        ignored.put(target, untilWhen);
+    }
+
+    @Override
     public Observable<TargetStateBatchable> events() {
-        Observable<TargetStateBatchable> updatesForAll = Observable.fromCallable(this::byLoadBalancer)
+        Observable<TargetStateBatchable> updatesForAll = Observable.fromCallable(this::snapshotAssociationsByLoadBalancer)
                 .flatMapIterable(Map::entrySet, 1)
                 // TODO(fabio): rate limit calls to reconcile (and to the connector)
                 .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1);
@@ -83,12 +94,9 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
         final Instant now = now();
         return connector.getRegisteredIps(loadBalancerId).flatMapObservable(registeredIps -> {
-            // FIXME(fabio): do not register something that is being deregistered
             Set<LoadBalancerTarget> toRegister = shouldBeRegistered.stream()
                     .filter(target -> !registeredIps.contains(target.getIpAddress()))
                     .collect(Collectors.toSet());
-
-            // FIXME(fabio): do not deregister something that is being registered
             Set<LoadBalancerTarget> toDeregister = CollectionsExt.copyAndRemove(registeredIps, shouldBeRegisteredIps).stream()
                     .map(ip -> updateForUnknownTask(loadBalancerId, ip))
                     .collect(Collectors.toSet());
@@ -96,7 +104,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
             return Observable.from(CollectionsExt.merge(
                     withState(now, toRegister, State.Registered),
                     withState(now, toDeregister, State.Deregistered)
-            ));
+            )).filter(update -> !ignored.containsKey(update.getIdentifier()));
         });
     }
 
@@ -115,9 +123,20 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 .collect(Collectors.toList());
     }
 
-    private Map<String, List<JobLoadBalancerState>> byLoadBalancer() {
+    private Map<String, List<JobLoadBalancerState>> snapshotAssociationsByLoadBalancer() {
+        cleanupExpiredIgnored();
         return store.getAssociations().stream()
                 .collect(Collectors.groupingBy(JobLoadBalancerState::getLoadBalancerId));
+    }
+
+    private void cleanupExpiredIgnored() {
+        Instant now = Instant.ofEpochMilli(scheduler.now());
+        ignored.forEach((target, untilWhen) -> {
+            if (untilWhen.isAfter(now)) {
+                return;
+            }
+            ignored.remove(target, untilWhen); /* do not remove when changed */
+        });
     }
 
     private Instant now() {

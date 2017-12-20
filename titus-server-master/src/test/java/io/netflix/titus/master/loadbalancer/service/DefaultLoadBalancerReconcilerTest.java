@@ -30,6 +30,7 @@ import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.batch.Priority;
+import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.junit.Test;
 import rx.Single;
 import rx.observers.AssertableSubscriber;
@@ -40,13 +41,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class LoadBalancerReconcilerTest {
+public class DefaultLoadBalancerReconcilerTest {
 
     @Test
     public void registerMissingTargets() {
-        final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
         final long delayMs = 60_000L /* 1 min */;
-        when(configuration.getReconciliationDelayMs()).thenReturn(delayMs);
+        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
@@ -66,11 +66,14 @@ public class LoadBalancerReconcilerTest {
         final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, jobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertNoValues();
+
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
-        subscriber.assertNotCompleted()
-                .assertValueCount(5);
+        subscriber.assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
             assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            // reconciliation always generates Priority.Low events that can be replaced by higher priority reactive updates
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
@@ -78,9 +81,8 @@ public class LoadBalancerReconcilerTest {
 
     @Test
     public void deregisterExtraTargets() {
-        final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
         final long delayMs = 60_000L /* 1 min */;
-        when(configuration.getReconciliationDelayMs()).thenReturn(delayMs);
+        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
@@ -102,9 +104,11 @@ public class LoadBalancerReconcilerTest {
         final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, jobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertNoValues();
+
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
-        subscriber.assertNotCompleted()
-                .assertValueCount(2);
+        subscriber.assertNotCompleted().assertValueCount(2);
         subscriber.getOnNextEvents().forEach(update -> {
             assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Deregistered);
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
@@ -112,5 +116,63 @@ public class LoadBalancerReconcilerTest {
             assertThat(update.getIdentifier().getTaskId()).isEqualTo("UNKNOWN-TASK");
             assertThat(update.getIdentifier().getJobId()).isEqualTo("UNKNOWN-JOB");
         });
+    }
+
+    @Test
+    public void ignoreEventsTemporarily() {
+        final long delayMs = 60_000L /* 1 min */;
+        final long quietPeriodMs = 5 * delayMs;
+
+        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
+        final LoadBalancerStore store = mock(LoadBalancerStore.class);
+        final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
+        final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
+        final JobOperations jobOperations = new JobOperations(v3JobOperations);
+        final TestScheduler testScheduler = Schedulers.test();
+
+        final String loadBalancerId = UUID.randomUUID().toString();
+        final String jobId = UUID.randomUUID().toString();
+        final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
+        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+
+        when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
+        when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
+        when(store.getAssociations()).thenReturn(Collections.singletonList(association));
+
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, jobOperations, testScheduler);
+        final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
+
+        for (Task task : tasks) {
+            final String ipAddress = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
+            final LoadBalancerTarget target = new LoadBalancerTarget(jobLoadBalancer, task.getId(), ipAddress);
+            reconciler.ignoreEventsFor(target, quietPeriodMs, TimeUnit.MILLISECONDS);
+        }
+
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertNoValues();
+
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNotCompleted().assertNoValues();
+
+        testScheduler.advanceTimeBy(4 * delayMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNotCompleted().assertValueCount(5);
+        subscriber.getOnNextEvents().forEach(update -> {
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
+        });
+
+        // try again since it still can't see updates applied on the connector
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNotCompleted().assertValueCount(10);
+    }
+
+    private LoadBalancerConfiguration mockConfig(long delayMs) {
+        final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
+        final LoadBalancerConfiguration.Reconciliation reconciliationConfig = mock(LoadBalancerConfiguration.Reconciliation.class);
+        when(reconciliationConfig.getDelayMs()).thenReturn(delayMs);
+        when(configuration.getReconciliation()).thenReturn(reconciliationConfig);
+        return configuration;
     }
 }

@@ -21,15 +21,31 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.master.loadBalancer")
 public interface LoadBalancerConfiguration {
+    interface Reconciliation {
+        /**
+         * Max propagation delay the reconciliation loop can expect to be able to detect changes made to loadbalancers.
+         */
+        @DefaultValue("120000")
+        long getQuietPeriodMs();
+
+        /**
+         * Delay between full reconciliation runs.
+         */
+        @DefaultValue("30000")
+        long getDelayMs();
+    }
+
+    Reconciliation getReconciliation();
+
     interface Batch {
         /**
-         * Minimum time that items are held in a buffer for batching
+         * Minimum time that items are held in a buffer for batching.
          */
         @DefaultValue("1000")
         long getMinTimeMs();
 
         /**
-         * Maximum time that items are held in a buffer for batching (times are increased with exponential backoff)
+         * Maximum time that items are held in a buffer for batching (times are increased with exponential backoff).
          */
         @DefaultValue("60000")
         long getMaxTimeMs();
@@ -54,7 +70,4 @@ public interface LoadBalancerConfiguration {
 
     @DefaultValue("20")
     long getRateLimitRefillPerSec();
-
-    @DefaultValue("30000")
-    long getReconciliationDelayMs();
 }

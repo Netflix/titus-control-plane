@@ -126,6 +126,11 @@ public class LoadBalancerTests {
         when(batchConfig.getMaxTimeMs()).thenReturn(Long.MAX_VALUE);
         when(batchConfig.getMinTimeMs()).thenReturn(minTimeInQueueMs);
 
+        final LoadBalancerConfiguration.Reconciliation reconciliationConfig = mock(LoadBalancerConfiguration.Reconciliation.class);
+        when(configuration.getReconciliation()).thenReturn(reconciliationConfig);
+        when(reconciliationConfig.getDelayMs()).thenReturn(30_000L);
+        when(reconciliationConfig.getQuietPeriodMs()).thenReturn(120_000L);
+
         return configuration;
     }
 

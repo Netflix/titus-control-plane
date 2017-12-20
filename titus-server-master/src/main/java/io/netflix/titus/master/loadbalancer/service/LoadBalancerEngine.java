@@ -19,6 +19,7 @@ package io.netflix.titus.master.loadbalancer.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
@@ -100,10 +101,9 @@ class LoadBalancerEngine {
                 registerFromEvents(stateTransitions),
                 deregisterFromEvents(stateTransitions),
                 reconciler.events()
-        );
+        ).compose(disableReconciliationTemporarily());
 
-        return updates
-                .lift(buildBatcher())
+        return updates.lift(buildBatcher())
                 .filter(batch -> !batch.getItems().isEmpty())
                 .onBackpressureDrop(batch -> logger.warn("Backpressure! Dropping batch for {} size {}", batch.getIndex(), batch.size()))
                 .doOnNext(batch -> logger.debug("Processing batch for {} size {}", batch.getIndex(), batch.size()))
@@ -111,6 +111,16 @@ class LoadBalancerEngine {
                 .doOnNext(batch -> logger.info("Processed {} load balancer updates for {}", batch.size(), batch.getIndex()))
                 .doOnError(e -> logger.error("Error batching load balancer calls", e))
                 .retry();
+    }
+
+    /**
+     * Prevent reconciliation from undoing in-flight updates, since it will be running off cached (and potentially
+     * stale) state.
+     */
+    private Observable.Transformer<TargetStateBatchable, TargetStateBatchable> disableReconciliationTemporarily() {
+        return updates -> updates.doOnNext(update ->
+                reconciler.ignoreEventsFor(update.getIdentifier(), configuration.getReconciliation().getQuietPeriodMs(), TimeUnit.MILLISECONDS)
+        );
     }
 
     public void shutdown() {
