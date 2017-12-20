@@ -16,8 +16,11 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -66,5 +69,9 @@ final class TaskHelpers {
         }
         return hasIp;
 
+    }
+
+    static Set<String> ipAddresses(Collection<TargetStateBatchable> from) {
+        return from.stream().map(TargetStateBatchable::getIpAddress).collect(Collectors.toSet());
     }
 }

@@ -44,10 +44,13 @@ public class LoadBalancerReconcilerTest {
 
     @Test
     public void registerMissingTargets() {
+        final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
+        final long delayMs = 60_000L /* 1 min */;
+        when(configuration.getReconciliationDelayMs()).thenReturn(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-        final long delayMs = 60000 /* 1 min */;
+        final JobOperations jobOperations = new JobOperations(v3JobOperations);
         final TestScheduler testScheduler = Schedulers.test();
 
         final String loadBalancerId = UUID.randomUUID().toString();
@@ -60,7 +63,7 @@ public class LoadBalancerReconcilerTest {
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
-        final LoadBalancerReconciler reconciler = new LoadBalancerReconciler(store, connector, v3JobOperations, delayMs, testScheduler);
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, jobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
@@ -75,10 +78,13 @@ public class LoadBalancerReconcilerTest {
 
     @Test
     public void deregisterExtraTargets() {
+        final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
+        final long delayMs = 60_000L /* 1 min */;
+        when(configuration.getReconciliationDelayMs()).thenReturn(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-        final long delayMs = 60000 /* 1 min */;
+        final JobOperations jobOperations = new JobOperations(v3JobOperations);
         final TestScheduler testScheduler = Schedulers.test();
 
         final String loadBalancerId = UUID.randomUUID().toString();
@@ -93,7 +99,7 @@ public class LoadBalancerReconcilerTest {
         )));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
-        final LoadBalancerReconciler reconciler = new LoadBalancerReconciler(store, connector, v3JobOperations, delayMs, testScheduler);
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, jobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);

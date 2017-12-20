@@ -46,7 +46,7 @@ import rx.schedulers.Schedulers;
 
 @Singleton
 public class DefaultLoadBalancerService implements LoadBalancerService {
-    private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerService.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerService.class);
 
     private final TitusRuntime runtime;
     private final LoadBalancerConfiguration configuration;
@@ -65,7 +65,12 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                       LoadBalancerStore loadBalancerStore,
                                       V3JobOperations v3JobOperations,
                                       LoadBalancerJobValidator validator) {
-        this(runtime, configuration, loadBalancerConnector, loadBalancerStore, v3JobOperations, new TargetTracking(), validator, Schedulers.computation());
+        this(runtime, configuration, loadBalancerConnector, loadBalancerStore,
+                new JobOperations(v3JobOperations),
+                new DefaultLoadBalancerReconciler(
+                        configuration, loadBalancerStore, loadBalancerConnector,
+                        new JobOperations(v3JobOperations), Schedulers.computation()
+                ), validator, Schedulers.computation());
     }
 
     @VisibleForTesting
@@ -73,8 +78,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                LoadBalancerConfiguration configuration,
                                LoadBalancerConnector loadBalancerConnector,
                                LoadBalancerStore loadBalancerStore,
-                               V3JobOperations v3JobOperations,
-                               TargetTracking targetTracking,
+                               JobOperations jobOperations,
+                               LoadBalancerReconciler reconciler,
                                LoadBalancerJobValidator validator,
                                Scheduler scheduler) {
         this.runtime = runtime;
@@ -87,7 +92,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final long refillPerSec = configuration.getRateLimitRefillPerSec();
         final TokenBucket connectorTokenBucket = Limiters.createFixedIntervalTokenBucket("loadBalancerConnector",
                 burst, burst, refillPerSec, 1, TimeUnit.SECONDS);
-        this.engine = new LoadBalancerEngine(configuration, v3JobOperations, loadBalancerStore, targetTracking,
+        this.engine = new LoadBalancerEngine(configuration, jobOperations, loadBalancerStore, reconciler,
                 loadBalancerConnector, connectorTokenBucket, scheduler);
 
     }

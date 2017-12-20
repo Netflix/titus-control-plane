@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -319,6 +320,13 @@ public final class CollectionsExt {
             result.add(list.subList(i, Math.min(i + chunkSize, list.size())));
         }
         return result;
+    }
+
+    public static <T, C extends Collection<T>> Optional<C> optional(C collection) {
+        if (isNullOrEmpty(collection)) {
+            return Optional.empty();
+        }
+        return Optional.of(collection);
     }
 
     public static class MapBuilder<K, V> {
