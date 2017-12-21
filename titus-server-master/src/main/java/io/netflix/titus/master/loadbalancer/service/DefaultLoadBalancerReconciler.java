@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -43,22 +44,22 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final String UNKNOWN_JOB = "UNKNOWN-JOB";
     private static final String UNKNOWN_TASK = "UNKNOWN-TASK";
 
-    private final ConcurrentHashMap<LoadBalancerTarget, Instant> ignored = new ConcurrentHashMap<>();
+    private final ConcurrentMap<LoadBalancerTarget, Instant> ignored = new ConcurrentHashMap<>();
 
     private final LoadBalancerStore store;
     private final LoadBalancerConnector connector;
-    private final JobOperations jobOperations;
+    private final LoadBalancerJobOperations jobOperations;
     private final long delayMs;
     private final Scheduler scheduler;
 
     DefaultLoadBalancerReconciler(LoadBalancerConfiguration configuration,
                                   LoadBalancerStore store,
                                   LoadBalancerConnector connector,
-                                  JobOperations jobOperations,
+                                  LoadBalancerJobOperations loadBalancerJobOperations,
                                   Scheduler scheduler) {
         this.store = store;
         this.connector = connector;
-        this.jobOperations = jobOperations;
+        this.jobOperations = loadBalancerJobOperations;
         this.delayMs = configuration.getReconciliation().getDelayMs();
         this.scheduler = scheduler;
     }
@@ -84,7 +85,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     }
 
     private Observable<TargetStateBatchable> reconcile(String loadBalancerId, List<JobLoadBalancerState> associations) {
-        Set<LoadBalancerTarget> shouldBeRegistered = associations.stream()
+        final Set<LoadBalancerTarget> shouldBeRegistered = associations.stream()
                 .filter(JobLoadBalancerState::isStateAssociated)
                 .flatMap(association -> jobOperations.targetsForJob(association.getJobLoadBalancer()).stream())
                 .collect(Collectors.toSet());

@@ -76,7 +76,7 @@ public class DefaultLoadBalancerServiceTest {
     private TitusRuntime runtime;
     private LoadBalancerConnector client;
     private V3JobOperations v3JobOperations;
-    private JobOperations jobOperations;
+    private LoadBalancerJobOperations loadBalancerJobOperations;
     private LoadBalancerStore loadBalancerStore;
     private LoadBalancerReconciler reconciler;
     private LoadBalancerJobValidator validator;
@@ -97,7 +97,7 @@ public class DefaultLoadBalancerServiceTest {
         loadBalancerStore = new InMemoryLoadBalancerStore();
         reconciler = mock(LoadBalancerReconciler.class);
         v3JobOperations = mock(V3JobOperations.class);
-        jobOperations = new JobOperations(v3JobOperations);
+        loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
         LoadBalancerValidationConfiguration validationConfiguration = mockValidationConfig(30);
         validator = new DefaultLoadBalancerJobValidator(v3JobOperations, loadBalancerStore, validationConfiguration);
         testScheduler = Schedulers.test();
@@ -120,7 +120,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -152,7 +152,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
         assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
@@ -176,7 +176,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -205,7 +205,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -254,7 +254,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -316,7 +316,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -347,7 +347,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -383,7 +383,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -424,7 +424,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -463,7 +463,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -493,7 +493,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
@@ -561,7 +561,7 @@ public class DefaultLoadBalancerServiceTest {
 
         LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
         DefaultLoadBalancerService service = new DefaultLoadBalancerService(
-                runtime, configuration, client, loadBalancerStore, jobOperations, reconciler, validator, testScheduler);
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 

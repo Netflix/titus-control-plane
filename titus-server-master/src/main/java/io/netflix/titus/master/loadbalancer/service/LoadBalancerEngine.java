@@ -29,7 +29,6 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
 import io.netflix.titus.api.loadbalancer.model.TargetState;
-import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import io.netflix.titus.common.util.rx.batch.Batch;
@@ -56,19 +55,18 @@ class LoadBalancerEngine {
     private final Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
 
     private final LoadBalancerConfiguration configuration;
-    private final JobOperations jobOperations;
+    private final LoadBalancerJobOperations jobOperations;
     private final TokenBucket connectorTokenBucket;
     private final LoadBalancerConnector connector;
     private final LoadBalancerReconciler reconciler;
     private final Scheduler scheduler;
 
-    LoadBalancerEngine(LoadBalancerConfiguration configuration, JobOperations jobOperations,
-                       LoadBalancerStore loadBalancerStore, LoadBalancerReconciler reconciler,
-                       LoadBalancerConnector loadBalancerConnector, TokenBucket connectorTokenBucket,
-                       Scheduler scheduler) {
+    LoadBalancerEngine(LoadBalancerConfiguration configuration, LoadBalancerJobOperations loadBalancerJobOperations,
+                       LoadBalancerReconciler reconciler, LoadBalancerConnector loadBalancerConnector,
+                       TokenBucket connectorTokenBucket, Scheduler scheduler) {
         // TODO(fabio): load tracking state from store
         this.configuration = configuration;
-        this.jobOperations = jobOperations;
+        this.jobOperations = loadBalancerJobOperations;
         this.connector = loadBalancerConnector;
         this.connectorTokenBucket = connectorTokenBucket;
         this.reconciler = reconciler;
@@ -133,12 +131,12 @@ class LoadBalancerEngine {
         final Map<State, List<TargetStateBatchable>> byState = batch.getItems().stream()
                 .collect(Collectors.groupingBy(TargetStateBatchable::getState));
 
-        final Completable registerAll = CollectionsExt.optional(byState.get(State.Registered))
+        final Completable registerAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.Registered))
                 .map(TaskHelpers::ipAddresses)
                 .map(ipAddresses -> connector.registerAll(loadBalancerId, ipAddresses))
                 .orElse(Completable.complete());
 
-        final Completable deregisterAll = CollectionsExt.optional(byState.get(State.Deregistered))
+        final Completable deregisterAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.Deregistered))
                 .map(TaskHelpers::ipAddresses)
                 .map(ipAddresses -> connector.deregisterAll(loadBalancerId, ipAddresses))
                 .orElse(Completable.complete());
@@ -150,8 +148,6 @@ class LoadBalancerEngine {
     }
 
     private Observable<TargetStateBatchable> registerFromEvents(Observable<TaskUpdateEvent> events) {
-        // Optional.empty() tasks have been already filtered out
-        //noinspection ConstantConditions
         Observable<Task> tasks = events.map(TaskUpdateEvent::getCurrentTask)
                 .filter(TaskHelpers::isStartedWithIp);
         return targetsForTrackedTasks(tasks)
@@ -159,8 +155,6 @@ class LoadBalancerEngine {
     }
 
     private Observable<TargetStateBatchable> deregisterFromEvents(Observable<TaskUpdateEvent> events) {
-        // Optional.empty() tasks have been already filtered out
-        //noinspection ConstantConditions
         Observable<Task> tasks = events.map(TaskUpdateEvent::getCurrentTask)
                 .filter(TaskHelpers::isTerminalWithIp);
         return targetsForTrackedTasks(tasks)

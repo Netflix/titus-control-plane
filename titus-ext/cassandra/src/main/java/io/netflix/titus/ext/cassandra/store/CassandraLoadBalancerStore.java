@@ -16,7 +16,7 @@
 
 package io.netflix.titus.ext.cassandra.store;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -147,7 +147,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Collection<JobLoadBalancerState> getAssociations() {
+    public List<JobLoadBalancerState> getAssociations() {
         return loadBalancerStateMap.entrySet().stream()
                 .map(JobLoadBalancerState::from)
                 .collect(Collectors.toList());

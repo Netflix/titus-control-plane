@@ -322,7 +322,10 @@ public final class CollectionsExt {
         return result;
     }
 
-    public static <T, C extends Collection<T>> Optional<C> optional(C collection) {
+    /**
+     * {@link Optional#empty()} if the collection is <tt>null</tt> or {@link Collection#isEmpty() empty}.
+     */
+    public static <T, C extends Collection<T>> Optional<C> optionalOfNotEmpty(C collection) {
         if (isNullOrEmpty(collection)) {
             return Optional.empty();
         }

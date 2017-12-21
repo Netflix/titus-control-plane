@@ -66,10 +66,10 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                       V3JobOperations v3JobOperations,
                                       LoadBalancerJobValidator validator) {
         this(runtime, configuration, loadBalancerConnector, loadBalancerStore,
-                new JobOperations(v3JobOperations),
+                new LoadBalancerJobOperations(v3JobOperations),
                 new DefaultLoadBalancerReconciler(
                         configuration, loadBalancerStore, loadBalancerConnector,
-                        new JobOperations(v3JobOperations), Schedulers.computation()
+                        new LoadBalancerJobOperations(v3JobOperations), Schedulers.computation()
                 ), validator, Schedulers.computation());
     }
 
@@ -78,7 +78,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                LoadBalancerConfiguration configuration,
                                LoadBalancerConnector loadBalancerConnector,
                                LoadBalancerStore loadBalancerStore,
-                               JobOperations jobOperations,
+                               LoadBalancerJobOperations loadBalancerJobOperations,
                                LoadBalancerReconciler reconciler,
                                LoadBalancerJobValidator validator,
                                Scheduler scheduler) {
@@ -92,7 +92,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final long refillPerSec = configuration.getRateLimitRefillPerSec();
         final TokenBucket connectorTokenBucket = Limiters.createFixedIntervalTokenBucket("loadBalancerConnector",
                 burst, burst, refillPerSec, 1, TimeUnit.SECONDS);
-        this.engine = new LoadBalancerEngine(configuration, jobOperations, loadBalancerStore, reconciler,
+        this.engine = new LoadBalancerEngine(configuration, loadBalancerJobOperations, reconciler,
                 loadBalancerConnector, connectorTokenBucket, scheduler);
 
     }

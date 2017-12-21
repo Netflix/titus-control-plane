@@ -29,7 +29,7 @@ public interface LoadBalancerReconciler {
 
     /**
      * Mark some targets to be ignored for a while. This allows updates to bypass reconciliation, in a way that
-     * reconciliation will not undo them, which is necessary since reconciliation often runs of stale data (cached
+     * reconciliation will not undo them, which is necessary since reconciliation often runs off of stale data (cached
      * snapshots) and there are propagation delays until updates can be detected by the reconciliation loop.
      *
      * @param target to be ignored

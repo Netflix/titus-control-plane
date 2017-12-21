@@ -81,14 +81,14 @@ public class LoadBalancerTests {
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
         when(v3JobOperations.observeJobs()).thenReturn(PublishSubject.create());
-        final JobOperations jobOperations = new JobOperations(v3JobOperations);
+        final LoadBalancerJobOperations loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
         final LoadBalancerReconciler reconciler = mock(LoadBalancerReconciler.class);
         when(reconciler.events()).thenReturn(PublishSubject.create());
         final LoadBalancerStore loadBalancerStore = new InMemoryLoadBalancerStore();
         final LoadBalancerJobValidator validator = new NoOpLoadBalancerJobValidator();
         final TestScheduler testScheduler = Schedulers.test();
 
-        return new DefaultLoadBalancerService(runtime, loadBalancerConfig, connector, loadBalancerStore, jobOperations,
+        return new DefaultLoadBalancerService(runtime, loadBalancerConfig, connector, loadBalancerStore, loadBalancerJobOperations,
                 reconciler, validator, testScheduler);
     }
 

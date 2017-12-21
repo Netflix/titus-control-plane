@@ -16,7 +16,7 @@
 
 package io.netflix.titus.api.loadbalancer.store;
 
-import java.util.Collection;
+import java.util.List;
 
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
@@ -60,7 +60,8 @@ public interface LoadBalancerStore {
     int getNumLoadBalancersForJob(String jobId);
 
     /**
-     * Blocking call that returns a view of the existing job/loadBalancer associations.
+     * Blocking call that returns a (snapshot) view of the existing job/loadBalancer associations. It must work out of
+     * cached data in-memory only, and avoid doing external calls.
      */
-    Collection<JobLoadBalancerState> getAssociations();
+    List<JobLoadBalancerState> getAssociations();
 }

@@ -29,13 +29,13 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import rx.Observable;
 
 /**
- * Wrapper for the V2 and V3 engines.
+ * Wrapper for the V2 and V3 engines with some load balancer specific logic.
  */
 // TODO: add V2 support
-class JobOperations {
+class LoadBalancerJobOperations {
     private final V3JobOperations v3JobOperations;
 
-    JobOperations(V3JobOperations v3JobOperations) {
+    LoadBalancerJobOperations(V3JobOperations v3JobOperations) {
         this.v3JobOperations = v3JobOperations;
     }
 
@@ -55,11 +55,11 @@ class JobOperations {
                 .collect(Collectors.toList());
     }
 
-    public Observable<JobManagerEvent<?>> observeJobs() {
+    Observable<JobManagerEvent<?>> observeJobs() {
         return v3JobOperations.observeJobs();
     }
 
-    public Optional<Job<?>> getJob(String jobId) {
+    Optional<Job<?>> getJob(String jobId) {
         return v3JobOperations.getJob(jobId);
     }
 }
