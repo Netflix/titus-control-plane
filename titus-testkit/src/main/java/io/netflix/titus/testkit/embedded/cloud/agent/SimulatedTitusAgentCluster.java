@@ -17,28 +17,35 @@
 package io.netflix.titus.testkit.embedded.cloud.agent;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import io.netflix.titus.api.agent.model.AutoScaleRule;
 import io.netflix.titus.common.aws.AwsInstanceDescriptor;
 import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.Attribute;
 import org.apache.mesos.Protos.Value.Text;
 import org.apache.mesos.Protos.Value.Type;
+import rx.Observable;
 import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
+import rx.subjects.SerializedSubject;
+import rx.subjects.Subject;
 
 import static java.util.Arrays.asList;
 
 /**
  */
 public class SimulatedTitusAgentCluster {
-
-    private static final int DEFAULT_MAX_SIZE = 100;
 
     private final String name;
     private final ComputeResources computeResources;
@@ -52,11 +59,13 @@ public class SimulatedTitusAgentCluster {
     private final AutoScaleRule autoScaleRule;
 
     private int minSize = 0;
-    private int maxSize = DEFAULT_MAX_SIZE;
+    private int maxSize;
 
     private Protos.Offer.Builder offerTemplate;
 
     private final List<SimulatedTitusAgent> agents = new ArrayList<>();
+
+    private final Subject<AgentChangeEvent, AgentChangeEvent> topologUpdateSubject = new SerializedSubject<>(PublishSubject.create());
 
     private SimulatedTitusAgentCluster(String name,
                                        ComputeResources computeResources,
@@ -92,6 +101,7 @@ public class SimulatedTitusAgentCluster {
 
     public void shutdown() {
         agents.forEach(SimulatedTitusAgent::shutdown);
+        topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstanceGroup(this));
     }
 
     public String getName() {
@@ -165,17 +175,23 @@ public class SimulatedTitusAgentCluster {
     public void scaleDown(int count) {
         int last = agents.size() - count;
         for (int i = agents.size() - 1; i >= last; i--) {
-            agents.remove(i).shutdown();
+            SimulatedTitusAgent agent = agents.remove(i);
+            agent.shutdown();
+            topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstance(this, agent));
         }
     }
 
-    public void terminate(String agentId) {
+    public void terminate(String agentId, boolean shrink) {
         Iterator<SimulatedTitusAgent> it = agents.iterator();
         while (it.hasNext()) {
             SimulatedTitusAgent agent = it.next();
             if (agent.getId().equals(agentId)) {
                 it.remove();
                 agent.shutdown();
+                if (!shrink) {
+                    scaleUp(1);
+                }
+                break;
             }
         }
     }
@@ -188,6 +204,44 @@ public class SimulatedTitusAgentCluster {
             }
         }
         return Optional.empty();
+    }
+
+    public Set<String> reconcileOwnedTasksIgnoreOther(Collection<Protos.TaskStatus> statuses) {
+        return agents.stream().flatMap(a -> a.reconcileOwnedTasksIgnoreOther(statuses).stream()).collect(Collectors.toSet());
+    }
+
+    public Optional<SimulatedTitusAgent> findAgentWithOffer(Protos.OfferID offerID) {
+        return agents.stream().filter(a -> a.hasOffer(offerID)).findFirst();
+    }
+
+    public Observable<AgentChangeEvent> topologyUpdates() {
+        return topologUpdateSubject;
+    }
+
+    public Observable<TaskExecutorHolder> taskLaunches() {
+        return observe(SimulatedTitusAgent::observeTaskLaunches);
+    }
+
+    public Observable<Protos.TaskStatus> taskStatusUpdates() {
+        return observe(SimulatedTitusAgent::taskStatusUpdates);
+    }
+
+    public Observable<OfferChangeEvent> observeOffers() {
+        return observe(SimulatedTitusAgent::observeOffers);
+    }
+
+    private <T> Observable<T> observe(Function<SimulatedTitusAgent, Observable<T>> mapper) {
+        return topologyUpdates()
+                .filter(event -> event.getEventType() == AgentChangeEvent.EventType.InstanceCreated)
+                .compose(ObservableExt.head(this::toNewInstanceEvents))
+                .distinct(event -> event.getInstance().get().getId())
+                .flatMap(event -> mapper.apply(event.getInstance().get()));
+    }
+
+    private List<AgentChangeEvent> toNewInstanceEvents() {
+        return agents.stream()
+                .map(a -> AgentChangeEvent.newInstance(this, a))
+                .collect(Collectors.toList());
     }
 
     private SimulatedTitusAgent createAgent() {
@@ -205,6 +259,7 @@ public class SimulatedTitusAgentCluster {
         SimulatedTitusAgent agent = new SimulatedTitusAgent(name, computeResources, hostName, slaveId, agentOfferTemplate, instanceType,
                 cpus, gpus, memory, disk, networkMbs, ipPerEni, Schedulers.computation());
         agents.add(agent);
+        topologUpdateSubject.onNext(AgentChangeEvent.newInstance(this, agent));
         return agent;
     }
 

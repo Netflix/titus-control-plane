@@ -159,7 +159,7 @@ public final class JobManagerUtil {
         };
     }
 
-    private static Optional<TitusExecutorDetails> parseDetails(String statusData) {
+    public static Optional<TitusExecutorDetails> parseDetails(String statusData) {
         if (StringExt.isEmpty(statusData)) {
             return Optional.empty();
         }

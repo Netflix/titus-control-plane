@@ -224,6 +224,7 @@ public class TaskExecutorHolder {
         stateUpdatesObserver.onNext(currentTaskStatus);
         if (isTerminal(currentTaskStatus.getState())) {
             stateUpdatesObserver.onCompleted();
+            agent.removeCompletedTask(this);
         }
     }
 

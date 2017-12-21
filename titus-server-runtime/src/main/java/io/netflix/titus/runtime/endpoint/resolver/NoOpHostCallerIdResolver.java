@@ -10,6 +10,6 @@ import javax.inject.Singleton;
 public class NoOpHostCallerIdResolver implements HostCallerIdResolver {
     @Override
     public Optional<String> resolve(String address) {
-        return Optional.empty();
+        return Optional.of("Anonymous");
     }
 }

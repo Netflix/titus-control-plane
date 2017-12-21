@@ -87,6 +87,9 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
 
     @Override
     protected void after() {
+        if (eventStreamObserver != null) {
+            eventStreamObserver.cancel();
+        }
         shutdown();
     }
 

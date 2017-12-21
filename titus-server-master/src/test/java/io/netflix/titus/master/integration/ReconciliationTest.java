@@ -25,15 +25,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2StageMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import io.netflix.titus.master.mesos.MesosSchedulerCallbackHandler;
 import io.netflix.titus.master.store.V2JobMetadataWritable;
 import io.netflix.titus.master.store.V2WorkerMetadataWritable;
 import io.netflix.titus.testkit.client.TitusMasterClient;
-import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedMesosSchedulerDriver;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.master.EmbeddedStorageProvider;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
@@ -43,7 +42,6 @@ import io.netflix.titus.testkit.junit.master.TitusMasterResource;
 import io.netflix.titus.testkit.model.v2.TitusV2ModelGenerator;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.apache.mesos.Protos;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -150,24 +148,22 @@ public class ReconciliationTest extends BaseIntegrationTest {
 
         SecurityManager securityManager = System.getSecurityManager();
         System.setSecurityManager(new CheckExitSecurityManager());
-        titusMaster.reboot();
+        titusMaster.shutdown();
+
+        titusMaster.getSimulatedCloud().killTask(WorkerNaming.getTaskId(secondJobWorker));
+
+        titusMaster.boot();
         latch.await();
-        Assertions.assertThat(exited.get()).isTrue();
+        assertThat(exited.get()).isTrue();
         System.setSecurityManager(securityManager);
 
         titusMaster.getConfig().setProperty("titus.scheduler.schedulerEnabled", "false");
         titusMaster.reboot();
+
         List<TitusJobInfo> jobs = titusMaster.getClient().findAllJobs().toList().toBlocking().first();
-        Assertions.assertThat(jobs).isNotNull();
-        Assertions.assertThat(jobs.size()).isEqualTo(2);
-        SimulatedMesosSchedulerDriver mesosSchedulerDriver = titusMaster.getMesosSchedulerDriver();
-        MesosSchedulerCallbackHandler mesosSchedulerCallbackHandler = mesosSchedulerDriver.getMesosSchedulerCallbackHandler();
-        int secondJobArchivedWorkersBefore = storageProvider.getArchivedWorkers(secondJobId).size();
+        assertThat(jobs).isNotNull();
+        assertThat(jobs.size()).isEqualTo(2);
 
-        mesosSchedulerCallbackHandler.reconcileTasks(mesosSchedulerDriver);
-        mesosSchedulerCallbackHandler.reconcileTasks(mesosSchedulerDriver);
-
-        int secondJobArchivedWorkersAfter = storageProvider.getArchivedWorkers(secondJobId).size();
-        Assertions.assertThat(secondJobArchivedWorkersBefore + 1).isEqualTo(secondJobArchivedWorkersAfter);
+        assertThat(storageProvider.getArchivedWorkers(secondJobId)).hasSize(1);
     }
 }

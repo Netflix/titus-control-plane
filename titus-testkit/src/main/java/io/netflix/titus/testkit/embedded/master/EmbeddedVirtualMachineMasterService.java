@@ -30,7 +30,7 @@ import io.netflix.titus.master.mesos.MesosMasterResolver;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import io.netflix.titus.master.mesos.VirtualMachineMasterServiceMesosImpl;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
-import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedMesosSchedulerDriver;
+import io.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriver;
 
 @Singleton
 public class EmbeddedVirtualMachineMasterService extends VirtualMachineMasterServiceMesosImpl {
@@ -61,7 +61,7 @@ public class EmbeddedVirtualMachineMasterService extends VirtualMachineMasterSer
         super(config, schedulerConfiguration, FIXED_RESOLVER, mesosSchedulerDriverFactory, injector, metricsRegistry);
     }
 
-    SimulatedMesosSchedulerDriver getSimulatedMesosDriver() {
-        return (SimulatedMesosSchedulerDriver) getMesosDriver();
+    SimulatedLocalMesosSchedulerDriver getSimulatedMesosDriver() {
+        return (SimulatedLocalMesosSchedulerDriver) getMesosDriver();
     }
 }

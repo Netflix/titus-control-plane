@@ -16,13 +16,31 @@
 
 package io.netflix.titus.testkit.embedded.cloud;
 
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.guice.ArchaiusModule;
+import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.testkit.embedded.cloud.endpoint.EmbeddedJerseyModule;
+import io.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudEndpointModule;
 
 public class EmbeddedCloudModule extends AbstractModule {
     @Override
     protected void configure() {
+        install(new ArchaiusModule());
+        bind(Registry.class).toInstance(new DefaultRegistry());
+
+        install(new SimulatedCloudEndpointModule());
         install(new EmbeddedJerseyModule());
         bind(SimulatedCloud.class).asEagerSingleton();
+    }
+
+    @Provides
+    @Singleton
+    public SimulatedCloudConfiguration getConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(SimulatedCloudConfiguration.class);
     }
 }

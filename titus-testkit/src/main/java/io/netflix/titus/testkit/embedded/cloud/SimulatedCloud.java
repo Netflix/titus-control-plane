@@ -17,26 +17,31 @@
 package io.netflix.titus.testkit.embedded.cloud;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.common.aws.AwsInstanceType;
-import io.netflix.titus.master.mesos.MesosSchedulerCallbackHandler;
+import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.testkit.embedded.cloud.agent.AgentChangeEvent;
 import io.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
-import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedMesosSchedulerDriver;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import org.apache.mesos.Protos;
-import org.apache.mesos.SchedulerDriver;
 import rx.Observable;
+import rx.subjects.PublishSubject;
+import rx.subjects.SerializedSubject;
+import rx.subjects.Subject;
 
 import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
 
@@ -45,32 +50,27 @@ public class SimulatedCloud {
     private final ComputeResources computeResources;
     private final ConcurrentMap<String, SimulatedTitusAgentCluster> agentInstanceGroups = new ConcurrentHashMap<>();
 
+    private final Subject<Observable<AgentChangeEvent>, Observable<AgentChangeEvent>> topologyEventsMergeSubject = new SerializedSubject<>(PublishSubject.create());
+    private final Subject<AgentChangeEvent, AgentChangeEvent> instanceGroupAddedSubject = new SerializedSubject<>(PublishSubject.create());
+    private final Observable<AgentChangeEvent> topologyUpdateObservable;
+
+    private final Subject<Protos.TaskStatus, Protos.TaskStatus> lostTaskSubject = new SerializedSubject<>(PublishSubject.create());
+
     private volatile int nextInstanceGroupId;
-
-    private final SimulatedInstanceCloudConnector instanceCloudConnector;
-
-    private SimulatedMesosSchedulerDriver mesosSchedulerDriver;
 
     public SimulatedCloud() {
         this.computeResources = new ComputeResources();
-        this.instanceCloudConnector = new SimulatedInstanceCloudConnector(this);
+        this.topologyUpdateObservable = Observable.merge(topologyEventsMergeSubject).mergeWith(instanceGroupAddedSubject).share();
     }
 
     public void shutdown() {
         agentInstanceGroups.values().forEach(SimulatedTitusAgentCluster::shutdown);
     }
 
-    // FIXME Create proper contract between SimulatedCloud and MesosSchedulerDriver
-    public void setMesosSchedulerDriver(SimulatedMesosSchedulerDriver mesosSchedulerDriver) {
-        this.mesosSchedulerDriver = mesosSchedulerDriver;
-        agentInstanceGroups.values().forEach(g -> g.getAgents().forEach(mesosSchedulerDriver::addAgent));
-    }
-
     public SimulatedCloud addInstanceGroup(SimulatedTitusAgentCluster agentInstanceGroup) {
         agentInstanceGroups.put(agentInstanceGroup.getName(), agentInstanceGroup);
-        if (mesosSchedulerDriver != null) {
-            agentInstanceGroup.getAgents().forEach(a -> mesosSchedulerDriver.addAgent(a));
-        }
+        instanceGroupAddedSubject.onNext(AgentChangeEvent.newInstanceGroup(agentInstanceGroup));
+        topologyEventsMergeSubject.onNext(agentInstanceGroup.topologyUpdates());
         return this;
     }
 
@@ -127,13 +127,21 @@ public class SimulatedCloud {
         return computeResources;
     }
 
-    public TaskExecutorHolder getContainer(String containerId) {
+    public TaskExecutorHolder getTaskExecutorHolder(String taskId) {
         return agentInstanceGroups.values().stream()
-                .flatMap(g -> g.getAgents().stream())
-                .flatMap(a -> a.getAllTasks().stream())
-                .filter(t -> t.getTaskId().equals(containerId))
+                .map(g -> g.findTaskById(taskId))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown container id " + containerId));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown task id " + taskId));
+    }
+
+    public SimulatedTitusAgent getAgentOwningOffer(Protos.OfferID offerID) {
+        return agentInstanceGroups.values().stream()
+                .map(g -> g.findAgentWithOffer(offerID))
+                .filter(Optional::isPresent).map(Optional::get)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Offer %s does not belong to any agent", offerID.getValue())));
     }
 
     public void updateAgentGroupCapacity(String agentGroupId, int min, int desired, int max) {
@@ -148,23 +156,86 @@ public class SimulatedCloud {
     }
 
     public void removeInstance(String agentId) {
-        agentInstanceGroups.values().stream()
-                .filter(g -> g.getAgents().stream().anyMatch(a -> a.getId().equals(agentId)))
-                .findFirst()
-                .ifPresent(g -> {
-                    g.terminate(agentId);
-                });
+        agentInstanceGroups.values().forEach(g -> {
+            g.getAgents().stream().filter(a -> a.getId().equals(agentId)).findFirst().ifPresent(a -> {
+                g.terminate(agentId, false);
+            });
+        });
     }
 
-    public InstanceCloudConnector getInstanceCloudConnector() {
-        return instanceCloudConnector;
+    public void declineOffer(Protos.OfferID offerId) {
+        getAgentOwningOffer(offerId).declineOffer(offerId);
     }
 
-    public SchedulerDriver createMesosSchedulerDriver(Protos.FrameworkInfo framework, MesosSchedulerCallbackHandler scheduler) {
-        return new SimulatedMesosSchedulerDriver(this, framework, scheduler);
+    public List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
+        if (tasks.isEmpty()) {
+            offerIds.forEach(this::declineOffer);
+            return Collections.emptyList();
+        }
+        SimulatedTitusAgent agent = getAgentOwningOffer(CollectionsExt.first(offerIds));
+        return agent.launchTasks(offerIds, tasks);
     }
 
-    public Observable<OfferChangeEvent> offerUpdates() {
-        return null;
+    public void killTask(String taskId) {
+        try {
+            getTaskExecutorHolder(taskId).transitionTo(Protos.TaskState.TASK_KILLED);
+        } catch (IllegalArgumentException e) {
+            emitTaskLostEvent(taskId);
+        }
+    }
+
+    public void reconcileTasks(Collection<Protos.TaskStatus> statuses) {
+        Set<String> found = agentInstanceGroups.values().stream()
+                .flatMap(g -> g.reconcileOwnedTasksIgnoreOther(statuses).stream())
+                .collect(Collectors.toSet());
+
+        if (statuses.isEmpty()) {
+            return;
+        }
+
+        Set<String> requested = statuses.stream().map(s -> s.getTaskId().getValue()).collect(Collectors.toSet());
+        CollectionsExt.copyAndRemove(requested, found).forEach(this::emitTaskLostEvent);
+    }
+
+    public Observable<AgentChangeEvent> topologyUpdates() {
+        return topologyUpdateObservable;
+    }
+
+    public Observable<OfferChangeEvent> offers() {
+        return topologyUpdates()
+                .filter(e -> e.getEventType() == AgentChangeEvent.EventType.InstanceGroupCreated)
+                .compose(ObservableExt.head(this::toNewInstanceGroupEvents))
+                .distinct(event -> event.getInstanceGroup().getName())
+                .flatMap(event -> event.getInstanceGroup().observeOffers());
+    }
+
+    public Observable<Protos.TaskStatus> taskStatusUpdates() {
+        return Observable.merge(
+                topologyUpdates()
+                        .compose(ObservableExt.head(this::toNewInstanceGroupEvents))
+                        .flatMap(event -> event.getInstanceGroup().taskStatusUpdates()),
+                lostTaskSubject
+        );
+    }
+
+    public Observable<TaskExecutorHolder> taskLaunches() {
+        return topologyUpdates()
+                .compose(ObservableExt.head(this::toNewInstanceGroupEvents))
+                .flatMap(event -> event.getInstanceGroup().taskLaunches());
+    }
+
+    private void emitTaskLostEvent(String lostTaskId) {
+        lostTaskSubject.onNext(Protos.TaskStatus.newBuilder()
+                .setTaskId(Protos.TaskID.newBuilder().setValue(lostTaskId).build())
+                .setState(Protos.TaskState.TASK_LOST)
+                .setMessage("Reconciler")
+                .build()
+        );
+    }
+
+    private List<AgentChangeEvent> toNewInstanceGroupEvents() {
+        return agentInstanceGroups.values().stream()
+                .map(AgentChangeEvent::newInstanceGroup)
+                .collect(Collectors.toList());
     }
 }

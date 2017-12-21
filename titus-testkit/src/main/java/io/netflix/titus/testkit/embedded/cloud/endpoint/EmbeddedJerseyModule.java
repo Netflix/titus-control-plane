@@ -29,7 +29,7 @@ import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import io.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import io.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
-import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import io.netflix.titus.testkit.embedded.cloud.endpoint.rest.SimulatedAgentsServiceResource;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -48,7 +48,7 @@ public final class EmbeddedJerseyModule extends AbstractModule {
         private final Server jettyServer;
 
         @Inject
-        public EmbeddedServer(SimulatedCloud simulatedCloud) {
+        public EmbeddedServer(SimulatedCloudGateway gateway) {
             ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
             context.setContextPath("/");
             jettyServer = new Server(8099);
@@ -67,7 +67,7 @@ public final class EmbeddedJerseyModule extends AbstractModule {
             DefaultResourceConfig config = new DefaultResourceConfig();
             config.getClasses().add(JsonMessageReaderWriter.class);
             config.getClasses().add(TitusExceptionMapper.class);
-            config.getSingletons().add(new SimulatedCloudResource(simulatedCloud));
+            config.getSingletons().add(new SimulatedAgentsServiceResource(gateway));
 
             ServletHolder jerseyServlet = new ServletHolder(new ServletContainer(config));
             jerseyServlet.setInitOrder(0);

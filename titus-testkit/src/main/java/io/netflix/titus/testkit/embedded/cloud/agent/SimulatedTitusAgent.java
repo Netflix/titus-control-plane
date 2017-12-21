@@ -56,6 +56,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.subjects.BehaviorSubject;
+import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
@@ -92,9 +93,12 @@ public class SimulatedTitusAgent {
     private volatile int offerIdx;
 
     private final Subject<OfferChangeEvent, OfferChangeEvent> offerUpdates = new SerializedSubject<>(BehaviorSubject.create());
+    private volatile Offer rescindedOffer;
     private volatile Offer lastOffer;
 
     private final BehaviorSubject<Protos.TaskStatus> taskUpdates = BehaviorSubject.create();
+
+    private final Subject<TaskExecutorHolder, TaskExecutorHolder> launchedTasksSubject = new SerializedSubject<>(PublishSubject.create());
     private final ConcurrentMap<TaskID, TaskExecutorHolder> pendingTasks = new ConcurrentHashMap<>();
 
     private final Set<Long> allocatedPorts = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -153,18 +157,27 @@ public class SimulatedTitusAgent {
 
     void shutdown() {
         worker.unsubscribe();
+        if (lastOffer != null) {
+            offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
+            offerUpdates.onCompleted();
+            lastOffer = null;
+        }
     }
 
-    Protos.SlaveID getSlaveId() {
+    public Protos.SlaveID getSlaveId() {
         return slaveId;
     }
 
-    Observable<OfferChangeEvent> observeOffers() {
+    public Observable<OfferChangeEvent> observeOffers() {
         return offerUpdates;
     }
 
-    Observable<Protos.TaskStatus> observeTaskUpdates() {
+    public Observable<Protos.TaskStatus> taskStatusUpdates() {
         return taskUpdates;
+    }
+
+    public Observable<TaskExecutorHolder> observeTaskLaunches() {
+        return launchedTasksSubject;
     }
 
     public List<TaskExecutorHolder> getAllTasks() {
@@ -180,15 +193,16 @@ public class SimulatedTitusAgent {
         return Optional.empty();
     }
 
-    List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks, Protos.Filters filters) {
+    public List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks, Protos.Filters filters) {
         return launchTasks(offerIds, tasks);
     }
 
-    List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
+    public List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
         checkOffers(offerIds);
         if (lastOffer != null) {
             for (Protos.OfferID oid : offerIds) {
                 if (oid.equals(lastOffer.getId())) {
+                    rescindedOffer = lastOffer;
                     lastOffer = null;
                     break;
                 }
@@ -196,6 +210,7 @@ public class SimulatedTitusAgent {
         }
 
         List<TaskExecutorHolder> taskExecutorHolders = launchTasksInternal(tasks);
+        taskExecutorHolders.forEach(launchedTasksSubject::onNext);
         emmitAvailableOffers();
         return taskExecutorHolders;
     }
@@ -351,61 +366,47 @@ public class SimulatedTitusAgent {
         return jobId;
     }
 
-    void killTask(TaskID taskId) {
+    public void killTask(TaskID taskId) {
         synchronized (lock) {
-            boolean reoffer = !aboveZero(); // If we are not above zero, Titus does not hold any lease to this agent
-
             TaskExecutorHolder taskExecutorHolder = pendingTasks.remove(taskId);
             if (taskExecutorHolder == null) {
                 logger.warn(slaveId + " is not running task " + taskId); // don't throw, treat it as no-op
                 return;
             }
+            Protos.TaskState taskState = taskExecutorHolder.getState();
+            if (taskState == Protos.TaskState.TASK_FINISHED || taskState == Protos.TaskState.TASK_FAILED || taskState == Protos.TaskState.TASK_KILLED) {
+                taskUpdates.onNext(Protos.TaskStatus.newBuilder()
+                        .setTaskId(taskId)
+                        .setState(Protos.TaskState.TASK_LOST)
+                        .setMessage("Task already terminated: " + taskState)
+                        .build()
+                );
+                return;
+            }
+
             taskExecutorHolder.transitionTo(Protos.TaskState.TASK_KILLED);
 
-            availableCPUs += taskExecutorHolder.getTaskCPUs();
-            availableGPUs += taskExecutorHolder.getTaskGPUs();
-            availableMemory += taskExecutorHolder.getTaskMem();
-            availableDisk += taskExecutorHolder.getTaskDisk();
-            availableNetworkMbs += taskExecutorHolder.getTaskNetworkMbs();
-            allocatedPorts.removeAll(taskExecutorHolder.getAllocatedPorts());
-
-            // TODO Check if IP assignment was requested
-            networkResourceTracker.unAssign(taskId);
-
-            logger.info("Agent {} -> released resources of task {}: cpu={}, memoryMB={}, networkMB={}, diskMB={}. Left on agent: cpu={}, memoryMB={}, networkMB={}, diskMB={}",
-                    slaveId.getValue(), taskId.getValue(), taskExecutorHolder.getTaskCPUs(), taskExecutorHolder.getTaskMem(), taskExecutorHolder.getTaskNetworkMbs(), taskExecutorHolder.getTaskDisk(),
-                    availableCPUs, availableMemory, availableNetworkMbs, availableDisk);
-
-            Preconditions.checkArgument(availableCPUs <= totalCPUs,
-                    "CPU inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
-            );
-            Preconditions.checkArgument(availableGPUs <= totalGPUs,
-                    "GPU inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
-            );
-            Preconditions.checkArgument(availableMemory <= totalMemory,
-                    "Memory inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
-            );
-            Preconditions.checkArgument(availableDisk <= totalDisk,
-                    "Disk inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
-            );
-            Preconditions.checkArgument(availableNetworkMbs <= totalNetworkMbs,
-                    "Network inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
-            );
-
-            if (reoffer) {
-                emmitAvailableOffers();
-            }
+            releaseResourcesAndReOffer(taskExecutorHolder);
         }
     }
 
-    void declineOffer(Protos.OfferID offerId) {
+    public void declineOffer(Protos.OfferID offerId) {
         checkOffer(offerId);
         // To avoid tight loop, re-offer it after some delay
         worker.schedule(this::emmitAvailableOffers, 10, TimeUnit.MILLISECONDS);
     }
 
-    private void checkOffers(Collection<Protos.OfferID> offerIds) {
-        offerIds.forEach(this::checkOffer);
+    public boolean hasOffer(Protos.OfferID offerID) {
+        if (lastOffer == null) {
+            return false;
+        }
+        if (lastOffer.getId().equals(offerID)) {
+            return true;
+        }
+        if (rescindedOffer == null) {
+            return false;
+        }
+        return rescindedOffer.getId().equals(offerID);
     }
 
     private void checkOffer(Protos.OfferID offerId) {
@@ -414,15 +415,56 @@ public class SimulatedTitusAgent {
         }
     }
 
+    private void checkOffers(Collection<Protos.OfferID> offerIds) {
+        offerIds.forEach(this::checkOffer);
+    }
+
     private void emmitAvailableOffers() {
         if (lastOffer != null) {
             offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
+            rescindedOffer = lastOffer;
             lastOffer = null;
         }
         if (aboveZero()) {
             lastOffer = createOfferForAvailableResources();
             offerUpdates.onNext(OfferChangeEvent.offer(lastOffer));
         }
+    }
+
+    private void releaseResourcesAndReOffer(TaskExecutorHolder taskExecutorHolder) {
+        TaskID taskId = TaskID.newBuilder().setValue(taskExecutorHolder.getTaskId()).build();
+
+        availableCPUs += taskExecutorHolder.getTaskCPUs();
+        availableGPUs += taskExecutorHolder.getTaskGPUs();
+        availableMemory += taskExecutorHolder.getTaskMem();
+        availableDisk += taskExecutorHolder.getTaskDisk();
+        availableNetworkMbs += taskExecutorHolder.getTaskNetworkMbs();
+        allocatedPorts.removeAll(taskExecutorHolder.getAllocatedPorts());
+
+        // TODO Check if IP assignment was requested
+        networkResourceTracker.unAssign(taskId);
+
+        logger.info("Agent {} -> released resources of task {}: cpu={}, memoryMB={}, networkMB={}, diskMB={}. Left on agent: cpu={}, memoryMB={}, networkMB={}, diskMB={}",
+                slaveId.getValue(), taskId.getValue(), taskExecutorHolder.getTaskCPUs(), taskExecutorHolder.getTaskMem(), taskExecutorHolder.getTaskNetworkMbs(), taskExecutorHolder.getTaskDisk(),
+                availableCPUs, availableMemory, availableNetworkMbs, availableDisk);
+
+        Preconditions.checkArgument(availableCPUs <= totalCPUs,
+                "CPU inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
+        );
+        Preconditions.checkArgument(availableGPUs <= totalGPUs,
+                "GPU inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
+        );
+        Preconditions.checkArgument(availableMemory <= totalMemory,
+                "Memory inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
+        );
+        Preconditions.checkArgument(availableDisk <= totalDisk,
+                "Disk inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
+        );
+        Preconditions.checkArgument(availableNetworkMbs <= totalNetworkMbs,
+                "Network inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
+        );
+
+        emmitAvailableOffers();
     }
 
     private boolean aboveZero() {
@@ -454,6 +496,33 @@ public class SimulatedTitusAgent {
                         Attribute.newBuilder().setName("res").setType(Type.TEXT).setText(Text.newBuilder().setValue(enis)).build()
                 ))
                 .build();
+    }
+
+    public Set<String> reconcileOwnedTasksIgnoreOther(Collection<Protos.TaskStatus> statuses) {
+        if (statuses.isEmpty()) {
+            return pendingTasks.values().stream()
+                    .map(h -> {
+                        handleTaskStateUpdate(TaskID.newBuilder().setValue(h.getTaskId()).build(), h.getState(), "Triggered by reconciler");
+                        return h.getTaskId();
+                    }).collect(Collectors.toSet());
+        }
+
+        return statuses.stream()
+                .filter(status -> pendingTasks.containsKey(status.getTaskId()))
+                .map(status -> {
+                    TaskExecutorHolder holder = pendingTasks.get(status.getTaskId());
+                    handleTaskStateUpdate(status.getTaskId(), holder.getState(), "Triggered by reconciler");
+                    return status.getTaskId().getValue();
+                }).collect(Collectors.toSet());
+    }
+
+    public void removeCompletedTask(TaskExecutorHolder holder) {
+        synchronized (lock) {
+            TaskExecutorHolder removed = pendingTasks.remove(TaskID.newBuilder().setValue(holder.getTaskId()).build());
+            if (removed != null) {
+                releaseResourcesAndReOffer(holder);
+            }
+        }
     }
 
     private void handleTaskStateUpdate(TaskID taskId, Protos.TaskState taskState, String message) {

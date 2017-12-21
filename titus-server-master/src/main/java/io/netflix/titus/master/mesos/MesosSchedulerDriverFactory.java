@@ -17,6 +17,7 @@
 package io.netflix.titus.master.mesos;
 
 import org.apache.mesos.Protos;
+import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 
 /**
@@ -24,5 +25,5 @@ import org.apache.mesos.SchedulerDriver;
  */
 public interface MesosSchedulerDriverFactory {
 
-    SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, MesosSchedulerCallbackHandler scheduler);
+    SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, Scheduler scheduler);
 }

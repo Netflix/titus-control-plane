@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.testkit.embedded.cloud;
+package io.netflix.titus.testkit.embedded.cloud.connector.local;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,16 +32,20 @@ import io.netflix.titus.api.connector.cloud.InstanceGroup;
 import io.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.util.tuple.Either;
+import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import rx.Completable;
 import rx.Observable;
 
-class SimulatedInstanceCloudConnector implements InstanceCloudConnector {
+/**
+ * Connector used when {@link SimulatedCloud} runs in the same JVM.
+ */
+public class SimulatedLocalInstanceCloudConnector implements InstanceCloudConnector {
 
     private final SimulatedCloud cloud;
 
-    SimulatedInstanceCloudConnector(SimulatedCloud cloud) {
+    public SimulatedLocalInstanceCloudConnector(SimulatedCloud cloud) {
         this.cloud = cloud;
     }
 
@@ -142,7 +146,7 @@ class SimulatedInstanceCloudConnector implements InstanceCloudConnector {
             List<Either<Boolean, Throwable>> result = new ArrayList<>();
             for (String instanceId : instanceIds) {
                 try {
-                    agentInstanceGroup.terminate(instanceId);
+                    agentInstanceGroup.terminate(instanceId, shrink);
                     result.add(Either.ofValue(true));
                 } catch (Exception e) {
                     result.add(Either.ofError(e));
