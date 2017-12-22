@@ -16,10 +16,12 @@
 
 package io.netflix.titus.ext.cassandra.store;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -31,7 +33,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStoreException;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -128,7 +130,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                         logger.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
                         loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
                     } else {
-                        if(failOnError) {
+                        if (failOnError) {
                             throw LoadBalancerStoreException.badData(jobLoadBalancer, violations);
                         }
                         logger.warn("Ignoring bad record of {} due to validation constraint violations: violations={}", jobLoadBalancer, violations);
@@ -137,11 +139,18 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Observable<LoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
+    public Observable<JobLoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
         logger.debug("Retrieving load balancers for job {}", jobId);
         return Observable.from(loadBalancerStateMap.entrySet())
                 .filter(entry -> entry.getKey().getJobId().equals(jobId))
-                .map(entry -> new LoadBalancerState(entry.getKey().getLoadBalancerId(), entry.getValue()));
+                .map(JobLoadBalancerState::from);
+    }
+
+    @Override
+    public List<JobLoadBalancerState> getAssociations() {
+        return loadBalancerStateMap.entrySet().stream()
+                .map(JobLoadBalancerState::from)
+                .collect(Collectors.toList());
     }
 
     @Override

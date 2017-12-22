@@ -20,13 +20,17 @@ public class LoadBalancerTarget {
     public enum State {Registered, Deregistered}
 
     private final JobLoadBalancer jobLoadBalancer;
-    private final String taskId;
     private final String ipAddress;
+
+    /**
+     * taskId is a descriptive field only, it is not part of the identity of this object
+     */
+    private final String taskId;
 
     public LoadBalancerTarget(JobLoadBalancer jobLoadBalancer, String taskId, String ipAddress) {
         this.jobLoadBalancer = jobLoadBalancer;
-        this.taskId = taskId;
         this.ipAddress = ipAddress;
+        this.taskId = taskId;
     }
 
     public JobLoadBalancer getJobLoadBalancer() {

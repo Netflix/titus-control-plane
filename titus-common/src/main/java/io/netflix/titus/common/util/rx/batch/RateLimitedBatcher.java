@@ -276,7 +276,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
                 sendCompleted();
                 return;
             }
-            logger.debug("No batches are ready yet. Next iteration in %d ms", currentDelayMs);
+            logger.debug("No batches are ready yet. Next iteration in {} ms", currentDelayMs);
             worker.schedule(this::flushPending, currentDelayMs.get(), TimeUnit.MILLISECONDS);
         }
 

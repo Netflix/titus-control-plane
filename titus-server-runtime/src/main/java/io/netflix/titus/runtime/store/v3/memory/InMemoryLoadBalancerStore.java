@@ -16,12 +16,14 @@
 
 package io.netflix.titus.runtime.store.v3.memory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +39,10 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
 
     @Override
-    public Observable<LoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
+    public Observable<JobLoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
         return Observable.defer(() -> Observable.from(associations.entrySet())
                 .filter(entry -> entry.getKey().getJobId().equals(jobId))
-                .map(entry -> new LoadBalancerState(entry.getKey().getLoadBalancerId(), entry.getValue())));
+                .map(JobLoadBalancerState::from));
     }
 
     @Override
@@ -62,5 +64,12 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
             }
         }
         return loadBalancerCount;
+    }
+
+    @Override
+    public List<JobLoadBalancerState> getAssociations() {
+        return associations.entrySet().stream()
+                .map(JobLoadBalancerState::from)
+                .collect(Collectors.toList());
     }
 }

@@ -32,6 +32,7 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
  * inefficient implementation of CopyOnWriteHashSets.
  * </p>
  */
+// TODO: move the job -> associations index to the LoadBalancerStore, and get rid of this
 class AssociationsTracking {
     /**
      * Sets held in here must be all immutable (usually via Collections.unmodifiableSet).
