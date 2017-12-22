@@ -25,6 +25,8 @@ import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingA
 import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsResult;
+import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetHealthRequest;
+import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetHealthResult;
 import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
 import com.netflix.spectator.api.Registry;
@@ -135,12 +137,13 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         long startTime = registry.clock().wallTime();
         Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(factory -> client.describeTargetGroupsAsync(request, factory.handler()));
         return resultSingle
+                .observeOn(scheduler)
                 .doOnError(throwable -> {
                     connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetGroups, throwable, startTime);
                 })
                 .flatMapObservable(result -> {
                     connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetGroups, startTime);
-                    return  Observable.from(result.getTargetGroups());
+                    return Observable.from(result.getTargetGroups());
                 })
                 .flatMap(targetGroup -> {
                     if (targetGroup.getTargetType().equals(AWS_IP_TARGET_TYPE)) {
@@ -148,7 +151,26 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                     }
                     return Observable.error(CloudConnectorException.invalidArgument(String.format("Target group %s is NOT of required type %s", targetGroup.getTargetGroupArn(), AWS_IP_TARGET_TYPE)));
                 })
-                .observeOn(scheduler)
                 .toCompletable();
+    }
+
+    @Override
+    public Single<Set<String>> getRegisteredIps(String loadBalancerId) {
+        final DescribeTargetHealthRequest request = new DescribeTargetHealthRequest()
+                .withTargetGroupArn(loadBalancerId);
+
+        Single<DescribeTargetHealthResult> asyncResult = AwsObservableExt.asyncActionSingle(
+                factory -> client.describeTargetHealthAsync(request, factory.handler())
+        );
+
+        return asyncResult
+                .observeOn(scheduler)
+                .map(this::ipsFromResult);
+    }
+
+    private Set<String> ipsFromResult(DescribeTargetHealthResult result) {
+        return result.getTargetHealthDescriptions().stream()
+                .map(description -> description.getTarget().getId())
+                .collect(Collectors.toSet());
     }
 }

@@ -16,8 +16,10 @@
 
 package io.netflix.titus.api.loadbalancer.store;
 
+import java.util.List;
+
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.LoadBalancerState;
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import rx.Completable;
 import rx.Observable;
 
@@ -30,7 +32,7 @@ public interface LoadBalancerStore {
      * @param jobId
      * @return
      */
-    Observable<LoadBalancerState> retrieveLoadBalancersForJob(String jobId);
+    Observable<JobLoadBalancerState> retrieveLoadBalancersForJob(String jobId);
 
     /**
      * Adds a new or updates an existing load balancer with the provided state.
@@ -51,8 +53,15 @@ public interface LoadBalancerStore {
 
     /**
      * Blocking call that returns the number of load balancers associated with a job.
+     *
      * @param jobId
      * @return Returns 0 even if jobId does not exist.
      */
     int getNumLoadBalancersForJob(String jobId);
+
+    /**
+     * Blocking call that returns a (snapshot) view of the existing job/loadBalancer associations. It must work out of
+     * cached data in-memory only, and avoid doing external calls.
+     */
+    List<JobLoadBalancerState> getAssociations();
 }

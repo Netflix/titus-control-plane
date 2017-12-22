@@ -61,10 +61,15 @@ public class AwsObservableExt {
      * <p>
      * Subscription cancellations on the returned Single will cancel the Future if it is still pending.
      * <p>
-     * Usage:
+     * The provided <tt>action</tt> will run on the AWS SDK threadpool. If desired, execution can be brought back to a
+     * different scheduler with {@link rx.Observable#observeOn}.
      * <p>
+     * Usage:
      * <pre>
-     * Single s = AwsObservableExt.asyncActionSingle(supplier -> client.someAsyncOperation(request, supplier.handler()));
+     * {@code
+     * Single s = AwsObservableExt.asyncActionSingle(supplier -> client.someAsyncOperation(request, supplier.handler()))
+     *     .observeOn(Schedulers.computation());
+     * }
      * </pre>
      *
      * @param action that will be executed when the Single is subscribed to, and produces a Future

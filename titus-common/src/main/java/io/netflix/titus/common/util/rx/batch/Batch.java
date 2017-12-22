@@ -71,6 +71,10 @@ public class Batch<T extends Batchable<?>, I> {
         return oldestItemTimestamp;
     }
 
+    public int size() {
+        return items.size();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

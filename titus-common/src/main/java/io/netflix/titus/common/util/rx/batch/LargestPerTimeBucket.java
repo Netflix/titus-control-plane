@@ -70,16 +70,24 @@ public class LargestPerTimeBucket implements EmissionStrategy {
     }
 
     private <T extends Batchable<?>, I> int compare(Batch<T, I> one, Batch<T, I> other) {
-        final long oneTimeBucket = bucketFor(one.getOldestItemTimestamp());
-        final long otherTimeBucket = bucketFor(other.getOldestItemTimestamp());
+        final Instant oneTimestamp = one.getOldestItemTimestamp();
+        final Instant otherTimestamp = other.getOldestItemTimestamp();
+        final long oneTimeBucket = bucketFor(oneTimestamp);
+        final long otherTimeBucket = bucketFor(otherTimestamp);
 
         // older first
         final int timeBucketComparison = Long.compare(oneTimeBucket, otherTimeBucket);
-        if (timeBucketComparison == 0) {
-            // in the same bucket, bigger batches first
-            return Batch.bySize().reversed().compare(one, other);
+        if (timeBucketComparison != 0) {
+            return timeBucketComparison;
         }
-        return timeBucketComparison;
+
+        // in the same bucket, bigger batches first
+        final int sizeComparison = Batch.bySize().reversed().compare(one, other);
+        if (sizeComparison != 0) {
+            return sizeComparison;
+        }
+        // unless they have the same size in the same bucket, in which case order by timestamp
+        return oneTimestamp.compareTo(otherTimestamp);
     }
 
     private long bucketFor(Instant timestamp) {
