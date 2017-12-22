@@ -47,48 +47,52 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementSer
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.netflix.titus.api.agent.store.AgentStore;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
 import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.connector.cloud.NoOpLoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
-import io.netflix.titus.api.model.event.AutoScaleEvent;
-import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.grpc.V3HeaderInterceptor;
-import io.netflix.titus.common.util.AwaitExt;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.TitusMaster;
 import io.netflix.titus.master.TitusMasterModule;
 import io.netflix.titus.master.TitusRuntimeModule;
 import io.netflix.titus.master.VirtualMachineMasterService;
+import io.netflix.titus.master.agent.store.InMemoryAgentStore;
 import io.netflix.titus.master.cluster.LeaderActivator;
 import io.netflix.titus.master.cluster.LeaderElector;
 import io.netflix.titus.master.endpoint.common.SchedulerUtil;
 import io.netflix.titus.master.job.worker.WorkerStateMonitor;
 import io.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
-import io.netflix.titus.api.connector.cloud.NoOpLoadBalancerConnector;
 import io.netflix.titus.master.master.MasterDescription;
 import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.store.V2StorageProvider;
-import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import io.netflix.titus.testkit.client.DefaultTitusMasterClient;
 import io.netflix.titus.testkit.client.TitusMasterClient;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedAgentConfiguration;
-import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedMesosSchedulerDriver;
-import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedMesosSchedulerDriverFactory;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import io.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalInstanceCloudConnector;
+import io.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriver;
+import io.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriverFactory;
+import io.netflix.titus.testkit.embedded.cloud.connector.remote.CloudSimulatorConnectorConfiguration;
+import io.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
+import io.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteMesosSchedulerDriverFactory;
 import io.netflix.titus.testkit.util.NetworkExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,9 +112,12 @@ public class EmbeddedTitusMaster {
     private final MasterDescription masterDescription;
 
     private final EmbeddedStorageProvider storageProvider;
-    private final JobStore store;
+    private final JobStore jobStore;
+    private final AgentStore agentStore;
 
     private final SimulatedCloud simulatedCloud;
+    private final InstanceCloudConnector cloudInstanceConnector;
+    private final MesosSchedulerDriverFactory mesosSchedulerDriverFactory;
 
     private LifecycleInjector injector;
     private final List<AuditLogEvent> auditLogs = new CopyOnWriteArrayList<>();
@@ -130,7 +137,8 @@ public class EmbeddedTitusMaster {
                 System.currentTimeMillis()
         );
         this.storageProvider = builder.storageProvider;
-        this.store = builder.store == null ? new InMemoryJobStore() : builder.store;
+        this.jobStore = builder.jobStore == null ? new InMemoryJobStore() : builder.jobStore;
+        this.agentStore = builder.agentStore == null ? new InMemoryAgentStore() : builder.agentStore;
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
 
@@ -139,8 +147,35 @@ public class EmbeddedTitusMaster {
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         config.setProperties(embeddedProperties);
 
-        this.simulatedCloud = builder.simulatedCloud == null ? new SimulatedCloud() : builder.simulatedCloud;
-        builder.agentClusters.forEach(simulatedCloud::addInstanceGroup);
+        if (builder.remoteCloud == null) {
+            this.simulatedCloud = builder.simulatedCloud == null ? new SimulatedCloud() : builder.simulatedCloud;
+            this.cloudInstanceConnector = new SimulatedLocalInstanceCloudConnector(simulatedCloud);
+            this.mesosSchedulerDriverFactory = new SimulatedLocalMesosSchedulerDriverFactory(simulatedCloud);
+        } else {
+            this.simulatedCloud = null;
+
+            CloudSimulatorConnectorConfiguration connectorConfiguration = newCloudSimulatorConfiguration(builder);
+            this.cloudInstanceConnector = new SimulatedRemoteInstanceCloudConnector(connectorConfiguration);
+            this.mesosSchedulerDriverFactory = new SimulatedRemoteMesosSchedulerDriverFactory(connectorConfiguration);
+
+        }
+        if (simulatedCloud != null) {
+            builder.agentClusters.forEach(simulatedCloud::addInstanceGroup);
+        }
+    }
+
+    private CloudSimulatorConnectorConfiguration newCloudSimulatorConfiguration(Builder builder) {
+        return new CloudSimulatorConnectorConfiguration() {
+            @Override
+            public String getHost() {
+                return builder.remoteCloud.getLeft();
+            }
+
+            @Override
+            public int getGrpcPort() {
+                return builder.remoteCloud.getRight();
+            }
+        };
     }
 
     public EmbeddedTitusMaster boot() {
@@ -158,13 +193,15 @@ public class EmbeddedTitusMaster {
                         .with(new AbstractModule() {
                                   @Override
                                   protected void configure() {
-                                      bind(SimulatedCloud.class).toInstance(simulatedCloud);
+                                      bind(InstanceCloudConnector.class).toInstance(cloudInstanceConnector);
+                                      bind(MesosSchedulerDriverFactory.class).toInstance(mesosSchedulerDriverFactory);
+
                                       bind(LeaderElector.class).to(EmbeddedLeaderElector.class);
-                                      bind(MesosSchedulerDriverFactory.class).to(SimulatedMesosSchedulerDriverFactory.class);
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(EmbeddedMasterMonitor.class);
                                       bind(V2StorageProvider.class).toInstance(storageProvider);
-                                      bind(JobStore.class).toInstance(store);
+                                      bind(JobStore.class).toInstance(jobStore);
+                                      bind(AgentStore.class).toInstance(agentStore);
 
                                       bind(VirtualMachineMasterService.class).to(EmbeddedVirtualMachineMasterService.class);
 
@@ -179,12 +216,6 @@ public class EmbeddedTitusMaster {
                                   @Singleton
                                   public SimulatedAgentConfiguration getSimulatedAgentConfiguration(ConfigProxyFactory factory) {
                                       return factory.newProxy(SimulatedAgentConfiguration.class);
-                                  }
-
-                                  @Provides
-                                  @Singleton
-                                  public InstanceCloudConnector getInstanceCloudConnector() {
-                                      return simulatedCloud.getInstanceCloudConnector();
                                   }
                               }
                         ),
@@ -224,12 +255,10 @@ public class EmbeddedTitusMaster {
         if (injector != null) {
             injector.close();
         }
-        simulatedCloud.shutdown();
     }
 
     public void addAgentCluster(SimulatedTitusAgentCluster agentCluster) {
         simulatedCloud.addInstanceGroup(agentCluster);
-        registerAgentCluster(agentCluster);
     }
 
     public SimulatedCloud getSimulatedCloud() {
@@ -291,8 +320,8 @@ public class EmbeddedTitusMaster {
         return injector.getInstance(RxEventBus.class);
     }
 
-    public JobStore getStore() {
-        return store;
+    public JobStore getJobStore() {
+        return jobStore;
     }
 
     public Observable<TaskExecutorHolder> observeLaunchedTasks() {
@@ -304,27 +333,12 @@ public class EmbeddedTitusMaster {
         boot();
     }
 
-    public SimulatedMesosSchedulerDriver getMesosSchedulerDriver() {
+    public SimulatedLocalMesosSchedulerDriver getMesosSchedulerDriver() {
         return ((EmbeddedVirtualMachineMasterService) injector.getInstance(VirtualMachineMasterService.class)).getSimulatedMesosDriver();
     }
 
     public <T> T getInstance(Class<T> type) {
         return injector.getInstance(type);
-    }
-
-    private void registerAgentCluster(SimulatedTitusAgentCluster cluster) {
-        SimulatedMesosSchedulerDriver driver = getMesosSchedulerDriver();
-
-        boolean driverReady = false;
-        try {
-            driverReady = AwaitExt.awaitUntil(driver::isRunning, 5, TimeUnit.SECONDS);
-        } catch (InterruptedException ignore) {
-        }
-        if (!driverReady) {
-            throw new IllegalStateException("Agent cannot be registered yet as the driver is not connected to TitusMaster");
-        }
-
-        cluster.getAgents().forEach(driver::addAgent);
     }
 
     public List<TaskAssignmentResult> reportForTask(String taskId) {
@@ -361,7 +375,7 @@ public class EmbeddedTitusMaster {
                 .withGrpcPort(grpcPort)
                 .withSimulatedCloud(simulatedCloud)
                 .withProperties(properties)
-                .withJobStore(store)
+                .withJobStore(jobStore)
                 .withStorageProvider(storageProvider);
     }
 
@@ -372,9 +386,11 @@ public class EmbeddedTitusMaster {
         private int grpcPort;
 
         private EmbeddedStorageProvider storageProvider;
-        private JobStore store;
+        private JobStore jobStore;
+        private AgentStore agentStore;
         private List<SimulatedTitusAgentCluster> agentClusters = new ArrayList<>();
         private SimulatedCloud simulatedCloud;
+        private Pair<String, Integer> remoteCloud;
 
         public Builder() {
             props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
@@ -406,8 +422,13 @@ public class EmbeddedTitusMaster {
             return this;
         }
 
-        public Builder withJobStore(JobStore titusStore) {
-            this.store = titusStore;
+        public Builder withJobStore(JobStore jobStore) {
+            this.jobStore = jobStore;
+            return this;
+        }
+
+        public Builder withAgentStore(AgentStore agentStore) {
+            this.agentStore = agentStore;
             return this;
         }
 
@@ -426,8 +447,15 @@ public class EmbeddedTitusMaster {
 
         public Builder withSimulatedCloud(SimulatedCloud simulatedCloud) {
             Preconditions.checkState(this.simulatedCloud == null, "Simulated cloud already configured");
+            Preconditions.checkState(remoteCloud == null, "Remote simulated cloud already configured");
             this.simulatedCloud = simulatedCloud;
             return this;
+        }
+
+        public void withRemoteCloud(String hostAddress, int grpcPort) {
+            Preconditions.checkState(this.simulatedCloud == null, "Simulated cloud already configured");
+
+            this.remoteCloud = Pair.of(hostAddress, grpcPort);
         }
 
         public EmbeddedTitusMaster build() {

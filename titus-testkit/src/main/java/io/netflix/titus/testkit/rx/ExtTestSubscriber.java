@@ -85,6 +85,11 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
         available.add(t);
     }
 
+    public void skipAvailable() {
+        while (takeNext() != null) {
+        }
+    }
+
     public T takeNext() {
         if (isError()) {
             throw new IllegalStateException("OnError emitted", onErrorResult.get());
@@ -148,6 +153,10 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
         } finally {
             blockedThreads.remove(Thread.currentThread());
         }
+    }
+
+    public List<T> getAllItems() {
+        return new ArrayList<>(items);
     }
 
     public T getLatestItem() {

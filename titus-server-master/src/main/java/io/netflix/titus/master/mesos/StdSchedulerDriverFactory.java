@@ -20,12 +20,13 @@ import javax.inject.Singleton;
 
 import org.apache.mesos.MesosSchedulerDriver;
 import org.apache.mesos.Protos;
+import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 
 @Singleton
 public class StdSchedulerDriverFactory implements MesosSchedulerDriverFactory {
     @Override
-    public SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, MesosSchedulerCallbackHandler scheduler) {
+    public SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, Scheduler scheduler) {
         return new MesosSchedulerDriver(scheduler, framework, mesosMaster);
     }
 }

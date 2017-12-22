@@ -97,12 +97,12 @@ public class EmbeddedTitusStack {
             if (defaultGateway) {
                 gateway = EmbeddedTitusGateway.aDefaultTitusGateway()
                         .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
-                        .withStore(master.getStore())
+                        .withStore(master.getJobStore())
                         .build();
             } else {
                 gateway = gateway.toBuilder()
                         .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
-                        .withStore(master.getStore())
+                        .withStore(master.getJobStore())
                         .build();
             }
 

@@ -297,7 +297,7 @@ public class EmbeddedStorageProvider implements V2StorageProvider {
     }
 
     static String getWorkerId(V2WorkerMetadataWritable worker) {
-        return worker.getJobId() + '_' + worker.getSlave() + '_' + worker.getWorkerNumber() + '_' + worker.getWorkerIndex();
+        return worker.getJobId() + '_' + worker.getWorkerNumber() + '_' + worker.getWorkerIndex();
     }
 
     static String getStageId(V2StageMetadataWritable msmd) {

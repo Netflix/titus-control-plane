@@ -16,6 +16,8 @@
 
 package io.netflix.titus.common.grpc;
 
+import java.util.function.BiConsumer;
+
 import com.google.protobuf.Empty;
 import io.grpc.ClientCall;
 import io.grpc.MethodDescriptor;
@@ -24,6 +26,7 @@ import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import rx.Emitter;
+import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
@@ -87,6 +90,32 @@ public class GrpcUtil {
         return sessionContext.getCallerId()
                 .map(callerId -> V3HeaderInterceptor.attachCallerId(client, callerId + ",TitusGateway"))
                 .orElse(client);
+    }
+
+    public static <O> Observable<O> toObservable(BiConsumer<Empty, StreamObserver<O>> grpcServiceMethod) {
+        return toObservable(Empty.getDefaultInstance(), grpcServiceMethod);
+    }
+
+    public static <I, O> Observable<O> toObservable(I input, BiConsumer<I, StreamObserver<O>> grpcServiceMethod) {
+        return Observable.create(emitter -> {
+            StreamObserver<O> streamObserver = new StreamObserver<O>() {
+                @Override
+                public void onNext(O value) {
+                    emitter.onNext(value);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    emitter.onError(t);
+                }
+
+                @Override
+                public void onCompleted() {
+                    emitter.onCompleted();
+                }
+            };
+            grpcServiceMethod.accept(input, streamObserver);
+        }, Emitter.BackpressureMode.NONE);
     }
 
     public static <STUB extends AbstractStub<STUB>, ReqT, RespT> ClientCall call(SessionContext sessionContext,

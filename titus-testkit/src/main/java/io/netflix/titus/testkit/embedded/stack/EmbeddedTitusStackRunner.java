@@ -22,23 +22,19 @@ import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 public class EmbeddedTitusStackRunner {
 
     public static void main(String[] args) throws InterruptedException {
-        if (args.length != 2 && args.length != 5) {
-            System.err.println("ERROR: provide jobFile, stageFile, workerFile, agentFile, and tierFile");
-            return;
-        }
-
         EmbeddedTitusMaster.Builder masterBuilder = EmbeddedTitusMaster.aTitusMaster()
                 .withProperty("titus.master.grpcServer.v3EnabledApps", "v3App")
                 .withApiPort(8080)
                 .withGrpcPort(8090);
-//        if (args.length == 5) {
-//            masterBuilder.withJobDataFromFile(args[0], args[1], args[2])
-//                    .withAgentClusterFileConfig(args[3])
-//                    .withTierConfigFile(args[4]);
-//        } else {
-//            masterBuilder.withAgentClusterFileConfig(args[0])
-//                    .withTierConfigFile(args[1]);
-//        }
+
+        if (args.length > 0) {
+            if (args.length != 2) {
+                System.err.println("Expected cloud simulator host and port number");
+                System.exit(-1);
+            }
+            masterBuilder.withRemoteCloud(args[0], Integer.parseInt(args[1]));
+        }
+
         EmbeddedTitusMaster titusMaster = masterBuilder.build();
 
         EmbeddedTitusStack stack = EmbeddedTitusStack.aTitusStack()

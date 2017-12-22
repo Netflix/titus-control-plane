@@ -35,6 +35,7 @@ import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import io.netflix.titus.api.agent.model.InstanceOverrideStatus;
@@ -46,6 +47,8 @@ import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 import static io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcAgentInstance;
@@ -53,6 +56,8 @@ import static io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters
 
 @Singleton
 public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImplBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(DefaultAgentManagementServiceGrpc.class);
 
     private final AgentManagementService agentManagementService;
     private final AgentStatusMonitor agentStatusMonitor;
@@ -178,7 +183,13 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
         });
         Observable.merge(agentManagementService.events(true), statusUpdateEvents)
                 .map(agentEvent -> GrpcAgentModelConverters.toGrpcEvent(agentEvent, agentStatusMonitor)).subscribe(
-                event -> event.ifPresent(responseObserver::onNext),
+                event -> {
+                    try {
+                        event.ifPresent(responseObserver::onNext);
+                    } catch (StatusRuntimeException e) {
+                        logger.debug("Error during sending event {} to the GRPC client", event, e);
+                    }
+                },
                 responseObserver::onError,
                 responseObserver::onCompleted
         );
