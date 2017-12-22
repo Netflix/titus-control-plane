@@ -234,4 +234,10 @@ public class LoadBalancerTests {
                         .build())
                 .build()));
     }
+
+    static String[] ipAddresses(List<Task> tasks) {
+        return tasks.stream()
+                .map(t -> t.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP))
+                .toArray(String[]::new);
+    }
 }
