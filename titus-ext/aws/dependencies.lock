@@ -7,11 +7,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -19,15 +19,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -375,7 +375,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -451,11 +451,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -463,15 +463,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -819,7 +819,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -895,11 +895,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -907,15 +907,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1263,7 +1263,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1334,34 +1334,34 @@
     },
     "jacocoAgent": {
         "org.jacoco:org.jacoco.agent": {
-            "locked": "0.7.8"
+            "locked": "0.7.9"
         }
     },
     "jacocoAnt": {
         "org.jacoco:org.jacoco.agent": {
-            "locked": "0.7.8",
+            "locked": "0.7.9",
             "transitive": [
                 "org.jacoco:org.jacoco.ant"
             ]
         },
         "org.jacoco:org.jacoco.ant": {
-            "locked": "0.7.8"
+            "locked": "0.7.9"
         },
         "org.jacoco:org.jacoco.core": {
-            "locked": "0.7.8",
+            "locked": "0.7.9",
             "transitive": [
                 "org.jacoco:org.jacoco.ant",
                 "org.jacoco:org.jacoco.report"
             ]
         },
         "org.jacoco:org.jacoco.report": {
-            "locked": "0.7.8",
+            "locked": "0.7.9",
             "transitive": [
                 "org.jacoco:org.jacoco.ant"
             ]
         },
         "org.ow2.asm:asm-debug-all": {
-            "locked": "5.1",
+            "locked": "5.2",
             "transitive": [
                 "org.jacoco:org.jacoco.core",
                 "org.jacoco:org.jacoco.report"
@@ -1376,11 +1376,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1388,15 +1388,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1744,7 +1744,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1821,11 +1821,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1833,15 +1833,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2189,7 +2189,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2278,11 +2278,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2290,15 +2290,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -3054,7 +3054,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3226,11 +3226,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -3238,15 +3238,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -4002,7 +4002,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -4174,11 +4174,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -4186,15 +4186,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -4950,7 +4950,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -5123,11 +5123,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -5135,15 +5135,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.250",
+            "locked": "1.11.255",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -5899,7 +5899,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b08",
+            "locked": "3.0.1-b09",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
