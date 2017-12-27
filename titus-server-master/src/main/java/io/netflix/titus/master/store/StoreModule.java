@@ -23,6 +23,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
+import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.master.store.cache.ApplicationSlaStoreCache;
@@ -39,6 +41,7 @@ public class StoreModule extends AbstractModule {
         bind(V2StorageProvider.class).to(SimpleCachedFileStorageProvider.class);
         bind(JobStore.class).to(InMemoryJobStore.class);
         bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
+        bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
     }
 
     @Singleton
