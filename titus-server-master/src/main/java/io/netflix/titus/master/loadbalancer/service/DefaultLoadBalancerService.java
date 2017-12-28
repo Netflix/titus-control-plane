@@ -24,7 +24,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -93,15 +92,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final TokenBucket connectorTokenBucket = Limiters.createFixedIntervalTokenBucket("loadBalancerConnector",
                 burst, burst, refillPerSec, 1, TimeUnit.SECONDS);
         this.engine = new LoadBalancerEngine(configuration, loadBalancerJobOperations, reconciler,
-                loadBalancerConnector, connectorTokenBucket, scheduler);
+                loadBalancerConnector, loadBalancerStore, connectorTokenBucket, scheduler);
 
     }
 
     @Override
     public Observable<String> getJobLoadBalancers(String jobId) {
-        return loadBalancerStore.retrieveLoadBalancersForJob(jobId)
-                .filter(loadBalancerState -> loadBalancerState.getState() == JobLoadBalancer.State.Associated)
-                .map(JobLoadBalancerState::getLoadBalancerId);
+        return loadBalancerStore.getAssociatedLoadBalancersForJob(jobId)
+                .map(JobLoadBalancer::getLoadBalancerId);
     }
 
     @Override

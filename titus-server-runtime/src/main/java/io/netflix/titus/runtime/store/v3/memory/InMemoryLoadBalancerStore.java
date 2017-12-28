@@ -18,6 +18,7 @@ package io.netflix.titus.runtime.store.v3.memory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -39,10 +40,29 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
 
     @Override
-    public Observable<JobLoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
+    public Observable<JobLoadBalancerState> getLoadBalancersForJob(String jobId) {
         return Observable.defer(() -> Observable.from(associations.entrySet())
                 .filter(entry -> entry.getKey().getJobId().equals(jobId))
                 .map(JobLoadBalancerState::from));
+    }
+
+    @Override
+    public Observable<JobLoadBalancer> getAssociatedLoadBalancersForJob(String jobId) {
+        return Observable.defer(() -> Observable.from(getAssociatedLoadBalancersSetForJob(jobId)));
+    }
+
+    @Override
+    public Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId) {
+        return associations.entrySet().stream()
+                .map(Map.Entry::getKey)
+                .filter(jobLoadBalancer -> jobLoadBalancer.getJobId().equals(jobId))
+                .filter(jobLoadBalancer -> associations.getOrDefault(jobLoadBalancer, JobLoadBalancer.State.Dissociated) == JobLoadBalancer.State.Associated)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public boolean hasAssociatedLoadBalancers(String jobId) {
+        return !getAssociatedLoadBalancersSetForJob(jobId).isEmpty();
     }
 
     @Override

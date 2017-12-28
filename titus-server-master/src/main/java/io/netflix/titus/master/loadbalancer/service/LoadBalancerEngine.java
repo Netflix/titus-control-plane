@@ -29,6 +29,7 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
 import io.netflix.titus.api.loadbalancer.model.TargetState;
+import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import io.netflix.titus.common.util.rx.batch.Batch;
@@ -48,9 +49,6 @@ import rx.subjects.Subject;
 class LoadBalancerEngine {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerEngine.class);
 
-    // TODO: index associations by jobId in the store, and remove this additional helper class
-    private final AssociationsTracking associationsTracking = new AssociationsTracking();
-
     private final Subject<JobLoadBalancer, JobLoadBalancer> pendingAssociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
     private final Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
 
@@ -58,33 +56,29 @@ class LoadBalancerEngine {
     private final LoadBalancerJobOperations jobOperations;
     private final TokenBucket connectorTokenBucket;
     private final LoadBalancerConnector connector;
+    private final LoadBalancerStore store;
     private final LoadBalancerReconciler reconciler;
     private final Scheduler scheduler;
 
     LoadBalancerEngine(LoadBalancerConfiguration configuration, LoadBalancerJobOperations loadBalancerJobOperations,
                        LoadBalancerReconciler reconciler, LoadBalancerConnector loadBalancerConnector,
-                       TokenBucket connectorTokenBucket, Scheduler scheduler) {
+                       LoadBalancerStore loadBalancerStore, TokenBucket connectorTokenBucket, Scheduler scheduler) {
         // TODO(fabio): load tracking state from store
         this.configuration = configuration;
         this.jobOperations = loadBalancerJobOperations;
         this.connector = loadBalancerConnector;
+        this.store = loadBalancerStore;
         this.connectorTokenBucket = connectorTokenBucket;
         this.reconciler = reconciler;
         this.scheduler = scheduler;
     }
 
     public Completable add(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> {
-            associationsTracking.add(jobLoadBalancer);
-            pendingAssociations.onNext(jobLoadBalancer);
-        });
+        return Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer));
     }
 
     public Completable remove(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> {
-            associationsTracking.remove(jobLoadBalancer);
-            pendingDissociations.onNext(jobLoadBalancer);
-        });
+        return Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer));
     }
 
     Observable<Batch<TargetStateBatchable, String>> events() {
@@ -164,7 +158,7 @@ class LoadBalancerEngine {
     private Observable<LoadBalancerTarget> targetsForTrackedTasks(Observable<Task> tasks) {
         return tasks.doOnNext(task -> logger.debug("Checking if task is in job being tracked: {}", task))
                 .filter(this::isTracked)
-                .map(task -> Pair.of(task, associationsTracking.get(task.getJobId())))
+                .map(task -> Pair.of(task, store.getAssociatedLoadBalancersSetForJob(task.getJobId())))
                 .doOnNext(pair -> logger.info("Task update in job being tracked, enqueuing {} load balancer updates: {}",
                         pair.getRight().size(), pair.getLeft()))
                 .flatMap(pair -> Observable.from(
@@ -197,7 +191,7 @@ class LoadBalancerEngine {
     }
 
     private boolean isTracked(Task task) {
-        return !associationsTracking.get(task.getJobId()).isEmpty();
+        return store.hasAssociatedLoadBalancers(task.getJobId());
     }
 
     private Instant now() {

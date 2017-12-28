@@ -25,7 +25,6 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
-import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -117,7 +116,7 @@ public class CassandraLoadBalancerStoreTest {
         });
 
         testData.forEach((jobLoadBalancer, state) -> {
-            assertThat(store.retrieveLoadBalancersForJob(jobLoadBalancer.getJobId()).toBlocking().getIterator().hasNext()).isFalse();
+            assertThat(store.getLoadBalancersForJob(jobLoadBalancer.getJobId()).toBlocking().getIterator().hasNext()).isFalse();
         });
     }
 
@@ -135,7 +134,7 @@ public class CassandraLoadBalancerStoreTest {
         });
 
         testData.forEach((jobLoadBalancer, state) -> {
-            store.retrieveLoadBalancersForJob(jobLoadBalancer.getJobId()).subscribe(
+            store.getLoadBalancersForJob(jobLoadBalancer.getJobId()).subscribe(
                     loadBalancerState -> {
                         assertThat(testData.containsKey(new JobLoadBalancer(jobLoadBalancer.getJobId(), loadBalancerState.getLoadBalancerId()))).isTrue();
                         assertThat(loadBalancerState.getState()).isEqualTo(JobLoadBalancer.State.Dissociated);
@@ -194,7 +193,7 @@ public class CassandraLoadBalancerStoreTest {
         Session session = cassandraCQLUnit.getSession();
         CassandraStoreConfiguration configuration = mock(CassandraStoreConfiguration.class);
         EntitySanitizer entitySanitizer = new LoadBalancerSanitizerBuilder().build();
-        CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(configuration, entitySanitizer, session, new DefaultRegistry());
+        CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(configuration, entitySanitizer, session);
         store.init();
 
         return store;
@@ -211,7 +210,7 @@ public class CassandraLoadBalancerStoreTest {
                 .map(jobLoadBalancer -> jobLoadBalancer.getJobId())
                 .collect(Collectors.toSet())
                 .forEach(jobId -> {
-                    store.retrieveLoadBalancersForJob(jobId).subscribe(
+                    store.getLoadBalancersForJob(jobId).subscribe(
                             loadBalancerState -> {
                                 logger.info("Got back load balancer state {} for job {}", loadBalancerState, jobId);
                                 assertThat(testData.containsKey(new JobLoadBalancer(jobId, loadBalancerState.getLoadBalancerId()))).isTrue();

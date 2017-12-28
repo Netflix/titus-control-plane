@@ -16,10 +16,13 @@
 
 package io.netflix.titus.ext.cassandra.store;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -31,7 +34,6 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -58,7 +60,6 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     private final PreparedStatement getAllJobIdsStmt;
     private final PreparedStatement insertLoadBalancerStmt;
-    private final PreparedStatement updateLoadBalancerStmt;
     private final PreparedStatement deleteLoadBalancerStmt;
 
     private final CassandraStoreConfiguration configuration;
@@ -67,9 +68,16 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     private final CassStoreHelper storeHelper;
 
-    private final Registry registry;
-
+    /**
+     * Stores a Job/Load Balancer's current state.
+     */
     private volatile Map<JobLoadBalancer, JobLoadBalancer.State> loadBalancerStateMap;
+
+    /**
+     * Optimized index for lookups of associated JobLoadBalancers by Job ID.
+     * Sets held in here must be all immutable (usually via Collections.unmodifiableSet).
+     */
+    private final ConcurrentMap<String, Set<JobLoadBalancer>> jobToAssociatedLoadBalancersMap;
 
     private static final String GET_ALL_JOB_IDS = String
             .format("SELECT %s, %s, %s FROM %s;",
@@ -96,17 +104,16 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     COLUMN_LOAD_BALANCER);
 
     @Inject
-    public CassandraLoadBalancerStore(CassandraStoreConfiguration configuration, @Named(LOAD_BALANCER_SANITIZER) EntitySanitizer entitySanitizer, Session session, Registry registry) {
+    public CassandraLoadBalancerStore(CassandraStoreConfiguration configuration, @Named(LOAD_BALANCER_SANITIZER) EntitySanitizer entitySanitizer, Session session) {
         this.configuration = configuration;
         this.entitySanitizer = entitySanitizer;
-        this.registry = registry;
 
         this.storeHelper = new CassStoreHelper(session);
         this.loadBalancerStateMap = new ConcurrentHashMap<>();
+        this.jobToAssociatedLoadBalancersMap = new ConcurrentHashMap<>();
 
         this.getAllJobIdsStmt = session.prepare(GET_ALL_JOB_IDS);
         this.insertLoadBalancerStmt = session.prepare(INSERT_JOB_LOAD_BALANCER);
-        this.updateLoadBalancerStmt = session.prepare(UPDATE_JOB_LOAD_BALANCER_STATE);
         this.deleteLoadBalancerStmt = session.prepare(DELETE_JOB_LOAD_BALANCER);
     }
 
@@ -129,6 +136,8 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     if (violations.isEmpty()) {
                         logger.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
                         loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
+                        Set<JobLoadBalancer> jobLoadBalancers = jobToAssociatedLoadBalancersMap.getOrDefault(jobLoadBalancer.getJobId(), new HashSet<>());
+                        jobLoadBalancers.add(jobLoadBalancer);
                     } else {
                         if (failOnError) {
                             throw LoadBalancerStoreException.badData(jobLoadBalancer, violations);
@@ -139,13 +148,50 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Observable<JobLoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
-        logger.debug("Retrieving load balancers for job {}", jobId);
+    public Observable<JobLoadBalancerState> getLoadBalancersForJob(String jobId) {
+        logger.debug("Getting all load balancer states for job {}", jobId);
         return Observable.from(loadBalancerStateMap.entrySet())
                 .filter(entry -> entry.getKey().getJobId().equals(jobId))
                 .map(JobLoadBalancerState::from);
     }
 
+    /**
+     * Returns an observable stream of the currently associated load balancers for a Job.
+     * @param jobId
+     * @return
+     */
+    @Override
+    public Observable<JobLoadBalancer> getAssociatedLoadBalancersForJob(String jobId) {
+        return Observable.from(getAssociatedLoadBalancersSetForJob(jobId));
+    }
+
+    /**
+     * This is in the critical path and should be fast, which is why it avoids lock contention, and keeps items indexed
+     * by jobId yielding O(1).
+     *
+     * @param jobId
+     * @return The current snapshot of what is currently being tracked
+     */
+    @Override
+    public Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId) {
+        logger.debug("Getting all associated load balancers for job {}", jobId);
+        return  jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySet());
+    }
+
+    /**
+     * Returns true of there are any load balancers in associated state for the Job.
+     * @param jobId
+     * @return
+     */
+    @Override
+    public boolean hasAssociatedLoadBalancers(String jobId) {
+        return !getAssociatedLoadBalancersSetForJob(jobId).isEmpty();
+    }
+
+    /**
+     * Returns all current load balancer associations.
+     * @return
+     */
     @Override
     public List<JobLoadBalancerState> getAssociations() {
         return loadBalancerStateMap.entrySet().stream()
@@ -153,22 +199,45 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Marks the persisted and in-memory state as Dissociated and removes from association in-memory map.
+     * @param jobLoadBalancer
+     * @param state
+     * @return
+     */
     @Override
     public Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state) {
         logger.debug("Updating load balancer {} to state {}", jobLoadBalancer, state);
         BoundStatement stmt = insertLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
         return storeHelper.execute(stmt)
-                .map(rs -> loadBalancerStateMap.put(jobLoadBalancer, state))
+                .map(rs -> {
+                    loadBalancerStateMap.put(jobLoadBalancer, state);
+                    if (JobLoadBalancer.State.Associated == state) {
+                        addJobLoadBalancerAssociation(jobLoadBalancer);
+                    } else if (JobLoadBalancer.State.Dissociated == state) {
+                        removeJobLoadBalancerAssociation(jobLoadBalancer);
+                    }
+                    return jobLoadBalancer;
+                })
                 .toCompletable();
     }
 
+    /**
+     * Removes the persisted Job/load balancer and state and removes in-memory state.
+     * @param jobLoadBalancer
+     * @return
+     */
     @Override
     public Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer) {
         logger.debug("Removing load balancer {}", jobLoadBalancer);
         BoundStatement stmt = deleteLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId());
         return storeHelper.execute(stmt)
                 // Note: If the C* entry doesn't exist, it'll fail here and not remove from the map.
-                .map(rs -> loadBalancerStateMap.remove(jobLoadBalancer))
+                .map(rs -> {
+                    loadBalancerStateMap.remove(jobLoadBalancer);
+                    removeJobLoadBalancerAssociation(jobLoadBalancer);
+                    return jobLoadBalancer;
+                })
                 .toCompletable();
     }
 
@@ -186,5 +255,44 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {
         return Pair.of(new JobLoadBalancer(row.getString(COLUMN_JOB_ID), row.getString(COLUMN_LOAD_BALANCER)),
                 JobLoadBalancer.State.valueOf(row.getString(COLUMN_STATE)));
+    }
+
+    /**
+     * Adds a new Job and associated Load Balancer by replacing any current set of associations
+     * for the Job.
+     * @param association
+     */
+    private void addJobLoadBalancerAssociation(JobLoadBalancer association) {
+        jobToAssociatedLoadBalancersMap.compute(association.getJobId(),
+                (jobId, associations) -> {
+                    if (associations == null) {
+                        associations = Collections.emptySet();
+                    }
+                    Set<JobLoadBalancer> copy = new HashSet<>(associations);
+                    // replace if existing
+                    copy.remove(association);
+                    copy.add(association);
+                    return Collections.unmodifiableSet(copy);
+                }
+        );
+    }
+
+    /**
+     * Removes a Job's associated Load Balancer by replacing any current set of associations
+     * for the Job.
+     * @param association
+     */
+    private void removeJobLoadBalancerAssociation(JobLoadBalancer association) {
+        jobToAssociatedLoadBalancersMap.computeIfPresent(association.getJobId(),
+                (jobId, associations) -> {
+                    final Set<JobLoadBalancer> copy = associations.stream()
+                            .filter(entry -> !entry.equals(association))
+                            .collect(Collectors.toSet());
+                    if (copy.isEmpty()) {
+                        return null;
+                    }
+                    return Collections.unmodifiableSet(copy);
+                }
+        );
     }
 }

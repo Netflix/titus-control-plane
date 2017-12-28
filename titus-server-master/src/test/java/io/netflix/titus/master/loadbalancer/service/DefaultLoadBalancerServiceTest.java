@@ -422,7 +422,7 @@ public class DefaultLoadBalancerServiceTest {
         assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
                 .await(100, TimeUnit.MILLISECONDS));
         assertTrue(service.removeLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        final JobLoadBalancerState jobLoadBalancerState = loadBalancerStore.retrieveLoadBalancersForJob(jobId).toBlocking().first();
+        final JobLoadBalancerState jobLoadBalancerState = loadBalancerStore.getLoadBalancersForJob(jobId).toBlocking().first();
         assertEquals(loadBalancerId, jobLoadBalancerState.getLoadBalancerId());
         assertEquals(JobLoadBalancer.State.Dissociated, jobLoadBalancerState.getState());
         assertFalse(service.getJobLoadBalancers(jobId).toBlocking().getIterator().hasNext());
