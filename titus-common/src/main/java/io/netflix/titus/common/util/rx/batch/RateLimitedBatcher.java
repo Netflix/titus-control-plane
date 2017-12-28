@@ -112,34 +112,42 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
         return new BatchUpstreamSubscriber(flusher);
     }
 
-    private final class BatchUpstreamSubscriber extends Subscriber<T> {
-        private final Flusher flusher;
+    private interface EventQueue<T> {
+        void offer(T item);
 
-        private BatchUpstreamSubscriber(Flusher flusher) {
-            this.flusher = flusher;
+        void offerError(Throwable e);
+
+        void stopWhenEmpty();
+    }
+
+    private final class BatchUpstreamSubscriber extends Subscriber<T> {
+        private final EventQueue<T> events;
+
+        private BatchUpstreamSubscriber(EventQueue<T> events) {
+            this.events = events;
         }
 
         @Override
         public void onCompleted() {
-            flusher.stopWhenEmpty();
+            events.stopWhenEmpty();
         }
 
         @Override
         public void onError(Throwable e) {
-            flusher.offerError(e);
+            events.offerError(e);
         }
 
         @Override
         public void onNext(T item) {
             Preconditions.checkNotNull(item);
-            flusher.offer(item);
+            events.offer(item);
         }
     }
 
     /**
      * Continually flushes pending batches to downstream subscribers
      */
-    private final class Flusher {
+    private final class Flusher implements EventQueue<T> {
         /**
          * each batch is an immutable Map (indexed by <tt>Batchable#getIdentifier()</tt>), and modifications are applied
          * with copy-on-write
@@ -350,7 +358,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
         /**
          * schedule an error to be sent and interrupt pending work
          */
-        private void offerError(Throwable e) {
+        public void offerError(Throwable e) {
             if (isOnErrorScheduled || sentError || sentCompleted) {
                 logger.error("Another terminal event was already sent, emitting as undeliverable", e);
                 RxJavaHooks.onError(e);
@@ -363,9 +371,10 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
         /**
          * enqueue an item from upstream
          */
-        private void offer(T item) {
-            if (done || sentError || sentCompleted) {
-                logger.warn("done={} onError={} onCompleted={} ignoring item {}", done, sentError, sentCompleted, item);
+        public void offer(T item) {
+            if (done || isOnErrorScheduled || sentError || sentCompleted) {
+                logger.warn("done={} onErrorScheduled={} onError={} onCompleted={} ignoring item {}",
+                        done, isOnErrorScheduled, sentError, sentCompleted, item);
                 return; // don't accumulate more after being told to stop
             }
             pending.put(indexExtractor.apply(item), item);
@@ -374,7 +383,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
         /**
          * causes current pending items to be drained to downstream subscribers before stopping completely
          */
-        private void stopWhenEmpty() {
+        public void stopWhenEmpty() {
             done = true;
         }
     }
