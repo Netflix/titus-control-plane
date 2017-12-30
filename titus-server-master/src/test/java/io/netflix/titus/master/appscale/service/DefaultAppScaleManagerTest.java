@@ -49,6 +49,8 @@ import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
 import io.netflix.titus.api.model.v2.parameter.Parameter;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
+import io.netflix.titus.api.store.v2.V2JobMetadata;
+import io.netflix.titus.api.store.v2.V2StageMetadata;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
 import io.netflix.titus.master.job.V2JobMgrIntf;
@@ -65,6 +67,7 @@ import rx.Completable;
 import rx.Observable;
 
 import static java.util.Arrays.asList;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -354,11 +357,12 @@ public class DefaultAppScaleManagerTest {
     private V2JobOperations mockV2Operations() {
         V2JobMgrIntf mockJobMgr = mock(ServiceJobMgr.class);
         V2JobOperations mockV2JobOperations = mock(V2JobOperations.class);
+        V2JobMetadata mockJobMetadata = mock(V2JobMetadata.class);
+        V2StageMetadata mockStageMetadata = mock(V2StageMetadata.class);
         V2JobDefinition mockJobDefinition = mock(V2JobDefinition.class);
         StageSchedulingInfo mockStageSchedulingInfo = mock(StageSchedulingInfo.class);
-        StageScalingPolicy mockScalingPolicy = mock(StageScalingPolicy.class);
         SchedulingInfo mockSchedulingInfo = mock(SchedulingInfo.class);
-
+        StageScalingPolicy mockScalingPolicy = mock(StageScalingPolicy.class);
 
         when(mockScalingPolicy.getMin())
                 .thenAnswer(new Answer<Integer>() {
@@ -387,6 +391,8 @@ public class DefaultAppScaleManagerTest {
             }
         });
 
+        when(mockJobMetadata.getStageMetadata(anyInt())).thenReturn(mockStageMetadata);
+        when(mockStageMetadata.getScalingPolicy()).thenReturn(mockScalingPolicy);
         when(mockStageSchedulingInfo.getScalingPolicy()).thenReturn(mockScalingPolicy);
 
         Map<Integer, StageSchedulingInfo> stageMap = new HashMap<>();
@@ -396,7 +402,7 @@ public class DefaultAppScaleManagerTest {
         when(mockJobDefinition.getSchedulingInfo()).thenReturn(mockSchedulingInfo);
 
         when(mockJobMgr.getJobDefinition()).thenReturn(mockJobDefinition);
-
+        when(mockJobMgr.getJobMetadata()).thenReturn(mockJobMetadata);
         when(mockV2JobOperations.getJobMgr(anyString())).thenReturn(mockJobMgr);
 
         return mockV2JobOperations;
