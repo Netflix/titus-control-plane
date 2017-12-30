@@ -50,7 +50,7 @@ import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
-import io.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
+import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.parameter.Parameter;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -136,7 +136,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     metrics.reportPolicyStatusTransition(autoScalingPolicy, autoScalingPolicy.getStatus());
                     return autoScalingPolicy.getRefId();
                 })
-                .subscribe(ignored -> log.info("AppScaleManager store load finished."));
+                .subscribe(policyRefId -> log.debug("AutoScalingPolicy loaded - " + policyRefId));
 
         pendingPoliciesSub = Observable.interval(120, 60, TimeUnit.SECONDS)
                 .observeOn(Schedulers.io())
@@ -513,11 +513,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.notServiceJob(jobId));
             }
 
-            V2JobDefinition jobDefinition = v2JobOperations.getJobMgr(jobId).getJobDefinition();
-            StageSchedulingInfo stageSchedulingInfo = jobDefinition.getSchedulingInfo().getStages().values().iterator().next();
-            int minCapacity = stageSchedulingInfo.getScalingPolicy().getMin();
-            int maxCapacity = stageSchedulingInfo.getScalingPolicy().getMax();
-            return new JobScalingConstraints(minCapacity, maxCapacity);
+            StageScalingPolicy scalingPolicy = v2JobOperations.getJobMgr(jobId).getJobMetadata().getStageMetadata(1).getScalingPolicy();
+            return new JobScalingConstraints(scalingPolicy.getMin(), scalingPolicy.getMax());
         } else {
             // V3 API
             Optional<Job<?>> job = v3JobOperations.getJob(jobId);
