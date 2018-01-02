@@ -25,8 +25,11 @@ import com.netflix.archaius.ConfigProxyFactory;
 import io.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+
+import static io.netflix.titus.api.loadbalancer.store.LoadBalancerStore.LOAD_BALANCER_SANITIZER;
 
 /**
  */
@@ -57,6 +60,13 @@ public class TitusEntitySanitizerModule extends AbstractModule {
     @Named(AGENT_SANITIZER)
     public EntitySanitizer getAgentEntitySanitizer() {
         return new AgentSanitizerBuilder().build();
+    }
+
+    @Provides
+    @Singleton
+    @Named(LOAD_BALANCER_SANITIZER)
+    public EntitySanitizer getLoadBalancerEntitySanitizer() {
+        return new LoadBalancerSanitizerBuilder().build();
     }
 
     @Provides
