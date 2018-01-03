@@ -3,6 +3,7 @@ package io.netflix.titus.testkit.embedded.cloud.endpoint.grpc;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,13 +18,16 @@ import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedOfferEvent;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedNetworkConfiguration;
 import io.grpc.stub.StreamObserver;
+import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
-import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Subscription;
 
 import static com.netflix.titus.simulator.TitusCloudSimulator.Id;
 import static com.netflix.titus.simulator.TitusCloudSimulator.Ids;
@@ -34,6 +38,8 @@ import static com.netflix.titus.simulator.TitusCloudSimulator.TasksLaunchRequest
 @Singleton
 public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
 
+    private static final Logger logger = LoggerFactory.getLogger(GrpcSimulatedMesosService.class);
+
     private final SimulatedCloud cloud;
 
     @Inject
@@ -43,11 +49,21 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
 
     @Override
     public void offerStream(Empty request, StreamObserver<SimulatedOfferEvent> responseObserver) {
-        cloud.offers().subscribe(
-                offerEvent -> responseObserver.onNext(toSimulatedOfferEvent(offerEvent)),
-                responseObserver::onError,
-                responseObserver::onCompleted
+        Subscription subscription = cloud.offers().subscribe(
+                offerEvent -> {
+                    logger.info("Sending new offer event: offerId={}, rescinded={}", offerEvent.getOffer().getId().getValue(), offerEvent.isRescind());
+                    responseObserver.onNext(toSimulatedOfferEvent(offerEvent));
+                },
+                e -> {
+                    logger.info("Offer subscription stream terminated with an error: {}", e.getMessage());
+                    responseObserver.onError(e);
+                },
+                () -> {
+                    logger.info("Offer subscription stream completed");
+                    responseObserver.onCompleted();
+                }
         );
+        GrpcUtil.attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
@@ -59,11 +75,12 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
 
     @Override
     public void taskStatusUpdateStream(Empty request, StreamObserver<SimulatedTaskStatus> responseObserver) {
-        cloud.taskStatusUpdates().subscribe(
+        Subscription subscription = cloud.taskStatusUpdates().subscribe(
                 statusUpdate -> responseObserver.onNext(toSimulatedStatusUpdate(statusUpdate)),
                 responseObserver::onError,
                 responseObserver::onCompleted
         );
+        GrpcUtil.attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
@@ -89,18 +106,11 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
 
     @Override
     public void reconcile(Ids request, StreamObserver<Empty> responseObserver) {
-        List<Protos.TaskStatus> taskStatuses = request.getIdsList().stream()
-                .map(taskId -> {
-                    TaskExecutorHolder holder = cloud.getTaskExecutorHolder(taskId);
-                    return Protos.TaskStatus.newBuilder()
-                            .setTaskId(Protos.TaskID.newBuilder().setValue(taskId))
-                            .setState(Protos.TaskState.TASK_RUNNING)
-                            .setSlaveId(Protos.SlaveID.newBuilder().setValue(holder.getAgent().getId()).build())
-                            .build();
-                })
-                .collect(Collectors.toList());
-        cloud.reconcileTasks(taskStatuses);
-
+        if (request.getIdsList().isEmpty()) {
+            cloud.reconcileKnownTasks();
+        } else {
+            cloud.reconcileTasks(new HashSet<>(request.getIdsList()));
+        }
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
     }

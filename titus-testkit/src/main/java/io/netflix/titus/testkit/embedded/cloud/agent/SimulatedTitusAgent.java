@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,7 +93,7 @@ public class SimulatedTitusAgent {
     private volatile int availableNetworkMbs;
     private volatile int offerIdx;
 
-    private final Subject<OfferChangeEvent, OfferChangeEvent> offerUpdates = new SerializedSubject<>(BehaviorSubject.create());
+    private final Subject<OfferChangeEvent, OfferChangeEvent> offerUpdates = new SerializedSubject<>(PublishSubject.create());
     private volatile Offer rescindedOffer;
     private volatile Offer lastOffer;
 
@@ -168,8 +169,57 @@ public class SimulatedTitusAgent {
         return slaveId;
     }
 
+    public double getTotalCPUs() {
+        return totalCPUs;
+    }
+
+    public double getTotalGPUs() {
+        return totalGPUs;
+    }
+
+    public int getTotalMemory() {
+        return totalMemory;
+    }
+
+    public int getTotalDisk() {
+        return totalDisk;
+    }
+
+    public int getTotalNetworkMbs() {
+        return totalNetworkMbs;
+    }
+
+    public double getAvailableCPUs() {
+        return availableCPUs;
+    }
+
+    public double getAvailableGPUs() {
+        return availableGPUs;
+    }
+
+    public int getAvailableMemory() {
+        return availableMemory;
+    }
+
+    public int getAvailableDisk() {
+        return availableDisk;
+    }
+
+    public int getAvailableNetworkMbs() {
+        return availableNetworkMbs;
+    }
+
+    public List<TaskExecutorHolder> getTaskExecutorHolders() {
+        return new ArrayList<>(pendingTasks.values());
+    }
+
     public Observable<OfferChangeEvent> observeOffers() {
-        return offerUpdates;
+        Observable<OfferChangeEvent> offerStream = (lastOffer == null)
+                ? offerUpdates
+                : Observable.just(OfferChangeEvent.offer(lastOffer)).concatWith(offerUpdates);
+        return offerStream
+                .doOnSubscribe(() -> logger.info("New offer subscription for agent: {}", slaveId.getValue()))
+                .doOnUnsubscribe(() -> logger.info("Offer subscription terminated for agent: {}", slaveId.getValue()));
     }
 
     public Observable<Protos.TaskStatus> taskStatusUpdates() {
@@ -199,15 +249,7 @@ public class SimulatedTitusAgent {
 
     public List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
         checkOffers(offerIds);
-        if (lastOffer != null) {
-            for (Protos.OfferID oid : offerIds) {
-                if (oid.equals(lastOffer.getId())) {
-                    rescindedOffer = lastOffer;
-                    lastOffer = null;
-                    break;
-                }
-            }
-        }
+        rescindOfferInternal(offerIds);
 
         List<TaskExecutorHolder> taskExecutorHolders = launchTasksInternal(tasks);
         taskExecutorHolders.forEach(launchedTasksSubject::onNext);
@@ -252,7 +294,7 @@ public class SimulatedTitusAgent {
         try {
             containerInfo = ContainerInfo.parseFrom(task.getData());
         } catch (InvalidProtocolBufferException e) {
-            handleTaskStateUpdate(task.getTaskId(), Protos.TaskState.TASK_FAILED, "Invalid ContainerInfo data: " + e.getMessage());
+            handleTaskStateUpdate(task.getTaskId().getValue(), Protos.TaskState.TASK_FAILED, "Invalid ContainerInfo data: " + e.getMessage());
 
             // TODO Better handle failure scenarios during task launch
             throw new IllegalStateException("Bad container info");
@@ -263,7 +305,7 @@ public class SimulatedTitusAgent {
             NetworkConfigInfo networkConfigInfo = containerInfo.getNetworkConfigInfo();
             containerIp = computeResources.allocateIpAddress();
             if (!networkResourceTracker.assign(task.getTaskId(), networkConfigInfo, containerIp)) {
-                handleTaskStateUpdate(task.getTaskId(), Protos.TaskState.TASK_FAILED, "Invalid ENI assignment");
+                handleTaskStateUpdate(task.getTaskId().getValue(), Protos.TaskState.TASK_FAILED, "Invalid ENI assignment");
 
                 // TODO Better handle failure scenarios during task launch
                 throw new IllegalStateException("Invalid ENI assignment");
@@ -392,8 +434,21 @@ public class SimulatedTitusAgent {
 
     public void declineOffer(Protos.OfferID offerId) {
         checkOffer(offerId);
+        rescindOfferInternal(Collections.singletonList(offerId));
         // To avoid tight loop, re-offer it after some delay
         worker.schedule(this::emmitAvailableOffers, 10, TimeUnit.MILLISECONDS);
+    }
+
+    private void rescindOfferInternal(Collection<Protos.OfferID> offerIds) {
+        if (lastOffer != null) {
+            for (Protos.OfferID oid : offerIds) {
+                if (oid.equals(lastOffer.getId())) {
+                    rescindedOffer = lastOffer;
+                    lastOffer = null;
+                    break;
+                }
+            }
+        }
     }
 
     public boolean hasOffer(Protos.OfferID offerID) {
@@ -421,12 +476,14 @@ public class SimulatedTitusAgent {
 
     private void emmitAvailableOffers() {
         if (lastOffer != null) {
+            logger.info("Rescinding offer: {}", lastOffer.getId().getValue());
             offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
             rescindedOffer = lastOffer;
             lastOffer = null;
         }
         if (aboveZero()) {
             lastOffer = createOfferForAvailableResources();
+            logger.info("Emitting new offer: {}", lastOffer.getId().getValue());
             offerUpdates.onNext(OfferChangeEvent.offer(lastOffer));
         }
     }
@@ -498,21 +555,26 @@ public class SimulatedTitusAgent {
                 .build();
     }
 
-    public Set<String> reconcileOwnedTasksIgnoreOther(Collection<Protos.TaskStatus> statuses) {
-        if (statuses.isEmpty()) {
-            return pendingTasks.values().stream()
-                    .map(h -> {
-                        handleTaskStateUpdate(TaskID.newBuilder().setValue(h.getTaskId()).build(), h.getState(), "Triggered by reconciler");
-                        return h.getTaskId();
-                    }).collect(Collectors.toSet());
-        }
+    public Set<String> reconcileOwnedTasksIgnoreOther(Set<String> taskIds) {
+        return taskIds.stream()
+                .filter(taskId -> pendingTasks.containsKey(TaskID.newBuilder().setValue(taskId).build()))
+                .map(taskId -> {
+                    TaskExecutorHolder holder = pendingTasks.get(TaskID.newBuilder().setValue(taskId).build());
+                    if (holder == null) {
+                        return null;
+                    }
+                    handleTaskStateUpdate(taskId, holder.getState(), "Triggered by reconciler");
+                    return taskId;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
 
-        return statuses.stream()
-                .filter(status -> pendingTasks.containsKey(status.getTaskId()))
-                .map(status -> {
-                    TaskExecutorHolder holder = pendingTasks.get(status.getTaskId());
-                    handleTaskStateUpdate(status.getTaskId(), holder.getState(), "Triggered by reconciler");
-                    return status.getTaskId().getValue();
+    public Set<String> reconcileKnownTasks() {
+        return pendingTasks.values().stream()
+                .map(h -> {
+                    handleTaskStateUpdate(h.getTaskId(), h.getState(), "Triggered by reconciler");
+                    return h.getTaskId();
                 }).collect(Collectors.toSet());
     }
 
@@ -525,9 +587,9 @@ public class SimulatedTitusAgent {
         }
     }
 
-    private void handleTaskStateUpdate(TaskID taskId, Protos.TaskState taskState, String message) {
+    private void handleTaskStateUpdate(String taskId, Protos.TaskState taskState, String message) {
         Protos.TaskStatus taskStatus = Protos.TaskStatus.newBuilder()
-                .setTaskId(taskId)
+                .setTaskId(TaskID.newBuilder().setValue(taskId).build())
                 .setHealthy(true)
                 .setState(taskState)
                 .setMessage(message)

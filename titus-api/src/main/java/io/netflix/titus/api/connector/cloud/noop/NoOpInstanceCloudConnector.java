@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.connector.cloud;
+package io.netflix.titus.api.connector.cloud.noop;
 
 import java.util.List;
 import java.util.Optional;
 import javax.inject.Singleton;
 
+import io.netflix.titus.api.connector.cloud.CloudConnectorException;
+import io.netflix.titus.api.connector.cloud.Instance;
+import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import io.netflix.titus.api.connector.cloud.InstanceGroup;
+import io.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.util.tuple.Either;
 import rx.Completable;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.appscale.service;
+package io.netflix.titus.api.connector.cloud.noop;
 
 import io.netflix.titus.api.appscale.model.AutoScalableTarget;
 import io.netflix.titus.api.appscale.model.PolicyConfiguration;

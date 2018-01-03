@@ -184,17 +184,15 @@ public class SimulatedCloud {
         }
     }
 
-    public void reconcileTasks(Collection<Protos.TaskStatus> statuses) {
+    public void reconcileTasks(Set<String> taskIds) {
         Set<String> found = agentInstanceGroups.values().stream()
-                .flatMap(g -> g.reconcileOwnedTasksIgnoreOther(statuses).stream())
+                .flatMap(g -> g.reconcileOwnedTasksIgnoreOther(taskIds).stream())
                 .collect(Collectors.toSet());
+        CollectionsExt.copyAndRemove(taskIds, found).forEach(this::emitTaskLostEvent);
+    }
 
-        if (statuses.isEmpty()) {
-            return;
-        }
-
-        Set<String> requested = statuses.stream().map(s -> s.getTaskId().getValue()).collect(Collectors.toSet());
-        CollectionsExt.copyAndRemove(requested, found).forEach(this::emitTaskLostEvent);
+    public void reconcileKnownTasks() {
+        agentInstanceGroups.values().forEach(SimulatedTitusAgentCluster::reconcileKnownTasks);
     }
 
     public Observable<AgentChangeEvent> topologyUpdates() {

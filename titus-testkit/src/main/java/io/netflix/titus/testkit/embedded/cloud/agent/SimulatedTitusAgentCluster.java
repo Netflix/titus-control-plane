@@ -206,8 +206,12 @@ public class SimulatedTitusAgentCluster {
         return Optional.empty();
     }
 
-    public Set<String> reconcileOwnedTasksIgnoreOther(Collection<Protos.TaskStatus> statuses) {
-        return agents.stream().flatMap(a -> a.reconcileOwnedTasksIgnoreOther(statuses).stream()).collect(Collectors.toSet());
+    public Set<String> reconcileOwnedTasksIgnoreOther(Set<String> taskIds) {
+        return agents.stream().flatMap(a -> a.reconcileOwnedTasksIgnoreOther(taskIds).stream()).collect(Collectors.toSet());
+    }
+
+    public Set<String> reconcileKnownTasks() {
+        return agents.stream().flatMap(a -> a.reconcileKnownTasks().stream()).collect(Collectors.toSet());
     }
 
     public Optional<SimulatedTitusAgent> findAgentWithOffer(Protos.OfferID offerID) {
