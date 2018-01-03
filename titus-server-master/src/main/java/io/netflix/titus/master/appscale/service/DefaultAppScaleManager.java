@@ -513,8 +513,13 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.notServiceJob(jobId));
             }
 
-            StageScalingPolicy scalingPolicy = v2JobOperations.getJobMgr(jobId).getJobMetadata().getStageMetadata(1).getScalingPolicy();
-            return new JobScalingConstraints(scalingPolicy.getMin(), scalingPolicy.getMax());
+            v2JobMgr = v2JobOperations.getJobMgr(jobId);
+            if (v2JobMgr != null && v2JobMgr.getJobMetadata() != null &&
+                    v2JobMgr.getJobMetadata().getStageMetadata(1) != null) {
+                StageScalingPolicy scalingPolicy = v2JobOperations.getJobMgr(jobId).getJobMetadata().getStageMetadata(1).getScalingPolicy();
+                return new JobScalingConstraints(scalingPolicy.getMin(), scalingPolicy.getMax());
+            }
+            throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
         } else {
             // V3 API
             Optional<Job<?>> job = v3JobOperations.getJob(jobId);
