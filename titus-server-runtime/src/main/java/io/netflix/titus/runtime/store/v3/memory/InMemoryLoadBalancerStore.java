@@ -18,6 +18,7 @@ package io.netflix.titus.runtime.store.v3.memory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -39,10 +40,25 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
 
     @Override
-    public Observable<JobLoadBalancerState> retrieveLoadBalancersForJob(String jobId) {
+    public Observable<JobLoadBalancerState> getLoadBalancersForJob(String jobId) {
         return Observable.defer(() -> Observable.from(associations.entrySet())
                 .filter(entry -> entry.getKey().getJobId().equals(jobId))
                 .map(JobLoadBalancerState::from));
+    }
+
+    @Override
+    public Observable<JobLoadBalancer> getAssociatedLoadBalancersForJob(String jobId) {
+        return Observable.defer(() -> Observable.from(getAssociatedLoadBalancersSetForJob(jobId)));
+    }
+
+    // Note: This implementation is not optimized for constant time lookup and should only
+    // be used for non-performance critical scenarios, like testing.
+    @Override
+    public Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId) {
+        return associations.entrySet().stream()
+                .filter(pair -> pair.getKey().getJobId().equals(jobId) && (pair.getValue() == JobLoadBalancer.State.Associated))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     @Override

@@ -17,6 +17,7 @@
 package io.netflix.titus.api.loadbalancer.store;
 
 import java.util.List;
+import java.util.Set;
 
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
@@ -27,12 +28,20 @@ public interface LoadBalancerStore {
     String LOAD_BALANCER_SANITIZER = "loadbalancer";
 
     /**
-     * Returns all load balancers associated with a job.
+     * Returns all load balancers and their state for a job.
+     * TODO(Andrew L): This method can be removed if/when the store no longer tracks Dissociated states.
      *
      * @param jobId
      * @return
      */
-    Observable<JobLoadBalancerState> retrieveLoadBalancersForJob(String jobId);
+    Observable<JobLoadBalancerState> getLoadBalancersForJob(String jobId);
+
+    /**
+     * Returns an observable stream of load balancers in associated state for a Job.
+     * @param jobId
+     * @return
+     */
+    Observable<JobLoadBalancer> getAssociatedLoadBalancersForJob(String jobId);
 
     /**
      * Adds a new or updates an existing load balancer with the provided state.
@@ -52,7 +61,17 @@ public interface LoadBalancerStore {
     Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer);
 
     /**
+     * Blocking call that returns the current snapshot set of load balancers associated with for a Job.
+     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
+     *
+     * @param jobId
+     * @return
+     */
+    Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId);
+
+    /**
      * Blocking call that returns the number of load balancers associated with a job.
+     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
      *
      * @param jobId
      * @return Returns 0 even if jobId does not exist.
