@@ -193,10 +193,6 @@ class LoadBalancerEngine {
                 connectorTokenBucket, minTimeMs, maxTimeMs, TargetStateBatchable::getLoadBalancerId, emissionStrategy);
     }
 
-    private boolean isTracked(Task task) {
-        return store.hasAssociatedLoadBalancers(task.getJobId());
-    }
-
     private Instant now() {
         return Instant.ofEpochMilli(scheduler.now());
     }

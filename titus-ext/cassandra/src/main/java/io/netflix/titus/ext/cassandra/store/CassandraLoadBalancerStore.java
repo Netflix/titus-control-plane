@@ -32,6 +32,7 @@ import javax.validation.ConstraintViolation;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
@@ -66,6 +67,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     private final EntitySanitizer entitySanitizer;
 
+    private final Session session;
     private final CassStoreHelper storeHelper;
 
     /**
@@ -108,6 +110,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
         this.configuration = configuration;
         this.entitySanitizer = entitySanitizer;
 
+        this.session = session;
         this.storeHelper = new CassStoreHelper(session);
         this.loadBalancerStateMap = new ConcurrentHashMap<>();
         this.jobToAssociatedLoadBalancersMap = new ConcurrentHashMap<>();
@@ -180,16 +183,6 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     /**
-     * Returns true of there are any load balancers in associated state for the Job.
-     * @param jobId
-     * @return
-     */
-    @Override
-    public boolean hasAssociatedLoadBalancers(String jobId) {
-        return !getAssociatedLoadBalancersSetForJob(jobId).isEmpty();
-    }
-
-    /**
      * Returns all current load balancer associations.
      * @return
      */
@@ -209,22 +202,18 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state) {
         logger.debug("Updating load balancer {} to state {}", jobLoadBalancer, state);
-        // Ensure Cassandra and in-memory structure updates are consistent. Subsequent reads of each source
-        // should produce state from the same view of updates.
-        synchronized (this) {
-            BoundStatement stmt = insertLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
-            return storeHelper.execute(stmt)
-                    .map(rs -> {
-                        loadBalancerStateMap.put(jobLoadBalancer, state);
-                        if (JobLoadBalancer.State.Associated == state) {
-                            addJobLoadBalancerAssociation(jobLoadBalancer);
-                        } else if (JobLoadBalancer.State.Dissociated == state) {
-                            removeJobLoadBalancerAssociation(jobLoadBalancer);
-                        }
-                        return jobLoadBalancer;
-                    })
-                    .toCompletable();
-        }
+        return Completable.fromAction(() -> {
+            synchronized (this) {
+                BoundStatement stmt = insertLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
+                ResultSet rs = session.execute(stmt);
+                loadBalancerStateMap.put(jobLoadBalancer, state);
+                if (JobLoadBalancer.State.Associated == state) {
+                    addJobLoadBalancerAssociation(jobLoadBalancer);
+                } else if (JobLoadBalancer.State.Dissociated == state) {
+                    removeJobLoadBalancerAssociation(jobLoadBalancer);
+                }
+            }
+        });
     }
 
     /**

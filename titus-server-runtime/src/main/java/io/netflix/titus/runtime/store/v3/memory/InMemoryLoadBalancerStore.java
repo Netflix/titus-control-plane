@@ -62,11 +62,6 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public boolean hasAssociatedLoadBalancers(String jobId) {
-        return !getAssociatedLoadBalancersSetForJob(jobId).isEmpty();
-    }
-
-    @Override
     public Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state) {
         return Completable.fromAction(() -> associations.put(jobLoadBalancer, state));
     }

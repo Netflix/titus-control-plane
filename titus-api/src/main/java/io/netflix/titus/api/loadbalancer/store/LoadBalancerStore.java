@@ -70,14 +70,6 @@ public interface LoadBalancerStore {
     Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId);
 
     /**
-     * Blocking call that returns true if the Job has any load balancers in associated state.
-     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
-     * @param jobId
-     * @return
-     */
-    boolean hasAssociatedLoadBalancers(String jobId);
-
-    /**
      * Blocking call that returns the number of load balancers associated with a job.
      * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
      *
