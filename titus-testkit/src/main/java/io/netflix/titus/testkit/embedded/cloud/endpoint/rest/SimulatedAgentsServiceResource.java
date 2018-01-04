@@ -2,6 +2,8 @@ package io.netflix.titus.testkit.embedded.cloud.endpoint.rest;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -16,6 +18,7 @@ import javax.ws.rs.core.Response;
 
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
+import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import com.sun.jersey.spi.resource.Singleton;
 import io.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudGateway;
 
@@ -42,9 +45,32 @@ public class SimulatedAgentsServiceResource {
     }
 
     @GET
+    @Path("/instances")
+    public List<SimulatedInstance> getAllInstances(@QueryParam("ids") List<String> ids) {
+        List<SimulatedInstance> allInstances = gateway.getAllInstanceGroups().stream().flatMap(g -> gateway.getInstances(g.getId()).stream()).collect(Collectors.toList());
+        if (ids.isEmpty()) {
+            return allInstances;
+        }
+        Set<String> idSet = new HashSet<>(ids);
+        return allInstances.stream().filter(i -> idSet.contains(i.getId())).collect(Collectors.toList());
+    }
+
+    @GET
     @Path("/instanceGroups/{instanceGroupId}/instances")
     public List<SimulatedInstance> getInstances(@PathParam("instanceGroupId") String instanceGroupId) {
         return gateway.getInstances(instanceGroupId);
+    }
+
+    @GET
+    @Path("tasks")
+    public List<SimulatedTask> getSimulatedTasks(@QueryParam("ids") List<String> ids) {
+        return gateway.getSimulatedTasks(new HashSet<>(ids));
+    }
+
+    @GET
+    @Path("/instances/{instanceId}/tasks")
+    public List<SimulatedTask> getSimulatedTasks(@PathParam("instanceId") String instanceId) {
+        return gateway.getSimulatedTasksOnInstance(instanceId);
     }
 
     @PUT

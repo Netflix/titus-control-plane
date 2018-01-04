@@ -51,15 +51,8 @@ class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
     private Subscription offerSubscription;
     private Subscription taskStatusUpdateSubscription;
 
-    SimulatedRemoteSchedulerDriver(CloudSimulatorConnectorConfiguration configuration, ManagedChannel channel, Scheduler callbackHandler) {
-        this.masterInfo = Protos.MasterInfo.newBuilder()
-                .setId("MasterId#Simulated")
-                .setAddress(Protos.Address.newBuilder().setHostname(configuration.getHost()).setPort(configuration.getGrpcPort()))
-                .setHostname(configuration.getHost())
-                .setIp(0)
-                .setPort(configuration.getGrpcPort())
-                .setVersion("1.2.simulated")
-                .build();
+    SimulatedRemoteSchedulerDriver(Protos.MasterInfo masterInfo, ManagedChannel channel, Scheduler callbackHandler) {
+        this.masterInfo = masterInfo;
         this.asyncClient = SimulatedMesosServiceGrpc.newStub(channel);
         this.blockingClient = SimulatedMesosServiceGrpc.newBlockingStub(channel);
         this.callbackHandler = callbackHandler;
@@ -68,13 +61,15 @@ class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
     @Override
     public Protos.Status start() {
         this.callbackHandler.registered(this, FRAMEWORK_ID, masterInfo);
+
         this.offerSubscription = GrpcUtil.toObservable(asyncClient::offerStream).subscribe(
                 grpcOfferEvent -> {
                     Protos.Offer offer = toMesosOffer(grpcOfferEvent.getOffer());
                     if (grpcOfferEvent.getRescinded()) {
                         callbackHandler.offerRescinded(this, offer.getId());
+                    } else {
+                        callbackHandler.resourceOffers(this, Collections.singletonList(offer));
                     }
-                    callbackHandler.resourceOffers(this, Collections.singletonList(offer));
                 },
                 e -> logger.error("Offer stream terminated with an error", e),
                 () -> logger.warn("Offer stream terminated")

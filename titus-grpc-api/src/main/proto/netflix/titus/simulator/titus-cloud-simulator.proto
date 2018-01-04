@@ -37,9 +37,13 @@ message SimulatedInstance {
 
     SimulatedInstanceState state = 5;
 
-    map<string, string> attributes = 6;
+    SimulatedComputeResources allComputeResources = 6;
 
-    uint64 launchTime = 7;
+    SimulatedComputeResources availableComputeResources = 7;
+
+    map<string, string> attributes = 8;
+
+    uint64 launchTime = 9;
 }
 
 message SimulatedInstanceGroup {

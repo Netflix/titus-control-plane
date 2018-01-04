@@ -22,9 +22,9 @@ import io.netflix.titus.api.appscale.service.AppScaleManager;
 import io.netflix.titus.api.connector.cloud.AppAutoScalingClient;
 import io.netflix.titus.api.connector.cloud.CloudAlarmClient;
 import io.netflix.titus.master.appscale.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
-import io.netflix.titus.master.appscale.service.NoOpAppAutoScalingClient;
+import io.netflix.titus.api.connector.cloud.noop.NoOpAppAutoScalingClient;
 import io.netflix.titus.master.appscale.service.DefaultAppScaleManager;
-import io.netflix.titus.master.appscale.service.NoOpCloudAlarmClient;
+import io.netflix.titus.api.connector.cloud.noop.NoOpCloudAlarmClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

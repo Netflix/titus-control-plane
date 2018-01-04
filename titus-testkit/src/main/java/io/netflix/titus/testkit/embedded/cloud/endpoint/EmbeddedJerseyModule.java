@@ -98,10 +98,14 @@ public final class EmbeddedJerseyModule extends AbstractModule {
         if (resource == null) {
             return "/";
         }
-        try {
-            return new File(resource.toURI()).getParentFile().getParent();
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException(e);
+        if (resource.getProtocol().equals("file")) {
+            try {
+                return new File(resource.toURI()).getParentFile().getParent();
+            } catch (URISyntaxException e) {
+                throw new IllegalStateException(e);
+            }
         }
+        // TODO Handle jar content properly.
+        return "/";
     }
 }

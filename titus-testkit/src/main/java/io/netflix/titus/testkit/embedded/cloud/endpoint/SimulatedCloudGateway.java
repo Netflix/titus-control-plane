@@ -6,13 +6,15 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.simulator.TitusCloudSimulator;
+import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedComputeResources;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup.Capacity;
+import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
+import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 
 @Singleton
 public class SimulatedCloudGateway {
@@ -45,6 +47,21 @@ public class SimulatedCloudGateway {
         return toSimulatedInstance(simulatedCloud.getAgentInstance(instanceid));
     }
 
+    public List<SimulatedTask> getSimulatedTasks(Set<String> taskIds) {
+        return simulatedCloud.getAgentInstanceGroups().stream()
+                .flatMap(g -> g.getAgents().stream())
+                .flatMap(a -> a.getTaskExecutorHolders().stream())
+                .filter(holder -> taskIds.isEmpty() || taskIds.contains(holder.getTaskId()))
+                .map(this::toSimulatedTask)
+                .collect(Collectors.toList());
+    }
+
+    public List<SimulatedTask> getSimulatedTasksOnInstance(String instanceId) {
+        return simulatedCloud.getAgentInstance(instanceId).getTaskExecutorHolders().stream()
+                .map(this::toSimulatedTask)
+                .collect(Collectors.toList());
+    }
+
     public void updateCapacity(String instanceGroupId, Capacity capacity) {
         simulatedCloud.getAgentInstanceGroup(instanceGroupId).updateCapacity(
                 capacity.getMin(), capacity.getDesired(), capacity.getMax()
@@ -67,7 +84,7 @@ public class SimulatedCloudGateway {
                         .setDesired(agentCluster.getAgents().size())
                         .setMax(agentCluster.getMaxSize())
                 )
-                .setComputeResources(TitusCloudSimulator.SimulatedComputeResources.newBuilder()
+                .setComputeResources(SimulatedComputeResources.newBuilder()
                         .setCpu((int) agentCluster.getCpus())
                         .setMemoryMB(agentCluster.getMemory())
                         .setDiskMB(agentCluster.getDisk())
@@ -81,6 +98,37 @@ public class SimulatedCloudGateway {
     private SimulatedInstance toSimulatedInstance(SimulatedTitusAgent agent) {
         return SimulatedInstance.newBuilder()
                 .setId(agent.getId())
+                .setInstanceGroupId(agent.getClusterName())
+                .setHostname(agent.getHostName())
+                .setIpAddress(agent.getHostName())
+                .setState(SimulatedInstance.SimulatedInstanceState.Running)
+                .setAllComputeResources(SimulatedComputeResources.newBuilder()
+                        .setCpu((int) agent.getTotalCPUs())
+                        .setGpu((int) agent.getTotalGPUs())
+                        .setMemoryMB(agent.getTotalMemory())
+                        .setDiskMB(agent.getTotalDisk())
+                        .setNetworkMB(agent.getTotalNetworkMbs())
+                )
+                .setAvailableComputeResources(SimulatedComputeResources.newBuilder()
+                        .setCpu((int) agent.getAvailableCPUs())
+                        .setGpu((int) agent.getAvailableGPUs())
+                        .setMemoryMB(agent.getAvailableMemory())
+                        .setDiskMB(agent.getAvailableDisk())
+                        .setNetworkMB(agent.getAvailableNetworkMbs())
+                )
+                .build();
+    }
+
+    private SimulatedTask toSimulatedTask(TaskExecutorHolder holder) {
+        return SimulatedTask.newBuilder()
+                .setTaskId(holder.getTaskId())
+                .setInstanceId(holder.getAgent().getId())
+                .setComputeResources(SimulatedComputeResources.newBuilder()
+                        .setCpu((int) holder.getTaskCPUs())
+                        .setMemoryMB((int) holder.getTaskMem())
+                        .setDiskMB((int) holder.getTaskDisk())
+                        .setNetworkMB((int) holder.getTaskNetworkMbs())
+                )
                 .build();
     }
 }

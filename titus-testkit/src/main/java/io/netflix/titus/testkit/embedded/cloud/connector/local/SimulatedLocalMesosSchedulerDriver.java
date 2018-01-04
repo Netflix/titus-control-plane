@@ -18,13 +18,12 @@ package io.netflix.titus.testkit.embedded.cloud.connector.local;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import io.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.Status;
@@ -223,7 +222,11 @@ public class SimulatedLocalMesosSchedulerDriver implements SchedulerDriver {
     @Override
     public Status reconcileTasks(Collection<Protos.TaskStatus> statuses) {
         checkDriverInRunningState();
-        simulatedCloud.reconcileTasks(statuses);
+        if (statuses.isEmpty()) {
+            simulatedCloud.reconcileKnownTasks();
+        } else {
+            simulatedCloud.reconcileTasks(statuses.stream().map(s -> s.getTaskId().getValue()).collect(Collectors.toSet()));
+        }
         return Status.DRIVER_RUNNING;
     }
 

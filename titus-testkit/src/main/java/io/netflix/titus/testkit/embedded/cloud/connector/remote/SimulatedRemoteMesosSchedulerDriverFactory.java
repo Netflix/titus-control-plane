@@ -6,6 +6,7 @@ import javax.inject.Singleton;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
@@ -14,13 +15,25 @@ import org.apache.mesos.SchedulerDriver;
 @Singleton
 public class SimulatedRemoteMesosSchedulerDriverFactory implements MesosSchedulerDriverFactory {
 
-    private final CloudSimulatorConnectorConfiguration configuration;
     private final ManagedChannel channel;
+    private final Protos.MasterInfo masterInfo;
 
     @Inject
-    public SimulatedRemoteMesosSchedulerDriverFactory(CloudSimulatorConnectorConfiguration configuration) {
-        this.configuration = configuration;
-        this.channel = ManagedChannelBuilder.forAddress(configuration.getHost(), configuration.getGrpcPort())
+    public SimulatedRemoteMesosSchedulerDriverFactory(CloudSimulatorResolver cloudSimulatorResolver) {
+        Pair<String, Integer> address = cloudSimulatorResolver.resolveGrpcEndpoint();
+        String host = address.getLeft();
+        int port = address.getRight();
+
+        this.masterInfo = Protos.MasterInfo.newBuilder()
+                .setId("MasterId#Simulated")
+                .setAddress(Protos.Address.newBuilder().setHostname(host).setPort(port))
+                .setHostname(host)
+                .setIp(0)
+                .setPort(port)
+                .setVersion("1.2.simulated")
+                .build();
+
+        this.channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext(true)
                 .build();
     }
@@ -32,6 +45,6 @@ public class SimulatedRemoteMesosSchedulerDriverFactory implements MesosSchedule
 
     @Override
     public SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, Scheduler scheduler) {
-        return new SimulatedRemoteSchedulerDriver(configuration, channel, scheduler);
+        return new SimulatedRemoteSchedulerDriver(masterInfo, channel, scheduler);
     }
 }

@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.connector.cloud;
+package io.netflix.titus.api.connector.cloud.noop;
 
 import java.util.Collections;
 import java.util.Set;
 
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import rx.Completable;
 import rx.Single;
 

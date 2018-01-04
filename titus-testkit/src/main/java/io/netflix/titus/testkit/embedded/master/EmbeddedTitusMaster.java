@@ -53,7 +53,7 @@ import io.netflix.titus.api.audit.model.AuditLogEvent;
 import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
-import io.netflix.titus.api.connector.cloud.NoOpLoadBalancerConnector;
+import io.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
@@ -90,7 +90,7 @@ import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalInstanceCloudConnector;
 import io.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriver;
 import io.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriverFactory;
-import io.netflix.titus.testkit.embedded.cloud.connector.remote.CloudSimulatorConnectorConfiguration;
+import io.netflix.titus.testkit.embedded.cloud.connector.remote.CloudSimulatorResolver;
 import io.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
 import io.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteMesosSchedulerDriverFactory;
 import io.netflix.titus.testkit.util.NetworkExt;
@@ -154,7 +154,7 @@ public class EmbeddedTitusMaster {
         } else {
             this.simulatedCloud = null;
 
-            CloudSimulatorConnectorConfiguration connectorConfiguration = newCloudSimulatorConfiguration(builder);
+            CloudSimulatorResolver connectorConfiguration = () -> builder.remoteCloud;
             this.cloudInstanceConnector = new SimulatedRemoteInstanceCloudConnector(connectorConfiguration);
             this.mesosSchedulerDriverFactory = new SimulatedRemoteMesosSchedulerDriverFactory(connectorConfiguration);
 
@@ -162,20 +162,6 @@ public class EmbeddedTitusMaster {
         if (simulatedCloud != null) {
             builder.agentClusters.forEach(simulatedCloud::addInstanceGroup);
         }
-    }
-
-    private CloudSimulatorConnectorConfiguration newCloudSimulatorConfiguration(Builder builder) {
-        return new CloudSimulatorConnectorConfiguration() {
-            @Override
-            public String getHost() {
-                return builder.remoteCloud.getLeft();
-            }
-
-            @Override
-            public int getGrpcPort() {
-                return builder.remoteCloud.getRight();
-            }
-        };
     }
 
     public EmbeddedTitusMaster boot() {

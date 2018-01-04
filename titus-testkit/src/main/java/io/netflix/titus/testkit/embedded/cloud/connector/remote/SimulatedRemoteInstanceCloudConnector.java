@@ -40,8 +40,9 @@ public class SimulatedRemoteInstanceCloudConnector implements InstanceCloudConne
     private final SimulatedAgentServiceStub client;
 
     @Inject
-    public SimulatedRemoteInstanceCloudConnector(CloudSimulatorConnectorConfiguration configuration) {
-        this.channel = ManagedChannelBuilder.forAddress(configuration.getHost(), configuration.getGrpcPort())
+    public SimulatedRemoteInstanceCloudConnector(CloudSimulatorResolver cloudSimulatorResolver) {
+        Pair<String, Integer> cloudSimulatorAddress = cloudSimulatorResolver.resolveGrpcEndpoint();
+        this.channel = ManagedChannelBuilder.forAddress(cloudSimulatorAddress.getLeft(), cloudSimulatorAddress.getRight())
                 .usePlaintext(true)
                 .build();
         this.client = SimulatedAgentServiceGrpc.newStub(channel);
@@ -188,6 +189,8 @@ public class SimulatedRemoteInstanceCloudConnector implements InstanceCloudConne
                 .withInstanceIds(simulated.getInstanceIdsList())
                 .withIsLaunchSuspended(false)
                 .withIsTerminateSuspended(false)
+                .withLaunchConfigurationName(simulated.getId())
+                .withAttributes(Collections.emptyMap())
                 .build();
     }
 
