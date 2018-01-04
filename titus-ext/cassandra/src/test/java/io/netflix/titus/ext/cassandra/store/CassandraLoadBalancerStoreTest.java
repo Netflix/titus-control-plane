@@ -16,10 +16,13 @@
 
 package io.netflix.titus.ext.cassandra.store;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
@@ -142,6 +145,45 @@ public class CassandraLoadBalancerStoreTest {
         });
     }
 
+    public class UpdateThread implements Runnable {
+        private final JobLoadBalancer jobLoadBalancer;
+        private final JobLoadBalancer.State state;
+        private final CassandraLoadBalancerStore store;
+
+        private UpdateThread(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state, CassandraLoadBalancerStore store) {
+            this.jobLoadBalancer = jobLoadBalancer;
+            this.state = state;
+            this.store = store;
+        }
+
+        @Override
+        public void run() {
+            store.addOrUpdateLoadBalancer(jobLoadBalancer, state).await(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    @Test
+    public void testParallelUpdates() throws Exception {
+        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(100, 20);
+
+        CassandraLoadBalancerStore store = getInitdStore();
+
+        // Create an thread pool to generate concurrent updates
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        testData.forEach(
+                (jobLoadBalancer, state) -> {
+                    Runnable anUpdate = new UpdateThread(jobLoadBalancer, state, store);
+                    executorService.execute(anUpdate);
+                }
+        );
+        // Wait till all jobs were submitted
+        executorService.shutdown();
+        assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+
+        // Verify data is consistent
+        checkDataSetExists(store, testData);
+    }
+
     /**
      * Returns a map of data to be inserted that can be used for later verification.
      *
@@ -200,27 +242,57 @@ public class CassandraLoadBalancerStoreTest {
     }
 
     /**
+     * Returns the set of JobIds in a test data map.
+     * @return
+     */
+    private Set<String> getJobIdsFromTestData(Map<JobLoadBalancer, JobLoadBalancer.State> testData) {
+        Set<String> jobIdSet = new HashSet<>();
+        testData.keySet()
+                .forEach(jobLoadBalancer -> jobIdSet.add(jobLoadBalancer.getJobId()));
+        return jobIdSet;
+    }
+
+    /**
      * Checks if a provided data set fully exists in the store. The method is
      * expected to assert if the check is false.
      *
      * @throws Exception
      */
     private void checkDataSetExists(CassandraLoadBalancerStore store, Map<JobLoadBalancer, JobLoadBalancer.State> testData) throws Exception {
-        testData.keySet().stream()
-                .map(jobLoadBalancer -> jobLoadBalancer.getJobId())
-                .collect(Collectors.toSet())
-                .forEach(jobId -> {
-                    store.getLoadBalancersForJob(jobId).subscribe(
-                            loadBalancerState -> {
-                                logger.info("Got back load balancer state {} for job {}", loadBalancerState, jobId);
-                                assertThat(testData.containsKey(new JobLoadBalancer(jobId, loadBalancerState.getLoadBalancerId()))).isTrue();
-                                assertThat(testData.get(new JobLoadBalancer(jobId, loadBalancerState.getLoadBalancerId())))
-                                        .isEqualTo(loadBalancerState.getState());
-                                logger.info("Verified job {} has load balancer id {} in state {}",
-                                        jobId,
-                                        loadBalancerState.getLoadBalancerId(),
-                                        loadBalancerState.getState());
-                            });
-                });
+        Set<JobLoadBalancer> verificationSet = new HashSet<>(testData.keySet());
+        Set<String> jobIdSet = getJobIdsFromTestData(testData);
+
+        jobIdSet.forEach(jobId -> {
+            // Verify we get the correct load balancers in the correct state
+            store.getLoadBalancersForJob(jobId).subscribe(
+                    loadBalancerState -> {
+                        // Verify that all of the returned data was in the test data.
+                        JobLoadBalancer jobLoadBalancer = loadBalancerState.getJobLoadBalancer();
+                        assertThat(jobLoadBalancer.getJobId().equals(jobId)).isTrue();
+                        assertThat(testData.containsKey(jobLoadBalancer)).isTrue();
+                        assertThat(testData.get(jobLoadBalancer))
+                                .isEqualTo(loadBalancerState.getState());
+
+                        // Mark that this job/load balancer was checked
+                        assertThat(verificationSet.contains(jobLoadBalancer)).isTrue();
+                        assertThat(verificationSet.remove(jobLoadBalancer)).isTrue();
+                        logger.debug("Verified job {} has load balancer id {} in state {}",
+                                jobId,
+                                loadBalancerState.getLoadBalancerId(),
+                                loadBalancerState.getState());
+                    });
+
+            // Verify the secondary indexes return the correct state
+            store.getAssociatedLoadBalancersSetForJob(jobId)
+                    .forEach(jobLoadBalancer -> {
+                        assertThat(jobLoadBalancer.getJobId().equals(jobId)).isTrue();
+                        assertThat(testData.containsKey(jobLoadBalancer)).isTrue();
+                        assertThat(testData.get(jobLoadBalancer))
+                                .isEqualTo(JobLoadBalancer.State.Associated);
+                    });
+        });
+
+        // Verify that all of the test data was checked.
+        assertThat(verificationSet.isEmpty()).isTrue();
     }
 }

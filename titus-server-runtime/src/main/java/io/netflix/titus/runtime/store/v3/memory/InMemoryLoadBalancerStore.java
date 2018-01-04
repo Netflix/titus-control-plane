@@ -51,12 +51,13 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
         return Observable.defer(() -> Observable.from(getAssociatedLoadBalancersSetForJob(jobId)));
     }
 
+    // Note: This implementation is not optimized for constant time lookup and should only
+    // be used for non-performance critical scenarios, like testing.
     @Override
     public Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId) {
         return associations.entrySet().stream()
+                .filter(pair -> pair.getKey().getJobId().equals(jobId) && (pair.getValue() == JobLoadBalancer.State.Associated))
                 .map(Map.Entry::getKey)
-                .filter(jobLoadBalancer -> jobLoadBalancer.getJobId().equals(jobId))
-                .filter(jobLoadBalancer -> associations.getOrDefault(jobLoadBalancer, JobLoadBalancer.State.Dissociated) == JobLoadBalancer.State.Associated)
                 .collect(Collectors.toSet());
     }
 

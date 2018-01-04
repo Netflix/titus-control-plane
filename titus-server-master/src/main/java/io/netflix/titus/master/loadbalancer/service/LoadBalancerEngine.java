@@ -73,10 +73,12 @@ class LoadBalancerEngine {
         this.scheduler = scheduler;
     }
 
+    // TODO(Andrew L): Method does not need to be Rx.
     public Completable add(JobLoadBalancer jobLoadBalancer) {
         return Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer));
     }
 
+    // TODO(Andrew L): Method does not need to be Rx.
     public Completable remove(JobLoadBalancer jobLoadBalancer) {
         return Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer));
     }
@@ -157,8 +159,9 @@ class LoadBalancerEngine {
 
     private Observable<LoadBalancerTarget> targetsForTrackedTasks(Observable<Task> tasks) {
         return tasks.doOnNext(task -> logger.debug("Checking if task is in job being tracked: {}", task))
-                .filter(this::isTracked)
                 .map(task -> Pair.of(task, store.getAssociatedLoadBalancersSetForJob(task.getJobId())))
+                // A task with an empty set is not tracked by any load balancer
+                .filter(pair -> !pair.getRight().isEmpty())
                 .doOnNext(pair -> logger.info("Task update in job being tracked, enqueuing {} load balancer updates: {}",
                         pair.getRight().size(), pair.getLeft()))
                 .flatMap(pair -> Observable.from(

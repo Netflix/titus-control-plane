@@ -138,6 +138,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                         loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
                         Set<JobLoadBalancer> jobLoadBalancers = jobToAssociatedLoadBalancersMap.getOrDefault(jobLoadBalancer.getJobId(), new HashSet<>());
                         jobLoadBalancers.add(jobLoadBalancer);
+                        jobToAssociatedLoadBalancersMap.putIfAbsent(jobLoadBalancer.getJobId(), jobLoadBalancers);
                     } else {
                         if (failOnError) {
                             throw LoadBalancerStoreException.badData(jobLoadBalancer, violations);
@@ -208,18 +209,22 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state) {
         logger.debug("Updating load balancer {} to state {}", jobLoadBalancer, state);
-        BoundStatement stmt = insertLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
-        return storeHelper.execute(stmt)
-                .map(rs -> {
-                    loadBalancerStateMap.put(jobLoadBalancer, state);
-                    if (JobLoadBalancer.State.Associated == state) {
-                        addJobLoadBalancerAssociation(jobLoadBalancer);
-                    } else if (JobLoadBalancer.State.Dissociated == state) {
-                        removeJobLoadBalancerAssociation(jobLoadBalancer);
-                    }
-                    return jobLoadBalancer;
-                })
-                .toCompletable();
+        // Ensure Cassandra and in-memory structure updates are consistent. Subsequent reads of each source
+        // should produce state from the same view of updates.
+        synchronized (this) {
+            BoundStatement stmt = insertLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
+            return storeHelper.execute(stmt)
+                    .map(rs -> {
+                        loadBalancerStateMap.put(jobLoadBalancer, state);
+                        if (JobLoadBalancer.State.Associated == state) {
+                            addJobLoadBalancerAssociation(jobLoadBalancer);
+                        } else if (JobLoadBalancer.State.Dissociated == state) {
+                            removeJobLoadBalancerAssociation(jobLoadBalancer);
+                        }
+                        return jobLoadBalancer;
+                    })
+                    .toCompletable();
+        }
     }
 
     /**
