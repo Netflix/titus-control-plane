@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -85,6 +86,10 @@ public final class CollectionsExt {
 
     public static <T> T last(List<T> list) {
         return list.isEmpty() ? null : list.get(list.size() - 1);
+    }
+
+    public static <T> T last(Stream<T> stream) {
+        return last(stream.collect(Collectors.toList()));
     }
 
     public static <T> T getOrDefault(T[] array, int idx, T defaultValue) {

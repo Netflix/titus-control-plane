@@ -17,7 +17,6 @@
 package io.netflix.titus.testkit.embedded.cloud.agent;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +29,7 @@ import io.netflix.titus.api.agent.model.AutoScaleRule;
 import io.netflix.titus.common.aws.AwsInstanceDescriptor;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.Attribute;
@@ -60,6 +60,7 @@ public class SimulatedTitusAgentCluster {
 
     private int minSize = 0;
     private int maxSize;
+    private final ContainerPlayersManager containerPlayersManager;
 
     private Protos.Offer.Builder offerTemplate;
 
@@ -76,7 +77,8 @@ public class SimulatedTitusAgentCluster {
                                        int disk,
                                        int networkMbs,
                                        int ipPerEni,
-                                       AutoScaleRule autoScaleRule) {
+                                       AutoScaleRule autoScaleRule,
+                                       ContainerPlayersManager containerPlayersManager) {
         this.name = name;
         this.computeResources = computeResources;
         this.instanceType = instanceType;
@@ -88,6 +90,7 @@ public class SimulatedTitusAgentCluster {
         this.ipPerEni = ipPerEni;
         this.autoScaleRule = autoScaleRule;
         this.maxSize = autoScaleRule.getMax();
+        this.containerPlayersManager = containerPlayersManager;
 
         this.offerTemplate = Protos.Offer.newBuilder()
                 .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("EmbeddedTitusMaster"))
@@ -214,8 +217,8 @@ public class SimulatedTitusAgentCluster {
         return agents.stream().flatMap(a -> a.reconcileKnownTasks().stream()).collect(Collectors.toSet());
     }
 
-    public Optional<SimulatedTitusAgent> findAgentWithOffer(Protos.OfferID offerID) {
-        return agents.stream().filter(a -> a.hasOffer(offerID)).findFirst();
+    public Optional<SimulatedTitusAgent> findAgentWithOffer(String offerId) {
+        return agents.stream().filter(a -> a.isOfferOwner(offerId)).findFirst();
     }
 
     public Observable<AgentChangeEvent> topologyUpdates() {
@@ -261,7 +264,7 @@ public class SimulatedTitusAgentCluster {
                 );
 
         SimulatedTitusAgent agent = new SimulatedTitusAgent(name, computeResources, hostName, slaveId, agentOfferTemplate, instanceType,
-                cpus, gpus, memory, disk, networkMbs, ipPerEni, Schedulers.computation());
+                cpus, gpus, memory, disk, networkMbs, ipPerEni, containerPlayersManager, Schedulers.computation());
         agents.add(agent);
         topologUpdateSubject.onNext(AgentChangeEvent.newInstance(this, agent));
         return agent;
@@ -289,6 +292,7 @@ public class SimulatedTitusAgentCluster {
         private int maxIdleHostsToKeep = 10;
         private long coolDownSec = 30;
         private int ipPerEni = 29;
+        private ContainerPlayersManager containerPlayersManager;
 
         private Builder(String name, int idx) {
             this.name = name;
@@ -341,7 +345,14 @@ public class SimulatedTitusAgentCluster {
             return this;
         }
 
+        public Builder withContainerPlayersManager(ContainerPlayersManager containerPlayersManager) {
+            this.containerPlayersManager = containerPlayersManager;
+            return this;
+        }
+
         public SimulatedTitusAgentCluster build() {
+            Preconditions.checkNotNull(containerPlayersManager, "ContainerPlayersManager not defined");
+
             AutoScaleRule autoScaleRule = AutoScaleRule.newBuilder()
                     .withMinIdleToKeep(minIdleHostsToKeep)
                     .withMaxIdleToKeep(maxIdleHostsToKeep)
@@ -349,9 +360,10 @@ public class SimulatedTitusAgentCluster {
                     .withCoolDownSec((int) coolDownSec)
                     .withShortfallAdjustingFactor(1)
                     .build();
+
             SimulatedTitusAgentCluster agentCluster = new SimulatedTitusAgentCluster(
                     name, computeResources, instanceType, cpus, gpus, memory, disk, networkMbs, ipPerEni,
-                    autoScaleRule
+                    autoScaleRule, containerPlayersManager
             );
             agentCluster.scaleUp(size);
             return agentCluster;

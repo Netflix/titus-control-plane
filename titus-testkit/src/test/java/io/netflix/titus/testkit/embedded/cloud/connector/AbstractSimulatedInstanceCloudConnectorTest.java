@@ -8,6 +8,8 @@ import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
 import io.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
+import io.netflix.titus.api.model.ResourceDimension;
+import io.netflix.titus.common.aws.AwsInstanceDescriptor;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
@@ -56,7 +58,14 @@ public abstract class AbstractSimulatedInstanceCloudConnectorTest {
         List<InstanceLaunchConfiguration> launchConfiguration = cloudConnector.getInstanceLaunchConfiguration(
                 singletonList(FLEX_INSTANCE_GROUP.getName())
         ).toBlocking().first();
-        assertThat(launchConfiguration.get(0).getInstanceType()).isEqualTo(FLEX_INSTANCE_GROUP.getInstanceType().name());
+        assertThat(launchConfiguration.get(0).getInstanceType()).isEqualTo(FLEX_INSTANCE_GROUP.getInstanceType().getDescriptor().getId());
+    }
+
+    @Test
+    public void testGetInstanceTypeResourceDimension() {
+        AwsInstanceDescriptor awsInstanceDescriptor = FLEX_INSTANCE_GROUP.getInstanceType().getDescriptor();
+        ResourceDimension resources = cloudConnector.getInstanceTypeResourceDimension(awsInstanceDescriptor.getId());
+        assertThat(resources.getCpu()).isEqualTo(awsInstanceDescriptor.getvCPUs());
     }
 
     @Test

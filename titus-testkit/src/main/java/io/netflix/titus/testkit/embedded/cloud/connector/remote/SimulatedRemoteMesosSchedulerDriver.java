@@ -3,7 +3,9 @@ package io.netflix.titus.testkit.embedded.cloud.connector.remote;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -25,6 +27,7 @@ import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.util.NetworkExt;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
+import io.netflix.titus.testkit.embedded.cloud.connector.ConnectorUtils;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
@@ -33,9 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Subscription;
 
-class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
+class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
 
-    private static final Logger logger = LoggerFactory.getLogger(SimulatedRemoteSchedulerDriver.class);
+    private static final Logger logger = LoggerFactory.getLogger(SimulatedRemoteMesosSchedulerDriver.class);
 
     private static final Protos.FrameworkID FRAMEWORK_ID = Protos.FrameworkID.newBuilder()
             .setValue("TitusMaster@" + NetworkExt.getHostName().orElse("<host_undetermined>"))
@@ -51,7 +54,7 @@ class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
     private Subscription offerSubscription;
     private Subscription taskStatusUpdateSubscription;
 
-    SimulatedRemoteSchedulerDriver(Protos.MasterInfo masterInfo, ManagedChannel channel, Scheduler callbackHandler) {
+    SimulatedRemoteMesosSchedulerDriver(Protos.MasterInfo masterInfo, ManagedChannel channel, Scheduler callbackHandler) {
         this.masterInfo = masterInfo;
         this.asyncClient = SimulatedMesosServiceGrpc.newStub(channel);
         this.blockingClient = SimulatedMesosServiceGrpc.newBlockingStub(channel);
@@ -76,8 +79,8 @@ class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
         );
         this.taskStatusUpdateSubscription = GrpcUtil.toObservable(asyncClient::taskStatusUpdateStream).subscribe(
                 taskStatus -> callbackHandler.statusUpdate(this, toTaskStatusUpdate(taskStatus)),
-                e -> logger.error("Offer stream terminated with an error", e),
-                () -> logger.warn("Offer stream terminated")
+                e -> logger.error("Task status stream terminated with an error", e),
+                () -> logger.warn("Task status stream terminated")
         );
         return Protos.Status.DRIVER_RUNNING;
     }
@@ -122,7 +125,7 @@ class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
     @Override
     public Protos.Status launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
         TasksLaunchRequest request = TasksLaunchRequest.newBuilder()
-                .addAllOfferIds(offerIds.stream().map(Protos.OfferID::getValue).collect(Collectors.toList()))
+                .setOfferId(ConnectorUtils.findLatestLease(offerIds))
                 .addAllTasks(tasks.stream().map(this::toSimulatedTask).collect(Collectors.toList()))
                 .build();
         blockingClient.launchTasks(request);
@@ -229,6 +232,9 @@ class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
             throw new IllegalStateException(e);
         }
 
+        Map<String, String> completeEnv = new HashMap<>(containerInfo.getTitusProvidedEnvMap());
+        completeEnv.putAll(containerInfo.getUserProvidedEnvMap());
+
         return SimulatedTask.newBuilder()
                 .setTaskId(taskInfo.getTaskId().getValue())
                 .setInstanceId(taskInfo.getSlaveId().getValue())
@@ -241,7 +247,7 @@ class SimulatedRemoteSchedulerDriver implements SchedulerDriver {
                         .setNetworkMB(getResourceValue("network", taskInfo))
                 )
                 .setEniLabel(containerInfo.getNetworkConfigInfo().getEniLabel())
-                .putAllEnv(containerInfo.getTitusProvidedEnvMap())
+                .putAllEnv(completeEnv)
                 .build();
     }
 

@@ -39,6 +39,7 @@ import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
 import io.titanframework.messages.TitanProtos.ContainerInfo.NetworkConfigInfo;
@@ -80,6 +81,7 @@ public class SimulatedTitusAgent {
     private final String clusterName;
     private final String hostName;
     private final ComputeResources computeResources;
+    private final ContainerPlayersManager containerPlayersManager;
     private final Worker worker;
 
     private final long launchTime = System.currentTimeMillis();
@@ -94,10 +96,9 @@ public class SimulatedTitusAgent {
     private volatile int offerIdx;
 
     private final Subject<OfferChangeEvent, OfferChangeEvent> offerUpdates = new SerializedSubject<>(PublishSubject.create());
-    private volatile Offer rescindedOffer;
     private volatile Offer lastOffer;
 
-    private final BehaviorSubject<Protos.TaskStatus> taskUpdates = BehaviorSubject.create();
+    private final SerializedSubject<Protos.TaskStatus, Protos.TaskStatus> taskUpdates = new SerializedSubject<>(BehaviorSubject.create());
 
     private final Subject<TaskExecutorHolder, TaskExecutorHolder> launchedTasksSubject = new SerializedSubject<>(PublishSubject.create());
     private final ConcurrentMap<TaskID, TaskExecutorHolder> pendingTasks = new ConcurrentHashMap<>();
@@ -106,11 +107,12 @@ public class SimulatedTitusAgent {
 
     private final Object lock = new Object();
 
-    SimulatedTitusAgent(String clusterName, ComputeResources computeResources, String hostName, Protos.SlaveID slaveId,
-                        Offer.Builder offerTemplate, AwsInstanceType instanceType,
-                        double cpus, double gpus, int memory, int disk, int totalNetworkMbs,
-                        int ipPerEni, Scheduler scheduler) {
+    public SimulatedTitusAgent(String clusterName, ComputeResources computeResources, String hostName, Protos.SlaveID slaveId,
+                               Offer.Builder offerTemplate, AwsInstanceType instanceType,
+                               double cpus, double gpus, int memory, int disk, int totalNetworkMbs,
+                               int ipPerEni, ContainerPlayersManager containerPlayersManager, Scheduler scheduler) {
         this.computeResources = computeResources;
+        this.containerPlayersManager = containerPlayersManager;
         this.worker = scheduler.createWorker();
         logger.info("Creating a new agent {} with instance type {} and resources {cpu={}, memory={}, disk={}, networkMbs={}}",
                 slaveId.getValue(), instanceType, cpus, memory, disk, totalNetworkMbs);
@@ -137,7 +139,7 @@ public class SimulatedTitusAgent {
 
         this.networkResourceTracker = new NetworkResourceTracker(ipPerEni);
 
-        emmitAvailableOffers();
+        emmitAvailableOffers(false);
     }
 
     public String getClusterName() {
@@ -243,26 +245,26 @@ public class SimulatedTitusAgent {
         return Optional.empty();
     }
 
-    public List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks, Protos.Filters filters) {
-        return launchTasks(offerIds, tasks);
-    }
-
-    public List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
-        checkOffers(offerIds);
-        rescindOfferInternal(offerIds);
+    public List<TaskExecutorHolder> launchTasks(String offerId, Collection<Protos.TaskInfo> tasks) {
+        if (isExpiredOffer(offerId)) {
+            tasks.forEach(t -> {
+                String message = String.format("Offer %s expired. Cannot launch task %s", offerId, t.getTaskId().getValue());
+                Protos.TaskStatus crashedStatus = Protos.TaskStatus.newBuilder()
+                        .setTaskId(t.getTaskId())
+                        .setSlaveId(slaveId)
+                        .setHealthy(false)
+                        .setState(Protos.TaskState.TASK_LOST)
+                        .setMessage(message)
+                        .build();
+                taskUpdates.onNext(crashedStatus);
+            });
+            return Collections.emptyList();
+        }
 
         List<TaskExecutorHolder> taskExecutorHolders = launchTasksInternal(tasks);
         taskExecutorHolders.forEach(launchedTasksSubject::onNext);
-        emmitAvailableOffers();
+        emmitAvailableOffers(false);
         return taskExecutorHolders;
-    }
-
-    List<TaskExecutorHolder> launchTasks(Protos.OfferID offerId, Collection<Protos.TaskInfo> tasks, Protos.Filters filters) {
-        return launchTasks(offerId, tasks);
-    }
-
-    List<TaskExecutorHolder> launchTasks(Protos.OfferID offerId, Collection<Protos.TaskInfo> tasks) {
-        return launchTasks(Collections.singletonList(offerId), tasks);
     }
 
     private List<TaskExecutorHolder> launchTasksInternal(Collection<Protos.TaskInfo> tasks) {
@@ -300,6 +302,7 @@ public class SimulatedTitusAgent {
             throw new IllegalStateException("Bad container info");
         }
 
+        String eniID = null;
         String containerIp = null;
         if (containerInfo.getAllocateIpAddress()) {
             NetworkConfigInfo networkConfigInfo = containerInfo.getNetworkConfigInfo();
@@ -310,8 +313,11 @@ public class SimulatedTitusAgent {
                 // TODO Better handle failure scenarios during task launch
                 throw new IllegalStateException("Invalid ENI assignment");
             }
+            eniID = networkConfigInfo.getEniLabel();
         }
         efsMounts = extractEfsMounts(containerInfo);
+
+        Map<String, String> env = new HashMap<>(containerInfo.getTitusProvidedEnvMap());
 
         for (Resource resource : task.getResourcesList()) {
             switch (resource.getName()) {
@@ -373,9 +379,9 @@ public class SimulatedTitusAgent {
                 e -> logger.info("Unexpected onError in task state observable stream for task " + task.getName(), e),
                 () -> logger.info("Task {} status update stream completed", task.getName())
         );
-        TaskExecutorHolder taskHolder = new TaskExecutorHolder(
+        TaskExecutorHolder taskHolder = new TaskExecutorHolder(containerPlayersManager,
                 extractJobId(task), taskId.getValue(), this, instanceType, taskCPUs, taskGPUs,
-                taskMem, taskDisk, taskPorts, containerIp, taskNetwork, efsMounts, taskStatusSubject);
+                taskMem, taskDisk, taskPorts, containerIp, eniID, taskNetwork, efsMounts, env, taskStatusSubject);
         pendingTasks.put(taskId, taskHolder);
 
         return taskHolder;
@@ -432,53 +438,41 @@ public class SimulatedTitusAgent {
         }
     }
 
-    public void declineOffer(Protos.OfferID offerId) {
+    public void declineOffer(String offerId) {
         checkOffer(offerId);
-        rescindOfferInternal(Collections.singletonList(offerId));
-        // To avoid tight loop, re-offer it after some delay
-        worker.schedule(this::emmitAvailableOffers, 10, TimeUnit.MILLISECONDS);
-    }
-
-    private void rescindOfferInternal(Collection<Protos.OfferID> offerIds) {
-        if (lastOffer != null) {
-            for (Protos.OfferID oid : offerIds) {
-                if (oid.equals(lastOffer.getId())) {
-                    rescindedOffer = lastOffer;
-                    lastOffer = null;
-                    break;
-                }
-            }
+        if (lastOffer != null && lastOffer.getId().getValue().equals(offerId)) {
+            lastOffer = null;
+            // To avoid tight loop, re-offer it after some delay
+            worker.schedule(() -> emmitAvailableOffers(false), 10, TimeUnit.MILLISECONDS);
         }
     }
 
-    public boolean hasOffer(Protos.OfferID offerID) {
-        if (lastOffer == null) {
-            return false;
-        }
-        if (lastOffer.getId().equals(offerID)) {
-            return true;
-        }
-        if (rescindedOffer == null) {
-            return false;
-        }
-        return rescindedOffer.getId().equals(offerID);
+    public boolean isOfferOwner(String offerId) {
+        return offerId.startsWith(slaveId.getValue());
     }
 
-    private void checkOffer(Protos.OfferID offerId) {
-        if (!offerId.getValue().startsWith(slaveId.getValue())) {
+    private void checkOffer(String offerId) {
+        if (!isOfferOwner(offerId)) {
             throw new IllegalArgumentException("Received an offer " + offerId + " not belonging to the agent " + slaveId);
         }
     }
 
-    private void checkOffers(Collection<Protos.OfferID> offerIds) {
-        offerIds.forEach(this::checkOffer);
+    private boolean isCurrentOffer(String offerId) {
+        if (lastOffer == null) {
+            return false;
+        }
+        String lastOfferId = lastOffer.getId().getValue();
+        return lastOfferId.equals(offerId);
     }
 
-    private void emmitAvailableOffers() {
-        if (lastOffer != null) {
+    private boolean isExpiredOffer(String offerId) {
+        return !isCurrentOffer(offerId);
+    }
+
+    private void emmitAvailableOffers(boolean rescindFromClient) {
+        if (rescindFromClient && lastOffer != null) {
             logger.info("Rescinding offer: {}", lastOffer.getId().getValue());
             offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
-            rescindedOffer = lastOffer;
             lastOffer = null;
         }
         if (aboveZero()) {
@@ -521,7 +515,7 @@ public class SimulatedTitusAgent {
                 "Network inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
         );
 
-        emmitAvailableOffers();
+        emmitAvailableOffers(true);
     }
 
     private boolean aboveZero() {

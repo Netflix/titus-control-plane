@@ -30,6 +30,7 @@ import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
+import io.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.TaskState;
 import rx.Observable;
@@ -67,26 +68,31 @@ public class TaskExecutorHolder {
     private final double taskDisk;
     private final Set<Long> allocatedPorts;
     private final String containerIp;
+    private final String eniID;
     private final double taskNetworkMbs;
     private final List<EfsMount> efsMounts;
+    private final Map<String, String> env;
     private final Observer<Protos.TaskStatus> stateUpdatesObserver;
 
     private volatile Protos.TaskStatus currentTaskStatus;
     private volatile Function<TaskState, Long> delayFunction;
 
-    TaskExecutorHolder(String jobId,
-                       String taskId,
-                       SimulatedTitusAgent agent,
-                       AwsInstanceType instanceType,
-                       double taskCPUs,
-                       double taskGPUs,
-                       double taskMem,
-                       double taskDisk,
-                       Set<Long> allocatedPorts,
-                       String containerIp,
-                       double taskNetworkMbs,
-                       List<EfsMount> efsMounts,
-                       Observer<Protos.TaskStatus> stateUpdatesObserver) {
+    public TaskExecutorHolder(ContainerPlayersManager containerPlayersManager,
+                              String jobId,
+                              String taskId,
+                              SimulatedTitusAgent agent,
+                              AwsInstanceType instanceType,
+                              double taskCPUs,
+                              double taskGPUs,
+                              double taskMem,
+                              double taskDisk,
+                              Set<Long> allocatedPorts,
+                              String containerIp,
+                              String eniID,
+                              double taskNetworkMbs,
+                              List<EfsMount> efsMounts,
+                              Map<String, String> env,
+                              Observer<Protos.TaskStatus> stateUpdatesObserver) {
         this.jobId = jobId;
         this.taskId = taskId;
         this.agent = agent;
@@ -97,11 +103,15 @@ public class TaskExecutorHolder {
         this.taskDisk = taskDisk;
         this.allocatedPorts = allocatedPorts;
         this.containerIp = containerIp;
+        this.eniID = eniID;
         this.taskNetworkMbs = taskNetworkMbs;
         this.efsMounts = efsMounts;
+        this.env = env;
         this.stateUpdatesObserver = stateUpdatesObserver;
         this.currentTaskStatus = newTaskStatusBuilder().setState(TaskState.TASK_STAGING).setMessage("Task staging").build();
         this.delayFunction = taskState -> 0L; // No transition delay by default
+
+        containerPlayersManager.play(this);
 
         stateUpdatesObserver.onNext(currentTaskStatus);
     }
@@ -158,6 +168,10 @@ public class TaskExecutorHolder {
         return efsMounts;
     }
 
+    public Map<String, String> getEnv() {
+        return env;
+    }
+
     public TaskState getState() {
         return currentTaskStatus.getState();
     }
@@ -196,9 +210,9 @@ public class TaskExecutorHolder {
                     new TitusExecutorDetails.NetworkConfiguration(
                             true,
                             containerIp,
-                            null,
-                            null,
-                            null
+                            containerIp,
+                            eniID,
+                            "resourceID_simulated"
                     )
             );
             try {
@@ -246,7 +260,7 @@ public class TaskExecutorHolder {
                 '}';
     }
 
-    private boolean isTerminal(TaskState taskState) {
+    public static boolean isTerminal(TaskState taskState) {
         return taskState == TaskState.TASK_FINISHED || taskState == TaskState.TASK_ERROR
                 || taskState == TaskState.TASK_FAILED || taskState == TaskState.TASK_KILLED
                 || taskState == TaskState.TASK_KILLED;

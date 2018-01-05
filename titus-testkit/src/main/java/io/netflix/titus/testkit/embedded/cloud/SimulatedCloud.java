@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.ObservableExt;
@@ -35,10 +36,12 @@ import io.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import io.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import io.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import org.apache.mesos.Protos;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
@@ -48,6 +51,9 @@ import static io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentC
 public class SimulatedCloud {
 
     private final ComputeResources computeResources;
+
+    private final ContainerPlayersManager containerPlayersManager = new ContainerPlayersManager(new DefaultRegistry(), Schedulers.computation());
+
     private final ConcurrentMap<String, SimulatedTitusAgentCluster> agentInstanceGroups = new ConcurrentHashMap<>();
 
     private final Subject<Observable<AgentChangeEvent>, Observable<AgentChangeEvent>> topologyEventsMergeSubject = new SerializedSubject<>(PublishSubject.create());
@@ -87,11 +93,16 @@ public class SimulatedCloud {
                     .withIpPerEni(agentGroupDescriptor.getIpPerEni())
                     .withSize(agentGroupDescriptor.getDesired())
                     .withMaxSize(agentGroupDescriptor.getMax())
+                    .withContainerPlayersManager(containerPlayersManager)
                     .build();
             addInstanceGroup(newAgentInstanceGroup);
         }
 
         return this;
+    }
+
+    public ContainerPlayersManager getContainerPlayersManager() {
+        return containerPlayersManager;
     }
 
     public List<SimulatedTitusAgentCluster> getAgentInstanceGroups() {
@@ -136,12 +147,12 @@ public class SimulatedCloud {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown task id " + taskId));
     }
 
-    public SimulatedTitusAgent getAgentOwningOffer(Protos.OfferID offerID) {
+    public SimulatedTitusAgent getAgentOwningOffer(String offerId) {
         return agentInstanceGroups.values().stream()
-                .map(g -> g.findAgentWithOffer(offerID))
+                .map(g -> g.findAgentWithOffer(offerId))
                 .filter(Optional::isPresent).map(Optional::get)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(String.format("Offer %s does not belong to any agent", offerID.getValue())));
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Offer %s does not belong to any agent", offerId)));
     }
 
     public void updateAgentGroupCapacity(String agentGroupId, int min, int desired, int max) {
@@ -163,17 +174,17 @@ public class SimulatedCloud {
         });
     }
 
-    public void declineOffer(Protos.OfferID offerId) {
+    public void declineOffer(String offerId) {
         getAgentOwningOffer(offerId).declineOffer(offerId);
     }
 
-    public List<TaskExecutorHolder> launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
+    public List<TaskExecutorHolder> launchTasks(String offerId, Collection<Protos.TaskInfo> tasks) {
         if (tasks.isEmpty()) {
-            offerIds.forEach(this::declineOffer);
+            declineOffer(offerId);
             return Collections.emptyList();
         }
-        SimulatedTitusAgent agent = getAgentOwningOffer(CollectionsExt.first(offerIds));
-        return agent.launchTasks(offerIds, tasks);
+        SimulatedTitusAgent agent = getAgentOwningOffer(offerId);
+        return agent.launchTasks(offerId, tasks);
     }
 
     public void killTask(String taskId) {

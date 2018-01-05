@@ -73,6 +73,6 @@ public class SimulatedAgentGroupDescriptor {
     }
 
     public static SimulatedAgentGroupDescriptor awsInstanceGroup(String name, AwsInstanceType instanceType, int min, int desired, int max) {
-        return new SimulatedAgentGroupDescriptor(name, instanceType.name(), min, desired, max, 27);
+        return new SimulatedAgentGroupDescriptor(name, instanceType.getDescriptor().getId(), min, desired, max, 27);
     }
 }

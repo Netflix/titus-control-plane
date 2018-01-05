@@ -58,6 +58,8 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
 
     static {
         Logger.getLogger("io.netflix.titus.master.job.JobMgrUtils").setLevel(Level.DEBUG);
+        Logger.getLogger("com.netflix.fenzo.AssignableVMs").setLevel(Level.DEBUG);
+        Logger.getLogger("com.netflix.fenzo.AssignableVirtualMachine").setLevel(Level.DEBUG);
     }
 
     private final TitusMasterResource titusMasterResource = new TitusMasterResource(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloud(10)));

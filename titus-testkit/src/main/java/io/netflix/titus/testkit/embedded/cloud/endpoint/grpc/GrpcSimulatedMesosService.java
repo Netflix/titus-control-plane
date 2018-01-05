@@ -34,6 +34,7 @@ import static com.netflix.titus.simulator.TitusCloudSimulator.Ids;
 import static com.netflix.titus.simulator.TitusCloudSimulator.SimulatedOffer;
 import static com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus;
 import static com.netflix.titus.simulator.TitusCloudSimulator.TasksLaunchRequest;
+import static io.netflix.titus.common.util.Evaluators.getOrDefault;
 
 @Singleton
 public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
@@ -68,7 +69,7 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
 
     @Override
     public void declineOffer(Id request, StreamObserver<Empty> responseObserver) {
-        cloud.declineOffer(Protos.OfferID.newBuilder().setValue(request.getId()).build());
+        cloud.declineOffer(request.getId());
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
     }
@@ -76,22 +77,28 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
     @Override
     public void taskStatusUpdateStream(Empty request, StreamObserver<SimulatedTaskStatus> responseObserver) {
         Subscription subscription = cloud.taskStatusUpdates().subscribe(
-                statusUpdate -> responseObserver.onNext(toSimulatedStatusUpdate(statusUpdate)),
-                responseObserver::onError,
-                responseObserver::onCompleted
+                statusUpdate -> {
+                    logger.info("Sending task status update: taskId={}, state=", statusUpdate.getTaskId(), statusUpdate.getState());
+                    responseObserver.onNext(toSimulatedStatusUpdate(statusUpdate));
+                },
+                e -> {
+                    logger.info("Task subscription stream terminated with an error", e);
+                    responseObserver.onError(e);
+                },
+                () -> {
+                    logger.info("Task subscription stream terminated");
+                    responseObserver.onCompleted();
+                }
         );
         GrpcUtil.attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void launchTasks(TasksLaunchRequest request, StreamObserver<Empty> responseObserver) {
-        List<Protos.OfferID> offerIds = request.getOfferIdsList().stream()
-                .map(o -> Protos.OfferID.newBuilder().setValue(o).build())
-                .collect(Collectors.toList());
         List<Protos.TaskInfo> taskInfos = request.getTasksList().stream()
-                .map(t -> toMesosTaskInfo(t))
+                .map(GrpcSimulatedMesosService::toMesosTaskInfo)
                 .collect(Collectors.toList());
-        cloud.launchTasks(offerIds, taskInfos);
+        cloud.launchTasks(request.getOfferId(), taskInfos);
 
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
@@ -168,10 +175,10 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
                             TitusExecutorDetails.NetworkConfiguration networkConfiguration = n.getNetworkConfiguration();
                             return SimulatedNetworkConfiguration.newBuilder()
                                     .setIsRoutableIP(networkConfiguration.isRoutableIP())
-                                    .setEniID(networkConfiguration.getEniID())
-                                    .setEniIPAddress(networkConfiguration.getEniIPAddress())
-                                    .setIpAddress(networkConfiguration.getIpAddress())
-                                    .setResourceID(networkConfiguration.getResourceID())
+                                    .setEniID(getOrDefault(networkConfiguration.getEniID(), ""))
+                                    .setEniIPAddress(getOrDefault(networkConfiguration.getEniIPAddress(), ""))
+                                    .setIpAddress(getOrDefault(networkConfiguration.getIpAddress(), ""))
+                                    .setResourceID(getOrDefault(networkConfiguration.getResourceID(), ""))
                                     .build();
                         }
                 ).orElse(SimulatedNetworkConfiguration.getDefaultInstance());

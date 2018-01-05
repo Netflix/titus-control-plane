@@ -427,8 +427,11 @@ public class EmbeddedTitusMaster {
             if (simulatedCloud == null) {
                 this.simulatedCloud = new SimulatedCloud();
             }
-            builder.withComputeResources(simulatedCloud.getComputeResources());
-            return withAgentCluster(builder.build());
+            return withAgentCluster(builder
+                    .withComputeResources(simulatedCloud.getComputeResources())
+                    .withContainerPlayersManager(simulatedCloud.getContainerPlayersManager())
+                    .build()
+            );
         }
 
         public Builder withSimulatedCloud(SimulatedCloud simulatedCloud) {
