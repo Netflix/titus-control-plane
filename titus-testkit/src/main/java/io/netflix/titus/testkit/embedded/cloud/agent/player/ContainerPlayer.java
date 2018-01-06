@@ -3,6 +3,7 @@ package io.netflix.titus.testkit.embedded.cloud.agent.player;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedTaskState;
+import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -70,13 +71,27 @@ class ContainerPlayer {
     private void moveToNextState(SimulatedTaskState simulatedState, ContainerStateRule rule) {
         if (rule.getReasonCode().isPresent()) {
             taskHolder.transitionTo(
-                    Protos.TaskState.TASK_FAILED,
-                    Protos.TaskStatus.Reason.valueOf(rule.getReasonCode().get()),
+                    toMesosTaskFailedStatus(rule.getReasonCode().get()),
+                    Protos.TaskStatus.Reason.REASON_COMMAND_EXECUTOR_FAILED,
                     rule.getReasonMessage().orElse("Reason details not provided")
             );
             return;
         }
         moveToNextState(simulatedState);
+    }
+
+    private Protos.TaskState toMesosTaskFailedStatus(String reasonCode) {
+        switch (reasonCode) {
+            case TaskStatus.REASON_TASK_KILLED:
+                return Protos.TaskState.TASK_KILLED;
+            case TaskStatus.REASON_FAILED:
+                return Protos.TaskState.TASK_FAILED;
+            case TaskStatus.REASON_TASK_LOST:
+                return Protos.TaskState.TASK_LOST;
+            case TaskStatus.REASON_ERROR:
+                return Protos.TaskState.TASK_ERROR;
+        }
+        return Protos.TaskState.TASK_ERROR;
     }
 
     private void moveToNextState(SimulatedTaskState simulatedState) {

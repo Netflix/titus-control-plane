@@ -17,6 +17,7 @@
 package io.netflix.titus.api.jobmanager.model.job.sanitizer;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import javax.validation.ConstraintViolation;
 
@@ -55,7 +56,7 @@ public class JobModelSanitizationTest {
     private EntitySanitizer entitySanitizer;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         entitySanitizer = new JobSanitizerBuilder()
                 .withJobConstrainstConfiguration(constraints)
                 .withMaxContainerSizeResolver(capacityGroup -> MAX_CONTAINER_SIZE)
@@ -63,15 +64,31 @@ public class JobModelSanitizationTest {
     }
 
     @Test
-    public void testValidBatchJob() throws Exception {
-        Job<BatchJobExt> job = JobGenerator.batchJobs(oneTaskBatchJobDescriptor()).getValue();
+    public void testValidBatchJob() {
+        // In test descriptor, make sure we do not use default network throughput.
+        Job<BatchJobExt> job = JobGenerator.batchJobs(
+                oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(c -> c.getContainerResources().toBuilder().withNetworkMbps(256).build()))
+        ).getValue();
 
         assertThat(entitySanitizer.validate(job)).isEmpty();
         assertThat(entitySanitizer.sanitize(job)).isEmpty();
     }
 
     @Test
-    public void testBatchJobWithInvalidSecurityGroups() throws Exception {
+    public void testNetworkAllocationAdjustment() {
+        Job<BatchJobExt> job = JobGenerator.batchJobs(
+                oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(c -> c.getContainerResources().toBuilder().withNetworkMbps(10).build()))
+        ).getValue();
+
+        assertThat(entitySanitizer.validate(job)).isEmpty();
+
+        Optional<Job<BatchJobExt>> updated = entitySanitizer.sanitize(job);
+        assertThat(updated).isPresent();
+        assertThat(updated.get().getJobDescriptor().getContainer().getContainerResources().getNetworkMbps()).isEqualTo(128);
+    }
+
+    @Test
+    public void testBatchJobWithInvalidSecurityGroups() {
         JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor();
         JobDescriptor<BatchJobExt> noSecurityProfileDescriptor = JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
@@ -88,7 +105,7 @@ public class JobModelSanitizationTest {
     }
 
     @Test
-    public void testBatchJobWithMissingImageTagAndDigest() throws Exception {
+    public void testBatchJobWithMissingImageTagAndDigest() {
         JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor();
         JobDescriptor<BatchJobExt> noImageTagAndDigestDescriptor = JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
@@ -107,7 +124,7 @@ public class JobModelSanitizationTest {
     }
 
     @Test
-    public void testBatchJobWithIncompleteEfsDefinition() throws Exception {
+    public void testBatchJobWithIncompleteEfsDefinition() {
         JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor();
         JobDescriptor<BatchJobExt> incompleteEfsDefinition = JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer())

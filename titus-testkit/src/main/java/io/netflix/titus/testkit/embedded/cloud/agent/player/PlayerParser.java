@@ -24,9 +24,9 @@ import org.slf4j.LoggerFactory;
  * Container player scenario parser. The scenario is encoded in the environment variables like in the examples below:
  * <p>
  * {@code TASK_LIFECYCLE_1=selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
- * {@code TASK_LIFECYCLE_2=selector: slots=1.. slotStep=2; launched: delay=2s; startInitiated: finish=crashed}<br>
+ * {@code TASK_LIFECYCLE_2=selector: slots=1.. slotStep=2; launched: delay=2s; startInitiated: finish=failed}<br>
  * <p>or:<br/>
- * {@code TASK_LIFECYCLE_1=selector: resubmits=0,1 slots=0.. slotStep=2; launched: delay=2s; startInitiated: finish=crashed}<br>
+ * {@code TASK_LIFECYCLE_1=selector: resubmits=0,1 slots=0.. slotStep=2; launched: delay=2s; startInitiated: finish=failed}<br>
  * {@code TASK_LIFECYCLE_2=selector: resubmits=2..; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
  */
 class PlayerParser {

@@ -14,9 +14,9 @@ public class SimulatedCloudRunner {
         SimulatedCloud simulatedCloud = injector.getInstance(SimulatedCloud.class);
 
         simulatedCloud.createAgentInstanceGroups(
-                awsInstanceGroup("critical1", AwsInstanceType.M3_XLARGE, 5),
-                awsInstanceGroup("flex1", AwsInstanceType.M3_2XLARGE, 5),
-                awsInstanceGroup("flexGpu", AwsInstanceType.G2_2XLarge, 5)
+                awsInstanceGroup("critical1", AwsInstanceType.M4_4XLarge, 5),
+                awsInstanceGroup("flex1", AwsInstanceType.R4_8XLarge, 5),
+                awsInstanceGroup("flexGpu", AwsInstanceType.G2_8XLarge, 5)
         );
 
         injector.awaitTermination();

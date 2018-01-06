@@ -49,6 +49,7 @@ import rx.subscriptions.Subscriptions;
 import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
 /**
+ * TODO Catch model update exceptions and propagate them as change actions error result.
  */
 public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<EVENT> {
 

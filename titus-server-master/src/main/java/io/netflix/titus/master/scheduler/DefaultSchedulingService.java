@@ -34,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -71,6 +72,7 @@ import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.WorkerNaming;
@@ -603,12 +605,28 @@ public class DefaultSchedulingService implements SchedulingService {
                                 task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
                                 consumeResult);
 
+                        // FIXME This is obvious shortcoming. Failed model updates must be propagated into change action result.
+                        AtomicReference<Throwable> errorRef = new AtomicReference<>();
                         boolean updated = v3JobOperations.recordTaskPlacement(
                                 task.getId(),
-                                JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap)
+                                oldTask -> {
+                                    try {
+                                        return JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap).apply(oldTask);
+                                    } catch (Exception e) {
+                                        errorRef.set(e);
+                                        return oldTask;
+                                    }
+                                }
                         ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
-                        if (updated) {
+                        if (errorRef.get() != null) {
+                            if (JobManagerException.hasErrorCode(errorRef.get(), JobManagerException.ErrorCode.UnexpectedTaskState)) {
+                                logger.info("Not launching task, as it is no longer in Accepted state (probably killed)", v3Task.getId());
+                            } else {
+                                logger.info("Not launching task {} due to model update failure", v3Task.getId(), errorRef.get());
+                                killBrokenTask(task, "model update error: " + errorRef.get().getMessage());
+                            }
+                        } else if (updated) {
                             taskInfoList.add(taskInfo);
                         } else {
                             killBrokenTask(task, "store update timeout");
@@ -637,7 +655,19 @@ public class DefaultSchedulingService implements SchedulingService {
         v3JobOperations.killTask(task.getId(), false, String.format("Failed to launch task %s due to %s", task.getId(), reason)).subscribe(
                 next -> {
                 },
-                e -> logger.warn("Failed to terminate task {}", task.getId(), e),
+                e -> {
+                    if (e instanceof JobManagerException) {
+                        JobManagerException je = (JobManagerException) e;
+
+                        // This means task is no longer around, so we can safely ignore this.
+                        if (je.getErrorCode() == JobManagerException.ErrorCode.JobNotFound
+                                || je.getErrorCode() == JobManagerException.ErrorCode.TaskNotFound
+                                || je.getErrorCode() == JobManagerException.ErrorCode.TaskTerminating) {
+                            return;
+                        }
+                    }
+                    logger.warn("Attempt to terminate task in potentially inconsistent state due to failed launch process {} failed: {}", task.getId(), e.getMessage());
+                },
                 () -> logger.warn("Terminated task {} as launch operation could not be completed", task.getId())
         );
     }

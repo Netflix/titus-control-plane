@@ -22,13 +22,16 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
+import rx.BackpressureOverflow;
 import rx.Completable;
 import rx.Notification;
 import rx.Observable;
@@ -225,6 +228,33 @@ public class ObservableExt {
                                                            Scheduler scheduler) {
         InstrumentedCompletableScheduler completableScheduler = new InstrumentedCompletableScheduler(metricNameRoot, registry, scheduler);
         return completableScheduler.schedule(completableName, completable, initialDelay, interval, timeUnit);
+    }
+
+    /**
+     * Add safeguards to an observable protecting it from misbehaving subscriber. This includes:
+     * <ul>
+     * <li>Add back-pressure buffer with drop on overflow strategy</li>
+     * </ul>
+     */
+    public static <T> Observable<T> observeSafely(Observable<T> unprotectedStream, long maxBufferSize, Consumer<Long> notificationAction, long notificationInterval, TimeUnit timeUnit) {
+        long notificationIntervalMs = timeUnit.toMillis(notificationInterval);
+
+        return Observable.fromCallable(() -> 1).flatMap(tick -> {
+            AtomicLong lastOverflowLogTime = new AtomicLong();
+            AtomicLong dropCount = new AtomicLong();
+            return unprotectedStream.onBackpressureBuffer(
+                    maxBufferSize,
+                    () -> {
+                        dropCount.getAndIncrement();
+                        long now = System.currentTimeMillis();
+                        if (now - lastOverflowLogTime.get() > notificationIntervalMs) {
+                            notificationAction.accept(dropCount.get());
+                            lastOverflowLogTime.set(now);
+                        }
+                    },
+                    BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST
+            );
+        });
     }
 
     /**

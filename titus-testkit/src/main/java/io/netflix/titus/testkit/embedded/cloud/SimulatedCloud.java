@@ -147,12 +147,11 @@ public class SimulatedCloud {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown task id " + taskId));
     }
 
-    public SimulatedTitusAgent getAgentOwningOffer(String offerId) {
+    public Optional<SimulatedTitusAgent> getAgentOwningOffer(String offerId) {
         return agentInstanceGroups.values().stream()
                 .map(g -> g.findAgentWithOffer(offerId))
                 .filter(Optional::isPresent).map(Optional::get)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(String.format("Offer %s does not belong to any agent", offerId)));
+                .findFirst();
     }
 
     public void updateAgentGroupCapacity(String agentGroupId, int min, int desired, int max) {
@@ -175,7 +174,7 @@ public class SimulatedCloud {
     }
 
     public void declineOffer(String offerId) {
-        getAgentOwningOffer(offerId).declineOffer(offerId);
+        getAgentOwningOffer(offerId).ifPresent(agent -> agent.declineOffer(offerId));
     }
 
     public List<TaskExecutorHolder> launchTasks(String offerId, Collection<Protos.TaskInfo> tasks) {
@@ -183,15 +182,21 @@ public class SimulatedCloud {
             declineOffer(offerId);
             return Collections.emptyList();
         }
-        SimulatedTitusAgent agent = getAgentOwningOffer(offerId);
-        return agent.launchTasks(offerId, tasks);
+        Optional<SimulatedTitusAgent> agent = getAgentOwningOffer(offerId);
+        if (agent.isPresent()) {
+            return agent.get().launchTasks(offerId, tasks);
+        }
+
+        tasks.forEach(task -> emitTaskLostEvent(task.getTaskId().getValue(), "Task launched with invalid offer: " + offerId));
+
+        return Collections.emptyList();
     }
 
     public void killTask(String taskId) {
         try {
             getTaskExecutorHolder(taskId).transitionTo(Protos.TaskState.TASK_KILLED);
         } catch (IllegalArgumentException e) {
-            emitTaskLostEvent(taskId);
+            emitTaskLostEvent(taskId, "Simulated cloud task kill failed with an error: " + e.getMessage());
         }
     }
 
@@ -199,7 +204,7 @@ public class SimulatedCloud {
         Set<String> found = agentInstanceGroups.values().stream()
                 .flatMap(g -> g.reconcileOwnedTasksIgnoreOther(taskIds).stream())
                 .collect(Collectors.toSet());
-        CollectionsExt.copyAndRemove(taskIds, found).forEach(this::emitTaskLostEvent);
+        CollectionsExt.copyAndRemove(taskIds, found).forEach(lostTaskId -> emitTaskLostEvent(lostTaskId, "Task not found"));
     }
 
     public void reconcileKnownTasks() {
@@ -233,11 +238,11 @@ public class SimulatedCloud {
                 .flatMap(event -> event.getInstanceGroup().taskLaunches());
     }
 
-    private void emitTaskLostEvent(String lostTaskId) {
+    private void emitTaskLostEvent(String lostTaskId, String reason) {
         lostTaskSubject.onNext(Protos.TaskStatus.newBuilder()
                 .setTaskId(Protos.TaskID.newBuilder().setValue(lostTaskId).build())
                 .setState(Protos.TaskState.TASK_LOST)
-                .setMessage("Reconciler")
+                .setMessage(reason)
                 .build()
         );
     }

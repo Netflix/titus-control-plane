@@ -17,10 +17,11 @@
 package io.netflix.titus.testkit.embedded.cloud.agent;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
@@ -64,7 +65,7 @@ public class SimulatedTitusAgentCluster {
 
     private Protos.Offer.Builder offerTemplate;
 
-    private final List<SimulatedTitusAgent> agents = new ArrayList<>();
+    private final ConcurrentMap<String, SimulatedTitusAgent> agents = new ConcurrentHashMap<>();
 
     private final Subject<AgentChangeEvent, AgentChangeEvent> topologUpdateSubject = new SerializedSubject<>(PublishSubject.create());
 
@@ -103,7 +104,7 @@ public class SimulatedTitusAgentCluster {
     }
 
     public void shutdown() {
-        agents.forEach(SimulatedTitusAgent::shutdown);
+        agents.values().forEach(SimulatedTitusAgent::shutdown);
         topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstanceGroup(this));
     }
 
@@ -148,7 +149,7 @@ public class SimulatedTitusAgentCluster {
     }
 
     public List<SimulatedTitusAgent> getAgents() {
-        return agents;
+        return new ArrayList<>(agents.values());
     }
 
     public void updateCapacity(int min, int desired, int max) {
@@ -185,22 +186,17 @@ public class SimulatedTitusAgentCluster {
     }
 
     public void terminate(String agentId, boolean shrink) {
-        Iterator<SimulatedTitusAgent> it = agents.iterator();
-        while (it.hasNext()) {
-            SimulatedTitusAgent agent = it.next();
-            if (agent.getId().equals(agentId)) {
-                it.remove();
-                agent.shutdown();
-                if (!shrink) {
-                    scaleUp(1);
-                }
-                break;
+        SimulatedTitusAgent toRemove = agents.remove(agentId);
+        if (toRemove != null) {
+            toRemove.shutdown();
+            if (!shrink) {
+                scaleUp(1);
             }
         }
     }
 
     public Optional<TaskExecutorHolder> findTaskById(String taskId) {
-        for (SimulatedTitusAgent agent : agents) {
+        for (SimulatedTitusAgent agent : agents.values()) {
             Optional<TaskExecutorHolder> holder = agent.findTaskById(taskId);
             if (holder.isPresent()) {
                 return holder;
@@ -210,15 +206,15 @@ public class SimulatedTitusAgentCluster {
     }
 
     public Set<String> reconcileOwnedTasksIgnoreOther(Set<String> taskIds) {
-        return agents.stream().flatMap(a -> a.reconcileOwnedTasksIgnoreOther(taskIds).stream()).collect(Collectors.toSet());
+        return agents.values().stream().flatMap(a -> a.reconcileOwnedTasksIgnoreOther(taskIds).stream()).collect(Collectors.toSet());
     }
 
     public Set<String> reconcileKnownTasks() {
-        return agents.stream().flatMap(a -> a.reconcileKnownTasks().stream()).collect(Collectors.toSet());
+        return agents.values().stream().flatMap(a -> a.reconcileKnownTasks().stream()).collect(Collectors.toSet());
     }
 
     public Optional<SimulatedTitusAgent> findAgentWithOffer(String offerId) {
-        return agents.stream().filter(a -> a.isOfferOwner(offerId)).findFirst();
+        return agents.values().stream().filter(a -> a.isOfferOwner(offerId)).findFirst();
     }
 
     public Observable<AgentChangeEvent> topologyUpdates() {
@@ -246,7 +242,7 @@ public class SimulatedTitusAgentCluster {
     }
 
     private List<AgentChangeEvent> toNewInstanceEvents() {
-        return agents.stream()
+        return agents.values().stream()
                 .map(a -> AgentChangeEvent.newInstance(this, a))
                 .collect(Collectors.toList());
     }
@@ -265,7 +261,7 @@ public class SimulatedTitusAgentCluster {
 
         SimulatedTitusAgent agent = new SimulatedTitusAgent(name, computeResources, hostName, slaveId, agentOfferTemplate, instanceType,
                 cpus, gpus, memory, disk, networkMbs, ipPerEni, containerPlayersManager, Schedulers.computation());
-        agents.add(agent);
+        agents.put(agent.getId(), agent);
         topologUpdateSubject.onNext(AgentChangeEvent.newInstance(this, agent));
         return agent;
     }

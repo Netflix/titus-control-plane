@@ -1,9 +1,12 @@
 package io.netflix.titus.master.jobmanager.service;
 
+import java.util.concurrent.TimeUnit;
+
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import io.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobAfterChangeReconcilerEvent;
@@ -28,8 +31,15 @@ class JobTransactionLogger {
 
     private static final Logger logger = LoggerFactory.getLogger("JobTransactionLogger");
 
+    private static final long BUFFER_SIZE = 5000;
+
     static Subscription logEvents(ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework) {
-        return reconciliationFramework.events().subscribe(
+        return ObservableExt.observeSafely(
+                reconciliationFramework.events(),
+                BUFFER_SIZE,
+                droppedCount -> logger.warn("Dropping events due to buffer overflow in job transaction log {}: droppedCount={}", droppedCount),
+                1, TimeUnit.SECONDS
+        ).subscribe(
                 event -> logger.info(doFormat(event)),
                 e -> logger.error("Event stream terminated with an error", e),
                 () -> logger.info("Event stream completed")
