@@ -302,7 +302,7 @@ public class SimulatedTitusAgent {
             throw new IllegalStateException("Bad container info");
         }
 
-        String eniID = null;
+        String eniId = null;
         String containerIp = null;
         if (containerInfo.getAllocateIpAddress()) {
             NetworkConfigInfo networkConfigInfo = containerInfo.getNetworkConfigInfo();
@@ -313,7 +313,7 @@ public class SimulatedTitusAgent {
                 // TODO Better handle failure scenarios during task launch
                 throw new IllegalStateException("Invalid ENI assignment");
             }
-            eniID = networkConfigInfo.getEniLabel();
+            eniId = networkConfigInfo.getEniLabel();
         }
         efsMounts = extractEfsMounts(containerInfo);
 
@@ -381,7 +381,7 @@ public class SimulatedTitusAgent {
         );
         TaskExecutorHolder taskHolder = new TaskExecutorHolder(containerPlayersManager,
                 extractJobId(task), taskId.getValue(), this, instanceType, taskCPUs, taskGPUs,
-                taskMem, taskDisk, taskPorts, containerIp, eniID, taskNetwork, efsMounts, env, taskStatusSubject);
+                taskMem, taskDisk, taskPorts, containerIp, eniId, taskNetwork, efsMounts, env, taskStatusSubject);
         pendingTasks.put(taskId, taskHolder);
 
         return taskHolder;

@@ -12,10 +12,10 @@ public final class ConnectorUtils {
      * the last one, and depend on teh fact that all leases provided here will be auto-expired by Fenzo.
      * <h1>Fenzo race condition</h1>
      * Fenzo processes new offers/leases and lease decline on internal event loop, just before doing task placement.
-     * First decline requests are processed, and next new offers are added. This is a problem when a lease is quickly
+     * First declined requests are processed, and next new offers are added. This is a problem when a lease is quickly
      * offered and declined, and both requests are handled in the same cycle:
      * <ul>
-     * <li>a decline is processed first, but there is no such lease in Fenzo, so the request is void</li>
+     * <li>a decline request is processed first, but there is no such lease in Fenzo, so the request is void</li>
      * <li>an add request is processed next, and the lease that was just unsuccessfully declined is added to Fenzo</li>
      * </ul>
      */
