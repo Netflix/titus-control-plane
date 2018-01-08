@@ -149,8 +149,11 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             return Collections.emptyList();
         }
 
-        actions.addAll(findJobSizeInconsistencies(refJobView, storeModel, allowedNewTasks));
-        actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
+        List<ChangeAction> numberOfTaskAdjustingActions = findJobSizeInconsistencies(refJobView, storeModel, allowedNewTasks);
+        actions.addAll(numberOfTaskAdjustingActions);
+        if (numberOfTaskAdjustingActions.isEmpty()) {
+            actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
+        }
         actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
 
         return actions;

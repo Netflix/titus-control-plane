@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
@@ -148,8 +149,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             return Collections.emptyList();
         }
 
-        actions.addAll(findJobSizeInconsistencies(engine, refJobView, storeModel, allowedNewTasks));
-        actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
+        List<ChangeAction> numberOfTaskAdjustingActions = findJobSizeInconsistencies(engine, refJobView, storeModel, allowedNewTasks);
+        actions.addAll(numberOfTaskAdjustingActions);
+        if (numberOfTaskAdjustingActions.isEmpty()) {
+            actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
+        }
         actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
 
         return actions;
@@ -243,8 +247,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             if (refAndStoreInSync) {
                 TaskState currentTaskState = refTask.getStatus().getState();
                 if (currentTaskState == TaskState.Finished) {
-                    if (isJobTerminating || TaskStatus.REASON_SCALED_DOWN.equals(storeTask.getStatus().getReasonCode())) {
-                        actions.add(removeFinishedServiceTaskAction(storeTask));
+                    if (isJobTerminating || isScaledDown(storeTask)) {
+                        actions.add(removeFinishedServiceTaskAction(jobStore, storeTask));
                     } else if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTaskHolder, clock)) {
                         actions.add(createNewTaskAction(refJobView, Optional.of(referenceTaskHolder)));
                     }
@@ -260,6 +264,12 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             }
         }
         return actions;
+    }
+
+    private boolean isScaledDown(ServiceJobTask task) {
+        return JobFunctions.findTaskStatus(task, TaskState.KillInitiated)
+                .map(status -> TaskStatus.REASON_SCALED_DOWN.equals(status.getReasonCode()))
+                .orElse(false);
     }
 
     private List<ChangeAction> removeCompletedJob(EntityHolder referenceModel, EntityHolder storeModel, JobStore titusStore) {

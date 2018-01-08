@@ -17,6 +17,7 @@
 package io.netflix.titus.testkit.embedded.cloud.agent;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -177,11 +178,12 @@ public class SimulatedTitusAgentCluster {
     }
 
     public void scaleDown(int count) {
-        int last = agents.size() - count;
-        for (int i = agents.size() - 1; i >= last; i--) {
-            SimulatedTitusAgent agent = agents.remove(i);
-            agent.shutdown();
-            topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstance(this, agent));
+        Iterator<SimulatedTitusAgent> it = agents.values().iterator();
+        for (int i = 0; i < count && it.hasNext(); i++) {
+            SimulatedTitusAgent toRemove = it.next();
+            it.remove();
+            toRemove.shutdown();
+            topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstance(this, toRemove));
         }
     }
 

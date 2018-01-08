@@ -42,7 +42,7 @@ public class ServiceJobSchedulingTest {
      * When the job is killed, its task is killed as well.
      */
     @Test
-    public void testTaskCompletingOkIsResubmitted() throws Exception {
+    public void testTaskCompletingOkIsResubmitted() {
         testTaskCompletingOkIsResubmitted(0);
     }
 
@@ -51,11 +51,11 @@ public class ServiceJobSchedulingTest {
      * When the job is killed, its task is killed as well.
      */
     @Test
-    public void testFailingTaskIsResubmitted() throws Exception {
+    public void testFailingTaskIsResubmitted() {
         testTaskCompletingOkIsResubmitted(-1);
     }
 
-    private void testTaskCompletingOkIsResubmitted(int errorCode) throws Exception {
+    private void testTaskCompletingOkIsResubmitted(int errorCode) {
         jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -72,7 +72,7 @@ public class ServiceJobSchedulingTest {
      * When the job is killed, all tasks are killed as well.
      */
     @Test
-    public void testAllTasksInJobAreResubmittedWhenCompleteOk() throws Exception {
+    public void testAllTasksInJobAreResubmittedWhenCompleteOk() {
         JobDescriptor<ServiceJobExt> twoTaskJob = changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 2);
         jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
                 .expectJobEvent()
@@ -83,15 +83,16 @@ public class ServiceJobSchedulingTest {
                 .advance().advance()
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
                 .template(ScenarioTemplates.killJob())
-                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.reconcilerTaskKill(taskIdx, resubmit))
-                .advance()
-                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.expectTaskStateUpdate(taskIdx, resubmit, TaskState.Finished, TaskStatus.REASON_TASK_KILLED))
+                .inActiveTasks((taskIdx, resubmit) -> js -> js
+                        .template(ScenarioTemplates.reconcilerTaskKill(taskIdx, resubmit))
+                        .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished))
+                )
                 .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
         );
     }
 
     @Test
-    public void testZeroSizeJobIsNotCompletedAutomatically() throws Exception {
+    public void testZeroSizeJobIsNotCompletedAutomatically() {
         JobDescriptor<?> emptyJob = JobFunctions.changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 0);
         jobsScenarioBuilder.scheduleJob(emptyJob, jobScenario -> jobScenario
                 .expectJobEvent()
@@ -102,7 +103,7 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobScaleUp() throws Exception {
+    public void testJobScaleUp() {
         Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(2).withMax(5).build();
 
         jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
@@ -114,7 +115,7 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobScaleDown() throws Exception {
+    public void testJobScaleDown() {
         Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(1).withMax(5).build();
         JobDescriptor<ServiceJobExt> twoTaskJob = changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 2);
         jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
@@ -130,23 +131,41 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testTaskTerminateAndShrinkReducesJobSize() throws Exception {
+    public void testTaskTerminateInAcceptedState() {
+        jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .template(ScenarioTemplates.acceptTask(0, 0))
+                .killTask(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
+        );
+    }
+
+    @Test
+    public void testTaskTerminateAndShrinkReducesJobSize() {
         JobDescriptor<ServiceJobExt> twoTaskJob = changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 3);
         jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
                 .expectJobEvent()
                 .advance()
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
                 .killTaskAndShrink(0, 0)
-                .killTaskAndShrink(1, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_KILLED)
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished, TaskStatus.REASON_TASK_KILLED)
+                .expectTaskUpdatedInStore(0, 0, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished))
+                .expectedTaskArchivedInStore(0, 0)
                 .advance()
                 .advance()
+                .expectNoTaskStateChangeEvent()
                 .expectServiceJobEvent(job -> assertThat(job.getJobDescriptor().getExtensions().getCapacity().getDesired()).isEqualTo(2))
-                .expectServiceJobEvent(job -> assertThat(job.getJobDescriptor().getExtensions().getCapacity().getDesired()).isEqualTo(1))
         );
     }
 
     @Test
-    public void testJobCapacityUpdateToIdenticalAsCurrentCapacityIsNoOp() throws Exception {
+    public void testJobCapacityUpdateToIdenticalAsCurrentCapacityIsNoOp() {
         Capacity fixedCapacity = Capacity.newBuilder().withMin(1).withDesired(1).withMax(1).build();
         JobDescriptor<ServiceJobExt> job = JobFunctions.changeServiceJobCapacity(oneTaskServiceJobDescriptor(), fixedCapacity);
 
@@ -162,7 +181,7 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobCapacityUpdateWhenJobInKillInitiatedStateIsIgnored() throws Exception {
+    public void testJobCapacityUpdateWhenJobInKillInitiatedStateIsIgnored() {
         Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(2).withMax(5).build();
 
         jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
@@ -176,7 +195,7 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobEnableStatus() throws Exception {
+    public void testJobEnableStatus() {
         jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> {
                     Consumer<Boolean> enable = enabled -> jobScenario
                             .changeJobEnabledStatus(enabled)
@@ -192,7 +211,7 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobEnableStatusUpdateToIdenticalValue() throws Exception {
+    public void testJobEnableStatusUpdateToIdenticalValue() {
         JobDescriptor<?> emptyJob = JobFunctions.changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 0);
         jobsScenarioBuilder.scheduleJob(emptyJob, jobScenario -> jobScenario
                 .expectJobEvent()

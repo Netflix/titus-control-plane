@@ -332,14 +332,16 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         return Observable.<Void>error(JobManagerException.taskTerminating(task));
                     }
 
+                    String reasonCode = TaskStatus.REASON_TASK_KILLED;
                     if (shrink) {
                         Job<?> job = engineChildPair.getLeft().getReferenceView().getEntity();
                         if (!(job.getJobDescriptor().getExtensions() instanceof ServiceJobExt)) {
                             return Observable.<Void>error(JobManagerException.notServiceJob(job.getId()));
                         }
+                        reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, String.format("%s (shrink=%s)", reason, shrink)
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink)
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })

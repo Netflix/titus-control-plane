@@ -137,17 +137,6 @@ public class BasicTaskActions {
                             }
                             Task newTask = maybeNewTask.get();
 
-                            // In case of scale down request, copy reason code into Finished state.
-                            if (oldTask instanceof ServiceJobTask) {
-                                if (oldTask.getStatus().getState() == TaskState.KillInitiated
-                                        && newTask.getStatus().getState() == TaskState.Finished
-                                        && TaskStatus.REASON_SCALED_DOWN.equals(oldTask.getStatus().getReasonCode())) {
-
-                                    TaskStatus newStatus = newTask.getStatus().toBuilder().withReasonCode(TaskStatus.REASON_SCALED_DOWN).build();
-                                    newTask = JobFunctions.changeTaskStatus(newTask, newStatus);
-                                }
-                            }
-
                             // Handle separately reference and runtime models, as only reference model gets retry attributes.
                             List<ModelActionHolder> modelActionHolders = new ArrayList<>();
 

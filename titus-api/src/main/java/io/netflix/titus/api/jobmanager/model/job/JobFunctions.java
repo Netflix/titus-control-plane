@@ -225,14 +225,14 @@ public final class JobFunctions {
         return expectedPreviousStates.equals(taskStates);
     }
 
-    private static Optional<TaskStatus> findTaskStatus(Task task, TaskState checkedState) {
+    public static Optional<TaskStatus> findTaskStatus(Task task, TaskState checkedState) {
         if (task.getStatus().getState() == checkedState) {
             return Optional.of(task.getStatus());
         }
         return task.getStatusHistory().stream().filter(s -> s.getState() == checkedState).findFirst();
     }
 
-    private static Optional<TaskStatus> findStatusAfter(Task task, TaskState before) {
+    public static Optional<TaskStatus> findStatusAfter(Task task, TaskState before) {
         TaskStatus after = null;
         for (TaskStatus status : task.getStatusHistory()) {
             if (TaskState.isAfter(status.getState(), before)) {

@@ -73,7 +73,7 @@ public class ContainerPlayersManagerTest {
     public void testFailure() {
         initTaskHolder(ImmutableMap.of(
                 TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX, "0",
-                "TASK_LIFECYCLE_1", "selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s finish=REASON_CONTAINER_LAUNCH_FAILED"
+                "TASK_LIFECYCLE_1", "selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s finish=killed"
         ));
         assertThat(playersManager.play(taskHolder)).isTrue();
 
@@ -83,7 +83,7 @@ public class ContainerPlayersManagerTest {
         assertThat(taskHolder.getState()).isEqualTo(Protos.TaskState.TASK_STARTING);
 
         testScheduler.advanceTimeBy(3, TimeUnit.SECONDS);
-        assertThat(taskHolder.getState()).isEqualTo(Protos.TaskState.TASK_FAILED);
+        assertThat(taskHolder.getState()).isEqualTo(Protos.TaskState.TASK_KILLED);
     }
 
     private void initTaskHolder(Map<String, String> env) {

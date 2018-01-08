@@ -78,7 +78,7 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
     public void taskStatusUpdateStream(Empty request, StreamObserver<SimulatedTaskStatus> responseObserver) {
         Subscription subscription = cloud.taskStatusUpdates().subscribe(
                 statusUpdate -> {
-                    logger.info("Sending task status update: taskId={}, state=", statusUpdate.getTaskId(), statusUpdate.getState());
+                    logger.info("Sending task status update: taskId={}, state={}", statusUpdate.getTaskId(), statusUpdate.getState());
                     responseObserver.onNext(toSimulatedStatusUpdate(statusUpdate));
                 },
                 e -> {

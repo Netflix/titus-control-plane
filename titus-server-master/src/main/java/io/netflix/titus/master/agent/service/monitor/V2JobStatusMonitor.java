@@ -105,6 +105,8 @@ public class V2JobStatusMonitor implements AgentStatusMonitor {
     public void enterActiveMode() {
         this.delegate = new StreamStatusMonitor(
                 SOURCE_ID,
+                false,
+                agentManagementService,
                 new JobStatusEvaluator(workerStateMonitor, agentMonitorConfiguration, agentManagementService, scheduler).getAgentStatusObservable(),
                 registry,
                 scheduler
