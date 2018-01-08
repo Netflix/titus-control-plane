@@ -5,8 +5,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.monitor.AgentStatus;
 import io.netflix.titus.api.agent.service.AgentManagementException;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import org.slf4j.Logger;
@@ -25,16 +27,27 @@ public class StreamStatusMonitor implements AgentStatusMonitor {
 
     private static final long RETRY_DELAYS_MS = 1_000;
 
+    private final String source;
+    private final boolean failOnMissingData;
+    private final Scheduler scheduler;
+
     private final AgentStatusMonitorMetrics metrics;
     private final Subscription statusUpdateSubscription;
 
     private final PublishSubject<AgentStatus> statusUpdateSubject = PublishSubject.create();
+    private final AgentManagementService agentManagementService;
     private volatile ConcurrentMap<String, AgentStatus> instanceStatuses = new ConcurrentHashMap<>();
 
     public StreamStatusMonitor(String source,
+                               boolean failOnMissingData,
+                               AgentManagementService agentManagementService,
                                Observable<AgentStatus> agentStatusObservable,
                                Registry registry,
                                Scheduler scheduler) {
+        this.source = source;
+        this.failOnMissingData = failOnMissingData;
+        this.agentManagementService = agentManagementService;
+        this.scheduler = scheduler;
         this.metrics = new AgentStatusMonitorMetrics(source, registry);
 
         this.statusUpdateSubscription = agentStatusObservable
@@ -54,7 +67,11 @@ public class StreamStatusMonitor implements AgentStatusMonitor {
     public AgentStatus getStatus(String agentInstanceId) {
         AgentStatus agentStatus = instanceStatuses.get(agentInstanceId);
         if (agentStatus == null) {
-            throw AgentManagementException.agentNotFound(agentInstanceId);
+            if (failOnMissingData) {
+                throw AgentManagementException.agentNotFound(agentInstanceId);
+            }
+            AgentInstance agentInstance = agentManagementService.getAgentInstance(agentInstanceId);
+            return AgentStatus.healthy(source, agentInstance, "No data recorded yet; assuming healthy", scheduler.now());
         }
         return agentStatus;
     }

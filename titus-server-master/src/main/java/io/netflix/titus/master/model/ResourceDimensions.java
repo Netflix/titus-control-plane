@@ -214,6 +214,7 @@ public class ResourceDimensions {
         AwsInstanceDescriptor descriptor = instanceType.getDescriptor();
         return ResourceDimension.newBuilder()
                 .withCpus(descriptor.getvCPUs())
+                .withGpu(descriptor.getvGPUs())
                 .withMemoryMB(descriptor.getMemoryGB() * 1024)
                 .withDiskMB(descriptor.getStorageGB() * 1024)
                 .withNetworkMbs(descriptor.getNetworkMbs())

@@ -100,7 +100,18 @@ public final class ReflectionExt {
 
     public static Optional<StackTraceElement> findCallerStackTrace() {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        return stackTrace.length > 3 ? Optional.of(stackTrace[3]) : Optional.empty();
+        for (int i = 3; i < stackTrace.length; i++) {
+            StackTraceElement element = stackTrace[i];
+            String className = element.getClassName();
+            if (!className.contains("cglib")
+                    && !className.contains("com.google.inject")
+                    && !className.contains("EnhancerByGuice")
+                    && !className.contains("ProxyMethodInterceptor")
+                    && !className.contains("util.proxy")) {
+                return Optional.of(element);
+            }
+        }
+        return Optional.empty();
     }
 
     private static <T> Class<?> bypassBytecodeGeneratedWrappers(T instance) {

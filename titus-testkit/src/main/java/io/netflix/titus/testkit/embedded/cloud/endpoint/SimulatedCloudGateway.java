@@ -78,7 +78,7 @@ public class SimulatedCloudGateway {
     private SimulatedInstanceGroup toSimulatedInstanceGroup(SimulatedTitusAgentCluster agentCluster) {
         return SimulatedInstanceGroup.newBuilder()
                 .setId(agentCluster.getName())
-                .setInstanceType(agentCluster.getInstanceType().name())
+                .setInstanceType(agentCluster.getInstanceType().getDescriptor().getId())
                 .setCapacity(Capacity.newBuilder()
                         .setMin(agentCluster.getMinSize())
                         .setDesired(agentCluster.getAgents().size())

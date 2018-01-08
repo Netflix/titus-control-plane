@@ -62,6 +62,13 @@ public class Either<T, E> {
         return ofValue(mapper.apply(value));
     }
 
+    public T onErrorGet(Function<E, T> fallback) {
+        if (hasValue()) {
+            return value;
+        }
+        return fallback.apply(error);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

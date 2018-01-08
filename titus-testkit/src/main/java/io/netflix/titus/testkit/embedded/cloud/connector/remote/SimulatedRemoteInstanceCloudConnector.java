@@ -76,7 +76,7 @@ public class SimulatedRemoteInstanceCloudConnector implements InstanceCloudConne
 
     @Override
     public ResourceDimension getInstanceTypeResourceDimension(String instanceType) {
-        return ResourceDimensions.fromAwsInstanceType(AwsInstanceType.valueOf(instanceType));
+        return ResourceDimensions.fromAwsInstanceType(AwsInstanceType.withName(instanceType));
     }
 
     @Override

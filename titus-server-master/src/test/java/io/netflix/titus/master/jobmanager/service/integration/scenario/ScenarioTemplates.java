@@ -118,9 +118,11 @@ public class ScenarioTemplates {
             List<Task> activeTasks = jobScenario.getActiveTasks();
             return jobScenario.allActiveTasks(task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished))
                     .advance()
+                    .advance()
                     .expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished))
                     .expectJobUpdatedInStore(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished))
                     .inAllTasks(activeTasks, jobScenario::expectedTaskArchivedInStore)
+                    .advance()
                     .expectJobArchivedInStore();
         };
     }

@@ -17,11 +17,12 @@
 package io.netflix.titus.testkit.embedded.cloud.agent;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
@@ -30,6 +31,7 @@ import io.netflix.titus.api.agent.model.AutoScaleRule;
 import io.netflix.titus.common.aws.AwsInstanceDescriptor;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.Attribute;
@@ -60,10 +62,11 @@ public class SimulatedTitusAgentCluster {
 
     private int minSize = 0;
     private int maxSize;
+    private final ContainerPlayersManager containerPlayersManager;
 
     private Protos.Offer.Builder offerTemplate;
 
-    private final List<SimulatedTitusAgent> agents = new ArrayList<>();
+    private final ConcurrentMap<String, SimulatedTitusAgent> agents = new ConcurrentHashMap<>();
 
     private final Subject<AgentChangeEvent, AgentChangeEvent> topologUpdateSubject = new SerializedSubject<>(PublishSubject.create());
 
@@ -76,7 +79,8 @@ public class SimulatedTitusAgentCluster {
                                        int disk,
                                        int networkMbs,
                                        int ipPerEni,
-                                       AutoScaleRule autoScaleRule) {
+                                       AutoScaleRule autoScaleRule,
+                                       ContainerPlayersManager containerPlayersManager) {
         this.name = name;
         this.computeResources = computeResources;
         this.instanceType = instanceType;
@@ -88,6 +92,7 @@ public class SimulatedTitusAgentCluster {
         this.ipPerEni = ipPerEni;
         this.autoScaleRule = autoScaleRule;
         this.maxSize = autoScaleRule.getMax();
+        this.containerPlayersManager = containerPlayersManager;
 
         this.offerTemplate = Protos.Offer.newBuilder()
                 .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("EmbeddedTitusMaster"))
@@ -100,7 +105,7 @@ public class SimulatedTitusAgentCluster {
     }
 
     public void shutdown() {
-        agents.forEach(SimulatedTitusAgent::shutdown);
+        agents.values().forEach(SimulatedTitusAgent::shutdown);
         topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstanceGroup(this));
     }
 
@@ -145,7 +150,7 @@ public class SimulatedTitusAgentCluster {
     }
 
     public List<SimulatedTitusAgent> getAgents() {
-        return agents;
+        return new ArrayList<>(agents.values());
     }
 
     public void updateCapacity(int min, int desired, int max) {
@@ -173,31 +178,27 @@ public class SimulatedTitusAgentCluster {
     }
 
     public void scaleDown(int count) {
-        int last = agents.size() - count;
-        for (int i = agents.size() - 1; i >= last; i--) {
-            SimulatedTitusAgent agent = agents.remove(i);
-            agent.shutdown();
-            topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstance(this, agent));
+        Iterator<SimulatedTitusAgent> it = agents.values().iterator();
+        for (int i = 0; i < count && it.hasNext(); i++) {
+            SimulatedTitusAgent toRemove = it.next();
+            it.remove();
+            toRemove.shutdown();
+            topologUpdateSubject.onNext(AgentChangeEvent.terminatedInstance(this, toRemove));
         }
     }
 
     public void terminate(String agentId, boolean shrink) {
-        Iterator<SimulatedTitusAgent> it = agents.iterator();
-        while (it.hasNext()) {
-            SimulatedTitusAgent agent = it.next();
-            if (agent.getId().equals(agentId)) {
-                it.remove();
-                agent.shutdown();
-                if (!shrink) {
-                    scaleUp(1);
-                }
-                break;
+        SimulatedTitusAgent toRemove = agents.remove(agentId);
+        if (toRemove != null) {
+            toRemove.shutdown();
+            if (!shrink) {
+                scaleUp(1);
             }
         }
     }
 
     public Optional<TaskExecutorHolder> findTaskById(String taskId) {
-        for (SimulatedTitusAgent agent : agents) {
+        for (SimulatedTitusAgent agent : agents.values()) {
             Optional<TaskExecutorHolder> holder = agent.findTaskById(taskId);
             if (holder.isPresent()) {
                 return holder;
@@ -207,15 +208,15 @@ public class SimulatedTitusAgentCluster {
     }
 
     public Set<String> reconcileOwnedTasksIgnoreOther(Set<String> taskIds) {
-        return agents.stream().flatMap(a -> a.reconcileOwnedTasksIgnoreOther(taskIds).stream()).collect(Collectors.toSet());
+        return agents.values().stream().flatMap(a -> a.reconcileOwnedTasksIgnoreOther(taskIds).stream()).collect(Collectors.toSet());
     }
 
     public Set<String> reconcileKnownTasks() {
-        return agents.stream().flatMap(a -> a.reconcileKnownTasks().stream()).collect(Collectors.toSet());
+        return agents.values().stream().flatMap(a -> a.reconcileKnownTasks().stream()).collect(Collectors.toSet());
     }
 
-    public Optional<SimulatedTitusAgent> findAgentWithOffer(Protos.OfferID offerID) {
-        return agents.stream().filter(a -> a.hasOffer(offerID)).findFirst();
+    public Optional<SimulatedTitusAgent> findAgentWithOffer(String offerId) {
+        return agents.values().stream().filter(a -> a.isOfferOwner(offerId)).findFirst();
     }
 
     public Observable<AgentChangeEvent> topologyUpdates() {
@@ -243,7 +244,7 @@ public class SimulatedTitusAgentCluster {
     }
 
     private List<AgentChangeEvent> toNewInstanceEvents() {
-        return agents.stream()
+        return agents.values().stream()
                 .map(a -> AgentChangeEvent.newInstance(this, a))
                 .collect(Collectors.toList());
     }
@@ -261,8 +262,8 @@ public class SimulatedTitusAgentCluster {
                 );
 
         SimulatedTitusAgent agent = new SimulatedTitusAgent(name, computeResources, hostName, slaveId, agentOfferTemplate, instanceType,
-                cpus, gpus, memory, disk, networkMbs, ipPerEni, Schedulers.computation());
-        agents.add(agent);
+                cpus, gpus, memory, disk, networkMbs, ipPerEni, containerPlayersManager, Schedulers.computation());
+        agents.put(agent.getId(), agent);
         topologUpdateSubject.onNext(AgentChangeEvent.newInstance(this, agent));
         return agent;
     }
@@ -289,6 +290,7 @@ public class SimulatedTitusAgentCluster {
         private int maxIdleHostsToKeep = 10;
         private long coolDownSec = 30;
         private int ipPerEni = 29;
+        private ContainerPlayersManager containerPlayersManager;
 
         private Builder(String name, int idx) {
             this.name = name;
@@ -341,7 +343,14 @@ public class SimulatedTitusAgentCluster {
             return this;
         }
 
+        public Builder withContainerPlayersManager(ContainerPlayersManager containerPlayersManager) {
+            this.containerPlayersManager = containerPlayersManager;
+            return this;
+        }
+
         public SimulatedTitusAgentCluster build() {
+            Preconditions.checkNotNull(containerPlayersManager, "ContainerPlayersManager not defined");
+
             AutoScaleRule autoScaleRule = AutoScaleRule.newBuilder()
                     .withMinIdleToKeep(minIdleHostsToKeep)
                     .withMaxIdleToKeep(maxIdleHostsToKeep)
@@ -349,9 +358,10 @@ public class SimulatedTitusAgentCluster {
                     .withCoolDownSec((int) coolDownSec)
                     .withShortfallAdjustingFactor(1)
                     .build();
+
             SimulatedTitusAgentCluster agentCluster = new SimulatedTitusAgentCluster(
                     name, computeResources, instanceType, cpus, gpus, memory, disk, networkMbs, ipPerEni,
-                    autoScaleRule
+                    autoScaleRule, containerPlayersManager
             );
             agentCluster.scaleUp(size);
             return agentCluster;

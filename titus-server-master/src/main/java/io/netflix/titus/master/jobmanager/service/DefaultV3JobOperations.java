@@ -19,6 +19,7 @@ package io.netflix.titus.master.jobmanager.service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -50,6 +51,7 @@ import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
+import io.netflix.titus.common.util.ReflectionExt;
 import io.netflix.titus.common.util.guice.ProxyType;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -79,6 +81,8 @@ import static io.netflix.titus.master.jobmanager.service.common.action.TitusMode
 public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultV3JobOperations.class);
+
+    private static final long EVENT_BUFFER = 2000;
 
     enum IndexKind {StatusCreationTime}
 
@@ -328,14 +332,16 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         return Observable.<Void>error(JobManagerException.taskTerminating(task));
                     }
 
+                    String reasonCode = TaskStatus.REASON_TASK_KILLED;
                     if (shrink) {
                         Job<?> job = engineChildPair.getLeft().getReferenceView().getEntity();
                         if (!(job.getJobDescriptor().getExtensions() instanceof ServiceJobExt)) {
                             return Observable.<Void>error(JobManagerException.notServiceJob(job.getId()));
                         }
+                        reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, TaskStatus.REASON_TASK_KILLED, String.format("%s (shrink=%s)", reason, shrink)
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink)
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })
@@ -344,18 +350,33 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<JobManagerEvent<?>> observeJobs() {
-        return toJobManagerEvents(reconciliationFramework.events());
+        return observeSafely(toJobManagerEvents(reconciliationFramework.events()));
     }
 
     @Override
     public Observable<JobManagerEvent<?>> observeJob(String jobId) {
-        return Observable.fromCallable(() -> reconciliationFramework.findEngineByRootId(jobId))
+        Observable<JobManagerEvent<?>> unprotectedStream = Observable.fromCallable(() -> reconciliationFramework.findEngineByRootId(jobId))
                 .flatMap(engineOpt ->
                         engineOpt.map(engine ->
                                 toJobManagerEvents(engine.events())
                         ).orElseGet(() ->
                                 Observable.error(JobManagerException.jobNotFound(jobId))
                         ));
+        return observeSafely(unprotectedStream);
+    }
+
+    private Observable<JobManagerEvent<?>> observeSafely(Observable<JobManagerEvent<?>> unprotectedStream) {
+        // All subscribers should add their own back-pressure strategy. This code just help diagnose issues if they don't.
+        String callerName = ReflectionExt.findCallerStackTrace().map(st ->
+                st.getClassName() + '#' + st.getMethodName() + ':' + st.getLineNumber()
+        ).orElse("callerUnknown");
+
+        return ObservableExt.observeSafely(
+                unprotectedStream,
+                EVENT_BUFFER,
+                droppedCount -> logger.warn("Dropping events due to buffer overflow in subscription of client {}: droppedCount={}", callerName, droppedCount),
+                1, TimeUnit.SECONDS
+        );
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> Job<E> newJob(JobDescriptor<E> jobDescriptor) {

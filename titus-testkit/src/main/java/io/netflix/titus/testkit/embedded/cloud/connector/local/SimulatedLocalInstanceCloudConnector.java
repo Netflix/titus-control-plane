@@ -25,13 +25,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import io.netflix.titus.api.connector.cloud.CloudConnectorException;
 import io.netflix.titus.api.connector.cloud.Instance;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import io.netflix.titus.api.connector.cloud.InstanceGroup;
 import io.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import io.netflix.titus.api.model.ResourceDimension;
+import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.tuple.Either;
+import io.netflix.titus.master.model.ResourceDimensions;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
@@ -80,7 +81,7 @@ public class SimulatedLocalInstanceCloudConnector implements InstanceCloudConnec
             Preconditions.checkArgument(unknownIds.isEmpty(), "Unknown instance groups requested: %s", unknownIds);
 
             List<InstanceLaunchConfiguration> launchConfigurations = launchConfigurationIds.stream()
-                    .map(id -> new InstanceLaunchConfiguration(id, cloud.getAgentInstanceGroup(id).getInstanceType().name()))
+                    .map(id -> new InstanceLaunchConfiguration(id, cloud.getAgentInstanceGroup(id).getInstanceType().getDescriptor().getId()))
                     .collect(Collectors.toList());
             return launchConfigurations;
         });
@@ -88,17 +89,7 @@ public class SimulatedLocalInstanceCloudConnector implements InstanceCloudConnec
 
     @Override
     public ResourceDimension getInstanceTypeResourceDimension(String instanceType) {
-        return cloud.getAgentInstanceGroups().stream()
-                .filter(i -> i.getInstanceType().name().equals(instanceType))
-                .findFirst()
-                .map(instanceGroup -> ResourceDimension.newBuilder()
-                        .withCpus(instanceGroup.getCpus())
-                        .withGpu((int) instanceGroup.getGpus())
-                        .withMemoryMB(instanceGroup.getMemory())
-                        .withDiskMB(instanceGroup.getDisk())
-                        .withNetworkMbs(instanceGroup.getNetworkMbs())
-                        .build())
-                .orElseThrow(() -> CloudConnectorException.unrecognizedInstanceType(instanceType));
+        return ResourceDimensions.fromAwsInstanceType(AwsInstanceType.withName(instanceType));
     }
 
     @Override

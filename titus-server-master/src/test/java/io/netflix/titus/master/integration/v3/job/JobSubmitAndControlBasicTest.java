@@ -29,7 +29,6 @@ import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBui
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import io.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
-import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.netflix.titus.testkit.model.job.ContainersGenerator;
@@ -70,12 +69,9 @@ public class JobSubmitAndControlBasicTest {
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
-    private EmbeddedTitusMaster titusMaster;
-
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(basicSetupActivation());
-        titusMaster = titusStackResource.getMaster();
     }
 
     /**

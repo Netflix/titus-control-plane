@@ -53,6 +53,10 @@ public class JobManagerException extends RuntimeException {
         return errorCode;
     }
 
+    public static boolean hasErrorCode(Throwable error, ErrorCode errorCode) {
+        return (error instanceof JobManagerException) && ((JobManagerException) error).getErrorCode() == errorCode;
+    }
+
     public static JobManagerException jobCreateLimited(String violation) {
         return new JobManagerException(ErrorCode.JobCreateLimited, violation);
     }
@@ -84,14 +88,14 @@ public class JobManagerException extends RuntimeException {
     }
 
     public static Throwable jobTerminating(Job<?> job) {
-        if(job.getStatus().getState() == JobState.Finished) {
+        if (job.getStatus().getState() == JobState.Finished) {
             return new JobManagerException(ErrorCode.JobTerminating, format("Job %s is terminated", job.getId()));
         }
         return new JobManagerException(ErrorCode.JobTerminating, format("Job %s is in the termination process", job.getId()));
     }
 
     public static Throwable taskTerminating(Task task) {
-        if(task.getStatus().getState() == TaskState.Finished) {
+        if (task.getStatus().getState() == TaskState.Finished) {
             return new JobManagerException(ErrorCode.TaskTerminating, format("Task %s is terminated", task.getId()));
         }
         return new JobManagerException(ErrorCode.TaskTerminating, format("Task %s is in the termination process", task.getId()));

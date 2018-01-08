@@ -45,6 +45,6 @@ public class SimulatedRemoteMesosSchedulerDriverFactory implements MesosSchedule
 
     @Override
     public SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, Scheduler scheduler) {
-        return new SimulatedRemoteSchedulerDriver(masterInfo, channel, scheduler);
+        return new SimulatedRemoteMesosSchedulerDriver(masterInfo, channel, scheduler);
     }
 }
