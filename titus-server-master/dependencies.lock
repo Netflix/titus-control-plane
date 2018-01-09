@@ -195,11 +195,11 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -953,11 +953,11 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -1711,11 +1711,11 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -2506,11 +2506,11 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -3265,11 +3265,11 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -4046,14 +4046,14 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
@@ -4966,14 +4966,14 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
@@ -5886,14 +5886,14 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
@@ -6807,14 +6807,14 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.0",
+            "locked": "1.0.1",
             "requested": "1.0.+",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
