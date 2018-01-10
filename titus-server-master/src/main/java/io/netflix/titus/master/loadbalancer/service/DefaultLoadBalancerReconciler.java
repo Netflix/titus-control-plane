@@ -72,6 +72,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     @Override
     public void ignoreEventsFor(LoadBalancerTarget target, long period, TimeUnit unit) {
         Duration periodDuration = Duration.ofMillis(unit.toMillis(period));
+        logger.debug("Setting a cooldown of {} for target {}", periodDuration.toString(), target);
         Instant untilWhen = Instant.ofEpochMilli(scheduler.now()).plus(periodDuration);
         ignored.put(target, untilWhen);
     }
@@ -107,6 +108,10 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                     .map(ip -> updateForUnknownTask(loadBalancerId, ip))
                     .collect(Collectors.toSet());
 
+            if (!toRegister.isEmpty() || !toDeregister.isEmpty()) {
+                logger.info("Reconciliation found targets to to be registered: {}, to be deregistered: {}", toRegister.size(), toDeregister.size());
+            }
+
             return Observable.from(CollectionsExt.merge(
                     withState(now, toRegister, State.Registered),
                     withState(now, toDeregister, State.Deregistered)
@@ -140,6 +145,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     private Map<String, List<JobLoadBalancerState>> snapshotAssociationsByLoadBalancer() {
         cleanupExpiredIgnored();
+        logger.debug("Snapshotting current associations");
         return store.getAssociations().stream()
                 .collect(Collectors.groupingBy(JobLoadBalancerState::getLoadBalancerId));
     }
@@ -150,7 +156,9 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
             if (untilWhen.isAfter(now)) {
                 return;
             }
-            ignored.remove(target, untilWhen); /* do not remove when changed */
+            if (ignored.remove(target, untilWhen) /* do not remove when changed */) {
+                logger.debug("Cooldown expired for target {}", target);
+            }
         });
     }
 
