@@ -169,7 +169,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     private <ReqT, RespT> ClientCall call(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, responseObserver);
+        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, configuration.getRequestTimeout(), responseObserver);
     }
 
     private <ReqT, RespT> ClientCall callStreaming(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {

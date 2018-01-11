@@ -77,7 +77,7 @@ class JobTransactionLogger {
         return ObservableExt.onBackpressureDropAndNotify(
                 reconciliationFramework.events(),
                 BUFFER_SIZE,
-                droppedCount -> logger.warn("Dropping events due to buffer overflow in job transaction log {}: droppedCount={}", droppedCount),
+                droppedCount -> logger.warn("Dropping events due to buffer overflow in job transaction log: droppedCount={}", droppedCount),
                 1, TimeUnit.SECONDS
         );
     }
