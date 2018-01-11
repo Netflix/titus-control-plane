@@ -19,10 +19,13 @@ package io.netflix.titus.common.util;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.MapEntry;
 import com.google.protobuf.Message;
 
 /**
@@ -57,11 +60,22 @@ public final class ProtobufCopy {
                             }
                         } else if (value instanceof Collection) {
                             Collection<?> collection = (Collection<?>) value;
-                            if (!collection.isEmpty() && collection.iterator().next() instanceof Message) {
-                                Iterator<?> it = collection.iterator();
-                                int size = collection.size();
-                                for (int i = 0; i < size; i++) {
-                                    builder.setRepeatedField(field, i, copy((Message) it.next(), nested));
+                            if (!collection.isEmpty()) {
+                                Object first = CollectionsExt.first(collection);
+                                if (first instanceof MapEntry) {
+                                    if (((MapEntry) first).getKey() instanceof String) {
+                                        List<?> filteredMap = collection.stream().filter(item -> {
+                                            MapEntry<String, Object> entry = (MapEntry<String, Object>) item;
+                                            return nested.contains(entry.getKey());
+                                        }).collect(Collectors.toList());
+                                        builder.setField(field, filteredMap);
+                                    }
+                                } else if (first instanceof Message) {
+                                    Iterator<?> it = collection.iterator();
+                                    int size = collection.size();
+                                    for (int i = 0; i < size; i++) {
+                                        builder.setRepeatedField(field, i, copy((Message) it.next(), nested));
+                                    }
                                 }
                             }
                         }
