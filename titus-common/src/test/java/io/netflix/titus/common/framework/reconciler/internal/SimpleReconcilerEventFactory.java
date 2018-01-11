@@ -29,6 +29,8 @@ import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEve
  */
 public class SimpleReconcilerEventFactory implements ReconcileEventFactory<SimpleReconcilerEvent> {
 
+    static SimpleReconcilerEventFactory INSTANCE = new SimpleReconcilerEventFactory();
+
     @Override
     public SimpleReconcilerEvent newBeforeChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long transactionId) {
         return new SimpleReconcilerEvent(EventType.ChangeRequest, changeAction.toString(), Optional.empty());
@@ -51,11 +53,11 @@ public class SimpleReconcilerEventFactory implements ReconcileEventFactory<Simpl
 
     @Override
     public SimpleReconcilerEvent newModelUpdateEvent(ReconciliationEngine engine, ChangeAction changeAction, ModelActionHolder modelActionHolder, EntityHolder changedEntityHolder, Optional previousEntityHolder, long transactionId) {
-        return new SimpleReconcilerEvent(EventType.ModelUpdated, modelActionHolder.getAction().toString(), Optional.empty());
+        return new SimpleReconcilerEvent(EventType.ModelUpdated, changedEntityHolder.getEntity(), Optional.empty());
     }
 
     @Override
     public SimpleReconcilerEvent newModelUpdateErrorEvent(ReconciliationEngine engine, ChangeAction changeAction, ModelActionHolder modelActionHolder, EntityHolder previousEntityHolder, Throwable error, long transactionId) {
-        return new SimpleReconcilerEvent(EventType.ModelUpdateError, modelActionHolder.getAction().toString(), Optional.of(error));
+        return new SimpleReconcilerEvent(EventType.ModelUpdateError, previousEntityHolder.getEntity(), Optional.of(error));
     }
 }

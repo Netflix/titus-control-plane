@@ -19,7 +19,6 @@ package io.netflix.titus.master.jobmanager.service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -51,7 +50,6 @@ import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
-import io.netflix.titus.common.util.ReflectionExt;
 import io.netflix.titus.common.util.guice.ProxyType;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -81,8 +79,6 @@ import static io.netflix.titus.master.jobmanager.service.common.action.TitusMode
 public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultV3JobOperations.class);
-
-    private static final long EVENT_BUFFER = 2000;
 
     enum IndexKind {StatusCreationTime}
 
@@ -350,33 +346,18 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<JobManagerEvent<?>> observeJobs() {
-        return observeSafely(toJobManagerEvents(reconciliationFramework.events()));
+        return toJobManagerEvents(reconciliationFramework.events());
     }
 
     @Override
     public Observable<JobManagerEvent<?>> observeJob(String jobId) {
-        Observable<JobManagerEvent<?>> unprotectedStream = Observable.fromCallable(() -> reconciliationFramework.findEngineByRootId(jobId))
+        return Observable.fromCallable(() -> reconciliationFramework.findEngineByRootId(jobId))
                 .flatMap(engineOpt ->
                         engineOpt.map(engine ->
                                 toJobManagerEvents(engine.events())
                         ).orElseGet(() ->
                                 Observable.error(JobManagerException.jobNotFound(jobId))
                         ));
-        return observeSafely(unprotectedStream);
-    }
-
-    private Observable<JobManagerEvent<?>> observeSafely(Observable<JobManagerEvent<?>> unprotectedStream) {
-        // All subscribers should add their own back-pressure strategy. This code just help diagnose issues if they don't.
-        String callerName = ReflectionExt.findCallerStackTrace().map(st ->
-                st.getClassName() + '#' + st.getMethodName() + ':' + st.getLineNumber()
-        ).orElse("callerUnknown");
-
-        return ObservableExt.observeSafely(
-                unprotectedStream,
-                EVENT_BUFFER,
-                droppedCount -> logger.warn("Dropping events due to buffer overflow in subscription of client {}: droppedCount={}", callerName, droppedCount),
-                1, TimeUnit.SECONDS
-        );
     }
 
     private <E extends JobDescriptor.JobDescriptorExt> Job<E> newJob(JobDescriptor<E> jobDescriptor) {

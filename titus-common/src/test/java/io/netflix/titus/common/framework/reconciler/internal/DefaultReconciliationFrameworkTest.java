@@ -54,8 +54,12 @@ public class DefaultReconciliationFrameworkTest {
     private final TestScheduler testScheduler = Schedulers.test();
 
     private final Function<EntityHolder, ReconciliationEngine<SimpleReconcilerEvent>> engineFactory = mock(Function.class);
+
     private final ReconciliationEngine engine1 = mock(ReconciliationEngine.class);
     private final ReconciliationEngine engine2 = mock(ReconciliationEngine.class);
+
+    private final PublishSubject<SimpleReconcilerEvent> engine1Events = PublishSubject.create();
+    private final PublishSubject<SimpleReconcilerEvent> engine2Events = PublishSubject.create();
 
     private final Map<Object, Comparator<EntityHolder>> indexComparators = ImmutableMap.<Object, Comparator<EntityHolder>>builder()
             .put("ascending", Comparator.comparing(EntityHolder::getEntity))
@@ -73,22 +77,24 @@ public class DefaultReconciliationFrameworkTest {
     );
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         framework.start();
         when(engineFactory.apply(any())).thenReturn(engine1, engine2);
         when(engine1.triggerEvents()).thenReturn(new TriggerStatus(true, true));
         when(engine1.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot1", "myEntity1"));
+        when(engine1.events()).thenReturn(engine1Events.asObservable());
         when(engine2.triggerEvents()).thenReturn(new TriggerStatus(true, true));
         when(engine2.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot2", "myEntity2"));
+        when(engine2.events()).thenReturn(engine2Events.asObservable());
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         framework.stop(STOP_TIMEOUT_MS);
     }
 
     @Test
-    public void testBootstrapEngineInitialization() throws Exception {
+    public void testBootstrapEngineInitialization() {
         ReconciliationEngine<SimpleReconcilerEvent> bootstrapEngine = mock(ReconciliationEngine.class);
         PublishSubject<SimpleReconcilerEvent> eventSubject = PublishSubject.create();
         when(bootstrapEngine.events()).thenReturn(eventSubject);
@@ -111,7 +117,7 @@ public class DefaultReconciliationFrameworkTest {
     }
 
     @Test
-    public void testEngineLifecycle() throws Exception {
+    public void testEngineLifecycle() {
         ExtTestSubscriber<ReconciliationEngine> addSubscriber = new ExtTestSubscriber<>();
         framework.newEngine(EntityHolder.newRoot("myRoot", "myEntity")).subscribe(addSubscriber);
         testScheduler.triggerActions();
@@ -126,12 +132,34 @@ public class DefaultReconciliationFrameworkTest {
     }
 
     @Test
-    public void testIndexes() throws Exception {
+    public void testIndexes() {
         framework.newEngine(EntityHolder.newRoot("myRoot1", "myEntity1")).subscribe();
         framework.newEngine(EntityHolder.newRoot("myRoot2", "myEntity2")).subscribe();
         testScheduler.triggerActions();
 
         assertThat(framework.orderedView("ascending").stream().map(EntityHolder::getEntity)).containsExactly("myEntity1", "myEntity2");
         assertThat(framework.orderedView("descending").stream().map(EntityHolder::getEntity)).containsExactly("myEntity2", "myEntity1");
+    }
+
+    @Test
+    public void testEventsPublishing() {
+        framework.newEngine(EntityHolder.newRoot("myRoot1", "myEntity1")).subscribe();
+        framework.newEngine(EntityHolder.newRoot("myRoot2", "myEntity2")).subscribe();
+        testScheduler.triggerActions();
+
+        ExtTestSubscriber<SimpleReconcilerEvent> eventSubscriber = new ExtTestSubscriber<>();
+        framework.events().subscribe(eventSubscriber);
+
+        engine1Events.onNext(newEvent("event1"));
+        assertThat(eventSubscriber.takeNext().getMessage()).isEqualTo("event1");
+        engine1Events.onCompleted();
+        assertThat(eventSubscriber.isUnsubscribed()).isFalse();
+
+        engine2Events.onNext(newEvent("event2"));
+        assertThat(eventSubscriber.takeNext().getMessage()).isEqualTo("event2");
+    }
+
+    private SimpleReconcilerEvent newEvent(String message) {
+        return new SimpleReconcilerEvent(EventType.Changed, message, Optional.empty());
     }
 }

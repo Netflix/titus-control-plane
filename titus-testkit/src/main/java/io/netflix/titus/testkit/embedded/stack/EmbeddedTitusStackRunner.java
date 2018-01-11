@@ -18,8 +18,14 @@ package io.netflix.titus.testkit.embedded.stack;
 
 import io.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import io.netflix.titus.testkit.perf.load.LoadGenerator;
+import org.apache.log4j.PropertyConfigurator;
 
 public class EmbeddedTitusStackRunner {
+
+    static {
+        PropertyConfigurator.configure(LoadGenerator.class.getClassLoader().getResource("load-log4j.properties"));
+    }
 
     public static void main(String[] args) throws InterruptedException {
         EmbeddedTitusMaster.Builder masterBuilder = EmbeddedTitusMaster.aTitusMaster()

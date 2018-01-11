@@ -36,6 +36,7 @@ import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -60,6 +61,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     private final ReconcileEventFactory<EVENT> eventFactory;
     private final ModelHolder<EVENT> modelHolder;
 
+    private final BlockingQueue<EVENT> changeActionEventQueue = new LinkedBlockingQueue<>();
     private final BlockingQueue<Pair<ChangeActionHolder, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
     private final BlockingQueue<Pair<ChangeActionHolder, List<ModelActionHolder>>> modelActionHolders = new LinkedBlockingQueue<>();
     private final ReconciliationEngineMetrics<EVENT> metrics;
@@ -71,7 +73,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     private List<Subscription> startedReconciliationActionSubscriptions = Collections.emptyList();
 
     private final PublishSubject<EVENT> eventSubject = PublishSubject.create();
-    private final Observable<EVENT> eventObservable = eventSubject.asObservable();
+    private final Observable<EVENT> eventObservable;
 
     private boolean firstTrigger;
 
@@ -87,6 +89,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
         this.eventFactory = eventFactory;
         this.indexSet = IndexSet.newIndexSet(indexComparators);
         this.clock = clock;
+        this.eventObservable = ObservableExt.protectFromMissingExceptionHandlers(eventSubject, logger);
         this.modelHolder = new ModelHolder<>(this, bootstrapModel, runningDifferenceResolver);
         this.firstTrigger = newlyCreated;
         this.metrics = new ReconciliationEngineMetrics<>(bootstrapModel.getId(), extraChangeActionTags, extraModelActionTags, registry, clock);
@@ -105,6 +108,11 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             if (firstTrigger) {
                 firstTrigger = false;
                 emitEvent(eventFactory.newModelEvent(this, modelHolder.getReference()));
+            }
+            if (!changeActionEventQueue.isEmpty()) {
+                List<EVENT> drainQueue = new ArrayList<>();
+                changeActionEventQueue.drainTo(drainQueue);
+                drainQueue.forEach(this::emitEvent);
             }
 
             // Always apply known runtime state changes first.
@@ -145,7 +153,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     public Observable<Void> changeReferenceModel(ChangeAction referenceUpdate) {
         return Observable.unsafeCreate(subscriber -> {
             long transactionId = nextTransactionId.getAndIncrement();
-            emitEvent(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
+            changeActionEventQueue.add(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
             referenceChangeActions.add(Pair.of(new ChangeActionHolder(referenceUpdate, transactionId, clock.wallTime()), (Subscriber<Void>) subscriber));
         });
     }
@@ -273,14 +281,14 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                         })
                         .subscribe(
                                 modelActionHolderList -> {
-                                    emitEvent(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), passedMs(startTimeNs), actionHolder.getTransactionId()));
+                                    changeActionEventQueue.add(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), passedMs(startTimeNs), actionHolder.getTransactionId()));
                                     registerModelUpdateRequest(finalNext.getLeft(), modelActionHolderList);
                                 },
                                 e -> {
                                     if (metricsNotUpdated.getAndSet(false)) {
                                         metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs, e);
                                     }
-                                    emitEvent(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, passedMs(startTimeNs), actionHolder.getTransactionId()));
+                                    changeActionEventQueue.add(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, passedMs(startTimeNs), actionHolder.getTransactionId()));
                                     subscriber.onError(e);
                                 },
                                 // TODO Make sure always one element is emitted
@@ -334,13 +342,13 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                     .subscribe(
                             modelActionHolders -> {
                                 registerModelUpdateRequest(changeActionHolder, modelActionHolders);
-                                emitEvent(eventFactory.newAfterChangeEvent(this, action, passedMs(startTimeNs), transactionId));
+                                changeActionEventQueue.add(eventFactory.newAfterChangeEvent(this, action, passedMs(startTimeNs), transactionId));
                             },
                             e -> {
                                 if (metricsNotUpdated.getAndSet(false)) {
                                     metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs, e);
                                 }
-                                emitEvent(eventFactory.newChangeErrorEvent(this, action, e, passedMs(startTimeNs), transactionId));
+                                changeActionEventQueue.add(eventFactory.newChangeErrorEvent(this, action, e, passedMs(startTimeNs), transactionId));
                                 logger.debug("Action execution error", e);
                             },
                             () -> {

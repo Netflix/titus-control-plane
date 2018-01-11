@@ -178,7 +178,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
     @Override
     public Observable<EVENT> events() {
-        return eventsObservable;
+        return ObservableExt.protectFromMissingExceptionHandlers(eventsObservable, logger);
     }
 
     @Override
