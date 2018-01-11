@@ -77,25 +77,25 @@ public class DefaultReconciliationEngineTest {
     private final Queue<List<ChangeAction>> runtimeReconcileActions = new LinkedBlockingQueue<>();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         engine.events().cast(SimpleReconcilerEvent.class).subscribe(eventSubscriber);
     }
 
     @Test
-    public void testReferenceModelChange() throws Exception {
+    public void testReferenceModelChange() {
         ExtTestSubscriber<Void> testSubscriber = new ExtTestSubscriber<>();
         engine.changeReferenceModel(new SlowChangeAction()).subscribe(testSubscriber);
 
         // Trigger change event
         assertThat(engine.triggerEvents().isRunningChangeActions()).isTrue();
         testSubscriber.assertOpen();
+        assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelInitial);
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ChangeRequest);
 
         // Move time, and verify that model is updated
         testScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
         assertThat(engine.triggerEvents().isRunningChangeActions()).isFalse();
 
-        assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelInitial);
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.Changed);
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelUpdated);
         assertThat(testSubscriber.isUnsubscribed()).isTrue();

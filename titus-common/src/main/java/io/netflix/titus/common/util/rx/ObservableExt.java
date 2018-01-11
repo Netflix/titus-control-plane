@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
+import org.slf4j.Logger;
 import rx.BackpressureOverflow;
 import rx.Completable;
 import rx.Notification;
@@ -231,12 +232,53 @@ public class ObservableExt {
     }
 
     /**
-     * Add safeguards to an observable protecting it from misbehaving subscriber. This includes:
-     * <ul>
-     * <li>Add back-pressure buffer with drop on overflow strategy</li>
-     * </ul>
+     * In case subscriber does not provide exception handler, the error is propagated back to source, and the stream is broken.
+     * In some scenarios it is undesirable behavior. This method wraps the unprotected observable, and logs all unhandled
+     * exceptions using the provided logger.
      */
-    public static <T> Observable<T> observeSafely(Observable<T> unprotectedStream, long maxBufferSize, Consumer<Long> notificationAction, long notificationInterval, TimeUnit timeUnit) {
+    public static <T> Observable<T> protectFromMissingExceptionHandlers(Observable<T> unprotectedStream, Logger logger) {
+        return Observable.unsafeCreate(subscriber -> {
+            Subscription subscription = unprotectedStream.subscribe(
+                    event -> {
+                        try {
+                            subscriber.onNext(event);
+                        } catch (Exception e) {
+                            try {
+                                subscriber.onError(e);
+                            } catch (Exception e2) {
+                                logger.warn("Subscriber threw an exception from onNext handler", e);
+                                logger.warn("Subscriber threw an exception from onError handler", e2);
+                            }
+                        }
+                    },
+                    e -> {
+                        try {
+                            subscriber.onError(e);
+                        } catch (Exception e2) {
+                            logger.warn("Subscriber threw an exception from onError handler", e2);
+                        }
+                    },
+                    () -> {
+                        try {
+                            subscriber.onCompleted();
+                        } catch (Exception e) {
+                            logger.warn("Subscriber threw an exception from onCompleted handler", e);
+                        }
+                    }
+            );
+            subscriber.add(subscription);
+        });
+    }
+
+    /**
+     * Adds a backpressure handler to an observable stream, which buffers data, and in case of buffer overflow
+     * calls periodically the user provided callback handler.
+     */
+    public static <T> Observable<T> onBackpressureDropAndNotify(Observable<T> unprotectedStream,
+                                                                long maxBufferSize,
+                                                                Consumer<Long> onDropAction,
+                                                                long notificationInterval,
+                                                                TimeUnit timeUnit) {
         long notificationIntervalMs = timeUnit.toMillis(notificationInterval);
 
         return Observable.fromCallable(() -> 1).flatMap(tick -> {
@@ -248,7 +290,7 @@ public class ObservableExt {
                         dropCount.getAndIncrement();
                         long now = System.currentTimeMillis();
                         if (now - lastOverflowLogTime.get() > notificationIntervalMs) {
-                            notificationAction.accept(dropCount.get());
+                            onDropAction.accept(dropCount.get());
                             lastOverflowLogTime.set(now);
                         }
                     },

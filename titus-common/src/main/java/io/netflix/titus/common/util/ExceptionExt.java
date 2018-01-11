@@ -88,6 +88,10 @@ public class ExceptionExt {
         }
     }
 
+    public static String toMessage(Throwable error) {
+        return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+    }
+
     public static String toMessageChain(Throwable error) {
         StringBuilder sb = new StringBuilder();
         Throwable current = error;

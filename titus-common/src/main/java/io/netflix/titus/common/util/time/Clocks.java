@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.common.util.time.internal.DefaultTestClock;
 import io.netflix.titus.common.util.time.internal.SystemClock;
+import rx.Scheduler;
 import rx.schedulers.TestScheduler;
 
 /**
@@ -28,6 +29,20 @@ public class Clocks {
 
     public static Clock system() {
         return SystemClock.INSTANCE;
+    }
+
+    public static Clock scheduler(Scheduler scheduler) {
+        return new Clock() {
+            @Override
+            public long nanoTime() {
+                return TimeUnit.MILLISECONDS.toNanos(scheduler.now());
+            }
+
+            @Override
+            public long wallTime() {
+                return scheduler.now();
+            }
+        };
     }
 
     public static TestClock test() {

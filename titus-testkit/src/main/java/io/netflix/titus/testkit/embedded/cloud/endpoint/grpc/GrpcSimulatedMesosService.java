@@ -200,10 +200,11 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
                 return SimulatedTaskStatus.SimulatedTaskState.Killed;
             case TASK_LOST:
                 return SimulatedTaskStatus.SimulatedTaskState.Lost;
+            case TASK_ERROR:
+                return SimulatedTaskStatus.SimulatedTaskState.Failed;
             case TASK_UNREACHABLE:
             case TASK_GONE:
             case TASK_DROPPED:
-            case TASK_ERROR:
             case TASK_KILLING:
             case TASK_GONE_BY_OPERATOR:
             case TASK_UNKNOWN:

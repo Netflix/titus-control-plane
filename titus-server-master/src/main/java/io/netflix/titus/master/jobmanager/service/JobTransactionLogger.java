@@ -6,6 +6,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
+import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import io.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -18,7 +19,9 @@ import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Observable;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 /**
  * Log all events in the following format:
@@ -34,16 +37,18 @@ class JobTransactionLogger {
     private static final long BUFFER_SIZE = 5000;
 
     static Subscription logEvents(ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework) {
-        return ObservableExt.observeSafely(
-                reconciliationFramework.events(),
-                BUFFER_SIZE,
-                droppedCount -> logger.warn("Dropping events due to buffer overflow in job transaction log {}: droppedCount={}", droppedCount),
-                1, TimeUnit.SECONDS
-        ).subscribe(
-                event -> logger.info(doFormat(event)),
-                e -> logger.error("Event stream terminated with an error", e),
-                () -> logger.info("Event stream completed")
-        );
+        return eventStreamWithBackpressure(reconciliationFramework)
+                .observeOn(Schedulers.io())
+                .retryWhen(errors -> errors.flatMap(
+                        e -> {
+                            logger.warn("Transactions may be missing in the log. The event stream has terminated with an error and must be re-subscribed: {}", ExceptionExt.toMessage(e));
+                            return eventStreamWithBackpressure(reconciliationFramework);
+                        }))
+                .subscribe(
+                        event -> logger.info(doFormat(event)),
+                        e -> logger.error("Event stream terminated with an error", e),
+                        () -> logger.info("Event stream completed")
+                );
     }
 
     static String doFormat(JobManagerReconcilerEvent event) {
@@ -66,6 +71,15 @@ class JobTransactionLogger {
             return logJobModelUpdateErrorReconcilerEvent((JobModelUpdateErrorReconcilerEvent) event);
         }
         return "Unknown event type: " + event.getClass();
+    }
+
+    private static Observable<JobManagerReconcilerEvent> eventStreamWithBackpressure(ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework) {
+        return ObservableExt.onBackpressureDropAndNotify(
+                reconciliationFramework.events(),
+                BUFFER_SIZE,
+                droppedCount -> logger.warn("Dropping events due to buffer overflow in job transaction log {}: droppedCount={}", droppedCount),
+                1, TimeUnit.SECONDS
+        );
     }
 
     private static String logJobBeforeChangeReconcilerEvent(JobBeforeChangeReconcilerEvent event) {

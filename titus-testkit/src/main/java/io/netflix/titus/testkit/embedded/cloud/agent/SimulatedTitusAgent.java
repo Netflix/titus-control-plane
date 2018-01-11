@@ -438,7 +438,7 @@ public class SimulatedTitusAgent {
         }
     }
 
-    public void declineOffer(String offerId) {
+    public synchronized void declineOffer(String offerId) {
         checkOffer(offerId);
         if (lastOffer != null && lastOffer.getId().getValue().equals(offerId)) {
             lastOffer = null;
@@ -469,7 +469,7 @@ public class SimulatedTitusAgent {
         return !isCurrentOffer(offerId);
     }
 
-    private void emmitAvailableOffers(boolean rescindFromClient) {
+    private synchronized void emmitAvailableOffers(boolean rescindFromClient) {
         if (rescindFromClient && lastOffer != null) {
             logger.info("Rescinding offer: {}", lastOffer.getId().getValue());
             offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));

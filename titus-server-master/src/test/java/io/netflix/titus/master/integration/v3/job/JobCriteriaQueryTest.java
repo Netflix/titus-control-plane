@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobQuery;
@@ -583,15 +584,21 @@ public class JobCriteriaQueryTest {
 
     @Test(timeout = 30_000)
     public void testFieldsFiltering() throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(false).build();
+        JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(false)
+                .withAttributes(ImmutableMap.of("keyA", "valueA", "keyB", "valueB"))
+                .build();
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(jobAccepted()));
 
         // Check jobs
-        List<Job> foundJobs = client.findJobs(JobQuery.newBuilder().setPage(PAGE).addFields("status").build()).getItemsList();
+        List<Job> foundJobs = client.findJobs(JobQuery.newBuilder().setPage(PAGE)
+                .addFields("status")
+                .addFields("jobDescriptor.attributes.keyA")
+                .build()
+        ).getItemsList();
         assertThat(foundJobs).hasSize(1);
         assertThat(foundJobs.get(0).getId()).isNotEmpty(); // Always present
-        assertThat(foundJobs.get(0).getJobDescriptor()).isEqualTo(com.netflix.titus.grpc.protogen.JobDescriptor.getDefaultInstance());
         assertThat(foundJobs.get(0).getStatus().getReasonMessage()).isNotEmpty();
+        assertThat(foundJobs.get(0).getJobDescriptor().getAttributesMap()).hasSize(1);
 
         // Check tasks
         List<Task> foundTasks = client.findTasks(TaskQuery.newBuilder().setPage(PAGE).addFields("status").build()).getItemsList();
