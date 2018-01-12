@@ -28,10 +28,13 @@ import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
+import io.grpc.ClientCall;
+import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceValidator;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.GrpcUtil;
+import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.gateway.service.v3.LoadBalancerService;
 import org.slf4j.Logger;
@@ -41,20 +44,28 @@ import rx.Emitter;
 import rx.Observable;
 import rx.functions.Action1;
 
+import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_ADD_LOAD_BALANCER;
+import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_GET_ALL_LOAD_BALANCERS;
+import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_GET_JOB_LOAD_BALANCERS;
+import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_REMOVE_LOAD_BALANCER;
+
 @Singleton
 public class DefaultLoadBalancerService implements LoadBalancerService {
     private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerService.class);
 
     private final GrpcClientConfiguration configuration;
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
+    private final SessionContext sessionContext;
     private final LoadBalancerResourceValidator validator;
 
     @Inject
     public DefaultLoadBalancerService(GrpcClientConfiguration configuration,
                                       LoadBalancerResourceValidator validator,
-                                      LoadBalancerServiceGrpc.LoadBalancerServiceStub client) {
+                                      LoadBalancerServiceGrpc.LoadBalancerServiceStub client,
+                                      SessionContext sessionContext) {
         this.configuration = configuration;
         this.client = client;
+        this.sessionContext = sessionContext;
         this.validator = validator;
     }
 
@@ -62,7 +73,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId) {
         return toObservable(emitter -> {
             StreamObserver<GetJobLoadBalancersResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            client.getJobLoadBalancers(jobId, simpleStreamObserver);
+            ClientCall clientCall = call(METHOD_GET_JOB_LOAD_BALANCERS, jobId, simpleStreamObserver);
+            GrpcUtil.attachCancellingCallback(emitter, clientCall);
         });
     }
 
@@ -70,7 +82,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request) {
         return toObservable(emitter -> {
             StreamObserver<GetAllLoadBalancersResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            client.getAllLoadBalancers(request, simpleStreamObserver);
+            ClientCall clientCall = call(METHOD_GET_ALL_LOAD_BALANCERS, request, simpleStreamObserver);
+            GrpcUtil.attachCancellingCallback(emitter, clientCall);
         });
     }
 
@@ -80,7 +93,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .onErrorResumeNext(e -> Completable.error(TitusServiceException.invalidArgument(e.getMessage())))
                 .andThen(toCompletable(emitter -> {
                     StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-                    client.addLoadBalancer(addLoadBalancerRequest, simpleStreamObserver);
+                    ClientCall clientCall = call(METHOD_ADD_LOAD_BALANCER, addLoadBalancerRequest, simpleStreamObserver);
+                    GrpcUtil.attachCancellingCallback(emitter, clientCall);
                 }));
     }
 
@@ -88,12 +102,17 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest) {
         return toCompletable(emptyEmitter -> {
             StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emptyEmitter);
-            client.removeLoadBalancer(removeLoadBalancerRequest, simpleStreamObserver);
+            ClientCall clientCall = call(METHOD_REMOVE_LOAD_BALANCER, removeLoadBalancerRequest, simpleStreamObserver);
+            GrpcUtil.attachCancellingCallback(emptyEmitter, clientCall);
         });
     }
 
     private Completable toCompletable(Action1<Emitter<Empty>> emitter) {
         return toObservable(emitter).toCompletable();
+    }
+
+    private <ReqT, RespT> ClientCall call(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
+        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, responseObserver);
     }
 
     private <T> Observable<T> toObservable(Action1<Emitter<T>> emitter) {

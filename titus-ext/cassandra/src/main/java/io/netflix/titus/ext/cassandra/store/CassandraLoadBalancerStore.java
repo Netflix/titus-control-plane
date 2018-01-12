@@ -75,7 +75,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     /**
      * Stores a Job/Load Balancer's current state.
      */
-    private volatile ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> loadBalancerStateMap;
+    private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> loadBalancerStateMap;
 
     /**
      * Optimized index for lookups of associated JobLoadBalancers by Job ID.
@@ -198,7 +198,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Override
     public List<JobLoadBalancer> getAssociationsPage(int offset, int limit) {
         // Create a sorted copy of the current keys to iterate. Keys added/removed after
-        // the copy is created may lead to staleness in the date being iterated.
+        // the copy is created may lead to staleness in the data being iterated.
         // Use native string sorting to determine order.
         return jobToAssociatedLoadBalancersMap.keySet().stream()
                 .sorted()

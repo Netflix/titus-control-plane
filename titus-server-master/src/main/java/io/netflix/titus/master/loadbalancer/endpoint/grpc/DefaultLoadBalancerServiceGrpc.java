@@ -38,7 +38,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.netflix.titus.api.service.TitusPaginationUtils.checkPageIsValid;
+import static io.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 import static io.netflix.titus.master.loadbalancer.endpoint.grpc.GrpcModelConverters.toGetAllLoadBalancersResult;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;

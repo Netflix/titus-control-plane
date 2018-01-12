@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.service;
+package io.netflix.titus.runtime.endpoint.v3.grpc;
 
 import io.grpc.stub.StreamObserver;
 import com.netflix.titus.grpc.protogen.Page;
+import io.netflix.titus.api.service.TitusServiceException;
 
 /**
  * Helper method for APIs using pagination.

@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static io.netflix.titus.api.service.TitusPaginationUtils.checkPageIsValid;
+import static io.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 import static io.netflix.titus.common.util.CollectionsExt.asSet;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
