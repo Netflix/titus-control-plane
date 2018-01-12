@@ -16,22 +16,32 @@
 
 package io.netflix.titus.master.loadbalancer.endpoint.grpc;
 
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.grpc.stub.StreamObserver;
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
+import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.api.service.TitusPaginationUtils.checkPageIsValid;
 import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
+import static io.netflix.titus.master.loadbalancer.endpoint.grpc.GrpcModelConverters.toGetAllLoadBalancersResult;
+import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 
 @Singleton
 public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
@@ -44,9 +54,10 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     }
 
     @Override
-    public void getJobLoadBalancers(JobId request, StreamObserver<GetLoadBalancerResult> responseObserver) {
+    public void getJobLoadBalancers(JobId request, StreamObserver<GetJobLoadBalancersResult> responseObserver) {
         logger.debug("Received get load balancer request {}", request);
-        GetLoadBalancerResult.Builder resultBuilder = GetLoadBalancerResult.newBuilder();
+        GetJobLoadBalancersResult.Builder resultBuilder = GetJobLoadBalancersResult.newBuilder()
+                .setJobId(request.getId());
         loadBalancerService.getJobLoadBalancers(request.getId()).subscribe(
                 loadBalancerId -> resultBuilder.addLoadBalancers(LoadBalancerId.newBuilder().setId(loadBalancerId).build()),
                 e -> safeOnError(logger, e, responseObserver),
@@ -55,6 +66,24 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
                     responseObserver.onCompleted();
                 }
         );
+    }
+
+    @Override
+    public void getAllLoadBalancers(GetAllLoadBalancersRequest request,
+                                    StreamObserver<GetAllLoadBalancersResult> responseObserver) {
+        logger.debug("Received get all load balancer request {}", request);
+        Page grpcPage = request.getPage();
+        if (!checkPageIsValid(grpcPage, responseObserver)) {
+            return;
+        }
+
+        try {
+            Pair<List<JobLoadBalancer>, Pagination> pageResult = loadBalancerService.getAllLoadBalancers(toPage(grpcPage));
+            responseObserver.onNext(toGetAllLoadBalancersResult(pageResult.getLeft(), pageResult.getRight()));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            safeOnError(logger, e, responseObserver);
+        }
     }
 
     @Override

@@ -22,7 +22,9 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
@@ -57,10 +59,18 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     }
 
     @Override
-    public Observable<GetLoadBalancerResult> getLoadBalancers(JobId jobId) {
+    public Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId) {
         return toObservable(emitter -> {
-            StreamObserver<GetLoadBalancerResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            StreamObserver<GetJobLoadBalancersResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.getJobLoadBalancers(jobId, simpleStreamObserver);
+        });
+    }
+
+    @Override
+    public Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request) {
+        return toObservable(emitter -> {
+            StreamObserver<GetAllLoadBalancersResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            client.getAllLoadBalancers(request, simpleStreamObserver);
         });
     }
 

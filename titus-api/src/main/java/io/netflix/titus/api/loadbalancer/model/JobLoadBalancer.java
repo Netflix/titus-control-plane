@@ -21,7 +21,7 @@ import javax.validation.constraints.Size;
 /**
  * Association between a Job and a LoadBalancer
  */
-public class JobLoadBalancer {
+public class JobLoadBalancer implements Comparable<JobLoadBalancer> {
     public enum State {Associated, Dissociated}
 
     @Size(min = 1, max = 50)
@@ -74,4 +74,11 @@ public class JobLoadBalancer {
         return result;
     }
 
+    @Override
+    public int compareTo(JobLoadBalancer o) {
+        if (!jobId.equals(o.getJobId())) {
+            return jobId.compareTo(o.getJobId());
+        }
+        return loadBalancerId.compareTo(o.getLoadBalancerId());
+    }
 }

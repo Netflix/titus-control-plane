@@ -17,13 +17,15 @@
 package io.netflix.titus.ext.cassandra.store;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -73,13 +75,14 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     /**
      * Stores a Job/Load Balancer's current state.
      */
-    private volatile Map<JobLoadBalancer, JobLoadBalancer.State> loadBalancerStateMap;
+    private volatile ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> loadBalancerStateMap;
 
     /**
      * Optimized index for lookups of associated JobLoadBalancers by Job ID.
      * Sets held in here must be all immutable (usually via Collections.unmodifiableSet).
+     * Sets held here must be sorted to allow sorted page access (usually via JobID natural String ordering).
      */
-    private final ConcurrentMap<String, Set<JobLoadBalancer>> jobToAssociatedLoadBalancersMap;
+    private final ConcurrentMap<String, SortedSet<JobLoadBalancer>> jobToAssociatedLoadBalancersMap;
 
     private static final String GET_ALL_JOB_IDS = String
             .format("SELECT %s, %s, %s FROM %s;",
@@ -137,11 +140,10 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     JobLoadBalancer.State state = loadBalancerStatePair.getRight();
                     Set<ConstraintViolation<JobLoadBalancer>> violations = entitySanitizer.validate(jobLoadBalancer);
                     if (violations.isEmpty()) {
-                        logger.debug("Loading load balancer {} with state {}", jobLoadBalancer, state);
                         loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
-                        Set<JobLoadBalancer> jobLoadBalancers = jobToAssociatedLoadBalancersMap.getOrDefault(jobLoadBalancer.getJobId(), new HashSet<>());
+                        SortedSet<JobLoadBalancer> jobLoadBalancers = jobToAssociatedLoadBalancersMap.getOrDefault(jobLoadBalancer.getJobId(), new TreeSet<>());
                         jobLoadBalancers.add(jobLoadBalancer);
-                        jobToAssociatedLoadBalancersMap.putIfAbsent(jobLoadBalancer.getJobId(), jobLoadBalancers);
+                        jobToAssociatedLoadBalancersMap.put(jobLoadBalancer.getJobId(), jobLoadBalancers);
                     } else {
                         if (failOnError) {
                             throw LoadBalancerStoreException.badData(jobLoadBalancer, violations);
@@ -179,7 +181,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId) {
         logger.debug("Getting all associated load balancers for job {}", jobId);
-        return  jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySet());
+        return  jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
     }
 
     /**
@@ -190,6 +192,22 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     public List<JobLoadBalancerState> getAssociations() {
         return loadBalancerStateMap.entrySet().stream()
                 .map(JobLoadBalancerState::from)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<JobLoadBalancer> getAssociationsPage(int offset, int limit) {
+        // Create a sorted copy of the current keys to iterate. Keys added/removed after
+        // the copy is created may lead to staleness in the date being iterated.
+        // Use native string sorting to determine order.
+        return jobToAssociatedLoadBalancersMap.keySet().stream()
+                .sorted()
+                .flatMap(jobId -> {
+                    SortedSet<JobLoadBalancer> jobLoadBalancerSortedSet = jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
+                    return jobLoadBalancerSortedSet.stream();
+                })
+                .skip(offset)
+                .limit(limit)
                 .collect(Collectors.toList());
     }
 
@@ -260,13 +278,14 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
         jobToAssociatedLoadBalancersMap.compute(association.getJobId(),
                 (jobId, associations) -> {
                     if (associations == null) {
-                        associations = Collections.emptySet();
+                        associations = new TreeSet<>();
                     }
-                    Set<JobLoadBalancer> copy = new HashSet<>(associations);
-                    // replace if existing
-                    copy.remove(association);
+                    // Add all of the current associations back, plus the new association
+                    SortedSet<JobLoadBalancer> copy = new TreeSet<>(associations);
                     copy.add(association);
-                    return Collections.unmodifiableSet(copy);
+
+                    // Return the new, unmodifiable instance of the set.
+                    return Collections.unmodifiableSortedSet(copy);
                 }
         );
     }
@@ -277,15 +296,17 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
      * @param association
      */
     private void removeJobLoadBalancerAssociation(JobLoadBalancer association) {
+        Supplier<TreeSet<JobLoadBalancer>> supplier = () -> new TreeSet<>();
+
         jobToAssociatedLoadBalancersMap.computeIfPresent(association.getJobId(),
                 (jobId, associations) -> {
-                    final Set<JobLoadBalancer> copy = associations.stream()
+                    final SortedSet<JobLoadBalancer> copy = associations.stream()
                             .filter(entry -> !entry.equals(association))
-                            .collect(Collectors.toSet());
+                            .collect(Collectors.toCollection(supplier));
                     if (copy.isEmpty()) {
                         return null;
                     }
-                    return Collections.unmodifiableSet(copy);
+                    return Collections.unmodifiableSortedSet(copy);
                 }
         );
     }

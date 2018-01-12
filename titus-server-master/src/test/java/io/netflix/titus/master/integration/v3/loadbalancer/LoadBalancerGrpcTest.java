@@ -22,7 +22,9 @@ import java.util.function.BiConsumer;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -95,12 +97,50 @@ public class LoadBalancerGrpcTest {
         });
     }
 
+    @Test
+    public void testGetAllLoadBalancerPages() throws Exception {
+        int numJobs = 75;
+        int numLbs = 7;
+        Map<String, Set<LoadBalancerId>> verificationMap = LoadBalancerTests.putLoadBalancersPerJob(numJobs, numLbs, putLoadBalancerWithJobId);
+
+        int pageSize = 3;
+        int currentPageNum = 0;
+        GetAllLoadBalancersResult result;
+        do {
+            result = LoadBalancerTests.getAllLoadBalancers(currentPageNum, pageSize, getAllLoadBalancers);
+
+            result.getJobLoadBalancersList().forEach(
+                    getJobLoadBalancersResult -> {
+                        String jobId = getJobLoadBalancersResult.getJobId();
+                        assertThat(verificationMap.containsKey(jobId)).isTrue();
+                        getJobLoadBalancersResult.getLoadBalancersList().forEach(
+                                loadBalancerId -> {
+                                    // Mark the load balancer as checked
+                                    assertThat(verificationMap.get(jobId).remove(loadBalancerId)).isTrue();
+                                }
+                        );
+                    }
+            );
+            currentPageNum ++;
+        } while (result.getPagination().getHasMore());
+        // Make sure that all of the data was checked
+        verificationMap.forEach(
+                (jobId, loadBalancerSet) -> {
+                    assertThat(loadBalancerSet.isEmpty()).isTrue();
+                }
+        );
+    }
+
     private BiConsumer<AddLoadBalancerRequest, TestStreamObserver<Empty>> putLoadBalancerWithJobId = (request, addResponse) -> {
         client.addLoadBalancer(request, addResponse);
     };
 
-    private BiConsumer<JobId, TestStreamObserver<GetLoadBalancerResult>> getJobLoadBalancers = (request, getResponse) -> {
+    private BiConsumer<JobId, TestStreamObserver<GetJobLoadBalancersResult>> getJobLoadBalancers = (request, getResponse) -> {
         client.getJobLoadBalancers(request, getResponse);
+    };
+
+    private BiConsumer<GetAllLoadBalancersRequest, TestStreamObserver<GetAllLoadBalancersResult>> getAllLoadBalancers = (request, getResponse) -> {
+        client.getAllLoadBalancers(request, getResponse);
     };
 
     private BiConsumer<RemoveLoadBalancerRequest, TestStreamObserver<Empty>> removeLoadBalancers = (request, removeResponse) -> {
