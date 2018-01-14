@@ -152,6 +152,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                         e -> log.error("Error in processing Deleting policy requests", e),
                         () -> log.info("Deleting policy processing stream closed ?"));
 
+        /*
         reconcileFinishedJobsSub = Observable.interval(ThreadLocalRandom.current().nextInt(10), 15, TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .flatMap(ignored -> reconcileFinishedJobs())
@@ -165,6 +166,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .subscribe(autoScalableTarget -> log.info("Reconciliation (jobStatus) : AutoScalableTarget updated {}", autoScalableTarget),
                         e -> log.error("Error in reconciliation (jobStatus) stream", e),
                         () -> log.info("Reconciliation (jobStatus) stream closed"));
+        */
 
 
         v2LiveStreamPolicyCleanup()
@@ -404,12 +406,14 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     @Override
     public Completable updateAutoScalingPolicy(AutoScalingPolicy autoScalingPolicy) {
-        metrics.reportPolicyStatusTransition(autoScalingPolicy, autoScalingPolicy.getStatus());
-        return appScalePolicyStore.updatePolicyConfiguration(autoScalingPolicy)
-                .andThen(Observable.fromCallable(() -> {
-                    metrics.reportPolicyStatusTransition(autoScalingPolicy, autoScalingPolicy.getStatus());
-                    return appScalePolicyStore.updatePolicyStatus(autoScalingPolicy.getRefId(), autoScalingPolicy.getStatus());
-                }).toCompletable());
+        log.info("Updating AutoScalingPolicy " + autoScalingPolicy);
+        return appScalePolicyStore.retrievePolicyForRefId(autoScalingPolicy.getRefId())
+                .map(existingPolicy -> AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy).withJobId(existingPolicy.getJobId()).build())
+                .flatMap(policyWithJobId -> appScalePolicyStore.updatePolicyConfiguration(policyWithJobId).andThen(Observable.just(policyWithJobId)))
+                .flatMapCompletable(updatedPolicy -> {
+                    metrics.reportPolicyStatusTransition(updatedPolicy, PolicyStatus.Pending);
+                    return appScalePolicyStore.updatePolicyStatus(updatedPolicy.getRefId(), PolicyStatus.Pending);
+                }).toCompletable();
     }
 
     @Override
@@ -487,11 +491,11 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.JobManagerError) {
 
                 AutoScalingPolicy autoScalingPolicy = AutoScalingPolicy.newBuilder().withRefId(autoScalePolicyException.getPolicyRefId()).build();
-                metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleted);
+                metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Error);
 
                 // no need to keep retrying
                 return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage)
-                        .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Deleted));
+                        .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Error));
             } else {
                 return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage);
             }

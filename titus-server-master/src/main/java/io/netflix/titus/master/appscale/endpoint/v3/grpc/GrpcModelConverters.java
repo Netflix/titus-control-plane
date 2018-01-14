@@ -239,6 +239,9 @@ public final class GrpcModelConverters {
             case Deleted:
                 policyState = ScalingPolicyStatus.ScalingPolicyState.Deleted;
                 break;
+            case Error:
+                policyState = ScalingPolicyStatus.ScalingPolicyState.Error;
+                break;
             default:
                 throw new IllegalArgumentException("Invalid PolicyStatus value " + policyStatus);
         }

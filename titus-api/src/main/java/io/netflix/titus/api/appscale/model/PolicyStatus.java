@@ -20,5 +20,6 @@ public enum PolicyStatus {
     Pending,
     Applied,
     Deleting,
-    Deleted
+    Deleted,
+    Error
 }

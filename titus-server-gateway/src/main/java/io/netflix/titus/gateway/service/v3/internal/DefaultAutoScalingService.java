@@ -28,6 +28,8 @@ import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
+import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
+import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.gateway.service.v3.AutoScalingService;
@@ -93,6 +95,14 @@ public class DefaultAutoScalingService implements AutoScalingService {
         return toCompletable(emitter -> {
             StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.deleteAutoScalingPolicy(request, simpleStreamObserver);
+        });
+    }
+
+    @Override
+    public Observable<ScalingPolicyResult> updateAutoScalingPolicy(UpdatePolicyRequest request) {
+        return toObservable(emitter -> {
+            StreamObserver<ScalingPolicyResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            client.updateAutoScalingPolicy(request, simpleStreamObserver);
         });
     }
 

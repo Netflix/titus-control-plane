@@ -17,17 +17,19 @@
 package io.netflix.titus.gateway.endpoint.v3.grpc;
 
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
+import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.gateway.service.v3.AutoScalingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
@@ -90,5 +92,17 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                 },
                 responseObserver::onError
         );
+    }
+
+    @Override
+    public void updateAutoScalingPolicy(UpdatePolicyRequest request, StreamObserver<ScalingPolicyResult> responseObserver) {
+        autoScalingService.updateAutoScalingPolicy(request)
+                .subscribe(
+                        (autoScalingPolicy) -> {
+                            responseObserver.onNext(autoScalingPolicy);
+                            responseObserver.onCompleted();
+                        },
+                        responseObserver::onError
+                );
     }
 }

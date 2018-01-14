@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -33,6 +34,8 @@ import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
+import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
+import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.netflix.titus.gateway.service.v3.AutoScalingService;
 import io.netflix.titus.runtime.endpoint.common.rest.Responses;
 import io.swagger.annotations.Api;
@@ -73,7 +76,7 @@ public class AutoScalingResource {
         return getPolicyResult;
     }
 
-    @PUT
+    @POST
     @ApiOperation("Create or Update scaling policy")
     @Path("scalingPolicy")
     public ScalingPolicyID setScalingPolicy(PutPolicyRequest putPolicyRequest) {
@@ -99,5 +102,16 @@ public class AutoScalingResource {
         ScalingPolicyID scalingPolicyId = ScalingPolicyID.newBuilder().setId(policyId).build();
         DeletePolicyRequest deletePolicyRequest = DeletePolicyRequest.newBuilder().setId(scalingPolicyId).build();
         return Responses.fromCompletable(autoScalingService.deleteAutoScalingPolicy(deletePolicyRequest));
+    }
+
+
+    @PUT
+    @ApiOperation("Update scaling policy")
+    @Path("scalingPolicy")
+    public ScalingPolicyResult updateScalingPolicy(UpdatePolicyRequest updatePolicyRequest) {
+        Observable<ScalingPolicyResult> updatePolicyResult = autoScalingService.updateAutoScalingPolicy(updatePolicyRequest);
+        ScalingPolicyResult scalingPolicyResult = Responses.fromSingleValueObservable(updatePolicyResult);
+        log.info("Scaling policy updated {}", scalingPolicyResult);
+        return scalingPolicyResult;
     }
 }
