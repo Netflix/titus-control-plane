@@ -65,6 +65,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 import static java.util.Arrays.asList;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -112,8 +113,6 @@ public class DefaultAppScaleManagerTest {
         appScaleManager.createAutoScalingPolicy(autoScalingPolicyOne).toBlocking().single();
         String policyRefIdTwo = appScaleManager.createAutoScalingPolicy(autoScalingPolicyTwo).toBlocking().single();
 
-//        Thread.sleep(5000);
-
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
         List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(policiesStored.size()).isEqualTo(2);
@@ -124,7 +123,7 @@ public class DefaultAppScaleManagerTest {
         }
 
         appScaleManager.removeAutoScalingPolicy(policyRefIdTwo).await();
-        Thread.sleep(2000);
+        Thread.sleep(20);
 
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
         policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
@@ -135,8 +134,6 @@ public class DefaultAppScaleManagerTest {
             Assertions.assertThat(mockAlarmClient.getNumOfAlarmsCreated()).isEqualTo(1);
         }
     }
-
-    /*
 
     @Test
     public void checkV2LiveStreamPolicyCleanup() throws InterruptedException {
@@ -160,18 +157,19 @@ public class DefaultAppScaleManagerTest {
         AutoScalingPolicy autoScalingPolicyTwo = AutoScalingPolicyTests.buildStepScalingPolicy(jobIdTwo);
         appScaleManager.createAutoScalingPolicy(autoScalingPolicyTwo).toBlocking().single();
 
-        // call - processPendingPolicies
-        List<String> refIdsCreated = appScaleManager.processPendingPolicyRequests().toList().toBlocking().first();
-        Assertions.assertThat(refIdsCreated.size()).isEqualTo(2);
-
         log.info("Done creating two policies");
+        List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
+        Assertions.assertThat(policiesStored.size()).isEqualTo(2);
 
         CountDownLatch latch = new CountDownLatch(1);
-        Observable<AutoScalingPolicy> autoScalingPolicyObservable = appScaleManager.v2LiveStreamPolicyCleanup();
-        List<AutoScalingPolicy> policiesToBeCleaned = new ArrayList<>();
-        autoScalingPolicyObservable.subscribe(autoScalingPolicy -> {
-                    log.info("Got AutoScalingPolicy to be cleaned up {}", autoScalingPolicy);
-                    policiesToBeCleaned.add(autoScalingPolicy);
+        List<String> jobIdPoliciesToBeCleaned = new ArrayList<>();
+
+        Observable<String> jobsAffected = appScaleManager.v2LiveStreamPolicyCleanup();
+        jobsAffected
+                .observeOn(Schedulers.io())
+                .subscribe(jobAffected -> {
+                    log.info("Got JobId {} - policies cleaned up.", jobAffected);
+                    jobIdPoliciesToBeCleaned.add(jobAffected);
                     latch.countDown();
                 },
                 e -> log.error("Error in v2 live stream for policy cleanup"),
@@ -180,15 +178,15 @@ public class DefaultAppScaleManagerTest {
         eventBus.publish(new JobStateChangeEvent<>(jobIdTwo, JobStateChangeEvent.JobState.Finished,
                 System.currentTimeMillis(), "jobFinished"));
         log.info("Done publishing JobStateChangeEvent for {}", jobIdTwo);
+        Assertions.assertThat(jobIdPoliciesToBeCleaned.size()).isEqualTo(1);
+        Assertions.assertThat(jobIdPoliciesToBeCleaned.get(0)).isEqualTo(jobIdTwo);
 
-        latch.await(3, TimeUnit.SECONDS);
-        Assertions.assertThat(policiesToBeCleaned.size()).isEqualTo(1);
-        Assertions.assertThat(policiesToBeCleaned.get(0).getJobId()).isEqualTo(jobIdTwo);
-
-
-        List<String> refIdsDeleted = appScaleManager.processDeletingPolicyRequests().toList().toBlocking().first();
-        Assertions.assertThat(refIdsDeleted.size()).isEqualTo(1);
+        Thread.sleep(50);
+        policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
+        Assertions.assertThat(policiesStored.size()).isEqualTo(1);
     }
+
+    /*
 
     @Test
     public void checkV2LiveStreamTargetUpdates() throws InterruptedException {

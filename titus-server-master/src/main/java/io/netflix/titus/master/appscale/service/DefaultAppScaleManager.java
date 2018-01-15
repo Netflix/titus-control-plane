@@ -63,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
+import rx.Single;
 import rx.Subscription;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
@@ -133,35 +134,35 @@ public class DefaultAppScaleManager implements AppScaleManager {
         reconcileFinishedJobsSub = Observable.interval(ThreadLocalRandom.current().nextInt(10), 15, TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .flatMap(ignored -> reconcileFinishedJobs())
-                .subscribe(autoScalingPolicy -> log.info("reconciliation (finishedjobs) : autoScalingPolicy {} removed", autoScalingPolicy),
-                        e -> log.error("error in reconciliation (finishedjobs) stream", e),
-                        () -> log.info("reconciliation (finishedjobs) stream closed"));
+                .subscribe(jobId -> log.info("reconciliation for FinishedJob : {} policies clean up.", jobId),
+                        e -> log.error("error in reconciliation (FinishedJob) stream", e),
+                        () -> log.info("reconciliation (FinishedJob) stream closed"));
 
         reconcileScalableTargetsSub = Observable.interval(ThreadLocalRandom.current().nextInt(10), 15, TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .flatMap(ignored -> reconcileScalableTargets())
-                .subscribe(autoScalableTarget -> log.info("Reconciliation (jobStatus) : AutoScalableTarget updated {}", autoScalableTarget),
-                        e -> log.error("Error in reconciliation (jobStatus) stream", e),
-                        () -> log.info("Reconciliation (jobStatus) stream closed"));
+                .subscribe(jobId -> log.info("Reconciliation (TargetUpdated) : {} target updated", jobId),
+                        e -> log.error("Error in reconciliation (TargetUpdated) stream", e),
+                        () -> log.info("Reconciliation (TargetUpdated) stream closed"));
 
 
         v2LiveStreamPolicyCleanup()
-                .subscribe(autoScalingPolicy -> log.info("(V2) AutoScalingPolicy {} removed", autoScalingPolicy),
+                .subscribe(jobId -> log.info("(V2) Job {} policies cleaned up.", jobId),
                         e -> log.error("Error in V2 job state change event stream", e),
                         () -> log.info("V2 job event stream closed"));
 
         v2LiveStreamTargetUpdates()
-                .subscribe(autoScalableTarget -> log.info("(V2) AutoScalableTarget updated {}", autoScalableTarget),
+                .subscribe(jobId -> log.info("(V2) Job {} scalable target updated", jobId),
                         e -> log.error("Error in V2 job state change event stream", e),
                         () -> log.info("V2 job event stream closed"));
 
         v3LiveStreamTargetUpdates()
-                .subscribe(autoScalableTarget -> log.info("(V3) AutoScalableTarget updated {}", autoScalableTarget),
+                .subscribe(jobId -> log.info("(V3) Job {} scalable target updated.", jobId),
                         e -> log.error("Error in V3 job state change event stream", e),
                         () -> log.info("V3 job event stream closed"));
 
         v3LiveStreamPolicyCleanup()
-                .subscribe(autoScalingPolicy -> log.info("(V3) AutoScalingPolicy {} removed", autoScalingPolicy),
+                .subscribe(jobId -> log.info("(V3) Job {} policies clean up.", jobId),
                         e -> log.error("Error in V3 job state change event stream", e),
                         () -> log.info("V3 job event stream closed"));
 
@@ -188,16 +189,16 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 });
     }
 
-    Observable<AutoScalingPolicy> reconcileFinishedJobs() {
+    Observable<String> reconcileFinishedJobs() {
         return appScalePolicyStore.retrievePolicies(false)
                 .map(autoScalingPolicy -> autoScalingPolicy.getJobId())
                 .filter(jobId -> !isJobActive(jobId))
-                .flatMap(jobId -> removePoliciesForJob(jobId))
+                .flatMap(jobId -> removePoliciesForJob(jobId).andThen(Observable.just(jobId)))
                 .doOnError(e -> log.error("Exception in reconcileFinishedJobs -> ", e))
                 .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty()));
     }
 
-    Observable<AppScaleAction> reconcileScalableTargets() {
+    Observable<String> reconcileScalableTargets() {
         return appScalePolicyStore.retrievePolicies(false)
                 .filter(autoScalingPolicy -> isJobActive(autoScalingPolicy.getJobId()))
                 .filter(autoScalingPolicy -> {
@@ -206,22 +207,24 @@ public class DefaultAppScaleManager implements AppScaleManager {
                             jobId));
                 })
                 .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
+                .map(updateAction -> updateAction.getJobId())
                 .doOnError(e -> log.error("Exception in reconcileScalableTargets -> ", e))
                 .onErrorResumeNext(e -> Observable.empty());
     }
 
-    Observable<AutoScalingPolicy> v2LiveStreamPolicyCleanup() {
+    Observable<String> v2LiveStreamPolicyCleanup() {
         return rxEventBus.listen(getClass().getSimpleName(), JobStateChangeEvent.class)
-                .flatMap(jobStateChangeEvent -> Observable.just(jobStateChangeEvent)
-                        .filter(jse -> jse.getJobState() == JobStateChangeEvent.JobState.Finished)
-                        .map(jse -> jse.getJobId())
-                        .flatMap(jobId -> removePoliciesForJob(jobId))
-                        .doOnError(e -> log.error("Exception in v2LiveStreamPolicyCleanup -> ", e))
-                        .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty())));
+                .flatMap(jobStateChangeEvent ->
+                        Observable.just(jobStateChangeEvent)
+                                .filter(jse -> jse.getJobState() == JobStateChangeEvent.JobState.Finished)
+                                .map(jse -> jse.getJobId())
+                                .flatMap(jobId -> removePoliciesForJob(jobId).andThen(Observable.just(jobId)))
+                                .doOnError(e -> log.error("Exception in v2LiveStreamPolicyCleanup -> ", e))
+                                .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty())));
 
     }
 
-    Observable<AppScaleAction> v2LiveStreamTargetUpdates() {
+    Observable<String> v2LiveStreamTargetUpdates() {
         return rxEventBus.listen(getClass().getSimpleName(), JobStateChangeEvent.class)
                 .flatMap(jobStateChangeEvent -> Observable.just(jobStateChangeEvent)
                         .filter(jse -> jse.getJobState() != JobStateChangeEvent.JobState.Finished)
@@ -230,12 +233,13 @@ public class DefaultAppScaleManager implements AppScaleManager {
                         .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
                                 getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
                         .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
+                        .map(updateAction -> updateAction.getJobId())
                         .doOnError(e -> log.error("Exception in v2LiveStreamTargetUpdates -> ", e))
                         .onErrorResumeNext(e -> Observable.empty()));
     }
 
 
-    Observable<AppScaleAction> v3LiveStreamTargetUpdates() {
+    Observable<String> v3LiveStreamTargetUpdates() {
         return v3JobOperations.observeJobs()
                 .filter(event -> {
                     if (event instanceof JobUpdateEvent) {
@@ -249,11 +253,12 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
                         getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
                 .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
+                .map(updateAction -> updateAction.getJobId())
                 .doOnError(e -> log.error("Exception in v3LiveStreamTargetUpdates -> ", e))
                 .onErrorResumeNext(e -> Observable.empty());
     }
 
-    Observable<AutoScalingPolicy> v3LiveStreamPolicyCleanup() {
+    Observable<String> v3LiveStreamPolicyCleanup() {
         return v3JobOperations.observeJobs()
                 .filter(event -> {
                     if (event instanceof JobUpdateEvent) {
@@ -263,7 +268,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     return false;
                 })
                 .cast(JobUpdateEvent.class)
-                .flatMap(event -> removePoliciesForJob(event.getCurrent().getId()))
+                .map(event -> event.getCurrent().getId()) // extract jobId from event
+                .flatMap(jobId -> removePoliciesForJob(jobId).andThen(Observable.just(jobId)))
                 .doOnError(e -> log.error("Exception in v3LiveStreamPolicyCleanup -> ", e))
                 .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty()));
     }
@@ -323,12 +329,13 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleting);
                     return appScalePolicyStore.updatePolicyStatus(autoScalingPolicy.getRefId(), PolicyStatus.Deleting)
                             .andThen(Observable.fromCallable(() -> sendDeletePolicyAction(autoScalingPolicy)));
-                }).toCompletable();
+                })
+                .toCompletable();
     }
 
-    private Observable<AutoScalingPolicy> removePoliciesForJob(String jobId) {
+    private Completable removePoliciesForJob(String jobId) {
         return appScalePolicyStore.retrievePoliciesForJob(jobId)
-                .flatMapCompletable(autoScalingPolicy -> removeAutoScalingPolicy(autoScalingPolicy.getRefId()));
+                .flatMapCompletable(autoScalingPolicy -> removeAutoScalingPolicy(autoScalingPolicy.getRefId())).toCompletable();
     }
 
     private boolean shouldRefreshScalableTargetForJob(String jobId, JobScalingConstraints jobScalingConstraints) {
