@@ -24,6 +24,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.JobStatus;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -94,6 +95,22 @@ public class JobGenerator {
                     .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
                     .withJobId(batchJob.getId())
                     .withIndex(taskIndex)
+                    .build();
+        });
+    }
+
+    /**
+     * Generates a sequence of tasks for a given job.
+     */
+    public static DataGenerator<ServiceJobTask> serviceTasks(Job<ServiceJobExt> serviceJob) {
+        int size = serviceJob.getJobDescriptor().getExtensions().getCapacity().getDesired();
+        return zip(taskIds(serviceJob.getId(), range(1)), range(0, size)).map(p -> {
+            String taskId = p.getLeft();
+            return ServiceJobTask.newBuilder()
+                    .withId(taskId)
+                    .withOriginalId(taskId)
+                    .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
+                    .withJobId(serviceJob.getId())
                     .build();
         });
     }
