@@ -22,7 +22,7 @@ import java.util.function.BiConsumer;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
@@ -94,7 +94,7 @@ public class DefaultLoadBalancerGrpcTest {
         serviceGrpc.addLoadBalancer(request, addResponse);
     };
 
-    private BiConsumer<JobId, TestStreamObserver<GetLoadBalancerResult>> getJobLoadBalancers = (request, getResponse) -> {
+    private BiConsumer<JobId, TestStreamObserver<GetJobLoadBalancersResult>> getJobLoadBalancers = (request, getResponse) -> {
         serviceGrpc.getJobLoadBalancers(request, getResponse);
     };
 

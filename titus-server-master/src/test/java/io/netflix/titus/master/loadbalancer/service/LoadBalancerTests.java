@@ -31,9 +31,12 @@ import java.util.stream.IntStream;
 import com.google.protobuf.Empty;
 import com.netflix.spectator.api.NoopRegistry;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
+import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.job.Container;
@@ -145,13 +148,13 @@ public class LoadBalancerTests {
      * successful, and returns the load balancer ids as a set.
      */
     public static Set<LoadBalancerId> getLoadBalancersForJob(String jobIdStr,
-                                                             BiConsumer<JobId, TestStreamObserver<GetLoadBalancerResult>> getJobLoadBalancers) {
+                                                             BiConsumer<JobId, TestStreamObserver<GetJobLoadBalancersResult>> getJobLoadBalancers) {
         JobId jobId = JobId.newBuilder().setId(jobIdStr).build();
 
-        TestStreamObserver<GetLoadBalancerResult> getResponse = new TestStreamObserver<>();
+        TestStreamObserver<GetJobLoadBalancersResult> getResponse = new TestStreamObserver<>();
         getJobLoadBalancers.accept(jobId, getResponse);
 
-        GetLoadBalancerResult result = null;
+        GetJobLoadBalancersResult result = null;
         try {
             result = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
@@ -160,6 +163,30 @@ public class LoadBalancerTests {
 
         assertThat(getResponse.hasError()).isFalse();
         return new HashSet<>(result.getLoadBalancersList());
+    }
+
+    /**
+     * Common testing helper that gets all load balancers for a given page range, ensures the gRPC
+     * request was successful, and returns the page result.
+     */
+    public static GetAllLoadBalancersResult getAllLoadBalancers(int offset, int limit,
+                                                                BiConsumer<GetAllLoadBalancersRequest, TestStreamObserver<GetAllLoadBalancersResult>> getAllLoadBalancers) {
+        GetAllLoadBalancersRequest request = GetAllLoadBalancersRequest.newBuilder()
+                .setPage(Page.newBuilder().setPageNumber(offset).setPageSize(limit).build())
+                .build();
+
+        TestStreamObserver<GetAllLoadBalancersResult> getResponse = new TestStreamObserver<>();
+        getAllLoadBalancers.accept(request, getResponse);
+
+        GetAllLoadBalancersResult result = null;
+        try {
+            result = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            assert false;
+        }
+
+        assertThat(getResponse.hasError()).isFalse();
+        return result;
     }
 
     /**

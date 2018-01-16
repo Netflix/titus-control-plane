@@ -88,4 +88,13 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
                 .map(JobLoadBalancerState::from)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<JobLoadBalancer> getAssociationsPage(int offset, int limit) {
+        return associations.keySet().stream()
+                .sorted()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
 }

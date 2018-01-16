@@ -39,7 +39,6 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
-import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
@@ -63,6 +62,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
+import static io.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 import static io.netflix.titus.common.util.CollectionsExt.asSet;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
@@ -317,21 +317,5 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .addAllItems(tasks)
                 .setPagination(toGrpcPagination(runtimePagination))
                 .build();
-    }
-
-    private boolean checkPageIsValid(Page page, StreamObserver<?> responseObserver) {
-        if (page == null) {
-            responseObserver.onError(TitusServiceException.invalidArgument("Page not defined for the query"));
-            return false;
-        }
-        if (page.getPageSize() <= 0) {
-            responseObserver.onError(TitusServiceException.invalidArgument("Page size must be > 0 (is " + page.getPageSize() + ')'));
-            return false;
-        }
-        if (page.getPageNumber() < 0) {
-            responseObserver.onError(TitusServiceException.invalidArgument("Page number must be >= 0 (is " + page.getPageNumber() + ')'));
-            return false;
-        }
-        return true;
     }
 }

@@ -21,7 +21,8 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
@@ -45,9 +46,21 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     }
 
     @Override
-    public void getJobLoadBalancers(JobId request, StreamObserver<GetLoadBalancerResult> responseObserver) {
+    public void getJobLoadBalancers(JobId request, StreamObserver<GetJobLoadBalancersResult> responseObserver) {
         logger.debug("Received get load balancer request {}", request);
         Subscription subscription = loadBalancerService.getLoadBalancers(request).subscribe(
+                responseObserver::onNext,
+                e -> safeOnError(logger, e, responseObserver),
+                responseObserver::onCompleted
+        );
+        attachCancellingCallback(responseObserver, subscription);
+    }
+
+    @Override
+    public void getAllLoadBalancers(com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest request,
+                                    StreamObserver<GetAllLoadBalancersResult> responseObserver) {
+        logger.debug("Received get all load balancer request {}", request);
+        Subscription subscription = loadBalancerService.getAllLoadBalancers(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted

@@ -83,4 +83,14 @@ public interface LoadBalancerStore {
      * cached data in-memory only, and avoid doing external calls.
      */
     List<JobLoadBalancerState> getAssociations();
+
+    /**
+     * Blocking call the returns the current snapshot page of the given offset/size of
+     * all load balancers.
+     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
+     * @param offset
+     * @param limit
+     * @return
+     */
+    List<JobLoadBalancer> getAssociationsPage(int offset, int limit);
 }
