@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.netflix.titus.common.util.tuple.Pair;
 
 /**
  * A set of additional collections related functions.
@@ -230,6 +231,19 @@ public final class CollectionsExt {
             result.putAll(next);
         }
         return result;
+    }
+
+    public static <T> Pair<List<T>, List<T>> split(List<T> items, Predicate<T> predicate) {
+        List<T> matching = new ArrayList<>();
+        List<T> notMatching = new ArrayList<>();
+        items.forEach(item -> {
+            if (predicate.test(item)) {
+                matching.add(item);
+            } else {
+                notMatching.add(item);
+            }
+        });
+        return Pair.of(matching, notMatching);
     }
 
     @SafeVarargs
