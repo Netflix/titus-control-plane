@@ -249,13 +249,15 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     return false;
                 })
                 .cast(JobUpdateEvent.class)
-                .flatMap(event -> appScalePolicyStore.retrievePoliciesForJob(event.getCurrent().getId()))
-                .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
-                        getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
-                .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
-                .map(updateAction -> updateAction.getJobId())
-                .doOnError(e -> log.error("Exception in v3LiveStreamTargetUpdates -> ", e))
-                .onErrorResumeNext(e -> Observable.empty());
+                .flatMap(event ->
+                        appScalePolicyStore.retrievePoliciesForJob(event.getCurrent().getId())
+                                .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
+                                        getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
+                                .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
+                                .map(updateAction -> updateAction.getJobId())
+                                .doOnError(e -> log.error("Exception in v3LiveStreamTargetUpdates -> ", e))
+                                .onErrorResumeNext(e -> Observable.empty())
+                );
     }
 
     Observable<String> v3LiveStreamPolicyCleanup() {
@@ -295,13 +297,14 @@ public class DefaultAppScaleManager implements AppScaleManager {
     public Completable updateAutoScalingPolicy(AutoScalingPolicy autoScalingPolicy) {
         log.info("Updating AutoScalingPolicy " + autoScalingPolicy);
         return appScalePolicyStore.retrievePolicyForRefId(autoScalingPolicy.getRefId())
-                .map(existingPolicy -> AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy).withJobId(existingPolicy.getJobId()).build())
+                .map(existingPolicy -> AutoScalingPolicy.newBuilder().withAutoScalingPolicy(existingPolicy)
+                        .withPolicyConfiguration(autoScalingPolicy.getPolicyConfiguration()).build())
                 .filter(policyWithJobId -> PolicyStateTransitions.isAllowed(policyWithJobId.getStatus(), PolicyStatus.Pending))
                 .flatMap(policyWithJobId -> appScalePolicyStore.updatePolicyConfiguration(policyWithJobId).andThen(Observable.just(policyWithJobId)))
                 .flatMap(updatedPolicy -> {
                     metrics.reportPolicyStatusTransition(updatedPolicy, PolicyStatus.Pending);
                     return appScalePolicyStore.updatePolicyStatus(updatedPolicy.getRefId(), PolicyStatus.Pending)
-                            .andThen(Observable.fromCallable(() -> sendUpdateTargetAction(updatedPolicy)));
+                            .andThen(Observable.fromCallable(() -> sendCreatePolicyAction(updatedPolicy)));
                 }).toCompletable();
     }
 
@@ -324,11 +327,14 @@ public class DefaultAppScaleManager implements AppScaleManager {
     @Override
     public Completable removeAutoScalingPolicy(String policyRefId) {
         return appScalePolicyStore.retrievePolicyForRefId(policyRefId)
-                .filter(autoScalingPolicy -> autoScalingPolicy.getStatus() != PolicyStatus.Deleted)
                 .flatMap(autoScalingPolicy -> {
-                    metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleting);
-                    return appScalePolicyStore.updatePolicyStatus(autoScalingPolicy.getRefId(), PolicyStatus.Deleting)
-                            .andThen(Observable.fromCallable(() -> sendDeletePolicyAction(autoScalingPolicy)));
+                    if (PolicyStateTransitions.isAllowed(autoScalingPolicy.getStatus(), PolicyStatus.Deleting)) {
+                        metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleting);
+                        return appScalePolicyStore.updatePolicyStatus(autoScalingPolicy.getRefId(), PolicyStatus.Deleting)
+                                .andThen(Observable.fromCallable(() -> sendDeletePolicyAction(autoScalingPolicy)));
+                    } else {
+                        return Observable.empty();
+                    }
                 })
                 .toCompletable();
     }
@@ -504,12 +510,12 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     case UPDATE_SCALABLE_TARGET:
                         if (appScaleAction.getPolicyRefId().isPresent()) {
                             AutoScalableTarget updatedTarget = updateScalableTargetWorkflow(appScaleAction.getPolicyRefId().get(), appScaleAction.getJobId()).toBlocking().first();
-                            log.info("AutoScalableTarget updated {} ", updatedTarget);
+                            log.info("AutoScalableTarget updated {}", updatedTarget);
                         }
                         break;
                 }
             } catch (Exception ex) {
-                log.error("Exception in processing appScaleAction {}.", ex);
+                log.error("Exception in processing appScaleAction {}", ex.getMessage());
             }
         }
     }
