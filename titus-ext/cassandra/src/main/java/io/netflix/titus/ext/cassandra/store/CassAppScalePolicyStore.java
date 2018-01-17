@@ -136,6 +136,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                 .filter(autoScalingPolicy ->
                         autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
                                 autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
+                                autoScalingPolicy.getStatus() == PolicyStatus.Error ||
                                 autoScalingPolicy.getStatus() == PolicyStatus.Applied ||
                                 (includeArchived && autoScalingPolicy.getStatus() == PolicyStatus.Deleted))
                 .collect(Collectors.toList());
@@ -257,6 +258,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                         autoScalingPolicy != null &&
                                 autoScalingPolicy.getStatus() != null &&
                                 (autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
+                                        autoScalingPolicy.getStatus() == PolicyStatus.Error ||
                                         autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
                                         autoScalingPolicy.getStatus() == PolicyStatus.Applied));
     }

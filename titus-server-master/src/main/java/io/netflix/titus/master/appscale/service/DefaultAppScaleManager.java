@@ -63,7 +63,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
-import rx.Single;
 import rx.Subscription;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
@@ -390,6 +389,10 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
 
     private JobScalingConstraints getJobScalingConstraints(String policyRefId, String jobId) {
+        if (v2JobOperations == null && v3JobOperations == null) {
+            return new JobScalingConstraints(0, 0);
+        }
+
         if (JobFunctions.isV2JobId(jobId)) {
             V2JobMgrIntf v2JobMgr = v2JobOperations.getJobMgr(jobId);
 
@@ -428,6 +431,10 @@ public class DefaultAppScaleManager implements AppScaleManager {
     }
 
     private String buildAutoScalingGroup(String jobId) {
+        if (v3JobOperations == null && v2JobOperations == null) {
+            return jobId;
+        }
+
         String autoScalingGroup;
         if (JobFunctions.isV2JobId(jobId)) {
             V2JobDefinition jobDefinition = v2JobOperations.getJobMgr(jobId).getJobDefinition();
@@ -492,7 +499,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
     public class AppScaleActionHandler implements Action1<AppScaleAction> {
         @Override
         public void call(AppScaleAction appScaleAction) {
-
             try {
                 switch (appScaleAction.getType()) {
                     case CREATE_SCALING_POLICY:

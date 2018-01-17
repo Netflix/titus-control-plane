@@ -179,10 +179,11 @@ public class DefaultAppScaleManagerTest {
         eventBus.publish(new JobStateChangeEvent<>(jobIdTwo, JobStateChangeEvent.JobState.Finished,
                 System.currentTimeMillis(), "jobFinished"));
         log.info("Done publishing JobStateChangeEvent for {}", jobIdTwo);
+        Thread.sleep(50);
+
         Assertions.assertThat(jobIdPoliciesToBeCleaned.size()).isEqualTo(1);
         Assertions.assertThat(jobIdPoliciesToBeCleaned.get(0)).isEqualTo(jobIdTwo);
 
-        Thread.sleep(50);
         policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(policiesStored.size()).isEqualTo(1);
     }
@@ -227,15 +228,13 @@ public class DefaultAppScaleManagerTest {
                         e -> log.error("Error in v2 live stream for scalable target update"),
                         () -> log.info("Completed"));
 
-        // wait for the two policies to be created
-        Thread.sleep(20);
-
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(10);
 
         eventBus.publish(new JobStateChangeEvent<>(jobIdTwo, JobStateChangeEvent.JobState.Created,
                 System.currentTimeMillis(), "jobUpdated"));
         log.info("Done publishing JobStateChangeEvent for {}", jobIdTwo);
+        Thread.sleep(50);
         Assertions.assertThat(targetJobsUpdated.size()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(5);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(15);

@@ -47,6 +47,7 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
                         .filter(autoScalingPolicy ->
                                 autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
                                         autoScalingPolicy.getStatus() == PolicyStatus.Applied ||
+                                        autoScalingPolicy.getStatus() == PolicyStatus.Error ||
                                         autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
                                         (includeArchived && autoScalingPolicy.getStatus() == PolicyStatus.Deleted))
                         .collect(Collectors.toList()));
@@ -138,6 +139,7 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
         return autoScalingPolicy.getJobId().equals(jobId) &&
                 (autoScalingPolicy.getStatus() == PolicyStatus.Pending ||
                         autoScalingPolicy.getStatus() == PolicyStatus.Deleting ||
+                        autoScalingPolicy.getStatus() == PolicyStatus.Error ||
                         autoScalingPolicy.getStatus() == PolicyStatus.Applied);
     }
 }

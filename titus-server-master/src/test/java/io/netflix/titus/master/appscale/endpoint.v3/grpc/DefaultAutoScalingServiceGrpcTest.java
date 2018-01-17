@@ -32,7 +32,6 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import io.netflix.titus.api.appscale.model.PolicyType;
 import io.netflix.titus.api.appscale.service.AppScaleManager;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
-import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.master.appscale.service.AutoScalingPolicyTests;
 import io.netflix.titus.master.appscale.service.DefaultAppScaleManager;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
@@ -43,9 +42,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Applied;
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Deleting;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.mock;
 
 public class DefaultAutoScalingServiceGrpcTest {
     private static Logger log = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpcTest.class);
@@ -54,7 +53,6 @@ public class DefaultAutoScalingServiceGrpcTest {
     private final AppScaleManager appScaleManager = new DefaultAppScaleManager(appScalePolicyStore,
             new AutoScalingPolicyTests.MockAlarmClient(),
             new AutoScalingPolicyTests.MockAppAutoScalingClient(), null, null, null, new DefaultRegistry());
-    private final SessionContext sessionContext = mock(SessionContext.class);
     private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager);
 
     @Before
@@ -67,6 +65,7 @@ public class DefaultAutoScalingServiceGrpcTest {
 
     /**
      * Tests setting and getting a Target Tracking Policy.
+     *
      * @throws Exception
      */
     @Test
@@ -86,6 +85,7 @@ public class DefaultAutoScalingServiceGrpcTest {
 
     /**
      * Tests setting and getting policies by Job ID.
+     *
      * @throws Exception
      */
     @Test
@@ -111,6 +111,7 @@ public class DefaultAutoScalingServiceGrpcTest {
 
     /**
      * Tests getting policies by Ref ID.
+     *
      * @throws Exception
      */
     @Test
@@ -130,6 +131,7 @@ public class DefaultAutoScalingServiceGrpcTest {
 
     /**
      * Test getting all policies across multiple jobs
+     *
      * @throws Exception
      */
     @Test
@@ -148,6 +150,7 @@ public class DefaultAutoScalingServiceGrpcTest {
 
     /**
      * Tests deleting policies by Ref ID.
+     *
      * @throws Exception
      */
     @Test
@@ -169,8 +172,42 @@ public class DefaultAutoScalingServiceGrpcTest {
         assertThat(getPolicyResult.getItems(0).getPolicyState().getState()).isEqualTo(Deleting);
     }
 
+    @Test
+    public void testUpdatePolicyConfigurationForTargetTracking() throws Exception {
+        ScalingPolicyID policyId = putPolicyWithJobId("Job-1", PolicyType.TargetTrackingScaling);
+        TestStreamObserver<ScalingPolicyResult> updateResponse = new TestStreamObserver<>();
+        service.updateAutoScalingPolicy(
+                AutoScalingTestUtils.generateUpdateTargetTrackingPolicyRequest(policyId.getId(), 100.0),
+                updateResponse);
+
+        Thread.sleep(200);
+        TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+        service.getScalingPolicy(policyId, getResponse);
+        GetPolicyResult getPolicyResult = getResponse.takeNext();
+        assertThat(getPolicyResult.getItems(0).getScalingPolicy().getTargetPolicyDescriptor().getTargetValue().getValue()).isEqualTo(100.0);
+        assertThat(getPolicyResult.getItems(0).getPolicyState().getState()).isEqualTo(Applied);
+    }
+
+
+    @Test
+    public void testUpdatePolicyConfigurationForStepScaling() throws Exception {
+        ScalingPolicyID policyId = putPolicyWithJobId("Job-1", PolicyType.StepScaling);
+        TestStreamObserver<ScalingPolicyResult> updateResponse = new TestStreamObserver<>();
+        service.updateAutoScalingPolicy(
+                AutoScalingTestUtils.generateUpdateStepScalingPolicyRequest(policyId.getId(), 100.0),
+                updateResponse);
+
+        Thread.sleep(200);
+        TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+        service.getScalingPolicy(policyId, getResponse);
+        GetPolicyResult getPolicyResult = getResponse.takeNext();
+        assertThat(getPolicyResult.getItems(0).getScalingPolicy().getStepPolicyDescriptor().getAlarmConfig().getThreshold().getValue()).isEqualTo(100.0);
+        assertThat(getPolicyResult.getItems(0).getPolicyState().getState()).isEqualTo(Applied);
+    }
+
     /**
      * Puts multiple a specified number of policies for given jobs.
+     *
      * @return
      */
     private Map<String, Set<ScalingPolicyID>> putPoliciesPerJob(int numJobs, int numPoliciesPerJob, PolicyType policyType) {
@@ -191,12 +228,6 @@ public class DefaultAutoScalingServiceGrpcTest {
 
     private ScalingPolicyID putPolicyWithJobId(String jobId, PolicyType policyType) {
         PutPolicyRequest putPolicyRequest = AutoScalingTestUtils.generatePutPolicyRequest(jobId, policyType);
-        /*
-        PutPolicyRequest putPolicyRequest = PutPolicyRequest.newBuilder()
-                .setJobId(jobId)
-                .setScalingPolicy(AutoScalingTestUtils.generateStepPolicy())
-                .build();
-        */
         TestStreamObserver<ScalingPolicyID> putResponse = new TestStreamObserver<>();
         service.setAutoScalingPolicy(putPolicyRequest, putResponse);
         log.info("Put policy {}", putPolicyRequest);

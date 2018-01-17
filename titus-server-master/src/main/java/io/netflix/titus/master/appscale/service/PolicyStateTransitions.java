@@ -25,7 +25,10 @@ public class PolicyStateTransitions {
             add(PolicyStatus.Error);
         }});
         put(PolicyStatus.Deleted, Collections.emptyList());
-        put(PolicyStatus.Error, Collections.emptyList());
+        put(PolicyStatus.Error, new ArrayList<PolicyStatus>() {{
+            add(PolicyStatus.Deleting);
+            add(PolicyStatus.Pending);
+        }});
     }};
 
     public static boolean isAllowed(PolicyStatus from, PolicyStatus to) {
