@@ -126,14 +126,14 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .subscribe(policyRefId -> log.debug("AutoScalingPolicy loaded - " + policyRefId));
 
 
-        // check pending policy creation/updates or deletes
-        checkForScalingPolicyActions();
+        // pending policy creation/updates or deletes
+        checkForScalingPolicyActions().toCompletable().await();
 
 
         reconcileFinishedJobsSub = Observable.interval(ThreadLocalRandom.current().nextInt(10), 15, TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .flatMap(ignored -> reconcileFinishedJobs())
-                .subscribe(jobId -> log.info("reconciliation for FinishedJob : {} policies clean up.", jobId),
+                .subscribe(jobId -> log.info("reconciliation for FinishedJob : {} policies cleaned up.", jobId),
                         e -> log.error("error in reconciliation (FinishedJob) stream", e),
                         () -> log.info("reconciliation (FinishedJob) stream closed"));
 
@@ -328,6 +328,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
         return appScalePolicyStore.retrievePolicyForRefId(policyRefId)
                 .flatMap(autoScalingPolicy -> {
                     if (PolicyStateTransitions.isAllowed(autoScalingPolicy.getStatus(), PolicyStatus.Deleting)) {
+                        log.info("Removing policy {} for job {}", autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId());
                         metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleting);
                         return appScalePolicyStore.updatePolicyStatus(autoScalingPolicy.getRefId(), PolicyStatus.Deleting)
                                 .andThen(Observable.fromCallable(() -> sendDeletePolicyAction(autoScalingPolicy)));
@@ -369,14 +370,15 @@ public class DefaultAppScaleManager implements AppScaleManager {
         if (autoScalePolicyException.getPolicyRefId() != null && !autoScalePolicyException.getPolicyRefId().isEmpty()) {
             metrics.reportErrorForException(autoScalePolicyException);
             String statusMessage = String.format("%s - %s", autoScalePolicyException.getErrorCode(), autoScalePolicyException.getMessage());
-            if (autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.UnknownScalingPolicy ||
-                    autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.InvalidScalingPolicy ||
+
+            AutoScalingPolicy autoScalingPolicy = AutoScalingPolicy.newBuilder().withRefId(autoScalePolicyException.getPolicyRefId()).build();
+            if (autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.UnknownScalingPolicy) {
+                metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleted);
+                return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage)
+                        .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Deleted));
+            } else if (autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.InvalidScalingPolicy ||
                     autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.JobManagerError) {
-
-                AutoScalingPolicy autoScalingPolicy = AutoScalingPolicy.newBuilder().withRefId(autoScalePolicyException.getPolicyRefId()).build();
                 metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Error);
-
-                // no need to keep retrying
                 return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage)
                         .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Error));
             } else {
@@ -515,6 +517,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                         break;
                     case UPDATE_SCALABLE_TARGET:
                         if (appScaleAction.getPolicyRefId().isPresent()) {
+                            log.info("Asked to remove {}", appScaleAction.getPolicyRefId());
                             AutoScalableTarget updatedTarget = updateScalableTargetWorkflow(appScaleAction.getPolicyRefId().get(), appScaleAction.getJobId()).toBlocking().first();
                             log.info("AutoScalableTarget updated {}", updatedTarget);
                         }
