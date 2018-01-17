@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.api.appscale.model;
+package io.netflix.titus.master.appscale.service;
 
-public enum PolicyStatus {
-    Pending,
-    Applied,
-    Deleting,
-    Deleted,
-    Error
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
+
+@Configuration(prefix = "titusMaster.appScaleManager")
+public interface AppScaleManagerConfiguration {
+
+    @DefaultValue("10")
+    long getReconcileTargetsIntervalMins();
+
+    @DefaultValue("15")
+    long getReconcileFinishedJobsIntervalMins();
+
+    @DefaultValue("120")
+    long getStoreInitTimeoutSeconds();
 }

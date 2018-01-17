@@ -16,25 +16,33 @@
 
 package io.netflix.titus.master.appscale.service;
 
-import io.netflix.titus.api.appscale.model.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Arrays;
+import java.util.List;
+
 import io.netflix.titus.api.appscale.model.AlarmConfiguration;
+import io.netflix.titus.api.appscale.model.AutoScalableTarget;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
+import io.netflix.titus.api.appscale.model.ComparisonOperator;
+import io.netflix.titus.api.appscale.model.CustomizedMetricSpecification;
+import io.netflix.titus.api.appscale.model.MetricAggregationType;
 import io.netflix.titus.api.appscale.model.PolicyConfiguration;
+import io.netflix.titus.api.appscale.model.PolicyStatus;
+import io.netflix.titus.api.appscale.model.PolicyType;
+import io.netflix.titus.api.appscale.model.Statistic;
+import io.netflix.titus.api.appscale.model.StepAdjustment;
+import io.netflix.titus.api.appscale.model.StepAdjustmentType;
+import io.netflix.titus.api.appscale.model.StepScalingPolicyConfiguration;
+import io.netflix.titus.api.appscale.model.TargetTrackingPolicy;
 import io.netflix.titus.api.connector.cloud.AppAutoScalingClient;
 import io.netflix.titus.api.connector.cloud.CloudAlarmClient;
 import rx.Completable;
 import rx.Observable;
 
-import java.util.List;
-
-
-import java.util.Arrays;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class AutoScalingPolicyTests {
-    private static Logger log = LoggerFactory.getLogger(AutoScalingPolicyTests.class);
 
     public static class MockAlarmClient implements CloudAlarmClient {
         int numOfAlarmsCreated = 0;
@@ -170,4 +178,14 @@ public class AutoScalingPolicyTests {
                 .build();
         return autoScalingPolicy;
     }
+
+
+    public static AppScaleManagerConfiguration mockAppScaleManagerConfiguration() {
+        AppScaleManagerConfiguration appScaleManagerConfiguration = mock(AppScaleManagerConfiguration.class);
+        when(appScaleManagerConfiguration.getReconcileFinishedJobsIntervalMins()).thenReturn(1L);
+        when(appScaleManagerConfiguration.getReconcileTargetsIntervalMins()).thenReturn(1L);
+        when(appScaleManagerConfiguration.getStoreInitTimeoutSeconds()).thenReturn(5L);
+        return appScaleManagerConfiguration;
+    }
+
 }

@@ -13,13 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.netflix.titus.master.appscale.service;
 
-package io.netflix.titus.api.appscale.model;
+public class JobScalingConstraints {
+    private int minCapacity;
+    private int maxCapacity;
 
-public enum PolicyStatus {
-    Pending,
-    Applied,
-    Deleting,
-    Deleted,
-    Error
+    public JobScalingConstraints(int minCapacity, int maxCapacity) {
+        this.minCapacity = minCapacity;
+        this.maxCapacity = maxCapacity;
+    }
+
+    public int getMinCapacity() {
+        return minCapacity;
+    }
+
+    public int getMaxCapacity() {
+        return maxCapacity;
+    }
+
 }

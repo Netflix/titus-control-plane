@@ -16,26 +16,33 @@
 
 package io.netflix.titus.master.appscale.endpoint.v3;
 
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import io.netflix.titus.api.appscale.service.AppScaleManager;
 import io.netflix.titus.api.connector.cloud.AppAutoScalingClient;
 import io.netflix.titus.api.connector.cloud.CloudAlarmClient;
-import io.netflix.titus.master.appscale.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import io.netflix.titus.api.connector.cloud.noop.NoOpAppAutoScalingClient;
-import io.netflix.titus.master.appscale.service.DefaultAppScaleManager;
 import io.netflix.titus.api.connector.cloud.noop.NoOpCloudAlarmClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netflix.titus.master.appscale.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
+import io.netflix.titus.master.appscale.service.AppScaleManagerConfiguration;
+import io.netflix.titus.master.appscale.service.DefaultAppScaleManager;
 
 public class AutoScalingModule extends AbstractModule {
-    private static Logger log = LoggerFactory.getLogger(AutoScalingModule.class);
-
     @Override
     protected void configure() {
         bind(AutoScalingServiceGrpc.AutoScalingServiceImplBase.class).to(DefaultAutoScalingServiceGrpc.class);
         bind(AppScaleManager.class).to(DefaultAppScaleManager.class);
         bind(CloudAlarmClient.class).to(NoOpCloudAlarmClient.class);
         bind(AppAutoScalingClient.class).to(NoOpAppAutoScalingClient.class);
+    }
+
+    @Provides
+    @Singleton
+    public AppScaleManagerConfiguration getAppScaleManagerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(AppScaleManagerConfiguration.class);
     }
 }
