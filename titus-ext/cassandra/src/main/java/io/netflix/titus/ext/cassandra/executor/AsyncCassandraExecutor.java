@@ -23,6 +23,7 @@ import java.util.function.Function;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
+import io.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
 
 /**
@@ -77,8 +78,16 @@ public class AsyncCassandraExecutor {
     /**
      * Reads { rowId, columnId, value } entries from Cassandra. The value is not deserialized.
      */
+    @Deprecated
     public Observable<Cell> rawRangeQuery(PreparedStatement statement) {
         return queryOperations.executeRawRangeQuery(statement, null);
+    }
+
+    /**
+     * Reads { primary_key, value } entries from Cassandra. The value is not deserialized.
+     */
+    public Observable<Pair<Object, Object>> rawRangeQuery2(String keyName, String valueName, PreparedStatement statement) {
+        return queryOperations.executeRawRangeQuery2(keyName, valueName, statement, Optional.empty());
     }
 
     /**

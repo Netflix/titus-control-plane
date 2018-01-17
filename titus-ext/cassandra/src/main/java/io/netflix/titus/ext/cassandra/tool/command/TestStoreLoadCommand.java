@@ -53,30 +53,12 @@ public class TestStoreLoadCommand implements Command {
 
     @Override
     public CommandType getCommandType() {
-        return null;
+        return CommandType.TargetKeySpace;
     }
 
     @Override
     public Options getOptions() {
         Options options = new Options();
-        options.addOption(Option.builder("t")
-                .longOpt("target")
-                .desc("The cassandra target host")
-                .hasArg()
-                .required()
-                .build());
-        options.addOption(Option.builder("p")
-                .longOpt("port")
-                .desc("The cassandra port")
-                .hasArg()
-                .required()
-                .build());
-        options.addOption(Option.builder("k")
-                .longOpt("keyspace")
-                .desc("The name of the keyspace")
-                .hasArg()
-                .required()
-                .build());
         options.addOption(Option.builder("j")
                 .longOpt("jobs")
                 .desc("The number of the jobs to create")
@@ -105,15 +87,15 @@ public class TestStoreLoadCommand implements Command {
     }
 
     @Override
-    public void execute(CommandContext commandContext) throws Exception {
+    public void execute(CommandContext commandContext) {
 
         CommandLine commandLine = commandContext.getCommandLine();
-        String keyspace = commandLine.getOptionValue("keyspace");
+        String keyspace = commandContext.getTargetKeySpace();
         Integer jobs = Integer.valueOf(commandLine.getOptionValue("jobs"));
         Integer tasks = Integer.valueOf(commandLine.getOptionValue("tasks"));
         Integer concurrency = Integer.valueOf(commandLine.getOptionValue("concurrency"));
         Integer iterations = Integer.valueOf(commandLine.getOptionValue("iterations"));
-        Session session = commandContext.getSession();
+        Session session = commandContext.getTargetSession();
 
         boolean keyspaceExists = session.getCluster().getMetadata().getKeyspace(keyspace) != null;
 

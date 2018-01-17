@@ -32,7 +32,7 @@ import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
  * states.
  * <p>
  * <h2>Step 1: scale down task in KillInitiated state</h2>
- * As tasks in these state are in the termination process already, scaling them down means they should not be restarted after
+ * As tasks in this state are in the termination process already, scaling them down means they should not be restarted after
  * they move to Finished state.
  * <p>
  * <h2>Step 2: scale down tasks in Accepted state</h2>
@@ -48,10 +48,10 @@ import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
  * <p>
  * <h1>Equivalent group termination rules</h1>
  * <p>
- * The selection process described below is applied repeatedly until desired number of tasks is terminated. At each
+ * The selection process described below is applied repeatedly until the desired number of tasks is terminated. At each
  * step a subset of tasks is selected. The last step ('Terminate oldest task first'), makes final selection.
  * <p>
- * <h2>Scale down largest groups of task on an agent</h2>
+ * <h2>Scale down largest groups of tasks on an agent</h2>
  * To maximize availability we should eliminate large groups of tasks running on the same agent.
  * <p>
  * <h2>Enforce zone balancing</h2>
@@ -59,7 +59,7 @@ import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
  * tasks in this zone first.
  * <p>
  * <h2>Terminate oldest task first</h2>
- * From the give collection of tasks, pick one with the oldest creation timestamp and terminate it.
+ * From the given collection of tasks, select the task with the oldest creation timestamp and terminate it.
  * If there are more tasks to terminate, restart the evaluation process.
  */
 class ScaleDownEvaluator {
@@ -109,6 +109,11 @@ class ScaleDownEvaluator {
         return tasksToKill;
     }
 
+    /**
+     * Add candidate tasks to the provided accumulator, up to the request number of tasks to terminate.
+     *
+     * @return true if the accumulator (tasks to terminate list) reached its maximum size, false otherwise
+     */
     private static boolean appendCandidatesToTerminate(List<ServiceJobTask> accumulator, List<ServiceJobTask> candidates, int targetTerminateCount) {
         if (accumulator.size() + candidates.size() >= targetTerminateCount) {
             accumulator.addAll(candidates.subList(0, targetTerminateCount - accumulator.size()));
@@ -223,10 +228,15 @@ class ScaleDownEvaluator {
                     .max(Comparator.comparingInt(l -> l.getValue().size()))
                     .map(largestGroupEntry -> {
                                 List<ServiceJobTask> tasks = largestGroupEntry.getValue();
+
                                 int bestIdx = 0;
+                                long bestTimestamp = tasks.get(0).getStatus().getTimestamp();
+
                                 for (int i = 1; i < tasks.size(); i++) {
-                                    if (tasks.get(bestIdx).getStatus().getTimestamp() > tasks.get(i).getStatus().getTimestamp()) {
+                                    long currentTimestamp = tasks.get(i).getStatus().getTimestamp();
+                                    if (currentTimestamp < bestTimestamp) {
                                         bestIdx = i;
+                                        bestTimestamp = currentTimestamp;
                                     }
                                 }
                                 taskCount--;
