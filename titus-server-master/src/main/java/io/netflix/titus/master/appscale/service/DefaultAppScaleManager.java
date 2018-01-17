@@ -82,6 +82,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
     private RxEventBus rxEventBus;
     private V3JobOperations v3JobOperations;
     private Registry registry;
+    private AppScaleManagerConfiguration appScaleManagerConfiguration;
 
     private volatile Map<String, AutoScalableTarget> scalableTargets;
     private Subscription reconcileFinishedJobsSub;
@@ -97,7 +98,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   V2JobOperations v2JobOperations,
                                   V3JobOperations v3JobOperations,
                                   RxEventBus rxEventBus,
-                                  Registry registry) {
+                                  Registry registry,
+                                  AppScaleManagerConfiguration appScaleManagerConfiguration) {
         this.appScalePolicyStore = appScalePolicyStore;
         this.cloudAlarmClient = cloudAlarmClient;
         this.appAutoScalingClient = applicationAutoScalingClient;
@@ -105,6 +107,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
         this.rxEventBus = rxEventBus;
         this.v3JobOperations = v3JobOperations;
         this.registry = registry;
+        this.appScaleManagerConfiguration = appScaleManagerConfiguration;
         this.scalableTargets = new ConcurrentHashMap<>();
         this.metrics = new AppScaleManagerMetrics(registry);
         this.appScaleActionsSubject = PublishSubject.<AppScaleAction>create().toSerialized();
@@ -114,7 +117,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
     @Activator
     public Completable enterActiveMode() {
         // DB load
-        this.appScalePolicyStore.init().await();
+        this.appScalePolicyStore.init().await(appScaleManagerConfiguration.getStoreInitTimeoutSeconds(),
+                TimeUnit.SECONDS);
 
         // report metrics from initial DB state
         this.appScalePolicyStore.retrievePolicies(true)
@@ -127,17 +131,18 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
 
         // pending policy creation/updates or deletes
-        checkForScalingPolicyActions().toCompletable().await();
+        checkForScalingPolicyActions().toCompletable().await(appScaleManagerConfiguration.getStoreInitTimeoutSeconds(),
+                TimeUnit.SECONDS);
 
 
-        reconcileFinishedJobsSub = Observable.interval(ThreadLocalRandom.current().nextInt(10), 15, TimeUnit.MINUTES)
+        reconcileFinishedJobsSub = Observable.interval(appScaleManagerConfiguration.getReconcileFinishedJobsIntervalMins(), TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .flatMap(ignored -> reconcileFinishedJobs())
                 .subscribe(jobId -> log.info("reconciliation for FinishedJob : {} policies cleaned up.", jobId),
                         e -> log.error("error in reconciliation (FinishedJob) stream", e),
                         () -> log.info("reconciliation (FinishedJob) stream closed"));
 
-        reconcileScalableTargetsSub = Observable.interval(ThreadLocalRandom.current().nextInt(10), 15, TimeUnit.MINUTES)
+        reconcileScalableTargetsSub = Observable.interval(appScaleManagerConfiguration.getReconcileTargetsIntervalMins(), TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .flatMap(ignored -> reconcileScalableTargets())
                 .subscribe(jobId -> log.info("Reconciliation (TargetUpdated) : {} target updated", jobId),

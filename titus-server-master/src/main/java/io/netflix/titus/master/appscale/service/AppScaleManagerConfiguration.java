@@ -13,23 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.netflix.titus.master.appscale.service;
 
-public class JobScalingConstraints {
-    private int minCapacity;
-    private int maxCapacity;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-    public JobScalingConstraints(int minCapacity, int maxCapacity) {
-        this.minCapacity = minCapacity;
-        this.maxCapacity = maxCapacity;
-    }
+@Configuration(prefix = "titusMaster.appScaleManager")
+public interface AppScaleManagerConfiguration {
 
-    public int getMinCapacity() {
-        return minCapacity;
-    }
+    @DefaultValue("10")
+    long getReconcileTargetsIntervalMins();
 
-    public int getMaxCapacity() {
-        return maxCapacity;
-    }
+    @DefaultValue("15")
+    long getReconcileFinishedJobsIntervalMins();
 
+    @DefaultValue("120")
+    long getStoreInitTimeoutSeconds();
 }

@@ -97,7 +97,8 @@ public class DefaultAppScaleManagerTest {
         V3JobOperations v3JobOperations = mockV3Operations(jobIdOne, jobIdTwo);
 
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                null, v3JobOperations, null, new DefaultRegistry());
+                null, v3JobOperations, null, new DefaultRegistry(),
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
 
         AutoScalingPolicy autoScalingPolicyOne;
         AutoScalingPolicy autoScalingPolicyTwo;
@@ -146,7 +147,8 @@ public class DefaultAppScaleManagerTest {
 
 
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                mockV2Operations(), null, eventBus, registry);
+                mockV2Operations(), null, eventBus, registry,
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
 
         // call - createAutoScalingPolicy
         String jobIdOne = "Titus-1";
@@ -200,7 +202,8 @@ public class DefaultAppScaleManagerTest {
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore,
                 new AutoScalingPolicyTests.MockAlarmClient(),
                 appScalingClient,
-                v2JobOperations, null, eventBus, registry);
+                v2JobOperations, null, eventBus, registry,
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
 
         // call - createAutoScalingPolicy
         String jobIdOne = "Titus-1";
@@ -252,7 +255,8 @@ public class DefaultAppScaleManagerTest {
                 new AutoScalingPolicyTests.MockAlarmClient(),
                 appScalingClient,
                 null,
-                v3JobOperations, null, new DefaultRegistry());
+                v3JobOperations, null, new DefaultRegistry(),
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
 
         List<String> refIds = submitTwoJobs(appScaleManager, jobIdOne, jobIdTwo, policyStore);
         Assertions.assertThat(refIds.size()).isEqualTo(2);
@@ -544,4 +548,6 @@ public class DefaultAppScaleManagerTest {
 
         return mockV2JobOperations;
     }
+
+
 }

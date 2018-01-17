@@ -108,10 +108,7 @@ public class AutoScalingResource {
     @PUT
     @ApiOperation("Update scaling policy")
     @Path("scalingPolicy")
-    public ScalingPolicyResult updateScalingPolicy(UpdatePolicyRequest updatePolicyRequest) {
-        Observable<ScalingPolicyResult> updatePolicyResult = autoScalingService.updateAutoScalingPolicy(updatePolicyRequest);
-        ScalingPolicyResult scalingPolicyResult = Responses.fromSingleValueObservable(updatePolicyResult);
-        log.info("Scaling policy updated {}", scalingPolicyResult);
-        return scalingPolicyResult;
+    public javax.ws.rs.core.Response updateScalingPolicy(UpdatePolicyRequest updatePolicyRequest) {
+        return Responses.fromCompletable(autoScalingService.updateAutoScalingPolicy(updatePolicyRequest));
     }
 }

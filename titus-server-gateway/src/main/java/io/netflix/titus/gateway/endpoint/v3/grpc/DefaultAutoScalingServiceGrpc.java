@@ -24,12 +24,15 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.gateway.service.v3.AutoScalingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Subscription;
+
+import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
+import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 
 @Singleton
 public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
@@ -44,65 +47,71 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
     @Override
     public void getAllScalingPolicies(com.google.protobuf.Empty request,
                                       io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
-        autoScalingService.getAllScalingPolicies().subscribe(
+        Subscription subscription = autoScalingService.getAllScalingPolicies().subscribe(
                 responseObserver::onNext,
-                responseObserver::onError,
+                e -> safeOnError(log, e, responseObserver),
                 responseObserver::onCompleted
         );
+
+        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void getScalingPolicy(com.netflix.titus.grpc.protogen.ScalingPolicyID request,
                                  io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
-        autoScalingService.getScalingPolicy(request).subscribe(
+        Subscription subscription = autoScalingService.getScalingPolicy(request).subscribe(
                 responseObserver::onNext,
-                responseObserver::onError,
+                e -> safeOnError(log, e, responseObserver),
                 responseObserver::onCompleted
         );
+        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void getJobScalingPolicies(JobId request, StreamObserver<GetPolicyResult> responseObserver) {
         log.info("Gateway getAutoScalingPolicy (gRPC) with request {}", request);
 
-        autoScalingService.getJobScalingPolicies(request).subscribe(
+        Subscription subscription = autoScalingService.getJobScalingPolicies(request).subscribe(
                 responseObserver::onNext,
-                responseObserver::onError,
+                e -> safeOnError(log, e, responseObserver),
                 responseObserver::onCompleted
         );
+        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void setAutoScalingPolicy(com.netflix.titus.grpc.protogen.PutPolicyRequest request,
                                      io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.ScalingPolicyID> responseObserver) {
-        autoScalingService.setAutoScalingPolicy(request).subscribe(
+        Subscription subscription = autoScalingService.setAutoScalingPolicy(request).subscribe(
                 responseObserver::onNext,
-                responseObserver::onError,
+                e -> safeOnError(log, e, responseObserver),
                 responseObserver::onCompleted
         );
+        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void deleteAutoScalingPolicy(com.netflix.titus.grpc.protogen.DeletePolicyRequest request,
                                         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-        autoScalingService.deleteAutoScalingPolicy(request).subscribe(
+        Subscription subscription = autoScalingService.deleteAutoScalingPolicy(request).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
-                responseObserver::onError
+                e -> safeOnError(log, e, responseObserver)
         );
+        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
-    public void updateAutoScalingPolicy(UpdatePolicyRequest request, StreamObserver<ScalingPolicyResult> responseObserver) {
-        autoScalingService.updateAutoScalingPolicy(request)
-                .subscribe(
-                        (autoScalingPolicy) -> {
-                            responseObserver.onNext(autoScalingPolicy);
-                            responseObserver.onCompleted();
-                        },
-                        responseObserver::onError
-                );
+    public void updateAutoScalingPolicy(UpdatePolicyRequest request, io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
+        Subscription subscription = autoScalingService.updateAutoScalingPolicy(request).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                e -> safeOnError(log, e, responseObserver)
+        );
+        attachCancellingCallback(responseObserver, subscription);
     }
 }

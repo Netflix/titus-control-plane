@@ -18,27 +18,25 @@ package io.netflix.titus.master.appscale.endpoint.v3.grpc;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import com.google.protobuf.Empty;
-import com.netflix.titus.grpc.protogen.*;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
-import io.netflix.titus.api.appscale.service.AppScaleManager;
-import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Subscription;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import static io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall;
+import com.google.protobuf.Empty;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.GetPolicyResult;
+import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
+import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
+import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
+import io.netflix.titus.api.appscale.service.AppScaleManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Observable;
+
+import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 
 @Singleton
 public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
-    private static Logger log = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
+    private static Logger logger = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
     private AppScaleManager appScaleManager;
 
 
@@ -51,17 +49,9 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
     public void setAutoScalingPolicy(com.netflix.titus.grpc.protogen.PutPolicyRequest request,
                                      io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.ScalingPolicyID> responseObserver) {
         appScaleManager.createAutoScalingPolicy(InternalModelConverters.toAutoScalingPolicy(request)).subscribe(
-                id -> {
-                    responseObserver.onNext(GrpcModelConverters.toScalingPolicyId(id));
-                }, throwable -> {
-                    responseObserver.onError(
-                            new StatusRuntimeException(Status.INTERNAL
-                                    .withDescription("Set job scaling policies stream terminated with an error")
-                                    .withCause(throwable)));
-                },
-                () -> {
-                    responseObserver.onCompleted();
-                });
+                id -> responseObserver.onNext(GrpcModelConverters.toScalingPolicyId(id)),
+                e -> safeOnError(logger, e, responseObserver),
+                () -> responseObserver.onCompleted());
     }
 
     @Override
@@ -79,11 +69,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                     ScalingPolicyResult scalingPolicyResult = GrpcModelConverters.toScalingPolicyResult(autoScalingPolicyInternal);
                     responseObserver.onNext(GetPolicyResult.newBuilder().addItems(scalingPolicyResult).build());
                 },
-                e -> responseObserver.onError(
-                        new StatusRuntimeException(Status.INTERNAL
-                                .withDescription("Get job scaling policy stream terminated with an error")
-                                .withCause(e))
-                ),
+                e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );
     }
@@ -103,37 +89,21 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
-                throwable -> {
-                    responseObserver.onError(
-                            new StatusRuntimeException(Status.INTERNAL
-                                    .withDescription("Set job scaling policies stream terminated with an error")
-                                    .withCause(throwable)));
-                });
+                e -> safeOnError(logger, e, responseObserver));
     }
 
     @Override
-    public void updateAutoScalingPolicy(UpdatePolicyRequest request, StreamObserver<ScalingPolicyResult> responseObserver) {
+    public void updateAutoScalingPolicy(UpdatePolicyRequest request, io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
         appScaleManager.updateAutoScalingPolicy(InternalModelConverters.toAutoScalingPolicy(request))
-                .andThen(appScaleManager.getScalingPolicy(request.getPolicyId().getId()))
                 .subscribe(
-                        autoScalingPolicy -> {
-                            responseObserver.onNext(GrpcModelConverters.toScalingPolicyResult(autoScalingPolicy));
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
                         },
-                        throwable -> {
-                            responseObserver.onError(
-                                    new StatusRuntimeException(Status.INTERNAL
-                                            .withDescription("Update AutoScalingPolicy stream terminated with an error")
-                                            .withCause(throwable)));
-                        }
+                        e -> safeOnError(logger, e, responseObserver)
                 );
     }
 
-    /**
-     * Maps policy observable to list and completes.
-     *
-     * @param policyObservable
-     * @param responseObserver
-     */
     private void completePolicyList(Observable<AutoScalingPolicy> policyObservable,
                                     io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
         List<ScalingPolicyResult> scalingPolicyResultList = new ArrayList<>();
@@ -142,11 +112,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                     ScalingPolicyResult scalingPolicyResult = GrpcModelConverters.toScalingPolicyResult(autoScalingPolicyInternal);
                     scalingPolicyResultList.add(scalingPolicyResult);
                 },
-                e -> responseObserver.onError(
-                        new StatusRuntimeException(Status.INTERNAL
-                                .withDescription("Get job scaling policies stream terminated with an error")
-                                .withCause(e))
-                ),
+                e -> safeOnError(logger, e, responseObserver),
                 () -> {
                     responseObserver.onNext(GetPolicyResult.newBuilder().addAllItems(scalingPolicyResultList).build());
                     responseObserver.onCompleted();

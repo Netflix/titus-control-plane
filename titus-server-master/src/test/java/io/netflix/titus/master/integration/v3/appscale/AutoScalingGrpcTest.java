@@ -28,7 +28,6 @@ import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
-import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.ScalingPolicyStatus;
 import io.netflix.titus.api.appscale.model.PolicyType;
 import io.netflix.titus.master.appscale.endpoint.v3.grpc.AutoScalingTestUtils;
@@ -65,6 +64,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that we can retrieve a policy by a specific ID.
+     *
      * @throws Exception
      */
     @Test
@@ -91,6 +91,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that a policy can be deleted.
+     *
      * @throws Exception
      */
     @Test
@@ -129,6 +130,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that a non-existent job returns an empty list of policies.
+     *
      * @throws Exception
      */
     @Test
@@ -145,6 +147,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that a non-exitent policy returns an empty list of policies.
+     *
      * @throws Exception
      */
     @Test
@@ -160,6 +163,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that we can get multiple exceptions.
+     *
      * @throws Exception
      */
     @Test
@@ -186,6 +190,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test policy configuration update for target tracking policy
+     *
      * @throws Exception
      */
     @Test
@@ -198,7 +203,7 @@ public class AutoScalingGrpcTest {
         assertThat(!scalingPolicyID.getId().isEmpty());
         log.info("Put policy {} with ID {}", putPolicyRequest, scalingPolicyID);
 
-        TestStreamObserver<ScalingPolicyResult> updateResponse = new TestStreamObserver<>();
+        TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
         client.updateAutoScalingPolicy(
                 AutoScalingTestUtils.generateUpdateTargetTrackingPolicyRequest(scalingPolicyID.getId(), 100.0),
                 updateResponse);
@@ -218,6 +223,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test policy configuration update for target tracking policy
+     *
      * @throws Exception
      */
     @Test
@@ -230,7 +236,7 @@ public class AutoScalingGrpcTest {
         assertThat(!scalingPolicyID.getId().isEmpty());
         log.info("Put policy {} with ID {}", putPolicyRequest, scalingPolicyID);
 
-        TestStreamObserver<ScalingPolicyResult> updateResponse = new TestStreamObserver<>();
+        TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
         client.updateAutoScalingPolicy(
                 AutoScalingTestUtils.generateUpdateStepScalingPolicyRequest(scalingPolicyID.getId(), 100.0),
                 updateResponse);

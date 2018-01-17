@@ -33,5 +33,5 @@ public interface AutoScalingService {
     Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request);
     Observable<GetPolicyResult> getAllScalingPolicies();
     Completable deleteAutoScalingPolicy(DeletePolicyRequest request);
-    Observable<ScalingPolicyResult> updateAutoScalingPolicy(UpdatePolicyRequest request);
+    Completable updateAutoScalingPolicy(UpdatePolicyRequest request);
 }

@@ -52,7 +52,9 @@ public class DefaultAutoScalingServiceGrpcTest {
     private final AppScalePolicyStore appScalePolicyStore = new InMemoryPolicyStore();
     private final AppScaleManager appScaleManager = new DefaultAppScaleManager(appScalePolicyStore,
             new AutoScalingPolicyTests.MockAlarmClient(),
-            new AutoScalingPolicyTests.MockAppAutoScalingClient(), null, null, null, new DefaultRegistry());
+            new AutoScalingPolicyTests.MockAppAutoScalingClient(), null, null, null,
+            new DefaultRegistry(),
+            AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
     private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager);
 
     @Before
@@ -175,7 +177,7 @@ public class DefaultAutoScalingServiceGrpcTest {
     @Test
     public void testUpdatePolicyConfigurationForTargetTracking() throws Exception {
         ScalingPolicyID policyId = putPolicyWithJobId("Job-1", PolicyType.TargetTrackingScaling);
-        TestStreamObserver<ScalingPolicyResult> updateResponse = new TestStreamObserver<>();
+        TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
         service.updateAutoScalingPolicy(
                 AutoScalingTestUtils.generateUpdateTargetTrackingPolicyRequest(policyId.getId(), 100.0),
                 updateResponse);
@@ -192,7 +194,7 @@ public class DefaultAutoScalingServiceGrpcTest {
     @Test
     public void testUpdatePolicyConfigurationForStepScaling() throws Exception {
         ScalingPolicyID policyId = putPolicyWithJobId("Job-1", PolicyType.StepScaling);
-        TestStreamObserver<ScalingPolicyResult> updateResponse = new TestStreamObserver<>();
+        TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
         service.updateAutoScalingPolicy(
                 AutoScalingTestUtils.generateUpdateStepScalingPolicyRequest(policyId.getId(), 100.0),
                 updateResponse);

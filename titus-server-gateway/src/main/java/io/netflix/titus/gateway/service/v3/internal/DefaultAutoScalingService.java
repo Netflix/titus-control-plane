@@ -99,9 +99,9 @@ public class DefaultAutoScalingService implements AutoScalingService {
     }
 
     @Override
-    public Observable<ScalingPolicyResult> updateAutoScalingPolicy(UpdatePolicyRequest request) {
-        return toObservable(emitter -> {
-            StreamObserver<ScalingPolicyResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+    public Completable updateAutoScalingPolicy(UpdatePolicyRequest request) {
+        return toCompletable(emitter -> {
+            StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
             client.updateAutoScalingPolicy(request, simpleStreamObserver);
         });
     }
