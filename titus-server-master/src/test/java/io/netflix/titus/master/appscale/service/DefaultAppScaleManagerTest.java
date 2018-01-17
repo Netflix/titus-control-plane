@@ -274,6 +274,8 @@ public class DefaultAppScaleManagerTest {
                 e -> log.error("Error in v2 live stream for scalable target update {}", e),
                 () -> log.info("Completed"));
 
+        Thread.sleep(100);
+
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdOne).getMinCapacity()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdOne).getMaxCapacity()).isEqualTo(10);
         Assertions.assertThat(targetsUpdated.size()).isEqualTo(1);
