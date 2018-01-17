@@ -140,7 +140,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                                 autoScalingPolicy.getStatus() == PolicyStatus.Applied ||
                                 (includeArchived && autoScalingPolicy.getStatus() == PolicyStatus.Deleted))
                 .collect(Collectors.toList());
-        log.info("Retrieving {} valid policies", validPolicies.size());
+        log.info("Retrieving {} policies, includeArchived={}", validPolicies.size(), includeArchived);
         return Observable.from(validPolicies);
     }
 

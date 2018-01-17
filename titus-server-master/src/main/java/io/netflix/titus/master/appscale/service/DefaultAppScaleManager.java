@@ -351,10 +351,10 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     private boolean isJobActive(String jobId) {
         if (JobFunctions.isV2JobId(jobId)) {
-            return v2JobOperations.getJobMgr(jobId).isActive();
+            return v2JobOperations.getJobMgr(jobId) != null && v2JobOperations.getJobMgr(jobId).isActive();
         } else {
             // V3
-            return v3JobOperations.getJob(jobId).isPresent();
+            return v3JobOperations.getJob(jobId) != null && v3JobOperations.getJob(jobId).isPresent();
         }
     }
 

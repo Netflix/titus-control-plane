@@ -22,7 +22,6 @@ public class PolicyStateTransitions {
 
         put(PolicyStatus.Deleting, new ArrayList<PolicyStatus>() {{
             add(PolicyStatus.Deleted);
-            add(PolicyStatus.Error);
         }});
         put(PolicyStatus.Deleted, Collections.emptyList());
         put(PolicyStatus.Error, new ArrayList<PolicyStatus>() {{
