@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -175,18 +176,14 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             return missingTasks;
         } else if (missing < 0) {
             // Too many tasks (job was scaled down)
-            int finishedCount = (int) tasks.stream().filter(DifferenceResolverUtils::isTerminating).count();
+            int finishedCount = (int) tasks.stream().filter(t -> t.getStatus().getState() == TaskState.Finished).count();
             int toRemoveCount = -missing - finishedCount;
             if (toRemoveCount > 0) {
-                List<ChangeAction> toRemove = new ArrayList<>();
-                for (int i = tasks.size() - 1; toRemoveCount > 0 && i >= 0; i--) {
-                    ServiceJobTask next = tasks.get(i);
-                    if (!isTerminating(next)) {
-                        toRemove.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, next, vmService, jobStore, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task"));
-                        toRemoveCount--;
-                    }
-                }
-                return toRemove;
+                List<ServiceJobTask> tasksToRemove = ScaleDownEvaluator.selectTasksToTerminate(tasks, tasks.size() - toRemoveCount);
+                return tasksToRemove.stream()
+                        .filter(t -> !isTerminating(t))
+                        .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, vmService, jobStore, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task"))
+                        .collect(Collectors.toList());
             }
         }
         return Collections.emptyList();

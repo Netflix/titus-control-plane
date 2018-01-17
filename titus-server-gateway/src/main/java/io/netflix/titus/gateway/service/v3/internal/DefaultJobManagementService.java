@@ -86,6 +86,7 @@ import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UP
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_PROCESSES;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_STATUS;
 import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
+import static io.netflix.titus.gateway.service.v3.internal.GrpcServiceUtil.getRxJavaAdjustedTimeout;
 import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 
@@ -328,7 +329,7 @@ public class DefaultJobManagementService implements JobManagementService {
     }
 
     private <ReqT, RespT> ClientCall call(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, responseObserver);
+        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, configuration.getRequestTimeout(), responseObserver);
     }
 
     private <ReqT, RespT> ClientCall callStreaming(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
@@ -343,6 +344,6 @@ public class DefaultJobManagementService implements JobManagementService {
         return Observable.create(
                 emitter,
                 Emitter.BackpressureMode.NONE
-        ).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        ).timeout(getRxJavaAdjustedTimeout(configuration.getRequestTimeout()), TimeUnit.MILLISECONDS);
     }
 }

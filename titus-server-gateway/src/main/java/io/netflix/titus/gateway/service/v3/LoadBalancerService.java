@@ -17,14 +17,18 @@
 package io.netflix.titus.gateway.service.v3;
 
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetLoadBalancerResult;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import rx.Completable;
 import rx.Observable;
 
 public interface LoadBalancerService {
-    Observable<GetLoadBalancerResult> getLoadBalancers(JobId jobId);
+    Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId);
+
+    Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request);
 
     Completable addLoadBalancer(AddLoadBalancerRequest request);
 

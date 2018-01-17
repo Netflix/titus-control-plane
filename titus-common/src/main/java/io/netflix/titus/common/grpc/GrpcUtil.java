@@ -16,10 +16,13 @@
 
 package io.netflix.titus.common.grpc;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 import com.google.protobuf.Empty;
+import io.grpc.CallOptions;
 import io.grpc.ClientCall;
+import io.grpc.Deadline;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -122,9 +125,11 @@ public class GrpcUtil {
                                                                                  STUB client,
                                                                                  MethodDescriptor<ReqT, RespT> methodDescriptor,
                                                                                  ReqT request,
+                                                                                 long deadlineMs,
                                                                                  StreamObserver<RespT> responseObserver) {
         STUB wrappedStub = GrpcUtil.createWrappedStub(sessionContext, client);
-        ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, wrappedStub.getCallOptions());
+        CallOptions callOptions = wrappedStub.getCallOptions().withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
+        ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, callOptions);
         asyncUnaryCall(clientCall, request, responseObserver);
         return clientCall;
     }

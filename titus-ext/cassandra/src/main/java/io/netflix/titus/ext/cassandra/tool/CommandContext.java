@@ -27,7 +27,28 @@ public interface CommandContext {
 
     CommandLine getCommandLine();
 
-    Session getSession();
+    /**
+     * Returns session not associated with any keyspace.
+     */
+    Session getDefaultSession();
 
-    AsyncCassandraExecutor getCassandraExecutor();
+    /**
+     * Returns session associated with target (mutated) keyspace.
+     */
+    Session getTargetSession();
+
+    String getTargetKeySpace();
+
+    AsyncCassandraExecutor getTargetCassandraExecutor();
+
+    /**
+     * Returns session associated with source (read-only) keyspace.
+     */
+    Session getSourceSession();
+
+    String getSourceKeySpace();
+
+    AsyncCassandraExecutor getSourceCassandraExecutor();
+
+    void shutdown();
 }

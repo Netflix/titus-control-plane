@@ -55,6 +55,7 @@ public class ContainerPlayersManager {
                 return false;
             }
             jobPlayer = new JobPlayer(parseResult, scheduler);
+            jobPlayers.put(taskHolder.getJobId(), jobPlayer);
         }
         jobPlayer.play(taskHolder);
         return true;

@@ -17,7 +17,9 @@
 package io.netflix.titus.ext.cassandra.store;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -185,6 +187,63 @@ public class CassandraLoadBalancerStoreTest {
     }
 
     /**
+     * Tests that all data is returned across multiple pages.
+     * @throws Exception
+     */
+    @Test
+    public void testGetPage() throws Exception {
+        int numTestJobs = 100;
+        int numTestLbs = 20;
+        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(numTestJobs, numTestLbs);
+        HashSet<JobLoadBalancer> unverifiedData = new HashSet<>(testData.keySet());
+
+        // Load data on init
+        loadTestData(testData);
+        CassandraLoadBalancerStore store = getInitdStore();
+
+        // Read little pages at a time until we're told we've read everything.
+        int pageSize = 7;
+        int currentPageOffset = 0;
+        List<JobLoadBalancer> jobLoadBalancerPage;
+        do {
+            jobLoadBalancerPage = store.getAssociationsPage(currentPageOffset, pageSize);
+            jobLoadBalancerPage.forEach(jobLoadBalancer -> {
+                assertThat(unverifiedData.remove(jobLoadBalancer)).isTrue();
+            });
+            // Make sure all but the last page is full size
+            if ((numTestJobs * numTestLbs) - currentPageOffset >= pageSize) {
+                assertThat(jobLoadBalancerPage.size()).isEqualTo(pageSize);
+            } else {
+                assertThat(jobLoadBalancerPage.size()).isEqualTo((numTestJobs * numTestLbs) - currentPageOffset);
+            }
+
+            currentPageOffset += jobLoadBalancerPage.size();
+            // Make sure we've stopped before reading beyond the data set size
+            assertThat(currentPageOffset <= numTestJobs * numTestLbs).isTrue();
+        } while(jobLoadBalancerPage.size() > 0);
+        // Make sure all of the data was checked
+        assertThat(unverifiedData.isEmpty()).isTrue();
+    }
+
+    /**
+     * Tests that all data is returned in a single overly large page request.
+     * @throws Exception
+     */
+    @Test
+    public void testGetFullPage() throws Exception {
+        int numTestJobs = 10;
+        int numTestLbs = 20;
+        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(numTestJobs, numTestLbs);
+
+        // Load data on init
+        loadTestData(testData);
+        CassandraLoadBalancerStore store = getInitdStore();
+
+        List<JobLoadBalancer> jobLoadBalancerPage = store.getAssociationsPage(0, (numTestJobs * numTestLbs) + 1);
+        assertThat(jobLoadBalancerPage.size()).isEqualTo(numTestJobs * numTestLbs);
+    }
+
+    /**
      * Returns a map of data to be inserted that can be used for later verification.
      *
      * @param numJobs
@@ -193,14 +252,20 @@ public class CassandraLoadBalancerStoreTest {
      */
     private Map<JobLoadBalancer, JobLoadBalancer.State> generateTestData(int numJobs, int numLoadBalancersPerJob) throws Exception {
         Map<JobLoadBalancer, JobLoadBalancer.State> testData = new ConcurrentHashMap<>();
+        Random random = new Random();
 
         for (int i = 1; i <= numJobs; i++) {
-            String jobId = "Titus-" + i;
+            String jobId = "Titus-" + random.nextInt(1000);
             for (int j = 1; j <= numLoadBalancersPerJob; j++) {
-                testData.putIfAbsent(new JobLoadBalancer(jobId, jobId + "-" + "TestLoadBalancer-" + j), JobLoadBalancer.State.Associated);
+                JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, jobId + "-" + "TestLoadBalancer-" + random.nextInt(1000));
+                while (testData.containsKey(jobLoadBalancer)) {
+                    jobLoadBalancer = new JobLoadBalancer(jobId, jobId + "-" + "TestLoadBalancer-" + random.nextInt(1000));
+                }
+                assertThat(testData.put(jobLoadBalancer, JobLoadBalancer.State.Associated)).isNull();
             }
         }
 
+        assertThat(testData.size()).isEqualTo(numJobs * numLoadBalancersPerJob);
         return testData;
     }
 
@@ -259,7 +324,8 @@ public class CassandraLoadBalancerStoreTest {
      * @throws Exception
      */
     private void checkDataSetExists(CassandraLoadBalancerStore store, Map<JobLoadBalancer, JobLoadBalancer.State> testData) throws Exception {
-        Set<JobLoadBalancer> verificationSet = new HashSet<>(testData.keySet());
+        Set<JobLoadBalancer> observableVerificationSet = new HashSet<>(testData.keySet());
+        Set<JobLoadBalancer> listVerificationSet = new HashSet<>(observableVerificationSet);
         Set<String> jobIdSet = getJobIdsFromTestData(testData);
 
         jobIdSet.forEach(jobId -> {
@@ -274,8 +340,8 @@ public class CassandraLoadBalancerStoreTest {
                                 .isEqualTo(loadBalancerState.getState());
 
                         // Mark that this job/load balancer was checked
-                        assertThat(verificationSet.contains(jobLoadBalancer)).isTrue();
-                        assertThat(verificationSet.remove(jobLoadBalancer)).isTrue();
+                        assertThat(observableVerificationSet.contains(jobLoadBalancer)).isTrue();
+                        assertThat(observableVerificationSet.remove(jobLoadBalancer)).isTrue();
                         logger.debug("Verified job {} has load balancer id {} in state {}",
                                 jobId,
                                 loadBalancerState.getLoadBalancerId(),
@@ -285,14 +351,21 @@ public class CassandraLoadBalancerStoreTest {
             // Verify the secondary indexes return the correct state
             store.getAssociatedLoadBalancersSetForJob(jobId)
                     .forEach(jobLoadBalancer -> {
+                        logger.info("Verifying jobLoadBalancer {}", jobLoadBalancer);
                         assertThat(jobLoadBalancer.getJobId().equals(jobId)).isTrue();
                         assertThat(testData.containsKey(jobLoadBalancer)).isTrue();
                         assertThat(testData.get(jobLoadBalancer))
                                 .isEqualTo(JobLoadBalancer.State.Associated);
+
+                        // Mark that this job/load balancer was checked
+                        assertThat(listVerificationSet.contains(jobLoadBalancer)).isTrue();
+                        assertThat(listVerificationSet.remove(jobLoadBalancer)).isTrue();
+                        logger.debug("Verified job load balancer {}", jobLoadBalancer);
                     });
         });
 
         // Verify that all of the test data was checked.
-        assertThat(verificationSet.isEmpty()).isTrue();
+        assertThat(observableVerificationSet.isEmpty()).isTrue();
+        assertThat(listVerificationSet.isEmpty()).isTrue();
     }
 }

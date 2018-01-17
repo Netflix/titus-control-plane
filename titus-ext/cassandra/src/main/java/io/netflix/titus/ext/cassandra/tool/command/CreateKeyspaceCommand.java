@@ -49,24 +49,12 @@ public class CreateKeyspaceCommand implements Command {
 
     @Override
     public CommandType getCommandType() {
-        return null;
+        return CommandType.NoKeySpace;
     }
 
     @Override
     public Options getOptions() {
         Options options = new Options();
-        options.addOption(Option.builder("t")
-                .longOpt("target")
-                .desc("The cassandra target host")
-                .hasArg()
-                .required()
-                .build());
-        options.addOption(Option.builder("p")
-                .longOpt("port")
-                .desc("The cassandra port")
-                .hasArg()
-                .required()
-                .build());
         options.addOption(Option.builder("k")
                 .longOpt("keyspace")
                 .desc("The name of the keyspace")
@@ -84,11 +72,10 @@ public class CreateKeyspaceCommand implements Command {
 
     @Override
     public void execute(CommandContext commandContext) throws Exception {
-
         CommandLine commandLine = commandContext.getCommandLine();
         String keyspaceOption = commandLine.getOptionValue("keyspace");
         Set<String> keyspaces = new HashSet<>(StringExt.splitByComma(keyspaceOption));
-        Session session = commandContext.getSession();
+        Session session = commandContext.getDefaultSession();
 
         Preconditions.checkArgument(!keyspaces.isEmpty(), "You must specify at least one keyspace.");
 

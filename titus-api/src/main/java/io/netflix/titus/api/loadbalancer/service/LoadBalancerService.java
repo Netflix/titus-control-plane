@@ -16,13 +16,43 @@
 
 package io.netflix.titus.api.loadbalancer.service;
 
+import java.util.List;
+
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import io.netflix.titus.api.model.Page;
+import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
 public interface LoadBalancerService {
+    /**
+     * Returns all load balancers associated to a specific job.
+     * @param jobId
+     * @return
+     */
     Observable<String> getJobLoadBalancers(String jobId);
 
+    /**
+     * Blocking call that returns all job/load balancer associations.
+     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
+     * @return
+     */
+    Pair<List<JobLoadBalancer>, Pagination> getAllLoadBalancers(Page page);
+
+    /**
+     * Adds a load balancer to an existing job.
+     * @param jobId
+     * @param loadBalancerId
+     * @return
+     */
     Completable addLoadBalancer(String jobId, String loadBalancerId);
 
+    /**
+     * Removes a load balancer from an existing job.
+     * @param jobId
+     * @param loadBalancerId
+     * @return
+     */
     Completable removeLoadBalancer(String jobId, String loadBalancerId);
 }

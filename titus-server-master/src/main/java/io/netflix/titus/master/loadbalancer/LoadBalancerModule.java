@@ -22,6 +22,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
@@ -36,6 +38,7 @@ public class LoadBalancerModule extends AbstractModule {
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
         bind(LoadBalancerJobValidator.class).to(DefaultLoadBalancerJobValidator.class);
+        bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
     }
 
     @Provides

@@ -19,8 +19,6 @@ package io.netflix.titus.ext.cassandra.tool.command;
 import com.datastax.driver.core.Session;
 import io.netflix.titus.ext.cassandra.tool.Command;
 import io.netflix.titus.ext.cassandra.tool.CommandContext;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class DeleteKeyspaceCommand implements Command {
@@ -31,38 +29,18 @@ public class DeleteKeyspaceCommand implements Command {
 
     @Override
     public CommandType getCommandType() {
-        return null;
+        return CommandType.TargetKeySpace;
     }
 
     @Override
     public Options getOptions() {
-        Options options = new Options();
-        options.addOption(Option.builder("t")
-                .longOpt("target")
-                .desc("The cassandra target host")
-                .hasArg()
-                .required()
-                .build());
-        options.addOption(Option.builder("p")
-                .longOpt("port")
-                .desc("The cassandra port")
-                .hasArg()
-                .required()
-                .build());
-        options.addOption(Option.builder("k")
-                .longOpt("keyspace")
-                .desc("The name of the keyspace")
-                .hasArg()
-                .required()
-                .build());
-        return options;
+        return new Options();
     }
 
     @Override
-    public void execute(CommandContext commandContext) throws Exception {
-        CommandLine commandLine = commandContext.getCommandLine();
-        String keyspace = commandLine.getOptionValue("keyspace");
-        Session session = commandContext.getSession();
+    public void execute(CommandContext commandContext) {
+        Session session = commandContext.getTargetSession();
+        String keyspace = commandContext.getTargetKeySpace();
 
         if (keyspace.contains("main")) {
             throw new IllegalArgumentException("Cannot delete keyspaces that contain the word main");
