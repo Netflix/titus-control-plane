@@ -31,6 +31,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TokenRange;
+import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -88,10 +89,19 @@ class QueryOperations {
         );
     }
 
+    @Deprecated
     public Observable<Cell> executeRawRangeQuery(PreparedStatement statement, Function<String, Class<?>> entityTypeResolver) {
         List<Observable<Cell>> allQueries = tokenRanges.stream()
                 .map(range -> statement.bind().setToken("min", range.getStart()).setToken("max", range.getEnd()))
                 .map(boundStatement -> executeQueryInternal(boundStatement, entityTypeResolver).onBackpressureBuffer())
+                .collect(Collectors.toList());
+        return Observable.merge(allQueries);
+    }
+
+    public Observable<Pair<Object, Object>> executeRawRangeQuery2(String keyName, String valueName, PreparedStatement statement, Optional<Class<?>> entityType) {
+        List<Observable<Pair<Object, Object>>> allQueries = tokenRanges.stream()
+                .map(range -> statement.bind().setToken("min", range.getStart()).setToken("max", range.getEnd()))
+                .map(boundStatement -> executeQueryInternal2(keyName, valueName, boundStatement, entityType).onBackpressureBuffer())
                 .collect(Collectors.toList());
         return Observable.merge(allQueries);
     }
@@ -130,6 +140,36 @@ class QueryOperations {
                                 Object value = row.get("value", entityType);
                                 pageItems.add(new Cell(key, column, value));
                             }
+                        }
+                        if (--remaining == 0) {
+                            break;
+                        }
+                    }
+
+                    logger.debug("Got page with {} items (total {})", pageItems.size(), total + pageItems.size());
+                    return pageItems;
+                },
+                PagingIterable::isFullyFetched
+        );
+    }
+
+    private Observable<Pair<Object, Object>> executeQueryInternal2(String keyName, String valueName, BoundStatement boundStatement, Optional<Class<?>> type) {
+        boundStatement.setFetchSize(pageSize);
+        return FuturePaginatedQuery.paginatedQuery(
+                () -> session.executeAsync(boundStatement),
+                ResultSet::fetchMoreResults,
+                (rs, total) -> {
+                    int remaining = rs.getAvailableWithoutFetching();
+                    List<Pair<Object, Object>> pageItems = new ArrayList<>(remaining);
+                    for (Row row : rs) {
+                        Object key = row.getObject(keyName);
+                        if (!type.isPresent()) {
+                            String value = row.getString(valueName);
+                            pageItems.add(Pair.of(key, value));
+                        } else {
+                            Class<?> entityType = type.get();
+                            Object value = row.get(valueName, entityType);
+                            pageItems.add(Pair.of(key, value));
                         }
                         if (--remaining == 0) {
                             break;
