@@ -42,6 +42,7 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.ScaleDownAction;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
@@ -185,14 +186,16 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Registry registry,
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
                                     Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
+                                    PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, config, schedulerConfiguration,
                 globalConstraintsEvaluator, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
-                tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators, taskMigrator,
-                titusRuntime
+                tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
+                preferentialNamedConsumableResourceEvaluator,
+                taskMigrator, titusRuntime
         );
     }
 
@@ -212,6 +215,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Registry registry,
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
                                     Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
+                                    PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime) {
         this.v2JobOperations = v2JobOperations;
@@ -238,7 +242,8 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withFitnessGoodEnoughFunction(AgentFitnessCalculator.fitnessGoodEnoughFunc)
                 .withAutoScaleByAttributeName(config.getAutoscaleByAttributeName())
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
-                .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators);
+                .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
+                .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator);
 
         taskScheduler = setupTaskSchedulerAndAutoScaler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);

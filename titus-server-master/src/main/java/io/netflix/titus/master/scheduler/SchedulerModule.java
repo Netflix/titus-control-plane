@@ -24,6 +24,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.ScaleDownOrderEvaluator;
 import io.netflix.titus.api.model.v2.JobConstraints;
@@ -32,6 +33,7 @@ import io.netflix.titus.master.scheduler.autoscale.DefaultAutoScaleController;
 import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.TitusInactiveClusterScaleDownConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.ZoneBalancedClusterScaleDownConstraintEvaluator;
+import io.netflix.titus.master.scheduler.fitness.EniFitnessEvaluator;
 
 public final class SchedulerModule extends AbstractModule {
 
@@ -48,6 +50,7 @@ public final class SchedulerModule extends AbstractModule {
         bind(VMOperations.class).to(VMOperationsImpl.class);
         bind(TierSlaUpdater.class).to(DefaultTierSlaUpdater.class);
         bind(ScaleDownOrderEvaluator.class).to(TitusInactiveClusterScaleDownConstraintEvaluator.class);
+        bind(PreferentialNamedConsumableResourceEvaluator.class).to(EniFitnessEvaluator.class);
         bind(AutoScaleController.class).to(DefaultAutoScaleController.class);
         bind(SchedulingService.class).to(DefaultSchedulingService.class).asEagerSingleton();
 
