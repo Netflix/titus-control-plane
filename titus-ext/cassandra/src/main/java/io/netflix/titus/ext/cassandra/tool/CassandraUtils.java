@@ -6,9 +6,11 @@ import java.util.stream.Collectors;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
 import com.google.common.base.Preconditions;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.ext.cassandra.executor.AsyncCassandraExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -19,6 +21,9 @@ public class CassandraUtils {
 
     private static final int MAX_CONCURRENCY = 1000;
 
+    public static final int PAGE_SIZE = 1000;
+    public static final int SPLIT = 2;
+
     public static void truncateTable(CommandContext context, String table) {
         PreparedStatement truncateStatement = context.getTargetSession().prepare(
                 "TRUNCATE \"" + table + "\""
@@ -27,9 +32,9 @@ public class CassandraUtils {
         logger.info("Truncated table {}.{}", truncateStatement.getQueryKeyspace(), table);
     }
 
-    public static void copyTable(CommandContext context, String table) {
-        TableMetadata tableMetadata = context.getSourceSession().getCluster().getMetadata()
-                .getKeyspace(context.getSourceSession().getLoggedKeyspace())
+    public static Pair<String, String> resolveColumnNamesInTwoColumnTable(Session sourceSession, String table) {
+        TableMetadata tableMetadata = sourceSession.getCluster().getMetadata()
+                .getKeyspace(sourceSession.getLoggedKeyspace())
                 .getTable(table);
         String primaryKey = tableMetadata.getPartitionKey().get(0).getName();
         List<String> valueColumns = tableMetadata.getColumns().stream()
@@ -39,27 +44,55 @@ public class CassandraUtils {
         Preconditions.checkState(valueColumns.size() == 1, "Expected one non primary key column, and is: %s", valueColumns);
         String valueColumn = valueColumns.get(0);
 
-        PreparedStatement queryAllStatement = context.getSourceSession().prepare(
+        return Pair.of(primaryKey, valueColumn);
+    }
+
+    public static Observable<Pair<Object, Object>> readTwoColumnTable(Session sourceSession, String table) {
+        Pair<String, String> columnNames = resolveColumnNamesInTwoColumnTable(sourceSession, table);
+        String primaryKey = columnNames.getLeft();
+        String valueColumn = columnNames.getRight();
+
+        PreparedStatement queryAllStatement = sourceSession.prepare(
                 String.format("SELECT * FROM %s WHERE token(%s) > :min AND token(%s) <= :max", table, primaryKey, primaryKey)
         );
-        PreparedStatement insertStatement = context.getTargetSession().prepare(
+        AsyncCassandraExecutor executor = new AsyncCassandraExecutor(sourceSession, PAGE_SIZE, SPLIT);
+        return executor.rawRangeQuery2(primaryKey, valueColumn, queryAllStatement);
+    }
+
+    public static long writeIntoTwoColumnTable(Session targetSession, String table, Observable<Pair<Object, Object>> sourceData) {
+        Pair<String, String> columnNames = resolveColumnNamesInTwoColumnTable(targetSession, table);
+        String primaryKey = columnNames.getLeft();
+        String valueColumn = columnNames.getRight();
+
+        PreparedStatement insertStatement = targetSession.prepare(
                 String.format("INSERT INTO %s (%s, %s) VALUES (?, ?)", table, primaryKey, valueColumn)
         );
 
-        Observable<Pair<Object, Object>> sourceData = context.getSourceCassandraExecutor().rawRangeQuery2(primaryKey, valueColumn, queryAllStatement);
+        AsyncCassandraExecutor executor = new AsyncCassandraExecutor(targetSession, PAGE_SIZE, SPLIT);
+
         long recordCount = sourceData
                 .flatMap(pair -> {
                     BoundStatement boundStatement = insertStatement.bind(pair.getLeft(), pair.getRight());
-                    return context.getTargetCassandraExecutor()
+                    return executor
                             .executeUpdate(boundStatement)
                             .cast(Long.class)
                             .concatWith(Observable.just(1L));
                 }, MAX_CONCURRENCY)
                 .reduce(0L, (acc, v) -> acc + v)
                 .toBlocking().firstOrDefault(null);
+
+        return recordCount;
+    }
+
+    public static void copyTable(CommandContext context, String table) {
+        long recordCount = writeIntoTwoColumnTable(
+                context.getTargetSession(),
+                table,
+                readTwoColumnTable(context.getSourceSession(), table)
+        );
         logger.info("Copied {} records from table {}.{} to {}.{}", recordCount,
-                queryAllStatement.getQueryKeyspace(), table,
-                insertStatement.getQueryKeyspace(), table
+                context.getSourceKeySpace(), table,
+                context.getTargetKeySpace(), table
         );
     }
 }
