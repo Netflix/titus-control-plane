@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
@@ -81,7 +80,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
     private V2JobOperations v2JobOperations;
     private RxEventBus rxEventBus;
     private V3JobOperations v3JobOperations;
-    private Registry registry;
     private AppScaleManagerConfiguration appScaleManagerConfiguration;
 
     private volatile Map<String, AutoScalableTarget> scalableTargets;
@@ -106,7 +104,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
         this.v2JobOperations = v2JobOperations;
         this.rxEventBus = rxEventBus;
         this.v3JobOperations = v3JobOperations;
-        this.registry = registry;
         this.appScaleManagerConfiguration = appScaleManagerConfiguration;
         this.scalableTargets = new ConcurrentHashMap<>();
         this.metrics = new AppScaleManagerMetrics(registry);

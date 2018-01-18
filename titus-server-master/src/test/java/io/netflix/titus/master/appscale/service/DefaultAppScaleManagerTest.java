@@ -24,7 +24,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.function.BooleanSupplier;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
@@ -113,7 +115,13 @@ public class DefaultAppScaleManagerTest {
         // call - createAutoScalingPolicy
         appScaleManager.createAutoScalingPolicy(autoScalingPolicyOne).toBlocking().single();
         String policyRefIdTwo = appScaleManager.createAutoScalingPolicy(autoScalingPolicyTwo).toBlocking().single();
-        Thread.sleep(20);
+
+
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            List<AutoScalingPolicy> policies = policyStore.retrievePolicies(false).toList().toBlocking().first();
+            return policies.size() == 2 && mockAppAutoScalingClient.getNumPolicies() == 2
+                    && mockAppAutoScalingClient.getNumScalableTargets() == 2;
+        });
 
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
         List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
@@ -125,7 +133,12 @@ public class DefaultAppScaleManagerTest {
         }
 
         appScaleManager.removeAutoScalingPolicy(policyRefIdTwo).await();
-        Thread.sleep(20);
+
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            List<AutoScalingPolicy> policies = policyStore.retrievePolicies(false).toList().toBlocking().first();
+            return policies.size() == 1 && mockAppAutoScalingClient.getNumPolicies() == 1
+                    && mockAppAutoScalingClient.getNumScalableTargets() == 1;
+        });
 
         // verify counts in CloudAlarmClient, AppAutoScaleClient and AppScalePolicyStore
         policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
@@ -138,7 +151,7 @@ public class DefaultAppScaleManagerTest {
     }
 
     @Test
-    public void checkV2LiveStreamPolicyCleanup() throws InterruptedException {
+    public void checkV2LiveStreamPolicyCleanup() throws Exception {
         AutoScalingPolicyTests.MockAlarmClient mockAlarmClient = new AutoScalingPolicyTests.MockAlarmClient();
         AutoScalingPolicyTests.MockAppAutoScalingClient mockAppAutoScalingClient = new AutoScalingPolicyTests.MockAppAutoScalingClient();
         InMemoryPolicyStore policyStore = new InMemoryPolicyStore();
@@ -181,17 +194,20 @@ public class DefaultAppScaleManagerTest {
         eventBus.publish(new JobStateChangeEvent<>(jobIdTwo, JobStateChangeEvent.JobState.Finished,
                 System.currentTimeMillis(), "jobFinished"));
         log.info("Done publishing JobStateChangeEvent for {}", jobIdTwo);
-        Thread.sleep(50);
+        latch.await(60, TimeUnit.SECONDS);
+
+        AutoScalingPolicyTests.waitForCondition(() -> policyStore.retrievePolicies(false).toList().toBlocking().first().size() == 1 &&
+                jobIdPoliciesToBeCleaned.size() == 1 &&
+                jobIdPoliciesToBeCleaned.get(0).equals(jobIdTwo));
 
         Assertions.assertThat(jobIdPoliciesToBeCleaned.size()).isEqualTo(1);
         Assertions.assertThat(jobIdPoliciesToBeCleaned.get(0)).isEqualTo(jobIdTwo);
-
         policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
         Assertions.assertThat(policiesStored.size()).isEqualTo(1);
     }
 
     @Test
-    public void checkV2LiveStreamTargetUpdates() throws InterruptedException {
+    public void checkV2LiveStreamTargetUpdates() throws Exception {
         InMemoryPolicyStore policyStore = new InMemoryPolicyStore();
         Registry registry = new DefaultRegistry();
         RxEventBus eventBus = new DefaultRxEventBus(registry.createId("test"), registry);
@@ -237,14 +253,19 @@ public class DefaultAppScaleManagerTest {
         eventBus.publish(new JobStateChangeEvent<>(jobIdTwo, JobStateChangeEvent.JobState.Created,
                 System.currentTimeMillis(), "jobUpdated"));
         log.info("Done publishing JobStateChangeEvent for {}", jobIdTwo);
-        Thread.sleep(50);
+        latch.await(60, TimeUnit.SECONDS);
+
+        AutoScalingPolicyTests.waitForCondition(() -> targetJobsUpdated.size() == 1 &&
+                appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity() == 5 &&
+                appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity() == 15);
+
         Assertions.assertThat(targetJobsUpdated.size()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(5);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(15);
     }
 
     @Test
-    public void checkV3LiveStreamTargetUpdates() throws InterruptedException {
+    public void checkV3LiveStreamTargetUpdates() throws Exception {
         String jobIdOne = UUID.randomUUID().toString();
         String jobIdTwo = UUID.randomUUID().toString();
 
@@ -274,11 +295,16 @@ public class DefaultAppScaleManagerTest {
                 e -> log.error("Error in v2 live stream for scalable target update {}", e),
                 () -> log.info("Completed"));
 
-        Thread.sleep(100);
+        latch.await(60, TimeUnit.SECONDS);
 
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            JobScalingConstraints jpc = appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo);
+            return jpc.getMinCapacity() == 5 && jpc.getMaxCapacity() == 15;
+        });
+
+        Assertions.assertThat(targetsUpdated.size()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdOne).getMinCapacity()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdOne).getMaxCapacity()).isEqualTo(10);
-        Assertions.assertThat(targetsUpdated.size()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(5);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(15);
     }
@@ -356,18 +382,22 @@ public class DefaultAppScaleManagerTest {
     }
 
     @Test
-    public void checkNestedExceptionHandling() {
+    public void checkNestedExceptionHandling() throws Exception {
         RuntimeException exceptionContainingUnknownPolicy =
                 new RuntimeException
                         (new RuntimeException(
                                 new RuntimeException(
                                         new RuntimeException(AutoScalePolicyException.unknownScalingPolicy("policyId", "Not found")))));
         Optional<AutoScalePolicyException> autoScalePolicyException = DefaultAppScaleManager.extractAutoScalePolicyException(exceptionContainingUnknownPolicy);
+
+        AutoScalingPolicyTests.waitForCondition(() -> autoScalePolicyException.isPresent());
         Assertions.assertThat(autoScalePolicyException.isPresent()).isTrue();
+        AutoScalingPolicyTests.waitForCondition(() -> autoScalePolicyException.get().getErrorCode() == AutoScalePolicyException.ErrorCode.UnknownScalingPolicy);
         Assertions.assertThat(autoScalePolicyException.get().getErrorCode()).isEqualTo(AutoScalePolicyException.ErrorCode.UnknownScalingPolicy);
 
         RuntimeException runtimeException = new RuntimeException(new RuntimeException(new Exception("Bad input")));
         Optional<AutoScalePolicyException> notAutoScalePolicyException = DefaultAppScaleManager.extractAutoScalePolicyException(runtimeException);
+        AutoScalingPolicyTests.waitForCondition(() -> !notAutoScalePolicyException.isPresent());
         Assertions.assertThat(notAutoScalePolicyException.isPresent()).isFalse();
     }
 
@@ -407,7 +437,7 @@ public class DefaultAppScaleManagerTest {
     }
 
     private List<String> submitTwoJobs(DefaultAppScaleManager appScaleManager, String jobIdOne, String jobIdTwo,
-                                       InMemoryPolicyStore policyStore) {
+                                       InMemoryPolicyStore policyStore) throws Exception {
         // call - createAutoScalingPolicy
         AutoScalingPolicy autoScalingPolicyOne = AutoScalingPolicyTests.buildStepScalingPolicy(jobIdOne);
         appScaleManager.createAutoScalingPolicy(autoScalingPolicyOne).toBlocking().single();
@@ -418,7 +448,9 @@ public class DefaultAppScaleManagerTest {
 
         // call - processPendingPolicies
         List<AutoScalingPolicy> savedPolicies = policyStore.retrievePolicies(false).toList().toBlocking().first();
+        AutoScalingPolicyTests.waitForCondition(() -> savedPolicies.size() == 2);
         Assertions.assertThat(savedPolicies.size()).isEqualTo(2);
+
         return savedPolicies.stream().map(policy -> policy.getRefId()).collect(Collectors.toList());
     }
 
@@ -550,6 +582,5 @@ public class DefaultAppScaleManagerTest {
 
         return mockV2JobOperations;
     }
-
 
 }

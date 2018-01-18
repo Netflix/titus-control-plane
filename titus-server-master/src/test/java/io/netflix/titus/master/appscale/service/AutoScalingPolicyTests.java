@@ -18,6 +18,7 @@ package io.netflix.titus.master.appscale.service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 import io.netflix.titus.api.appscale.model.AlarmConfiguration;
 import io.netflix.titus.api.appscale.model.AutoScalableTarget;
@@ -43,7 +44,6 @@ import static org.mockito.Mockito.when;
 
 
 public class AutoScalingPolicyTests {
-
     public static class MockAlarmClient implements CloudAlarmClient {
         int numOfAlarmsCreated = 0;
 
@@ -186,6 +186,21 @@ public class AutoScalingPolicyTests {
         when(appScaleManagerConfiguration.getReconcileTargetsIntervalMins()).thenReturn(1L);
         when(appScaleManagerConfiguration.getStoreInitTimeoutSeconds()).thenReturn(5L);
         return appScaleManagerConfiguration;
+    }
+
+    public static boolean waitForCondition(BooleanSupplier booleanSupplier) throws Exception {
+        int maxChecks = 200;
+        int i = 0;
+        while (true) {
+            if (booleanSupplier.getAsBoolean()) {
+                return true;
+            } else {
+                Thread.sleep(100);
+            }
+            if (i++ >= maxChecks) {
+                return true;
+            }
+        }
     }
 
 }

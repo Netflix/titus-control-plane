@@ -166,6 +166,14 @@ public class DefaultAutoScalingServiceGrpcTest {
         TestStreamObserver<Empty> deleteResponse = new TestStreamObserver<>();
         service.deleteAutoScalingPolicy(deletePolicyRequest, deleteResponse);
 
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+            service.getScalingPolicy(scalingPolicyID, getResponse);
+            GetPolicyResult getPolicyResult = getResponse.takeNext();
+            return getPolicyResult.getItemsCount() == 1 &&
+                    getPolicyResult.getItems(0).getPolicyState().getState() == Deleting;
+        });
+
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
         service.getScalingPolicy(scalingPolicyID, getResponse);
         GetPolicyResult getPolicyResult = getResponse.takeNext();
@@ -182,7 +190,15 @@ public class DefaultAutoScalingServiceGrpcTest {
                 AutoScalingTestUtils.generateUpdateTargetTrackingPolicyRequest(policyId.getId(), 100.0),
                 updateResponse);
 
-        Thread.sleep(200);
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+            service.getScalingPolicy(policyId, getResponse);
+            GetPolicyResult getPolicyResult = getResponse.takeNext();
+            return getPolicyResult.getItems(0).getScalingPolicy().getTargetPolicyDescriptor().getTargetValue().getValue() == 100.0 &&
+                    getPolicyResult.getItems(0).getPolicyState().getState() == Applied;
+
+        });
+
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
         service.getScalingPolicy(policyId, getResponse);
         GetPolicyResult getPolicyResult = getResponse.takeNext();
@@ -199,7 +215,14 @@ public class DefaultAutoScalingServiceGrpcTest {
                 AutoScalingTestUtils.generateUpdateStepScalingPolicyRequest(policyId.getId(), 100.0),
                 updateResponse);
 
-        Thread.sleep(200);
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+            service.getScalingPolicy(policyId, getResponse);
+            GetPolicyResult getPolicyResult = getResponse.takeNext();
+            return getPolicyResult.getItems(0).getScalingPolicy().getStepPolicyDescriptor().getAlarmConfig().getThreshold().getValue() == 100.0 &&
+                    getPolicyResult.getItems(0).getPolicyState().getState() == Applied;
+
+        });
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
         service.getScalingPolicy(policyId, getResponse);
         GetPolicyResult getPolicyResult = getResponse.takeNext();

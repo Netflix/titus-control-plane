@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.ScalingPolicyStatus;
 import io.netflix.titus.api.appscale.model.PolicyType;
 import io.netflix.titus.master.appscale.endpoint.v3.grpc.AutoScalingTestUtils;
+import io.netflix.titus.master.appscale.service.AutoScalingPolicyTests;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -208,7 +209,19 @@ public class AutoScalingGrpcTest {
                 AutoScalingTestUtils.generateUpdateTargetTrackingPolicyRequest(scalingPolicyID.getId(), 100.0),
                 updateResponse);
         updateResponse.awaitDone();
-        Thread.sleep(50);
+
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+            client.getScalingPolicy(scalingPolicyID, getResponse);
+
+            try {
+                GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                return getPolicyResult.getItemsCount() == 1 &&
+                        getPolicyResult.getItems(0).getScalingPolicy().getTargetPolicyDescriptor().getTargetValue().getValue() == 100.0;
+            } catch (Exception ignored) {
+            }
+            return false;
+        });
 
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
         client.getScalingPolicy(scalingPolicyID, getResponse);
@@ -241,7 +254,18 @@ public class AutoScalingGrpcTest {
                 AutoScalingTestUtils.generateUpdateStepScalingPolicyRequest(scalingPolicyID.getId(), 100.0),
                 updateResponse);
         updateResponse.awaitDone();
-        Thread.sleep(50);
+
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+            client.getScalingPolicy(scalingPolicyID, getResponse);
+            try {
+                GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                return getPolicyResult.getItemsCount() == 1 &&
+                        getPolicyResult.getItems(0).getScalingPolicy().getStepPolicyDescriptor().getAlarmConfig().getThreshold().getValue() == 100.0;
+            } catch (Exception ignored) {
+            }
+            return false;
+        });
 
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
         client.getScalingPolicy(scalingPolicyID, getResponse);
