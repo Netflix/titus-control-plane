@@ -26,6 +26,7 @@ import com.netflix.titus.grpc.protogen.StepAdjustments;
 import com.netflix.titus.grpc.protogen.StepScalingPolicy;
 import com.netflix.titus.grpc.protogen.StepScalingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
+import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.netflix.titus.api.appscale.model.AlarmConfiguration;
 import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.ComparisonOperator;
@@ -67,6 +68,22 @@ public class InternalModelConverters {
 
         return autoScalingPolicyBuilder.build();
     }
+
+    public static AutoScalingPolicy toAutoScalingPolicy(UpdatePolicyRequest updatePolicyRequest) {
+        AutoScalingPolicy.Builder autoScalingPolicyBuilder = AutoScalingPolicy.newBuilder();
+        if (updatePolicyRequest.hasPolicyId()) {
+            autoScalingPolicyBuilder.withRefId(updatePolicyRequest.getPolicyId().getId());
+        }
+
+        if (updatePolicyRequest.hasScalingPolicy()) {
+            autoScalingPolicyBuilder.withPolicyConfiguration(
+                    toPolicyConfiguration(updatePolicyRequest.getScalingPolicy())
+            );
+        }
+
+        return autoScalingPolicyBuilder.build();
+    }
+
 
     private static PolicyConfiguration toPolicyConfiguration(ScalingPolicy scalingPolicyGrpc) {
         PolicyConfiguration.Builder policyConfigBuilder = PolicyConfiguration.newBuilder();

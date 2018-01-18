@@ -27,13 +27,35 @@ import com.netflix.titus.grpc.protogen.CustomizedMetricSpecification;
 import com.netflix.titus.grpc.protogen.MetricDimension;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicy;
+import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.StepAdjustments;
 import com.netflix.titus.grpc.protogen.StepScalingPolicy;
 import com.netflix.titus.grpc.protogen.StepScalingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
+import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.netflix.titus.api.appscale.model.PolicyType;
 
 public class AutoScalingTestUtils {
+
+    public static UpdatePolicyRequest generateUpdateTargetTrackingPolicyRequest(String policyRefId, double targetValue) {
+        ScalingPolicy scalingPolicy = generateTargetPolicy();
+        TargetTrackingPolicyDescriptor targetPolicyDescriptor = scalingPolicy.getTargetPolicyDescriptor();
+        TargetTrackingPolicyDescriptor targetPolicyWithUpdatedValue = targetPolicyDescriptor.toBuilder().setTargetValue(DoubleValue.newBuilder().setValue(targetValue).build()).build();
+        ScalingPolicy scalingPolicyTobeUpdated = scalingPolicy.toBuilder().setTargetPolicyDescriptor(targetPolicyWithUpdatedValue).build();
+        UpdatePolicyRequest updatePolicyRequest = UpdatePolicyRequest.newBuilder().setPolicyId(ScalingPolicyID.newBuilder().setId(policyRefId).build())
+                .setScalingPolicy(scalingPolicyTobeUpdated).build();
+        return updatePolicyRequest;
+    }
+
+    public static UpdatePolicyRequest generateUpdateStepScalingPolicyRequest(String policyRefId, double threshold) {
+        ScalingPolicy scalingPolicy = generateStepPolicy();
+        AlarmConfiguration alarmConfig = scalingPolicy.getStepPolicyDescriptor().getAlarmConfig().toBuilder().setThreshold(DoubleValue.newBuilder().setValue(threshold).build()).build();
+        StepScalingPolicyDescriptor stepScalingPolicyDescriptor = scalingPolicy.getStepPolicyDescriptor().toBuilder().setAlarmConfig(alarmConfig).build();
+        ScalingPolicy scalingPolicyToBeUpdated = scalingPolicy.toBuilder().setStepPolicyDescriptor(stepScalingPolicyDescriptor).build();
+        UpdatePolicyRequest updatePolicyRequest = UpdatePolicyRequest.newBuilder().setPolicyId(ScalingPolicyID.newBuilder().setId(policyRefId).build())
+                .setScalingPolicy(scalingPolicyToBeUpdated).build();
+        return updatePolicyRequest;
+    }
 
     public static PutPolicyRequest generatePutPolicyRequest(String jobId, PolicyType policyType) {
         ScalingPolicy scalingPolicy;
@@ -80,6 +102,7 @@ public class AutoScalingTestUtils {
 
     /**
      * Builds a random scaling policy for use with tests.
+     *
      * @return
      */
     public static ScalingPolicy generateStepPolicy() {

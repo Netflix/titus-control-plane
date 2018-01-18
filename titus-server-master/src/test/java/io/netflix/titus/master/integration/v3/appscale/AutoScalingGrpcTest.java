@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
@@ -63,6 +64,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that we can retrieve a policy by a specific ID.
+     *
      * @throws Exception
      */
     @Test
@@ -89,6 +91,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that a policy can be deleted.
+     *
      * @throws Exception
      */
     @Test
@@ -109,9 +112,8 @@ public class AutoScalingGrpcTest {
         assertThat(deletePolicyResult.hasError()).isFalse();
 
         // Make sure it's set to Deleting or Deleted state
-        JobId getPolicyRequest = JobId.newBuilder().setId(jobId).build();
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
-        client.getJobScalingPolicies(getPolicyRequest, getResponse);
+        client.getScalingPolicy(scalingPolicyID, getResponse);
 
         GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         log.info("Got result {}", getPolicyResult);
@@ -128,6 +130,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that a non-existent job returns an empty list of policies.
+     *
      * @throws Exception
      */
     @Test
@@ -144,6 +147,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that a non-exitent policy returns an empty list of policies.
+     *
      * @throws Exception
      */
     @Test
@@ -159,6 +163,7 @@ public class AutoScalingGrpcTest {
 
     /**
      * Test that we can get multiple exceptions.
+     *
      * @throws Exception
      */
     @Test
@@ -181,5 +186,71 @@ public class AutoScalingGrpcTest {
         getPolicyResult.getItemsList().forEach(scalingPolicyResult -> {
             assertThat(policyIDSet.contains(scalingPolicyResult.getId())).isTrue();
         });
+    }
+
+    /**
+     * Test policy configuration update for target tracking policy
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testUpdatePolicyConfigurationForTargetTracking() throws Exception {
+        String jobId = "Titus-123";
+        PutPolicyRequest putPolicyRequest = AutoScalingTestUtils.generatePutPolicyRequest(jobId, PolicyType.TargetTrackingScaling);
+        TestStreamObserver<ScalingPolicyID> putResponse = new TestStreamObserver<>();
+        client.setAutoScalingPolicy(putPolicyRequest, putResponse);
+        ScalingPolicyID scalingPolicyID = putResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        assertThat(!scalingPolicyID.getId().isEmpty());
+        log.info("Put policy {} with ID {}", putPolicyRequest, scalingPolicyID);
+
+        TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
+        client.updateAutoScalingPolicy(
+                AutoScalingTestUtils.generateUpdateTargetTrackingPolicyRequest(scalingPolicyID.getId(), 100.0),
+                updateResponse);
+        updateResponse.awaitDone();
+        Thread.sleep(50);
+
+        TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+        client.getScalingPolicy(scalingPolicyID, getResponse);
+
+        GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        log.info("Got result {}", getPolicyResult);
+
+        assertThat(getPolicyResult.getItemsCount()).isEqualTo(1);
+        DoubleValue targetValue = getPolicyResult.getItems(0).getScalingPolicy().getTargetPolicyDescriptor().getTargetValue();
+        assertThat(targetValue.getValue()).isEqualTo(100.0);
+    }
+
+    /**
+     * Test policy configuration update for target tracking policy
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testUpdatePolicyConfigurationForStepScaling() throws Exception {
+        String jobId = "Titus-123";
+        PutPolicyRequest putPolicyRequest = AutoScalingTestUtils.generatePutPolicyRequest(jobId, PolicyType.StepScaling);
+        TestStreamObserver<ScalingPolicyID> putResponse = new TestStreamObserver<>();
+        client.setAutoScalingPolicy(putPolicyRequest, putResponse);
+        ScalingPolicyID scalingPolicyID = putResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        assertThat(!scalingPolicyID.getId().isEmpty());
+        log.info("Put policy {} with ID {}", putPolicyRequest, scalingPolicyID);
+
+        TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
+        client.updateAutoScalingPolicy(
+                AutoScalingTestUtils.generateUpdateStepScalingPolicyRequest(scalingPolicyID.getId(), 100.0),
+                updateResponse);
+        updateResponse.awaitDone();
+        Thread.sleep(50);
+
+        TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
+        client.getScalingPolicy(scalingPolicyID, getResponse);
+
+        GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        log.info("Got result {}", getPolicyResult);
+
+        assertThat(getPolicyResult.getItemsCount()).isEqualTo(1);
+        DoubleValue threshold = getPolicyResult.getItems(0).getScalingPolicy().getStepPolicyDescriptor().getAlarmConfig().getThreshold();
+        assertThat(threshold.getValue()).isEqualTo(100.0);
     }
 }
