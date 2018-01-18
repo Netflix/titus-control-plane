@@ -94,6 +94,7 @@ public class EniFitnessEvaluator implements PreferentialNamedConsumableResourceE
     }
 
     private double evaluateEniInState(EniState eniState, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
+        // 0 is the highest priority.
         int priority;
         switch (eniState) {
             case UsedSomeIps:
@@ -128,6 +129,6 @@ public class EniFitnessEvaluator implements PreferentialNamedConsumableResourceE
         }
         double fitness = Math.min(1.0, (subResourcesUsed + subResourcesNeeded + 1.0) / (subResourcesLimit + 1));
         double from = 1.0 - priority * PARTITION_SIZE;
-        return from + fitness / PARTITION_SIZE;
+        return from + fitness * PARTITION_SIZE;
     }
 }
