@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.function.BooleanSupplier;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
@@ -246,6 +245,13 @@ public class DefaultAppScaleManagerTest {
                         },
                         e -> log.error("Error in v2 live stream for scalable target update"),
                         () -> log.info("Completed"));
+
+        AutoScalingPolicyTests.waitForCondition(() -> {
+            JobScalingConstraints jobScalingPolicyConstraintsForJob = appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo);
+            return jobScalingPolicyConstraintsForJob != null &&
+                    jobScalingPolicyConstraintsForJob.getMinCapacity() == 1 &&
+                    jobScalingPolicyConstraintsForJob.getMaxCapacity() == 10;
+        });
 
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(1);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(10);

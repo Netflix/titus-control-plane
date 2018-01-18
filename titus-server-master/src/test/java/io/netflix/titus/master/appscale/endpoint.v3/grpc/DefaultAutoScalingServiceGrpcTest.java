@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Applied;
-import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Deleting;
+import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Deleted;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class DefaultAutoScalingServiceGrpcTest {
@@ -172,7 +172,7 @@ public class DefaultAutoScalingServiceGrpcTest {
             service.getScalingPolicy(scalingPolicyID, getResponse);
             GetPolicyResult getPolicyResult = getResponse.takeNext();
             return getPolicyResult.getItemsCount() == 1 &&
-                    getPolicyResult.getItems(0).getPolicyState().getState() == Deleting;
+                    getPolicyResult.getItems(0).getPolicyState().getState() == Deleted;
         });
 
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
@@ -180,7 +180,7 @@ public class DefaultAutoScalingServiceGrpcTest {
         GetPolicyResult getPolicyResult = getResponse.takeNext();
         // Check that the policy still exists but the state is updated
         assertThat(getPolicyResult.getItemsCount()).isEqualTo(1);
-        assertThat(getPolicyResult.getItems(0).getPolicyState().getState()).isEqualTo(Deleting);
+        assertThat(getPolicyResult.getItems(0).getPolicyState().getState()).isEqualTo(Deleted);
     }
 
     @Test

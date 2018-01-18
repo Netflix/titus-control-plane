@@ -189,7 +189,7 @@ public class AutoScalingPolicyTests {
     }
 
     public static boolean waitForCondition(BooleanSupplier booleanSupplier) throws Exception {
-        int maxChecks = 600;
+        int maxChecks = 200;
         int i = 0;
         while (true) {
             if (booleanSupplier.getAsBoolean()) {
