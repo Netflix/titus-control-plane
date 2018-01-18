@@ -25,17 +25,39 @@ public interface SchedulerConfiguration {
     /**
      * @return Sleep interval between consecutive scheduler iterations
      */
-    @DefaultValue("100")
+    @DefaultValue("500")
     long getSchedulerIterationIntervalMs();
 
     @DefaultValue("true")
     boolean isSchedulerEnabled();
 
     /**
+     * @return the maximum amount of concurrent threads to use while computing scheduler placements
+     */
+    @DefaultValue("8")
+    int getSchedulerMaxConcurrent();
+
+    /**
      * @return whether or not to limit concurrent task launches on a node
      */
     @DefaultValue("true")
     boolean isGlobalTaskLaunchingConstraintEvaluatorEnabled();
+
+    /**
+     * Option used by component {@link io.netflix.titus.master.scheduler.fitness.NetworkInterfaceFitnessEvaluator}.
+     *
+     * @return whether or not to use an optimizing algorithm for network interface allocation
+     */
+    @DefaultValue("false")
+    boolean isOptimizingNetworkInterfaceAllocationEnabled();
+
+    /**
+     * An option to enable spreading for service jobs in the critical tier.
+     *
+     * @return whether or not to prefer spreading for service jobs in the critical tier.
+     */
+    @DefaultValue("true")
+    boolean isCriticalServiceJobSpreadingEnabled();
 
     @DefaultValue("true")
     boolean isExitUponFenzoSchedulingErrorEnabled();

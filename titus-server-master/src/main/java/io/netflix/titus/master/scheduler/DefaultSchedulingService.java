@@ -42,6 +42,7 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.ScaleDownAction;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
@@ -80,6 +81,7 @@ import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
+import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
@@ -93,6 +95,8 @@ import io.netflix.titus.master.model.job.TitusQueuableTask;
 import io.netflix.titus.master.scheduler.autoscale.DefaultAutoScaleController;
 import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.scheduler.fitness.AgentFitnessCalculator;
+import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
+import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
 import io.netflix.titus.master.store.InvalidJobStateChangeException;
 import io.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
@@ -159,6 +163,8 @@ public class DefaultSchedulingService implements SchedulingService {
     private final Scheduler threadScheduler;
     private Action1<QueuableTask> taskQueueAction;
     private final TitusRuntime titusRuntime;
+    private final AgentResourceCache agentResourceCache;
+    private final AgentResourceCacheUpdater agentResourceCacheUpdater;
     private final BlockingQueue<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>>
             taskFailuresActions = new LinkedBlockingQueue<>(5);
     private final TierSlaUpdater tierSlaUpdater;
@@ -185,14 +191,18 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Registry registry,
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
                                     Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
+                                    PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     TaskMigrator taskMigrator,
-                                    TitusRuntime titusRuntime) {
+                                    TitusRuntime titusRuntime,
+                                    RxEventBus rxEventBus,
+                                    AgentResourceCache agentResourceCache) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, config, schedulerConfiguration,
                 globalConstraintsEvaluator, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
-                tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators, taskMigrator,
-                titusRuntime
+                tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
+                preferentialNamedConsumableResourceEvaluator,
+                taskMigrator, titusRuntime, rxEventBus, agentResourceCache
         );
     }
 
@@ -212,8 +222,11 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Registry registry,
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
                                     Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
+                                    PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     TaskMigrator taskMigrator,
-                                    TitusRuntime titusRuntime) {
+                                    TitusRuntime titusRuntime,
+                                    RxEventBus rxEventBus,
+                                    AgentResourceCache agentResourceCache) {
         this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
@@ -229,16 +242,21 @@ public class DefaultSchedulingService implements SchedulingService {
         this.registry = registry;
         this.taskMigrator = taskMigrator;
         this.titusRuntime = titusRuntime;
+        this.agentResourceCache = agentResourceCache;
         this.globalConstraintsEvaluator = globalConstraintsEvaluator;
+        agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
 
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
                 .withLeaseRejectAction(virtualMachineService::rejectLease)
                 .withLeaseOfferExpirySecs(config.getMesosLeaseOfferExpirySecs())
-                .withFitnessCalculator(new AgentFitnessCalculator())
-                .withFitnessGoodEnoughFunction(AgentFitnessCalculator.fitnessGoodEnoughFunc)
+                .withFitnessCalculator(new AgentFitnessCalculator(schedulerConfiguration, agentResourceCache))
+                .withFitnessGoodEnoughFunction(AgentFitnessCalculator.fitnessGoodEnoughFunction)
                 .withAutoScaleByAttributeName(config.getAutoscaleByAttributeName())
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
-                .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators);
+                .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
+                .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
+                .withSchedulingEventListener(new DefaultSchedulingEventListener(titusRuntime, agentResourceCache))
+                .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent());
 
         taskScheduler = setupTaskSchedulerAndAutoScaler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);
@@ -753,6 +771,7 @@ public class DefaultSchedulingService implements SchedulingService {
         }
 
         setupVmStatesUpdate();
+        agentResourceCacheUpdater.start();
     }
 
     public List<VirtualMachineCurrentState> getVmCurrentStates() {

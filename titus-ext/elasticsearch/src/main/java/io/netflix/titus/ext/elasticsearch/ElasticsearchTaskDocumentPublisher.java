@@ -134,17 +134,10 @@ public class ElasticsearchTaskDocumentPublisher {
                 .filter(event -> event instanceof TaskUpdateEvent)
                 .cast(TaskUpdateEvent.class)
                 .map(event -> {
-                    //TODO this event needs to also include the job information
                     Task task = event.getCurrentTask();
-                    Optional<Job<?>> jobOpt = v3JobOperations.getJob(task.getJobId());
-                    if (jobOpt.isPresent()) {
-                        Job job = jobOpt.get();
-                        TaskDocument taskDocument = TaskDocument.fromV3Task(task, job, taskDateFormat, taskDocumentContext);
-                        return Optional.of(taskDocument);
-                    } else {
-                        logger.warn("Job metadata is not present for jobId: {}", task.getJobId());
-                    }
-                    return Optional.empty();
+                    Job<?> job = event.getCurrentJob();
+                    TaskDocument taskDocument = TaskDocument.fromV3Task(task, job, taskDateFormat, taskDocumentContext);
+                    return Optional.of(taskDocument);
                 });
         return titusRuntime.persistentStream(ObservableExt.fromOptionalObservable(optionalTaskDocuments));
     }
