@@ -61,7 +61,11 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                 public void close(Status status, Metadata trailers) {
                     if (status.getCode() != Status.Code.OK) {
                         Pair<Status, Metadata> pair = ErrorResponses.of(status, trailers, debug);
-                        logger.info("Returning exception to the client: {}", formatStatus(pair.getLeft()));
+                        if(isCriticalError(status)) {
+                            logger.warn("Returning exception to the client: {}", formatStatus(pair.getLeft()));
+                        } else {
+                            logger.debug("Returning exception to the client: {}", formatStatus(pair.getLeft()));
+                        }
                         safeClose(() -> super.close(pair.getLeft(), pair.getRight()));
                     }
                     safeClose(() -> super.close(status, trailers));
@@ -91,6 +95,32 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                 }
             }
         };
+    }
+
+    private boolean isCriticalError(Status status) {
+        switch (status.getCode()) {
+            case OK:
+            case CANCELLED:
+            case INVALID_ARGUMENT:
+            case NOT_FOUND:
+            case ALREADY_EXISTS:
+            case PERMISSION_DENIED:
+            case FAILED_PRECONDITION:
+            case OUT_OF_RANGE:
+            case UNAUTHENTICATED:
+                return false;
+            case UNKNOWN:
+            case DEADLINE_EXCEEDED:
+            case RESOURCE_EXHAUSTED:
+            case ABORTED:
+            case UNIMPLEMENTED:
+            case INTERNAL:
+            case UNAVAILABLE:
+            case DATA_LOSS:
+                return true;
+        }
+        // In case we missed something
+        return true;
     }
 
     private String formatStatus(Status status) {
