@@ -27,7 +27,7 @@ public class JobCopyCommand implements Command {
     public Options getOptions() {
         Options options = new Options();
         options.addOption(Option.builder("a").longOpt("archive").desc("Copy archive tables").build());
-        options.addOption(Option.builder("c").longOpt("clean").desc("Remove the original table content before copy").build());
+        options.addOption(Option.builder("d").longOpt("clean").desc("Remove the original table content before copy").build());
         return options;
     }
 
