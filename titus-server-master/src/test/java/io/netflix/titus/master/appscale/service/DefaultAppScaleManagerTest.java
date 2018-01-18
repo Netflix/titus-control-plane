@@ -299,7 +299,7 @@ public class DefaultAppScaleManagerTest {
 
         AutoScalingPolicyTests.waitForCondition(() -> {
             JobScalingConstraints jpc = appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo);
-            return jpc.getMinCapacity() == 5 && jpc.getMaxCapacity() == 15;
+            return jpc != null && jpc.getMinCapacity() == 5 && jpc.getMaxCapacity() == 15;
         });
 
         Assertions.assertThat(targetsUpdated.size()).isEqualTo(1);

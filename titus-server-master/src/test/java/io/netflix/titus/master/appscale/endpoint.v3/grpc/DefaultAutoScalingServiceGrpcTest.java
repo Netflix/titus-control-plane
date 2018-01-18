@@ -165,6 +165,7 @@ public class DefaultAutoScalingServiceGrpcTest {
                 .build();
         TestStreamObserver<Empty> deleteResponse = new TestStreamObserver<>();
         service.deleteAutoScalingPolicy(deletePolicyRequest, deleteResponse);
+        deleteResponse.awaitDone();
 
         AutoScalingPolicyTests.waitForCondition(() -> {
             TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
@@ -214,6 +215,7 @@ public class DefaultAutoScalingServiceGrpcTest {
         service.updateAutoScalingPolicy(
                 AutoScalingTestUtils.generateUpdateStepScalingPolicyRequest(policyId.getId(), 100.0),
                 updateResponse);
+        updateResponse.awaitDone();
 
         AutoScalingPolicyTests.waitForCondition(() -> {
             TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
