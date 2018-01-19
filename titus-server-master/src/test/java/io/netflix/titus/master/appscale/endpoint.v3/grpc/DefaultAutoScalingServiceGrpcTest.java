@@ -41,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Applied;
 import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyState.Deleted;
@@ -54,7 +55,7 @@ public class DefaultAutoScalingServiceGrpcTest {
             new AutoScalingPolicyTests.MockAlarmClient(),
             new AutoScalingPolicyTests.MockAppAutoScalingClient(), null, null, null,
             new DefaultRegistry(),
-            AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
+            AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
     private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager);
 
     @Before

@@ -99,7 +99,7 @@ public class DefaultAppScaleManagerTest {
 
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
                 null, v3JobOperations, null, new DefaultRegistry(),
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
 
         AutoScalingPolicy autoScalingPolicyOne;
         AutoScalingPolicy autoScalingPolicyTwo;
@@ -160,7 +160,7 @@ public class DefaultAppScaleManagerTest {
 
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
                 mockV2Operations(), null, eventBus, registry,
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
 
         // call - createAutoScalingPolicy
         String jobIdOne = "Titus-1";
@@ -218,7 +218,7 @@ public class DefaultAppScaleManagerTest {
                 new AutoScalingPolicyTests.MockAlarmClient(),
                 appScalingClient,
                 v2JobOperations, null, eventBus, registry,
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
 
         // call - createAutoScalingPolicy
         String jobIdOne = "Titus-1";
@@ -283,7 +283,7 @@ public class DefaultAppScaleManagerTest {
                 appScalingClient,
                 null,
                 v3JobOperations, null, new DefaultRegistry(),
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration());
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
 
         List<String> refIds = submitTwoJobs(appScaleManager, jobIdOne, jobIdTwo, policyStore);
         Assertions.assertThat(refIds.size()).isEqualTo(2);

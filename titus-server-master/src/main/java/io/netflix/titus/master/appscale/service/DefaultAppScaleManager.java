@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
@@ -62,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
@@ -98,6 +100,21 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   RxEventBus rxEventBus,
                                   Registry registry,
                                   AppScaleManagerConfiguration appScaleManagerConfiguration) {
+        this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v2JobOperations, v3JobOperations,
+                rxEventBus, registry, appScaleManagerConfiguration, Schedulers.from(Executors.newSingleThreadExecutor()));
+    }
+
+
+    @VisibleForTesting
+    public DefaultAppScaleManager(AppScalePolicyStore appScalePolicyStore, CloudAlarmClient cloudAlarmClient,
+                                  AppAutoScalingClient applicationAutoScalingClient,
+                                  V2JobOperations v2JobOperations,
+                                  V3JobOperations v3JobOperations,
+                                  RxEventBus rxEventBus,
+                                  Registry registry,
+                                  AppScaleManagerConfiguration appScaleManagerConfiguration,
+                                  Scheduler awsInteractionScheduler
+                                  ) {
         this.appScalePolicyStore = appScalePolicyStore;
         this.cloudAlarmClient = cloudAlarmClient;
         this.appAutoScalingClient = applicationAutoScalingClient;
@@ -108,7 +125,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
         this.scalableTargets = new ConcurrentHashMap<>();
         this.metrics = new AppScaleManagerMetrics(registry);
         this.appScaleActionsSubject = PublishSubject.<AppScaleAction>create().toSerialized();
-        this.appScaleActionsSub = appScaleActionsSubject.observeOn(Schedulers.io()).subscribe(new AppScaleActionHandler());
+        this.appScaleActionsSub = appScaleActionsSubject.observeOn(awsInteractionScheduler).subscribe(new AppScaleActionHandler());
     }
 
     @Activator
