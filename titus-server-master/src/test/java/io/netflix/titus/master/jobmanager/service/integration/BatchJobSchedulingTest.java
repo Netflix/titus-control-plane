@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -32,6 +33,7 @@ import org.junit.Test;
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.changeBatchJobSize;
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.changeRetryLimit;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class BatchJobSchedulingTest {
@@ -197,6 +199,26 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.killJob())
                 .template(ScenarioTemplates.reconcilerTaskKill(0, 0))
                 .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_TASK_KILLED))
+        );
+    }
+
+    /**
+     * Check that killing a job with
+     */
+    @Test
+    public void testJobKillWithTaskInAcceptedStateWithRetries() {
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.killJob())
+                .expectMesosTaskKill(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .advance(2 * JobsScenarioBuilder.KILL_INITIATED_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .expectMesosTaskKill(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
+                .advance().advance()
+                .expectJobEvent(job -> assertThat(job.getStatus().getState() == JobState.Finished))
         );
     }
 
