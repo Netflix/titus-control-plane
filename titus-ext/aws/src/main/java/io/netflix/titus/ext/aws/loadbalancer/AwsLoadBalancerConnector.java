@@ -61,7 +61,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         this(client, Schedulers.computation(), registry);
     }
 
-    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler, Registry registry) {
+    private AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler, Registry registry) {
         this.client = client;
         this.scheduler = scheduler;
         this.registry = registry;
@@ -117,7 +117,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
 
         long startTime = registry.clock().wallTime();
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
-        return AwsObservableExt.asyncActionCompletable(factory -> client.deregisterTargetsAsync(request, factory.handler(
+        return AwsObservableExt.asyncActionCompletable(supplier -> client.deregisterTargetsAsync(request, supplier.handler(
                 (req, resp) -> {
                     logger.debug("Deregistered targets {}", resp);
                     connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DeregisterTargets, startTime);
@@ -135,7 +135,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                 .withTargetGroupArns(loadBalancerId);
 
         long startTime = registry.clock().wallTime();
-        Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(factory -> client.describeTargetGroupsAsync(request, factory.handler()));
+        Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(supplier -> client.describeTargetGroupsAsync(request, supplier.handler()));
         return resultSingle
                 .observeOn(scheduler)
                 .doOnError(throwable -> {

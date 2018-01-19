@@ -72,7 +72,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     @Override
     public void ignoreEventsFor(LoadBalancerTarget target, long period, TimeUnit unit) {
         Duration periodDuration = Duration.ofMillis(unit.toMillis(period));
-        logger.debug("Setting a cooldown of {} for target {}", periodDuration.toString(), target);
+        logger.debug("Setting a cooldown of {} for target {}", periodDuration, target);
         Instant untilWhen = Instant.ofEpochMilli(scheduler.now()).plus(periodDuration);
         ignored.put(target, untilWhen);
     }

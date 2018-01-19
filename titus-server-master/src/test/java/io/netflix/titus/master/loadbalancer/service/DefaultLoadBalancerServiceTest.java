@@ -86,11 +86,11 @@ public class DefaultLoadBalancerServiceTest {
     private LoadBalancerJobOperations loadBalancerJobOperations;
     private LoadBalancerStore loadBalancerStore;
     private LoadBalancerReconciler reconciler;
+    private PublishSubject<TargetStateBatchable> reconcilerEvents;
     private LoadBalancerJobValidator validator;
     private TestScheduler testScheduler;
 
     private void defaultStubs() {
-        when(reconciler.events()).thenReturn(PublishSubject.create());
         when(client.registerAll(any(), any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(v3JobOperations.observeJobs()).thenReturn(PublishSubject.create());
@@ -103,6 +103,8 @@ public class DefaultLoadBalancerServiceTest {
         client = mock(LoadBalancerConnector.class);
         loadBalancerStore = new InMemoryLoadBalancerStore();
         reconciler = mock(LoadBalancerReconciler.class);
+        reconcilerEvents = PublishSubject.create();
+        when(reconciler.events()).thenReturn(reconcilerEvents.toSerialized());
         v3JobOperations = mock(V3JobOperations.class);
         loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
         LoadBalancerValidationConfiguration validationConfiguration = mockValidationConfig(30);
@@ -394,6 +396,40 @@ public class DefaultLoadBalancerServiceTest {
         // we still ignore reconciliation because the failure happens later in the connector
         verifyReconcilerIgnore(jobId, firstLoadBalancerId, ipAddresses(tasks));
         verifyReconcilerIgnore(jobId, secondLoadBalancerId, ipAddresses(tasks));
+    }
+
+    @Test
+    public void reconciliationErrorsDontHaltOthers() {
+        final String jobId = UUID.randomUUID().toString();
+        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final ThreadLocalRandom random = ThreadLocalRandom.current();
+        final int batchSize = random.nextInt(3, 10);
+
+        defaultStubs();
+        applyValidGetJobMock(v3JobOperations, jobId);
+        final List<Task> tasks = LoadBalancerTests.buildTasksStarted(batchSize, jobId);
+        when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
+
+        LoadBalancerConfiguration configuration = mockConfiguration(MIN_TIME_IN_QUEUE_MS);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
+
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
+
+        assertTrue(service.addLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(jobId).toBlocking().first()).isEqualTo(loadBalancerId);
+
+        reconcilerEvents.onError(new RuntimeException("first error"));
+        testScheduler.triggerActions();
+        testSubscriber.assertNoErrors();
+
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+        reconcilerEvents.onError(new RuntimeException("second error"));
+
+        testSubscriber.assertNoErrors().assertValueCount(1);
+        verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
+        verify(client, never()).deregisterAll(any(), any());
+        verifyReconcilerIgnore(jobId, loadBalancerId, ipAddresses(tasks));
     }
 
     @Test

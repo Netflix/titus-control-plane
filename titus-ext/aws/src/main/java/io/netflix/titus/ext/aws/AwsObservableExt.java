@@ -54,7 +54,7 @@ public class AwsObservableExt {
             try {
                 final Future<?> result = action.call(new CompletableHandlerSupplier(subscriber));
                 subscriber.onSubscribe(Subscriptions.create(() -> result.cancel(true)));
-            } catch(Throwable t) {
+            } catch (Throwable t) {
                 Exceptions.throwIfFatal(t);
                 subscriber.onError(t);
             }
@@ -121,7 +121,7 @@ public class AwsObservableExt {
     public static class SingleHandlerSupplier<RES> {
         private final SingleSubscriber<? super RES> subscriber;
 
-        public SingleHandlerSupplier(SingleSubscriber<? super RES> subscriber) {
+        private SingleHandlerSupplier(SingleSubscriber<? super RES> subscriber) {
             this.subscriber = subscriber;
         }
 

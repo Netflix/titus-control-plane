@@ -99,7 +99,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final long refillPerSec = configuration.getRateLimitRefillPerSec();
         final TokenBucket connectorTokenBucket = Limiters.createFixedIntervalTokenBucket("loadBalancerConnector",
                 burst, burst, refillPerSec, 1, TimeUnit.SECONDS);
-        this.engine = new LoadBalancerEngine(configuration, loadBalancerJobOperations, reconciler,
+        this.engine = new LoadBalancerEngine(runtime, configuration, loadBalancerJobOperations, reconciler,
                 loadBalancerConnector, loadBalancerStore, connectorTokenBucket, scheduler);
 
     }
