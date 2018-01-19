@@ -16,12 +16,14 @@
 
 package io.netflix.titus.master.jobmanager.service.integration;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
@@ -144,6 +146,23 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
+    public void testTaskTerminateInAcceptedStateKillRetries() {
+        jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .template(ScenarioTemplates.acceptTask(0, 0))
+                .killTask(0, 0)
+                .expectMesosTaskKill(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .advance(2 * JobsScenarioBuilder.KILL_INITIATED_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .expectMesosTaskKill(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
+        );
+    }
+
+    @Test
     public void testTaskTerminateAndShrinkReducesJobSize() {
         JobDescriptor<ServiceJobExt> twoTaskJob = changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 3);
         jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
@@ -191,6 +210,23 @@ public class ServiceJobSchedulingTest {
                 .advance()
                 .advance()
                 .expectNoJobStateChangeEvent()
+        );
+    }
+
+    @Test
+    public void testJobKillWithTaskInAcceptedStateWithRetries() {
+        jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.killJob())
+                .expectMesosTaskKill(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .advance(2 * JobsScenarioBuilder.KILL_INITIATED_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .expectMesosTaskKill(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
+                .advance().advance()
+                .expectServiceJobEvent(job -> assertThat(job.getStatus().getState() == JobState.Finished))
         );
     }
 

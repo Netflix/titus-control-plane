@@ -144,7 +144,11 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         BatchJobView runningJobView = new BatchJobView(runningModel);
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
-            return KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
+            List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
+            if(killInitiatedActions.isEmpty()) {
+                return findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore);
+            }
+            return killInitiatedActions;
         } else if (hasJobState(referenceModel, JobState.Finished)) {
             return Collections.emptyList();
         }

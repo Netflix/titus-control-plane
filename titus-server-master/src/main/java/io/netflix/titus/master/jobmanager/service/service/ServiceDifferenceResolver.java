@@ -140,16 +140,22 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     }
 
     private List<ChangeAction> applyRuntime(ReconciliationEngine<JobManagerReconcilerEvent> engine, ServiceJobView refJobView, EntityHolder runningModel, EntityHolder storeModel, AtomicInteger allowedNewTasks) {
-        List<ChangeAction> actions = new ArrayList<>();
         EntityHolder referenceModel = refJobView.getJobHolder();
         ServiceJobView runningJobView = new ServiceJobView(runningModel);
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
-            return KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
+            List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
+                    engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state"
+            );
+            if(killInitiatedActions.isEmpty()) {
+                return findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore);
+            }
+            return killInitiatedActions;
         } else if (hasJobState(referenceModel, JobState.Finished)) {
             return Collections.emptyList();
         }
 
+        List<ChangeAction> actions = new ArrayList<>();
         List<ChangeAction> numberOfTaskAdjustingActions = findJobSizeInconsistencies(engine, refJobView, storeModel, allowedNewTasks);
         actions.addAll(numberOfTaskAdjustingActions);
         if (numberOfTaskAdjustingActions.isEmpty()) {
