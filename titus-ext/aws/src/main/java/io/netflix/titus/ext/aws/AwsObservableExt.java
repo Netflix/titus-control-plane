@@ -24,6 +24,7 @@ import rx.Completable;
 import rx.CompletableSubscriber;
 import rx.Single;
 import rx.SingleSubscriber;
+import rx.exceptions.Exceptions;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func1;
@@ -50,8 +51,13 @@ public class AwsObservableExt {
      */
     public static Completable asyncActionCompletable(Func1<CompletableHandlerSupplier, Future<?>> action) {
         return Completable.create(subscriber -> {
-            final Future<?> result = action.call(new CompletableHandlerSupplier(subscriber));
-            subscriber.onSubscribe(Subscriptions.create(() -> result.cancel(true)));
+            try {
+                final Future<?> result = action.call(new CompletableHandlerSupplier(subscriber));
+                subscriber.onSubscribe(Subscriptions.create(() -> result.cancel(true)));
+            } catch(Throwable t) {
+                Exceptions.throwIfFatal(t);
+                subscriber.onError(t);
+            }
         });
     }
 
@@ -78,8 +84,13 @@ public class AwsObservableExt {
      */
     public static <REQ extends AmazonWebServiceRequest, RES> Single<RES> asyncActionSingle(Func1<SingleHandlerSupplier<RES>, Future<RES>> action) {
         return Single.create(subscriber -> {
-            final Future<RES> result = action.call(new SingleHandlerSupplier<>(subscriber));
-            subscriber.add(Subscriptions.create(() -> result.cancel(true)));
+            try {
+                final Future<RES> result = action.call(new SingleHandlerSupplier<>(subscriber));
+                subscriber.add(Subscriptions.create(() -> result.cancel(true)));
+            } catch (Throwable t) {
+                Exceptions.throwIfFatal(t);
+                subscriber.onError(t);
+            }
         });
     }
 
