@@ -30,6 +30,7 @@ public class AppScaleManagerMetrics {
             PolicyStatus.Pending,
             PolicyStatus.Deleting,
             PolicyStatus.Applied,
+            PolicyStatus.Error,
             PolicyStatus.Deleted
     );
 
