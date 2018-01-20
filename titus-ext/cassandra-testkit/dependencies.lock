@@ -37,14 +37,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -306,7 +306,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -701,6 +701,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -794,14 +795,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -1063,7 +1064,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -1458,6 +1459,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -1551,14 +1553,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -1820,7 +1822,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -2215,6 +2217,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -2345,14 +2348,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -2614,7 +2617,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -3009,6 +3012,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -3103,14 +3107,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -3372,7 +3376,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -3767,6 +3771,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -3867,14 +3872,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -4140,7 +4145,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -4570,6 +4575,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -4669,14 +4675,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -4942,7 +4948,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -5372,6 +5378,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -5471,14 +5478,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -5744,7 +5751,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -6174,6 +6181,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -6274,14 +6282,14 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "io.netflix.titus:titus-ext-cassandra"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
+            "locked": "3.3.2",
             "transitive": [
                 "io.netflix.titus:titus-ext-cassandra"
             ]
@@ -6547,7 +6555,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -6977,6 +6985,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",

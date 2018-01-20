@@ -7,15 +7,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.0",
@@ -202,7 +202,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
@@ -428,6 +428,7 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -472,15 +473,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.0",
@@ -667,7 +668,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
@@ -893,6 +894,7 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -937,15 +939,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.0",
@@ -1132,7 +1134,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
@@ -1358,6 +1360,7 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -1439,15 +1442,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.0",
@@ -1634,7 +1637,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
@@ -1860,6 +1863,7 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -1905,15 +1909,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.0",
@@ -2100,7 +2104,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core"
             ]
@@ -2326,6 +2330,7 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -2413,15 +2418,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.4",
@@ -2860,7 +2865,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -3515,6 +3520,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
@@ -3642,15 +3648,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.4",
@@ -4089,7 +4095,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -4744,6 +4750,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
@@ -4871,15 +4878,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.4",
@@ -5318,7 +5325,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -5973,6 +5980,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
@@ -6101,15 +6109,15 @@
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
-            "locked": "3.2.0",
-            "requested": "3.2.+",
+            "locked": "3.3.2",
+            "requested": "3.3.+",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-extras"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-extras": {
-            "locked": "3.2.0",
-            "requested": "3.2.+"
+            "locked": "3.3.2",
+            "requested": "3.3.+"
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.8.4",
@@ -6548,7 +6556,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.2",
             "transitive": [
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -7203,6 +7211,7 @@
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
+                "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.fenzo:fenzo-triggers",
