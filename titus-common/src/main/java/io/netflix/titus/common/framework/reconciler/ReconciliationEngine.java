@@ -40,7 +40,7 @@ public interface ReconciliationEngine<EVENT> {
      * Emit events and execute pending actions. The execution order is:
      * <ul>
      * <li>Emit all queued events first</li>
-     * <li>If there is pending reference change action, do exit</li>
+     * <li>If there is pending reference change action, exit</li>
      * <li>Start next reference change action, if present and exit</li>
      * <li>If no reference action waits in the queue, check if there are running reconciliation actions. Exit if there are any.</li>
      * <li>Compute the difference between the reference and running states, and create reconcile action list</li>
