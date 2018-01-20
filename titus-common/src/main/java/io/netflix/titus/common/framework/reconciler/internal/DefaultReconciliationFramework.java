@@ -254,14 +254,12 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         });
         recentlyRemoved.forEach(pair -> pair.getRight().onCompleted());
 
-        // Trigger events on engines.
+        // Apply pending model updates/send events
         boolean modelUpdates = false;
-        boolean pendingChangeActions = false;
         for (ReconciliationEngine engine : engines) {
             try {
-                ReconciliationEngine.TriggerStatus triggerStatus = engine.triggerEvents();
-                pendingChangeActions = pendingChangeActions || triggerStatus.isRunningChangeActions();
-                modelUpdates = modelUpdates || triggerStatus.hasModelUpdates();
+                boolean anyChange = engine.applyModelUpdates();
+                modelUpdates = modelUpdates || anyChange;
             } catch (Exception e) {
                 logger.warn("Unexpected error from reconciliation engine 'triggerEvents' method", e);
             }
@@ -270,6 +268,17 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         // Update indexes if there are model changes.
         if (modelUpdates) {
             updateIndexSet();
+        }
+
+        // Trigger events on engines.
+        boolean pendingChangeActions = false;
+        for (ReconciliationEngine engine : engines) {
+            try {
+                boolean anythingRunning = engine.triggerEvents();
+                pendingChangeActions = pendingChangeActions || anythingRunning;
+            } catch (Exception e) {
+                logger.warn("Unexpected error from reconciliation engine 'triggerEvents' method", e);
+            }
         }
         return pendingChangeActions ? activeTimeoutMs : idleTimeoutMs;
     }

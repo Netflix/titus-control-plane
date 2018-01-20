@@ -18,6 +18,7 @@ class ReconciliationEngineMetrics<EVENT> {
 
     private static final String ROOT_NAME = "titus.reconciliation.engine.";
     private static final String EVALUATIONS = ROOT_NAME + "evaluations";
+    private static final String EVENTS_AND_MODEL_UPDATES = ROOT_NAME + "eventsAndModelUpdatesId";
     private static final String PENDING_CHANGE_ACTIONS = ROOT_NAME + "pendingChangeActions";
     private static final String STARTED_CHANGE_ACTIONS = ROOT_NAME + "startedChangeActions";
     private static final String FINISHED_CHANGE_ACTIONS = ROOT_NAME + "finishedChangeActions";
@@ -29,6 +30,7 @@ class ReconciliationEngineMetrics<EVENT> {
     private final Clock clock;
 
     private final Id evaluationId;
+    private final Id eventsAndModelUpdatesId;
     private final Id startedChangeActionsId;
     private final Id finishedChangeActionId;
     private final Id emittedEventId;
@@ -47,6 +49,7 @@ class ReconciliationEngineMetrics<EVENT> {
 
         List<Tag> commonTags = Collections.singletonList(new BasicTag("rootHolderId", rootHolderId));
         this.evaluationId = registry.createId(EVALUATIONS, commonTags);
+        this.eventsAndModelUpdatesId = registry.createId(EVENTS_AND_MODEL_UPDATES, commonTags);
         this.startedChangeActionsId = registry.createId(STARTED_CHANGE_ACTIONS, commonTags);
         this.finishedChangeActionId = registry.createId(FINISHED_CHANGE_ACTIONS, commonTags);
         this.emittedEventId = registry.createId(EMITTED_EVENTS, commonTags);
@@ -64,6 +67,14 @@ class ReconciliationEngineMetrics<EVENT> {
 
     void evaluated(long executionTimeNs, Exception error) {
         registry.timer(evaluationId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
+    }
+
+    public void eventsAndModelUpdates(long executionTimeNs) {
+        registry.timer(eventsAndModelUpdatesId).record(executionTimeNs, TimeUnit.NANOSECONDS);
+    }
+
+    void eventsAndModelUpdates(long executionTimeNs, Exception error) {
+        registry.timer(eventsAndModelUpdatesId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
     void changeActionStarted(ChangeActionHolder actionHolder) {

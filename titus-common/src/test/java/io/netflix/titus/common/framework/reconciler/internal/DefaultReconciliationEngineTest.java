@@ -87,22 +87,24 @@ public class DefaultReconciliationEngineTest {
         engine.changeReferenceModel(new SlowChangeAction()).subscribe(testSubscriber);
 
         // Trigger change event
-        assertThat(engine.triggerEvents().isRunningChangeActions()).isTrue();
+        assertThat(engine.applyModelUpdates()).isFalse();
+        assertThat(engine.triggerEvents()).isTrue();
         testSubscriber.assertOpen();
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelInitial);
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ChangeRequest);
 
         // Move time, and verify that model is updated
         testScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        assertThat(engine.triggerEvents().isRunningChangeActions()).isFalse();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        assertThat(engine.triggerEvents()).isFalse();
 
-        assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.Changed);
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelUpdated);
+        assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.Changed);
         assertThat(testSubscriber.isUnsubscribed()).isTrue();
     }
 
     @Test
-    public void testChildAddRemove() throws Exception {
+    public void testChildAddRemove() {
         addChild("child1");
         assertThat(engine.getReferenceView().getId()).isEqualTo("myRoot");
         assertThat(engine.getReferenceView().getChildren()).hasSize(1);
@@ -113,17 +115,19 @@ public class DefaultReconciliationEngineTest {
     }
 
     @Test
-    public void testReconciliation() throws Exception {
+    public void testReconciliation() {
         engine.changeReferenceModel(new RootSetupChangeAction()).subscribe();
-        engine.triggerEvents();
+        assertThat(engine.applyModelUpdates()).isFalse();
+        assertThat(engine.triggerEvents()).isTrue();
 
         runtimeReconcileActions.add(singletonList(new SlowChangeAction()));
-        engine.triggerEvents();
-        assertThat(engine.triggerEvents().isRunningChangeActions()).isTrue();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        assertThat(engine.triggerEvents()).isTrue();
 
         // Move time, and verify that model is updated
         testScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        assertThat(engine.triggerEvents().isRunningChangeActions()).isFalse();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        assertThat(engine.triggerEvents()).isFalse();
 
         List<EventType> emittedEvents = eventSubscriber.takeNext(7).stream().map(SimpleReconcilerEvent::getEventType).collect(Collectors.toList());
         assertThat(emittedEvents).contains(
@@ -141,7 +145,7 @@ public class DefaultReconciliationEngineTest {
     }
 
     @Test
-    public void testChangeActionCancellation() throws Exception {
+    public void testChangeActionCancellation() {
         SlowChangeAction action = new SlowChangeAction();
         Subscription subscription = engine.changeReferenceModel(action).subscribe();
         engine.triggerEvents();
@@ -152,7 +156,7 @@ public class DefaultReconciliationEngineTest {
     }
 
     @Test
-    public void testIndexes() throws Exception {
+    public void testIndexes() {
         addChild("child1");
         addChild("child2");
 
@@ -163,13 +167,13 @@ public class DefaultReconciliationEngineTest {
     private void addChild(String childId) {
         engine.changeReferenceModel(new AddChildAction(childId)).subscribe();
         engine.triggerEvents();
-        assertThat(engine.triggerEvents().hasModelUpdates()).isTrue();
+        assertThat(engine.applyModelUpdates()).isTrue();
     }
 
     private void removeChild(String childId) {
         engine.changeReferenceModel(new RemoveChildAction(childId)).subscribe();
         engine.triggerEvents();
-        assertThat(engine.triggerEvents().hasModelUpdates()).isTrue();
+        assertThat(engine.applyModelUpdates()).isTrue();
     }
 
     private List<ChangeAction> difference(ReconciliationEngine<SimpleReconcilerEvent> engine) {
