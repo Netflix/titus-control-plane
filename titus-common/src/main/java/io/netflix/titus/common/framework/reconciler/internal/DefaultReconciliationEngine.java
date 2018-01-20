@@ -97,14 +97,33 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     }
 
     @Override
-    public TriggerStatus triggerEvents() {
+    public boolean applyModelUpdates() {
+        if (modelActionHolders.isEmpty()) {
+            return false;
+        }
+
         long startTimeNs = clock.nanoTime();
         try {
-        /*
-          We need to emit first holder state after initialization, but we can do this only after {@link ReconcileEventFactory}
-          has a chance to subscribe. Alternatively we could shift the logic to {@link ReconcileEventFactory}, but this
-          would create two sources of events for an engine.
-         */
+            applyModelUpdatesInternal();
+        } catch (Exception e) {
+            metrics.eventsAndModelUpdates(clock.nanoTime() - startTimeNs, e);
+            codeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
+            return false;
+        } finally {
+            metrics.eventsAndModelUpdates(clock.nanoTime() - startTimeNs);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean triggerEvents() {
+        long startTimeNs = clock.nanoTime();
+        try {
+            /*
+              We need to emit first holder state after initialization, but we can do this only after {@link ReconcileEventFactory}
+              has a chance to subscribe. Alternatively we could shift the logic to {@link ReconcileEventFactory}, but this
+              would create two sources of events for an engine.
+             */
             if (firstTrigger) {
                 firstTrigger = false;
                 emitEvent(eventFactory.newModelEvent(this, modelHolder.getReference()));
@@ -115,20 +134,14 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                 drainQueue.forEach(this::emitEvent);
             }
 
-            // Always apply known runtime state changes first.
-            boolean modelUpdates = !modelActionHolders.isEmpty();
-            if (modelUpdates) {
-                applyModelUpdates();
-            }
-
             // If there are pending changes (user triggered or reconciliation) do nothing.
             if (hasRunningReferenceStateUpdate() || hasRunningReconciliationActions()) {
-                return new TriggerStatus(true, modelUpdates);
+                return true;
             }
 
             // Start next reference change action, if present and exit.
             if (startNextReferenceChangeAction()) {
-                return new TriggerStatus(true, modelUpdates);
+                return true;
             }
 
             // Compute the current difference between the reference and persistent/runtime models, and create a list
@@ -136,14 +149,13 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             List<ChangeAction> reconcileActions = modelHolder.resolveDifference();
             if (!reconcileActions.isEmpty()) {
                 startReconcileAction(reconcileActions);
-                return new TriggerStatus(true, modelUpdates);
+                return true;
             }
-            return new TriggerStatus(false, modelUpdates);
+            return false;
         } catch (Exception e) {
             metrics.evaluated(clock.nanoTime() - startTimeNs, e);
             codeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
-
-            return new TriggerStatus(true, false);
+            return true;
         } finally {
             metrics.evaluated(clock.nanoTime() - startTimeNs);
         }
@@ -195,7 +207,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
         metrics.shutdown();
     }
 
-    private void applyModelUpdates() {
+    private void applyModelUpdatesInternal() {
         Pair<ChangeActionHolder, List<ModelActionHolder>> next;
         while ((next = modelActionHolders.poll()) != null) {
             for (ModelActionHolder updateAction : next.getRight()) {

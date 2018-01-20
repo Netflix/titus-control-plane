@@ -28,28 +28,18 @@ public interface ReconciliationEngine<EVENT> {
         List<ChangeAction> apply(ReconciliationEngine<EVENT> engine);
     }
 
-    class TriggerStatus {
-        private final boolean runningChangeActions;
-        private final boolean modelUpdates;
-
-        public TriggerStatus(boolean runningChangeActions, boolean modelUpdates) {
-            this.runningChangeActions = runningChangeActions;
-            this.modelUpdates = modelUpdates;
-        }
-
-        public boolean isRunningChangeActions() {
-            return runningChangeActions;
-        }
-
-        public boolean hasModelUpdates() {
-            return modelUpdates;
-        }
-    }
+    /**
+     * Apply pending model updates. The model updates come from recently completed change actions (either requested or reconcile),
+     * and must be processed by the event loop before next action(s) are started.
+     *
+     * @return true if the model was updated
+     */
+    boolean applyModelUpdates();
 
     /**
-     * Execute pending actions. The execution order is:
+     * Emit events and execute pending actions. The execution order is:
      * <ul>
-     * <li>Apply state changes in the running model</li>
+     * <li>Emit all queued events first</li>
      * <li>If there is pending reference change action, do exit</li>
      * <li>Start next reference change action, if present and exit</li>
      * <li>If no reference action waits in the queue, check if there are running reconciliation actions. Exit if there are any.</li>
@@ -59,7 +49,7 @@ public interface ReconciliationEngine<EVENT> {
      *
      * @return true if there are actions running, false otherwise
      */
-    TriggerStatus triggerEvents();
+    boolean triggerEvents();
 
     /**
      * Change reference entity. The return observable completes successfully if the reference update was

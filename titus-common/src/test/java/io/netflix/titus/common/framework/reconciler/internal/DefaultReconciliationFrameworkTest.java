@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.TriggerStatus;
 import io.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.After;
@@ -80,10 +79,10 @@ public class DefaultReconciliationFrameworkTest {
     public void setUp() {
         framework.start();
         when(engineFactory.apply(any())).thenReturn(engine1, engine2);
-        when(engine1.triggerEvents()).thenReturn(new TriggerStatus(true, true));
+        when(engine1.triggerEvents()).thenReturn(true);
         when(engine1.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot1", "myEntity1"));
         when(engine1.events()).thenReturn(engine1Events.asObservable());
-        when(engine2.triggerEvents()).thenReturn(new TriggerStatus(true, true));
+        when(engine2.triggerEvents()).thenReturn(true);
         when(engine2.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot2", "myEntity2"));
         when(engine2.events()).thenReturn(engine2Events.asObservable());
     }
@@ -98,7 +97,7 @@ public class DefaultReconciliationFrameworkTest {
         ReconciliationEngine<SimpleReconcilerEvent> bootstrapEngine = mock(ReconciliationEngine.class);
         PublishSubject<SimpleReconcilerEvent> eventSubject = PublishSubject.create();
         when(bootstrapEngine.events()).thenReturn(eventSubject);
-        when(bootstrapEngine.triggerEvents()).thenReturn(new TriggerStatus(true, true));
+        when(bootstrapEngine.triggerEvents()).thenReturn(true);
 
         DefaultReconciliationFramework<SimpleReconcilerEvent> framework = new DefaultReconciliationFramework<>(
                 Collections.singletonList(bootstrapEngine),
