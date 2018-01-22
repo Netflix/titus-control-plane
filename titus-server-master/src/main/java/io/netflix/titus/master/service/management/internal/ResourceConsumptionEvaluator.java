@@ -137,6 +137,9 @@ class ResourceConsumptionEvaluator {
         for (String jobId : allActiveJobs) {
             // FIXME This is potentially blocking call.
             final V2JobMetadata jobMetadata = apiOperations.getJobMetadata(jobId);
+            if(jobMetadata == null) {
+                continue;
+            }
             V2StageMetadata stageMetadata = jobMetadata.getStageMetadata(1);
 
             ResourceDimension taskResources = toResourceDimension(stageMetadata);
