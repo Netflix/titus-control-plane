@@ -32,10 +32,12 @@ public class JobSnapshotDownloader {
     }
 
     private final Session session;
+    private final boolean includeArchived;
     private final File outputFolder;
 
-    public JobSnapshotDownloader(Session session, File output) {
+    public JobSnapshotDownloader(Session session, boolean includeArchived, File output) {
         this.session = session;
+        this.includeArchived = includeArchived;
         Preconditions.checkArgument(!output.exists() || output.isDirectory(), "% exists and is not a directory", output);
         this.outputFolder = output;
     }
@@ -45,9 +47,15 @@ public class JobSnapshotDownloader {
             Preconditions.checkState(outputFolder.mkdirs(), "Cannot create output folder: %s", outputFolder.getAbsolutePath());
         }
         writeIdBuckets(CassandraSchemas.ACTIVE_JOB_IDS_TABLE);
-        writeDataTable(CassandraSchemas.ACTIVE_JOB_TABLE);
+        writeDataTable(CassandraSchemas.ACTIVE_JOBS_TABLE);
         writeIdMappingTable(CassandraSchemas.ACTIVE_TASK_IDS_TABLE);
         writeDataTable(CassandraSchemas.ACTIVE_TASKS_TABLE);
+
+        if (includeArchived) {
+            writeDataTable(CassandraSchemas.ARCHIVED_JOBS_TABLE);
+            writeIdMappingTable(CassandraSchemas.ARCHIVED_TASK_IDS_TABLE);
+            writeDataTable(CassandraSchemas.ARCHIVED_TASKS_TABLE);
+        }
     }
 
     private void writeDataTable(String table) {

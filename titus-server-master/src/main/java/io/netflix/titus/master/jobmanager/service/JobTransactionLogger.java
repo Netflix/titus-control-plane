@@ -2,6 +2,7 @@ package io.netflix.titus.master.jobmanager.service;
 
 import java.util.concurrent.TimeUnit;
 
+import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
@@ -161,6 +162,10 @@ class JobTransactionLogger {
 
         ModelActionHolder actionHolder = event.getModelActionHolder();
         TitusModelAction action = (TitusModelAction) actionHolder.getAction();
+        String summary = event.getChangedEntityHolder().getEntity() instanceof Task
+                ? action.getSummary() + "; " + taskChangeSummary(event)
+                : action.getSummary();
+
         return doFormat(
                 jobId,
                 event.getTransactionId(),
@@ -171,8 +176,13 @@ class JobTransactionLogger {
                 toTargetName(jobId, entityId),
                 entityId,
                 0,
-                action.getSummary()
+                summary
         );
+    }
+
+    private static String taskChangeSummary(JobModelUpdateReconcilerEvent event) {
+        Task currentTask = event.getChangedEntityHolder().getEntity();
+        return String.format("Task{state=%s}", currentTask.getStatus().getState());
     }
 
     private static String logJobModelUpdateErrorReconcilerEvent(JobModelUpdateErrorReconcilerEvent event) {
