@@ -9,7 +9,7 @@ import static java.util.Arrays.asList;
 public class CassandraSchemas {
 
     public static final String ACTIVE_JOB_IDS_TABLE = "active_job_ids";
-    public static final String ACTIVE_JOB_TABLE = "active_jobs";
+    public static final String ACTIVE_JOBS_TABLE = "active_jobs";
     public static final String ACTIVE_TASK_IDS_TABLE = "active_task_ids";
     public static final String ACTIVE_TASKS_TABLE = "active_tasks";
 
@@ -18,7 +18,7 @@ public class CassandraSchemas {
     public static final String ARCHIVED_TASKS_TABLE = "archived_tasks";
 
     public static final List<String> JOB_ACTIVE_TABLES = asList(
-            ACTIVE_JOB_IDS_TABLE, ACTIVE_JOB_TABLE, ACTIVE_TASK_IDS_TABLE, ACTIVE_TASKS_TABLE
+            ACTIVE_JOB_IDS_TABLE, ACTIVE_JOBS_TABLE, ACTIVE_TASK_IDS_TABLE, ACTIVE_TASKS_TABLE
     );
 
     public static final List<String> JOB_ARCHIVE_TABLES = asList(

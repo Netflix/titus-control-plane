@@ -23,6 +23,7 @@ public class JobSnapshotDownloadCommand implements Command {
     @Override
     public Options getOptions() {
         Options options = new Options();
+        options.addOption(Option.builder("a").longOpt("archive").desc("Include archived tables").build());
         options.addOption(Option.builder("o")
                 .longOpt("output folder")
                 .required()
@@ -36,7 +37,8 @@ public class JobSnapshotDownloadCommand implements Command {
     @Override
     public void execute(CommandContext context) {
         File output = new File(context.getCommandLine().getOptionValue('o'));
-        JobSnapshotDownloader downloader = new JobSnapshotDownloader(context.getTargetSession(), output);
+        boolean includeArchived = context.getCommandLine().hasOption('a');
+        JobSnapshotDownloader downloader = new JobSnapshotDownloader(context.getTargetSession(), includeArchived, output);
         downloader.download();
     }
 }

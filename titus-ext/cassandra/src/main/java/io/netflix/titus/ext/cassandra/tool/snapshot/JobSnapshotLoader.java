@@ -47,7 +47,7 @@ public class JobSnapshotLoader {
 
     public void load() {
         readIdBuckets(CassandraSchemas.ACTIVE_JOB_IDS_TABLE);
-        readDataTable(CassandraSchemas.ACTIVE_JOB_TABLE);
+        readDataTable(CassandraSchemas.ACTIVE_JOBS_TABLE);
         readIdMappingTable(CassandraSchemas.ACTIVE_TASK_IDS_TABLE);
         readDataTable(CassandraSchemas.ACTIVE_TASKS_TABLE);
     }
