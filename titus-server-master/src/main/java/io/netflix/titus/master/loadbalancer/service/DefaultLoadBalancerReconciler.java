@@ -19,6 +19,7 @@ package io.netflix.titus.master.loadbalancer.service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,10 +38,14 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.batch.Priority;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
+
     private static final String UNKNOWN_JOB = "UNKNOWN-JOB";
     private static final String UNKNOWN_TASK = "UNKNOWN-TASK";
 
@@ -67,6 +72,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     @Override
     public void ignoreEventsFor(LoadBalancerTarget target, long period, TimeUnit unit) {
         Duration periodDuration = Duration.ofMillis(unit.toMillis(period));
+        logger.debug("Setting a cooldown of {} for target {}", periodDuration, target);
         Instant untilWhen = Instant.ofEpochMilli(scheduler.now()).plus(periodDuration);
         ignored.put(target, untilWhen);
     }
@@ -87,7 +93,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private Observable<TargetStateBatchable> reconcile(String loadBalancerId, List<JobLoadBalancerState> associations) {
         final Set<LoadBalancerTarget> shouldBeRegistered = associations.stream()
                 .filter(JobLoadBalancerState::isStateAssociated)
-                .flatMap(association -> jobOperations.targetsForJob(association.getJobLoadBalancer()).stream())
+                .flatMap(association -> targetsForJobSafe(association).stream())
                 .collect(Collectors.toSet());
         final Set<String> shouldBeRegisteredIps = shouldBeRegistered.stream()
                 .map(LoadBalancerTarget::getIpAddress)
@@ -102,11 +108,24 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                     .map(ip -> updateForUnknownTask(loadBalancerId, ip))
                     .collect(Collectors.toSet());
 
+            if (!toRegister.isEmpty() || !toDeregister.isEmpty()) {
+                logger.info("Reconciliation found targets to to be registered: {}, to be deregistered: {}", toRegister.size(), toDeregister.size());
+            }
+
             return Observable.from(CollectionsExt.merge(
                     withState(now, toRegister, State.Registered),
                     withState(now, toDeregister, State.Deregistered)
             )).filter(update -> !ignored.containsKey(update.getIdentifier()));
         });
+    }
+
+    private List<LoadBalancerTarget> targetsForJobSafe(JobLoadBalancerState association) {
+        try {
+            return jobOperations.targetsForJob(association.getJobLoadBalancer());
+        } catch (RuntimeException e) {
+            logger.error("Ignoring association, unable to fetch targets for it " + association.toString(), e);
+            return Collections.emptyList();
+        }
     }
 
     /**
@@ -126,6 +145,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     private Map<String, List<JobLoadBalancerState>> snapshotAssociationsByLoadBalancer() {
         cleanupExpiredIgnored();
+        logger.debug("Snapshotting current associations");
         return store.getAssociations().stream()
                 .collect(Collectors.groupingBy(JobLoadBalancerState::getLoadBalancerId));
     }
@@ -136,7 +156,9 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
             if (untilWhen.isAfter(now)) {
                 return;
             }
-            ignored.remove(target, untilWhen); /* do not remove when changed */
+            if (ignored.remove(target, untilWhen) /* do not remove when changed */) {
+                logger.debug("Cooldown expired for target {}", target);
+            }
         });
     }
 

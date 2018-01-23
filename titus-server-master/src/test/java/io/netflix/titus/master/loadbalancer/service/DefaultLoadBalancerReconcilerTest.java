@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
@@ -166,6 +167,48 @@ public class DefaultLoadBalancerReconcilerTest {
         // try again since it still can't see updates applied on the connector
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
         subscriber.assertNotCompleted().assertValueCount(10);
+    }
+
+    @Test
+    public void jobsWithErrorsAreIgnored() {
+        final long delayMs = 60_000L /* 1 min */;
+        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
+        final LoadBalancerStore store = mock(LoadBalancerStore.class);
+        final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
+        final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
+        final LoadBalancerJobOperations loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
+        final TestScheduler testScheduler = Schedulers.test();
+
+        final String loadBalancerId = UUID.randomUUID().toString();
+        final String jobId = UUID.randomUUID().toString();
+        final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
+        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+
+        when(v3JobOperations.getTasks(jobId))
+                .thenThrow(JobManagerException.class) // first fails
+                .thenReturn(tasks);
+        when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
+        when(store.getAssociations()).thenReturn(Collections.singletonList(association));
+
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
+        final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
+
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertNoValues();
+
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertNoValues();
+
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertValueCount(5);
+        subscriber.getOnNextEvents().forEach(update -> {
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
+        });
     }
 
     private LoadBalancerConfiguration mockConfig(long delayMs) {

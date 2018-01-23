@@ -57,6 +57,20 @@ public class AwsObservableExtTest {
     }
 
     @Test
+    public void asyncActionCompletableErrors() {
+        AmazonWebServiceRequest someRequest = AmazonWebServiceRequest.NOOP;
+        final MockAsyncClient<AmazonWebServiceRequest, String> client = new MockAsyncClient<>(someRequest, "some response");
+        RuntimeException exception = new RuntimeException("error when initiating an async operation");
+        final Completable completable = AwsObservableExt.asyncActionCompletable(factory -> client.throwException(exception));
+
+        TestScheduler testScheduler = Schedulers.test();
+        final AssertableSubscriber<Void> subscriber = completable.subscribeOn(testScheduler).test();
+
+        testScheduler.triggerActions();
+        subscriber.assertError(exception);
+    }
+
+    @Test
     public void asyncActionSingle() throws Exception {
         AmazonWebServiceRequest someRequest = AmazonWebServiceRequest.NOOP;
         final MockAsyncClient<AmazonWebServiceRequest, String> client = new MockAsyncClient<>(someRequest, "some response");
@@ -76,6 +90,20 @@ public class AwsObservableExtTest {
         subscriber.assertCompleted();
     }
 
+    @Test
+    public void asyncActionSingleErrors() {
+        AmazonWebServiceRequest someRequest = AmazonWebServiceRequest.NOOP;
+        final MockAsyncClient<AmazonWebServiceRequest, String> client = new MockAsyncClient<>(someRequest, "some response");
+        RuntimeException exception = new RuntimeException("error when initiating an async operation");
+        final Single<String> completable = AwsObservableExt.asyncActionSingle(supplier -> client.throwException(exception));
+
+        TestScheduler testScheduler = Schedulers.test();
+        final AssertableSubscriber<String> subscriber = completable.subscribeOn(testScheduler).test();
+
+        testScheduler.triggerActions();
+        subscriber.assertError(exception);
+    }
+
     private class MockAsyncClient<REQ extends AmazonWebServiceRequest, RES> {
         private final REQ request;
         private final RES response;
@@ -93,6 +121,10 @@ public class AwsObservableExtTest {
                 return response;
             });
             return futureTask;
+        }
+
+        Future<RES> throwException(RuntimeException t) {
+            throw t;
         }
 
         private void run() {

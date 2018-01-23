@@ -16,8 +16,11 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -25,6 +28,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -95,7 +99,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final long refillPerSec = configuration.getRateLimitRefillPerSec();
         final TokenBucket connectorTokenBucket = Limiters.createFixedIntervalTokenBucket("loadBalancerConnector",
                 burst, burst, refillPerSec, 1, TimeUnit.SECONDS);
-        this.engine = new LoadBalancerEngine(configuration, loadBalancerJobOperations, reconciler,
+        this.engine = new LoadBalancerEngine(runtime, configuration, loadBalancerJobOperations, reconciler,
                 loadBalancerConnector, loadBalancerStore, connectorTokenBucket, scheduler);
 
     }
@@ -148,7 +152,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         loadBalancerBatches = runtime.persistentStream(events())
                 .subscribeOn(scheduler)
                 .subscribe(
-                        batch -> logger.info("Load balancer {} batch completed. Size {}", batch.getIndex(), batch.size()),
+                        this::logBatchInfo,
                         e -> logger.error("Error while processing load balancer batch", e),
                         () -> logger.info("Load balancer batch stream closed")
                 );
@@ -157,6 +161,15 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         // TODO(fabio): watch job updates stream for garbage collection
         // TODO(fabio): garbage collect removed jobs and loadbalancers
         // TODO(fabio): integrate with the V2 engine
+    }
+
+    private void logBatchInfo(Batch<TargetStateBatchable, String> batch) {
+        final String loadBalancerId = batch.getIndex();
+        final Map<LoadBalancerTarget.State, List<TargetStateBatchable>> byState = batch.getItems().stream()
+                .collect(Collectors.groupingBy(TargetStateBatchable::getState));
+        final int registered = byState.getOrDefault(LoadBalancerTarget.State.Registered, Collections.emptyList()).size();
+        final int deregistered = byState.getOrDefault(LoadBalancerTarget.State.Deregistered, Collections.emptyList()).size();
+        logger.info("Load balancer {} batch completed. To be registered: {}, to be deregistered: {}", loadBalancerId, registered, deregistered);
     }
 
     @Deactivator

@@ -30,6 +30,7 @@ import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
 import io.netflix.titus.api.loadbalancer.model.TargetState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import io.netflix.titus.common.util.rx.batch.Batch;
@@ -59,11 +60,17 @@ class LoadBalancerEngine {
     private final LoadBalancerStore store;
     private final LoadBalancerReconciler reconciler;
     private final Scheduler scheduler;
+    private final TitusRuntime titusRuntime;
 
-    LoadBalancerEngine(LoadBalancerConfiguration configuration, LoadBalancerJobOperations loadBalancerJobOperations,
-                       LoadBalancerReconciler reconciler, LoadBalancerConnector loadBalancerConnector,
-                       LoadBalancerStore loadBalancerStore, TokenBucket connectorTokenBucket, Scheduler scheduler) {
-        // TODO(fabio): load tracking state from store
+    LoadBalancerEngine(TitusRuntime titusRuntime,
+                       LoadBalancerConfiguration configuration,
+                       LoadBalancerJobOperations loadBalancerJobOperations,
+                       LoadBalancerReconciler reconciler,
+                       LoadBalancerConnector loadBalancerConnector,
+                       LoadBalancerStore loadBalancerStore,
+                       TokenBucket connectorTokenBucket,
+                       Scheduler scheduler) {
+        this.titusRuntime = titusRuntime;
         this.configuration = configuration;
         this.jobOperations = loadBalancerJobOperations;
         this.connector = loadBalancerConnector;
@@ -84,17 +91,22 @@ class LoadBalancerEngine {
     }
 
     Observable<Batch<TargetStateBatchable, String>> events() {
+        // the reconciliation loop must not stop the rest of the rx pipeline onErrors, so we retry
+        Observable<TargetStateBatchable> reconcilerEvents = titusRuntime.persistentStream(
+                reconciler.events().doOnError(e -> logger.error("Reconciliation error", e))
+        );
+
         Observable<TaskUpdateEvent> stateTransitions = jobOperations.observeJobs()
                 .filter(TaskUpdateEvent.class::isInstance)
                 .cast(TaskUpdateEvent.class)
                 .filter(TaskHelpers::isStateTransition);
 
         final Observable<TargetStateBatchable> updates = Observable.merge(
+                reconcilerEvents,
                 pendingAssociations.compose(targetsForJobLoadBalancers(State.Registered)),
                 pendingDissociations.compose(targetsForJobLoadBalancers(State.Deregistered)),
                 registerFromEvents(stateTransitions),
-                deregisterFromEvents(stateTransitions),
-                reconciler.events()
+                deregisterFromEvents(stateTransitions)
         ).compose(disableReconciliationTemporarily());
 
         return updates.lift(buildBatcher())

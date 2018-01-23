@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
@@ -43,6 +44,7 @@ class LoadBalancerJobOperations {
      * Valid targets are tasks in the Started state that have ip addresses associated to them.
      *
      * @param jobLoadBalancer association
+     * @throws JobManagerException when the job is not present anymore
      */
     List<LoadBalancerTarget> targetsForJob(JobLoadBalancer jobLoadBalancer) {
         return v3JobOperations.getTasks(jobLoadBalancer.getJobId()).stream()
