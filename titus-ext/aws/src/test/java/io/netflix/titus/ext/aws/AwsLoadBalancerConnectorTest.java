@@ -16,6 +16,9 @@
 
 package io.netflix.titus.ext.aws;
 
+import java.util.List;
+import java.util.Set;
+
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsyncClientBuilder;
@@ -30,6 +33,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.observers.TestSubscriber;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 /**
  * Tests the AWS load balancer connector. These tests should be DISABLED by default since they require
@@ -46,6 +51,7 @@ public class AwsLoadBalancerConnectorTest {
     private final String validIpTargetGroup = System.getenv("validTargetGroup");
     private final String invalidIpTargetGroup = System.getenv("invalidTargetGroup");
     private final String nonExistentTarget = System.getenv("nonExistentTargetGroup");
+    private final String targetGroupWithTargets = System.getenv("targetGroupWithTargets");
 
     @Before
     public void setUp() throws Exception {
@@ -86,5 +92,18 @@ public class AwsLoadBalancerConnectorTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertError(TargetGroupNotFoundException.class);
+    }
+
+    @Ignore("AWS dependencies")
+    @Test
+    public void testGetIpTargets() throws Exception {
+        TestSubscriber testSubscriber = new TestSubscriber();
+        awsLoadBalancerConnector.getRegisteredIps(targetGroupWithTargets).subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertCompleted();
+        testSubscriber.assertNoErrors();
+        Set<String> targetSet = ((List<Set<String>>)testSubscriber.getOnNextEvents()).get(0);
+        assertThat(targetSet.size()).isGreaterThan(0);
     }
 }
