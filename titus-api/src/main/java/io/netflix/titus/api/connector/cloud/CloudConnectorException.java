@@ -62,6 +62,10 @@ public class CloudConnectorException extends RuntimeException {
         return new CloudConnectorException(ErrorCode.InvalidData, message, args);
     }
 
+    public static CloudConnectorException unrecognizedTargetGroup(String targetGroup) {
+        return new CloudConnectorException(ErrorCode.NotFound, "Unrecognized target group:  " + targetGroup);
+    }
+
     public static void checkArgument(boolean isValid, String message, Object... args) {
         if (isValid) {
             throw new CloudConnectorException(ErrorCode.InvalidData, message, args);
