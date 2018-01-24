@@ -47,7 +47,7 @@ public class DefaultLoadBalancerReconcilerTest {
     @Test
     public void registerMissingTargets() {
         final long delayMs = 60_000L /* 1 min */;
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
+        final LoadBalancerConfiguration configuration = mockConfigWithDelay(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
@@ -83,7 +83,7 @@ public class DefaultLoadBalancerReconcilerTest {
     @Test
     public void deregisterExtraTargets() {
         final long delayMs = 60_000L /* 1 min */;
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
+        final LoadBalancerConfiguration configuration = mockConfigWithDelay(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
@@ -124,7 +124,7 @@ public class DefaultLoadBalancerReconcilerTest {
         final long delayMs = 60_000L /* 1 min */;
         final long quietPeriodMs = 5 * delayMs;
 
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
+        final LoadBalancerConfiguration configuration = mockConfigWithDelay(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
@@ -172,7 +172,7 @@ public class DefaultLoadBalancerReconcilerTest {
     @Test
     public void jobsWithErrorsAreIgnored() {
         final long delayMs = 60_000L /* 1 min */;
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
+        final LoadBalancerConfiguration configuration = mockConfigWithDelay(delayMs);
         final LoadBalancerStore store = mock(LoadBalancerStore.class);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
@@ -211,11 +211,9 @@ public class DefaultLoadBalancerReconcilerTest {
         });
     }
 
-    private LoadBalancerConfiguration mockConfig(long delayMs) {
+    private LoadBalancerConfiguration mockConfigWithDelay(long delayMs) {
         final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
-        final LoadBalancerConfiguration.Reconciliation reconciliationConfig = mock(LoadBalancerConfiguration.Reconciliation.class);
-        when(reconciliationConfig.getDelayMs()).thenReturn(delayMs);
-        when(configuration.getReconciliation()).thenReturn(reconciliationConfig);
+        when(configuration.getReconciliationDelayMs()).thenReturn(delayMs);
         return configuration;
     }
 }

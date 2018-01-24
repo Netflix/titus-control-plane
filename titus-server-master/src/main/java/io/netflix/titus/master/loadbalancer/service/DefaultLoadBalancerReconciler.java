@@ -65,7 +65,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         this.store = store;
         this.connector = connector;
         this.jobOperations = loadBalancerJobOperations;
-        this.delayMs = configuration.getReconciliation().getDelayMs();
+        this.delayMs = configuration.getReconciliationDelayMs();
         this.scheduler = scheduler;
     }
 

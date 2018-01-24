@@ -125,7 +125,7 @@ class LoadBalancerEngine {
      */
     private Observable.Transformer<TargetStateBatchable, TargetStateBatchable> disableReconciliationTemporarily() {
         return updates -> updates.doOnNext(update ->
-                reconciler.ignoreEventsFor(update.getIdentifier(), configuration.getReconciliation().getQuietPeriodMs(), TimeUnit.MILLISECONDS)
+                reconciler.ignoreEventsFor(update.getIdentifier(), configuration.getCooldownMs(), TimeUnit.MILLISECONDS)
         );
     }
 
@@ -197,9 +197,9 @@ class LoadBalancerEngine {
     }
 
     private RateLimitedBatcher<TargetStateBatchable, String> buildBatcher() {
-        final long minTimeMs = configuration.getBatch().getMinTimeMs();
-        final long maxTimeMs = configuration.getBatch().getMaxTimeMs();
-        final long bucketSizeMs = configuration.getBatch().getBucketSizeMs();
+        final long minTimeMs = configuration.getMinTimeMs();
+        final long maxTimeMs = configuration.getMaxTimeMs();
+        final long bucketSizeMs = configuration.getBucketSizeMs();
         final LargestPerTimeBucket emissionStrategy = new LargestPerTimeBucket(minTimeMs, bucketSizeMs, scheduler);
         return RateLimitedBatcher.create(scheduler,
                 connectorTokenBucket, minTimeMs, maxTimeMs, TargetStateBatchable::getLoadBalancerId, emissionStrategy);
