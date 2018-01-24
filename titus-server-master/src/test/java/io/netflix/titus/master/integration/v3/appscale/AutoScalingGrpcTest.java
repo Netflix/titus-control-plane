@@ -202,7 +202,6 @@ public class AutoScalingGrpcTest {
         client.setAutoScalingPolicy(putPolicyRequest, putResponse);
         ScalingPolicyID scalingPolicyID = putResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         assertThat(!scalingPolicyID.getId().isEmpty());
-        log.info("Put policy {} with ID {}", putPolicyRequest, scalingPolicyID);
 
         TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
         client.updateAutoScalingPolicy(
@@ -225,10 +224,9 @@ public class AutoScalingGrpcTest {
 
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
         client.getScalingPolicy(scalingPolicyID, getResponse);
+        getResponse.awaitDone();
 
         GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        log.info("Got result {}", getPolicyResult);
-
         assertThat(getPolicyResult.getItemsCount()).isEqualTo(1);
         DoubleValue targetValue = getPolicyResult.getItems(0).getScalingPolicy().getTargetPolicyDescriptor().getTargetValue();
         assertThat(targetValue.getValue()).isEqualTo(100.0);
@@ -245,9 +243,9 @@ public class AutoScalingGrpcTest {
         PutPolicyRequest putPolicyRequest = AutoScalingTestUtils.generatePutPolicyRequest(jobId, PolicyType.StepScaling);
         TestStreamObserver<ScalingPolicyID> putResponse = new TestStreamObserver<>();
         client.setAutoScalingPolicy(putPolicyRequest, putResponse);
+        putResponse.awaitDone();
         ScalingPolicyID scalingPolicyID = putResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         assertThat(!scalingPolicyID.getId().isEmpty());
-        log.info("Put policy {} with ID {}", putPolicyRequest, scalingPolicyID);
 
         TestStreamObserver<Empty> updateResponse = new TestStreamObserver<>();
         client.updateAutoScalingPolicy(
@@ -269,10 +267,9 @@ public class AutoScalingGrpcTest {
 
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
         client.getScalingPolicy(scalingPolicyID, getResponse);
+        getResponse.awaitDone();
 
         GetPolicyResult getPolicyResult = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        log.info("Got result {}", getPolicyResult);
-
         assertThat(getPolicyResult.getItemsCount()).isEqualTo(1);
         DoubleValue threshold = getPolicyResult.getItems(0).getScalingPolicy().getStepPolicyDescriptor().getAlarmConfig().getThreshold();
         assertThat(threshold.getValue()).isEqualTo(100.0);

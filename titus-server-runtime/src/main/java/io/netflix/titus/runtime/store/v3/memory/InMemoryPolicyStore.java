@@ -88,6 +88,7 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
     @Override
     public Completable updatePolicyStatus(String policyRefId, PolicyStatus policyStatus) {
         return Completable.fromCallable(() -> {
+            log.info("Updating policy status for refID {} -> {}", policyRefId, policyStatus);
             AutoScalingPolicy autoScalingPolicy = policyMap.get(policyRefId);
             AutoScalingPolicy policySaved = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy).withStatus(policyStatus).build();
             return policyMap.put(policyRefId, policySaved);
@@ -116,7 +117,10 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
     @Override
     public Completable updatePolicyConfiguration(AutoScalingPolicy autoScalingPolicy) {
         return Completable.fromCallable(() -> {
-            AutoScalingPolicy policySaved = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(autoScalingPolicy).build();
+            log.info("Updating policy configuration for refID {}", autoScalingPolicy.getRefId());
+            AutoScalingPolicy existingPolicy = policyMap.get(autoScalingPolicy.getRefId());
+            AutoScalingPolicy policySaved = AutoScalingPolicy.newBuilder().withAutoScalingPolicy(existingPolicy)
+                    .withPolicyConfiguration(autoScalingPolicy.getPolicyConfiguration()).build();
             return policyMap.put(policySaved.getRefId(), policySaved);
         });
     }
@@ -125,6 +129,7 @@ public class InMemoryPolicyStore implements AppScalePolicyStore {
     @Override
     public Observable<AutoScalingPolicy> retrievePolicyForRefId(String policyRefId) {
         if (policyMap.containsKey(policyRefId)) {
+            log.info("Retrieving policy by refID {} with configuration {}", policyRefId, policyMap.get(policyRefId).getPolicyConfiguration());
             return Observable.just(policyMap.get(policyRefId));
         }
         return Observable.empty();
