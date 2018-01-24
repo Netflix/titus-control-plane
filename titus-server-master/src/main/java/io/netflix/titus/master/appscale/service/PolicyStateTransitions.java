@@ -31,6 +31,7 @@ public class PolicyStateTransitions {
         }});
 
         put(PolicyStatus.Pending, new ArrayList<PolicyStatus>() {{
+            add(PolicyStatus.Pending);
             add(PolicyStatus.Applied);
             add(PolicyStatus.Error);
         }});
