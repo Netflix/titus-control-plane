@@ -123,7 +123,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         try {
             return jobOperations.targetsForJob(association.getJobLoadBalancer());
         } catch (RuntimeException e) {
-            logger.error("Ignoring association, unable to fetch targets for it " + association.toString(), e);
+            logger.error("Ignoring association, unable to fetch targets for {}", association, e);
             return Collections.emptyList();
         }
     }
