@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
@@ -42,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
+
+import static io.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode.JobNotFound;
 
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
@@ -133,7 +136,11 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         try {
             return jobOperations.targetsForJob(association.getJobLoadBalancer());
         } catch (RuntimeException e) {
-            logger.error("Ignoring association, unable to fetch targets for {}", association, e);
+            if (JobManagerException.hasErrorCode(e, JobNotFound)) {
+                logger.warn("Job is gone, ignoring its association {}", association);
+            } else {
+                logger.error("Ignoring association, unable to fetch targets for {}", association, e);
+            }
             return Collections.emptyList();
         }
     }
