@@ -122,7 +122,7 @@ public class LoadBalancerTests {
         // numbers close to Long.MAX_VALUE will trigger integer overflow bugs in the DefaultTokenBucket impl
         when(configuration.getRateLimitBurst()).thenReturn(Long.MAX_VALUE / 100);
         when(configuration.getRateLimitRefillPerSec()).thenReturn(Long.MAX_VALUE / 100);
-        when(configuration.getCooldownMs()).thenReturn(120_000L);
+        when(configuration.getCooldownPeriodMs()).thenReturn(120_000L);
         when(configuration.getReconciliationDelayMs()).thenReturn(30_000L);
         when(configuration.getMaxTimeMs()).thenReturn(Long.MAX_VALUE);
         when(configuration.getMinTimeMs()).thenReturn(minTimeInQueueMs);

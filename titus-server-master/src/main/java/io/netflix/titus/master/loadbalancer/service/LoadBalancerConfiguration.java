@@ -37,7 +37,7 @@ public interface LoadBalancerConfiguration {
      * to detect changes made to loadbalancers.
      */
     @DefaultValue("120000")
-    long getCooldownMs();
+    long getCooldownPeriodMs();
 
     /**
      * Delay between full reconciliation runs.

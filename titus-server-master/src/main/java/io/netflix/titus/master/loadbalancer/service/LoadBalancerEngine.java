@@ -125,7 +125,7 @@ class LoadBalancerEngine {
      */
     private Observable.Transformer<TargetStateBatchable, TargetStateBatchable> disableReconciliationTemporarily() {
         return updates -> updates.doOnNext(update ->
-                reconciler.ignoreEventsFor(update.getIdentifier(), configuration.getCooldownMs(), TimeUnit.MILLISECONDS)
+                reconciler.activateCooldownFor(update.getIdentifier(), configuration.getCooldownPeriodMs(), TimeUnit.MILLISECONDS)
         );
     }
 

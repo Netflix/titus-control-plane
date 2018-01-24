@@ -123,8 +123,8 @@ public class DefaultLoadBalancerReconcilerTest {
     }
 
     @Test
-    public void ignoreEventsTemporarily() {
-        final long quietPeriodMs = 5 * delayMs;
+    public void updatesAreIgnoredWhileCooldownIsActive() {
+        final long cooldownPeriodMs = 5 * delayMs;
 
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
@@ -139,7 +139,7 @@ public class DefaultLoadBalancerReconcilerTest {
         for (Task task : tasks) {
             final String ipAddress = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
             final LoadBalancerTarget target = new LoadBalancerTarget(jobLoadBalancer, task.getId(), ipAddress);
-            reconciler.ignoreEventsFor(target, quietPeriodMs, TimeUnit.MILLISECONDS);
+            reconciler.activateCooldownFor(target, cooldownPeriodMs, TimeUnit.MILLISECONDS);
         }
 
         testScheduler.triggerActions();
