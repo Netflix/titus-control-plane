@@ -16,6 +16,7 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -184,6 +185,35 @@ public class DefaultLoadBalancerReconcilerTest {
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
         testScheduler.triggerActions();
         subscriber.assertNotCompleted().assertValueCount(5);
+        subscriber.getOnNextEvents().forEach(update -> {
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
+        });
+    }
+
+    @Test
+    public void connectorErrorsDoNotHaltReconciliation() {
+        final String failingLoadBalancerId = UUID.randomUUID().toString();
+        final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
+        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancer failingJobLoadBalancer = new JobLoadBalancer(jobId, failingLoadBalancerId);
+        final JobLoadBalancerState failingAssociation = new JobLoadBalancerState(failingJobLoadBalancer, JobLoadBalancer.State.Associated);
+        when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
+        when(connector.getRegisteredIps(failingLoadBalancerId)).thenReturn(Single.error(new RuntimeException("rate limit")));
+        when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
+        when(store.getAssociations()).thenReturn(Arrays.asList(failingAssociation, association));
+
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
+        final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
+
+        testScheduler.triggerActions();
+        subscriber.assertNoErrors().assertNotCompleted().assertNoValues();
+
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        // failingLoadBalancerId gets ignored
+        subscriber.assertNoErrors().assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
             assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
             assertThat(update.getPriority()).isEqualTo(Priority.Low);

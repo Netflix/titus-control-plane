@@ -100,23 +100,33 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 .collect(Collectors.toSet());
 
         final Instant now = now();
-        return connector.getRegisteredIps(loadBalancerId).flatMapObservable(registeredIps -> {
-            Set<LoadBalancerTarget> toRegister = shouldBeRegistered.stream()
-                    .filter(target -> !registeredIps.contains(target.getIpAddress()))
-                    .collect(Collectors.toSet());
-            Set<LoadBalancerTarget> toDeregister = CollectionsExt.copyAndRemove(registeredIps, shouldBeRegisteredIps).stream()
-                    .map(ip -> updateForUnknownTask(loadBalancerId, ip))
-                    .collect(Collectors.toSet());
+        final Observable<TargetStateBatchable> targetUpdates = connector.getRegisteredIps(loadBalancerId)
+                .flatMapObservable(registeredIps -> {
+                    Set<LoadBalancerTarget> toRegister = shouldBeRegistered.stream()
+                            .filter(target -> !registeredIps.contains(target.getIpAddress()))
+                            .collect(Collectors.toSet());
+                    Set<LoadBalancerTarget> toDeregister = CollectionsExt.copyAndRemove(registeredIps, shouldBeRegisteredIps).stream()
+                            .map(ip -> updateForUnknownTask(loadBalancerId, ip))
+                            .collect(Collectors.toSet());
 
-            if (!toRegister.isEmpty() || !toDeregister.isEmpty()) {
-                logger.info("Reconciliation found targets to to be registered: {}, to be deregistered: {}", toRegister.size(), toDeregister.size());
-            }
+                    if (!toRegister.isEmpty() || !toDeregister.isEmpty()) {
+                        logger.info("Reconciliation found targets to to be registered: {}, to be deregistered: {}",
+                                toRegister.size(), toDeregister.size());
+                    }
 
-            return Observable.from(CollectionsExt.merge(
-                    withState(now, toRegister, State.Registered),
-                    withState(now, toDeregister, State.Deregistered)
-            )).filter(update -> !ignored.containsKey(update.getIdentifier()));
-        });
+                    return Observable.from(CollectionsExt.merge(
+                            withState(now, toRegister, State.Registered),
+                            withState(now, toDeregister, State.Deregistered)
+                    )).filter(this::isNotIgnored);
+                });
+
+        return targetUpdates
+                .doOnError(e -> logger.error("Not reconciling load balancer {}", loadBalancerId, e))
+                .onErrorResumeNext(Observable.empty());
+    }
+
+    private boolean isNotIgnored(TargetStateBatchable update) {
+        return !ignored.containsKey(update.getIdentifier());
     }
 
     private List<LoadBalancerTarget> targetsForJobSafe(JobLoadBalancerState association) {
