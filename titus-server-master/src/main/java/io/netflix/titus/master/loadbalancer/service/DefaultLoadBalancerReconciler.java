@@ -89,15 +89,15 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     @Override
     public Observable<TargetStateBatchable> events() {
-        final Observable<Map<String, List<JobLoadBalancerState>>> gcAndSnapshot = gcMarkedAssociations()
-                .andThen(Observable.fromCallable(this::snapshotAssociationsByLoadBalancer));
+        final Observable<Map.Entry<String, List<JobLoadBalancerState>>> gcAndSnapshot = gcMarkedAssociations()
+                .andThen(snapshotAssociationsByLoadBalancer());
 
-        final Observable<TargetStateBatchable> updatesForAll = gcAndSnapshot.flatMapIterable(Map::entrySet, 1)
-                // TODO(fabio): rate limit calls to reconcile (and to the connector)
-                .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1);
+        // TODO(fabio): rate limit calls to reconcile (and to the connector)
+        final Observable<TargetStateBatchable> updatesForAll = gcAndSnapshot.flatMap(entry ->
+                reconcile(entry.getKey(), entry.getValue()), 1
+        );
 
         // TODO(fabio): timeout for each run (subscription)
-
         return ObservableExt.periodicGenerator(updatesForAll, delayMs, delayMs, TimeUnit.MILLISECONDS, scheduler)
                 .flatMap(Observable::from, 1);
     }
@@ -170,11 +170,18 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 .collect(Collectors.toList());
     }
 
-    private Map<String, List<JobLoadBalancerState>> snapshotAssociationsByLoadBalancer() {
-        cleanupExpiredIgnored();
-        logger.debug("Snapshotting current associations");
-        return store.getAssociations().stream()
-                .collect(Collectors.groupingBy(JobLoadBalancerState::getLoadBalancerId));
+    /**
+     * @return emit loadBalancerId -> listOfAssociation pairs to subscribers
+     */
+    private Observable<Map.Entry<String, List<JobLoadBalancerState>>> snapshotAssociationsByLoadBalancer() {
+        return Observable.defer(() -> {
+            cleanupExpiredIgnored();
+            logger.debug("Snapshotting current associations");
+            final Set<Map.Entry<String, List<JobLoadBalancerState>>> pairs = store.getAssociations().stream()
+                    .collect(Collectors.groupingBy(JobLoadBalancerState::getLoadBalancerId))
+                    .entrySet();
+            return Observable.from(pairs);
+        });
     }
 
     private void cleanupExpiredIgnored() {
