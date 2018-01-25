@@ -101,7 +101,9 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   Registry registry,
                                   AppScaleManagerConfiguration appScaleManagerConfiguration) {
         this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v2JobOperations, v3JobOperations,
-                rxEventBus, registry, appScaleManagerConfiguration, Schedulers.from(Executors.newSingleThreadExecutor()));
+                rxEventBus, registry, appScaleManagerConfiguration,
+                Schedulers.from(Executors.newSingleThreadExecutor(runnable -> new Thread("DefaultAppScaleManager")))
+        );
     }
 
 

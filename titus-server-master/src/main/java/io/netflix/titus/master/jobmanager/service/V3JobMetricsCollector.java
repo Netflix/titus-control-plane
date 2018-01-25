@@ -88,6 +88,7 @@ class V3JobMetricsCollector {
             if (serviceJob) {
                 id = id.withTag("t.jobId", jobId);
             }
+            id = id.withTag("t.engine", "V3");
             return id;
         }
 

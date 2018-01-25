@@ -16,15 +16,18 @@
 
 package io.netflix.titus.master.service.management.internal;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
-import io.netflix.titus.master.ApiOperations;
+import io.netflix.titus.master.job.V2JobMgrIntf;
+import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.model.ResourceDimensions;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.master.service.management.BeanCapacityManagementConfiguration;
@@ -33,7 +36,6 @@ import io.netflix.titus.master.service.management.ResourceConsumption;
 import io.netflix.titus.testkit.model.runtime.RuntimeModelGenerator;
 import org.junit.Test;
 
-import static io.netflix.titus.common.util.CollectionsExt.asSet;
 import static io.netflix.titus.master.service.management.ResourceConsumptions.findConsumption;
 import static io.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.CRITICAL_SLA_1;
 import static io.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.DEFAULT_SLA;
@@ -56,7 +58,8 @@ public class ResourceConsumptionEvaluatorTest {
 
     private final ApplicationSlaManagementService applicationSlaManagementService = mock(ApplicationSlaManagementService.class);
 
-    private final ApiOperations apiOperations = mock(ApiOperations.class);
+    private final V2JobOperations v2JobOperations = mock(V2JobOperations.class);
+    private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
     private final RuntimeModelGenerator runtimeModelGenerator = new RuntimeModelGenerator();
 
@@ -68,30 +71,33 @@ public class ResourceConsumptionEvaluatorTest {
         V2JobMetadata goodCapacityJob = runtimeModelGenerator.newJobMetadata(Parameters.JobType.Service, "goodCapacityJob", CRITICAL_SLA_1.getAppName());
         runtimeModelGenerator.scheduleJob(goodCapacityJob.getJobId());
         runtimeModelGenerator.moveWorkerToState(goodCapacityJob.getJobId(), 0, V2JobState.Started);
-        when(apiOperations.getJobMetadata(goodCapacityJob.getJobId())).thenReturn(goodCapacityJob);
-        when(apiOperations.getAllWorkers(goodCapacityJob.getJobId())).thenReturn(runtimeModelGenerator.getAllWorkers(goodCapacityJob.getJobId()));
-        when(apiOperations.getRunningWorkers(goodCapacityJob.getJobId())).thenReturn(runtimeModelGenerator.getRunningWorkers(goodCapacityJob.getJobId()));
+
+        V2JobMgrIntf goodCapacityJobMgr = mock(V2JobMgrIntf.class);
+        when(goodCapacityJobMgr.getJobMetadata()).thenReturn(goodCapacityJob);
+        when(goodCapacityJobMgr.getWorkers()).thenReturn((List) runtimeModelGenerator.getRunningWorkers(goodCapacityJob.getJobId()));
 
         // Job without appName defined
         V2JobMetadata noAppNameJob = runtimeModelGenerator.newJobMetadata(Parameters.JobType.Service, null, DEFAULT_SLA.getAppName());
         runtimeModelGenerator.scheduleJob(noAppNameJob.getJobId());
         runtimeModelGenerator.moveWorkerToState(noAppNameJob.getJobId(), 0, V2JobState.Started);
-        when(apiOperations.getJobMetadata(noAppNameJob.getJobId())).thenReturn(noAppNameJob);
-        when(apiOperations.getAllWorkers(noAppNameJob.getJobId())).thenReturn(runtimeModelGenerator.getAllWorkers(noAppNameJob.getJobId()));
-        when(apiOperations.getRunningWorkers(noAppNameJob.getJobId())).thenReturn(runtimeModelGenerator.getRunningWorkers(noAppNameJob.getJobId()));
+
+        V2JobMgrIntf noAppNameJobMgr = mock(V2JobMgrIntf.class);
+        when(noAppNameJobMgr.getJobMetadata()).thenReturn(noAppNameJob);
+        when(noAppNameJobMgr.getWorkers()).thenReturn((List) runtimeModelGenerator.getRunningWorkers(noAppNameJob.getJobId()));
 
         // Job with capacity group for which SLA is not defined
         V2JobMetadata badCapacityJob = runtimeModelGenerator.newJobMetadata(Parameters.JobType.Service, "badCapacityJob", "missingCapacityGroup");
         runtimeModelGenerator.scheduleJob(badCapacityJob.getJobId());
         runtimeModelGenerator.moveWorkerToState(badCapacityJob.getJobId(), 0, V2JobState.Started);
-        when(apiOperations.getJobMetadata(badCapacityJob.getJobId())).thenReturn(badCapacityJob);
-        when(apiOperations.getAllWorkers(badCapacityJob.getJobId())).thenReturn(runtimeModelGenerator.getAllWorkers(badCapacityJob.getJobId()));
-        when(apiOperations.getRunningWorkers(badCapacityJob.getJobId())).thenReturn(runtimeModelGenerator.getRunningWorkers(badCapacityJob.getJobId()));
 
-        when(apiOperations.getAllActiveJobs()).thenReturn(asSet(goodCapacityJob.getJobId(), noAppNameJob.getJobId(), badCapacityJob.getJobId()));
+        V2JobMgrIntf badCapacityJobMgr = mock(V2JobMgrIntf.class);
+        when(badCapacityJobMgr.getJobMetadata()).thenReturn(badCapacityJob);
+        when(badCapacityJobMgr.getWorkers()).thenReturn((List) runtimeModelGenerator.getAllWorkers(badCapacityJob.getJobId()));
+
+        when(v2JobOperations.getAllJobMgrs()).thenReturn(asList(goodCapacityJobMgr, noAppNameJobMgr, badCapacityJobMgr));
 
         // Evaluate
-        ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, apiOperations, config);
+        ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v2JobOperations, v3JobOperations, config);
 
         Set<String> undefined = evaluator.getUndefinedCapacityGroups();
         assertThat(undefined).contains("missingCapacityGroup");

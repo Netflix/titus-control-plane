@@ -95,6 +95,7 @@ public class V2JobMetrics {
         if (serviceJob) {
             id = id.withTag("t.jobId", jobId);
         }
+        id = id.withTag("t.engine", "V2");
         return id;
     }
 
