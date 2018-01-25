@@ -31,6 +31,7 @@ import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.retry.Retryers;
@@ -41,6 +42,24 @@ import io.netflix.titus.common.util.retry.Retryers;
 public final class JobFunctions {
 
     private JobFunctions() {
+    }
+
+    @Deprecated
+    public static V2JobState toV2JobState(TaskState v3TaskState) {
+        switch (v3TaskState) {
+            case Accepted:
+                return V2JobState.Accepted;
+            case Launched:
+                return V2JobState.Launched;
+            case StartInitiated:
+                return V2JobState.StartInitiated;
+            case Started:
+            case KillInitiated:
+                return V2JobState.Started;
+            case Finished:
+                return V2JobState.Completed;
+        }
+        throw new IllegalStateException("Unexpected V3 task state: " + v3TaskState);
     }
 
     public static boolean isV2JobId(String jobId) {
