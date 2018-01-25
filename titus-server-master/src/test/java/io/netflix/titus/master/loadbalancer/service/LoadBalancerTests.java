@@ -122,17 +122,11 @@ public class LoadBalancerTests {
         // numbers close to Long.MAX_VALUE will trigger integer overflow bugs in the DefaultTokenBucket impl
         when(configuration.getRateLimitBurst()).thenReturn(Long.MAX_VALUE / 100);
         when(configuration.getRateLimitRefillPerSec()).thenReturn(Long.MAX_VALUE / 100);
-
-        final LoadBalancerConfiguration.Batch batchConfig = mock(LoadBalancerConfiguration.Batch.class);
-        when(configuration.getBatch()).thenReturn(batchConfig);
-        when(batchConfig.getBucketSizeMs()).thenReturn(minTimeInQueueMs);
-        when(batchConfig.getMaxTimeMs()).thenReturn(Long.MAX_VALUE);
-        when(batchConfig.getMinTimeMs()).thenReturn(minTimeInQueueMs);
-
-        final LoadBalancerConfiguration.Reconciliation reconciliationConfig = mock(LoadBalancerConfiguration.Reconciliation.class);
-        when(configuration.getReconciliation()).thenReturn(reconciliationConfig);
-        when(reconciliationConfig.getDelayMs()).thenReturn(30_000L);
-        when(reconciliationConfig.getQuietPeriodMs()).thenReturn(120_000L);
+        when(configuration.getCooldownPeriodMs()).thenReturn(120_000L);
+        when(configuration.getReconciliationDelayMs()).thenReturn(30_000L);
+        when(configuration.getMaxTimeMs()).thenReturn(Long.MAX_VALUE);
+        when(configuration.getMinTimeMs()).thenReturn(minTimeInQueueMs);
+        when(configuration.getBucketSizeMs()).thenReturn(minTimeInQueueMs);
 
         return configuration;
     }
