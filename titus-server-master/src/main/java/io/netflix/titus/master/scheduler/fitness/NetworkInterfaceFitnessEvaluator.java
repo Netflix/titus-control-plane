@@ -4,7 +4,9 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.base.Strings;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
@@ -49,11 +51,15 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
 
     private final AgentResourceCache cache;
     private final SchedulerConfiguration configuration;
+    private final TitusRuntime runtime;
 
     @Inject
-    public NetworkInterfaceFitnessEvaluator(AgentResourceCache cache, SchedulerConfiguration configuration) {
+    public NetworkInterfaceFitnessEvaluator(AgentResourceCache cache,
+                                            SchedulerConfiguration configuration,
+                                            TitusRuntime runtime) {
         this.cache = cache;
         this.configuration = configuration;
+        this.runtime = runtime;
     }
 
     @Override
@@ -70,7 +76,7 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
         }
 
         // Network interface with no security group associated
-        if (networkInterface.getJoinedSecurityGroupIds() == null) {
+        if (Strings.isNullOrEmpty(networkInterface.getJoinedSecurityGroupIds())) {
             if (!networkInterface.hasAvailableIps()) {
                 return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeUnassignedNoIps, subResourcesNeeded, 0, subResourcesLimit);
             }
@@ -161,30 +167,31 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
         switch (networkInterfaceState) {
             case FreeUnknown:
             case FreeUnassignedNoIps:
-                return adjust(fitnessLRU(networkInterface), 0.6, 1.0);
+                return adjust(fitnessLru(networkInterface), 0.6, 1.0);
             case FreeNotMatchingSomeIps:
             case FreeNotMatchingNoIps:
-                return adjust(fitnessLRU(networkInterface), 0.4, 0.6);
+                return adjust(fitnessLru(networkInterface), 0.4, 0.6);
             case FreeMatchingNoIps:
-                return adjust(fitnessLRU(networkInterface), 0.2, 0.4);
+                return adjust(fitnessLru(networkInterface), 0.2, 0.4);
             case UsedSomeIps:
             case UsedNoIps:
             case FreeMatchingSomeIps:
             case FreeUnassignedSomeIps:
             default:
         }
-        return adjust(fitnessLRU(networkInterface), 0.0, 0.2);
+        return adjust(fitnessLru(networkInterface), 0.0, 0.2);
     }
 
     private double adjust(double fitnessLRU, double from, double to) {
         return from + (to - from) * fitnessLRU;
     }
 
-    private double fitnessLRU(AgentResourceCacheNetworkInterface networkInterface) {
+    private double fitnessLru(AgentResourceCacheNetworkInterface networkInterface) {
         if (networkInterface == null) {
             return 1.0;
         }
-        long lastUpdateSec = (System.currentTimeMillis() - networkInterface.getTimestamp()) / 1_000;
+        long now = runtime.getClock().wallTime();
+        long lastUpdateSec = (now - networkInterface.getTimestamp()) / 1_000;
         if (lastUpdateSec <= 10) {
             return 0.01;
         }
