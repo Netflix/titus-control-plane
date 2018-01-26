@@ -26,22 +26,28 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.plugins.BinPackingFitnessCalculators;
 import com.netflix.fenzo.plugins.WeightedAverageFitnessCalculator;
 import com.netflix.fenzo.plugins.WeightedAverageFitnessCalculator.WeightedFitnessCalculator;
+import io.netflix.titus.master.scheduler.SchedulerConfiguration;
+import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 
 public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
     private static final double BIN_PACKER_WEIGHT = 0.1;
     private static final double JOB_TYPE_WEIGHT = 0.2;
-    private static final double RECENT_TASK_LAUNCH_WEIGHT = 0.7;
+    private static final double RECENT_TASK_LAUNCH_WEIGHT = 0.4;
+    private static final double CACHED_IMAGE_WEIGHT = 0.15;
+    private static final double CACHED_SECURITY_GROUPS_WEIGHT = 0.15;
 
     private final WeightedAverageFitnessCalculator weightedAverageFitnessCalculator;
 
     public static final com.netflix.fenzo.functions.Func1<Double, Boolean> fitnessGoodEnoughFunc =
             f -> f > 0.9;
 
-    public AgentFitnessCalculator() {
+    public AgentFitnessCalculator(SchedulerConfiguration configuration, AgentResourceCache agentResourceCache) {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
         calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, BIN_PACKER_WEIGHT));
         calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), JOB_TYPE_WEIGHT));
         calculators.add(new WeightedFitnessCalculator(new TaskLaunchingFitnessCalculator(), RECENT_TASK_LAUNCH_WEIGHT));
+        calculators.add(new WeightedFitnessCalculator(new ImageFitnessCalculator(agentResourceCache), CACHED_IMAGE_WEIGHT));
+        calculators.add(new WeightedFitnessCalculator(new SecurityGroupFitnessCalculator(agentResourceCache), CACHED_SECURITY_GROUPS_WEIGHT));
         this.weightedAverageFitnessCalculator = new WeightedAverageFitnessCalculator(calculators);
     }
 

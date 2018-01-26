@@ -16,7 +16,8 @@
 
 package io.netflix.titus.master.scheduler.resourcecache;
 
-import java.util.concurrent.Callable;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Provides a way to access agent resource information in order to make scheduling decisions.
@@ -25,32 +26,32 @@ public interface AgentResourceCache {
     /**
      * Creates or updates the agent resource idle cache instance with the specified callable function.
      *
-     * @param instanceId the instance's id
-     * @param callable   a function that returns the computed {@link AgentResourceCacheInstance}
+     * @param hostname - the instance's hostname
+     * @param function - a function that returns the computed {@link AgentResourceCacheInstance}
      */
-    void createOrUpdateIdle(String instanceId, Callable<AgentResourceCacheInstance> callable);
+    void createOrUpdateIdle(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function);
 
     /**
-     * Creates or updates the agent resource active cache instance with the specified callable function.
+     * Creates or updates the agent resource active cache instance with the specified function function.
      *
-     * @param instanceId the instance's id
-     * @param callable   a function that returns the computed {@link AgentResourceCacheInstance}
+     * @param hostname -  the instance's hostname
+     * @param function - a function that returns the computed {@link AgentResourceCacheInstance}
      */
-    void createOrUpdateActive(String instanceId, Callable<AgentResourceCacheInstance> callable);
+    void createOrUpdateActive(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function);
 
     /**
      * Returns the {@link AgentResourceCacheInstance} for a given instance id in the agent resource idle cache or null if it does not exist.
      *
-     * @param instanceId - the instance id
-     * @return the {@link AgentResourceCacheInstance} for a given instance id or null if it does not exist.
+     * @param hostname -  the instance's hostname
+     * @return the {@link AgentResourceCacheInstance} in an optional or empty if it does not exist.
      */
-    AgentResourceCacheInstance getIdle(String instanceId);
+    Optional<AgentResourceCacheInstance> getIdle(String hostname);
 
     /**
      * Returns the {@link AgentResourceCacheInstance} for a given instance id in the agent resource active cache or null if it does not exist.
      *
-     * @param instanceId - the instance id
-     * @return the {@link AgentResourceCacheInstance} for a given instance id or null if it does not exist.
+     * @param hostname -  the instance's hostname
+     * @return the {@link AgentResourceCacheInstance} in an optional or empty if it does not exist.
      */
-    AgentResourceCacheInstance getActive(String instanceId);
+    Optional<AgentResourceCacheInstance> getActive(String hostname);
 }

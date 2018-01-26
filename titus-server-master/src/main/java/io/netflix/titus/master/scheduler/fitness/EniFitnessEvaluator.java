@@ -1,11 +1,12 @@
 package io.netflix.titus.master.scheduler.fitness;
 
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
-import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheEni;
+import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetworkInterface;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
 
 @Singleton
@@ -43,11 +44,11 @@ public class EniFitnessEvaluator implements PreferentialNamedConsumableResourceE
 
     @Override
     public double evaluateIdle(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesLimit) {
-        AgentResourceCacheInstance cacheInstance = cache.getActive(hostname);
-
-        // TODO Change after cache API update
-//        AgentResourceCacheEni eniCache = cacheInstance.getEni(hostname, index);
-        AgentResourceCacheEni eniCache = null;
+        AgentResourceCacheNetworkInterface eniCache = null;
+        Optional<AgentResourceCacheInstance> cacheInstanceOpt = cache.getActive(hostname);
+        if (cacheInstanceOpt.isPresent()) {
+            eniCache = cacheInstanceOpt.get().getNetworkInterface(index);
+        }
 
         if (eniCache == null) {
             // We know nothing about this ENI
@@ -80,15 +81,12 @@ public class EniFitnessEvaluator implements PreferentialNamedConsumableResourceE
 
     @Override
     public double evaluate(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
-        AgentResourceCacheInstance cacheInstance = cache.getActive(hostname);
-
-        // TODO Change after cache API update
-//        AgentResourceCacheEni eniCache = cacheInstance.getEni(hostname, index);
-        AgentResourceCacheEni eniCache = null;
-
-        // TODO Change after cache API update
-//        eniState = eniCache.hasFreeIps() ? EniState.UsedNoIps : EniState.UsedSomeIps;
-        EniState eniState = eniCache == null || eniCache.getIpAddresses().isEmpty() ? EniState.UsedNoIps : EniState.UsedSomeIps;
+        AgentResourceCacheNetworkInterface eniCache = null;
+        Optional<AgentResourceCacheInstance> cacheInstanceOpt = cache.getActive(hostname);
+        if (cacheInstanceOpt.isPresent()) {
+            eniCache = cacheInstanceOpt.get().getNetworkInterface(index);
+        }
+        EniState eniState = eniCache == null || eniCache.hasAvailableIps() ? EniState.UsedSomeIps : EniState.UsedNoIps;
 
         return evaluateEniInState(eniState, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
     }

@@ -29,8 +29,8 @@ import io.netflix.titus.master.scheduler.ScheduledRequest;
 
 /**
  * A fitness calculator that will prefer placing tasks on nodes that have the least amount of tasks
- * launching in order to reduce concurrent task launches. Nodes without any tasks will return a score
- * of 0 as we only want to use empty nodes if there are no other nodes available.
+ * launching in order to reduce concurrent task launches. Nodes without any tasks will return a low score
+ * as we only want to use empty nodes if there are no other nodes available.
  */
 public class TaskLaunchingFitnessCalculator implements VMTaskFitnessCalculator {
 

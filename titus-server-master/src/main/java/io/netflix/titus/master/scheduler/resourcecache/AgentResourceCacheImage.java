@@ -75,4 +75,50 @@ public class AgentResourceCacheImage {
                 ", tag='" + tag + '\'' +
                 '}';
     }
+
+    public Builder toBuilder() {
+        return newBuilder(this);
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static Builder newBuilder(AgentResourceCacheImage image) {
+        return new Builder().withImageName(image.getImageName())
+                .withDigest(image.getDigest())
+                .withTag(image.getTag());
+    }
+
+    public static final class Builder {
+        private String imageName;
+        private String digest;
+        private String tag;
+
+        private Builder() {
+        }
+
+        public Builder withImageName(String imageName) {
+            this.imageName = imageName;
+            return this;
+        }
+
+        public Builder withDigest(String digest) {
+            this.digest = digest;
+            return this;
+        }
+
+        public Builder withTag(String tag) {
+            this.tag = tag;
+            return this;
+        }
+
+        public Builder but() {
+            return newBuilder().withImageName(imageName).withDigest(digest).withTag(tag);
+        }
+
+        public AgentResourceCacheImage build() {
+            return new AgentResourceCacheImage(imageName, digest, tag);
+        }
+    }
 }

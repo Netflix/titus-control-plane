@@ -16,29 +16,34 @@
 
 package io.netflix.titus.master.scheduler.resourcecache;
 
-import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class AgentResourceCacheInstance {
-    private final String id;
-    private final List<AgentResourceCacheImage> images;
-    private final List<AgentResourceCacheEni> enis;
+    private final String hostname;
+    private final Set<AgentResourceCacheImage> images;
+    private final Map<Integer, AgentResourceCacheNetworkInterface> networkInterfaces;
 
-    public AgentResourceCacheInstance(String id, List<AgentResourceCacheImage> images, List<AgentResourceCacheEni> enis) {
-        this.id = id;
+    public AgentResourceCacheInstance(String hostname, Set<AgentResourceCacheImage> images, Map<Integer, AgentResourceCacheNetworkInterface> networkInterfaces) {
+        this.hostname = hostname;
         this.images = images;
-        this.enis = enis;
+        this.networkInterfaces = networkInterfaces;
     }
 
-    public String getId() {
-        return id;
+    public String getHostname() {
+        return hostname;
     }
 
-    public List<AgentResourceCacheImage> getImages() {
+    public Set<AgentResourceCacheImage> getImages() {
         return images;
     }
 
-    public List<AgentResourceCacheEni> getEnis() {
-        return enis;
+    public Map<Integer, AgentResourceCacheNetworkInterface> getNetworkInterfaces() {
+        return networkInterfaces;
+    }
+
+    public AgentResourceCacheNetworkInterface getNetworkInterface(Integer index) {
+        return networkInterfaces.get(index);
     }
 
     @Override
@@ -52,29 +57,75 @@ public class AgentResourceCacheInstance {
 
         AgentResourceCacheInstance that = (AgentResourceCacheInstance) o;
 
-        if (id != null ? !id.equals(that.id) : that.id != null) {
+        if (hostname != null ? !hostname.equals(that.hostname) : that.hostname != null) {
             return false;
         }
         if (images != null ? !images.equals(that.images) : that.images != null) {
             return false;
         }
-        return enis != null ? enis.equals(that.enis) : that.enis == null;
+        return networkInterfaces != null ? networkInterfaces.equals(that.networkInterfaces) : that.networkInterfaces == null;
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
+        int result = hostname != null ? hostname.hashCode() : 0;
         result = 31 * result + (images != null ? images.hashCode() : 0);
-        result = 31 * result + (enis != null ? enis.hashCode() : 0);
+        result = 31 * result + (networkInterfaces != null ? networkInterfaces.hashCode() : 0);
         return result;
     }
 
     @Override
     public String toString() {
         return "AgentResourceCacheInstance{" +
-                "id='" + id + '\'' +
+                "hostname='" + hostname + '\'' +
                 ", images=" + images +
-                ", enis=" + enis +
+                ", networkInterfaces=" + networkInterfaces +
                 '}';
+    }
+
+    public Builder toBuilder() {
+        return newBuilder(this);
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static Builder newBuilder(AgentResourceCacheInstance instance) {
+        return newBuilder().withHostname(instance.getHostname())
+                .withImages(instance.getImages())
+                .withNetworkInterfaces(instance.getNetworkInterfaces());
+    }
+
+    public static final class Builder {
+        private String hostname;
+        private Set<AgentResourceCacheImage> images;
+        private Map<Integer, AgentResourceCacheNetworkInterface> networkInterfaces;
+
+        private Builder() {
+        }
+
+        public Builder withHostname(String hostname) {
+            this.hostname = hostname;
+            return this;
+        }
+
+        public Builder withImages(Set<AgentResourceCacheImage> images) {
+            this.images = images;
+            return this;
+        }
+
+        public Builder withNetworkInterfaces(Map<Integer, AgentResourceCacheNetworkInterface> enis) {
+            this.networkInterfaces = enis;
+            return this;
+        }
+
+        public Builder but() {
+            return newBuilder().withHostname(hostname).withImages(images).withNetworkInterfaces(networkInterfaces);
+        }
+
+        public AgentResourceCacheInstance build() {
+            return new AgentResourceCacheInstance(hostname, images, networkInterfaces);
+        }
     }
 }

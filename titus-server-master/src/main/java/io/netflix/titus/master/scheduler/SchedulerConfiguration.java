@@ -25,7 +25,7 @@ public interface SchedulerConfiguration {
     /**
      * @return Sleep interval between consecutive scheduler iterations
      */
-    @DefaultValue("100")
+    @DefaultValue("500")
     long getSchedulerIterationIntervalMs();
 
     @DefaultValue("true")
