@@ -33,7 +33,7 @@ import io.netflix.titus.master.scheduler.autoscale.DefaultAutoScaleController;
 import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.TitusInactiveClusterScaleDownConstraintEvaluator;
 import io.netflix.titus.master.scheduler.constraint.ZoneBalancedClusterScaleDownConstraintEvaluator;
-import io.netflix.titus.master.scheduler.fitness.EniFitnessEvaluator;
+import io.netflix.titus.master.scheduler.fitness.NetworkInterfaceFitnessEvaluator;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import io.netflix.titus.master.scheduler.resourcecache.DefaultAgentResourceCache;
 
@@ -52,7 +52,7 @@ public final class SchedulerModule extends AbstractModule {
         bind(VMOperations.class).to(VMOperationsImpl.class);
         bind(TierSlaUpdater.class).to(DefaultTierSlaUpdater.class);
         bind(ScaleDownOrderEvaluator.class).to(TitusInactiveClusterScaleDownConstraintEvaluator.class);
-        bind(PreferentialNamedConsumableResourceEvaluator.class).to(EniFitnessEvaluator.class);
+        bind(PreferentialNamedConsumableResourceEvaluator.class).to(NetworkInterfaceFitnessEvaluator.class);
         bind(AutoScaleController.class).to(DefaultAutoScaleController.class);
         bind(SchedulingService.class).to(DefaultSchedulingService.class).asEagerSingleton();
         bind(AgentResourceCache.class).to(DefaultAgentResourceCache.class);

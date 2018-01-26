@@ -26,7 +26,6 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.plugins.BinPackingFitnessCalculators;
 import com.netflix.fenzo.plugins.WeightedAverageFitnessCalculator;
 import com.netflix.fenzo.plugins.WeightedAverageFitnessCalculator.WeightedFitnessCalculator;
-import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 
 public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
@@ -41,7 +40,7 @@ public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
     public static final com.netflix.fenzo.functions.Func1<Double, Boolean> fitnessGoodEnoughFunc =
             f -> f > 0.9;
 
-    public AgentFitnessCalculator(SchedulerConfiguration configuration, AgentResourceCache agentResourceCache) {
+    public AgentFitnessCalculator(AgentResourceCache agentResourceCache) {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
         calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, BIN_PACKER_WEIGHT));
         calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), JOB_TYPE_WEIGHT));
