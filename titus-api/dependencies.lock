@@ -260,7 +260,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -627,7 +627,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -994,7 +994,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1398,7 +1398,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1766,7 +1766,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -2391,7 +2391,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -3275,7 +3275,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -4159,7 +4159,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -5044,7 +5044,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",

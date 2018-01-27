@@ -239,7 +239,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "io.reactivex:rxnetty"
@@ -557,7 +557,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "io.reactivex:rxnetty"
@@ -875,7 +875,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "io.reactivex:rxnetty"
@@ -1240,7 +1240,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "io.reactivex:rxnetty"
@@ -1569,7 +1569,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "io.reactivex:rxnetty"
@@ -2192,7 +2192,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
@@ -3113,7 +3113,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
@@ -4034,7 +4034,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
@@ -4956,7 +4956,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.4",
+            "locked": "1.3.5",
             "requested": "1.+",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
