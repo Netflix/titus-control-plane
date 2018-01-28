@@ -30,6 +30,7 @@ import io.netflix.titus.testkit.client.TitusMasterClient;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import io.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
+import io.netflix.titus.testkit.embedded.master.EmbeddedStorageProvider;
 import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.JobObserver;
@@ -95,7 +96,7 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
         String jobId = runServiceJob(jobSpec);
 
         // We need to examine internal data structure to check ENI assignments
-        Collection<V2WorkerMetadata> tasksMetadata = titusMaster.getStorageProvider().getJob(jobId)
+        Collection<V2WorkerMetadata> tasksMetadata = ((EmbeddedStorageProvider)titusMaster.getStorageProvider()).getJob(jobId)
                 .getStageMetadata(1)
                 .getAllWorkers();
 

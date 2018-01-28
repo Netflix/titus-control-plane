@@ -16,6 +16,7 @@
 
 package io.netflix.titus.testkit.embedded.master;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,8 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2StageMetadata;
@@ -42,6 +47,15 @@ import rx.Observable;
 /**
  */
 public class EmbeddedStorageProvider implements V2StorageProvider {
+
+    private static final TypeReference<List<V2JobMetadataWritable>> JOB_METADATA_LIST = new TypeReference<List<V2JobMetadataWritable>>() {
+    };
+
+    private static final TypeReference<List<V2StageMetadataWritable>> JOB_STAGE_METADATA_LIST = new TypeReference<List<V2StageMetadataWritable>>() {
+    };
+
+    private static final TypeReference<List<V2WorkerMetadataWritable>> WORKER_METADATA_LIST = new TypeReference<List<V2WorkerMetadataWritable>>() {
+    };
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -302,5 +316,34 @@ public class EmbeddedStorageProvider implements V2StorageProvider {
 
     static String getStageId(V2StageMetadataWritable msmd) {
         return msmd.getJobId() + '_' + msmd.getStageNum();
+    }
+
+    public static EmbeddedStorageProvider initializeFromFiles(String jobsFile, String jobStagesFile, String workersFile) {
+        List<V2JobMetadataWritable> jobs;
+        List<V2StageMetadataWritable> jobStages;
+        List<V2WorkerMetadataWritable> workers;
+        try {
+            jobs = ObjectMappers.compactMapper().readValue(new File(jobsFile), JOB_METADATA_LIST);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Cannot load file " + jobsFile, e);
+        }
+        try {
+            jobStages = ObjectMappers.compactMapper().readValue(new File(jobStagesFile), JOB_STAGE_METADATA_LIST);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Cannot load file " + jobStagesFile, e);
+        }
+        try {
+            workers = ObjectMappers.compactMapper().readValue(new File(workersFile), WORKER_METADATA_LIST);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Cannot load file " + workersFile, e);
+        }
+        Map<String, V2JobMetadataWritable> jobMap = jobs.stream().collect(Collectors.toMap(V2JobMetadataWritable::getJobId, Function.identity()));
+        Map<String, V2StageMetadataWritable> stageMap = jobStages.stream()
+                .filter(stage -> jobMap.containsKey(stage.getJobId()))
+                .collect(Collectors.toMap(V2StageMetadataWritable::getJobId, Function.identity()));
+        Map<String, V2WorkerMetadataWritable> workerMap = workers.stream()
+                .filter(worker -> jobMap.containsKey(worker.getJobId()))
+                .collect(Collectors.toMap(EmbeddedStorageProvider::getWorkerId, Function.identity()));
+        return new EmbeddedStorageProvider(jobMap, stageMap, workerMap);
     }
 }

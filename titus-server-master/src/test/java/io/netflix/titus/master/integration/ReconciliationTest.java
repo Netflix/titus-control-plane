@@ -59,7 +59,7 @@ public class ReconciliationTest extends BaseIntegrationTest {
     private final EmbeddedStorageProvider storageProvider = new EmbeddedStorageProvider();
 
     private final TitusMasterResource titusMasterResource = new TitusMasterResource(
-            basicMaster(basicCloud(1)).toBuilder().withStorageProvider(storageProvider).build()
+            basicMaster(basicCloud(1)).toBuilder().withV2JobStore(storageProvider).build()
     );
 
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusMasterResource);
