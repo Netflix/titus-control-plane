@@ -40,7 +40,7 @@ public interface SchedulerConfiguration {
     /**
      * Option used by component {@link io.netflix.titus.master.scheduler.fitness.NetworkInterfaceFitnessEvaluator}.
      *
-     * @return whether or not to use an optimizing or spreading algorithm for network interface allocation
+     * @return whether or not to use an optimizing algorithm for network interface allocation
      */
     @DefaultValue("false")
     boolean isOptimizingNetworkInterfaceAllocationEnabled();

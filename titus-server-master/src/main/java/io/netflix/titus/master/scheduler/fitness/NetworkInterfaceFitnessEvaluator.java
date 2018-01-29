@@ -5,8 +5,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.base.Strings;
+import com.netflix.fenzo.DefaultPreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
-import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
@@ -51,19 +51,20 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
 
     private final AgentResourceCache cache;
     private final SchedulerConfiguration configuration;
-    private final TitusRuntime runtime;
 
     @Inject
     public NetworkInterfaceFitnessEvaluator(AgentResourceCache cache,
-                                            SchedulerConfiguration configuration,
-                                            TitusRuntime runtime) {
+                                            SchedulerConfiguration configuration) {
         this.cache = cache;
         this.configuration = configuration;
-        this.runtime = runtime;
     }
 
     @Override
     public double evaluateIdle(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesLimit) {
+        if (!configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
+            return DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
+        }
+
         AgentResourceCacheNetworkInterface networkInterface = null;
         Optional<AgentResourceCacheInstance> cacheInstanceOpt = this.cache.getActive(hostname);
         if (cacheInstanceOpt.isPresent()) {
@@ -72,34 +73,38 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
 
         if (networkInterface == null) {
             // We know nothing about this network interface
-            return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeUnknown, subResourcesNeeded, 0, subResourcesLimit);
+            return evaluateNetworkInterfaceInState(NetworkInterfaceState.FreeUnknown, subResourcesNeeded, 0, subResourcesLimit);
         }
 
         // Network interface with no security group associated
         if (Strings.isNullOrEmpty(networkInterface.getJoinedSecurityGroupIds())) {
             if (!networkInterface.hasAvailableIps()) {
-                return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeUnassignedNoIps, subResourcesNeeded, 0, subResourcesLimit);
+                return evaluateNetworkInterfaceInState(NetworkInterfaceState.FreeUnassignedNoIps, subResourcesNeeded, 0, subResourcesLimit);
             }
-            return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeUnassignedSomeIps, subResourcesNeeded, 0, subResourcesLimit);
+            return evaluateNetworkInterfaceInState(NetworkInterfaceState.FreeUnassignedSomeIps, subResourcesNeeded, 0, subResourcesLimit);
         }
 
         // Network interface with same security group assigned
         if (networkInterface.getJoinedSecurityGroupIds().equals(resourceName)) {
             if (!networkInterface.hasAvailableIps()) {
-                return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeMatchingNoIps, subResourcesNeeded, 0, subResourcesLimit);
+                return evaluateNetworkInterfaceInState(NetworkInterfaceState.FreeMatchingNoIps, subResourcesNeeded, 0, subResourcesLimit);
             }
-            return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeMatchingSomeIps, subResourcesNeeded, 0, subResourcesLimit);
+            return evaluateNetworkInterfaceInState(NetworkInterfaceState.FreeMatchingSomeIps, subResourcesNeeded, 0, subResourcesLimit);
         }
 
         // Network interface with different security group assigned
         if (!networkInterface.hasAvailableIps()) {
-            return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeNotMatchingNoIps, subResourcesNeeded, 0, subResourcesLimit);
+            return evaluateNetworkInterfaceInState(NetworkInterfaceState.FreeNotMatchingNoIps, subResourcesNeeded, 0, subResourcesLimit);
         }
-        return evaluateNetworkInterfaceInState(networkInterface, NetworkInterfaceState.FreeNotMatchingSomeIps, subResourcesNeeded, 0, subResourcesLimit);
+        return evaluateNetworkInterfaceInState(NetworkInterfaceState.FreeNotMatchingSomeIps, subResourcesNeeded, 0, subResourcesLimit);
     }
 
     @Override
     public double evaluate(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
+        if (!configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
+            return DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
+        }
+
         Optional<AgentResourceCacheInstance> cacheInstanceOpt = this.cache.getActive(hostname);
         AgentResourceCacheNetworkInterface networkInterface = null;
         if (cacheInstanceOpt.isPresent()) {
@@ -109,21 +114,10 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
                 ? NetworkInterfaceState.UsedSomeIps
                 : NetworkInterfaceState.UsedNoIps;
 
-        return evaluateNetworkInterfaceInState(networkInterface, networkInterfaceState, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
+        return evaluateNetworkInterfaceInState(networkInterfaceState, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
     }
 
-    private double evaluateNetworkInterfaceInState(AgentResourceCacheNetworkInterface networkInterface,
-                                                   NetworkInterfaceState networkInterfaceState,
-                                                   double subResourcesNeeded,
-                                                   double subResourcesUsed,
-                                                   double subResourcesLimit) {
-        if (configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
-            return evaluateNetworkInterfaceInStateOptimized(networkInterfaceState, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
-        }
-        return evaluateNetworkInterfaceInStateSpreading(networkInterface, networkInterfaceState);
-    }
-
-    private double evaluateNetworkInterfaceInStateOptimized(NetworkInterfaceState networkInterfaceState, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
+    private double evaluateNetworkInterfaceInState(NetworkInterfaceState networkInterfaceState, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
         // 0 is the highest priority.
         int priority;
         switch (networkInterfaceState) {
@@ -160,41 +154,5 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
         double fitness = Math.min(1.0, (subResourcesUsed + subResourcesNeeded + 1.0) / (subResourcesLimit + 1));
         double from = 1.0 - priority * PARTITION_SIZE;
         return from + fitness * PARTITION_SIZE;
-    }
-
-    private double evaluateNetworkInterfaceInStateSpreading(AgentResourceCacheNetworkInterface networkInterface,
-                                                            NetworkInterfaceState networkInterfaceState) {
-        switch (networkInterfaceState) {
-            case FreeUnknown:
-            case FreeUnassignedNoIps:
-                return adjust(fitnessLru(networkInterface), 0.6, 1.0);
-            case FreeNotMatchingSomeIps:
-            case FreeNotMatchingNoIps:
-                return adjust(fitnessLru(networkInterface), 0.4, 0.6);
-            case FreeMatchingNoIps:
-                return adjust(fitnessLru(networkInterface), 0.2, 0.4);
-            case UsedSomeIps:
-            case UsedNoIps:
-            case FreeMatchingSomeIps:
-            case FreeUnassignedSomeIps:
-            default:
-        }
-        return adjust(fitnessLru(networkInterface), 0.0, 0.2);
-    }
-
-    private double adjust(double fitnessLRU, double from, double to) {
-        return from + (to - from) * fitnessLRU;
-    }
-
-    private double fitnessLru(AgentResourceCacheNetworkInterface networkInterface) {
-        if (networkInterface == null) {
-            return 1.0;
-        }
-        long now = runtime.getClock().wallTime();
-        long lastUpdateSec = (now - networkInterface.getTimestamp()) / 1_000;
-        if (lastUpdateSec <= 10) {
-            return 0.01;
-        }
-        return Math.max(0.01, 1.0 - 1.0 / Math.log10(lastUpdateSec));
     }
 }
