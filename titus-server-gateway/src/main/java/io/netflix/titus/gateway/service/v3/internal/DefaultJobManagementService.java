@@ -354,9 +354,7 @@ public class DefaultJobManagementService implements JobManagementService {
         Map<String, Task> archivedTasksMap = archivedTasks.stream().collect(Collectors.toMap(task -> task.getId(), Function.identity()));
         List<Task> uniqueActiveTasks = activeTasks.stream().filter(activeTask -> {
             if (archivedTasksMap.containsKey(activeTask.getId())) {
-                logger.info("Duplicate Task detected in archived vs active state.");
-                logger.info("Archived {}", archivedTasksMap.get(activeTask.getId()));
-                logger.info("Active {}", activeTask);
+                logger.warn("Duplicate Task detected (archived) {} - (active) {}", archivedTasksMap.get(activeTask.getId()), activeTask);
                 return false;
             }
             return true;
