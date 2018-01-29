@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -351,10 +352,17 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @VisibleForTesting
     static List<Task> deDupTasks(List<Task> activeTasks, List<Task> archivedTasks) {
-        List<Task> uniqueTasks = new ArrayList<>(archivedTasks);
-        Set<String> archivedTaskIds = archivedTasks.stream().map(archivedTask -> archivedTask.getId()).collect(Collectors.toSet());
-        List<Task> uniqueActiveTasks = activeTasks.stream().filter(activeTask -> !archivedTaskIds.contains(activeTask.getId())).collect(Collectors.toList());
-        uniqueTasks.addAll(uniqueActiveTasks);
-        return uniqueTasks;
+        Map<String, Task> archivedTasksMap = archivedTasks.stream().collect(Collectors.toMap(task -> task.getId(), Function.identity()));
+        List<Task> uniqueActiveTasks = activeTasks.stream().filter(activeTask -> {
+            if (archivedTasksMap.containsKey(activeTask.getId())) {
+                logger.info("Duplicate Task detected in archived vs active state.");
+                logger.info("Archived {}", archivedTasksMap.get(activeTask.getId()));
+                logger.info("Active {}", activeTask);
+                return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+        uniqueActiveTasks.addAll(archivedTasks);
+        return uniqueActiveTasks;
     }
 }
