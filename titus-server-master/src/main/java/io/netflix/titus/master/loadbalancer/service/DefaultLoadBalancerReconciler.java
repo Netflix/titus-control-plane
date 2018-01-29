@@ -41,6 +41,7 @@ import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.batch.Priority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 
@@ -49,10 +50,16 @@ import static io.netflix.titus.api.jobmanager.service.JobManagerException.ErrorC
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
 
+    // how many store.remove() calls are allowed concurrently during a GC
+    private static final int MAX_GC_CONCURRENCY = 100;
     private static final String UNKNOWN_JOB = "UNKNOWN-JOB";
     private static final String UNKNOWN_TASK = "UNKNOWN-TASK";
 
     private final ConcurrentMap<LoadBalancerTarget, Instant> ignored = new ConcurrentHashMap<>();
+
+    // this is not being accessed by multiple threads at the same time, but we still use a ConcurrentMap to ensure
+    // visibility across multiple reconciliation runs, which may run on different threads
+    private final Set<JobLoadBalancer> gcMarked = ConcurrentHashMap.newKeySet();
 
     private final LoadBalancerStore store;
     private final LoadBalancerConnector connector;
@@ -82,8 +89,10 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     @Override
     public Observable<TargetStateBatchable> events() {
-        Observable<TargetStateBatchable> updatesForAll = Observable.fromCallable(this::snapshotAssociationsByLoadBalancer)
-                .flatMapIterable(Map::entrySet, 1)
+        final Observable<Map<String, List<JobLoadBalancerState>>> gcAndSnapshot = gcMarkedAssociations()
+                .andThen(Observable.fromCallable(this::snapshotAssociationsByLoadBalancer));
+
+        final Observable<TargetStateBatchable> updatesForAll = gcAndSnapshot.flatMapIterable(Map::entrySet, 1)
                 // TODO(fabio): rate limit calls to reconcile (and to the connector)
                 .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1);
 
@@ -137,7 +146,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
             return jobOperations.targetsForJob(association.getJobLoadBalancer());
         } catch (RuntimeException e) {
             if (JobManagerException.hasErrorCode(e, JobNotFound)) {
-                logger.warn("Job is gone, ignoring its association {}", association);
+                logger.warn("Job is gone, ignoring its association and marking it to be GCed later {}", association);
+                gcMarked.add(association.getJobLoadBalancer());
             } else {
                 logger.error("Ignoring association, unable to fetch targets for {}", association, e);
             }
@@ -177,6 +187,29 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 logger.debug("Cooldown expired for target {}", target);
             }
         });
+    }
+
+
+    /**
+     * simple mark and sweep GC for orphan associations (i.e.: their jobs are gone)
+     */
+    private Completable gcMarkedAssociations() {
+        final Observable<Completable> removeOperations = Observable.from(gcMarked).map(marked -> {
+            if (jobOperations.getJob(marked.getJobId()).isPresent()) {
+                logger.warn("Not GCing an association that was previously marked, but now contains an existing job: {}", marked);
+                return Completable.complete();
+            }
+            return store.removeLoadBalancer(marked)
+                    .doOnSubscribe(ignored -> logger.info("Removing orphan association {}", marked))
+                    .doOnError(e -> logger.error("Failed to remove {}", marked, e));
+        });
+
+        // do as much as possible and swallow errors since future reconciliations will pick up and retry associations
+        // to be GC'ed later
+        return Completable.mergeDelayError(removeOperations, MAX_GC_CONCURRENCY)
+                .doOnSubscribe(s -> logger.debug("Running a GC sweep"))
+                .onErrorComplete()
+                .doOnTerminate(gcMarked::clear);
     }
 
     private Instant now() {
