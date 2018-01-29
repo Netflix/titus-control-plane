@@ -28,6 +28,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.validation.ConstraintViolation;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.Job;
@@ -68,6 +69,8 @@ import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.gateway.service.v3.JobManagementService;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
@@ -92,6 +95,7 @@ import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConve
 
 @Singleton
 public class DefaultJobManagementService implements JobManagementService {
+    private static Logger logger = LoggerFactory.getLogger(DefaultAutoScalingService.class);
 
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
 
@@ -303,9 +307,7 @@ public class DefaultJobManagementService implements JobManagementService {
     private TaskQueryResult combineTaskResults(TaskQuery taskQuery,
                                                List<Task> activeTasks,
                                                List<Task> archivedTasks) {
-        List<Task> tasks = new ArrayList<>(activeTasks);
-        tasks.addAll(archivedTasks);
-
+        List<Task> tasks = deDupTasks(activeTasks, archivedTasks);
         Page page = new Page(taskQuery.getPage().getPageNumber(), taskQuery.getPage().getPageSize());
         Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePage(page, tasks);
 
@@ -345,5 +347,14 @@ public class DefaultJobManagementService implements JobManagementService {
                 emitter,
                 Emitter.BackpressureMode.NONE
         ).timeout(getRxJavaAdjustedTimeout(configuration.getRequestTimeout()), TimeUnit.MILLISECONDS);
+    }
+
+    @VisibleForTesting
+    static List<Task> deDupTasks(List<Task> activeTasks, List<Task> archivedTasks) {
+        List<Task> uniqueTasks = new ArrayList<>(archivedTasks);
+        Set<String> archivedTaskIds = archivedTasks.stream().map(archivedTask -> archivedTask.getId()).collect(Collectors.toSet());
+        List<Task> uniqueActiveTasks = activeTasks.stream().filter(activeTask -> !archivedTaskIds.contains(activeTask.getId())).collect(Collectors.toList());
+        uniqueTasks.addAll(uniqueActiveTasks);
+        return uniqueTasks;
     }
 }
