@@ -138,21 +138,21 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+"
+            "locked": "2.2.13",
+            "requested": "2.2.+"
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -632,21 +632,21 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+"
+            "locked": "2.2.13",
+            "requested": "2.2.+"
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -1126,21 +1126,21 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+"
+            "locked": "2.2.13",
+            "requested": "2.2.+"
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -1657,21 +1657,21 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+"
+            "locked": "2.2.13",
+            "requested": "2.2.+"
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -2152,21 +2152,21 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+"
+            "locked": "2.2.13",
+            "requested": "2.2.+"
         },
         "com.netflix.governator:governator-api": {
             "locked": "1.15.11",
@@ -2696,21 +2696,21 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+",
+            "locked": "2.2.13",
+            "requested": "2.2.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -3586,21 +3586,21 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+",
+            "locked": "2.2.13",
+            "requested": "2.2.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -4476,21 +4476,21 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+",
+            "locked": "2.2.13",
+            "requested": "2.2.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -5367,21 +5367,21 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.1.13",
+            "locked": "2.2.13",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.1.13",
-            "requested": "2.1.+",
+            "locked": "2.2.13",
+            "requested": "2.2.+",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",

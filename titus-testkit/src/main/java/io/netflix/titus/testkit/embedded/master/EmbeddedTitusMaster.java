@@ -111,7 +111,7 @@ public class EmbeddedTitusMaster {
     private final int grpcPort;
     private final MasterDescription masterDescription;
 
-    private final EmbeddedStorageProvider storageProvider;
+    private final V2StorageProvider storageProvider;
     private final JobStore jobStore;
     private final AgentStore agentStore;
 
@@ -136,8 +136,8 @@ public class EmbeddedTitusMaster {
                 "embedded_titus_master", "192.168.0.1", builder.apiPort, "api/postjobstatus",
                 System.currentTimeMillis()
         );
-        this.storageProvider = builder.storageProvider;
-        this.jobStore = builder.jobStore == null ? new InMemoryJobStore() : builder.jobStore;
+        this.storageProvider = builder.v2JobStore;
+        this.jobStore = builder.v3JobStore == null ? new InMemoryJobStore() : builder.v3JobStore;
         this.agentStore = builder.agentStore == null ? new InMemoryAgentStore() : builder.agentStore;
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
@@ -251,7 +251,7 @@ public class EmbeddedTitusMaster {
         return simulatedCloud;
     }
 
-    public EmbeddedStorageProvider getStorageProvider() {
+    public V2StorageProvider getStorageProvider() {
         return storageProvider;
     }
 
@@ -361,8 +361,8 @@ public class EmbeddedTitusMaster {
                 .withGrpcPort(grpcPort)
                 .withSimulatedCloud(simulatedCloud)
                 .withProperties(properties)
-                .withJobStore(jobStore)
-                .withStorageProvider(storageProvider);
+                .withV3JobStore(jobStore)
+                .withV2JobStore(storageProvider);
     }
 
     public static class Builder {
@@ -371,8 +371,8 @@ public class EmbeddedTitusMaster {
         private int apiPort;
         private int grpcPort;
 
-        private EmbeddedStorageProvider storageProvider;
-        private JobStore jobStore;
+        private V2StorageProvider v2JobStore;
+        private JobStore v3JobStore;
         private AgentStore agentStore;
         private List<SimulatedTitusAgentCluster> agentClusters = new ArrayList<>();
         private SimulatedCloud simulatedCloud;
@@ -403,13 +403,13 @@ public class EmbeddedTitusMaster {
             return this;
         }
 
-        public Builder withStorageProvider(EmbeddedStorageProvider storageProvider) {
-            this.storageProvider = storageProvider;
+        public Builder withV2JobStore(V2StorageProvider storageProvider) {
+            this.v2JobStore = storageProvider;
             return this;
         }
 
-        public Builder withJobStore(JobStore jobStore) {
-            this.jobStore = jobStore;
+        public Builder withV3JobStore(JobStore jobStore) {
+            this.v3JobStore = jobStore;
             return this;
         }
 
@@ -457,8 +457,8 @@ public class EmbeddedTitusMaster {
             props.put("titus.master.apiport", Integer.toString(apiPort));
             props.put("titus.master.grpcServer.port", Integer.toString(grpcPort));
 
-            if (storageProvider == null) {
-                storageProvider = new EmbeddedStorageProvider();
+            if (v2JobStore == null) {
+                v2JobStore = new EmbeddedStorageProvider();
             }
 
             return new EmbeddedTitusMaster(this);

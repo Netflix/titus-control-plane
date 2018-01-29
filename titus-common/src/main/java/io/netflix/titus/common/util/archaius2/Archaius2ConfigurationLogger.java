@@ -48,8 +48,8 @@ public class Archaius2ConfigurationLogger {
         private String prefix = "";
 
         @Override
-        public Void visitKey(Config config, String key) {
-            logger.info(prefix + key + " = " + config.getString(key));
+        public Void visitKey(String key, Object value) {
+            logger.info(prefix + key + " = " + value);
             return null;
         }
 

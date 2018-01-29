@@ -156,7 +156,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         titusMaster.shutdown();
 
         // Change task state to force creation on startup
-        EmbeddedStorageProvider storage = titusMaster.getStorageProvider();
+        EmbeddedStorageProvider storage = (EmbeddedStorageProvider) titusMaster.getStorageProvider();
         V2StageMetadataWritable stageMetadata = (V2StageMetadataWritable) storage.getJob(holder.getJobId()).getStageMetadata(1);
 
         V2WorkerMetadataWritable worker = (V2WorkerMetadataWritable) stageMetadata.getWorkerByIndex(0);

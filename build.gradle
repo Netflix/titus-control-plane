@@ -72,7 +72,7 @@ subprojects {
         rxnettyVersion = '0.4.+'
         hdrhistogramVersion = '2.1.+'
         apacheCommonsCliVersion = '1.3.+'
-        archaius2Version = '2.1.+'
+        archaius2Version = '2.2.+'
         eurekaVersion = '1.+'
         numerusVersion = '1.1'
         snappyVersion = '1.1.+'
