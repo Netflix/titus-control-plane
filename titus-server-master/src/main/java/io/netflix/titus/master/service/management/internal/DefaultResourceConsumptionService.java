@@ -30,12 +30,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.util.guice.ProxyType;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.rx.ObservableExt;
-import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.MetricConstants;
+import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import io.netflix.titus.master.service.management.CompositeResourceConsumption;
@@ -85,10 +86,11 @@ public class DefaultResourceConsumptionService implements ResourceConsumptionSer
 
     @Inject
     public DefaultResourceConsumptionService(ApplicationSlaManagementService applicationSlaManagementService,
-                                             ApiOperations apiOperations,
+                                             V2JobOperations v2JobOperations,
+                                             V3JobOperations v3JobOperations,
                                              CapacityManagementConfiguration config,
                                              Registry registry) {
-        this(ResourceConsumptionEvaluator.newEvaluator(applicationSlaManagementService, apiOperations, config), registry, Schedulers.computation());
+        this(ResourceConsumptionEvaluator.newEvaluator(applicationSlaManagementService, v2JobOperations, v3JobOperations, config), registry, Schedulers.computation());
     }
 
     /* For testing */ DefaultResourceConsumptionService(Supplier<ConsumptionEvaluationResult> evaluator,

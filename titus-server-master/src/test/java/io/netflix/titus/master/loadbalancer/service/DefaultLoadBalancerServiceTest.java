@@ -725,7 +725,7 @@ public class DefaultLoadBalancerServiceTest {
     private void verifyReconcilerIgnore(String jobId, String loadBalancerId, String... ipAddresses) {
         final Set<String> ipSet = CollectionsExt.asSet(ipAddresses);
         final ArgumentCaptor<LoadBalancerTarget> captor = ArgumentCaptor.forClass(LoadBalancerTarget.class);
-        verify(reconciler, times(ipAddresses.length)).ignoreEventsFor(argThat(target ->
+        verify(reconciler, times(ipAddresses.length)).activateCooldownFor(argThat(target ->
                 jobId.equals(target.getJobId())
                         && loadBalancerId.equals(target.getLoadBalancerId())
                         && ipSet.contains(target.getIpAddress())
@@ -733,11 +733,11 @@ public class DefaultLoadBalancerServiceTest {
     }
 
     private void verifyNoReconcilerIgnore() {
-        verify(reconciler, never()).ignoreEventsFor(any(), anyLong(), any());
+        verify(reconciler, never()).activateCooldownFor(any(), anyLong(), any());
     }
 
     private void verifyNoReconcilerIgnore(String jobId, String loadBalancerId) {
-        verify(reconciler, never()).ignoreEventsFor(argThat(target ->
+        verify(reconciler, never()).activateCooldownFor(argThat(target ->
                 jobId.equals(target.getJobId()) && loadBalancerId.equals(target.getLoadBalancerId())
         ), anyLong(), any());
     }

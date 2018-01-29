@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
@@ -42,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
+
+import static io.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode.JobNotFound;
 
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
@@ -65,12 +68,12 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         this.store = store;
         this.connector = connector;
         this.jobOperations = loadBalancerJobOperations;
-        this.delayMs = configuration.getReconciliation().getDelayMs();
+        this.delayMs = configuration.getReconciliationDelayMs();
         this.scheduler = scheduler;
     }
 
     @Override
-    public void ignoreEventsFor(LoadBalancerTarget target, long period, TimeUnit unit) {
+    public void activateCooldownFor(LoadBalancerTarget target, long period, TimeUnit unit) {
         Duration periodDuration = Duration.ofMillis(unit.toMillis(period));
         logger.debug("Setting a cooldown of {} for target {}", periodDuration, target);
         Instant untilWhen = Instant.ofEpochMilli(scheduler.now()).plus(periodDuration);
@@ -100,30 +103,44 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 .collect(Collectors.toSet());
 
         final Instant now = now();
-        return connector.getRegisteredIps(loadBalancerId).flatMapObservable(registeredIps -> {
-            Set<LoadBalancerTarget> toRegister = shouldBeRegistered.stream()
-                    .filter(target -> !registeredIps.contains(target.getIpAddress()))
-                    .collect(Collectors.toSet());
-            Set<LoadBalancerTarget> toDeregister = CollectionsExt.copyAndRemove(registeredIps, shouldBeRegisteredIps).stream()
-                    .map(ip -> updateForUnknownTask(loadBalancerId, ip))
-                    .collect(Collectors.toSet());
+        final Observable<TargetStateBatchable> targetUpdates = connector.getRegisteredIps(loadBalancerId)
+                .flatMapObservable(registeredIps -> {
+                    Set<LoadBalancerTarget> toRegister = shouldBeRegistered.stream()
+                            .filter(target -> !registeredIps.contains(target.getIpAddress()))
+                            .collect(Collectors.toSet());
+                    Set<LoadBalancerTarget> toDeregister = CollectionsExt.copyAndRemove(registeredIps, shouldBeRegisteredIps).stream()
+                            .map(ip -> updateForUnknownTask(loadBalancerId, ip))
+                            .collect(Collectors.toSet());
 
-            if (!toRegister.isEmpty() || !toDeregister.isEmpty()) {
-                logger.info("Reconciliation found targets to to be registered: {}, to be deregistered: {}", toRegister.size(), toDeregister.size());
-            }
+                    if (!toRegister.isEmpty() || !toDeregister.isEmpty()) {
+                        logger.info("Reconciliation found targets to to be registered: {}, to be deregistered: {}",
+                                toRegister.size(), toDeregister.size());
+                    }
 
-            return Observable.from(CollectionsExt.merge(
-                    withState(now, toRegister, State.Registered),
-                    withState(now, toDeregister, State.Deregistered)
-            )).filter(update -> !ignored.containsKey(update.getIdentifier()));
-        });
+                    return Observable.from(CollectionsExt.merge(
+                            withState(now, toRegister, State.Registered),
+                            withState(now, toDeregister, State.Deregistered)
+                    )).filter(this::isNotIgnored);
+                });
+
+        return targetUpdates
+                .doOnError(e -> logger.error("Not reconciling load balancer {}", loadBalancerId, e))
+                .onErrorResumeNext(Observable.empty());
+    }
+
+    private boolean isNotIgnored(TargetStateBatchable update) {
+        return !ignored.containsKey(update.getIdentifier());
     }
 
     private List<LoadBalancerTarget> targetsForJobSafe(JobLoadBalancerState association) {
         try {
             return jobOperations.targetsForJob(association.getJobLoadBalancer());
         } catch (RuntimeException e) {
-            logger.error("Ignoring association, unable to fetch targets for it " + association.toString(), e);
+            if (JobManagerException.hasErrorCode(e, JobNotFound)) {
+                logger.warn("Job is gone, ignoring its association {}", association);
+            } else {
+                logger.error("Ignoring association, unable to fetch targets for {}", association, e);
+            }
             return Collections.emptyList();
         }
     }

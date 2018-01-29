@@ -16,6 +16,7 @@
 
 package io.netflix.titus.master.loadbalancer.service;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +33,7 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.batch.Priority;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import org.junit.Before;
 import org.junit.Test;
 import rx.Single;
 import rx.observers.AssertableSubscriber;
@@ -44,22 +46,34 @@ import static org.mockito.Mockito.when;
 
 public class DefaultLoadBalancerReconcilerTest {
 
+    private String loadBalancerId;
+    private String jobId;
+    private long delayMs;
+    private LoadBalancerConfiguration configuration;
+    private LoadBalancerStore store;
+    private LoadBalancerConnector connector;
+    private V3JobOperations v3JobOperations;
+    private LoadBalancerJobOperations loadBalancerJobOperations;
+    private TestScheduler testScheduler;
+
+    @Before
+    public void setUp() throws Exception {
+        loadBalancerId = UUID.randomUUID().toString();
+        jobId = UUID.randomUUID().toString();
+        delayMs = 60_000L;/* 1 min */
+        configuration = mockConfigWithDelay(delayMs);
+        store = mock(LoadBalancerStore.class);
+        connector = mock(LoadBalancerConnector.class);
+        v3JobOperations = mock(V3JobOperations.class);
+        loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
+        testScheduler = Schedulers.test();
+    }
+
     @Test
     public void registerMissingTargets() {
-        final long delayMs = 60_000L /* 1 min */;
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
-        final LoadBalancerStore store = mock(LoadBalancerStore.class);
-        final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
-        final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-        final LoadBalancerJobOperations loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
-        final TestScheduler testScheduler = Schedulers.test();
-
-        final String loadBalancerId = UUID.randomUUID().toString();
-        final String jobId = UUID.randomUUID().toString();
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
-
         when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
@@ -82,20 +96,9 @@ public class DefaultLoadBalancerReconcilerTest {
 
     @Test
     public void deregisterExtraTargets() {
-        final long delayMs = 60_000L /* 1 min */;
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
-        final LoadBalancerStore store = mock(LoadBalancerStore.class);
-        final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
-        final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-        final LoadBalancerJobOperations loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
-        final TestScheduler testScheduler = Schedulers.test();
-
-        final String loadBalancerId = UUID.randomUUID().toString();
-        final String jobId = UUID.randomUUID().toString();
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(3, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
-
         when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(CollectionsExt.asSet(
                 "1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4", "5.5.5.5"
@@ -120,23 +123,12 @@ public class DefaultLoadBalancerReconcilerTest {
     }
 
     @Test
-    public void ignoreEventsTemporarily() {
-        final long delayMs = 60_000L /* 1 min */;
-        final long quietPeriodMs = 5 * delayMs;
+    public void updatesAreIgnoredWhileCooldownIsActive() {
+        final long cooldownPeriodMs = 5 * delayMs;
 
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
-        final LoadBalancerStore store = mock(LoadBalancerStore.class);
-        final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
-        final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-        final LoadBalancerJobOperations loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
-        final TestScheduler testScheduler = Schedulers.test();
-
-        final String loadBalancerId = UUID.randomUUID().toString();
-        final String jobId = UUID.randomUUID().toString();
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
-
         when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
@@ -147,7 +139,7 @@ public class DefaultLoadBalancerReconcilerTest {
         for (Task task : tasks) {
             final String ipAddress = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
             final LoadBalancerTarget target = new LoadBalancerTarget(jobLoadBalancer, task.getId(), ipAddress);
-            reconciler.ignoreEventsFor(target, quietPeriodMs, TimeUnit.MILLISECONDS);
+            reconciler.activateCooldownFor(target, cooldownPeriodMs, TimeUnit.MILLISECONDS);
         }
 
         testScheduler.triggerActions();
@@ -171,20 +163,9 @@ public class DefaultLoadBalancerReconcilerTest {
 
     @Test
     public void jobsWithErrorsAreIgnored() {
-        final long delayMs = 60_000L /* 1 min */;
-        final LoadBalancerConfiguration configuration = mockConfig(delayMs);
-        final LoadBalancerStore store = mock(LoadBalancerStore.class);
-        final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
-        final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-        final LoadBalancerJobOperations loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
-        final TestScheduler testScheduler = Schedulers.test();
-
-        final String loadBalancerId = UUID.randomUUID().toString();
-        final String jobId = UUID.randomUUID().toString();
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
-
         when(v3JobOperations.getTasks(jobId))
                 .thenThrow(JobManagerException.class) // first fails
                 .thenReturn(tasks);
@@ -211,11 +192,38 @@ public class DefaultLoadBalancerReconcilerTest {
         });
     }
 
-    private LoadBalancerConfiguration mockConfig(long delayMs) {
+    @Test
+    public void connectorErrorsDoNotHaltReconciliation() {
+        final String failingLoadBalancerId = UUID.randomUUID().toString();
+        final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
+        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancer failingJobLoadBalancer = new JobLoadBalancer(jobId, failingLoadBalancerId);
+        final JobLoadBalancerState failingAssociation = new JobLoadBalancerState(failingJobLoadBalancer, JobLoadBalancer.State.Associated);
+        when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
+        when(connector.getRegisteredIps(failingLoadBalancerId)).thenReturn(Single.error(new RuntimeException("rate limit")));
+        when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
+        when(store.getAssociations()).thenReturn(Arrays.asList(failingAssociation, association));
+
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
+        final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
+
+        testScheduler.triggerActions();
+        subscriber.assertNoErrors().assertNotCompleted().assertNoValues();
+
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        // failingLoadBalancerId gets ignored
+        subscriber.assertNoErrors().assertNotCompleted().assertValueCount(5);
+        subscriber.getOnNextEvents().forEach(update -> {
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
+        });
+    }
+
+    private LoadBalancerConfiguration mockConfigWithDelay(long delayMs) {
         final LoadBalancerConfiguration configuration = mock(LoadBalancerConfiguration.class);
-        final LoadBalancerConfiguration.Reconciliation reconciliationConfig = mock(LoadBalancerConfiguration.Reconciliation.class);
-        when(reconciliationConfig.getDelayMs()).thenReturn(delayMs);
-        when(configuration.getReconciliation()).thenReturn(reconciliationConfig);
+        when(configuration.getReconciliationDelayMs()).thenReturn(delayMs);
         return configuration;
     }
 }
