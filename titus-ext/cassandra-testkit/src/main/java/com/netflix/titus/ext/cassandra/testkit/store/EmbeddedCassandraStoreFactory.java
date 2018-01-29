@@ -19,7 +19,7 @@ import static io.netflix.titus.ext.cassandra.tool.CassandraSchemas.JOB_ACTIVE_TA
 
 public class EmbeddedCassandraStoreFactory {
 
-    private static final long STARTUP_TIMEOUT = 30000;
+    private static final long STARTUP_TIMEOUT = 30_000;
 
     private static final String CASSANDRA_CONFIG = "embedded-cassandra.yaml";
 
@@ -77,7 +77,7 @@ public class EmbeddedCassandraStoreFactory {
         }
 
         private Session createEmbeddedCassandra() {
-            // This improves boot time by a few seconds
+            // Disable fsync for a massive speedup on old platters. This improves boot time by a few seconds.
             System.setProperty("cassandra.unsafesystem", "true");
 
             try {
