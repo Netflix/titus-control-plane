@@ -19,6 +19,7 @@ package io.netflix.titus.master.loadbalancer.service;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +34,7 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.batch.Priority;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Single;
@@ -219,6 +221,34 @@ public class DefaultLoadBalancerReconcilerTest {
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
+    }
+
+    @Test
+    public void orphanAssociationsAreGarbageCollected() {
+        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        when(v3JobOperations.getTasks(jobId)).thenThrow(JobManagerException.jobNotFound(jobId));
+        when(v3JobOperations.getJob(jobId)).thenReturn(Optional.empty());
+        when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
+        store = new InMemoryLoadBalancerStore();
+        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
+                .await(5, TimeUnit.SECONDS)).isTrue();
+
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
+        final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
+
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertNoValues();
+
+        // first phase mark
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNoTerminalEvent().assertNoValues();
+
+        // second phase sweep
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNoTerminalEvent().assertNoValues();
+
+        assertThat(store.getAssociations()).isEmpty();
+        assertThat(store.getAssociatedLoadBalancersSetForJob(jobId)).isEmpty();
     }
 
     private LoadBalancerConfiguration mockConfigWithDelay(long delayMs) {
