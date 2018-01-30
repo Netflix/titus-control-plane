@@ -224,7 +224,7 @@ public class DefaultLoadBalancerReconcilerTest {
     }
 
     @Test
-    public void orphanAssociationsAreGarbageCollected() {
+    public void orphanAssociationsAreSetAsDissociated() {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         when(v3JobOperations.getTasks(jobId)).thenThrow(JobManagerException.jobNotFound(jobId));
         when(v3JobOperations.getJob(jobId)).thenReturn(Optional.empty());
@@ -247,7 +247,11 @@ public class DefaultLoadBalancerReconcilerTest {
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
         subscriber.assertNoTerminalEvent().assertNoValues();
 
-        assertThat(store.getAssociations()).isEmpty();
+        final List<JobLoadBalancerState> associations = store.getAssociations();
+        assertThat(associations).isNotEmpty();
+        for (JobLoadBalancerState association : associations) {
+            assertThat(association.getState()).isEqualTo(JobLoadBalancer.State.Dissociated);
+        }
         assertThat(store.getAssociatedLoadBalancersSetForJob(jobId)).isEmpty();
     }
 

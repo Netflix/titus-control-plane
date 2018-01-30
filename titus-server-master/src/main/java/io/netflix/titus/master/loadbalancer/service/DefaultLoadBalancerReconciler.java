@@ -51,7 +51,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
 
     // how many store.remove() calls are allowed concurrently during a GC
-    private static final int MAX_GC_CONCURRENCY = 100;
+    private static final int MAX_ORPHAN_CLEANUP_CONCURRENCY = 100;
     private static final String UNKNOWN_JOB = "UNKNOWN-JOB";
     private static final String UNKNOWN_TASK = "UNKNOWN-TASK";
 
@@ -59,7 +59,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     // this is not being accessed by multiple threads at the same time, but we still use a ConcurrentMap to ensure
     // visibility across multiple reconciliation runs, which may run on different threads
-    private final Set<JobLoadBalancer> gcMarked = ConcurrentHashMap.newKeySet();
+    private final Set<JobLoadBalancer> markedAsOrphan = ConcurrentHashMap.newKeySet();
 
     private final LoadBalancerStore store;
     private final LoadBalancerConnector connector;
@@ -89,11 +89,11 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     @Override
     public Observable<TargetStateBatchable> events() {
-        final Observable<Map.Entry<String, List<JobLoadBalancerState>>> gcAndSnapshot = gcMarkedAssociations()
+        final Observable<Map.Entry<String, List<JobLoadBalancerState>>> cleanupOrphansAndSnapshot = updateOrphanAssociations()
                 .andThen(snapshotAssociationsByLoadBalancer());
 
         // TODO(fabio): rate limit calls to reconcile (and to the connector)
-        final Observable<TargetStateBatchable> updatesForAll = gcAndSnapshot.flatMap(entry ->
+        final Observable<TargetStateBatchable> updatesForAll = cleanupOrphansAndSnapshot.flatMap(entry ->
                 reconcile(entry.getKey(), entry.getValue()), 1
         );
 
@@ -147,7 +147,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         } catch (RuntimeException e) {
             if (JobManagerException.hasErrorCode(e, JobNotFound)) {
                 logger.warn("Job is gone, ignoring its association and marking it to be GCed later {}", association);
-                gcMarked.add(association.getJobLoadBalancer());
+                markedAsOrphan.add(association.getJobLoadBalancer());
             } else {
                 logger.error("Ignoring association, unable to fetch targets for {}", association, e);
             }
@@ -196,27 +196,25 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         });
     }
 
-
     /**
-     * simple mark and sweep GC for orphan associations (i.e.: their jobs are gone)
+     * set previously marked orphan associations (their jobs are gone) as <tt>Dissociated</tt>.
      */
-    private Completable gcMarkedAssociations() {
-        final Observable<Completable> removeOperations = Observable.from(gcMarked).map(marked -> {
+    private Completable updateOrphanAssociations() {
+        final Observable<Completable> updateOperations = Observable.from(markedAsOrphan).map(marked -> {
             if (jobOperations.getJob(marked.getJobId()).isPresent()) {
-                logger.warn("Not GCing an association that was previously marked, but now contains an existing job: {}", marked);
+                logger.warn("Not updating an association that was previously marked as orphan, but now contains an existing job: {}", marked);
                 return Completable.complete();
             }
-            return store.removeLoadBalancer(marked)
-                    .doOnSubscribe(ignored -> logger.info("Removing orphan association {}", marked))
+            return store.addOrUpdateLoadBalancer(marked, JobLoadBalancer.State.Dissociated)
+                    .doOnSubscribe(ignored -> logger.info("Setting orphan association as Dissociated: {}", marked))
                     .doOnError(e -> logger.error("Failed to remove {}", marked, e));
         });
 
-        // do as much as possible and swallow errors since future reconciliations will pick up and retry associations
-        // to be GC'ed later
-        return Completable.mergeDelayError(removeOperations, MAX_GC_CONCURRENCY)
-                .doOnSubscribe(s -> logger.debug("Running a GC sweep"))
+        // do as much as possible and swallow errors since future reconciliations will mark orphan associations again
+        return Completable.mergeDelayError(updateOperations, MAX_ORPHAN_CLEANUP_CONCURRENCY)
+                .doOnSubscribe(s -> logger.debug("Updating orphan associations"))
                 .onErrorComplete()
-                .doOnTerminate(gcMarked::clear);
+                .doOnTerminate(markedAsOrphan::clear);
     }
 
     private Instant now() {
