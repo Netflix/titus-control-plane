@@ -34,6 +34,7 @@ import com.netflix.fenzo.VirtualMachineLease;
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.service.AgentManagementFunctions;
 import io.netflix.titus.api.agent.service.AgentManagementService;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.DateTimeExt;
 import org.apache.mesos.Protos;
 import rx.functions.Func0;
@@ -43,12 +44,14 @@ public class VMOperationsImpl implements VMOperations {
 
     private Func0<List<JobsOnVMStatus>> jobsGetterFunc = null;
     private final ConcurrentMap<String, List<VirtualMachineCurrentState>> vmStatesMap;
+    private final AgentResourceAllocationMetrics agentResourceAllocationMetrics;
     private final AgentManagementService agentManagementService;
 
     @Inject
-    public VMOperationsImpl(AgentManagementService agentManagementService) {
+    public VMOperationsImpl(AgentManagementService agentManagementService, TitusRuntime runtime) {
         this.agentManagementService = agentManagementService;
-        vmStatesMap = new ConcurrentHashMap<>();
+        this.vmStatesMap = new ConcurrentHashMap<>();
+        this.agentResourceAllocationMetrics = new AgentResourceAllocationMetrics(agentManagementService, runtime);
     }
 
     @Override
@@ -77,6 +80,7 @@ public class VMOperationsImpl implements VMOperations {
     @Override
     public void setAgentInfos(List<VirtualMachineCurrentState> vmStates) {
         vmStatesMap.put("0", vmStates);
+        agentResourceAllocationMetrics.update(vmStates);
     }
 
     @Override
