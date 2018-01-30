@@ -79,13 +79,6 @@ public final class StringExt {
         return trimmed.isEmpty() ? "" : trimmed;
     }
 
-    public static boolean safeEquals(String first, String second) {
-        if (first == null) {
-            return second == null;
-        }
-        return second != null && first.equals(second);
-    }
-
     public static String nonNull(String value) {
         return value == null ? "" : value;
     }

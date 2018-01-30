@@ -1,6 +1,7 @@
 package io.netflix.titus.master.scheduler;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -20,8 +21,6 @@ import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.MetricConstants;
-
-import static io.netflix.titus.common.util.StringExt.safeEquals;
 
 /**
  * Metrics for available agent resources.
@@ -94,7 +93,7 @@ final class AgentResourceAllocationMetrics {
             String instanceGroupId;
             ResourceDimension instanceDimension;
             List<Pair<AgentInstanceGroup, List<AgentInstance>>> matchingInstances = agentManagementService.findAgentInstances(pair ->
-                    safeEquals(vms.getHostname(), pair.getRight().getHostname()) || safeEquals(vms.getHostname(), pair.getRight().getIpAddress())
+                    Objects.equals(vms.getHostname(), pair.getRight().getHostname()) || Objects.equals(vms.getHostname(), pair.getRight().getIpAddress())
             );
             if (matchingInstances.size() == 1) {
                 AgentInstanceGroup instanceGroup = matchingInstances.get(0).getLeft();
