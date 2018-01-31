@@ -31,7 +31,7 @@ public class ExecutionScenarioTest {
     private final ExtTestSubscriber<Executable> testSubscriber = new ExtTestSubscriber<>();
 
     @Test
-    public void testSimpleScenario() throws Exception {
+    public void testSimpleScenario() {
         ExecutionScenario scenario = ExecutionScenario.newBuilder()
                 .constantLoad(
                         JobCatalog.batchJob(JobCatalog.JobSize.Small, 1, 1, TimeUnit.HOURS),

@@ -54,6 +54,8 @@ public interface V3JobOperations {
 
     List<Task> getTasks(String jobId);
 
+    List<Pair<Job, List<Task>>> getJobsAndTasks();
+
     List<Job<?>> findJobs(Predicate<Pair<Job<?>, List<Task>>> queryPredicate, int offset, int limit);
 
     List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit);

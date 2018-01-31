@@ -57,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
+import rx.Subscription;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
@@ -69,6 +70,8 @@ import static java.util.Arrays.asList;
 public class SimulatedTitusAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(SimulatedTitusAgent.class);
+
+    private static final long REOFFER_DELAY_MS = 100;
 
     private final Protos.SlaveID slaveId;
     private final Offer.Builder offerTemplate;
@@ -97,6 +100,7 @@ public class SimulatedTitusAgent {
 
     private final Subject<OfferChangeEvent, OfferChangeEvent> offerUpdates = new SerializedSubject<>(PublishSubject.create());
     private volatile Offer lastOffer;
+    private volatile Subscription emmitSubscription;
 
     private final SerializedSubject<Protos.TaskStatus, Protos.TaskStatus> taskUpdates = new SerializedSubject<>(BehaviorSubject.create());
 
@@ -139,7 +143,7 @@ public class SimulatedTitusAgent {
 
         this.networkResourceTracker = new NetworkResourceTracker(ipPerEni);
 
-        emmitAvailableOffers(false);
+        emmitAvailableOffers(0);
     }
 
     public String getClusterName() {
@@ -261,9 +265,10 @@ public class SimulatedTitusAgent {
             return Collections.emptyList();
         }
 
+        logger.info("Launching {} tasks for offer: {}", tasks.size(), offerId);
         List<TaskExecutorHolder> taskExecutorHolders = launchTasksInternal(tasks);
         taskExecutorHolders.forEach(launchedTasksSubject::onNext);
-        emmitAvailableOffers(false);
+        emmitAvailableOffers(REOFFER_DELAY_MS);
         return taskExecutorHolders;
     }
 
@@ -443,7 +448,7 @@ public class SimulatedTitusAgent {
         if (lastOffer != null && lastOffer.getId().getValue().equals(offerId)) {
             lastOffer = null;
             // To avoid tight loop, re-offer it after some delay
-            worker.schedule(() -> emmitAvailableOffers(false), 10, TimeUnit.MILLISECONDS);
+            emmitAvailableOffers(REOFFER_DELAY_MS);
         }
     }
 
@@ -469,17 +474,36 @@ public class SimulatedTitusAgent {
         return !isCurrentOffer(offerId);
     }
 
-    private synchronized void emmitAvailableOffers(boolean rescindFromClient) {
-        if (rescindFromClient && lastOffer != null) {
-            logger.info("Rescinding offer: {}", lastOffer.getId().getValue());
-            offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
-            lastOffer = null;
+    private synchronized void rescind() {
+        if (lastOffer == null) {
+            return;
         }
-        if (aboveZero()) {
-            lastOffer = createOfferForAvailableResources();
-            logger.info("Emitting new offer: {}", lastOffer.getId().getValue());
-            offerUpdates.onNext(OfferChangeEvent.offer(lastOffer));
+        logger.info("Rescinding offer: {}", lastOffer.getId().getValue());
+        offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
+        lastOffer = null;
+
+        emmitAvailableOffers(REOFFER_DELAY_MS);
+    }
+
+    private synchronized void emmitAvailableOffers(long delayMs) {
+        if(lastOffer != null) {
+            rescind();
+            return;
         }
+        if (!aboveZero()) {
+            return;
+        }
+
+        if (emmitSubscription != null && !emmitSubscription.isUnsubscribed()) {
+            emmitSubscription.unsubscribe();
+        }
+        this.emmitSubscription = worker.schedule(() -> {
+            Offer newOffer = createOfferForAvailableResources();
+            logger.info("Emitting new offer {}: cpu={}, memoryMB={}, networkMB={}, diskMB={}", newOffer.getId().getValue(),
+                    availableCPUs, availableMemory, availableNetworkMbs, availableDisk);
+            offerUpdates.onNext(OfferChangeEvent.offer(newOffer));
+            this.lastOffer = newOffer;
+        }, delayMs, TimeUnit.MILLISECONDS);
     }
 
     private void releaseResourcesAndReOffer(TaskExecutorHolder taskExecutorHolder) {
@@ -515,7 +539,7 @@ public class SimulatedTitusAgent {
                 "Network inconsistency in resource allocation/reclaim detected for agent " + slaveId.getValue()
         );
 
-        emmitAvailableOffers(true);
+        rescind();
     }
 
     private boolean aboveZero() {

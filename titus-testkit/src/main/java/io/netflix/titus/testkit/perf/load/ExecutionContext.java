@@ -20,24 +20,33 @@ import java.util.Date;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import io.netflix.titus.testkit.client.TitusMasterClient;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
+import io.grpc.ManagedChannel;
+import io.netflix.titus.testkit.rx.RxGrpcJobManagementService;
 
 @Singleton
 public class ExecutionContext {
 
     public static final String LABEL_SESSION = "titus.load.session";
 
-    private final TitusMasterClient client;
     private final String sessionId;
+    private final RxGrpcJobManagementService jobManagementClient;
+    private final JobManagementServiceBlockingStub jobManagementClientBlocking;
 
     @Inject
-    public ExecutionContext(TitusMasterClient client) {
-        this.client = client;
+    public ExecutionContext(ManagedChannel titusGrpcChannel) {
+        this.jobManagementClient = new RxGrpcJobManagementService(titusGrpcChannel);
+        this.jobManagementClientBlocking = JobManagementServiceGrpc.newBlockingStub(titusGrpcChannel);
         this.sessionId = "startedAt=" + new Date();
     }
 
-    public TitusMasterClient getClient() {
-        return client;
+    public RxGrpcJobManagementService getJobManagementClient() {
+        return jobManagementClient;
+    }
+
+    public JobManagementServiceBlockingStub getJobManagementClientBlocking() {
+        return jobManagementClientBlocking;
     }
 
     public String getSessionId() {

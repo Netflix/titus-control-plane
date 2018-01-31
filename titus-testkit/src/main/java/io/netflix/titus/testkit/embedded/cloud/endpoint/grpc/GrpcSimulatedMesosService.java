@@ -56,7 +56,7 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
                     responseObserver.onNext(toSimulatedOfferEvent(offerEvent));
                 },
                 e -> {
-                    logger.info("Offer subscription stream terminated with an error: {}", e.getMessage());
+                    logger.info("Offer subscription stream terminated with an error: {}", e.getMessage(), e);
                     responseObserver.onError(e);
                 },
                 () -> {

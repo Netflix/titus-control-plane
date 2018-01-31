@@ -157,7 +157,7 @@ public class SimulatedLocalMesosSchedulerDriver implements SchedulerDriver {
     @Override
     public Status launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks, Protos.Filters filters) {
         checkDriverInRunningState();
-        simulatedCloud.launchTasks(ConnectorUtils.findLatestLease(offerIds), tasks);
+        simulatedCloud.launchTasks(ConnectorUtils.findEarliestLease(offerIds), tasks);
         return Status.DRIVER_RUNNING;
     }
 

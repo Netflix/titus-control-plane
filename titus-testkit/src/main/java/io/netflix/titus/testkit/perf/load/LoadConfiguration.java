@@ -16,8 +16,10 @@
 
 package io.netflix.titus.testkit.perf.load;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
+@Configuration(prefix = "titus.load")
 public interface LoadConfiguration {
 
     @DefaultValue("1")

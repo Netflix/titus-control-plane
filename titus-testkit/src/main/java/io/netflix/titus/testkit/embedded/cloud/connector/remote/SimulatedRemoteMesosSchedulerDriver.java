@@ -125,7 +125,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
     @Override
     public Protos.Status launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
         TasksLaunchRequest request = TasksLaunchRequest.newBuilder()
-                .setOfferId(ConnectorUtils.findLatestLease(offerIds))
+                .setOfferId(ConnectorUtils.findEarliestLease(offerIds))
                 .addAllTasks(tasks.stream().map(this::toSimulatedTask).collect(Collectors.toList()))
                 .build();
         blockingClient.launchTasks(request);

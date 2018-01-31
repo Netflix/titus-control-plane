@@ -19,26 +19,26 @@ package io.netflix.titus.testkit.perf.load.job;
 import java.io.IOException;
 
 import com.google.common.base.Preconditions;
-import io.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
-import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.api.jobmanager.model.job.Capacity;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-public class ServiceJobExecutor extends AbstractJobExecutor {
+public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceJobExecutor.class);
 
-    private volatile int currentMin;
-    private volatile int currentDesired;
-    private volatile int currentMax;
+    private volatile Capacity currentCapacity;
 
-    public ServiceJobExecutor(TitusJobSpec jobSpec, ActiveJobsMonitor activeJobsMonitor, ExecutionContext context) {
-        super(jobSpec, activeJobsMonitor, context);
-        this.currentMin = jobSpec.getInstancesMin();
-        this.currentDesired = jobSpec.getInstancesDesired();
-        this.currentMax = jobSpec.getInstancesMax();
+    public ServiceJobExecutor(JobDescriptor<ServiceJobExt> jobSpec,
+                              Observable<JobManagerEvent<?>> jobChangeObservable,
+                              ExecutionContext context) {
+        super(jobSpec, jobChangeObservable, context);
+        this.currentCapacity = jobSpec.getExtensions().getCapacity();
     }
 
     @Override
@@ -46,17 +46,13 @@ public class ServiceJobExecutor extends AbstractJobExecutor {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getClient()
-                .killTaskAndShrink(taskId)
+        return context.getJobManagementClient().killTask(taskId, true)
                 .onErrorResumeNext(e -> Observable.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e)))
                 .doOnCompleted(() -> {
                     logger.info("Terminate and shrink succeeded for task {}", taskId);
-                    this.currentDesired--;
-                    logger.info("Instance count changed to min={}, desired={}, max={} of job {}", currentMin, currentDesired, currentMax, jobId);
-                    jobReconciler.taskTerminateAndShrinkRequested(taskId).forEach(updateSubject::onNext);
-                })
-                .doOnSubscribe(() -> lastChangeTimestamp = -1)
-                .doOnTerminate(() -> lastChangeTimestamp = System.currentTimeMillis());
+                    this.currentCapacity = currentCapacity.toBuilder().withDesired(currentCapacity.getDesired() - 1).build();
+                    logger.info("Job capacity changed: jobId={}, capacity={}", jobId, currentCapacity);
+                });
     }
 
     @Override
@@ -64,28 +60,22 @@ public class ServiceJobExecutor extends AbstractJobExecutor {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getClient()
-                .setInstanceCount(new JobSetInstanceCountsCmd("loadRunner", jobId, desired, min, max))
+        return context.getJobManagementClient().updateJobSize(jobId, min, desired, max)
                 .onErrorResumeNext(e -> Observable.error(
                         new IOException("Failed to change instance count to min=" + min + ", desired=" + desired + ", max=" + max + " of job " + name, e)))
                 .doOnCompleted(() -> {
                     logger.info("Instance count changed to min={}, desired={}, max={} of job {}", min, desired, max, jobId);
-                    this.currentMin = min;
-                    this.currentDesired = desired;
-                    this.currentMax = max;
-                    jobReconciler.updateInstanceCountRequested(jobId, min, desired, max).forEach(updateSubject::onNext);
-                })
-                .doOnSubscribe(() -> lastChangeTimestamp = -1)
-                .doOnTerminate(() -> lastChangeTimestamp = System.currentTimeMillis());
+                    this.currentCapacity = Capacity.newBuilder().withMin(min).withDesired(desired).withMax(max).build();
+                });
     }
 
     @Override
     public Observable<Void> scaleUp(int delta) {
-        return updateInstanceCount(currentMin, currentDesired + delta, currentMax);
+        return updateInstanceCount(currentCapacity.getMin(), currentCapacity.getDesired() + delta, currentCapacity.getMax());
     }
 
     @Override
     public Observable<Void> scaleDown(int delta) {
-        return updateInstanceCount(currentMin, currentDesired - delta, currentMax);
+        return updateInstanceCount(currentCapacity.getMin(), currentCapacity.getDesired() - delta, currentCapacity.getMax());
     }
 }

@@ -102,6 +102,10 @@ message SimulatedTask {
     repeated string securityGroups = 6;
 
     map<string, string> env = 7;
+
+    string taskState = 8;
+
+    string message = 9;
 }
 
 message SimulatedTaskStatus {
@@ -113,6 +117,7 @@ message SimulatedTaskStatus {
         StartInitiated = 1;
 
         Started = 2;
+
 
         Killed = 3;
 

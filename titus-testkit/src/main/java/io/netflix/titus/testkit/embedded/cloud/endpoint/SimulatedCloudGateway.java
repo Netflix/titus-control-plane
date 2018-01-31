@@ -15,6 +15,7 @@ import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import org.apache.mesos.Protos;
 
 @Singleton
 public class SimulatedCloudGateway {
@@ -60,6 +61,31 @@ public class SimulatedCloudGateway {
         return simulatedCloud.getAgentInstance(instanceId).getTaskExecutorHolders().stream()
                 .map(this::toSimulatedTask)
                 .collect(Collectors.toList());
+    }
+
+    public void terminateAllTasks() {
+        simulatedCloud.getAgentInstanceGroups().forEach(g -> g.getAgents().forEach(i ->
+                i.getAllTasks().forEach(t ->
+                        t.transitionTo(
+                                Protos.TaskState.TASK_KILLED,
+                                Protos.TaskStatus.Reason.REASON_EXECUTOR_TERMINATED,
+                                "Terminated via cloud API (terminateAll)"
+                        )
+                )));
+    }
+
+    public boolean terminateTask(String taskId) {
+        try {
+            TaskExecutorHolder holder = simulatedCloud.getTaskExecutorHolder(taskId);
+            holder.transitionTo(
+                    Protos.TaskState.TASK_KILLED,
+                    Protos.TaskStatus.Reason.REASON_EXECUTOR_TERMINATED,
+                    "Terminated via cloud API (terminateTask)"
+            );
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     public void updateCapacity(String instanceGroupId, Capacity capacity) {
@@ -120,6 +146,7 @@ public class SimulatedCloudGateway {
     }
 
     private SimulatedTask toSimulatedTask(TaskExecutorHolder holder) {
+        Protos.TaskStatus taskStatus = holder.getTaskStatus();
         return SimulatedTask.newBuilder()
                 .setTaskId(holder.getTaskId())
                 .setInstanceId(holder.getAgent().getId())
@@ -129,6 +156,8 @@ public class SimulatedCloudGateway {
                         .setDiskMB((int) holder.getTaskDisk())
                         .setNetworkMB((int) holder.getTaskNetworkMbs())
                 )
+                .setTaskState(taskStatus.getState().name())
+                .setMessage(taskStatus.getMessage())
                 .build();
     }
 }

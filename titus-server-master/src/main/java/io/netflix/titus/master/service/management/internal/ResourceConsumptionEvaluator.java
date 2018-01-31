@@ -173,17 +173,20 @@ class ResourceConsumptionEvaluator {
                 });
 
         // V3 engine
-        v3JobOperations.getJobs().forEach(job -> {
+        v3JobOperations.getJobsAndTasks().forEach(jobsAndTasks -> {
+            Job job = jobsAndTasks.getLeft();
+            List<Task> tasks = jobsAndTasks.getRight();
+
             ResourceDimension taskResources = toResourceDimension(job);
             int max = getMaxJobSize(job);
 
-            Map<String, Object> tasksStates = getWorkerStateMap(job);
+            Map<String, Object> tasksStates = getWorkerStateMap(tasks);
             String appName = job.getJobDescriptor().getApplicationName();
 
             ResourceConsumption jobConsumption = new ResourceConsumption(
                     appName == null ? DEFAULT_APPLICATION : appName,
                     ConsumptionLevel.Application,
-                    ResourceDimensions.multiply(taskResources, getRunningWorkers(job).size()),
+                    ResourceDimensions.multiply(taskResources, getRunningWorkers(tasks).size()),
                     ResourceDimensions.multiply(taskResources, max),
                     tasksStates
             );
@@ -250,14 +253,7 @@ class ResourceConsumptionEvaluator {
         return tasksStates;
     }
 
-    private Map<String, Object> getWorkerStateMap(Job job) {
-        List<Task> tasks;
-        try {
-            tasks = v3JobOperations.getTasks(job.getId());
-        } catch (Exception e) {
-            return Collections.emptyMap();
-        }
-
+    private Map<String, Object> getWorkerStateMap(List<Task> tasks) {
         Map<String, Object> tasksStates = newTaskStateMap();
         tasks.stream().map(task -> JobFunctions.toV2JobState(task.getStatus().getState())).forEach(taskState ->
                 tasksStates.put(taskState.name(), (int) tasksStates.get(taskState.name()) + 1)
@@ -353,8 +349,8 @@ class ResourceConsumptionEvaluator {
         return allWorkers.stream().filter(t -> V2JobState.isRunningState(t.getState())).collect(Collectors.toList());
     }
 
-    private List<Task> getRunningWorkers(Job<?> job) {
-        return v3JobOperations.getTasks(job.getId()).stream().filter(t -> TaskState.isRunning(t.getStatus().getState())).collect(Collectors.toList());
+    private List<Task> getRunningWorkers(List<Task> tasks) {
+        return tasks.stream().filter(t -> TaskState.isRunning(t.getStatus().getState())).collect(Collectors.toList());
     }
 
     private double getBuffer(Tier tier) {

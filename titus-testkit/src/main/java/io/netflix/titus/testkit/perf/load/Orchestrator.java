@@ -21,7 +21,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.netflix.titus.testkit.perf.load.catalog.ExecutionScenarioCatalog;
-import io.netflix.titus.testkit.perf.load.job.ActiveJobsMonitor;
 import io.netflix.titus.testkit.perf.load.report.MetricsCollector;
 import io.netflix.titus.testkit.perf.load.report.TextReporter;
 import io.netflix.titus.testkit.perf.load.runner.ExecutionScenarioRunner;
@@ -39,26 +38,28 @@ public class Orchestrator {
 
     @Inject
     public Orchestrator(LoadConfiguration configuration,
-                        ActiveJobsMonitor activeJobsMonitor,
                         Terminator terminator,
                         ExecutionContext context) {
         if (configuration.isClean()) {
             terminator.doClean();
         }
 
-        this.scenarioRunner = new ExecutionScenarioRunner(
-//                ExecutionScenarioCatalog.oneAutoScalingService(configuration.getScaleFactor()),
-                ExecutionScenarioCatalog.oneScalingServiceWihTerminateAndShrink(configuration.getScaleFactor()),
-//                ExecutionScenarioCatalog.oneBatchJob(configuration.getScaleFactor()),
-//                ExecutionScenarioCatalog.mixedLoad(configuration.getScaleFactor()),
-                activeJobsMonitor,
-                context,
-                Schedulers.computation()
-        );
+        this.scenarioRunner = newExecutionScenarioRunner(configuration, context);
         this.metricsCollector = new MetricsCollector();
         metricsCollector.watch(scenarioRunner.start().doOnUnsubscribe(doneLatch::countDown));
         this.textReporter = new TextReporter(metricsCollector, Schedulers.computation());
         textReporter.start();
+    }
+
+    protected ExecutionScenarioRunner newExecutionScenarioRunner(LoadConfiguration configuration, ExecutionContext context) {
+        return new ExecutionScenarioRunner(
+//                ExecutionScenarioCatalog.oneAutoScalingService(configuration.getScaleFactor()),
+//                ExecutionScenarioCatalog.oneScalingServiceWihTerminateAndShrink(configuration.getScaleFactor()),
+                ExecutionScenarioCatalog.batchJob(1, configuration.getScaleFactor()),
+//                ExecutionScenarioCatalog.mixedLoad(configuration.getScaleFactor()),
+                context,
+                Schedulers.computation()
+        );
     }
 
     public MetricsCollector getMetricsCollector() {
