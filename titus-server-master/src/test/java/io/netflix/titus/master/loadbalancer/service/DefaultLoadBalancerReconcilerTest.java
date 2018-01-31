@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +38,7 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.stubbing.OngoingStubbing;
 import rx.Single;
 import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
@@ -224,7 +226,7 @@ public class DefaultLoadBalancerReconcilerTest {
     }
 
     @Test
-    public void orphanAssociationsAreGarbageCollected() {
+    public void orphanAssociationsAreSetAsDissociatedAndRemoved() {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         when(v3JobOperations.getTasks(jobId)).thenThrow(JobManagerException.jobNotFound(jobId));
         when(v3JobOperations.getJob(jobId)).thenReturn(Optional.empty());
@@ -249,6 +251,36 @@ public class DefaultLoadBalancerReconcilerTest {
 
         assertThat(store.getAssociations()).isEmpty();
         assertThat(store.getAssociatedLoadBalancersSetForJob(jobId)).isEmpty();
+    }
+
+    @Test
+    public void dissociatedJobsAreNotRemovedUntilAllTargetsAreDeregistered() {
+        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        when(v3JobOperations.getTasks(jobId)).thenThrow(JobManagerException.jobNotFound(jobId));
+        when(v3JobOperations.getJob(jobId)).thenReturn(Optional.empty());
+        final OngoingStubbing<Single<Set<String>>> getRegisteredIpsStubbing = when(connector.getRegisteredIps(loadBalancerId));
+        getRegisteredIpsStubbing.thenReturn(Single.just(Collections.singleton("1.2.3.4")));
+        store = new InMemoryLoadBalancerStore();
+        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
+                .await(5, TimeUnit.SECONDS)).isTrue();
+
+        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
+        final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
+
+        testScheduler.triggerActions();
+        subscriber.assertNotCompleted().assertNoValues();
+
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNoTerminalEvent().assertValueCount(1);
+
+        assertThat(store.getAssociations()).isNotEmpty().hasSize(1);
+
+        getRegisteredIpsStubbing.thenReturn(Single.just(Collections.emptySet()));
+
+        testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
+        subscriber.assertNoTerminalEvent().assertValueCount(1);
+
+        assertThat(store.getAssociations()).isEmpty();
     }
 
     private LoadBalancerConfiguration mockConfigWithDelay(long delayMs) {
