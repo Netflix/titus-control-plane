@@ -30,6 +30,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.ext.cassandra.store.CassandraJobStore;
+import io.netflix.titus.ext.cassandra.store.CassandraStoreConfiguration;
 import io.netflix.titus.ext.cassandra.tool.Command;
 import io.netflix.titus.ext.cassandra.tool.CommandContext;
 import org.apache.commons.cli.CommandLine;
@@ -45,6 +46,23 @@ public class TestStoreLoadCommand implements Command {
 
     private static final Logger logger = LoggerFactory.getLogger(TestStoreLoadCommand.class);
     private static final int MAX_RETRIEVE_TASK_CONCURRENCY = 1_000;
+
+    private static final CassandraStoreConfiguration CONFIGURATION = new CassandraStoreConfiguration() {
+        @Override
+        public boolean isFailOnInconsistentAgentData() {
+            return true;
+        }
+
+        @Override
+        public boolean isFailOnInconsistentLoadBalancerData() {
+            return false;
+        }
+
+        @Override
+        public int getConcurrencyLimit() {
+            return MAX_RETRIEVE_TASK_CONCURRENCY;
+        }
+    };
 
     @Override
     public String getDescription() {
@@ -104,7 +122,7 @@ public class TestStoreLoadCommand implements Command {
         }
         session.execute("USE " + keyspace);
 
-        JobStore titusStore = new CassandraJobStore(session);
+        JobStore titusStore = new CassandraJobStore(CONFIGURATION, session);
 
         // Create jobs and tasks
         long jobStartTime = System.currentTimeMillis();

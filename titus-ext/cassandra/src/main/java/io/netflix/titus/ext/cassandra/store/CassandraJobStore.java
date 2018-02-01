@@ -53,7 +53,6 @@ import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
 @ProxyConfiguration(types = {Logging, Spectator})
 public class CassandraJobStore implements JobStore {
     private static final int MAX_BUCKET_SIZE = 10_000;
-    private static final int MAX_RETRIEVE_CONCURRENCY = 100;
 
     // SELECT Queries
     private static final String RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING = "SELECT distinct bucket FROM active_job_ids";
@@ -105,13 +104,15 @@ public class CassandraJobStore implements JobStore {
     private final Session session;
     private final ObjectMapper mapper;
     private final BalancedBucketManager<String> activeJobIdsBucketManager;
+    private final CassandraStoreConfiguration configuration;
 
     @Inject
-    public CassandraJobStore(Session session) {
-        this(session, ObjectMappers.storeMapper());
+    public CassandraJobStore(CassandraStoreConfiguration configuration, Session session) {
+        this(configuration, session, ObjectMappers.storeMapper());
     }
 
-    CassandraJobStore(Session session, ObjectMapper mapper) {
+    CassandraJobStore(CassandraStoreConfiguration configuration, Session session, ObjectMapper mapper) {
+        this.configuration = configuration;
         this.session = session;
         this.mapper = mapper;
         this.activeJobIdsBucketManager = new BalancedBucketManager<>(MAX_BUCKET_SIZE);
@@ -159,7 +160,7 @@ public class CassandraJobStore implements JobStore {
                                 }).toCompletable();
                         completables.add(completable);
                     }
-                    return Completable.merge(Observable.from(completables), MAX_RETRIEVE_CONCURRENCY).toObservable();
+                    return Completable.merge(Observable.from(completables), getConcurrencyLimit()).toObservable();
                 })).toCompletable();
     }
 
@@ -168,7 +169,7 @@ public class CassandraJobStore implements JobStore {
         return Observable.fromCallable(() -> {
             List<String> jobIds = activeJobIdsBucketManager.getItems();
             return jobIds.stream().map(retrieveActiveJobStatement::bind).map(this::execute).collect(Collectors.toList());
-        }).flatMap(observables -> Observable.merge(observables, MAX_RETRIEVE_CONCURRENCY).flatMapIterable(resultSet -> resultSet.all().stream()
+        }).flatMap(observables -> Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(resultSet -> resultSet.all().stream()
                 .map(row -> row.getString(0))
                 .map(value -> (Job<?>) ObjectMappers.readValue(mapper, value, Job.class))
                 .collect(Collectors.toList())));
@@ -226,7 +227,7 @@ public class CassandraJobStore implements JobStore {
             return jobId;
         }).flatMap(jobId -> retrieveTasksForJob(jobId).toList().flatMap(tasks -> {
             List<Completable> completables = tasks.stream().map(this::deleteTask).collect(Collectors.toList());
-            return Completable.merge(Observable.from(completables), MAX_RETRIEVE_CONCURRENCY).toObservable();
+            return Completable.merge(Observable.from(completables), getConcurrencyLimit()).toObservable();
         })).toList().flatMap(ignored -> {
             BatchStatement statement = getArchiveJobBatchStatement(job);
             return execute(statement);
@@ -245,7 +246,7 @@ public class CassandraJobStore implements JobStore {
             List<String> taskIds = taskIdsResultSet.all().stream().map(row -> row.getString(0)).collect(Collectors.toList());
             List<Observable<ResultSet>> observables = taskIds.stream().map(retrieveActiveTaskStatement::bind).map(this::execute).collect(Collectors.toList());
 
-            return Observable.merge(observables, MAX_RETRIEVE_CONCURRENCY).flatMapIterable(tasksResultSet -> {
+            return Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(tasksResultSet -> {
                 List<Task> tasks = new ArrayList<>();
                 for (Row row : tasksResultSet.all()) {
                     String value = row.getString(0);
@@ -349,7 +350,7 @@ public class CassandraJobStore implements JobStore {
                 .flatMap(retrieveActiveTaskIdsForJob -> execute(retrieveActiveTaskIdsForJob).flatMap(taskIdsResultSet -> {
                     List<String> taskIds = taskIdsResultSet.all().stream().map(row -> row.getString(0)).collect(Collectors.toList());
                     List<Observable<ResultSet>> observables = taskIds.stream().map(retrieveArchivedTaskStatement::bind).map(this::execute).collect(Collectors.toList());
-                    return Observable.merge(observables, MAX_RETRIEVE_CONCURRENCY).flatMapIterable(tasksResultSet -> tasksResultSet.all().stream()
+                    return Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(tasksResultSet -> tasksResultSet.all().stream()
                             .map(row -> row.getString(0))
                             .map(value -> ObjectMappers.readValue(mapper, value, Task.class))
                             .collect(Collectors.toList()));
@@ -428,6 +429,10 @@ public class CassandraJobStore implements JobStore {
             });
             emitter.setCancellation(() -> resultSetFuture.cancel(true));
         }, Emitter.BackpressureMode.NONE);
+    }
+
+    private int getConcurrencyLimit() {
+        return Math.max(2, configuration.getConcurrencyLimit());
     }
 
     private void checkIfJobIsActive(String jobId) {
