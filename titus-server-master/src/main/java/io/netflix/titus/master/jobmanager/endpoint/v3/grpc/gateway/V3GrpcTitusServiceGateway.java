@@ -95,11 +95,20 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         if (!violations.isEmpty()) {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
-        Optional<String> limited = jobSubmitLimiter.checkIfAllowed(sanitizedCoreJobDescriptor);
-        if (limited.isPresent()) {
-            return Observable.error(JobManagerException.jobCreateLimited(limited.get()));
-        }
-        return jobOperations.createJob(sanitizedCoreJobDescriptor);
+
+        return Observable.fromCallable(() -> jobSubmitLimiter.reserveId(sanitizedCoreJobDescriptor))
+                .flatMap(reservationFailure -> {
+                    if (reservationFailure.isPresent()) {
+                        return Observable.error(TitusServiceException.newBuilder(TitusServiceException.ErrorCode.INVALID_ARGUMENT, reservationFailure.get()).build());
+                    }
+                    Optional<String> limited = jobSubmitLimiter.checkIfAllowed(sanitizedCoreJobDescriptor);
+                    if (limited.isPresent()) {
+                        jobSubmitLimiter.releaseId(sanitizedCoreJobDescriptor);
+                        return Observable.error(JobManagerException.jobCreateLimited(limited.get()));
+                    }
+                    return jobOperations.createJob(sanitizedCoreJobDescriptor)
+                            .doOnTerminate(() -> jobSubmitLimiter.releaseId(sanitizedCoreJobDescriptor));
+                });
     }
 
     @Override

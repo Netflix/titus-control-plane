@@ -121,6 +121,8 @@ public class V2GrpcTitusServiceGateway
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
         return newObservable(subscriber -> {
             V2JobDefinition jobDefinition = null;
+
+            Optional<String> reserveStatus = null;
             try {
                 // Map to the new core model to validate the data.
                 io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
@@ -134,7 +136,7 @@ public class V2GrpcTitusServiceGateway
                 // We map back to GRPC/protobuf model to propagated sanitizer updates to V2 engine.
                 jobDefinition = V2GrpcModelConverters.toV2JobDefinition(V3GrpcModelConverters.toGrpcJobDescriptor(sanitized));
 
-                Optional<String> reserveStatus = jobSubmitLimiter.reserveId(jobDefinition);
+                reserveStatus = jobSubmitLimiter.reserveId(jobDefinition);
                 if (reserveStatus.isPresent()) {
                     subscriber.onError(TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, reserveStatus.get()).build());
                     return;
@@ -152,7 +154,7 @@ public class V2GrpcTitusServiceGateway
             } catch (IllegalArgumentException e) {
                 subscriber.onError(TitusServiceException.invalidArgument(e));
             } finally {
-                if (jobDefinition != null) {
+                if (reserveStatus != null && !reserveStatus.isPresent()) {
                     jobSubmitLimiter.releaseId(jobDefinition);
                 }
             }

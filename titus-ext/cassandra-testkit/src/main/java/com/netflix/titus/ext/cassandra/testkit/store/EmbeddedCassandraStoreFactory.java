@@ -10,6 +10,7 @@ import com.google.common.io.Files;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.ext.cassandra.store.CassandraJobStore;
+import io.netflix.titus.ext.cassandra.store.CassandraStoreConfiguration;
 import io.netflix.titus.ext.cassandra.tool.snapshot.JobSnapshotLoader;
 import org.cassandraunit.CQLDataLoader;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
@@ -26,6 +27,23 @@ public class EmbeddedCassandraStoreFactory {
     private static final String CASSANDRA_SCHEMA = "tables.cql";
     private static final String CASSANDRA_KEYSPACE = "titus_embedded";
 
+    private static final CassandraStoreConfiguration CONFIGURATION = new CassandraStoreConfiguration() {
+        @Override
+        public boolean isFailOnInconsistentAgentData() {
+            return true;
+        }
+
+        @Override
+        public boolean isFailOnInconsistentLoadBalancerData() {
+            return false;
+        }
+
+        @Override
+        public int getConcurrencyLimit() {
+            return 10;
+        }
+    };
+
     private final Session session;
 
     public EmbeddedCassandraStoreFactory(Session session) {
@@ -37,7 +55,7 @@ public class EmbeddedCassandraStoreFactory {
     }
 
     public JobStore getJobStore() {
-        return new CassandraJobStore(session);
+        return new CassandraJobStore(CONFIGURATION, session);
     }
 
     public static Builder newBuilder() {

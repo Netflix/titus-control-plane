@@ -63,13 +63,30 @@ public class CassandraJobStoreTest {
             STARTUP_TIMEOUT
     );
 
+    private static final CassandraStoreConfiguration CONFIGURATION = new CassandraStoreConfiguration() {
+        @Override
+        public boolean isFailOnInconsistentAgentData() {
+            return true;
+        }
+
+        @Override
+        public boolean isFailOnInconsistentLoadBalancerData() {
+            return false;
+        }
+
+        @Override
+        public int getConcurrencyLimit() {
+            return 10;
+        }
+    };
+
     @Test
     public void testRetrieveJobs() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        JobStore bootstrappingStore = new CassandraJobStore(session, ObjectMappers.storeMapper());
+        JobStore bootstrappingStore = new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper());
         Job<BatchJobExt> job = createBatchJobObject();
         bootstrappingStore.storeJob(job).await();
-        JobStore store = new CassandraJobStore(session, ObjectMappers.storeMapper());
+        JobStore store = new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper());
         store.init().await();
         List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
         assertThat(jobs).hasSize(1);
@@ -274,7 +291,7 @@ public class CassandraJobStoreTest {
 
     private JobStore getJobStore() {
         Session session = cassandraCQLUnit.getSession();
-        return new CassandraJobStore(session, ObjectMappers.storeMapper());
+        return new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper());
     }
 
     private Job<BatchJobExt> createBatchJobObject() {

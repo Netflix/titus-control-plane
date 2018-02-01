@@ -27,4 +27,12 @@ public interface CassandraStoreConfiguration {
 
     @DefaultValue("false")
     boolean isFailOnInconsistentLoadBalancerData();
+
+    /**
+     * During bootstrap we run parallel queries on Cassandra cluster. If not constrained, the parallelism level
+     * would be number_of_buckets * number_of_jobs_per_bucket * number_of_tasks. The concurrency limit is applied
+     * at each level, so for example with limit 10 we will get up to 1000 concurrent Cassandra query requests.
+     */
+    @DefaultValue("10")
+    int getConcurrencyLimit();
 }
