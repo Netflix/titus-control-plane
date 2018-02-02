@@ -23,9 +23,9 @@ public abstract class ResourceDimensionMixin {
 
     @JsonCreator
     public ResourceDimensionMixin(@JsonProperty("cpu") double cpu,
-                                  @JsonProperty("gpu") int gpu,
-                                  @JsonProperty("memoryMB") int memoryMB,
-                                  @JsonProperty("diskMB") int diskMB,
-                                  @JsonProperty("networkMbs") int networkMbs) {
+                                  @JsonProperty("gpu") long gpu,
+                                  @JsonProperty("memoryMB") long memoryMB,
+                                  @JsonProperty("diskMB") long diskMB,
+                                  @JsonProperty("networkMbs") long networkMbs) {
     }
 }

@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
@@ -128,16 +128,16 @@ class ResourceConsumptionServiceMetrics {
     private enum ResourceType {Cpu, Memory, Disk, Network}
 
     private class ResourceMetrics {
-        private final Map<ResourceType, AtomicInteger> usage;
+        private final Map<ResourceType, AtomicLong> usage;
 
         private ResourceMetrics(Id id) {
             this.usage = initialize(id);
         }
 
-        private Map<ResourceType, AtomicInteger> initialize(Id id) {
-            Map<ResourceType, AtomicInteger> result = new EnumMap<>(ResourceType.class);
+        private Map<ResourceType, AtomicLong> initialize(Id id) {
+            Map<ResourceType, AtomicLong> result = new EnumMap<>(ResourceType.class);
             for (ResourceType rt : ResourceType.values()) {
-                result.put(rt, registry.gauge(id.withTag("resourceType", rt.name()), new AtomicInteger()));
+                result.put(rt, registry.gauge(id.withTag("resourceType", rt.name()), new AtomicLong()));
             }
             return result;
         }

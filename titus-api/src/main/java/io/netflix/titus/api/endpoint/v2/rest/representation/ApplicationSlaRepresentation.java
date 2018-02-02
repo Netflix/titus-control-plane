@@ -62,15 +62,15 @@ public class ApplicationSlaRepresentation {
 
     @NotNull(message = "'instanceMemoryMB' is a required property")
     @Min(value = 1, message = "'instanceMemoryMB' must be at least 1MB")
-    private final Integer instanceMemoryMB;
+    private final Long instanceMemoryMB;
 
     @NotNull(message = "'instanceDiskMB' is a required property")
     @Min(value = 1, message = "'instanceDiskMB' must be at least 1MB")
-    private final Integer instanceDiskMB;
+    private final Long instanceDiskMB;
 
     @NotNull(message = "'instanceNetworkMbs' is a required property")
     @Min(value = 1, message = "'instanceNetworkMbs' must be at least 1Mbs")
-    private final Integer instanceNetworkMbs;
+    private final Long instanceNetworkMbs;
 
     /**
      * Total number of instances required by this application. Titus will keep pre-allocated resources to always
@@ -84,9 +84,9 @@ public class ApplicationSlaRepresentation {
     public ApplicationSlaRepresentation(@JsonProperty("appName") String appName,
                                         @JsonProperty("tier") TierRepresentation tier,
                                         @JsonProperty("instanceCPU") Double instanceCPU,
-                                        @JsonProperty("instanceMemoryMB") Integer instanceMemoryMB,
-                                        @JsonProperty("instanceDiskMB") Integer instanceDiskMB,
-                                        @JsonProperty("instanceNetworkMbs") Integer instanceNetworkMbs,
+                                        @JsonProperty("instanceMemoryMB") Long instanceMemoryMB,
+                                        @JsonProperty("instanceDiskMB") Long instanceDiskMB,
+                                        @JsonProperty("instanceNetworkMbs") Long instanceNetworkMbs,
                                         @JsonProperty("instanceCount") Integer instanceCount) {
         this.appName = appName;
         this.tier = tier;
@@ -109,15 +109,15 @@ public class ApplicationSlaRepresentation {
         return instanceCPU;
     }
 
-    public Integer getInstanceMemoryMB() {
+    public Long getInstanceMemoryMB() {
         return instanceMemoryMB;
     }
 
-    public Integer getInstanceDiskMB() {
+    public Long getInstanceDiskMB() {
         return instanceDiskMB;
     }
 
-    public Integer getInstanceNetworkMbs() {
+    public Long getInstanceNetworkMbs() {
         return instanceNetworkMbs;
     }
 

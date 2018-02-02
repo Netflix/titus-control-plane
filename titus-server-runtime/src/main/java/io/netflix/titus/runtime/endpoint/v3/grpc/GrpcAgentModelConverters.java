@@ -66,10 +66,10 @@ public class GrpcAgentModelConverters {
     private static com.netflix.titus.grpc.protogen.ResourceDimension toGrpcInstanceResources(ResourceDimension resourceDimension) {
         return com.netflix.titus.grpc.protogen.ResourceDimension.newBuilder()
                 .setCpu((int) resourceDimension.getCpu())
-                .setGpu(resourceDimension.getGpu())
-                .setMemoryMB(resourceDimension.getMemoryMB())
-                .setDiskMB(resourceDimension.getDiskMB())
-                .setNetworkMbps(resourceDimension.getNetworkMbs())
+                .setGpu((int) resourceDimension.getGpu())
+                .setMemoryMB((int) resourceDimension.getMemoryMB())
+                .setDiskMB((int) resourceDimension.getDiskMB())
+                .setNetworkMbps((int) resourceDimension.getNetworkMbs())
                 .build();
     }
 
