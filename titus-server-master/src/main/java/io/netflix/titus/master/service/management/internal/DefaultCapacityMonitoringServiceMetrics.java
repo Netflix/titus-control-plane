@@ -18,7 +18,7 @@ package io.netflix.titus.master.service.management.internal;
 
 import java.util.EnumMap;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
@@ -38,7 +38,7 @@ class DefaultCapacityMonitoringServiceMetrics {
     private static Set<Tier> ALL_TIERS = asSet(Tier.values());
 
     private final ExecutionMetrics executionMetrics;
-    private final EnumMap<Tier, EnumMap<ResourceType, AtomicInteger>> resourceShortages;
+    private final EnumMap<Tier, EnumMap<ResourceType, AtomicLong>> resourceShortages;
 
     DefaultCapacityMonitoringServiceMetrics(Registry registry) {
         this.executionMetrics = new ExecutionMetrics(MetricConstants.METRIC_CAPACITY_MANAGEMENT + "monitor.capacityUpdates",
@@ -57,7 +57,7 @@ class DefaultCapacityMonitoringServiceMetrics {
         // Shortage
         for (Tier tier : tiersWithShortage) {
             ResourceDimension shortage = allocations.getResourceShortage(tier);
-            EnumMap<ResourceType, AtomicInteger> resourceGauges = resourceShortages.get(tier);
+            EnumMap<ResourceType, AtomicLong> resourceGauges = resourceShortages.get(tier);
 
             resourceGauges.get(ResourceType.Cpu).set((int) Math.ceil(shortage.getCpu()));
             resourceGauges.get(ResourceType.Memory).set(shortage.getMemoryMB());
@@ -67,7 +67,7 @@ class DefaultCapacityMonitoringServiceMetrics {
 
         // OK tiers
         for (Tier tier : okTiers) {
-            EnumMap<ResourceType, AtomicInteger> resourceGauges = resourceShortages.get(tier);
+            EnumMap<ResourceType, AtomicLong> resourceGauges = resourceShortages.get(tier);
 
             resourceGauges.get(ResourceType.Cpu).set(0);
             resourceGauges.get(ResourceType.Memory).set(0);
@@ -76,10 +76,10 @@ class DefaultCapacityMonitoringServiceMetrics {
         }
     }
 
-    private EnumMap<Tier, EnumMap<ResourceType, AtomicInteger>> buildResourceShortageMap(Registry registry) {
-        EnumMap<Tier, EnumMap<ResourceType, AtomicInteger>> result = new EnumMap<>(Tier.class);
+    private EnumMap<Tier, EnumMap<ResourceType, AtomicLong>> buildResourceShortageMap(Registry registry) {
+        EnumMap<Tier, EnumMap<ResourceType, AtomicLong>> result = new EnumMap<>(Tier.class);
         for (Tier tier : Tier.values()) {
-            EnumMap<ResourceType, AtomicInteger> resourceMap = new EnumMap<>(ResourceType.class);
+            EnumMap<ResourceType, AtomicLong> resourceMap = new EnumMap<>(ResourceType.class);
             result.put(tier, resourceMap);
 
             Id tierId = registry.createId(MetricConstants.METRIC_CAPACITY_MANAGEMENT + "monitor.capacityShortage", "tier", tier.name());
@@ -87,7 +87,7 @@ class DefaultCapacityMonitoringServiceMetrics {
             for (ResourceType resourceType : ResourceType.values()) {
                 resourceMap.put(
                         resourceType,
-                        registry.gauge(tierId.withTag("resourceType", resourceType.name()), new AtomicInteger())
+                        registry.gauge(tierId.withTag("resourceType", resourceType.name()), new AtomicLong())
                 );
             }
         }

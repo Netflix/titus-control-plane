@@ -62,12 +62,12 @@ public class CassandraAgentStoreTest {
     private Session session;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.session = cassandraCQLUnit.getSession();
     }
 
     @Test
-    public void testStoreAndRetrieveAgentServerGroups() throws Exception {
+    public void testStoreAndRetrieveAgentServerGroups() {
         List<AgentInstanceGroup> serverGroups = agentServerGroups().toList(2);
 
         AgentStore bootstrappingTitusStore = createAgentStore();
@@ -82,7 +82,7 @@ public class CassandraAgentStoreTest {
     }
 
     @Test
-    public void testStoreAndRetrieveAgentInstances() throws Exception {
+    public void testStoreAndRetrieveAgentInstances() {
         List<AgentInstance> instances = AgentGenerator.agentInstances().toList(2);
 
         AgentStore bootstrappingTitusStore = createAgentStore();
@@ -97,7 +97,7 @@ public class CassandraAgentStoreTest {
     }
 
     @Test
-    public void testRemoveAgentServerGroup() throws Exception {
+    public void testRemoveAgentServerGroup() {
         List<AgentInstanceGroup> serverGroups = agentServerGroups().toList(2);
 
         AgentStore agentStore = createAgentStore();
@@ -109,7 +109,7 @@ public class CassandraAgentStoreTest {
     }
 
     @Test
-    public void testRemoveAgentInstance() throws Exception {
+    public void testRemoveAgentInstance() {
         List<AgentInstance> instances = AgentGenerator.agentInstances().toList(2);
 
         AgentStore agentStore = createAgentStore();

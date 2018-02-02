@@ -27,18 +27,18 @@ public class ResourceDimension {
     private final double cpu;
 
     @Min(value = 0, message = "'gpus' must be >= 0, but is #{#root}")
-    private final int gpu;
+    private final long gpu;
 
     @Min(value = 0, message = "'memoryMB' must be >= 0, but is #{#root}")
-    private final int memoryMB;
+    private final long memoryMB;
 
     @Min(value = 0, message = "'diskMB' must be >= 0, but is #{#root}")
-    private final int diskMB;
+    private final long diskMB;
 
     @Min(value = 0, message = "'networkMbs' must be >= 0, but is #{#root}")
-    private final int networkMbs;
+    private final long networkMbs;
 
-    public ResourceDimension(double cpu, int gpu, int memoryMB, int diskMB, int networkMbs) {
+    public ResourceDimension(double cpu, long gpu, long memoryMB, long diskMB, long networkMbs) {
         this.cpu = cpu;
         this.gpu = gpu;
         this.memoryMB = memoryMB;
@@ -50,19 +50,19 @@ public class ResourceDimension {
         return cpu;
     }
 
-    public int getGpu() {
+    public long getGpu() {
         return gpu;
     }
 
-    public int getMemoryMB() {
+    public long getMemoryMB() {
         return memoryMB;
     }
 
-    public int getDiskMB() {
+    public long getDiskMB() {
         return diskMB;
     }
 
-    public int getNetworkMbs() {
+    public long getNetworkMbs() {
         return networkMbs;
     }
 
@@ -98,10 +98,10 @@ public class ResourceDimension {
         long temp;
         temp = Double.doubleToLongBits(cpu);
         result = (int) (temp ^ (temp >>> 32));
-        result = 31 * result + gpu;
-        result = 31 * result + memoryMB;
-        result = 31 * result + diskMB;
-        result = 31 * result + networkMbs;
+        result = 31 * result + (int) (gpu ^ (gpu >>> 32));
+        result = 31 * result + (int) (memoryMB ^ (memoryMB >>> 32));
+        result = 31 * result + (int) (diskMB ^ (diskMB >>> 32));
+        result = 31 * result + (int) (networkMbs ^ (networkMbs >>> 32));
         return result;
     }
 
@@ -138,10 +138,10 @@ public class ResourceDimension {
 
     public static final class Builder {
         private double cpus;
-        private int gpu;
-        private int memoryMB;
-        private int diskMB;
-        private int networkMbs;
+        private long gpu;
+        private long memoryMB;
+        private long diskMB;
+        private long networkMbs;
 
         private Builder() {
         }
@@ -151,22 +151,22 @@ public class ResourceDimension {
             return this;
         }
 
-        public Builder withGpu(int gpu) {
+        public Builder withGpu(long gpu) {
             this.gpu = gpu;
             return this;
         }
 
-        public Builder withMemoryMB(int memoryMB) {
+        public Builder withMemoryMB(long memoryMB) {
             this.memoryMB = memoryMB;
             return this;
         }
 
-        public Builder withDiskMB(int diskMB) {
+        public Builder withDiskMB(long diskMB) {
             this.diskMB = diskMB;
             return this;
         }
 
-        public Builder withNetworkMbs(int networkMbs) {
+        public Builder withNetworkMbs(long networkMbs) {
             this.networkMbs = networkMbs;
             return this;
         }
