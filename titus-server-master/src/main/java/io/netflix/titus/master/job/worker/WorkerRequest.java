@@ -33,6 +33,9 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 
 public class WorkerRequest {
 
+    public static final String V2_NETFLIX_APP_METADATA = "NETFLIX_APP_METADATA";
+    public static final String V2_NETFLIX_APP_METADATA_SIG = "NETFLIX_APP_METADATA_SIG";
+
     private String jobName;
     private String jobId;
     private int workerIndex;
@@ -91,8 +94,8 @@ public class WorkerRequest {
 
         // Populate Metatron info from labels in v2
         Map<String, String> labels = Parameters.getLabels(parameters);
-        this.metatronAppMetadata = labels.get("NETFLIX_APP_METADATA");
-        this.metatronAppSignature = labels.get("NETFLIX_APP_METADATA_SIG");
+        this.metatronAppMetadata = labels.get(V2_NETFLIX_APP_METADATA);
+        this.metatronAppSignature = labels.get(V2_NETFLIX_APP_METADATA_SIG);
     }
 
     public SchedulingInfo getSchedulingInfo() {

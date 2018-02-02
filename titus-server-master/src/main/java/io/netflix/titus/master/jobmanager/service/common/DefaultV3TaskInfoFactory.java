@@ -38,6 +38,7 @@ import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.common.util.Evaluators;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.job.worker.WorkerRequest;
 import io.netflix.titus.master.jobmanager.service.TaskInfoFactory;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
 import io.titanframework.messages.TitanProtos;
@@ -116,8 +117,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         }
 
         // Configure Metatron
-        String metatronAppMetadata = v3SecurityProfile.getAttributes().get("metatronAppMetadata");
-        String metatronAppSignature = v3SecurityProfile.getAttributes().get("metatronAppSignature");
+        String metatronAppMetadata = v3SecurityProfile.getAttributes().get(WorkerRequest.V2_NETFLIX_APP_METADATA);
+        String metatronAppSignature = v3SecurityProfile.getAttributes().get(WorkerRequest.V2_NETFLIX_APP_METADATA_SIG);
         if (metatronAppMetadata != null && metatronAppSignature != null) {
             TitanProtos.ContainerInfo.MetatronCreds.Builder metatronBuilder = TitanProtos.ContainerInfo.MetatronCreds.newBuilder()
                     .setAppMetadata(metatronAppMetadata)

@@ -87,6 +87,8 @@ import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOW
 import static io.netflix.titus.common.util.CollectionsExt.applyNotEmpty;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
 import static io.netflix.titus.common.util.StringExt.isNotEmpty;
+import static io.netflix.titus.master.job.worker.WorkerRequest.V2_NETFLIX_APP_METADATA;
+import static io.netflix.titus.master.job.worker.WorkerRequest.V2_NETFLIX_APP_METADATA_SIG;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.LABEL_LEGACY_NAME;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.SPACE_SPLIT_RE;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.TASK_CONTEXT_AGENT_ATTRIBUTES;
@@ -158,6 +160,13 @@ public final class V2GrpcModelConverters {
         applyNotNull(Parameters.getEntryPoint(parameters), v -> containerBuilder.addAllEntryPoint(asList(SPACE_SPLIT_RE.split(v))));
         applyNotNull(Parameters.getEnv(parameters), containerBuilder::putAllEnv);
 
+        // Labels
+        HashMap<String, String> labels = new HashMap<>();
+        Evaluators.acceptNotNull(Parameters.getLabels(parameters), labels::putAll);
+
+        applyNotNull(Parameters.getName(parameters), v -> labels.put(LABEL_LEGACY_NAME, v));
+        descriptorBuilder.putAllAttributes(labels);
+
         // Constraints
         applyNotEmpty(stageMetadata.getHardConstraints(), v -> containerBuilder.setSoftConstraints(toGrpcJobConstraintList(v)));
         applyNotEmpty(stageMetadata.getSoftConstraints(), v -> containerBuilder.setSoftConstraints(toGrpcJobConstraintList(v)));
@@ -165,14 +174,17 @@ public final class V2GrpcModelConverters {
         SecurityProfile.Builder securityProfileBuilder = SecurityProfile.newBuilder();
         applyNotNull(Parameters.getIamProfile(parameters), securityProfileBuilder::setIamRole);
         applyNotNull(Parameters.getSecurityGroups(parameters), securityProfileBuilder::addAllSecurityGroups);
+
+        Map<String, String> securityAttributes = new HashMap<>();
+        if (labels.containsKey(V2_NETFLIX_APP_METADATA)) {
+            securityAttributes.put(V2_NETFLIX_APP_METADATA, labels.get(V2_NETFLIX_APP_METADATA));
+        }
+        if (labels.containsKey(V2_NETFLIX_APP_METADATA_SIG)) {
+            securityAttributes.put(V2_NETFLIX_APP_METADATA_SIG, labels.get(V2_NETFLIX_APP_METADATA_SIG));
+        }
+        securityProfileBuilder.putAllAttributes(securityAttributes);
+
         containerBuilder.setSecurityProfile(securityProfileBuilder);
-
-        // Labels
-        HashMap<String, String> labels = new HashMap<>();
-        Evaluators.acceptNotNull(Parameters.getLabels(parameters), labels::putAll);
-
-        applyNotNull(Parameters.getName(parameters), v -> labels.put(LABEL_LEGACY_NAME, v));
-        descriptorBuilder.putAllAttributes(labels);
 
         // JobGroupInfo
         JobGroupInfo.Builder jobGroupInfoBuilder = JobGroupInfo.newBuilder();
@@ -684,9 +696,9 @@ public final class V2GrpcModelConverters {
             }
         }
 
-        if (jobDescriptor.getAttributesMap() != null) {
-            parameters.add(Parameters.newLabelsParameter(jobDescriptor.getAttributesMap()));
-        }
+        Map<String, String> labels = new HashMap<>(jobDescriptor.getAttributesMap());
+        labels.putAll(container.getSecurityProfile().getAttributesMap());
+        parameters.add(Parameters.newLabelsParameter(labels));
 
         if (container.getSecurityProfile().getSecurityGroupsCount() > 0) {
             parameters.add(Parameters.newSecurityGroupsParameter(container.getSecurityProfile().getSecurityGroupsList()));
