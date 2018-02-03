@@ -58,7 +58,7 @@ public class ResourceDimensionsTest {
         ResourceDimension large = ResourceDimensionSample.SmallX2.build();
         ResourceDimension small = ResourceDimensionSample.Small.build();
 
-        Pair<Integer, ResourceDimension> result = ResourceDimensions.divide(large, small);
+        Pair<Long, ResourceDimension> result = ResourceDimensions.divide(large, small);
         assertThat(result.getLeft()).isEqualTo(2);
         assertThat(result.getRight()).isEqualTo(ResourceDimension.empty());
     }

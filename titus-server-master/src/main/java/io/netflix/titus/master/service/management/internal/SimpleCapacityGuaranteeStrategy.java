@@ -104,7 +104,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
             int instancesAvailable = instanceGroup.getMax() - instancesUsed;
 
             if (instancesAvailable > 0) {
-                int instanceRequired = ResourceDimensions.divideAndRoundUp(left, instanceResources);
+                int instanceRequired = (int) ResourceDimensions.divideAndRoundUp(left, instanceResources);
                 if (instanceRequired <= instancesAvailable) {
                     instanceAllocations.put(instanceGroup, instancesUsed + instanceRequired);
                     // Make sure all instance groups in a tier have a value defined
