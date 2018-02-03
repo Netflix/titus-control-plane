@@ -42,9 +42,9 @@ public class ResourceDimensions {
             return ResourceDimension.empty();
         }
         double cpuSum = 0;
-        int memorySum = 0;
-        int diskSum = 0;
-        int networkSum = 0;
+        long memorySum = 0;
+        long diskSum = 0;
+        long networkSum = 0;
         for (ResourceDimension part : parts) {
             cpuSum += part.getCpu();
             memorySum += part.getMemoryMB();
@@ -86,13 +86,13 @@ public class ResourceDimensions {
     public static ResourceDimension multiply(ResourceDimension base, double multiplier) {
         return ResourceDimension.newBuilder()
                 .withCpus(base.getCpu() * multiplier)
-                .withMemoryMB((int) Math.ceil(base.getMemoryMB() * multiplier))
-                .withDiskMB((int) Math.ceil(base.getDiskMB() * multiplier))
-                .withNetworkMbs((int) Math.ceil(base.getNetworkMbs() * multiplier))
+                .withMemoryMB((long) Math.ceil(base.getMemoryMB() * multiplier))
+                .withDiskMB((long) Math.ceil(base.getDiskMB() * multiplier))
+                .withNetworkMbs((long) Math.ceil(base.getNetworkMbs() * multiplier))
                 .build();
     }
 
-    public static Pair<Integer, ResourceDimension> divide(ResourceDimension left, ResourceDimension right) {
+    public static Pair<Long, ResourceDimension> divide(ResourceDimension left, ResourceDimension right) {
         double multiplier = 0;
 
         if (left.getCpu() != 0) {
@@ -113,16 +113,16 @@ public class ResourceDimensions {
         }
 
         if (multiplier == 0) { // left is empty
-            return Pair.of(0, ResourceDimension.empty());
+            return Pair.of(0L, ResourceDimension.empty());
         }
         if (multiplier < 1) { // left < right
-            return Pair.of(0, left);
+            return Pair.of(0L, left);
         }
         if (multiplier == 1) {
-            return Pair.of(1, ResourceDimension.empty());
+            return Pair.of(1L, ResourceDimension.empty());
         }
 
-        int full = (int) multiplier;
+        long full = (long) multiplier;
 
         return Pair.of(
                 full,
@@ -135,8 +135,8 @@ public class ResourceDimensions {
         );
     }
 
-    public static int divideAndRoundUp(ResourceDimension left, ResourceDimension right) {
-        Pair<Integer, ResourceDimension> result = divide(left, right);
+    public static long divideAndRoundUp(ResourceDimension left, ResourceDimension right) {
+        Pair<Long, ResourceDimension> result = divide(left, right);
         return result.getRight().equals(ResourceDimension.empty()) ? result.getLeft() : result.getLeft() + 1;
     }
 

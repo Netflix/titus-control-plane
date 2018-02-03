@@ -135,7 +135,7 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
         return total;
     }
 
-    private ResourceDimension toResourceDimension(ServerInfo serverInfo, int maxSize) {
+    private ResourceDimension toResourceDimension(ServerInfo serverInfo, long maxSize) {
         if (serverInfo.getGpus() > 0) {
             // Exclude GPU-enabled instances, as they are special case.
             return ResourceDimension.empty();
