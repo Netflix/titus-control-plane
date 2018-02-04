@@ -46,6 +46,10 @@ public class CodeInvariants {
         logger.warn(message, e);
     }
 
+    public void unexpectedError(String message, Object... args) {
+        logger.warn(message, args);
+    }
+
     public static CodeInvariants codeInvariants() {
         return INSTANCE;
     }
