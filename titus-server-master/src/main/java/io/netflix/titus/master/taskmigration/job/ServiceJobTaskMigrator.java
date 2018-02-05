@@ -41,6 +41,7 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.common.util.StringExt;
+import io.netflix.titus.common.util.code.CodeInvariants;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.job.V2JobMgrIntf;
@@ -142,27 +143,34 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
         taskMigrationDetailsMap.values().removeIf(taskMigrationDetail -> !taskIds.contains(taskMigrationDetail.getId()));
 
         for (TaskRequest taskRequest : taskRequests) {
-            logger.debug("Adding taskRequest: {} to migration map", taskRequest.getId());
-            if (taskRequest instanceof ScheduledRequest) {
-                logger.debug("Adding v2 taskRequest: {} to migration map", taskRequest.getId());
-                WorkerNaming.JobWorkerIdPair jobAndWorkerId = WorkerNaming.getJobAndWorkerId(taskRequest.getId());
-                V2JobMgrIntf jobManager = v2JobOperations.getJobMgr(jobAndWorkerId.jobId);
+            String taskId = taskRequest.getId();
+            try {
+                logger.debug("Adding taskId: {} to migration map", taskId);
+                if (taskRequest instanceof ScheduledRequest) {
+                    logger.debug("Adding v2 taskId: {} to migration map", taskId);
+                    WorkerNaming.JobWorkerIdPair jobAndWorkerId = WorkerNaming.getJobAndWorkerId(taskId);
+                    V2JobMgrIntf jobManager = v2JobOperations.getJobMgr(jobAndWorkerId.jobId);
 
-                if (jobManager != null) {
-                    TaskMigrationDetails taskMigrationDetails = new V2TaskMigrationDetails(taskRequest, jobManager);
+                    if (jobManager != null) {
+                        TaskMigrationDetails taskMigrationDetails = new V2TaskMigrationDetails(taskRequest, jobManager);
+                        if (!appNamesToIgnore.contains(taskMigrationDetails.getApplicationName()) && taskMigrationDetails.isService()) {
+                            taskMigrationDetailsMap.putIfAbsent(taskMigrationDetails.getId(), taskMigrationDetails);
+                            logger.debug("Added v2 taskId: {} to migration map", taskId);
+                        }
+                    }
+                } else if (taskRequest instanceof V3QueueableTask) {
+                    logger.debug("Adding v3 taskId: {} to migration map", taskId);
+                    V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
+                    Job job = v3QueueableTask.getJob();
+                    Task task = v3QueueableTask.getTask();
+                    TaskMigrationDetails taskMigrationDetails = new V3TaskMigrationDetails(job, task, v3JobOperations);
                     if (!appNamesToIgnore.contains(taskMigrationDetails.getApplicationName()) && taskMigrationDetails.isService()) {
                         taskMigrationDetailsMap.putIfAbsent(taskMigrationDetails.getId(), taskMigrationDetails);
+                        logger.debug("Added v3 taskId: {} to migration map", taskId);
                     }
                 }
-            } else if (taskRequest instanceof V3QueueableTask) {
-                logger.debug("Adding v3 taskRequest: {} to migration map", taskRequest.getId());
-                V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-                Job job = v3QueueableTask.getJob();
-                Task task = v3QueueableTask.getTask();
-                TaskMigrationDetails taskMigrationDetails = new V3TaskMigrationDetails(job, task, v3JobOperations);
-                if (!appNamesToIgnore.contains(taskMigrationDetails.getApplicationName()) && taskMigrationDetails.isService()) {
-                    taskMigrationDetailsMap.putIfAbsent(taskMigrationDetails.getId(), taskMigrationDetails);
-                }
+            } catch (Exception e) {
+                CodeInvariants.codeInvariants().unexpectedError("Unable to add taskId: {} to migration map with error:", taskId, e);
             }
         }
     }
