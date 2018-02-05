@@ -718,6 +718,15 @@ public class DefaultSchedulingService implements SchedulingService {
                         e -> logger.error("Unexpected error in SLA update routine", e)
                 );
 
+        return Observable.empty();
+    }
+
+    /**
+     * FIXME Due to circular dependencies, we cannot depend on the activation framework to do the initialization in the right order.
+     * To fix this problem we have to redesign our APIs.
+     */
+    @Override
+    public void startScheduling() {
         if (schedulerConfiguration.isSchedulerEnabled()) {
             logger.info("Starting the scheduling service");
             schedulingService.start();
@@ -726,8 +735,6 @@ public class DefaultSchedulingService implements SchedulingService {
         }
 
         setupVmStatesUpdate();
-
-        return Observable.empty();
     }
 
     public List<VirtualMachineCurrentState> getVmCurrentStates() {

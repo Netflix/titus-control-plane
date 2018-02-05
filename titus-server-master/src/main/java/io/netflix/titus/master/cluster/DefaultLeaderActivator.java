@@ -22,12 +22,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.inject.Injector;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.common.util.guice.ActivationLifecycle;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
 import io.netflix.titus.common.util.guice.ContainerEventBus.ContainerEventListener;
 import io.netflix.titus.common.util.guice.ContainerEventBus.ContainerStartedEvent;
 import io.netflix.titus.master.MetricConstants;
+import io.netflix.titus.master.scheduler.SchedulingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +49,7 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
 
     private final AtomicReference<State> stateRef = new AtomicReference<>(State.Starting);
 
+    private final Injector injector;
     private final ActivationLifecycle activationLifecycle;
 
     private final AtomicInteger isLeaderGauge;
@@ -58,9 +61,11 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     private volatile long activationTime = -1;
 
     @Inject
-    public DefaultLeaderActivator(ContainerEventBus eventBus,
+    public DefaultLeaderActivator(Injector injector,
+                                  ContainerEventBus eventBus,
                                   ActivationLifecycle activationLifecycle,
                                   Registry registry) {
+        this.injector = injector;
         this.activationLifecycle = activationLifecycle;
         this.isLeaderGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isLeaderGauge", new AtomicInteger());
         this.isActivatedGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isActivatedGauge", new AtomicInteger());
@@ -137,6 +142,7 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
 
     private void activate() {
         activationLifecycle.activate();
+        injector.getInstance(SchedulingService.class).startScheduling();
         isActivatedGauge.set(1);
         activated = true;
         activationTime = System.currentTimeMillis();

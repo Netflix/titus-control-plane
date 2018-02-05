@@ -38,6 +38,10 @@ class StubbedSchedulingService implements SchedulingService {
     private final Map<String, QueuableTask> queuableTasks = new HashMap<>();
 
     @Override
+    public void startScheduling() {
+    }
+
+    @Override
     public TaskScheduler getTaskScheduler() {
         return null;
     }
