@@ -34,6 +34,11 @@ import rx.functions.Action1;
  */
 public interface SchedulingService {
 
+    /**
+     * FIXME Starting the scheduler explicitly is a workaround needed because of the circular dependencies between components.
+     */
+    void startScheduling();
+
     TaskScheduler getTaskScheduler();
 
     List<VirtualMachineCurrentState> getVmCurrentStates();
