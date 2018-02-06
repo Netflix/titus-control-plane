@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent;
+import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.testkit.perf.load.job.JobExecutor;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionStep;
@@ -65,7 +65,7 @@ public class ExecutionPlanRunner {
         executor.shutdown();
     }
 
-    public Observable<JobChangeEvent> updates() {
+    public Observable<JobManagerEvent<?>> updates() {
         return executor.updates();
     }
 
@@ -125,22 +125,22 @@ public class ExecutionPlanRunner {
     }
 
     private Observable<Void> doKillRandomTask() {
-        List<TaskInfo> activeTasks = executor.getActiveTasks();
+        List<Task> activeTasks = executor.getActiveTasks();
         if (activeTasks.isEmpty()) {
             return Observable.empty();
         }
 
-        TaskInfo task = activeTasks.get(random.nextInt(activeTasks.size()));
+        Task task = activeTasks.get(random.nextInt(activeTasks.size()));
         return executor.killTask(task.getId());
     }
 
     private Observable<Void> doTerminateAndShrinkRandomTask() {
-        List<TaskInfo> activeTasks = executor.getActiveTasks();
+        List<Task> activeTasks = executor.getActiveTasks();
         if (activeTasks.isEmpty()) {
             return Observable.empty();
         }
 
-        TaskInfo task = activeTasks.get(random.nextInt(activeTasks.size()));
+        Task task = activeTasks.get(random.nextInt(activeTasks.size()));
         return executor.terminateAndShrink(task.getId());
     }
 

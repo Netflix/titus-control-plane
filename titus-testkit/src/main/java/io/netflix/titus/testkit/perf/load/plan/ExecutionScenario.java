@@ -18,22 +18,20 @@ package io.netflix.titus.testkit.perf.load.plan;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
-import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.testkit.perf.load.plan.scenario.ConstantLoadScenario;
+import io.netflix.titus.testkit.perf.load.plan.scenario.MultipleScenarios;
 import rx.Observable;
-import rx.Subscriber;
-import rx.observers.SerializedSubscriber;
 
 public abstract class ExecutionScenario {
 
     public static class Executable {
         private final String owner;
-        private final TitusJobSpec jobSpec;
+        private final JobDescriptor<?> jobSpec;
         private final ExecutionPlan executionPlan;
 
-        private Executable(String owner, TitusJobSpec jobSpec, ExecutionPlan executionPlan) {
+        public Executable(String owner, JobDescriptor<?> jobSpec, ExecutionPlan executionPlan) {
             this.owner = owner;
             this.jobSpec = jobSpec;
             this.executionPlan = executionPlan;
@@ -43,7 +41,7 @@ public abstract class ExecutionScenario {
             return owner;
         }
 
-        public TitusJobSpec getJobSpec() {
+        public JobDescriptor<?> getJobSpec() {
             return jobSpec;
         }
 
@@ -56,61 +54,6 @@ public abstract class ExecutionScenario {
 
     public abstract void completed(Executable executable);
 
-    private static class ConstantLoadScenario extends ExecutionScenario {
-
-        private final Executable executable;
-        private final int size;
-
-        private volatile Subscriber<? super Executable> scenarioSubscriber;
-
-        ConstantLoadScenario(String owner, TitusJobSpec jobSpec, ExecutionPlan plan, int size) {
-            this.executable = new Executable(owner, jobSpec, plan);
-            this.size = size;
-        }
-
-        @Override
-        public Observable<Executable> executionPlans() {
-            return Observable.unsafeCreate(subscriber -> {
-                // FIXME This is prone to race conditions.
-                Preconditions.checkState(scenarioSubscriber == null, "Expected single subscription");
-                scenarioSubscriber = new SerializedSubscriber<>(subscriber);
-                for (int i = 0; i < size; i++) {
-                    subscriber.onNext(executable);
-                }
-            });
-        }
-
-        @Override
-        public void completed(Executable executable) {
-            if (scenarioSubscriber != null && executable == this.executable) {
-                scenarioSubscriber.onNext(executable);
-            }
-        }
-    }
-
-    private static class MultipleScenarios extends ExecutionScenario {
-
-        private final Observable<Executable> mergedPlans;
-        private final List<ExecutionScenario> executionScenarios;
-
-        MultipleScenarios(List<ExecutionScenario> executionScenarios) {
-            this.mergedPlans = Observable.merge(
-                    executionScenarios.stream().map(ExecutionScenario::executionPlans).collect(Collectors.toList())
-            );
-            this.executionScenarios = executionScenarios;
-        }
-
-        @Override
-        public Observable<Executable> executionPlans() {
-            return mergedPlans;
-        }
-
-        @Override
-        public void completed(Executable executable) {
-            executionScenarios.forEach(s -> s.completed(executable));
-        }
-    }
-
     public static ExecutionScenarioBuilder newBuilder() {
         return new ExecutionScenarioBuilder();
     }
@@ -119,7 +62,7 @@ public abstract class ExecutionScenario {
 
         private final List<ExecutionScenario> scenarios = new ArrayList<>();
 
-        public ExecutionScenarioBuilder constantLoad(TitusJobSpec jobSpec, ExecutionPlan plan, int instances) {
+        public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, ExecutionPlan plan, int instances) {
             scenarios.add(new ConstantLoadScenario("scenario#" + scenarios.size(), jobSpec, plan, instances));
             return this;
         }

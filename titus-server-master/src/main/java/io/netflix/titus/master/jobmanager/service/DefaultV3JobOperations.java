@@ -207,6 +207,17 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
+    public List<Pair<Job, List<Task>>> getJobsAndTasks() {
+        return reconciliationFramework.orderedView(IndexKind.StatusCreationTime).stream()
+                .map(entityHolder -> {
+                    Job job = entityHolder.getEntity();
+                    List<Task> tasks = entityHolder.getChildren().stream().map(h -> (Task) h.getEntity()).collect(Collectors.toList());
+                    return Pair.of(job, tasks);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<Job<?>> findJobs(Predicate<Pair<Job<?>, List<Task>>> queryPredicate, int offset, int limit) {
         List<EntityHolder> jobHolders = reconciliationFramework.orderedView(IndexKind.StatusCreationTime);
         return jobHolders.stream().map(this::toJobTasksPair)

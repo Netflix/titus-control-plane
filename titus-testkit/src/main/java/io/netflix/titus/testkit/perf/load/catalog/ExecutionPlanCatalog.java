@@ -30,7 +30,7 @@ public final class ExecutionPlanCatalog {
                 .awaitCompletion()
                 .build();
     }
-
+    
     public static ExecutionPlan serviceWithKilledTasks() {
         return ExecutionPlan.newBuilder()
                 .label("start")

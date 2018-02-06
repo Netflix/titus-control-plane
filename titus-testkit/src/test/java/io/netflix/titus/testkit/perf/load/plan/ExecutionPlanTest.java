@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ExecutionPlanTest {
 
     @Test
-    public void testSimplePlan() throws Exception {
+    public void testSimplePlan() {
         ExecutionPlan plan = ExecutionPlan.newBuilder()
                 .label("start")
                 .delay(5, TimeUnit.SECONDS)

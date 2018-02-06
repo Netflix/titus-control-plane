@@ -36,7 +36,7 @@ public class ValueGeneratorTest {
     public void testSimpleValueGeneration() throws Exception {
         final int limit = 100;
         AtomicInteger valueSource = new AtomicInteger();
-        AtomicInteger emmitCounter = new AtomicInteger();
+        AtomicInteger emitCounter = new AtomicInteger();
         CountDownLatch latch = new CountDownLatch(1);
         Subscription subscription = ObservableExt.generatorFrom(valueSource::getAndIncrement).subscribe(new Subscriber<Integer>() {
             private Producer producer;
@@ -60,7 +60,7 @@ public class ValueGeneratorTest {
 
             @Override
             public void onNext(Integer integer) {
-                if (emmitCounter.incrementAndGet() < limit) {
+                if (emitCounter.incrementAndGet() < limit) {
                     producer.request(1);
                 } else {
                     unsubscribe();
@@ -69,7 +69,7 @@ public class ValueGeneratorTest {
             }
         });
         latch.await();
-        assertThat(emmitCounter.get()).isEqualTo(limit);
+        assertThat(emitCounter.get()).isEqualTo(limit);
         Awaitility.await().timeout(5, TimeUnit.SECONDS).until(subscription::isUnsubscribed);
     }
 

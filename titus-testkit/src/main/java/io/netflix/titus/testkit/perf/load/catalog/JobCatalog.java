@@ -17,10 +17,14 @@
 package io.netflix.titus.testkit.perf.load.catalog;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
-import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.api.jobmanager.model.job.Capacity;
+import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 
 /**
  * Set of predefined job profiles.
@@ -30,12 +34,10 @@ public final class JobCatalog {
         Small, Medium, Large
     }
 
-    private static AtomicInteger idx = new AtomicInteger();
-
     private JobCatalog() {
     }
 
-    public static TitusJobSpec batchJob(JobSize jobSize, int instances, long duration, TimeUnit timeUnit) {
+    public static JobDescriptor<BatchJobExt> batchJob(JobSize jobSize, int instances, long duration, TimeUnit timeUnit) {
         int factor = 1;
         switch (jobSize) {
             case Small:
@@ -53,22 +55,33 @@ public final class JobCatalog {
         double disk = 64 * factor;
         double network = 64 * factor;
 
-        return new TitusJobSpec.Builder()
-                .type(TitusJobType.batch)
-                .appName("titusLoadTestBatch")
-                .name("titusLoadTest" + idx.getAndIncrement())
-                .applicationName("trustybase")
-                .instances(instances)
-                .cpu(cpu)
-                .memory(memory)
-                .disk(disk)
-                .networkMbps(network)
-                .user("titusLoadTest")
-                .entryPoint("sleep " + timeUnit.toSeconds(duration))
-                .build();
+        String script = String.format(
+                "launched: delay=1s; startInitiated: delay=1s; started: delay=%ss; killInitiated: delay=1s",
+                timeUnit.toSeconds(duration)
+        );
+
+        return JobDescriptorGenerator.oneTaskBatchJobDescriptor()
+                .but(jd -> jd.getContainer()
+                        .but(c -> {
+                            return c.toBuilder()
+                                    .withEnv(CollectionsExt.copyAndAdd(c.getEnv(), "TASK_LIFECYCLE_1", script))
+                                    .withContainerResources(
+                                            ContainerResources.newBuilder()
+                                                    .withCpu(cpu)
+                                                    .withMemoryMB((int) memory)
+                                                    .withDiskMB((int) disk)
+                                                    .withNetworkMbps((int) network)
+                                                    .build()
+                                    );
+                        })
+                )
+                .but(jd -> jd.getExtensions().toBuilder()
+                        .withSize(instances)
+                        .withRuntimeLimitMs(Math.max(60_000, timeUnit.toMillis(duration) + 5_000))
+                );
     }
 
-    public static TitusJobSpec serviceJob(JobSize jobSize, int min, int desired, int max) {
+    public static JobDescriptor<ServiceJobExt> serviceJob(JobSize jobSize, int min, int desired, int max) {
         int factor = 1;
         switch (jobSize) {
             case Small:
@@ -86,20 +99,24 @@ public final class JobCatalog {
         double disk = 64 * factor;
         double network = 64 * factor;
 
-        return new TitusJobSpec.Builder()
-                .type(TitusJobType.service)
-                .appName("titusLoadTestService")
-                .name("titusLoadTest" + idx.getAndIncrement())
-                .applicationName("trustybase")
-                .instancesMin(min)
-                .instancesDesired(desired)
-                .instancesMax(max)
-                .cpu(cpu)
-                .memory(memory)
-                .disk(disk)
-                .networkMbps(network)
-                .user("titusLoadTest")
-                .entryPoint("sleep 36000")
-                .build();
+        String script = "launched: delay=1s; startInitiated: delay=1s; started: delay=30d; killInitiated: delay=1s";
+
+        return JobDescriptorGenerator.oneTaskServiceJobDescriptor()
+                .but(jd -> jd.getContainer()
+                        .but(c -> c.toBuilder()
+                                .withEnv(CollectionsExt.copyAndAdd(c.getEnv(), "TASK_LIFECYCLE_1", script))
+                                .withContainerResources(
+                                        ContainerResources.newBuilder()
+                                                .withCpu(cpu)
+                                                .withMemoryMB((int) memory)
+                                                .withDiskMB((int) disk)
+                                                .withNetworkMbps((int) network)
+                                                .build()
+                                ))
+                )
+                .but(jd -> jd.getExtensions().toBuilder()
+                        .withCapacity(Capacity.newBuilder().withMin(min).withDesired(desired).withMax(max).build())
+                        .build()
+                );
     }
 }

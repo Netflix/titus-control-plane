@@ -62,7 +62,7 @@ public class SimulatedAgentsServiceResource {
     }
 
     @GET
-    @Path("tasks")
+    @Path("/tasks")
     public List<SimulatedTask> getSimulatedTasks(@QueryParam("ids") List<String> ids) {
         return gateway.getSimulatedTasks(new HashSet<>(ids));
     }
@@ -71,6 +71,20 @@ public class SimulatedAgentsServiceResource {
     @Path("/instances/{instanceId}/tasks")
     public List<SimulatedTask> getSimulatedTasks(@PathParam("instanceId") String instanceId) {
         return gateway.getSimulatedTasksOnInstance(instanceId);
+    }
+
+    @DELETE
+    @Path("/tasks")
+    public Response getSimulatedTasks() {
+        gateway.terminateAllTasks();
+        return Response.noContent().build();
+    }
+
+    @DELETE
+    @Path("/tasks/{taskId}")
+    public Response terminateTask(@PathParam("taskId") String taskId) {
+        boolean result = gateway.terminateTask(taskId);
+        return result ? Response.noContent().build() : Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @PUT

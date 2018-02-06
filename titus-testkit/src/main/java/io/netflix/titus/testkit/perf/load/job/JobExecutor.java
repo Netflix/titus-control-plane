@@ -18,19 +18,22 @@ package io.netflix.titus.testkit.perf.load.job;
 
 import java.util.List;
 
-import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import rx.Observable;
 
 public interface JobExecutor {
+
     String getName();
 
     String getJobId();
 
     boolean isSubmitted();
 
-    List<TaskInfo> getActiveTasks();
+    List<Task> getActiveTasks();
 
-    Observable<JobChangeEvent> updates();
+    Observable<JobManagerEvent<?>> updates();
 
     Observable<Void> submitJob();
 

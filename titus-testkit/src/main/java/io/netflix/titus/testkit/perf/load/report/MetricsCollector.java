@@ -17,6 +17,7 @@
 package io.netflix.titus.testkit.perf.load.report;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,15 +25,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Preconditions;
-import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;
-import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent.ConsistencyRestoreEvent;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent.InconsistentStateEvent;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent.JobFinishedEvent;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent.JobSubmitEvent;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent.TaskCreateEvent;
-import io.netflix.titus.testkit.perf.load.job.JobChangeEvent.TaskStateChangeEvent;
+import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobState;
+import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import rx.Observable;
 import rx.Subscription;
 
@@ -40,13 +39,12 @@ public class MetricsCollector {
 
     private final AtomicLong totalSubmittedJobs = new AtomicLong();
     private final AtomicLong totalInconsistencies = new AtomicLong();
-    private final ConcurrentMap<TitusJobState, AtomicLong> totalJobStatusCounters = new ConcurrentHashMap<>();
-    private final ConcurrentMap<TitusTaskState, AtomicLong> totalTaskStateCounters = new ConcurrentHashMap<>();
+    private final ConcurrentMap<JobState, AtomicLong> totalJobStatusCounters = new ConcurrentHashMap<>();
+    private final ConcurrentMap<TaskState, AtomicLong> totalTaskStateCounters = new ConcurrentHashMap<>();
 
     private final AtomicLong activeJobs = new AtomicLong();
     private final Set<String> pendingInconsistentJobs = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private final ConcurrentMap<TitusTaskState, AtomicLong> activeTaskStateCounters = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, TitusTaskState> activeTaskLastStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TaskState> activeTaskLastStates = new ConcurrentHashMap<>();
 
     private Subscription subscription;
 
@@ -58,8 +56,10 @@ public class MetricsCollector {
         return activeJobs.get();
     }
 
-    public ConcurrentMap<TitusTaskState, AtomicLong> getActiveTaskStateCounters() {
-        return activeTaskStateCounters;
+    public Map<TaskState, Long> getActiveTaskStateCounters() {
+        Map<TaskState, Long> stateCounts = new HashMap<>();
+        activeTaskLastStates.values().forEach(state -> stateCounts.put(state, stateCounts.getOrDefault(state, 0L) + 1));
+        return stateCounts;
     }
 
     public long getTotalInconsistencies() {
@@ -70,62 +70,38 @@ public class MetricsCollector {
         return pendingInconsistentJobs.size();
     }
 
-    public Map<TitusJobState, AtomicLong> getTotalJobStatusCounters() {
+    public Map<JobState, AtomicLong> getTotalJobStatusCounters() {
         return totalJobStatusCounters;
     }
 
-    public Map<TitusTaskState, AtomicLong> getTotalTaskStateCounters() {
+    public Map<TaskState, AtomicLong> getTotalTaskStateCounters() {
         return totalTaskStateCounters;
     }
 
-    public void watch(Observable<JobChangeEvent> eventObservable) {
+    public void watch(Observable<JobManagerEvent<?>> eventObservable) {
         Preconditions.checkState(subscription == null);
 
         this.subscription = eventObservable.subscribe(
                 event -> {
-                    if (event instanceof JobSubmitEvent) {
-                        totalSubmittedJobs.incrementAndGet();
-                        activeJobs.incrementAndGet();
-                    } else if (event instanceof JobFinishedEvent) {
-                        JobFinishedEvent je = (JobFinishedEvent) event;
-                        totalJobStatusCounters.computeIfAbsent(je.getState(), s -> new AtomicLong()).incrementAndGet();
-                        activeJobs.decrementAndGet();
-                        pendingInconsistentJobs.remove(je.getJobId());
-                    } else if (event instanceof TaskCreateEvent) {
-                        TaskCreateEvent te = (TaskCreateEvent) event;
-                        totalTaskStateCounters.computeIfAbsent(te.getTaskState(), s -> new AtomicLong()).incrementAndGet();
+                    if (event instanceof JobUpdateEvent) {
+                        JobUpdateEvent jobUpdate = (JobUpdateEvent) event;
+                        Job<?> current = jobUpdate.getCurrent();
+                        totalJobStatusCounters.computeIfAbsent(current.getStatus().getState(), s -> new AtomicLong()).incrementAndGet();
 
-                        if (te.getTaskState().isActive()) {
-                            activeTaskStateCounters.computeIfAbsent(te.getTaskState(), s -> new AtomicLong()).incrementAndGet();
-                            activeTaskLastStates.put(te.getTaskId(), te.getTaskState());
-                        }
-                    } else if (event instanceof TaskStateChangeEvent) {
-                        TaskStateChangeEvent te = (TaskStateChangeEvent) event;
-                        totalTaskStateCounters.computeIfAbsent(te.getTaskState(), s -> new AtomicLong()).incrementAndGet();
-
-                        // First remove count for the previous state
-                        TitusTaskState lastState = activeTaskLastStates.get(te.getTaskId());
-                        if (lastState != null) {
-                            AtomicLong counter = activeTaskStateCounters.get(lastState);
-                            if (counter != null) {
-                                counter.decrementAndGet();
+                        if (!jobUpdate.getPrevious().isPresent()) {
+                            totalSubmittedJobs.incrementAndGet();
+                            activeJobs.incrementAndGet();
+                        } else {
+                            if (current.getStatus().getState() == JobState.Finished) {
+                                activeJobs.decrementAndGet();
+                                pendingInconsistentJobs.remove(current.getId());
                             }
                         }
-
-                        // Now account for the new state
-                        if (te.getTaskState().isActive()) {
-                            activeTaskStateCounters.computeIfAbsent(te.getTaskState(), s -> new AtomicLong()).incrementAndGet();
-                            activeTaskLastStates.put(te.getTaskId(), te.getTaskState());
-                        } else {
-                            activeTaskLastStates.remove(te.getTaskId());
-                        }
-                    } else if (event instanceof InconsistentStateEvent) {
-                        if (!pendingInconsistentJobs.contains(event.getJobId())) {
-                            pendingInconsistentJobs.add(event.getJobId());
-                            totalInconsistencies.incrementAndGet();
-                        }
-                    } else if (event instanceof ConsistencyRestoreEvent) {
-                        pendingInconsistentJobs.remove(event.getJobId());
+                    } else {
+                        TaskUpdateEvent taskUpdate = (TaskUpdateEvent) event;
+                        Task current = taskUpdate.getCurrent();
+                        activeTaskLastStates.put(current.getId(), current.getStatus().getState());
+                        totalTaskStateCounters.computeIfAbsent(current.getStatus().getState(), s -> new AtomicLong()).incrementAndGet();
                     }
                 }
         );

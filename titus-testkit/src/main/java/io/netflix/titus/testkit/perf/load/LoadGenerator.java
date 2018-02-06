@@ -18,28 +18,20 @@ package io.netflix.titus.testkit.perf.load;
 
 import java.io.PrintWriter;
 import java.util.Map;
-import java.util.function.UnaryOperator;
-import javax.inject.Named;
-import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.Provides;
-import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
-import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
-import com.netflix.governator.providers.Advises;
-import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
-import io.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
-import io.netflix.titus.testkit.client.DefaultTitusMasterClient;
-import io.netflix.titus.testkit.client.TitusMasterClient;
-import io.netflix.titus.testkit.perf.load.rest.ReportResource;
+import io.grpc.ManagedChannel;
+import io.grpc.netty.NegotiationType;
+import io.grpc.netty.NettyChannelBuilder;
+import io.netflix.titus.testkit.perf.load.rest.LoadJerseyModule;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -63,7 +55,7 @@ public class LoadGenerator {
         CommandLine cli = parseOptions(args);
 
         String hostName = cli.getOptionValue('H');
-        int port = getIntOpt(cli, 'p', 7001);
+        int port = getIntOpt(cli, 'p', 8090);
         boolean clean = getOptions().hasOption("c");
         int scaleFactor = getIntOpt(cli, 's', 1);
         Map<String, String> config = ImmutableMap.<String, String>builder()
@@ -86,38 +78,20 @@ public class LoadGenerator {
                     }
                 });
 
-                bind(TitusMasterClient.class).toInstance(new DefaultTitusMasterClient(hostName, port));
+                bind(ManagedChannel.class).toInstance(newManagedChannel(hostName, port));
 
+                install(new LoadModule());
+                install(new LoadJerseyModule());
                 install(new Archaius2JettyModule());
                 install(new GovernatorJerseySupportModule());
                 install(new JerseyServletModule() {
-                    @Override
-                    protected void configureServlets() {
-                        // This sets up Jersey to serve any found resources that start with the base path of "/*"
-                        serve("/*").with(GovernatorServletContainer.class);
-                    }
-
-                    @Advises
-                    @Singleton
-                    @Named("governator")
-                    UnaryOperator<DefaultResourceConfig> getConfig() {
-                        return config -> {
-                            // Providers
-                            config.getClasses().add(JsonMessageReaderWriter.class);
-
-                            // Resources
-                            config.getClasses().add(ReportResource.class);
-                            return config;
-                        };
-                    }
-
                 });
             }
 
-            @Provides
-            @Singleton
-            public LoadConfiguration getLoadConfiguration(ConfigProxyFactory factory) {
-                return factory.newProxy(LoadConfiguration.class);
+            protected ManagedChannel newManagedChannel(String hostName, int port) {
+                return NettyChannelBuilder.forAddress(hostName, port)
+                        .negotiationType(NegotiationType.PLAINTEXT)
+                        .build();
             }
         });
     }
@@ -125,7 +99,7 @@ public class LoadGenerator {
     private void tearDown() {
     }
 
-    void run() throws InterruptedException {
+    void run() {
         injector.getInstance(Orchestrator.class).awaitTermination();
     }
 
@@ -162,8 +136,8 @@ public class LoadGenerator {
     }
 
     private static boolean hasHelpOption(String[] args) {
-        for (int i = 0; i < args.length; i++) {
-            if (args[i].equals("-h") || args[i].equals("--help")) {
+        for (String arg : args) {
+            if (arg.equals("-h") || arg.equals("--help")) {
                 return true;
             }
         }

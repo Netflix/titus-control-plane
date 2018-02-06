@@ -123,43 +123,47 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
             @Override
             public void onNext(Status args) {
                 logger.info("In monitor: args=" + args);
-                V2JobMgrIntf jobMgr = jobOps.getJobMgr(args.getJobId());
-                if (jobMgr != null) {
-                    jobMgr.handleStatus(args);
-                    return;
-                }
-                if (args.getTaskId() != null && !JobFunctions.isV2Task(args.getTaskId())) {
-                    Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
-                    if (jobAndTaskOpt.isPresent()) {
-                        Task task = jobAndTaskOpt.get().getRight();
-                        TaskState newState = V2JobState.toV3TaskState(args.getState());
-                        if (task.getStatus().getState() != newState) {
-
-                            String reasonCode = V2JobState.toV3ReasonCode(args.getState(), args.getReason());
-
-                            // We send kill operation even if task is in Accepted state, but if the latter is the case
-                            // we do not want to report Mesos 'lost' state in task status.
-                            if (isKillConfirmationForTaskInAcceptedState(task, newState, reasonCode)) {
-                                reasonCode = TaskStatus.REASON_TASK_KILLED;
-                            }
-                            TaskStatus taskStatus = JobModel.newTaskStatus()
-                                    .withState(newState)
-                                    .withReasonCode(reasonCode)
-                                    .withReasonMessage("Mesos task state change event: " + args.getMessage())
-                                    .withTimestamp(args.getTimestamp())
-                                    .build();
-
-                            // Failures are logged only, as the reconciler will take care of it if needed.
-                            final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getData());
-                            v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus).subscribe(
-                                    () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
-                                    e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
-                            );
-                        }
+                try {
+                    V2JobMgrIntf jobMgr = jobOps.getJobMgr(args.getJobId());
+                    if (jobMgr != null) {
+                        jobMgr.handleStatus(args);
                         return;
                     }
+                    if (args.getTaskId() != null && !JobFunctions.isV2Task(args.getTaskId())) {
+                        Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
+                        if (jobAndTaskOpt.isPresent()) {
+                            Task task = jobAndTaskOpt.get().getRight();
+                            TaskState newState = V2JobState.toV3TaskState(args.getState());
+                            if (task.getStatus().getState() != newState) {
+
+                                String reasonCode = V2JobState.toV3ReasonCode(args.getState(), args.getReason());
+
+                                // We send kill operation even if task is in Accepted state, but if the latter is the case
+                                // we do not want to report Mesos 'lost' state in task status.
+                                if (isKillConfirmationForTaskInAcceptedState(task, newState, reasonCode)) {
+                                    reasonCode = TaskStatus.REASON_TASK_KILLED;
+                                }
+                                TaskStatus taskStatus = JobModel.newTaskStatus()
+                                        .withState(newState)
+                                        .withReasonCode(reasonCode)
+                                        .withReasonMessage("Mesos task state change event: " + args.getMessage())
+                                        .withTimestamp(args.getTimestamp())
+                                        .build();
+
+                                // Failures are logged only, as the reconciler will take care of it if needed.
+                                final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getData());
+                                v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus).subscribe(
+                                        () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
+                                        e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
+                                );
+                            }
+                            return;
+                        }
+                    }
+                    killOrphanedTask(args);
+                } catch (Exception e) {
+                    logger.warn("Exception during handling task status update notification", e);
                 }
-                killOrphanedTask(args);
             }
         });
         allStatusSubject = PublishSubject.create();

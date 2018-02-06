@@ -16,14 +16,18 @@
 
 package io.netflix.titus.testkit.perf.load.runner;
 
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
-import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;
+import com.google.protobuf.Empty;
+import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobStatus;
 import io.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,28 +49,40 @@ public class Terminator {
     }
 
     public void doClean() {
-        List<TitusJobInfo> allJobs = context.getClient().findAllJobs().toList().toBlocking().first();
-
-        List<String> toRemove = new ArrayList<>();
-        allJobs.forEach(j -> {
-            if (isActivePreviousSessionJob(j)) {
-                toRemove.add(j.getId());
+        Iterator<JobChangeNotification> it = context.getJobManagementClientBlocking().observeJobs(Empty.getDefaultInstance());
+        Set<String> jobIdsToRemove = new HashSet<>();
+        Set<String> unknownJobs = new HashSet<>();
+        while (it.hasNext()) {
+            JobChangeNotification event = it.next();
+            if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
+                break;
             }
-        });
+            if (event.getNotificationCase() != JobChangeNotification.NotificationCase.JOBUPDATE) {
+                continue;
+            }
+            Job job = event.getJobUpdate().getJob();
+            if (isActivePreviousSessionJob(job)) {
+                jobIdsToRemove.add(job.getId());
+            } else {
+                unknownJobs.add(job.getId());
+            }
+        }
 
-        if (!toRemove.isEmpty()) {
-            logger.warn("Removing old jobs: {}", toRemove);
+        if (!unknownJobs.isEmpty()) {
+            logger.warn("There are identified jobs running, which will not be removed: {}", unknownJobs);
+        }
+        if (!jobIdsToRemove.isEmpty()) {
+            logger.warn("Removing old jobs: {}", jobIdsToRemove);
 
-            List<Observable<Void>> killActions = toRemove.stream()
-                    .map(jid -> context.getClient().killJob(jid))
+            List<Observable<Void>> killActions = jobIdsToRemove.stream()
+                    .map(jid -> context.getJobManagementClient().killJob(jid))
                     .collect(Collectors.toList());
-            Observable.merge(killActions, 10).toBlocking().firstOrDefault(null);
+            Observable.mergeDelayError(killActions, 10).toBlocking().firstOrDefault(null);
         }
     }
 
-    private boolean isActivePreviousSessionJob(TitusJobInfo j) {
-        return TitusJobState.isActive(j.getState())
-                && j.getLabels() != null
-                && j.getLabels().containsKey(ExecutionContext.LABEL_SESSION);
+    private boolean isActivePreviousSessionJob(Job job) {
+        return job.getStatus().getState() == JobStatus.JobState.Accepted
+                && job.getJobDescriptor().getAttributesMap().containsKey(ExecutionContext.LABEL_SESSION);
     }
 }

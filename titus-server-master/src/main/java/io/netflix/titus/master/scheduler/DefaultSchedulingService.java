@@ -434,7 +434,10 @@ public class DefaultSchedulingService implements SchedulingService {
                                 }
                         );
                     } catch (TaskQueueException e) {
-                        logger.error(e.getMessage(), e);
+                        logger.error(e.getMessage());
+                        if (logger.isDebugEnabled()) {
+                            logger.error(e.getMessage(), e);
+                        }
                     }
                 },
                 vmCurrentStatesCheckIntervalMillis, vmCurrentStatesCheckIntervalMillis,
@@ -568,86 +571,101 @@ public class DefaultSchedulingService implements SchedulingService {
     private void launchTasks(Collection<TaskAssignmentResult> requests, List<VirtualMachineLease> leases) {
         final List<Protos.TaskInfo> taskInfoList = new LinkedList<>();
 
-        for (TaskAssignmentResult assignmentResult : requests) {
-            List<PreferentialNamedConsumableResourceSet.ConsumeResult> consumeResults = assignmentResult.getrSets();
-            TitusQueuableTask task = (TitusQueuableTask) assignmentResult.getRequest();
+        long recordStartTime = System.currentTimeMillis();
+        try {
+            for (TaskAssignmentResult assignmentResult : requests) {
+                List<PreferentialNamedConsumableResourceSet.ConsumeResult> consumeResults = assignmentResult.getrSets();
+                TitusQueuableTask task = (TitusQueuableTask) assignmentResult.getRequest();
 
-            boolean taskFound;
-            PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult = consumeResults.get(0);
-            if (JobFunctions.isV2Task(task.getId())) {
-                final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(task.getId());
-                taskFound = jobMgr != null;
-                if (taskFound) {
-                    final VirtualMachineLease lease = leases.get(0);
-                    try {
-                        taskInfoList.add(jobMgr.setLaunchedAndCreateTaskInfo(task, lease.hostname(), getAttributesMap(lease), lease.getOffer().getSlaveId(),
-                                consumeResult, assignmentResult.getAssignedPorts()));
-                    } catch (InvalidJobStateChangeException | InvalidJobException e) {
-                        logger.warn("Not launching task due to error setting state to launched for " + task.getId() + " - " +
-                                e.getMessage());
-                    } catch (Exception e) {
-                        // unexpected error creating task info
-                        String msg = "fatal error creating taskInfo for " + task.getId() + ": " + e.getMessage();
-                        logger.warn("Killing job " + jobMgr.getJobId() + ": " + msg, e);
-                        jobMgr.killJob("SYSTEM", msg);
-                    }
-                }
-            } else { // V3 task
-                Optional<Pair<Job<?>, Task>> v3JobAndTask = v3JobOperations.findTaskById(task.getId());
-                taskFound = v3JobAndTask.isPresent();
-                if (taskFound) {
-                    Job v3Job = v3JobAndTask.get().getLeft();
-                    Task v3Task = v3JobAndTask.get().getRight();
-                    final VirtualMachineLease lease = leases.get(0);
-                    try {
-                        Map<String, String> attributesMap = getAttributesMap(lease);
-                        Protos.TaskInfo taskInfo = v3TaskInfoFactory.newTaskInfo(
-                                task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
-                                consumeResult);
-
-                        // FIXME This is obvious shortcoming. Failed model updates must be propagated into change action result.
-                        AtomicReference<Throwable> errorRef = new AtomicReference<>();
-                        boolean updated = v3JobOperations.recordTaskPlacement(
-                                task.getId(),
-                                oldTask -> {
-                                    try {
-                                        return JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap).apply(oldTask);
-                                    } catch (Exception e) {
-                                        errorRef.set(e);
-                                        return oldTask;
-                                    }
-                                }
-                        ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-
-                        if (errorRef.get() != null) {
-                            if (JobManagerException.hasErrorCode(errorRef.get(), JobManagerException.ErrorCode.UnexpectedTaskState)) {
-                                logger.info("Not launching task, as it is no longer in Accepted state (probably killed)", v3Task.getId());
-                            } else {
-                                logger.info("Not launching task {} due to model update failure", v3Task.getId(), errorRef.get());
-                                killBrokenTask(task, "model update error: " + errorRef.get().getMessage());
-                            }
-                        } else if (updated) {
-                            taskInfoList.add(taskInfo);
-                        } else {
-                            killBrokenTask(task, "store update timeout");
-                            logger.error("Timed out during writing task {} (job {}) status update to the store", task.getId(), v3Job.getId());
+                boolean taskFound;
+                PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult = consumeResults.get(0);
+                if (JobFunctions.isV2Task(task.getId())) {
+                    final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(task.getId());
+                    taskFound = jobMgr != null;
+                    if (taskFound) {
+                        final VirtualMachineLease lease = leases.get(0);
+                        try {
+                            taskInfoList.add(jobMgr.setLaunchedAndCreateTaskInfo(task, lease.hostname(), getAttributesMap(lease), lease.getOffer().getSlaveId(),
+                                    consumeResult, assignmentResult.getAssignedPorts()));
+                        } catch (InvalidJobStateChangeException | InvalidJobException e) {
+                            logger.warn("Not launching task due to error setting state to launched for " + task.getId() + " - " +
+                                    e.getMessage());
+                        } catch (Exception e) {
+                            // unexpected error creating task info
+                            String msg = "fatal error creating taskInfo for " + task.getId() + ": " + e.getMessage();
+                            logger.warn("Killing job " + jobMgr.getJobId() + ": " + msg, e);
+                            jobMgr.killJob("SYSTEM", msg);
                         }
-                    } catch (Exception e) {
-                        killBrokenTask(task, e.toString());
-                        logger.error("Fatal error when creating TaskInfo for {}", task.getId(), e);
+                    }
+                } else { // V3 task
+                    Optional<Pair<Job<?>, Task>> v3JobAndTask = v3JobOperations.findTaskById(task.getId());
+                    taskFound = v3JobAndTask.isPresent();
+                    if (taskFound) {
+                        Job v3Job = v3JobAndTask.get().getLeft();
+                        Task v3Task = v3JobAndTask.get().getRight();
+                        final VirtualMachineLease lease = leases.get(0);
+                        try {
+                            Map<String, String> attributesMap = getAttributesMap(lease);
+                            Protos.TaskInfo taskInfo = v3TaskInfoFactory.newTaskInfo(
+                                    task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
+                                    consumeResult);
+
+                            // FIXME This is obvious shortcoming. Failed model updates must be propagated into change action result.
+                            AtomicReference<Throwable> errorRef = new AtomicReference<>();
+                            boolean updated = v3JobOperations.recordTaskPlacement(
+                                    task.getId(),
+                                    oldTask -> {
+                                        try {
+                                            return JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap).apply(oldTask);
+                                        } catch (Exception e) {
+                                            errorRef.set(e);
+                                            return oldTask;
+                                        }
+                                    }
+                            ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+                            if (errorRef.get() != null) {
+                                if (JobManagerException.hasErrorCode(errorRef.get(), JobManagerException.ErrorCode.UnexpectedTaskState)) {
+                                    logger.info("Not launching task, as it is no longer in Accepted state (probably killed)", v3Task.getId());
+                                } else {
+                                    logger.info("Not launching task {} due to model update failure", v3Task.getId(), errorRef.get());
+                                    killBrokenTask(task, "model update error: " + errorRef.get().getMessage());
+                                }
+                            } else if (updated) {
+                                taskInfoList.add(taskInfo);
+                            } else {
+                                killBrokenTask(task, "store update timeout");
+                                logger.error("Timed out during writing task {} (job {}) status update to the store", task.getId(), v3Job.getId());
+                            }
+                        } catch (Exception e) {
+                            killBrokenTask(task, e.toString());
+                            logger.error("Fatal error when creating TaskInfo for {}", task.getId(), e);
+                        }
                     }
                 }
+                if (!taskFound) {
+                    // job must have been terminated, remove task from Fenzo
+                    logger.warn("Rejecting assignment and removing task after not finding jobMgr for " + task.getId());
+                    schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
+                }
             }
-            if (!taskFound) {
-                // job must have been terminated, remove task from Fenzo
-                logger.warn("Rejecting assignment and removing task after not finding jobMgr for " + task.getId());
-                schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
-            }
+        } finally {
+            logger.info("Recorded task placement decisions in JobManager in {}ms: tasks={}, offers={}", System.currentTimeMillis() - recordStartTime, requests.size(), leases.size());
         }
+
+        long mesosStartTime = System.currentTimeMillis();
         if (taskInfoList.isEmpty()) {
-            leases.forEach(virtualMachineService::rejectLease);
+            try {
+                leases.forEach(virtualMachineService::rejectLease);
+            } finally {
+                logger.info("Rejected offers as no task effectively placed on the agent in {}ms: offers={}", System.currentTimeMillis() - mesosStartTime, leases.size());
+            }
         } else {
-            virtualMachineService.launchTasks(taskInfoList, leases);
+            try {
+                virtualMachineService.launchTasks(taskInfoList, leases);
+            } finally {
+                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", System.currentTimeMillis() - mesosStartTime, taskInfoList.size(), leases.size());
+            }
         }
     }
 

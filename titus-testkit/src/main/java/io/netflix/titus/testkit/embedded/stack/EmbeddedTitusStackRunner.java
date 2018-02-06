@@ -24,7 +24,7 @@ import org.apache.log4j.PropertyConfigurator;
 public class EmbeddedTitusStackRunner {
 
     static {
-        PropertyConfigurator.configure(LoadGenerator.class.getClassLoader().getResource("load-log4j.properties"));
+        PropertyConfigurator.configure(LoadGenerator.class.getClassLoader().getResource("embedded-log4j.properties"));
     }
 
     public static void main(String[] args) throws InterruptedException {

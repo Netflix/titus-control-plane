@@ -16,24 +16,18 @@
 
 package io.netflix.titus.testkit.perf.load.job;
 
-import java.util.function.Supplier;
-
-import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.testkit.perf.load.ExecutionContext;
 import rx.Observable;
 
 public class BatchJobExecutor extends AbstractJobExecutor {
 
-    public BatchJobExecutor(TitusJobSpec jobSpec,
-                            Supplier<Observable<ActiveJobsMonitor.ActiveJobs>> activeJobsSupplier,
+    public BatchJobExecutor(JobDescriptor<BatchJobExt> jobSpec,
+                            Observable<JobManagerEvent<?>> jobChangeObservable,
                             ExecutionContext context) {
-        super(jobSpec, activeJobsSupplier, context);
-    }
-
-    public BatchJobExecutor(TitusJobSpec jobSpec,
-                            ActiveJobsMonitor activeJobsMonitor,
-                            ExecutionContext context) {
-        super(jobSpec, activeJobsMonitor, context);
+        super(jobSpec, jobChangeObservable, context);
     }
 
     @Override
