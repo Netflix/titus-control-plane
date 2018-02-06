@@ -108,14 +108,14 @@ public class CassandraJobStore implements JobStore {
 
     @Inject
     public CassandraJobStore(CassandraStoreConfiguration configuration, Session session) {
-        this(configuration, session, ObjectMappers.storeMapper());
+        this(configuration, session, ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
     }
 
-    CassandraJobStore(CassandraStoreConfiguration configuration, Session session, ObjectMapper mapper) {
+    CassandraJobStore(CassandraStoreConfiguration configuration, Session session, ObjectMapper mapper, int maxBucketSize) {
         this.configuration = configuration;
         this.session = session;
         this.mapper = mapper;
-        this.activeJobIdsBucketManager = new BalancedBucketManager<>(MAX_BUCKET_SIZE);
+        this.activeJobIdsBucketManager = new BalancedBucketManager<>(maxBucketSize);
 
         retrieveActiveJobIdBucketsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING);
         retrieveActiveJobIdsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_IDS_STRING);

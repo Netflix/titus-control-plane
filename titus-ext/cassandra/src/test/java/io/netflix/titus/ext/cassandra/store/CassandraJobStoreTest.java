@@ -16,9 +16,11 @@
 
 package io.netflix.titus.ext.cassandra.store;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
@@ -42,25 +44,29 @@ import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import rx.Completable;
+import rx.Observable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class CassandraJobStoreTest {
 
-    private static final long STARTUP_TIMEOUT = 30_000L;
+    private static final long STARTUP_TIMEOUT_MS = 30_000L;
+    private static final int MAX_BUCKET_SIZE = 10;
 
     /**
      * As Cassandra uses memory mapped files there are sometimes issues with virtual disks storing the project files.
      * To solve this issue, we relocate the default embedded Cassandra folder to /var/tmp/embeddedCassandra.
      */
     private static final String CONFIGURATION_FILE_NAME = "relocated-cassandra.yaml";
+    public static final int MAX_CONCURRENCY = 10;
 
     @Rule
-    public CassandraCQLUnit cassandraCQLUnit = new CassandraCQLUnit(
+    public CassandraCQLUnit cassandraCqlUnit = new CassandraCQLUnit(
             new ClassPathCQLDataSet("tables.cql", "titus_integration_tests"),
             CONFIGURATION_FILE_NAME,
-            STARTUP_TIMEOUT
+            STARTUP_TIMEOUT_MS
     );
 
     private static final CassandraStoreConfiguration CONFIGURATION = new CassandraStoreConfiguration() {
@@ -81,12 +87,12 @@ public class CassandraJobStoreTest {
     };
 
     @Test
-    public void testRetrieveJobs() throws Exception {
-        Session session = cassandraCQLUnit.getSession();
-        JobStore bootstrappingStore = new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper());
+    public void testRetrieveJobs() {
+        Session session = cassandraCqlUnit.getSession();
+        JobStore bootstrappingStore = getJobStore(session);
         Job<BatchJobExt> job = createBatchJobObject();
         bootstrappingStore.storeJob(job).await();
-        JobStore store = new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper());
+        JobStore store = getJobStore(session);
         store.init().await();
         List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
         assertThat(jobs).hasSize(1);
@@ -94,12 +100,12 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testRetrieveBatchJob() throws Exception {
+    public void testRetrieveBatchJob() {
         doRetrieveJob(createBatchJobObject());
     }
 
     @Test
-    public void testRetrieveServiceJob() throws Exception {
+    public void testRetrieveServiceJob() {
         doRetrieveJob(createServiceJobObject());
     }
 
@@ -112,7 +118,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testStoreJob() throws Exception {
+    public void testStoreJob() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -121,8 +127,62 @@ public class CassandraJobStoreTest {
         assertThat(jobs.get(0)).isEqualTo(job);
     }
 
+    /**
+     * Create enough jobs to evenly be bucketed across multiple rows. Delete 1 job per bucket. Add back enough jobs to fill
+     * in the deleted jobs plus an extra bucket worth as a new bucket was created when reaching the max of all the original buckets.
+     */
     @Test
-    public void testUpdateJob() throws Exception {
+    public void testActiveJobIdDistribution() {
+        int numberOfJobsToCreate = 100;
+        int numberOfBuckets = numberOfJobsToCreate / MAX_BUCKET_SIZE;
+        Session session = cassandraCqlUnit.getSession();
+        JobStore store = getJobStore(session);
+        store.init().await();
+        List<Job<?>> createdJobs = new ArrayList<>();
+        List<Completable> completables = new ArrayList<>();
+        for (int i = 0; i < numberOfJobsToCreate; i++) {
+            Job<BatchJobExt> job = createBatchJobObject();
+            createdJobs.add(job);
+            completables.add(store.storeJob(job));
+        }
+        Completable.merge(Observable.from(completables), MAX_CONCURRENCY).await();
+        List<Job<?>> retrievedJobs = store.retrieveJobs().toList().toBlocking().first();
+        assertThat(retrievedJobs.size()).isEqualTo(numberOfJobsToCreate);
+        assertItemsPerBucket(session, numberOfBuckets, MAX_BUCKET_SIZE);
+
+        int j = 0;
+        int jobsRemoved = 0;
+        completables = new ArrayList<>();
+        while (j < numberOfJobsToCreate) {
+            Job<?> jobToRemove = createdJobs.get(j);
+            completables.add(store.deleteJob(jobToRemove));
+            j += MAX_BUCKET_SIZE;
+            jobsRemoved++;
+        }
+        Completable.merge(Observable.from(completables), MAX_CONCURRENCY).await();
+        assertItemsPerBucket(session, numberOfBuckets, MAX_BUCKET_SIZE - 1);
+
+        completables = new ArrayList<>();
+        for (int i = 0; i < jobsRemoved + MAX_BUCKET_SIZE; i++) {
+            Job<BatchJobExt> job = createBatchJobObject();
+            completables.add(store.storeJob(job));
+        }
+        Completable.merge(Observable.from(completables), MAX_CONCURRENCY).await();
+        retrievedJobs = store.retrieveJobs().toList().toBlocking().first();
+        assertThat(retrievedJobs.size()).isEqualTo(numberOfJobsToCreate + MAX_BUCKET_SIZE);
+        assertItemsPerBucket(session, numberOfBuckets + 1, MAX_BUCKET_SIZE);
+    }
+
+    private void assertItemsPerBucket(Session session, int numberOfBuckets, int expectedNumberOfItemsPerBucket) {
+        for (int i = 0; i < numberOfBuckets; i++) {
+            ResultSet resultSet = session.execute("SELECT COUNT(*) FROM active_job_ids WHERE bucket = " + i);
+            long numberOfItemsInBucket = resultSet.one().getLong(0);
+            assertThat(numberOfItemsInBucket).isEqualTo(expectedNumberOfItemsPerBucket);
+        }
+    }
+
+    @Test
+    public void testUpdateJob() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -138,7 +198,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testDeleteJob() throws Exception {
+    public void testDeleteJob() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -151,7 +211,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testRetrieveTasksForJob() throws Exception {
+    public void testRetrieveTasksForJob() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -165,7 +225,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testRetrieveTask() throws Exception {
+    public void testRetrieveTask() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -179,7 +239,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testStoreTask() throws Exception {
+    public void testStoreTask() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -193,7 +253,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testUpdateTask() throws Exception {
+    public void testUpdateTask() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -213,7 +273,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testReplaceTask() throws Exception {
+    public void testReplaceTask() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -232,7 +292,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testDeleteTask() throws Exception {
+    public void testDeleteTask() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -249,7 +309,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testRetrieveArchivedJob() throws Exception {
+    public void testRetrieveArchivedJob() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -260,7 +320,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testRetrieveArchivedTasksForJob() throws Exception {
+    public void testRetrieveArchivedTasksForJob() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -275,7 +335,7 @@ public class CassandraJobStoreTest {
     }
 
     @Test
-    public void testRetrieveArchivedTask() throws Exception {
+    public void testRetrieveArchivedTask() {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -290,8 +350,14 @@ public class CassandraJobStoreTest {
     }
 
     private JobStore getJobStore() {
-        Session session = cassandraCQLUnit.getSession();
-        return new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper());
+        return getJobStore(null);
+    }
+
+    private JobStore getJobStore(Session session) {
+        if (session == null) {
+            session = cassandraCqlUnit.getSession();
+        }
+        return new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
     }
 
     private Job<BatchJobExt> createBatchJobObject() {
