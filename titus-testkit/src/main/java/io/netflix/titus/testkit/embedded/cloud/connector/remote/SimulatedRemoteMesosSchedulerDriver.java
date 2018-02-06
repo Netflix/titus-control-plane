@@ -124,6 +124,11 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
 
     @Override
     public Protos.Status launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks) {
+        logger.info("Launching tasks: taskIds={}, offerIds={}",
+                tasks.stream().map(t -> t.getTaskId().getValue()).collect(Collectors.toList()),
+                offerIds.stream().map(Protos.OfferID::getValue).collect(Collectors.toList())
+        );
+
         TasksLaunchRequest request = TasksLaunchRequest.newBuilder()
                 .setOfferId(ConnectorUtils.findEarliestLease(offerIds))
                 .addAllTasks(tasks.stream().map(this::toSimulatedTask).collect(Collectors.toList()))
@@ -144,6 +149,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
 
     @Override
     public Protos.Status killTask(Protos.TaskID taskId) {
+        logger.info("Killing task: {}", taskId.getValue());
         blockingClient.killTask(Id.newBuilder().setId(taskId.getValue()).build());
         return Protos.Status.DRIVER_RUNNING;
     }
@@ -160,6 +166,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
 
     @Override
     public Protos.Status declineOffer(Protos.OfferID offerId) {
+        logger.info("Declining offer: {}", offerId.getValue());
         blockingClient.declineOffer(Id.newBuilder().setId(offerId.getValue()).build());
         return Protos.Status.DRIVER_RUNNING;
     }

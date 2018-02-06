@@ -38,6 +38,7 @@ import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.util.StringExt;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import io.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
@@ -100,7 +101,7 @@ public class SimulatedTitusAgent {
 
     private final Subject<OfferChangeEvent, OfferChangeEvent> offerUpdates = new SerializedSubject<>(PublishSubject.create());
     private volatile Offer lastOffer;
-    private volatile Subscription emmitSubscription;
+    private volatile Subscription emitSubscription;
 
     private final SerializedSubject<Protos.TaskStatus, Protos.TaskStatus> taskUpdates = new SerializedSubject<>(BehaviorSubject.create());
 
@@ -143,7 +144,7 @@ public class SimulatedTitusAgent {
 
         this.networkResourceTracker = new NetworkResourceTracker(ipPerEni);
 
-        emmitAvailableOffers(0);
+        emitAvailableOffers(0);
     }
 
     public String getClusterName() {
@@ -165,9 +166,11 @@ public class SimulatedTitusAgent {
     void shutdown() {
         worker.unsubscribe();
         if (lastOffer != null) {
-            offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
-            offerUpdates.onCompleted();
-            lastOffer = null;
+            synchronized (lock) {
+                offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
+                offerUpdates.onCompleted();
+                lastOffer = null;
+            }
         }
     }
 
@@ -220,10 +223,18 @@ public class SimulatedTitusAgent {
     }
 
     public Observable<OfferChangeEvent> observeOffers() {
-        Observable<OfferChangeEvent> offerStream = (lastOffer == null)
-                ? offerUpdates
-                : Observable.just(OfferChangeEvent.offer(lastOffer)).concatWith(offerUpdates);
-        return offerStream
+        return offerUpdates
+                .compose(ObservableExt.head(() -> {
+                    Offer currentOffer = lastOffer;
+                    if (currentOffer == null) {
+                        return Collections.emptyList();
+                    }
+                    return Collections.singletonList(OfferChangeEvent.offer(currentOffer));
+                }))
+                .distinctUntilChanged((previous, current) ->
+                        previous.getOffer().getId().equals(current.getOffer().getId()) && previous.isRescind() == current.isRescind()
+                )
+                .doOnNext(offer -> logger.info("Sending offer update to subscribers: {}", offer.getOffer().getId().getValue()))
                 .doOnSubscribe(() -> logger.info("New offer subscription for agent: {}", slaveId.getValue()))
                 .doOnUnsubscribe(() -> logger.info("Offer subscription terminated for agent: {}", slaveId.getValue()));
     }
@@ -268,7 +279,7 @@ public class SimulatedTitusAgent {
         logger.info("Launching {} tasks for offer: {}", tasks.size(), offerId);
         List<TaskExecutorHolder> taskExecutorHolders = launchTasksInternal(tasks);
         taskExecutorHolders.forEach(launchedTasksSubject::onNext);
-        emmitAvailableOffers(REOFFER_DELAY_MS);
+        emitAvailableOffers(REOFFER_DELAY_MS);
         return taskExecutorHolders;
     }
 
@@ -443,12 +454,14 @@ public class SimulatedTitusAgent {
         }
     }
 
-    public synchronized void declineOffer(String offerId) {
+    public void declineOffer(String offerId) {
         checkOffer(offerId);
-        if (lastOffer != null && lastOffer.getId().getValue().equals(offerId)) {
-            lastOffer = null;
-            // To avoid tight loop, re-offer it after some delay
-            emmitAvailableOffers(REOFFER_DELAY_MS);
+        synchronized (lock) {
+            if (lastOffer != null && lastOffer.getId().getValue().equals(offerId)) {
+                lastOffer = null;
+                // To avoid tight loop, re-offer it after some delay
+                emitAvailableOffers(REOFFER_DELAY_MS);
+            }
         }
     }
 
@@ -474,36 +487,43 @@ public class SimulatedTitusAgent {
         return !isCurrentOffer(offerId);
     }
 
-    private synchronized void rescind() {
-        if (lastOffer == null) {
-            return;
-        }
-        logger.info("Rescinding offer: {}", lastOffer.getId().getValue());
-        offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
-        lastOffer = null;
+    private void rescind() {
+        synchronized (lock) {
+            if (lastOffer == null) {
+                emitAvailableOffers(REOFFER_DELAY_MS);
+                return;
+            }
+            logger.info("Rescinding offer: {}", lastOffer.getId().getValue());
+            offerUpdates.onNext(OfferChangeEvent.rescind(lastOffer));
+            lastOffer = null;
 
-        emmitAvailableOffers(REOFFER_DELAY_MS);
+            emitAvailableOffers(REOFFER_DELAY_MS);
+        }
     }
 
-    private synchronized void emmitAvailableOffers(long delayMs) {
-        if(lastOffer != null) {
-            rescind();
-            return;
-        }
-        if (!aboveZero()) {
-            return;
-        }
+    private void emitAvailableOffers(long delayMs) {
+        synchronized (lock) {
+            if (lastOffer != null) {
+                rescind();
+                return;
+            }
+            if (!aboveZero()) {
+                return;
+            }
 
-        if (emmitSubscription != null && !emmitSubscription.isUnsubscribed()) {
-            emmitSubscription.unsubscribe();
+            if (emitSubscription != null && !emitSubscription.isUnsubscribed()) {
+                emitSubscription.unsubscribe();
+            }
+            this.emitSubscription = worker.schedule(() -> {
+                Offer newOffer = createOfferForAvailableResources();
+                logger.info("Emitting new offer {}: cpu={}, memoryMB={}, networkMB={}, diskMB={}", newOffer.getId().getValue(),
+                        availableCPUs, availableMemory, availableNetworkMbs, availableDisk);
+                synchronized (lock) {
+                    this.lastOffer = newOffer;
+                    offerUpdates.onNext(OfferChangeEvent.offer(newOffer));
+                }
+            }, delayMs, TimeUnit.MILLISECONDS);
         }
-        this.emmitSubscription = worker.schedule(() -> {
-            Offer newOffer = createOfferForAvailableResources();
-            logger.info("Emitting new offer {}: cpu={}, memoryMB={}, networkMB={}, diskMB={}", newOffer.getId().getValue(),
-                    availableCPUs, availableMemory, availableNetworkMbs, availableDisk);
-            offerUpdates.onNext(OfferChangeEvent.offer(newOffer));
-            this.lastOffer = newOffer;
-        }, delayMs, TimeUnit.MILLISECONDS);
     }
 
     private void releaseResourcesAndReOffer(TaskExecutorHolder taskExecutorHolder) {
