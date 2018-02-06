@@ -170,7 +170,7 @@ class LoadBalancerEngine {
     }
 
     private Observable<LoadBalancerTarget> targetsForTrackedTasks(Observable<Task> tasks) {
-        return tasks.doOnNext(task -> logger.debug("Checking if task is in job being tracked: {}", task))
+        return tasks.doOnNext(task -> logger.debug("Checking if task in job is being tracked: {}", task.getId()))
                 .map(task -> Pair.of(task, store.getAssociatedLoadBalancersSetForJob(task.getJobId())))
                 // A task with an empty set is not tracked by any load balancer
                 .filter(pair -> !pair.getRight().isEmpty())
