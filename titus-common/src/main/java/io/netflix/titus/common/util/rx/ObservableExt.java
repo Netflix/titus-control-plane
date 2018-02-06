@@ -123,7 +123,7 @@ public class ObservableExt {
      * when next item is emitted.
      */
     public static <T, R, S> Observable.Transformer<T, R> mapWithState(S zero, BiFunction<T, S, Pair<R, S>> transformer) {
-        return new MapWithStateTransformer(zero, transformer, Observable.empty());
+        return new MapWithStateTransformer<>(zero, transformer, Observable.empty());
     }
 
     /**
@@ -132,7 +132,7 @@ public class ObservableExt {
     public static <T, R, S> Observable.Transformer<T, R> mapWithState(S zero,
                                                                       BiFunction<T, S, Pair<R, S>> transformer,
                                                                       Observable<Function<S, Pair<R, S>>> cleanupActions) {
-        return new MapWithStateTransformer(zero, transformer, cleanupActions);
+        return new MapWithStateTransformer<>(zero, transformer, cleanupActions);
     }
 
     /**
