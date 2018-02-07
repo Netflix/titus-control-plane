@@ -102,7 +102,11 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   AppScaleManagerConfiguration appScaleManagerConfiguration) {
         this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v2JobOperations, v3JobOperations,
                 rxEventBus, registry, appScaleManagerConfiguration,
-                Schedulers.from(Executors.newSingleThreadExecutor(runnable -> new Thread("DefaultAppScaleManager")))
+                Schedulers.from(Executors.newSingleThreadExecutor(runnable -> {
+                    Thread thread = new Thread(runnable, "DefaultAppScaleManager");
+                    thread.setDaemon(true);
+                    return thread;
+                }))
         );
     }
 
@@ -116,7 +120,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   Registry registry,
                                   AppScaleManagerConfiguration appScaleManagerConfiguration,
                                   Scheduler awsInteractionScheduler
-                                  ) {
+    ) {
         this.appScalePolicyStore = appScalePolicyStore;
         this.cloudAlarmClient = cloudAlarmClient;
         this.appAutoScalingClient = applicationAutoScalingClient;
