@@ -25,7 +25,6 @@ import com.google.common.base.Preconditions;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import io.netflix.titus.testkit.embedded.cloud.connector.ConnectorUtils;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.Status;
 import org.apache.mesos.Scheduler;
@@ -157,7 +156,7 @@ public class SimulatedLocalMesosSchedulerDriver implements SchedulerDriver {
     @Override
     public Status launchTasks(Collection<Protos.OfferID> offerIds, Collection<Protos.TaskInfo> tasks, Protos.Filters filters) {
         checkDriverInRunningState();
-        simulatedCloud.launchTasks(ConnectorUtils.findEarliestLease(offerIds), tasks);
+        simulatedCloud.launchTasks(offerIds.stream().map(Protos.OfferID::getValue).collect(Collectors.toList()), tasks);
         return Status.DRIVER_RUNNING;
     }
 

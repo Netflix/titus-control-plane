@@ -177,17 +177,17 @@ public class SimulatedCloud {
         getAgentOwningOffer(offerId).ifPresent(agent -> agent.declineOffer(offerId));
     }
 
-    public List<TaskExecutorHolder> launchTasks(String offerId, Collection<Protos.TaskInfo> tasks) {
+    public List<TaskExecutorHolder> launchTasks(List<String> offerIds, Collection<Protos.TaskInfo> tasks) {
         if (tasks.isEmpty()) {
-            declineOffer(offerId);
+            offerIds.forEach(this::declineOffer);
             return Collections.emptyList();
         }
-        Optional<SimulatedTitusAgent> agent = getAgentOwningOffer(offerId);
+        Optional<SimulatedTitusAgent> agent = getAgentOwningOffer(offerIds.get(0));
         if (agent.isPresent()) {
-            return agent.get().launchTasks(offerId, tasks);
+            return agent.get().launchTasks(offerIds, tasks);
         }
 
-        tasks.forEach(task -> emitTaskLostEvent(task.getTaskId().getValue(), "Task launched with invalid offer: " + offerId));
+        tasks.forEach(task -> emitTaskLostEvent(task.getTaskId().getValue(), "Task launched with invalid offer: " + offerIds));
 
         return Collections.emptyList();
     }

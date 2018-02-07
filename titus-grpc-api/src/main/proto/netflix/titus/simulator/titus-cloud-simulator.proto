@@ -169,7 +169,7 @@ message CapacityUpdateRequest {
 
 message TasksLaunchRequest {
     repeated SimulatedTask tasks = 1;
-    string offerId = 2;
+    repeated string offerIds = 2;
 }
 
 service SimulatedAgentService {

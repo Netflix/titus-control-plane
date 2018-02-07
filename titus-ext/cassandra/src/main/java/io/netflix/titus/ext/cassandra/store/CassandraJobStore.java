@@ -52,7 +52,7 @@ import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
 @Singleton
 @ProxyConfiguration(types = {Logging, Spectator})
 public class CassandraJobStore implements JobStore {
-    private static final int MAX_BUCKET_SIZE = 10_000;
+    private static final int MAX_BUCKET_SIZE = 2_000;
 
     // SELECT Queries
     private static final String RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING = "SELECT distinct bucket FROM active_job_ids";
