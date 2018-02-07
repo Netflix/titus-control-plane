@@ -39,6 +39,8 @@ import com.netflix.titus.grpc.protogen.JobGroupInfo;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.JobStatus.JobState;
 import com.netflix.titus.grpc.protogen.MigrationPolicy;
+import com.netflix.titus.grpc.protogen.MigrationPolicy.SelfManaged;
+import com.netflix.titus.grpc.protogen.MigrationPolicy.SystemDefault;
 import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.Owner;
 import com.netflix.titus.grpc.protogen.RetryPolicy;
@@ -218,6 +220,12 @@ public final class V2GrpcModelConverters {
 
             descriptorBuilder.setService(serviceJobBuilder);
 
+            io.netflix.titus.api.model.MigrationPolicy v2MigrationPolicy = Parameters.getMigrationPolicy(parameters);
+            MigrationPolicy migrationPolicy = v2MigrationPolicy instanceof SelfManagedMigrationPolicy ?
+                    MigrationPolicy.newBuilder().setSelfManaged(SelfManaged.newBuilder()).build()
+                    :
+                    MigrationPolicy.newBuilder().setSystemDefault(SystemDefault.newBuilder()).build();
+            serviceJobBuilder.setMigrationPolicy(migrationPolicy);
         } else {
             BatchJobSpec.Builder batchJobBuilder = BatchJobSpec.newBuilder();
             batchJobBuilder.setSize(stageMetadata.getNumWorkers());

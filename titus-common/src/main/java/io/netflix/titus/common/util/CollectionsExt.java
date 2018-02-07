@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -141,6 +142,12 @@ public final class CollectionsExt {
         return newList;
     }
 
+    public static <T> Set<T> copyAndAdd(Set<T> original, T newItem) {
+        Set<T> newSet = new HashSet<>(original);
+        newSet.add(newItem);
+        return newSet;
+    }
+
     public static <K, V> Map<K, V> copyAndAdd(Map<K, V> original, K key, V value) {
         if (original.isEmpty()) {
             return Collections.singletonMap(key, value);
@@ -229,6 +236,33 @@ public final class CollectionsExt {
         Map<K, V> result = new HashMap<>();
         for (Map<K, V> next : maps) {
             result.putAll(next);
+        }
+        return result;
+    }
+
+    /**
+     * Merges two maps together by iterating through each key and copying it to a new map. If the same key exists
+     * in both maps then the conflictFunction is called with both values and should return a value to use.
+     *
+     * @param first            the first map to merge
+     * @param second           the second map to merge
+     * @param conflictFunction a custom function that should resolve conflicts between two values
+     * @return the merged map
+     */
+    public static <K, V> Map<K, V> merge(Map<K, V> first, Map<K, V> second, BiFunction<V, V, V> conflictFunction) {
+        Map<K, V> result = new HashMap<>();
+        Set<K> keys = CollectionsExt.merge(first.keySet(), second.keySet());
+        for (K key : keys) {
+            V firstValue = first.get(key);
+            V secondValue = second.get(key);
+            if (firstValue != null && secondValue != null) {
+                V newValue = conflictFunction.apply(firstValue, secondValue);
+                result.put(key, newValue);
+            } else if (firstValue == null) {
+                result.put(key, secondValue);
+            } else {
+                result.put(key, firstValue);
+            }
         }
         return result;
     }

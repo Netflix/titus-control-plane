@@ -20,20 +20,13 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import io.netflix.titus.api.jobmanager.model.job.Task;
-import io.netflix.titus.api.jobmanager.model.job.TaskState;
-import io.netflix.titus.api.model.v2.V2JobState;
-import io.netflix.titus.api.store.v2.V2WorkerMetadata;
-import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import io.netflix.titus.master.scheduler.ScheduledRequest;
 
 /**
- * A fitness calculator that will prefer placing tasks on nodes that have the least amount of tasks
- * launching in order to reduce concurrent task launches. Nodes without any tasks will return a score
- * of 0 as we only want to use empty nodes if there are no other nodes available.
+ * A fitness calculator that will prefer placing tasks on agents that have the least amount of tasks
+ * launching in order to reduce concurrent task launches. Agents without any tasks will return a low score
+ * as we only want to use empty agents if there are no other agents available.
  */
 public class TaskLaunchingFitnessCalculator implements VMTaskFitnessCalculator {
-
     private static final double EMPTY_HOST_SCORE = 0.01;
     private static final double LAUNCHING_TASKS_SCORE = 0.5;
     private static final double NOT_LAUNCHING_TASKS_SCORE = 1.0;
@@ -46,7 +39,7 @@ public class TaskLaunchingFitnessCalculator implements VMTaskFitnessCalculator {
     @Override
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         int totalTasks = targetVM.getRunningTasks().size();
-        int totalLaunchingTasks = (int) targetVM.getRunningTasks().stream().filter(this::isTaskLaunching).count();
+        int totalLaunchingTasks = (int) targetVM.getRunningTasks().stream().filter(FitnessCalculatorFunctions::isTaskLaunching).count();
 
         int totalAssignedTasks = targetVM.getTasksCurrentlyAssigned().size();
         totalTasks += totalAssignedTasks;
@@ -60,18 +53,5 @@ public class TaskLaunchingFitnessCalculator implements VMTaskFitnessCalculator {
 
         double launchingTasksRatio = 1.0 / (double) totalLaunchingTasks;
         return launchingTasksRatio * LAUNCHING_TASKS_SCORE;
-    }
-
-    private boolean isTaskLaunching(TaskRequest request) {
-        if (request instanceof ScheduledRequest) {
-            V2WorkerMetadata task = ((ScheduledRequest) request).getTask();
-            V2JobState state = task.getState();
-            return state == V2JobState.Accepted || state == V2JobState.Launched || state == V2JobState.StartInitiated;
-        } else if (request instanceof V3QueueableTask) {
-            Task task = ((V3QueueableTask) request).getTask();
-            TaskState state = task.getStatus().getState();
-            return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
-        }
-        return false;
     }
 }

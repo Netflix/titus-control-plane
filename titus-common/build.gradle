@@ -15,6 +15,7 @@ dependencies {
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
     compile "com.netflix.governator:governator-core:${governatorVersion}"
     compile "com.squareup.okhttp3:okhttp:${okHttpVersion}"
+    compile "com.github.ben-manes.caffeine:caffeine:${caffeineVersion}"
 
     // Java Bean validation/EL and SpEL
     compile "javax.el:javax.el-api:${javaxElVersion}"

@@ -75,7 +75,9 @@ public class InstrumentedEventLoop {
     }
 
     public void shutdown() {
-        worker.unsubscribe();
+        if (!worker.isUnsubscribed()) {
+            worker.unsubscribe();
+        }
         actionMetrics.clear();
         PolledMeter.remove(registry, actionsRemainingId);
     }

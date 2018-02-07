@@ -29,7 +29,7 @@ import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.scheduler.ScheduledRequest;
 
 /**
- * A fitness calculator that will prefer task placement on nodes with the same job type.
+ * A fitness calculator that will prefer task placement on agents with the same job type.
  */
 public class JobTypeFitnessCalculator implements VMTaskFitnessCalculator {
 
@@ -72,16 +72,16 @@ public class JobTypeFitnessCalculator implements VMTaskFitnessCalculator {
         return getJobType(first) == getJobType(second);
     }
 
-    private JobType getJobType(TaskRequest request) {
-        if (request instanceof ScheduledRequest) {
-            Parameters.JobType jobType = Parameters.getJobType(((ScheduledRequest) request).getJob().getParameters());
+    private JobType getJobType(TaskRequest taskRequest) {
+        if (taskRequest instanceof ScheduledRequest) {
+            Parameters.JobType jobType = Parameters.getJobType(((ScheduledRequest) taskRequest).getJob().getParameters());
             if (jobType == Parameters.JobType.Batch) {
                 return JobType.Batch;
             } else if (jobType == Parameters.JobType.Service) {
                 return JobType.Service;
             }
-        } else if (request instanceof V3QueueableTask) {
-            JobDescriptor.JobDescriptorExt jobDescriptorExt = ((V3QueueableTask) request).getJob().getJobDescriptor().getExtensions();
+        } else if (taskRequest instanceof V3QueueableTask) {
+            JobDescriptor.JobDescriptorExt jobDescriptorExt = ((V3QueueableTask) taskRequest).getJob().getJobDescriptor().getExtensions();
             if (jobDescriptorExt instanceof BatchJobExt) {
                 return JobType.Batch;
             } else if (jobDescriptorExt instanceof ServiceJobExt) {

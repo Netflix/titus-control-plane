@@ -18,6 +18,7 @@ package io.netflix.titus.common.runtime;
 
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.common.util.code.CodePointTracker;
+import io.netflix.titus.common.util.time.Clock;
 import rx.Observable;
 
 /**
@@ -40,4 +41,9 @@ public interface TitusRuntime {
      * for the full lifetime of the process.
      */
     <T> Observable<T> persistentStream(Observable<T> source);
+
+    /**
+     * Returns the configured clock.
+     */
+    Clock getClock();
 }

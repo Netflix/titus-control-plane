@@ -32,6 +32,8 @@ import io.netflix.titus.common.util.code.CodePointTracker;
 import io.netflix.titus.common.util.code.SpectatorCodePointTracker;
 import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
+import io.netflix.titus.common.util.time.Clock;
+import io.netflix.titus.common.util.time.Clocks;
 import rx.Observable;
 
 @Singleton
@@ -84,6 +86,11 @@ public class DefaultTitusRuntime implements TitusRuntime {
                         .withTitle("Auto-retry for " + callerName)
                         .buildExponentialBackoff()
                 );
+    }
+
+    @Override
+    public Clock getClock() {
+        return Clocks.system();
     }
 
     @Override
