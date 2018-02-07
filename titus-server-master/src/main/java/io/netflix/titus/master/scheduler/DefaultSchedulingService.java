@@ -81,6 +81,7 @@ import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -878,12 +879,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     @PreDestroy
     public void shutdown() {
-        if (slaUpdateSubscription != null) {
-            slaUpdateSubscription.unsubscribe();
-        }
-        if (vmStateUpdateSubscription != null) {
-            vmStateUpdateSubscription.unsubscribe();
-        }
+        ObservableExt.safeUnsubscribe(slaUpdateSubscription, vmStateUpdateSubscription);
         taskScheduler.shutdown();
         schedulingService.shutdown();
         agentResourceCacheUpdater.shutdown();

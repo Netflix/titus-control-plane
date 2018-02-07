@@ -29,6 +29,7 @@ import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -79,12 +80,7 @@ public class AgentResourceCacheUpdater {
     }
 
     public void shutdown() {
-        if (!v2TaskSubscription.isUnsubscribed()) {
-            v2TaskSubscription.unsubscribe();
-        }
-        if (!v3TaskSubscription.isUnsubscribed()) {
-            v3TaskSubscription.unsubscribe();
-        }
+        ObservableExt.safeUnsubscribe(v2TaskSubscription, v3TaskSubscription);
     }
 
     private void createOrUpdateAgentResourceCacheForV2Task(TaskStateChangeEvent event) {

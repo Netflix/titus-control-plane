@@ -148,9 +148,7 @@ public class InstrumentedCache<K, V> implements io.netflix.titus.common.util.cac
 
     @Override
     public void shutdown() {
-        if (!metricSubscription.isUnsubscribed()) {
-            metricSubscription.unsubscribe();
-        }
+        ObservableExt.safeUnsubscribe(metricSubscription);
         invalidateAll();
         cleanUp();
     }
