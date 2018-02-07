@@ -27,7 +27,6 @@ import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.util.NetworkExt;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
-import io.netflix.titus.testkit.embedded.cloud.connector.ConnectorUtils;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
@@ -130,7 +129,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
         );
 
         TasksLaunchRequest request = TasksLaunchRequest.newBuilder()
-                .setOfferId(ConnectorUtils.findEarliestLease(offerIds))
+                .addAllOfferIds(offerIds.stream().map(Protos.OfferID::getValue).collect(Collectors.toList()))
                 .addAllTasks(tasks.stream().map(this::toSimulatedTask).collect(Collectors.toList()))
                 .build();
         blockingClient.launchTasks(request);

@@ -234,7 +234,7 @@ public class SimulatedTitusAgent {
                 .distinctUntilChanged((previous, current) ->
                         previous.getOffer().getId().equals(current.getOffer().getId()) && previous.isRescind() == current.isRescind()
                 )
-                .doOnNext(offer -> logger.info("Sending offer update to subscribers: {}", offer.getOffer().getId().getValue()))
+                .doOnNext(offer -> logger.info("Sending offer update to subscribers: {}, rescinded={}", offer.getOffer().getId().getValue(), offer.isRescind()))
                 .doOnSubscribe(() -> logger.info("New offer subscription for agent: {}", slaveId.getValue()))
                 .doOnUnsubscribe(() -> logger.info("Offer subscription terminated for agent: {}", slaveId.getValue()));
     }
@@ -260,8 +260,9 @@ public class SimulatedTitusAgent {
         return Optional.empty();
     }
 
-    public List<TaskExecutorHolder> launchTasks(String offerId, Collection<Protos.TaskInfo> tasks) {
-        if (isExpiredOffer(offerId)) {
+    public List<TaskExecutorHolder> launchTasks(List<String> offerIds, Collection<Protos.TaskInfo> tasks) {
+        String offerId = offerIds.get(0);
+        if (offerIds.size() > 1 || isExpiredOffer(offerId)) {
             tasks.forEach(t -> {
                 String message = String.format("Offer %s expired. Cannot launch task %s", offerId, t.getTaskId().getValue());
                 Protos.TaskStatus crashedStatus = Protos.TaskStatus.newBuilder()

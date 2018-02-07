@@ -98,7 +98,7 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
         List<Protos.TaskInfo> taskInfos = request.getTasksList().stream()
                 .map(GrpcSimulatedMesosService::toMesosTaskInfo)
                 .collect(Collectors.toList());
-        cloud.launchTasks(request.getOfferId(), taskInfos);
+        cloud.launchTasks(request.getOfferIdsList(), taskInfos);
 
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
