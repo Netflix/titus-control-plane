@@ -90,4 +90,11 @@ public class DefaultAgentResourceCache implements AgentResourceCache {
     public Optional<AgentResourceCacheInstance> getActive(String hostname) {
         return Optional.ofNullable(activeCache.getIfPresent(hostname));
     }
+
+    @Override
+    public void shutdown() {
+        eventLoop.shutdown();
+        idleCache.shutdown();
+        activeCache.shutdown();
+    }
 }

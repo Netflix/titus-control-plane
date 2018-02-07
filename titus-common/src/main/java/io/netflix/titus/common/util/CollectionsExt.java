@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -241,6 +240,15 @@ public final class CollectionsExt {
         return result;
     }
 
+    /**
+     * Merges two maps together by iterating through each key and copying it to a new map. If the same key exists
+     * in both maps then the conflictFunction is called with both values and should return a value to use.
+     *
+     * @param first            the first map to merge
+     * @param second           the second map to merge
+     * @param conflictFunction a custom function that should resolve conflicts between two values
+     * @return the merged map
+     */
     public static <K, V> Map<K, V> merge(Map<K, V> first, Map<K, V> second, BiFunction<V, V, V> conflictFunction) {
         Map<K, V> result = new HashMap<>();
         Set<K> keys = CollectionsExt.merge(first.keySet(), second.keySet());

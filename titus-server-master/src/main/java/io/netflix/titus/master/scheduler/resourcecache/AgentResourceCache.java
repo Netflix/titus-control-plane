@@ -54,4 +54,9 @@ public interface AgentResourceCache {
      * @return the {@link AgentResourceCacheInstance} in an optional or empty if it does not exist.
      */
     Optional<AgentResourceCacheInstance> getActive(String hostname);
+
+    /**
+     * Shuts down the cache
+     */
+    void shutdown();
 }

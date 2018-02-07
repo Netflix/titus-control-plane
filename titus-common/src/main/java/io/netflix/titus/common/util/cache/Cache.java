@@ -169,4 +169,9 @@ public interface Cache<K, V> {
      * Performs any pending maintenance operations needed by the cache
      */
     void cleanUp();
+
+    /**
+     * Shuts down the cache
+     */
+    void shutdown();
 }

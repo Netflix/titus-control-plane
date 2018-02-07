@@ -886,6 +886,8 @@ public class DefaultSchedulingService implements SchedulingService {
         }
         taskScheduler.shutdown();
         schedulingService.shutdown();
+        agentResourceCacheUpdater.shutdown();
+        agentResourceCache.shutdown();
     }
 
     @Override

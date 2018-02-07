@@ -275,6 +275,8 @@ public class AgentResourceCacheFunctions {
         Map<String, Set<String>> newIpAddresses = new HashMap<>(ipAddresses);
         boolean hasAvailableIps = false;
         if (taskIdsForEmptyIp.contains(taskId)) {
+            // this code block is used for values in the idle cache as we do not yet know what the ip address is so all
+            // tasks are in the EMPTY_IP_ADDRESS slot.
             hasAvailableIps = true;
             Set<String> newTaskIdsForEmptyIp = CollectionsExt.copyAndRemove(taskIdsForEmptyIp, taskId);
             newIpAddresses.put(EMPTY_IP_ADDRESS, newTaskIdsForEmptyIp);

@@ -32,6 +32,7 @@ import io.netflix.titus.common.util.rx.ObservableExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
+import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 public class InstrumentedCache<K, V> implements io.netflix.titus.common.util.cache.Cache<K, V> {
@@ -42,6 +43,7 @@ public class InstrumentedCache<K, V> implements io.netflix.titus.common.util.cac
 
     private final Cache<K, V> cache;
 
+    private final Subscription metricSubscription;
     private final Gauge requestCountGauge;
     private final Gauge hitCountGauge;
     private final Gauge missCountGauge;
@@ -71,7 +73,7 @@ public class InstrumentedCache<K, V> implements io.netflix.titus.common.util.cac
         evictionWeightGauge = registry.gauge(metricPrefix + "evictionWeight");
         estimatedSizeGauge = registry.gauge(metricPrefix + "estimatedSize");
 
-        ObservableExt.schedule(metricNameRoot, registry, UPDATE_CACHE_METRICS_NAME,
+        metricSubscription = ObservableExt.schedule(metricNameRoot, registry, UPDATE_CACHE_METRICS_NAME,
                 Completable.fromAction(this::updateMetrics), 0, UPDATE_METRICS_INTERVAL_SEC, TimeUnit.SECONDS, Schedulers.computation()
         ).subscribe(
                 next -> {
@@ -142,6 +144,15 @@ public class InstrumentedCache<K, V> implements io.netflix.titus.common.util.cac
     @Override
     public void cleanUp() {
         cache.cleanUp();
+    }
+
+    @Override
+    public void shutdown() {
+        if (!metricSubscription.isUnsubscribed()) {
+            metricSubscription.unsubscribe();
+        }
+        invalidateAll();
+        cleanUp();
     }
 
     private void updateMetrics() {
