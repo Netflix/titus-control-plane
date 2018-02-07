@@ -24,6 +24,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.netflix.spectator.api.NoopRegistry;
 import io.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
 import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import org.junit.Before;
@@ -79,14 +80,11 @@ public class RateLimitedBatcherTest {
     @Test
     public void emitAccordingToStrategy() {
         final int initialDelay = minimumTimeInQueueMs;
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, initialDelay, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
-        );
-
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Instant start = now.minus(ofHours(1));
         final Instant firstBucket = start.plus(ofMillis(timeWindowBucketSizeMs));
         final Instant secondBucket = firstBucket.plus(ofMillis(timeWindowBucketSizeMs));
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(initialDelay);
 
         final List<Batch<BatchableOperationMock, String>> expected = Arrays.asList(
                 // older bucket
@@ -146,10 +144,7 @@ public class RateLimitedBatcherTest {
         final int maxDelayMs = 10 * initialDelayMs;
         final List<Integer> delays = Arrays.asList(initialDelayMs, 2 * initialDelayMs, 4 * initialDelayMs, 8 * initialDelayMs, maxDelayMs);
         final long afterAllDelays = delays.stream().mapToLong(Integer::longValue).sum() + 2 * maxDelayMs /* two extra round at the end */;
-
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, initialDelayMs, maxDelayMs, BatchableOperationMock::getResourceId, strategy
-        );
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(initialDelayMs, maxDelayMs);
 
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final BatchableOperationMock update = new BatchableOperationMock(Low, now.minus(ofSeconds(5)), "resource1", "sub1", "create");
@@ -197,9 +192,7 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void pendingItemsAreFlushedAfterUpstreamCompletes() {
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
-        );
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(minimumTimeInQueueMs);
 
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final BatchableOperationMock first = new BatchableOperationMock(Low, now.minus(ofSeconds(5)), "resource1", "sub1", "create");
@@ -220,9 +213,7 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void minimumTimeInQueue() {
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, 1, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
-        );
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(1);
 
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final List<BatchableOperationMock> updatesList = Arrays.asList(
@@ -271,10 +262,8 @@ public class RateLimitedBatcherTest {
         assertEmitSingleAfterReceiving(old, old, recentDoingTheSame);
     }
 
-    public void assertEmitSingleAfterReceiving(BatchableOperationMock expected, BatchableOperationMock... receiving) {
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
-        );
+    private void assertEmitSingleAfterReceiving(BatchableOperationMock expected, BatchableOperationMock... receiving) {
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(minimumTimeInQueueMs);
         final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
 
         final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
@@ -293,9 +282,7 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void onCompletedIsNotSentAfterOnError() {
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
-        );
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(minimumTimeInQueueMs);
         final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
 
         final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
@@ -312,9 +299,7 @@ public class RateLimitedBatcherTest {
 
     @Test
     public void onErrorIsNotSentAfterOnCompleted() {
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
-        );
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(minimumTimeInQueueMs);
         final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
 
         final AssertableSubscriber<Batch<BatchableOperationMock, String>> subscriber = updates.lift(batcher).test();
@@ -333,9 +318,7 @@ public class RateLimitedBatcherTest {
     @Test
     public void ignoreErrorsFromDownstream() {
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
-        final RateLimitedBatcher<BatchableOperationMock, String> batcher = RateLimitedBatcher.create(
-                testScheduler, tokenBucket, minimumTimeInQueueMs, Long.MAX_VALUE, BatchableOperationMock::getResourceId, strategy
-        );
+        final RateLimitedBatcher<BatchableOperationMock, String> batcher = buildBatcher(minimumTimeInQueueMs);
         final Subject<BatchableOperationMock, BatchableOperationMock> updates = PublishSubject.<BatchableOperationMock>create().toSerialized();
 
         final AssertableSubscriber<?> subscriber = updates.lift(batcher)
@@ -366,6 +349,15 @@ public class RateLimitedBatcherTest {
     private Instant randomWithinBucket(Instant when) {
         return when.plus(ofMillis(random.nextInt(timeWindowBucketSizeMs)));
 
+    }
+
+    private RateLimitedBatcher<BatchableOperationMock, String> buildBatcher(long initialDelayMs) {
+        return buildBatcher(initialDelayMs, Long.MAX_VALUE);
+    }
+
+    private RateLimitedBatcher<BatchableOperationMock, String> buildBatcher(long initialDelayMs, long maxDelayMs) {
+        return RateLimitedBatcher.create(tokenBucket, initialDelayMs, maxDelayMs,
+                BatchableOperationMock::getResourceId, strategy, "testBatcher", new NoopRegistry(), testScheduler);
     }
 
     private static class ExceptionThrowingOperator implements Observable.Operator<Object, Batch<?, ?>> {

@@ -19,14 +19,21 @@ package io.netflix.titus.common.util.rx.batch;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import io.netflix.titus.common.util.collections.ConcurrentHashMultimap;
 import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
+import io.netflix.titus.common.util.rx.InstrumentedEventLoop;
+import io.netflix.titus.common.util.time.Clock;
+import io.netflix.titus.common.util.time.Clocks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -74,35 +81,61 @@ import rx.plugins.RxJavaHooks;
 public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable.Operator<Batch<T, I>, T> {
     private final Logger logger = LoggerFactory.getLogger(RateLimitedBatcher.class);
 
+    private static final String ACTION_FLUSH = "flush";
+    private static final String ACTION_COMPLETED = "sendCompleted";
+    private static final String ACTION_ERROR = "sendError";
+
     /**
      * event loop that serializes all on{Next, Error, Completed} calls
      */
-    private final Scheduler.Worker worker;
+    private final InstrumentedEventLoop worker;
 
     private final TokenBucket tokenBucket;
-    private final IndexExtractor<T, I> indexExtractor;
-    private final EmissionStrategy emissionStrategy;
-
     private final long initialDelayMs;
     private final long maxDelayMs;
+    private final IndexExtractor<T, I> indexExtractor;
+    private final EmissionStrategy emissionStrategy;
+    private final String metricsRoot;
+    private final Registry registry;
+    private final Counter rateLimitCounter;
+    private final Clock clock;
 
-    public static <T extends Batchable<?>, I>
-    RateLimitedBatcher<T, I> create(Scheduler scheduler, TokenBucket tokenBucket, long initialDelay, long maxDelay,
-                                    IndexExtractor<T, I> indexExtractor, EmissionStrategy emissionStrategy) {
-        return new RateLimitedBatcher<T, I>(scheduler, tokenBucket, initialDelay, maxDelay, indexExtractor, emissionStrategy);
+    /**
+     * @see io.netflix.titus.common.util.rx.ObservableExt#batchWithRateLimit(RateLimitedBatcher, String, Registry)
+     * @see io.netflix.titus.common.util.rx.ObservableExt#batchWithRateLimit(RateLimitedBatcher, String, List, Registry)
+     */
+    public static <T extends Batchable<?>, I> RateLimitedBatcher<T, I> create(TokenBucket tokenBucket,
+                                                                              long initialDelay,
+                                                                              long maxDelay,
+                                                                              IndexExtractor<T, I> indexExtractor,
+                                                                              EmissionStrategy emissionStrategy,
+                                                                              String metricsRoot,
+                                                                              Registry registry,
+                                                                              Scheduler scheduler) {
+        return new RateLimitedBatcher<T, I>(tokenBucket, initialDelay, maxDelay, indexExtractor, emissionStrategy, metricsRoot, registry, scheduler);
     }
 
-    private RateLimitedBatcher(Scheduler scheduler, TokenBucket tokenBucket, long initialDelay, long maxDelay,
-                               IndexExtractor<T, I> indexExtractor, EmissionStrategy emissionStrategy) {
+    private RateLimitedBatcher(TokenBucket tokenBucket,
+                               long initialDelay,
+                               long maxDelay,
+                               IndexExtractor<T, I> indexExtractor,
+                               EmissionStrategy emissionStrategy,
+                               String metricsRoot,
+                               Registry registry,
+                               Scheduler scheduler) {
         Preconditions.checkArgument(initialDelay > 0, "initialDelayMs must be > 0");
         Preconditions.checkArgument(maxDelay >= initialDelay, "maxDelayMs must be >= initialDelayMs");
+        Preconditions.checkArgument(!metricsRoot.endsWith("."), "metricsRoot must not end with a '.' (dot)");
         this.tokenBucket = tokenBucket;
         this.initialDelayMs = initialDelay;
         this.maxDelayMs = maxDelay;
         this.indexExtractor = indexExtractor;
         this.emissionStrategy = emissionStrategy;
-        // TODO(fabio): change this to InstrumentedEventLoop
-        this.worker = scheduler.createWorker();
+        this.metricsRoot = metricsRoot;
+        this.registry = registry;
+        this.rateLimitCounter = registry.counter(metricsRoot + ".rateLimit");
+        this.clock = Clocks.scheduler(scheduler);
+        this.worker = new InstrumentedEventLoop(metricsRoot, registry, scheduler);
     }
 
     @Override
@@ -213,7 +246,11 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
          * start the continuous loop
          */
         public void run() {
-            worker.schedule(this::flushPending, currentDelayMs.get(), TimeUnit.MILLISECONDS);
+            PolledMeter.using(registry)
+                    .withName(metricsRoot + ".pending")
+                    // TODO: size() does a O(N) scan, optimize it
+                    .monitorValue(pending, ConcurrentHashMultimap::size);
+            worker.schedule(ACTION_FLUSH, this::flushPending, currentDelayMs.get(), TimeUnit.MILLISECONDS);
         }
 
         /**
@@ -261,7 +298,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
             }
 
             logger.debug("All pending items flushed, scheduling another round");
-            worker.schedule(this::flushPending);
+            worker.schedule(ACTION_FLUSH, this::flushPending);
         }
 
         /**
@@ -281,17 +318,18 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
             final long nextRefill = tokenBucket.getRefillStrategy().getTimeUntilNextRefill(TimeUnit.MILLISECONDS);
             final long delayForNext = Math.max(increaseAndGetCurrentDelayMs(), nextRefill);
             logger.warn("Rate limit applied, retry in {} ms", delayForNext);
-            worker.schedule(this::flushPending, delayForNext, TimeUnit.MILLISECONDS);
+            rateLimitCounter.increment();
+            worker.schedule(ACTION_FLUSH, this::flushPending, delayForNext, TimeUnit.MILLISECONDS);
         }
 
         private void scheduleNextIfNotDone() {
             if (done && pending.isEmpty()) {
                 logger.info("Ending the flush loop, all pending items were flushed after onComplete from upstream");
-                worker.schedule(this::sendCompleted);
+                worker.schedule(ACTION_COMPLETED, this::sendCompleted);
                 return;
             }
             logger.debug("No batches are ready yet. Next iteration in {} ms", currentDelayMs);
-            worker.schedule(this::flushPending, currentDelayMs.get(), TimeUnit.MILLISECONDS);
+            worker.schedule(ACTION_FLUSH, this::flushPending, currentDelayMs.get(), TimeUnit.MILLISECONDS);
         }
 
         private long increaseAndGetCurrentDelayMs() {
@@ -316,7 +354,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
         }
 
         private boolean isWaitingForAtLeast(Batch<T, I> batch, long ms) {
-            Instant now = Instant.ofEpochMilli(worker.now());
+            Instant now = Instant.ofEpochMilli(clock.wallTime());
             final Instant cutLine = now.minus(ms, ChronoUnit.MILLIS);
             return !batch.getOldestItemTimestamp().isAfter(cutLine);
         }
@@ -332,7 +370,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
             }
             sentCompleted = true;
             downstream.onCompleted();
-            worker.unsubscribe();
+            worker.shutdown();
         }
 
         /**
@@ -352,7 +390,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
              */
             done = true;
             downstream.onError(e);
-            worker.unsubscribe();
+            worker.shutdown();
         }
 
         /**
@@ -365,7 +403,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
                 return;
             }
             isOnErrorScheduled = true;
-            worker.schedule(() -> sendError(e));
+            worker.schedule(ACTION_ERROR, () -> sendError(e));
         }
 
         /**

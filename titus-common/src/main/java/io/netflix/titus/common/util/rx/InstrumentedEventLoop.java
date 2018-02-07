@@ -19,6 +19,7 @@ package io.netflix.titus.common.util.rx;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.spectator.api.Id;
@@ -55,7 +56,25 @@ public class InstrumentedEventLoop {
     }
 
     public void schedule(String actionName, Action0 action) {
-        worker.schedule(() -> {
+        worker.schedule(instrumentedAction(actionName, action));
+        actionsRemaining.incrementAndGet();
+    }
+
+    public void schedule(String actionName, Action0 action, long delayTime, TimeUnit unit) {
+        worker.schedule(instrumentedAction(actionName, action), delayTime, unit);
+        actionsRemaining.incrementAndGet();
+    }
+
+    public void shutdown() {
+        if (!worker.isUnsubscribed()) {
+            worker.unsubscribe();
+        }
+        actionMetrics.clear();
+        PolledMeter.remove(registry, actionsRemainingId);
+    }
+
+    private Action0 instrumentedAction(String actionName, Action0 action) {
+        return () -> {
             ActionMetrics actionMetrics = this.actionMetrics.computeIfAbsent(actionName, k -> {
                 String rootName = metricNameRoot + ".eventLoop." + actionName;
                 return SpectatorExt.actionMetrics(rootName, Collections.emptyList(), registry);
@@ -70,15 +89,6 @@ public class InstrumentedEventLoop {
                 actionMetrics.finish(start);
                 actionsRemaining.decrementAndGet();
             }
-        });
-        actionsRemaining.incrementAndGet();
-    }
-
-    public void shutdown() {
-        if (!worker.isUnsubscribed()) {
-            worker.unsubscribe();
-        }
-        actionMetrics.clear();
-        PolledMeter.remove(registry, actionsRemainingId);
+        };
     }
 }
