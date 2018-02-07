@@ -33,6 +33,7 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
+import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.batch.Batch;
 import io.netflix.titus.common.util.rx.batch.LargestPerTimeBucket;
 import io.netflix.titus.common.util.rx.batch.Priority;
@@ -47,12 +48,18 @@ import rx.Scheduler;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import static io.netflix.titus.master.MetricConstants.METRIC_LOADBALANCER;
+
 class LoadBalancerEngine {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerEngine.class);
+
+    private static final String METRIC_BATCHES = METRIC_LOADBALANCER + "batches";
+    private static final String METRIC_BATCHER = METRIC_LOADBALANCER + "batcher";
 
     private final Subject<JobLoadBalancer, JobLoadBalancer> pendingAssociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
     private final Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
 
+    private final TitusRuntime titusRuntime;
     private final LoadBalancerConfiguration configuration;
     private final LoadBalancerJobOperations jobOperations;
     private final TokenBucket connectorTokenBucket;
@@ -60,7 +67,6 @@ class LoadBalancerEngine {
     private final LoadBalancerStore store;
     private final LoadBalancerReconciler reconciler;
     private final Scheduler scheduler;
-    private final TitusRuntime titusRuntime;
 
     LoadBalancerEngine(TitusRuntime titusRuntime,
                        LoadBalancerConfiguration configuration,
@@ -109,7 +115,8 @@ class LoadBalancerEngine {
                 deregisterFromEvents(stateTransitions)
         ).compose(disableReconciliationTemporarily());
 
-        return updates.lift(buildBatcher())
+        return updates
+                .compose(ObservableExt.batchWithRateLimit(buildBatcher(), METRIC_BATCHES, titusRuntime.getRegistry()))
                 .filter(batch -> !batch.getItems().isEmpty())
                 .onBackpressureDrop(batch -> logger.warn("Backpressure! Dropping batch for {} size {}", batch.getIndex(), batch.size()))
                 .doOnNext(batch -> logger.debug("Processing batch for {} size {}", batch.getIndex(), batch.size()))
@@ -201,8 +208,8 @@ class LoadBalancerEngine {
         final long maxTimeMs = configuration.getMaxTimeMs();
         final long bucketSizeMs = configuration.getBucketSizeMs();
         final LargestPerTimeBucket emissionStrategy = new LargestPerTimeBucket(minTimeMs, bucketSizeMs, scheduler);
-        return RateLimitedBatcher.create(scheduler,
-                connectorTokenBucket, minTimeMs, maxTimeMs, TargetStateBatchable::getLoadBalancerId, emissionStrategy);
+        return RateLimitedBatcher.create(connectorTokenBucket, minTimeMs, maxTimeMs, TargetStateBatchable::getLoadBalancerId,
+                emissionStrategy, METRIC_BATCHER, titusRuntime.getRegistry(), scheduler);
     }
 
     private Instant now() {

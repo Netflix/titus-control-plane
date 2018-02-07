@@ -29,6 +29,11 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Tag;
+import io.netflix.titus.common.util.rx.batch.Batch;
+import io.netflix.titus.common.util.rx.batch.Batchable;
+import io.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
+import io.netflix.titus.common.util.spectator.SpectatorExt;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -153,6 +158,33 @@ public class ObservableExt {
                         ? Optional.of(result.getThrowable())
                         : Optional.<Throwable>empty()
         ).toSingle();
+    }
+
+    /**
+     * Wrap and instrument a <tt>batcher</tt> so it can be {@link Observable#compose(Observable.Transformer) composed}
+     * into a RxJava chain.
+     */
+    public static <T extends Batchable<?>, I>
+    Observable.Transformer<T, Batch<T, I>> batchWithRateLimit(RateLimitedBatcher<T, I> batcher,
+                                                              String metricsRootName,
+                                                              Registry registry) {
+        return source -> source
+                .lift(batcher)
+                .compose(SpectatorExt.subscriptionMetrics(metricsRootName, registry));
+    }
+
+    /**
+     * Wrap and instrument a <tt>batcher</tt> so it can be {@link Observable#compose(Observable.Transformer) composed}
+     * into a RxJava chain.
+     */
+    public static <T extends Batchable<?>, I>
+    Observable.Transformer<T, Batch<T, I>> batchWithRateLimit(RateLimitedBatcher<T, I> batcher,
+                                                              String metricsRootName,
+                                                              List<Tag> tags,
+                                                              Registry registry) {
+        return source -> source
+                .lift(batcher)
+                .compose(SpectatorExt.subscriptionMetrics(metricsRootName, tags, registry));
     }
 
     /**

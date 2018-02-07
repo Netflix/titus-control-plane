@@ -77,7 +77,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 new DefaultLoadBalancerReconciler(
                         configuration, loadBalancerStore, loadBalancerConnector,
                         new LoadBalancerJobOperations(v3JobOperations), Schedulers.computation()
-                ), validator, Schedulers.computation());
+                ), validator, Schedulers.computation()
+        );
     }
 
     @VisibleForTesting
@@ -92,8 +93,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         this.runtime = runtime;
         this.configuration = configuration;
         this.loadBalancerStore = loadBalancerStore;
-        this.scheduler = scheduler;
         this.validator = validator;
+        this.scheduler = scheduler;
 
         final long burst = configuration.getRateLimitBurst();
         final long refillPerSec = configuration.getRateLimitRefillPerSec();
