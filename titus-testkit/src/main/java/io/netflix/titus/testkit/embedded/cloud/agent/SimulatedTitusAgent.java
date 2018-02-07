@@ -274,6 +274,7 @@ public class SimulatedTitusAgent {
                         .build();
                 taskUpdates.onNext(crashedStatus);
             });
+            rescind();
             return Collections.emptyList();
         }
 
