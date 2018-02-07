@@ -82,8 +82,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -221,13 +222,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -840,8 +841,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -979,13 +981,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1598,8 +1600,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -1737,13 +1740,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2393,8 +2396,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -2532,13 +2536,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3152,8 +3156,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -3291,13 +3296,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3917,8 +3922,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -4060,13 +4066,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -4720,8 +4726,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -4863,13 +4870,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -5523,8 +5530,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -5666,13 +5674,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -6327,8 +6335,9 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.2.6",
+            "locked": "2.6.1",
             "transitive": [
+                "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -6470,13 +6479,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]

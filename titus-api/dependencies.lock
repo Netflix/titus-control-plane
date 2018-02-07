@@ -38,6 +38,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -100,13 +106,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -405,6 +411,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -467,13 +479,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -772,6 +784,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -834,13 +852,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1176,6 +1194,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -1238,13 +1262,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1544,6 +1568,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -1606,13 +1636,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1937,6 +1967,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
@@ -2061,20 +2097,20 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -2083,13 +2119,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -2821,6 +2857,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
@@ -2945,20 +2987,20 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -2967,13 +3009,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -3705,6 +3747,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
@@ -3829,20 +3877,20 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -3851,13 +3899,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
@@ -4590,6 +4638,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.ben-manes.caffeine:caffeine": {
+            "locked": "2.6.1",
+            "transitive": [
+                "io.netflix.titus:titus-common"
+            ]
+        },
         "com.github.spullara.cli-parser:cli-parser": {
             "locked": "1.1.1",
             "transitive": [
@@ -4714,20 +4768,20 @@
             "requested": "1.7.0"
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "io.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.2.13",
+            "locked": "2.2.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "io.netflix.titus:titus-server-gateway",
@@ -4736,13 +4790,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.0.1",
+            "locked": "1.1.0-rc.1",
             "transitive": [
                 "io.netflix.titus:titus-server-master"
             ]
