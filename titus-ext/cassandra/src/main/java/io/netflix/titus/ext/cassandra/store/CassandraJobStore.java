@@ -35,6 +35,7 @@ import com.datastax.driver.core.Statement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.store.JobStore;
@@ -53,6 +54,7 @@ import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
 @ProxyConfiguration(types = {Logging, Spectator})
 public class CassandraJobStore implements JobStore {
     private static final int MAX_BUCKET_SIZE = 2_000;
+    private static final String METRIC_NAME_ROOT = "titusMaster.jobManager.cassandra";
 
     // SELECT Queries
     private static final String RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING = "SELECT distinct bucket FROM active_job_ids";
@@ -107,15 +109,15 @@ public class CassandraJobStore implements JobStore {
     private final CassandraStoreConfiguration configuration;
 
     @Inject
-    public CassandraJobStore(CassandraStoreConfiguration configuration, Session session) {
-        this(configuration, session, ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
+    public CassandraJobStore(CassandraStoreConfiguration configuration, Session session, Registry registry) {
+        this(configuration, session, registry, ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
     }
 
-    CassandraJobStore(CassandraStoreConfiguration configuration, Session session, ObjectMapper mapper, int maxBucketSize) {
+    CassandraJobStore(CassandraStoreConfiguration configuration, Session session, Registry registry, ObjectMapper mapper, int maxBucketSize) {
         this.configuration = configuration;
         this.session = session;
         this.mapper = mapper;
-        this.activeJobIdsBucketManager = new BalancedBucketManager<>(maxBucketSize);
+        this.activeJobIdsBucketManager = new BalancedBucketManager<>(maxBucketSize, METRIC_NAME_ROOT, registry);
 
         retrieveActiveJobIdBucketsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING);
         retrieveActiveJobIdsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_IDS_STRING);

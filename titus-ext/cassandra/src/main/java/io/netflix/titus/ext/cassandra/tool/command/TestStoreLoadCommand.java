@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.datastax.driver.core.Session;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -122,7 +123,7 @@ public class TestStoreLoadCommand implements Command {
         }
         session.execute("USE " + keyspace);
 
-        JobStore titusStore = new CassandraJobStore(CONFIGURATION, session);
+        JobStore titusStore = new CassandraJobStore(CONFIGURATION, session, new DefaultRegistry());
 
         // Create jobs and tasks
         long jobStartTime = System.currentTimeMillis();
