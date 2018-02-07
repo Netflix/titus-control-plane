@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -357,7 +358,7 @@ public class CassandraJobStoreTest {
         if (session == null) {
             session = cassandraCqlUnit.getSession();
         }
-        return new CassandraJobStore(CONFIGURATION, session, ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
+        return new CassandraJobStore(CONFIGURATION, session, new DefaultRegistry(), ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
     }
 
     private Job<BatchJobExt> createBatchJobObject() {

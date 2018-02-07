@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
+import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.ext.cassandra.store.CassandraJobStore;
@@ -55,7 +56,7 @@ public class EmbeddedCassandraStoreFactory {
     }
 
     public JobStore getJobStore() {
-        return new CassandraJobStore(CONFIGURATION, session);
+        return new CassandraJobStore(CONFIGURATION, session, new DefaultRegistry());
     }
 
     public static Builder newBuilder() {

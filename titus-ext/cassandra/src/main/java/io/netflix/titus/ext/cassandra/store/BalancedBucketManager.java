@@ -23,27 +23,34 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.netflix.spectator.api.Gauge;
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Registry;
+
 /**
- * This manager distributes items in a bucket by returning what bucket should be used based on the max bucket size. The strategy of the balancer
- * is to return the bucket with the least amount of items in it. The max bucket size is a best effort and can be breached if the maxBucketSize
- * of items is added in a single call.
+ * This manager distributes items in a bucket by returning what bucket should be used based on the max bucket size. The balancing strategy
+ * of the manager is to return the bucket with the least amount of items in it. The max bucket size is a best effort and can be breached.
  */
 public class BalancedBucketManager<T> {
     private final Object mutex = new Object();
     private final int maxBucketSize;
+    private Registry registry;
     private final Map<T, Integer> itemToBucket;
-    private final Map<Integer, Integer> itemsPerBucket;
+    private final Map<Integer, Integer> bucketSizes;
 
-    private AtomicInteger highestBucketIndex;
-    private AtomicInteger bucketWithLeastItems;
+    private final AtomicInteger highestBucketIndex;
+    private final AtomicInteger bucketWithLeastItems;
+    private final Id bucketSizeId;
 
-    public BalancedBucketManager(int maxBucketSize) {
+    public BalancedBucketManager(int maxBucketSize, String metricNameRoot, Registry registry) {
         this.maxBucketSize = maxBucketSize;
+        this.registry = registry;
 
         this.itemToBucket = new ConcurrentHashMap<>();
-        this.itemsPerBucket = new ConcurrentHashMap<>();
+        this.bucketSizes = new ConcurrentHashMap<>();
         this.highestBucketIndex = new AtomicInteger();
         this.bucketWithLeastItems = new AtomicInteger();
+        bucketSizeId = registry.createId(metricNameRoot + ".bucketSize");
     }
 
     /**
@@ -73,13 +80,13 @@ public class BalancedBucketManager<T> {
      */
     public void addItems(int bucket, List<T> items) {
         synchronized (mutex) {
-            int currentBucketSize = itemsPerBucket.getOrDefault(bucket, 0);
+            int currentBucketSize = bucketSizes.getOrDefault(bucket, 0);
             for (T item : items) {
                 itemToBucket.put(item, bucket);
             }
 
             int newBucketSize = currentBucketSize + items.size();
-            itemsPerBucket.put(bucket, newBucketSize);
+            bucketSizes.put(bucket, newBucketSize);
             updateBucketCounters();
         }
     }
@@ -94,8 +101,8 @@ public class BalancedBucketManager<T> {
             Integer bucket = itemToBucket.get(item);
             if (bucket != null) {
                 itemToBucket.remove(item);
-                Integer currentBucketSize = itemsPerBucket.get(bucket);
-                itemsPerBucket.replace(bucket, currentBucketSize, currentBucketSize - 1);
+                Integer currentBucketSize = bucketSizes.get(bucket);
+                bucketSizes.replace(bucket, currentBucketSize, currentBucketSize - 1);
                 updateBucketCounters();
             }
         }
@@ -133,32 +140,38 @@ public class BalancedBucketManager<T> {
     private void updateBucketCounters() {
         int maxBucket = 0;
         int smallestBucket = 0;
-        int smallestBucketCount = maxBucketSize;
+        int smallestBucketSize = maxBucketSize;
         boolean allBucketsFull = true;
-        for (Map.Entry<Integer, Integer> entry : itemsPerBucket.entrySet()) {
+        for (Map.Entry<Integer, Integer> entry : bucketSizes.entrySet()) {
             Integer bucket = entry.getKey();
             if (bucket > maxBucket) {
                 maxBucket = bucket;
             }
-            Integer bucketItemCount = entry.getValue();
-            if (bucketItemCount < smallestBucketCount) {
-                smallestBucketCount = bucketItemCount;
+            Integer bucketSize = entry.getValue();
+            if (bucketSize < smallestBucketSize) {
+                smallestBucketSize = bucketSize;
                 smallestBucket = bucket;
             }
-            if (bucketItemCount < maxBucketSize) {
+            if (bucketSize < maxBucketSize) {
                 allBucketsFull = false;
             }
+            updateBucketMetrics(bucket, bucketSize);
         }
 
         if (allBucketsFull) {
             // only create a new bucket if all existing buckets are full
             int newBucket = maxBucket + 1;
-            itemsPerBucket.put(newBucket, 0);
+            bucketSizes.put(newBucket, 0);
             highestBucketIndex.getAndSet(newBucket);
             bucketWithLeastItems.getAndSet(newBucket);
         } else {
             highestBucketIndex.getAndSet(maxBucket);
             bucketWithLeastItems.getAndSet(smallestBucket);
         }
+    }
+
+    private void updateBucketMetrics(int bucket, int bucketSize) {
+        Gauge bucketSizeGauge = registry.gauge(bucketSizeId.withTag("bucket", Integer.toString(bucket)));
+        bucketSizeGauge.set(bucketSize);
     }
 }
