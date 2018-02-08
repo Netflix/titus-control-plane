@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
@@ -53,6 +53,7 @@ import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.parameter.Parameter;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
+import io.netflix.titus.common.util.ExecutorsExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
@@ -74,6 +75,10 @@ import rx.subjects.SerializedSubject;
 @Singleton
 public class DefaultAppScaleManager implements AppScaleManager {
     private static Logger log = LoggerFactory.getLogger(DefaultAppScaleManager.class);
+
+    private static final long SHUTDOWN_TIMEOUT_MS = 5_000;
+    private static final String DEFAULT_JOB_GROUP_SEQ = "v000";
+
     private final AppScaleManagerMetrics metrics;
     private final SerializedSubject<AppScaleAction, AppScaleAction> appScaleActionsSubject;
     private AppScalePolicyStore appScalePolicyStore;
@@ -88,8 +93,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
     private Subscription reconcileFinishedJobsSub;
     private Subscription reconcileScalableTargetsSub;
 
-
-    public static final String DEFAULT_JOB_GROUP_SEQ = "v000";
+    private volatile ExecutorService awsInteractionExecutor;
     private Subscription appScaleActionsSub;
 
     @Inject
@@ -102,14 +106,22 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   AppScaleManagerConfiguration appScaleManagerConfiguration) {
         this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v2JobOperations, v3JobOperations,
                 rxEventBus, registry, appScaleManagerConfiguration,
-                Schedulers.from(Executors.newSingleThreadExecutor(runnable -> {
-                    Thread thread = new Thread(runnable, "DefaultAppScaleManager");
-                    thread.setDaemon(true);
-                    return thread;
-                }))
-        );
+                ExecutorsExt.namedSingleThreadExecutor("DefaultAppScaleManager"));
     }
 
+
+    private DefaultAppScaleManager(AppScalePolicyStore appScalePolicyStore, CloudAlarmClient cloudAlarmClient,
+                                   AppAutoScalingClient applicationAutoScalingClient,
+                                   V2JobOperations v2JobOperations,
+                                   V3JobOperations v3JobOperations,
+                                   RxEventBus rxEventBus,
+                                   Registry registry,
+                                   AppScaleManagerConfiguration appScaleManagerConfiguration,
+                                   ExecutorService awsInteractionExecutor) {
+        this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v2JobOperations, v3JobOperations,
+                rxEventBus, registry, appScaleManagerConfiguration, Schedulers.from(awsInteractionExecutor));
+        this.awsInteractionExecutor = awsInteractionExecutor;
+    }
 
     @VisibleForTesting
     public DefaultAppScaleManager(AppScalePolicyStore appScalePolicyStore, CloudAlarmClient cloudAlarmClient,
@@ -119,8 +131,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   RxEventBus rxEventBus,
                                   Registry registry,
                                   AppScaleManagerConfiguration appScaleManagerConfiguration,
-                                  Scheduler awsInteractionScheduler
-    ) {
+                                  Scheduler awsInteractionScheduler) {
         this.appScalePolicyStore = appScalePolicyStore;
         this.cloudAlarmClient = cloudAlarmClient;
         this.appAutoScalingClient = applicationAutoScalingClient;
@@ -198,8 +209,23 @@ public class DefaultAppScaleManager implements AppScaleManager {
         ObservableExt.safeUnsubscribe(reconcileFinishedJobsSub);
         ObservableExt.safeUnsubscribe(reconcileScalableTargetsSub);
         ObservableExt.safeUnsubscribe(appScaleActionsSub);
-    }
+        if (awsInteractionExecutor == null) {
+            return; // nothing else to do
+        }
 
+        // cancel all pending and running tasks
+        for (Runnable runnable : awsInteractionExecutor.shutdownNow()) {
+            log.warn("Pending task was halted during shutdown: {}", runnable);
+        }
+        try {
+            boolean terminated = awsInteractionExecutor.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            if (!terminated) {
+                log.warn("Not all currently running tasks were terminated");
+            }
+        } catch (Exception e) {
+            log.error("Shutdown process failed, some tasks may not have been terminated", e);
+        }
+    }
 
     private Observable<AutoScalingPolicy> checkForScalingPolicyActions() {
         return appScalePolicyStore.retrievePolicies(false)
