@@ -17,6 +17,7 @@
 package io.netflix.titus.master.appscale.service;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,6 +50,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.event.JobStateChangeEvent;
+import io.netflix.titus.api.model.event.SchedulingEvent;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
 import io.netflix.titus.api.model.v2.parameter.Parameter;
@@ -81,17 +83,17 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     private final AppScaleManagerMetrics metrics;
     private final SerializedSubject<AppScaleAction, AppScaleAction> appScaleActionsSubject;
-    private AppScalePolicyStore appScalePolicyStore;
+    private final AppScalePolicyStore appScalePolicyStore;
     private final CloudAlarmClient cloudAlarmClient;
     private final AppAutoScalingClient appAutoScalingClient;
-    private V2JobOperations v2JobOperations;
-    private RxEventBus rxEventBus;
-    private V3JobOperations v3JobOperations;
-    private AppScaleManagerConfiguration appScaleManagerConfiguration;
+    private final V2JobOperations v2JobOperations;
+    private final RxEventBus rxEventBus;
+    private final V3JobOperations v3JobOperations;
+    private final AppScaleManagerConfiguration appScaleManagerConfiguration;
 
     private volatile Map<String, AutoScalableTarget> scalableTargets;
-    private Subscription reconcileFinishedJobsSub;
-    private Subscription reconcileScalableTargetsSub;
+    private volatile Subscription reconcileFinishedJobsSub;
+    private volatile Subscription reconcileScalableTargetsSub;
 
     private volatile ExecutorService awsInteractionExecutor;
     private Subscription appScaleActionsSub;
@@ -239,16 +241,16 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 });
     }
 
-    Observable<String> reconcileFinishedJobs() {
+    private Observable<String> reconcileFinishedJobs() {
         return appScalePolicyStore.retrievePolicies(false)
-                .map(autoScalingPolicy -> autoScalingPolicy.getJobId())
+                .map(AutoScalingPolicy::getJobId)
                 .filter(jobId -> !isJobActive(jobId))
                 .flatMap(jobId -> removePoliciesForJob(jobId).andThen(Observable.just(jobId)))
                 .doOnError(e -> logger.error("Exception in reconcileFinishedJobs -> ", e))
                 .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty()));
     }
 
-    Observable<String> reconcileScalableTargets() {
+    private Observable<String> reconcileScalableTargets() {
         return appScalePolicyStore.retrievePolicies(false)
                 .filter(autoScalingPolicy -> isJobActive(autoScalingPolicy.getJobId()))
                 .filter(autoScalingPolicy -> {
@@ -256,8 +258,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     return shouldRefreshScalableTargetForJob(jobId, getJobScalingConstraints(autoScalingPolicy.getRefId(),
                             jobId));
                 })
-                .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
-                .map(updateAction -> updateAction.getJobId())
+                .map(this::sendUpdateTargetAction)
+                .map(AppScaleAction::getJobId)
                 .doOnError(e -> logger.error("Exception in reconcileScalableTargets -> ", e))
                 .onErrorResumeNext(e -> Observable.empty());
     }
@@ -267,7 +269,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .flatMap(jobStateChangeEvent ->
                         Observable.just(jobStateChangeEvent)
                                 .filter(jse -> jse.getJobState() == JobStateChangeEvent.JobState.Finished)
-                                .map(jse -> jse.getJobId())
+                                .map(SchedulingEvent::getJobId)
                                 .flatMap(jobId -> removePoliciesForJob(jobId).andThen(Observable.just(jobId)))
                                 .doOnError(e -> logger.error("Exception in v2LiveStreamPolicyCleanup -> ", e))
                                 .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty())));
@@ -278,12 +280,12 @@ public class DefaultAppScaleManager implements AppScaleManager {
         return rxEventBus.listen(getClass().getSimpleName(), JobStateChangeEvent.class)
                 .flatMap(jobStateChangeEvent -> Observable.just(jobStateChangeEvent)
                         .filter(jse -> jse.getJobState() != JobStateChangeEvent.JobState.Finished)
-                        .map(jse -> jse.getJobId())
-                        .flatMap(jobId -> appScalePolicyStore.retrievePoliciesForJob(jobId))
+                        .map(SchedulingEvent::getJobId)
+                        .flatMap(appScalePolicyStore::retrievePoliciesForJob)
                         .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
                                 getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
-                        .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
-                        .map(updateAction -> updateAction.getJobId())
+                        .map(this::sendUpdateTargetAction)
+                        .map(AppScaleAction::getJobId)
                         .doOnError(e -> logger.error("Exception in v2LiveStreamTargetUpdates -> ", e))
                         .onErrorResumeNext(e -> Observable.empty()));
     }
@@ -303,14 +305,14 @@ public class DefaultAppScaleManager implements AppScaleManager {
                         appScalePolicyStore.retrievePoliciesForJob(event.getCurrent().getId())
                                 .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
                                         getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
-                                .map(autoScalingPolicy -> sendUpdateTargetAction(autoScalingPolicy))
-                                .map(updateAction -> updateAction.getJobId())
+                                .map(this::sendUpdateTargetAction)
+                                .map(AppScaleAction::getJobId)
                                 .doOnError(e -> logger.error("Exception in v3LiveStreamTargetUpdates -> ", e))
                                 .onErrorResumeNext(e -> Observable.empty())
                 );
     }
 
-    Observable<String> v3LiveStreamPolicyCleanup() {
+    private Observable<String> v3LiveStreamPolicyCleanup() {
         return v3JobOperations.observeJobs()
                 .filter(event -> {
                     if (event instanceof JobUpdateEvent) {
@@ -442,13 +444,12 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
 
     private JobScalingConstraints getJobScalingConstraints(String policyRefId, String jobId) {
-        if (v2JobOperations == null && v3JobOperations == null) {
-            return new JobScalingConstraints(0, 0);
-        }
-
         if (JobFunctions.isV2JobId(jobId)) {
-            V2JobMgrIntf v2JobMgr = v2JobOperations.getJobMgr(jobId);
+            if (v2JobOperations == null) {
+                return new JobScalingConstraints(0, 0);
+            }
 
+            V2JobMgrIntf v2JobMgr = v2JobOperations.getJobMgr(jobId);
             if (v2JobMgr == null) {
                 throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
             }
@@ -458,46 +459,49 @@ public class DefaultAppScaleManager implements AppScaleManager {
             }
 
             v2JobMgr = v2JobOperations.getJobMgr(jobId);
-            if (v2JobMgr != null && v2JobMgr.getJobMetadata() != null &&
-                    v2JobMgr.getJobMetadata().getStageMetadata(1) != null) {
-                StageScalingPolicy scalingPolicy = v2JobOperations.getJobMgr(jobId).getJobMetadata().getStageMetadata(1).getScalingPolicy();
-                return new JobScalingConstraints(scalingPolicy.getMin(), scalingPolicy.getMax());
-            }
-            throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
-        } else {
-            // V3 API
-            Optional<Job<?>> job = v3JobOperations.getJob(jobId);
-            if (job.isPresent()) {
-                if (job.get().getJobDescriptor().getExtensions() instanceof ServiceJobExt) {
-                    ServiceJobExt serviceJobExt = (ServiceJobExt) job.get().getJobDescriptor().getExtensions();
-                    int minCapacity = serviceJobExt.getCapacity().getMin();
-                    int maxCapacity = serviceJobExt.getCapacity().getMax();
-                    return new JobScalingConstraints(minCapacity, maxCapacity);
-                } else {
-                    logger.info("Not a service job (V3) {}", jobId);
-                    throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.notServiceJob(jobId));
-                }
-            } else {
+            if (v2JobMgr == null || v2JobMgr.getJobMetadata() == null
+                    || v2JobMgr.getJobMetadata().getStageMetadata(1) == null) {
                 throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
             }
+            StageScalingPolicy scalingPolicy = v2JobOperations.getJobMgr(jobId).getJobMetadata().getStageMetadata(1).getScalingPolicy();
+            return new JobScalingConstraints(scalingPolicy.getMin(), scalingPolicy.getMax());
+        }
+
+        // V3 API
+        if (v3JobOperations == null) {
+            return new JobScalingConstraints(0, 0);
+        }
+        Optional<Job<?>> job = v3JobOperations.getJob(jobId);
+        if (job.isPresent()) {
+            if (job.get().getJobDescriptor().getExtensions() instanceof ServiceJobExt) {
+                ServiceJobExt serviceJobExt = (ServiceJobExt) job.get().getJobDescriptor().getExtensions();
+                int minCapacity = serviceJobExt.getCapacity().getMin();
+                int maxCapacity = serviceJobExt.getCapacity().getMax();
+                return new JobScalingConstraints(minCapacity, maxCapacity);
+            } else {
+                logger.info("Not a service job (V3) {}", jobId);
+                throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.notServiceJob(jobId));
+            }
+        } else {
+            throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
         }
     }
 
     private String buildAutoScalingGroup(String jobId) {
-        if (v3JobOperations == null && v2JobOperations == null) {
-            return jobId;
+        if (JobFunctions.isV2JobId(jobId)) {
+            if (v2JobOperations == null) {
+                return jobId;
+            }
+            V2JobDefinition jobDefinition = v2JobOperations.getJobMgr(jobId).getJobDefinition();
+            return buildAutoScalingGroupV2(jobDefinition.getParameters());
         }
 
-        String autoScalingGroup;
-        if (JobFunctions.isV2JobId(jobId)) {
-            V2JobDefinition jobDefinition = v2JobOperations.getJobMgr(jobId).getJobDefinition();
-            autoScalingGroup = buildAutoScalingGroupV2(jobDefinition.getParameters());
-        } else {
-            // assumption - active job
-            Job<?> job = v3JobOperations.getJob(jobId).get();
-            autoScalingGroup = buildAutoScalingGroupV3(job.getJobDescriptor());
+        if (v3JobOperations == null) {
+            return jobId;
         }
-        return autoScalingGroup;
+        return v3JobOperations.getJob(jobId)
+                .map(job -> buildAutoScalingGroupV3(job.getJobDescriptor()))
+                .orElseThrow(() -> JobManagerException.jobNotFound(jobId));
     }
 
     @VisibleForTesting
@@ -632,11 +636,10 @@ public class DefaultAppScaleManager implements AppScaleManager {
                             autoScalingPolicy.getJobId(),
                             autoScalingPolicy.getPolicyConfiguration().getAlarmConfiguration(),
                             buildAutoScalingGroup(autoScalingPolicy.getJobId()),
-                            Arrays.asList(autoScalingPolicy.getPolicyId()))
-                            .flatMap(alarmId -> appScalePolicyStore.updateAlarmId(autoScalingPolicy.getRefId(), alarmId)
-                                    .andThen(Observable.just(autoScalingPolicy)));
-                })
-                .flatMap(autoScalingPolicy -> appScalePolicyStore.retrievePolicyForRefId(autoScalingPolicy.getRefId())
+                            Collections.singletonList(autoScalingPolicy.getPolicyId())
+                    ).flatMap(alarmId -> appScalePolicyStore.updateAlarmId(autoScalingPolicy.getRefId(), alarmId)
+                            .andThen(Observable.just(autoScalingPolicy)));
+                }).flatMap(autoScalingPolicy -> appScalePolicyStore.retrievePolicyForRefId(autoScalingPolicy.getRefId())
                         .flatMap(latestPolicy -> {
                             if (PolicyStateTransitions.isAllowed(latestPolicy.getStatus(), PolicyStatus.Applied)) {
                                 metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Applied);
