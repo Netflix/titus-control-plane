@@ -39,6 +39,7 @@ import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.CollectionsExt;
@@ -369,7 +370,9 @@ public class TaskDocument {
         taskDocument.id = WorkerNaming.getWorkerName(v2WorkerMetadata.getJobId(), v2WorkerMetadata.getWorkerIndex(), v2WorkerMetadata.getWorkerNumber());
         taskDocument.instanceId = v2WorkerMetadata.getWorkerInstanceId();
         taskDocument.jobId = v2WorkerMetadata.getJobId();
-        taskDocument.state = TitusTaskState.getTitusState(v2WorkerMetadata.getState(), v2WorkerMetadata.getReason()).name();
+        taskDocument.state = isTombStone(v2WorkerMetadata)
+                ? TitusTaskState.STOPPED.name()
+                : TitusTaskState.getTitusState(v2WorkerMetadata.getState(), v2WorkerMetadata.getReason()).name();
         taskDocument.host = v2WorkerMetadata.getSlave();
         taskDocument.computedFields = new ComputedFields();
 
@@ -428,6 +431,10 @@ public class TaskDocument {
         taskDocument.titusContext = context;
 
         return taskDocument;
+    }
+
+    private static boolean isTombStone(V2WorkerMetadata v2WorkerMetadata) {
+        return v2WorkerMetadata.getReason() != null && v2WorkerMetadata.getReason() == JobCompletedReason.TombStone;
     }
 
     public static TaskDocument fromV3Task(Task task, Job job, SimpleDateFormat dateFormat, Map<String, String> context) {
