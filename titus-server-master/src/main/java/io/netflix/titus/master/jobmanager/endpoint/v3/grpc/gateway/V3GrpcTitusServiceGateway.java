@@ -30,6 +30,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
@@ -179,10 +180,12 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     @Override
     public Observable<Void> resizeJob(String user, String jobId, int desired, int min, int max) {
-        return jobOperations.updateJobCapacity(
-                jobId,
-                JobModel.newCapacity().withMin(min).withDesired(desired).withMax(max).build()
-        );
+        Capacity newCapacity = JobModel.newCapacity().withMin(min).withDesired(desired).withMax(max).build();
+        Set<ConstraintViolation<Capacity>> violations = entitySanitizer.validate(newCapacity);
+        if (!violations.isEmpty()) {
+            return Observable.error(TitusServiceException.invalidArgument(violations));
+        }
+        return jobOperations.updateJobCapacity(jobId, newCapacity);
     }
 
     @Override

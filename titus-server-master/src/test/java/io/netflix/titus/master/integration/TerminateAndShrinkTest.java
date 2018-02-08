@@ -19,6 +19,7 @@ package io.netflix.titus.master.integration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
@@ -49,6 +50,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -275,8 +277,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
                 new JobSetInstanceCountsCmd("myUser", jobId, 21, 0, 100)
         ).toBlocking().firstOrDefault(null);
 
-        Thread.sleep(1000);
-        assertThat(newHolders).hasSize(20);
+        await().timeout(10, TimeUnit.SECONDS).until(() -> newHolders.size() == 20);
         List<TaskExecutorHolder> invalidIndexes = newHolders.stream().filter(h -> TitusTaskIdParser.getTaskIndexFromTaskId(h.getTaskId()) > 20).collect(Collectors.toList());
         assertThat(invalidIndexes).isEmpty();
     }

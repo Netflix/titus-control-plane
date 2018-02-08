@@ -439,6 +439,7 @@ public final class V2GrpcModelConverters {
                     case Lost:
                         grpcReason = REASON_TASK_LOST;
                         break;
+                    case TombStone:
                     case Killed:
                         grpcReason = REASON_TASK_KILLED;
                         break;

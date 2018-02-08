@@ -51,6 +51,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.store.JobStore;
@@ -145,6 +146,11 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
+        Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(jobCapacityUpdate.getCapacity());
+        Set<ConstraintViolation<Capacity>> violations = entitySanitizer.validate(newCapacity);
+        if (!violations.isEmpty()) {
+            return Completable.error(TitusServiceException.invalidArgument(violations));
+        }
         return toCompletable(
                 emitter -> {
                     StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);

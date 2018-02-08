@@ -25,6 +25,7 @@ import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
@@ -66,6 +67,7 @@ public class EmbeddedTitusStackTest {
     };
 
     @Test
+    @Ignore
     public void testShutdownCleanup() throws Throwable {
         Set<Thread> threadsBefore = Thread.getAllStackTraces().keySet();
 
