@@ -146,6 +146,7 @@ class InstanceCache {
         eventLoop.shutdown();
         fullInstanceGroupRefreshSubscription.unsubscribe();
         instanceGroupRefreshSubscription.unsubscribe();
+        fullInstanceGroupRefreshMetricsTransformer.remove();
     }
 
     List<InstanceGroup> getInstanceGroups() {
