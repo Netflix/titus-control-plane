@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.Registry;
-import io.netflix.titus.common.util.spectator.ScheduledCompletableMetrics;
+import io.netflix.titus.common.util.spectator.ContinuousSubscriptionMetrics;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
 import rx.Completable;
 import rx.Emitter;
@@ -36,7 +36,7 @@ public class InstrumentedCompletableScheduler {
     private final String metricNameRoot;
     private final Registry registry;
     private final Scheduler.Worker worker;
-    private final Map<String, ScheduledCompletableMetrics> completableMetricsByName;
+    private final Map<String, ContinuousSubscriptionMetrics> completableMetricsByName;
 
     InstrumentedCompletableScheduler(String metricNameRoot, Registry registry, Scheduler scheduler) {
         this.metricNameRoot = metricNameRoot;
@@ -48,15 +48,16 @@ public class InstrumentedCompletableScheduler {
     public Observable<Optional<Throwable>> schedule(String completableName, Completable completable, long initialDelay,
                                                     long interval, TimeUnit timeUnit) {
         return Observable.create(emitter -> {
-            ScheduledCompletableMetrics completableMetrics = this.completableMetricsByName.computeIfAbsent(completableName, k -> {
+            ContinuousSubscriptionMetrics subscriptionMetrics = this.completableMetricsByName.computeIfAbsent(completableName, k -> {
                 String rootName = metricNameRoot + ".completableScheduler." + completableName;
-                return SpectatorExt.scheduledCompletableMetrics(rootName, Collections.emptyList(), registry);
+                return SpectatorExt.continuousSubscriptionMetrics(rootName, Collections.emptyList(), registry);
             });
-            Action0 action = () -> ObservableExt.emitError(completable.compose(completableMetrics)).subscribe(emitter::onNext, emitter::onError);
+            Action0 action = () -> ObservableExt.emitError(completable.compose(subscriptionMetrics.asCompletable()))
+                    .subscribe(emitter::onNext, emitter::onError);
             Subscription subscription = worker.schedulePeriodically(action, initialDelay, interval, timeUnit);
             emitter.setCancellation(() -> {
                 subscription.unsubscribe();
-                completableMetrics.remove();
+                subscriptionMetrics.remove();
                 completableMetricsByName.remove(completableName);
             });
         }, Emitter.BackpressureMode.NONE);
@@ -64,7 +65,7 @@ public class InstrumentedCompletableScheduler {
 
     public void shutdown() {
         worker.unsubscribe();
-        completableMetricsByName.values().forEach(ScheduledCompletableMetrics::remove);
+        completableMetricsByName.values().forEach(ContinuousSubscriptionMetrics::remove);
         completableMetricsByName.clear();
     }
 }

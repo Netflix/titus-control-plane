@@ -23,6 +23,11 @@ import rx.Observable;
 
 public interface LoadBalancerReconciler {
     /**
+     * Stop reconciliation internal processes. Reconciliation is not guaranteed to continue after it is called.
+     */
+    void shutdown();
+
+    /**
      * Periodically emit events for targets that need to be updated based on what the state they should be in.
      */
     Observable<TargetStateBatchable> events();

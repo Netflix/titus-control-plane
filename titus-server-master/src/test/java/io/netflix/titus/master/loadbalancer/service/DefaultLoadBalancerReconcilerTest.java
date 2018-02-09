@@ -24,6 +24,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.spectator.api.NoopRegistry;
+import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
@@ -58,7 +60,9 @@ public class DefaultLoadBalancerReconcilerTest {
     private LoadBalancerConnector connector;
     private V3JobOperations v3JobOperations;
     private LoadBalancerJobOperations loadBalancerJobOperations;
+    private Registry registry;
     private TestScheduler testScheduler;
+    private LoadBalancerReconciler reconciler;
 
     @Before
     public void setUp() throws Exception {
@@ -70,7 +74,14 @@ public class DefaultLoadBalancerReconcilerTest {
         connector = mock(LoadBalancerConnector.class);
         v3JobOperations = mock(V3JobOperations.class);
         loadBalancerJobOperations = new LoadBalancerJobOperations(v3JobOperations);
+        registry = new NoopRegistry();
         testScheduler = Schedulers.test();
+        reconciler = buildReconciler(store);
+    }
+
+    private LoadBalancerReconciler buildReconciler(LoadBalancerStore store) {
+        return new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations,
+                registry, testScheduler);
     }
 
     @Test
@@ -82,7 +93,6 @@ public class DefaultLoadBalancerReconcilerTest {
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
-        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.triggerActions();
@@ -109,7 +119,6 @@ public class DefaultLoadBalancerReconcilerTest {
         )));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
-        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.triggerActions();
@@ -137,7 +146,6 @@ public class DefaultLoadBalancerReconcilerTest {
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
-        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         for (Task task : tasks) {
@@ -176,7 +184,6 @@ public class DefaultLoadBalancerReconcilerTest {
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
-        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.triggerActions();
@@ -209,7 +216,6 @@ public class DefaultLoadBalancerReconcilerTest {
         when(connector.getRegisteredIps(loadBalancerId)).thenReturn(Single.just(Collections.emptySet()));
         when(store.getAssociations()).thenReturn(Arrays.asList(failingAssociation, association));
 
-        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.triggerActions();
@@ -235,7 +241,7 @@ public class DefaultLoadBalancerReconcilerTest {
         assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
                 .await(5, TimeUnit.SECONDS)).isTrue();
 
-        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
+        reconciler = buildReconciler(store);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.triggerActions();
@@ -264,7 +270,7 @@ public class DefaultLoadBalancerReconcilerTest {
         assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
                 .await(5, TimeUnit.SECONDS)).isTrue();
 
-        final LoadBalancerReconciler reconciler = new DefaultLoadBalancerReconciler(configuration, store, connector, loadBalancerJobOperations, testScheduler);
+        reconciler = buildReconciler(store);
         final AssertableSubscriber<TargetStateBatchable> subscriber = reconciler.events().test();
 
         testScheduler.triggerActions();

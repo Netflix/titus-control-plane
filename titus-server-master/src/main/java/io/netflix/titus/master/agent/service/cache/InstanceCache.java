@@ -42,7 +42,7 @@ import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.InstrumentedEventLoop;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
-import io.netflix.titus.common.util.spectator.ScheduledCompletableMetrics;
+import io.netflix.titus.common.util.spectator.ContinuousSubscriptionMetrics;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import org.slf4j.Logger;
@@ -55,7 +55,7 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.subjects.PublishSubject;
 
-import static io.netflix.titus.common.util.spectator.SpectatorExt.scheduledCompletableMetrics;
+import static io.netflix.titus.common.util.spectator.SpectatorExt.continuousSubscriptionMetrics;
 import static io.netflix.titus.master.MetricConstants.METRIC_AGENT_CACHE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -92,8 +92,8 @@ class InstanceCache {
 
     private final PublishSubject<CacheUpdateEvent> eventSubject = PublishSubject.create();
 
-    private ScheduledCompletableMetrics fullInstanceGroupRefreshMetricsTransformer;
-    private Map<String, ScheduledCompletableMetrics> instanceGroupRefreshMetricsTransformers = new ConcurrentHashMap<>();
+    private ContinuousSubscriptionMetrics fullInstanceGroupRefreshMetricsTransformer;
+    private Map<String, ContinuousSubscriptionMetrics> instanceGroupRefreshMetricsTransformers = new ConcurrentHashMap<>();
 
     private InstanceCache(AgentManagementConfiguration configuration,
                           InstanceCloudConnector connector,
@@ -107,7 +107,7 @@ class InstanceCache {
         this.eventLoop = ObservableExt.createEventLoop(METRIC_AGENT_CACHE + "eventLoop", registry, scheduler);
 
         List<Tag> tags = Collections.singletonList(new BasicTag("class", InstanceCache.class.getSimpleName()));
-        fullInstanceGroupRefreshMetricsTransformer = scheduledCompletableMetrics(METRIC_AGENT_CACHE + "fullInstanceGroupRefresh", tags, registry);
+        fullInstanceGroupRefreshMetricsTransformer = continuousSubscriptionMetrics(METRIC_AGENT_CACHE + "fullInstanceGroupRefresh", tags, registry);
 
         // Synchronously refresh information about the known instance groups
         List<Completable> initialRefresh = knownInstanceGroups.stream().map(this::doInstanceGroupRefresh).collect(Collectors.toList());
@@ -231,7 +231,7 @@ class InstanceCache {
                         })
                 ).toCompletable();
 
-        return completable.compose(fullInstanceGroupRefreshMetricsTransformer)
+        return completable.compose(fullInstanceGroupRefreshMetricsTransformer.asCompletable())
                 .timeout(MAX_REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
@@ -241,8 +241,8 @@ class InstanceCache {
                     new BasicTag("class", InstanceCache.class.getSimpleName()),
                     new BasicTag("instanceGroupId", instanceGroupId)
             );
-            return scheduledCompletableMetrics(METRIC_AGENT_CACHE + "instanceGroupRefresh", tags, registry);
-        });
+            return continuousSubscriptionMetrics(METRIC_AGENT_CACHE + "instanceGroupRefresh", tags, registry);
+        }).asCompletable();
     }
 
     private Optional<Pattern> getInstanceGroupPattern() {
@@ -368,7 +368,7 @@ class InstanceCache {
     private void removeInstanceGroup(String removedInstanceGroupId) {
         this.cacheSnapshot = cacheSnapshot.removeInstanceGroup(removedInstanceGroupId);
         eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, removedInstanceGroupId));
-        ScheduledCompletableMetrics transformer = instanceGroupRefreshMetricsTransformers.remove(removedInstanceGroupId);
+        ContinuousSubscriptionMetrics transformer = instanceGroupRefreshMetricsTransformers.remove(removedInstanceGroupId);
         if (transformer != null) {
             transformer.remove();
         }

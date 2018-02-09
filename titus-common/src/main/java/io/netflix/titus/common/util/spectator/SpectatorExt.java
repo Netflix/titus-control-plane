@@ -97,10 +97,11 @@ public final class SpectatorExt {
     }
 
     /**
-     * RxJava scheduled completable metrics.
+     * RxJava metrics transformer for {@link Observable observables}, {@link rx.Completable completables}, or
+     * {@link rx.Single singles} that are continuously scheduled.
      */
-    public static ScheduledCompletableMetrics scheduledCompletableMetrics(String rootName, List<Tag> tags, Registry registry) {
-        return new ScheduledCompletableMetrics(rootName, tags, registry);
+    public static ContinuousSubscriptionMetrics continuousSubscriptionMetrics(String rootName, List<Tag> tags, Registry registry) {
+        return new ContinuousSubscriptionMetrics(rootName, tags, registry);
     }
 
     /**
