@@ -59,7 +59,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     private final LoadBalancerConfiguration configuration;
     private final LoadBalancerStore loadBalancerStore;
     private final LoadBalancerJobValidator validator;
-
+    private final LoadBalancerReconciler reconciler;
     private final LoadBalancerEngine engine;
     private final Scheduler scheduler;
 
@@ -76,7 +76,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 new LoadBalancerJobOperations(v3JobOperations),
                 new DefaultLoadBalancerReconciler(
                         configuration, loadBalancerStore, loadBalancerConnector,
-                        new LoadBalancerJobOperations(v3JobOperations), Schedulers.computation()
+                        new LoadBalancerJobOperations(v3JobOperations), runtime.getRegistry(), Schedulers.computation()
                 ), validator, Schedulers.computation()
         );
     }
@@ -93,6 +93,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         this.runtime = runtime;
         this.configuration = configuration;
         this.loadBalancerStore = loadBalancerStore;
+        this.reconciler = reconciler;
         this.validator = validator;
         this.scheduler = scheduler;
 
@@ -176,6 +177,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     @Deactivator
     public void deactivate() {
         ObservableExt.safeUnsubscribe(loadBalancerBatches);
+        engine.shutdown();
+        reconciler.shutdown();
     }
 
     @VisibleForTesting
