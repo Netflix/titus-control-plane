@@ -54,6 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CassandraJobStoreTest {
 
     private static final long STARTUP_TIMEOUT_MS = 30_000L;
+    private static final int INITIAL_BUCKET_COUNT = 1;
     private static final int MAX_BUCKET_SIZE = 10;
 
     /**
@@ -358,7 +359,8 @@ public class CassandraJobStoreTest {
         if (session == null) {
             session = cassandraCqlUnit.getSession();
         }
-        return new CassandraJobStore(CONFIGURATION, session, new DefaultRegistry(), ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
+        return new CassandraJobStore(CONFIGURATION, session, new DefaultRegistry(), ObjectMappers.storeMapper(),
+                INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 
     private Job<BatchJobExt> createBatchJobObject() {
