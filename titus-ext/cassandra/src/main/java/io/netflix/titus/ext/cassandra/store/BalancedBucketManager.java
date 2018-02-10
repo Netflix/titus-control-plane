@@ -42,7 +42,7 @@ public class BalancedBucketManager<T> {
     private final AtomicInteger bucketWithLeastItems;
     private final Id bucketSizeId;
 
-    public BalancedBucketManager(int maxBucketSize, String metricNameRoot, Registry registry) {
+    public BalancedBucketManager(int initialBucketCount, int maxBucketSize, String metricNameRoot, Registry registry) {
         this.maxBucketSize = maxBucketSize;
         this.registry = registry;
 
@@ -51,6 +51,8 @@ public class BalancedBucketManager<T> {
         this.highestBucketIndex = new AtomicInteger();
         this.bucketWithLeastItems = new AtomicInteger();
         bucketSizeId = registry.createId(metricNameRoot + ".bucketSize");
+
+        createInitialBuckets(initialBucketCount);
     }
 
     /**
@@ -135,6 +137,13 @@ public class BalancedBucketManager<T> {
      */
     public int getItemBucket(T item) {
         return itemToBucket.get(item);
+    }
+
+    private void createInitialBuckets(int initialBucketCount) {
+        for (int i = 0; i < initialBucketCount; i++) {
+            bucketSizes.put(i, 0);
+        }
+        updateBucketCounters();
     }
 
     private void updateBucketCounters() {

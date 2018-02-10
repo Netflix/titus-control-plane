@@ -53,6 +53,7 @@ import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
 @Singleton
 @ProxyConfiguration(types = {Logging, Spectator})
 public class CassandraJobStore implements JobStore {
+    private static final int INITIAL_BUCKET_COUNT = 100;
     private static final int MAX_BUCKET_SIZE = 2_000;
     private static final String METRIC_NAME_ROOT = "titusMaster.jobManager.cassandra";
 
@@ -110,14 +111,19 @@ public class CassandraJobStore implements JobStore {
 
     @Inject
     public CassandraJobStore(CassandraStoreConfiguration configuration, Session session, Registry registry) {
-        this(configuration, session, registry, ObjectMappers.storeMapper(), MAX_BUCKET_SIZE);
+        this(configuration, session, registry, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 
-    CassandraJobStore(CassandraStoreConfiguration configuration, Session session, Registry registry, ObjectMapper mapper, int maxBucketSize) {
+    CassandraJobStore(CassandraStoreConfiguration configuration,
+                      Session session,
+                      Registry registry,
+                      ObjectMapper mapper,
+                      int initialBucketCount,
+                      int maxBucketSize) {
         this.configuration = configuration;
         this.session = session;
         this.mapper = mapper;
-        this.activeJobIdsBucketManager = new BalancedBucketManager<>(maxBucketSize, METRIC_NAME_ROOT, registry);
+        this.activeJobIdsBucketManager = new BalancedBucketManager<>(initialBucketCount, maxBucketSize, METRIC_NAME_ROOT, registry);
 
         retrieveActiveJobIdBucketsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING);
         retrieveActiveJobIdsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_IDS_STRING);
