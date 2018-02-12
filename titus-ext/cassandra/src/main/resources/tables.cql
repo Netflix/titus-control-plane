@@ -9,7 +9,7 @@ CREATE TABLE "active_job_ids" (
   comment='The active set of job ids'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 CREATE TABLE "active_task_ids" (
@@ -20,7 +20,7 @@ CREATE TABLE "active_task_ids" (
   comment='The active set of task ids as well as the job id they belong to'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 CREATE TABLE "active_jobs" (
@@ -31,7 +31,7 @@ CREATE TABLE "active_jobs" (
   comment='The active jobs'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 CREATE TABLE "active_tasks" (
@@ -42,7 +42,7 @@ CREATE TABLE "active_tasks" (
   comment='The active tasks'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 CREATE TABLE "archived_jobs" (
@@ -61,7 +61,7 @@ CREATE TABLE "archived_task_ids" (
   comment='The archived set of task ids as well as the job id they belong to'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 CREATE TABLE "archived_tasks" (
@@ -83,7 +83,7 @@ CREATE TABLE "agent_instance_groups" (
   comment='The agent instance groups'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 CREATE TABLE "agent_instances" (
@@ -94,7 +94,7 @@ CREATE TABLE "agent_instances" (
   comment='The agent instances'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 // ------------------------------------------------------------------
@@ -113,7 +113,7 @@ CREATE TABLE "app_scale_policy" (
   comment='App auto scale policies'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 CREATE TABLE "app_scale_jobs" (
@@ -124,7 +124,7 @@ CREATE TABLE "app_scale_jobs" (
   comment='App auto scale jobs'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
 // ------------------------------------------------------------------
@@ -139,5 +139,5 @@ CREATE TABLE "load_balancer_jobs" (
   comment='The jobs with load balancers'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
-  AND gc_grace_seconds = 86400
+  AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
