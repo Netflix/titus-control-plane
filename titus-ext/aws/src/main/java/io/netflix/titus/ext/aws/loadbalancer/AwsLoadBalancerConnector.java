@@ -159,13 +159,20 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
         final DescribeTargetHealthRequest request = new DescribeTargetHealthRequest()
                 .withTargetGroupArn(loadBalancerId);
 
+        long startTime = registry.clock().wallTime();
         Single<DescribeTargetHealthResult> asyncResult = AwsObservableExt.asyncActionSingle(
                 factory -> client.describeTargetHealthAsync(request, factory.handler())
         );
 
         return asyncResult
                 .observeOn(scheduler)
-                .map(this::ipsFromResult);
+                .doOnError(throwable -> {
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, throwable, startTime);
+                })
+                .map(result -> {
+                    connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, startTime);
+                    return ipsFromResult(result);
+                });
     }
 
     private Set<String> ipsFromResult(DescribeTargetHealthResult result) {

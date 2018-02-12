@@ -34,7 +34,8 @@ public class AwsLoadBalancerConnectorMetrics {
     public enum AwsLoadBalancerMethods {
         RegisterTargets,
         DeregisterTargets,
-        DescribeTargetGroups
+        DescribeTargetGroups,
+        DescribeTargetHealth
     }
 
     private static final String METRICS_ROOT = "titus.loadbalancer.connector";
