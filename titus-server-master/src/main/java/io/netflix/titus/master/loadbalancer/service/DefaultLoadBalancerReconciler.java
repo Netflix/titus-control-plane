@@ -56,6 +56,14 @@ import rx.Scheduler;
 import static io.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode.JobNotFound;
 import static io.netflix.titus.master.MetricConstants.METRIC_LOADBALANCER;
 
+/**
+ * This implementation assumes that it "owns" a LoadBalancer once jobs are associated with it, so no other systems can
+ * be sharing the same LoadBalancer. All targets that are registered by external systems will be deregistered by this
+ * reconciliation implementation.
+ * <p>
+ * This was a simple way to get a first version out of the door, but it will likely be changed in the future once we
+ * have a good way to track which targets should be managed by this reconciler.
+ */
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
 
@@ -149,6 +157,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     private Observable<TargetStateBatchable> reconcile(String loadBalancerId, List<JobLoadBalancerState> associations) {
         final Observable<TargetStateBatchable> updatesForLoadBalancer = connector.getRegisteredIps(loadBalancerId)
+                // the same metrics transformer can be used for all subscriptions only because they are all being
+                // serialized with flatMap(maxConcurrent: 1)
                 .compose(registeredIpsMetrics.asSingle())
                 .flatMapObservable(registeredIps -> updatesFor(loadBalancerId, associations, registeredIps));
 
