@@ -16,18 +16,17 @@
 
 package io.netflix.titus.testkit.perf.load.job;
 
+import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.netflix.titus.testkit.perf.load.ExecutionContext;
 import rx.Observable;
 
 public class BatchJobExecutor extends AbstractJobExecutor {
 
-    public BatchJobExecutor(JobDescriptor<BatchJobExt> jobSpec,
-                            Observable<JobManagerEvent<?>> jobChangeObservable,
-                            ExecutionContext context) {
-        super(jobSpec, jobChangeObservable, context);
+    private BatchJobExecutor(Job<BatchJobExt> job, ExecutionContext context) {
+        super(job, context);
     }
 
     @Override
@@ -48,5 +47,12 @@ public class BatchJobExecutor extends AbstractJobExecutor {
     @Override
     public Observable<Void> scaleDown(int delta) {
         throw new IllegalStateException("Not supported");
+    }
+
+    public static Observable<BatchJobExecutor> submitJob(JobDescriptor<BatchJobExt> jobSpec, ExecutionContext context) {
+        return context.getJobManagementClient()
+                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec))
+                .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
+                .map(job -> new BatchJobExecutor((Job<BatchJobExt>) V3GrpcModelConverters.toCoreJob(job), context));
     }
 }

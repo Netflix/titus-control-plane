@@ -22,7 +22,6 @@ import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static io.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -92,7 +91,6 @@ public abstract class AbstractSimulatedMesosSchedulerDriverTest {
     }
 
     @Test
-    @Ignore
     public void testMissingTaskKill() throws Exception {
         offers().takeNext(3, TIMEOUT_MS, TimeUnit.MILLISECONDS);
         mesosDriver.killTask(Protos.TaskID.newBuilder().setValue("absent").build());

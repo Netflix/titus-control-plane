@@ -17,20 +17,40 @@
 package io.netflix.titus.testkit.perf.load;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import io.netflix.titus.testkit.perf.load.catalog.ExecutionScenarioCatalog;
+import io.netflix.titus.testkit.perf.load.job.BatchJobExecutor;
+import io.netflix.titus.testkit.perf.load.job.JobExecutor;
+import io.netflix.titus.testkit.perf.load.job.ServiceJobExecutor;
+import io.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
 import io.netflix.titus.testkit.perf.load.report.MetricsCollector;
 import io.netflix.titus.testkit.perf.load.report.TextReporter;
-import io.netflix.titus.testkit.perf.load.runner.ExecutionScenarioRunner;
+import io.netflix.titus.testkit.perf.load.runner.ExecutionPlanRunner;
 import io.netflix.titus.testkit.perf.load.runner.Terminator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Completable;
+import rx.Observable;
+import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 @Singleton
 public class Orchestrator {
 
-    private final ExecutionScenarioRunner scenarioRunner;
+    private static final Logger logger = LoggerFactory.getLogger(Orchestrator.class);
+
+    private final Subscription scenarioSubscription;
     private final MetricsCollector metricsCollector;
     private final TextReporter textReporter;
 
@@ -44,22 +64,26 @@ public class Orchestrator {
             terminator.doClean();
         }
 
-        this.scenarioRunner = newExecutionScenarioRunner(configuration, context);
+        this.scenarioSubscription = startExecutionScenario(newExecutionScenario(configuration), context).subscribe(
+                () -> logger.info("Orchestrator's scenario subscription completed"),
+                e -> logger.error("Orchestrator's scenario subscription terminated with an error", e)
+        );
         this.metricsCollector = new MetricsCollector();
-        metricsCollector.watch(scenarioRunner.start().doOnUnsubscribe(doneLatch::countDown));
+        metricsCollector.watch(context);
         this.textReporter = new TextReporter(metricsCollector, Schedulers.computation());
         textReporter.start();
     }
 
-    protected ExecutionScenarioRunner newExecutionScenarioRunner(LoadConfiguration configuration, ExecutionContext context) {
-        return new ExecutionScenarioRunner(
+    @PreDestroy
+    public void shutdown() {
+        ObservableExt.safeUnsubscribe(scenarioSubscription);
+    }
+
+    protected ExecutionScenario newExecutionScenario(LoadConfiguration configuration) {
 //                ExecutionScenarioCatalog.oneAutoScalingService(configuration.getScaleFactor()),
 //                ExecutionScenarioCatalog.oneScalingServiceWihTerminateAndShrink(configuration.getScaleFactor()),
-                ExecutionScenarioCatalog.batchJob(1, configuration.getScaleFactor()),
 //                ExecutionScenarioCatalog.mixedLoad(configuration.getScaleFactor()),
-                context,
-                Schedulers.computation()
-        );
+        return ExecutionScenarioCatalog.batchJob(1, configuration.getScaleFactor());
     }
 
     public MetricsCollector getMetricsCollector() {
@@ -71,5 +95,39 @@ public class Orchestrator {
             doneLatch.await();
         } catch (InterruptedException ignore) {
         }
+    }
+
+    private Completable startExecutionScenario(ExecutionScenario executionScenario, ExecutionContext context) {
+        return executionScenario.executionPlans()
+                .flatMap(executable -> {
+                    JobDescriptor<?> jobSpec = tagged(executable.getJobSpec(), context);
+                    Observable<? extends JobExecutor> executorObservable = JobFunctions.isBatchJob(jobSpec)
+                            ? BatchJobExecutor.submitJob((JobDescriptor<BatchJobExt>) jobSpec, context)
+                            : ServiceJobExecutor.submitJob((JobDescriptor<ServiceJobExt>) jobSpec, context);
+
+                    return executorObservable
+                            .retryWhen(RetryHandlerBuilder.retryHandler()
+                                    .withUnlimitedRetries()
+                                    .withDelay(1_000, 30_000, TimeUnit.MILLISECONDS)
+                                    .buildExponentialBackoff()
+                            )
+                            .flatMap(executor -> {
+                                        ExecutionPlanRunner runner = new ExecutionPlanRunner(executor, executable.getExecutionPlan(), Schedulers.computation());
+                                        return runner.awaitJobCompletion()
+                                                .doOnSubscribe(subscription -> runner.start())
+                                                .doOnUnsubscribe(() -> {
+                                                    logger.info("Creating new replacement job...");
+                                                    runner.stop();
+                                                    executionScenario.completed(executable);
+                                                }).toObservable();
+                                    }
+                            );
+                }).toCompletable();
+    }
+
+    private JobDescriptor<?> tagged(JobDescriptor<?> jobSpec, ExecutionContext context) {
+        return jobSpec.toBuilder().withAttributes(
+                CollectionsExt.copyAndAdd(jobSpec.getAttributes(), ExecutionContext.LABEL_SESSION, context.getSessionId())
+        ).build();
     }
 }

@@ -18,9 +18,8 @@ package io.netflix.titus.testkit.perf.load.job;
 
 import java.util.List;
 
-import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.Task;
-import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import rx.Completable;
 import rx.Observable;
 
 public interface JobExecutor {
@@ -33,9 +32,7 @@ public interface JobExecutor {
 
     List<Task> getActiveTasks();
 
-    Observable<JobManagerEvent<?>> updates();
-
-    Observable<Void> submitJob();
+    Completable awaitJobCompletion();
 
     Observable<Void> killJob();
 

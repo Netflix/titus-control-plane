@@ -20,7 +20,6 @@ import io.grpc.ClientCall;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
@@ -81,7 +80,6 @@ public class ObservableClientCall<ReqT, RespT> extends ClientCall.Listener<RespT
             subscriber.onCompleted();
         } else {
             StatusRuntimeException statusException = status.asRuntimeException(trailers);
-            GrpcClientErrorUtils.printDetails(statusException);
             subscriber.onError(statusException);
         }
         inputSubscription.unsubscribe();

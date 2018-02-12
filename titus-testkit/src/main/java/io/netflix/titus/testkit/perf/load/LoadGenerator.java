@@ -84,8 +84,6 @@ public class LoadGenerator {
                 install(new LoadJerseyModule());
                 install(new Archaius2JettyModule());
                 install(new GovernatorJerseySupportModule());
-                install(new JerseyServletModule() {
-                });
             }
 
             protected ManagedChannel newManagedChannel(String hostName, int port) {

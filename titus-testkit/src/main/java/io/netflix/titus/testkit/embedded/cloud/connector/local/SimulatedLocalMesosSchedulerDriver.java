@@ -18,11 +18,13 @@ package io.netflix.titus.testkit.embedded.cloud.connector.local;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import org.apache.mesos.Protos;
@@ -87,28 +89,38 @@ public class SimulatedLocalMesosSchedulerDriver implements SchedulerDriver {
         }
         scheduler.registered(this, framework.getId(), masterInfo);
 
-        this.offerUpdateSubscription = simulatedCloud.offers().subscribe(
-                next -> {
-                    Protos.Offer offer = next.getOffer();
-                    Protos.OfferID offerId = offer.getId();
-                    logger.info("Offer update: {}", next);
-                    if (next.isRescind()) {
-                        scheduler.offerRescinded(this, offerId);
-                    } else {
-                        scheduler.resourceOffers(this, Collections.singletonList(offer));
-                    }
-                },
-                e -> logger.error("Offer updates stream terminated with an error", e),
-                () -> logger.error("Offer updates stream onCompleted")
-        );
-        this.taskStatusSubscription = simulatedCloud.taskStatusUpdates().subscribe(
-                next -> {
-                    logger.info("Task status update from Mesos: {}", next);
-                    scheduler.statusUpdate(this, next);
-                },
-                e -> logger.error("Offer updates stream terminated with an error", e),
-                () -> logger.error("Offer updates stream onCompleted")
-        );
+        this.offerUpdateSubscription = simulatedCloud.offers()
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withDelay(100, 1_000, TimeUnit.MILLISECONDS)
+                        .buildExponentialBackoff()
+                ).subscribe(
+                        next -> {
+                            Protos.Offer offer = next.getOffer();
+                            Protos.OfferID offerId = offer.getId();
+                            logger.info("Offer update: {}", next);
+                            if (next.isRescind()) {
+                                scheduler.offerRescinded(this, offerId);
+                            } else {
+                                scheduler.resourceOffers(this, Collections.singletonList(offer));
+                            }
+                        },
+                        e -> logger.error("Offer updates stream terminated with an error", e),
+                        () -> logger.error("Offer updates stream onCompleted")
+                );
+        this.taskStatusSubscription = simulatedCloud.taskStatusUpdates()
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withDelay(100, 1_000, TimeUnit.MILLISECONDS)
+                        .buildExponentialBackoff()
+                ).subscribe(
+                        next -> {
+                            logger.info("Task status update from Mesos: {}", next);
+                            scheduler.statusUpdate(this, next);
+                        },
+                        e -> logger.error("Offer updates stream terminated with an error", e),
+                        () -> logger.error("Offer updates stream onCompleted")
+                );
 
         return Status.DRIVER_RUNNING;
     }
