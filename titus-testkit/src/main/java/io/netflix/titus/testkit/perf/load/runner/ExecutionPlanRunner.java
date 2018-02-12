@@ -22,7 +22,6 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.jobmanager.model.job.Task;
-import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.testkit.perf.load.job.JobExecutor;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionStep;
@@ -31,10 +30,10 @@ import io.netflix.titus.testkit.perf.load.plan.ExecutionStep.DelayStep;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionStep.KillRandomTaskStep;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionStep.ScaleDownStep;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionStep.ScaleUpStep;
-import io.netflix.titus.testkit.perf.load.plan.ExecutionStep.SubmitStep;
 import io.netflix.titus.testkit.perf.load.plan.ExecutionStep.TerminateAndShrinkRandomTaskStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 
@@ -65,8 +64,8 @@ public class ExecutionPlanRunner {
         executor.shutdown();
     }
 
-    public Observable<JobManagerEvent<?>> updates() {
-        return executor.updates();
+    public Completable awaitJobCompletion() {
+        return executor.awaitJobCompletion();
     }
 
     private void runNext() {
@@ -79,9 +78,7 @@ public class ExecutionPlanRunner {
         }
 
         Observable<Void> action;
-        if (step instanceof SubmitStep) {
-            action = doSubmit();
-        } else if (step instanceof ScaleUpStep) {
+        if (step instanceof ScaleUpStep) {
             action = doScaleUp((ScaleUpStep) step);
         } else if (step instanceof ScaleDownStep) {
             action = doScaleDown((ScaleDownStep) step);
@@ -110,10 +107,6 @@ public class ExecutionPlanRunner {
                     worker.schedule(this::runNext);
                 }
         );
-    }
-
-    private Observable<Void> doSubmit() {
-        return executor.submitJob();
     }
 
     private Observable<Void> doScaleUp(ScaleUpStep step) {

@@ -19,46 +19,49 @@ package io.netflix.titus.testkit.perf.load.job;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
+import com.netflix.titus.grpc.protogen.JobId;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
-import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
-import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
-import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
-import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import io.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
+import rx.subjects.AsyncSubject;
 
 public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorExt> implements JobExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJobExecutor.class);
 
-    protected final JobDescriptor<?> jobSpec;
-    private final Observable<JobManagerEvent<?>> allJobsChangeObservable;
+    protected final String jobId;
+    protected final String name;
     protected final ExecutionContext context;
 
-    protected volatile String name;
-    protected volatile boolean doRun = true;
+    private final Subscription observeSubscription;
 
-    protected volatile String jobId;
+    protected volatile boolean doRun = true;
+    private volatile AsyncSubject<Void> jobCompleted = AsyncSubject.create();
+
     protected volatile Job<E> job;
     protected volatile List<Task> activeTasks = Collections.emptyList();
 
-    protected volatile Subscription activeJobsSubscription;
-
-    protected AbstractJobExecutor(JobDescriptor<E> jobSpec,
-                                  Observable<JobManagerEvent<?>> allJobsChangeObservable,
+    protected AbstractJobExecutor(Job job,
                                   ExecutionContext context) {
-        this.jobSpec = jobSpec;
-        this.allJobsChangeObservable = allJobsChangeObservable;
+        this.job = job;
+        this.jobId = job.getId();
         this.context = context;
-        this.name = buildJobUniqueName(jobSpec);
+        this.name = buildJobUniqueName(job.getJobDescriptor());
+        this.observeSubscription = observeJob();
     }
 
     @Override
@@ -82,32 +85,17 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
     }
 
     @Override
-    public Observable<JobManagerEvent<?>> updates() {
-        return allJobsChangeObservable
-                .filter(event -> {
-                    if (event instanceof JobUpdateEvent) {
-                        return ((JobUpdateEvent) event).getCurrent().getId().equals(jobId);
-                    }
-                    return ((TaskUpdateEvent) event).getCurrent().getJobId().equals(jobId);
-                })
-                .takeUntil(this::isJobCloseEvent);
-    }
-
-    private boolean isJobCloseEvent(JobManagerEvent<?> event) {
-        if (event instanceof JobUpdateEvent) {
-            return ((JobUpdateEvent) event).getCurrent().getStatus().getState() == JobState.Finished;
-        }
-        return false;
+    public Completable awaitJobCompletion() {
+        return Completable.fromObservable(jobCompleted);
     }
 
     @Override
     public void shutdown() {
         if (doRun) {
             doRun = false;
-            if (activeJobsSubscription != null) {
+            if (!observeSubscription.isUnsubscribed()) {
                 this.activeTasks = Collections.emptyList();
-                activeJobsSubscription.unsubscribe();
-
+                observeSubscription.unsubscribe();
                 Throwable error = context.getJobManagementClient().killJob(jobId).toCompletable().get();
                 if (error != null) {
                     logger.debug("Job {} cleanup failure", jobId, error);
@@ -116,21 +104,35 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
         }
     }
 
-    @Override
-    public Observable<Void> submitJob() {
-        Preconditions.checkState(doRun, "Job executor shut down already");
-        return context.getJobManagementClient()
-                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec))
-                .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
-                .doOnNext(job -> {
-                    this.jobId = job.getId();
-                    this.job = V3GrpcModelConverters.toCoreJob(job);
-                    logger.info("Submitted job {}", jobId);
-                    this.name = name + '(' + jobId + ')';
+    private Subscription observeJob() {
+        return Observable.defer(() -> context.getJobManagementClient().observeJob(JobId.newBuilder().setId(jobId).build()))
+                .filter(event -> event.getNotificationCase() == NotificationCase.JOBUPDATE)
+                .materialize()
+                .flatMap(notification -> {
+                    switch (notification.getKind()) {
+                        case OnNext:
+                            return Observable.just(isJobCompletedEvent(notification.getValue()));
+                        case OnError:
+                            StatusRuntimeException ex = (StatusRuntimeException) notification.getThrowable();
+                            return ex.getStatus().getCode() == Status.Code.NOT_FOUND
+                                    ? Observable.just(true)
+                                    : Observable.error(notification.getThrowable());
+                    }
+                    // case OnCompleted:
+                    return Observable.error(new IllegalStateException("Unexpected end of stream for job " + jobId));
                 })
+                .takeUntil(completed -> completed)
                 .ignoreElements()
-                .cast(Void.class)
-                .onErrorResumeNext(e -> Observable.error(new IOException("Failed to submit job " + name, e)));
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withDelay(1_000, 30_000, TimeUnit.MILLISECONDS)
+                        .buildExponentialBackoff()
+                )
+                .doOnTerminate(() -> {
+                    jobCompleted.onCompleted();
+                    logger.info("Job {} completed", jobId);
+                })
+                .subscribe();
     }
 
     @Override
@@ -153,6 +155,13 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
                 .killTask(taskId, false)
                 .onErrorResumeNext(e -> Observable.error(new IOException("Failed to kill task " + taskId + " of job " + name, e)))
                 .doOnCompleted(() -> logger.info("Killed task {}", taskId));
+    }
+
+    private boolean isJobCompletedEvent(JobChangeNotification event) {
+        if (event.getNotificationCase() != NotificationCase.JOBUPDATE) {
+            return false;
+        }
+        return event.getJobUpdate().getJob().getStatus().getState() == com.netflix.titus.grpc.protogen.JobStatus.JobState.Finished;
     }
 
     private static String buildJobUniqueName(JobDescriptor<?> jobSpec) {

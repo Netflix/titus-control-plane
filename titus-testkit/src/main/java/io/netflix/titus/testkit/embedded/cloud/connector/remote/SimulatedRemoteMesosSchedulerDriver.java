@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,6 +27,7 @@ import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.util.NetworkExt;
 import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
@@ -64,23 +66,33 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
     public Protos.Status start() {
         this.callbackHandler.registered(this, FRAMEWORK_ID, masterInfo);
 
-        this.offerSubscription = GrpcUtil.toObservable(asyncClient::offerStream).subscribe(
-                grpcOfferEvent -> {
-                    Protos.Offer offer = toMesosOffer(grpcOfferEvent.getOffer());
-                    if (grpcOfferEvent.getRescinded()) {
-                        callbackHandler.offerRescinded(this, offer.getId());
-                    } else {
-                        callbackHandler.resourceOffers(this, Collections.singletonList(offer));
-                    }
-                },
-                e -> logger.error("Offer stream terminated with an error", e),
-                () -> logger.warn("Offer stream terminated")
-        );
-        this.taskStatusUpdateSubscription = GrpcUtil.toObservable(asyncClient::taskStatusUpdateStream).subscribe(
-                taskStatus -> callbackHandler.statusUpdate(this, toTaskStatusUpdate(taskStatus)),
-                e -> logger.error("Task status stream terminated with an error", e),
-                () -> logger.warn("Task status stream terminated")
-        );
+        this.offerSubscription = GrpcUtil.toObservable(asyncClient::offerStream)
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withDelay(100, 1_000, TimeUnit.MILLISECONDS)
+                        .buildExponentialBackoff()
+                ).subscribe(
+                        grpcOfferEvent -> {
+                            Protos.Offer offer = toMesosOffer(grpcOfferEvent.getOffer());
+                            if (grpcOfferEvent.getRescinded()) {
+                                callbackHandler.offerRescinded(this, offer.getId());
+                            } else {
+                                callbackHandler.resourceOffers(this, Collections.singletonList(offer));
+                            }
+                        },
+                        e -> logger.error("Offer stream terminated with an error", e),
+                        () -> logger.warn("Offer stream terminated")
+                );
+        this.taskStatusUpdateSubscription = GrpcUtil.toObservable(asyncClient::taskStatusUpdateStream)
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withDelay(100, 1_000, TimeUnit.MILLISECONDS)
+                        .buildExponentialBackoff()
+                ).subscribe(
+                        taskStatus -> callbackHandler.statusUpdate(this, toTaskStatusUpdate(taskStatus)),
+                        e -> logger.error("Task status stream terminated with an error", e),
+                        () -> logger.warn("Task status stream terminated")
+                );
         return Protos.Status.DRIVER_RUNNING;
     }
 

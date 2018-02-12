@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Preconditions;
@@ -29,13 +30,19 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
-import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
+import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
+import io.netflix.titus.testkit.client.V3ClientUtils;
+import io.netflix.titus.testkit.perf.load.ExecutionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
 public class MetricsCollector {
+
+    private static final Logger logger = LoggerFactory.getLogger(MetricsCollector.class);
 
     private final AtomicLong totalSubmittedJobs = new AtomicLong();
     private final AtomicLong totalInconsistencies = new AtomicLong();
@@ -78,11 +85,11 @@ public class MetricsCollector {
         return totalTaskStateCounters;
     }
 
-    public void watch(Observable<JobManagerEvent<?>> eventObservable) {
+    public void watch(ExecutionContext context) {
         Preconditions.checkState(subscription == null);
 
-        this.subscription = eventObservable.subscribe(
-                event -> {
+        this.subscription = Observable.defer(() -> V3ClientUtils.observeJobs(context.getJobManagementClient().observeJobs()))
+                .doOnNext(event -> {
                     if (event instanceof JobUpdateEvent) {
                         JobUpdateEvent jobUpdate = (JobUpdateEvent) event;
                         Job<?> current = jobUpdate.getCurrent();
@@ -103,7 +110,18 @@ public class MetricsCollector {
                         activeTaskLastStates.put(current.getId(), current.getStatus().getState());
                         totalTaskStateCounters.computeIfAbsent(current.getStatus().getState(), s -> new AtomicLong()).incrementAndGet();
                     }
-                }
-        );
+                })
+                .ignoreElements()
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withDelay(1_000, 30_000, TimeUnit.MILLISECONDS)
+                        .withOnErrorHook(e -> {
+                            logger.warn("Job subscription error. Re-subscribing and recomputing active jobs metrics...");
+                            this.activeJobs.set(0);
+                            this.activeTaskLastStates.clear();
+                        })
+                        .buildExponentialBackoff()
+                )
+                .subscribe();
     }
 }

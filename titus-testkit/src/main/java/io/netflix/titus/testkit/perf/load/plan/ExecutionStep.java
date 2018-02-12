@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class ExecutionStep {
 
-    private static final ExecutionStep SUBMIT_STEP = new SubmitStep();
     private static final ExecutionStep TERMINATE_STEP = new TerminateStep();
     private static final ExecutionStep KILL_RANDOM_TASK_STEP = new KillRandomTaskStep();
     private static final ExecutionStep TERMINATE_AND_SHRINK_RANDOM_TASK_STEP = new TerminateAndShrinkRandomTaskStep();
@@ -79,9 +78,6 @@ public abstract class ExecutionStep {
                     ", times=" + times +
                     '}';
         }
-    }
-
-    public static class SubmitStep extends ExecutionStep {
     }
 
     public static class TerminateStep extends ExecutionStep {
@@ -208,10 +204,6 @@ public abstract class ExecutionStep {
                     "delayMs=" + delayMs +
                     '}';
         }
-    }
-
-    public static ExecutionStep submit() {
-        return SUBMIT_STEP;
     }
 
     public static ExecutionStep terminate() {

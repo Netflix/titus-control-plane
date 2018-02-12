@@ -39,8 +39,6 @@ public class ExecutionPlanTest {
 
         Iterator<ExecutionStep> planIterator = plan.newInstance();
 
-        assertThat(planIterator.next()).isEqualTo(ExecutionStep.submit());
-
         for (int i = 0; i < 4; i++) {
             assertThat(planIterator.next()).isEqualTo(ExecutionStep.delayStep(5, TimeUnit.SECONDS));
             assertThat(planIterator.next()).isEqualTo(ExecutionStep.scaleUp(5));

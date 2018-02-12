@@ -47,10 +47,6 @@ public class ExecutionPlan {
         private final List<ExecutionStep> steps = new ArrayList<>();
         private final Map<String, Integer> labelPos = new HashMap<>();
 
-        public ExecutionPlanBuilder() {
-            steps.add(ExecutionStep.submit());
-        }
-
         public ExecutionPlanBuilder label(String name) {
             labelPos.put(name, steps.size());
             return this;

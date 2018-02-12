@@ -22,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import com.google.common.base.Preconditions;
+import io.netflix.titus.common.util.ExceptionExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -128,7 +129,8 @@ public final class RetryHandlerBuilder {
                     if (retryItem.cause instanceof TimeoutException) {
                         logger.info("Delaying timed-out {} retry by {}[ms]", title, expDelay);
                     } else {
-                        logger.info("Delaying failed {} retry by {}[ms]", title, expDelay, retryItem.cause);
+                        logger.info("Delaying failed {} retry by {}[ms]: {}", title, expDelay, ExceptionExt.toMessageChain(retryItem.cause));
+                        logger.debug("Exception", retryItem.cause);
                     }
                     return Observable.timer(expDelay, TimeUnit.MILLISECONDS, scheduler);
                 });

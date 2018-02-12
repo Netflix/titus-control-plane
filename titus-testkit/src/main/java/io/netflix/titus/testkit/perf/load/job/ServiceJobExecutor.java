@@ -20,9 +20,10 @@ import java.io.IOException;
 
 import com.google.common.base.Preconditions;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
+import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +35,9 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
 
     private volatile Capacity currentCapacity;
 
-    public ServiceJobExecutor(JobDescriptor<ServiceJobExt> jobSpec,
-                              Observable<JobManagerEvent<?>> jobChangeObservable,
-                              ExecutionContext context) {
-        super(jobSpec, jobChangeObservable, context);
-        this.currentCapacity = jobSpec.getExtensions().getCapacity();
+    private ServiceJobExecutor(Job<ServiceJobExt> job, ExecutionContext context) {
+        super(job, context);
+        this.currentCapacity = job.getJobDescriptor().getExtensions().getCapacity();
     }
 
     @Override
@@ -77,5 +76,12 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
     @Override
     public Observable<Void> scaleDown(int delta) {
         return updateInstanceCount(currentCapacity.getMin(), currentCapacity.getDesired() - delta, currentCapacity.getMax());
+    }
+
+    public static Observable<ServiceJobExecutor> submitJob(JobDescriptor<ServiceJobExt> jobSpec, ExecutionContext context) {
+        return context.getJobManagementClient()
+                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec))
+                .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
+                .map(job -> new ServiceJobExecutor((Job<ServiceJobExt>) V3GrpcModelConverters.toCoreJob(job), context));
     }
 }
