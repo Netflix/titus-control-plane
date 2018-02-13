@@ -145,7 +145,7 @@ public class ObservableExt {
      * onCompleted or onError are not emitted within the specified timeout duration after it has been subscribed to,
      * the resulting {@link Observable} terminates and notifies observers of a {@link java.util.concurrent.TimeoutException}.
      */
-    public static <T> Observable.Transformer<T, T> subscriptionTimeout(long timeout, TimeUnit unit, Scheduler scheduler) {
+    public static <T> Observable.Transformer<T, T> subscriptionTimeout(Supplier<Long> timeout, TimeUnit unit, Scheduler scheduler) {
         return (observable) -> observable.lift(new SubscriptionTimeout<T>(timeout, unit, scheduler));
     }
 

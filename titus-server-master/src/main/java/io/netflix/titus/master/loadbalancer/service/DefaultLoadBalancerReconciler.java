@@ -154,7 +154,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         // full reconciliation run
         final Observable<TargetStateBatchable> updatesForAll = cleanupOrphansAndSnapshot
                 .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1)
-                .compose(ObservableExt.subscriptionTimeout(timeoutMs.get(), TimeUnit.MILLISECONDS, scheduler))
+                .compose(ObservableExt.subscriptionTimeout(timeoutMs, TimeUnit.MILLISECONDS, scheduler))
                 .compose(fullReconciliationMetrics.asObservable())
                 .doOnError(e -> logger.error("reconciliation failed", e))
                 .onErrorResumeNext(Observable.empty());

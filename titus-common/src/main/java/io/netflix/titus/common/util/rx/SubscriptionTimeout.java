@@ -19,6 +19,7 @@ package io.netflix.titus.common.util.rx;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,11 +46,11 @@ import rx.plugins.RxJavaHooks;
 class SubscriptionTimeout<T> implements Observable.Operator<T, T> {
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionTimeout.class);
 
-    private final long timeout;
+    private final Supplier<Long> timeout;
     private final TimeUnit unit;
     private final Scheduler scheduler;
 
-    SubscriptionTimeout(long timeout, TimeUnit unit, Scheduler scheduler) {
+    SubscriptionTimeout(Supplier<Long> timeout, TimeUnit unit, Scheduler scheduler) {
         this.timeout = timeout;
         this.unit = unit;
         this.scheduler = scheduler;
@@ -57,7 +58,7 @@ class SubscriptionTimeout<T> implements Observable.Operator<T, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> downstream) {
-        TimeoutSubscriber<T> upstream = new TimeoutSubscriber<T>(downstream, timeout, unit, scheduler.createWorker());
+        TimeoutSubscriber<T> upstream = new TimeoutSubscriber<T>(downstream, timeout.get(), unit, scheduler.createWorker());
         downstream.add(upstream);
         downstream.setProducer(upstream.arbiter);
         return upstream;

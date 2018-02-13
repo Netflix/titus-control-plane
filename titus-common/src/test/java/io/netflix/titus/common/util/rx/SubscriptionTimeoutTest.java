@@ -18,6 +18,7 @@ package io.netflix.titus.common.util.rx;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +29,7 @@ import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 
 public class SubscriptionTimeoutTest {
-    private static final long TEST_TIMEOUT_MS = 10_000L;
+    private static final Supplier<Long> TEST_TIMEOUT_MS = () -> 10_000L;
 
     private SerializedSubject<String, String> source;
     private TestScheduler testScheduler;
@@ -50,7 +51,7 @@ public class SubscriptionTimeoutTest {
                 .assertNoErrors()
                 .assertNoTerminalEvent();
 
-        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS - 1, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS.get() - 1, TimeUnit.MILLISECONDS);
         subscriber.assertNoValues()
                 .assertNoErrors()
                 .assertNoTerminalEvent();
@@ -75,7 +76,7 @@ public class SubscriptionTimeoutTest {
                 .assertNoErrors()
                 .assertCompleted();
 
-        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS.get(), TimeUnit.MILLISECONDS);
         subscriber.assertNoValues()
                 .assertNoErrors()
                 .assertCompleted();
@@ -92,20 +93,20 @@ public class SubscriptionTimeoutTest {
         final int items = 10;
         for (int i = 0; i <= items - 1; i++) {
             source.onNext("" + i);
-            testScheduler.advanceTimeBy((TEST_TIMEOUT_MS - 1) / items, TimeUnit.MILLISECONDS);
+            testScheduler.advanceTimeBy((TEST_TIMEOUT_MS.get() - 1) / items, TimeUnit.MILLISECONDS);
             subscriber.assertNoErrors()
                     .assertValuesAndClear("" + i)
                     .assertNoTerminalEvent();
         }
 
-        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS / items, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS.get() / items, TimeUnit.MILLISECONDS);
         subscriber.assertNoValues()
                 .assertError(TimeoutException.class);
 
         source.onNext("invalid");
         testScheduler.triggerActions();
         subscriber.assertNoValues();
-        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS / items, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(TEST_TIMEOUT_MS.get() / items, TimeUnit.MILLISECONDS);
         subscriber.assertNoValues();
     }
 }
