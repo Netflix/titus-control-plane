@@ -33,6 +33,7 @@ import com.datastax.driver.core.Session;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.Rule;
@@ -43,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 
+@IntegrationTest
 public class CassandraLoadBalancerStoreTest {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStoreTest.class);
 
@@ -188,6 +190,7 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Tests that all data is returned across multiple pages.
+     *
      * @throws Exception
      */
     @Test
@@ -220,13 +223,14 @@ public class CassandraLoadBalancerStoreTest {
             currentPageOffset += jobLoadBalancerPage.size();
             // Make sure we've stopped before reading beyond the data set size
             assertThat(currentPageOffset <= numTestJobs * numTestLbs).isTrue();
-        } while(jobLoadBalancerPage.size() > 0);
+        } while (jobLoadBalancerPage.size() > 0);
         // Make sure all of the data was checked
         assertThat(unverifiedData.isEmpty()).isTrue();
     }
 
     /**
      * Tests that all data is returned in a single overly large page request.
+     *
      * @throws Exception
      */
     @Test
@@ -308,6 +312,7 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Returns the set of JobIds in a test data map.
+     *
      * @return
      */
     private Set<String> getJobIdsFromTestData(Map<JobLoadBalancer, JobLoadBalancer.State> testData) {
