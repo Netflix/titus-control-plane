@@ -18,11 +18,8 @@ package io.netflix.titus.common.util.rx;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Producer;
 import rx.Scheduler;
@@ -30,7 +27,7 @@ import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.internal.producers.ProducerArbiter;
-import rx.plugins.RxJavaHooks;
+import rx.observers.SerializedSubscriber;
 
 /**
  * Apply a timeout for an entire subscription of a source {@link Observable}. Downstream subscribers will receive an
@@ -39,13 +36,14 @@ import rx.plugins.RxJavaHooks;
  * <p>
  * The implementation is inspired by {@link rx.internal.operators.OnSubscribeTimeoutTimedWithFallback}, but it applies a
  * timeout to the entire subscription, rather than between each {@link Subscriber#onNext(Object) onNext emission}.
+ * <p>
+ * All onNext, onError and onCompleted calls from the source {@link Observable} will be serialized to prevent any races,
+ * otherwise the {@link TimeoutException} generated internally would race with external events.
  *
  * @see rx.internal.operators.OnSubscribeTimeoutTimedWithFallback
  * @see Observable#timeout(long, TimeUnit, Scheduler)
  */
 class SubscriptionTimeout<T> implements Observable.Operator<T, T> {
-    private static final Logger logger = LoggerFactory.getLogger(SubscriptionTimeout.class);
-
     private final Supplier<Long> timeout;
     private final TimeUnit unit;
     private final Scheduler scheduler;
@@ -58,61 +56,43 @@ class SubscriptionTimeout<T> implements Observable.Operator<T, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> downstream) {
-        TimeoutSubscriber<T> upstream = new TimeoutSubscriber<T>(downstream, timeout.get(), unit, scheduler.createWorker());
+        TimeoutSubscriber<T> upstream = new TimeoutSubscriber<T>(downstream, timeout.get(), unit);
         downstream.add(upstream);
         downstream.setProducer(upstream.arbiter);
-        return upstream;
+
+        // prevent all races and serialize onNext, onError, and onCompleted calls
+        final Worker worker = scheduler.createWorker();
+        final SerializedSubscriber<T> safeUpstream = new SerializedSubscriber<>(upstream, true);
+        upstream.add(worker);
+
+        Subscription task = worker.schedule(() -> safeUpstream.onError(new TimeoutException()), timeout.get(), unit);
+        upstream.add(task);
+
+        return safeUpstream;
     }
 
     private static final class TimeoutSubscriber<T> extends Subscriber<T> {
         private final Subscriber<? super T> actual;
         private final ProducerArbiter arbiter;
-        private final AtomicBoolean terminated = new AtomicBoolean(false);
 
-        private TimeoutSubscriber(Subscriber<? super T> actual, long timeout, TimeUnit unit, Worker worker) {
+        private TimeoutSubscriber(Subscriber<? super T> actual, long timeout, TimeUnit unit) {
             this.actual = actual;
             this.arbiter = new ProducerArbiter();
-            Subscription task = worker.schedule(this::onTimeout, timeout, unit);
-            this.add(worker);
-            this.add(task);
-        }
-
-        private void onTimeout() {
-            if (!terminated.compareAndSet(false, true)) {
-                logger.error("onTimeout after a terminal event");
-                return;
-            }
-            unsubscribe();
-            actual.onError(new TimeoutException());
         }
 
         @Override
         public void onNext(T t) {
-            if (terminated.get()) {
-                logger.error("onNext after a terminal event");
-                return;
-            }
-            // there is a small chance of a race here, but we accept it to avoid full synchronization (mutex or
-            // serialization through an event loop).
             actual.onNext(t);
         }
 
         @Override
         public void onError(Throwable e) {
-            if (!terminated.compareAndSet(false, true)) {
-                RxJavaHooks.onError(e);
-                return;
-            }
             unsubscribe();
             actual.onError(e);
         }
 
         @Override
         public void onCompleted() {
-            if (!terminated.compareAndSet(false, true)) {
-                logger.error("onCompleted after a terminal event");
-                return;
-            }
             unsubscribe();
             actual.onCompleted();
         }
