@@ -1,7 +1,10 @@
 #!/bin/bash
 # This script will build the project.
 
-if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+if [ "$TITUS_INTEGRATION_TEST" == "true" ]; then
+  echo -e "Running integration tests (PR $TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
+  ./gradlew -PtitusUsername="${titusUsername}" -PtitusPassword="${titusPassword}" integrationTest --stacktrace
+elif [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   echo -e "Build Pull Request #$TRAVIS_PULL_REQUEST => Branch [$TRAVIS_BRANCH]"
   ./gradlew -PtitusUsername="${titusUsername}" -PtitusPassword="${titusPassword}" build --stacktrace
 elif [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_TAG" == "" ]; then
