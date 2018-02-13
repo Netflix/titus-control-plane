@@ -94,6 +94,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     private final Counter registerCounter;
     private final Counter deregisterCounter;
+    private final ContinuousSubscriptionMetrics fullReconciliationMetrics;
     private final ContinuousSubscriptionMetrics orphanUpdateMetrics;
     private final ContinuousSubscriptionMetrics removeMetrics;
     private final ContinuousSubscriptionMetrics registeredIpsMetrics;
@@ -118,6 +119,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         final Id updatesCounterId = registry.createId(METRIC_RECONCILER + ".updates", tags);
         this.registerCounter = registry.counter(updatesCounterId.withTag("operation", "register"));
         this.deregisterCounter = registry.counter(updatesCounterId.withTag("operation", "deregister"));
+        this.fullReconciliationMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".full", tags, registry);
         this.orphanUpdateMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".orphanUpdates", tags, registry);
         this.removeMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".remove", tags, registry);
         this.registeredIpsMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".getRegisteredIps", tags, registry);
@@ -153,6 +155,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         final Observable<TargetStateBatchable> updatesForAll = cleanupOrphansAndSnapshot
                 .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1)
                 .compose(ObservableExt.subscriptionTimeout(timeoutMs.get(), TimeUnit.MILLISECONDS, scheduler))
+                .compose(fullReconciliationMetrics.asObservable())
                 .doOnError(e -> logger.error("reconciliation failed", e))
                 .onErrorResumeNext(Observable.empty());
 
