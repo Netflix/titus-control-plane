@@ -148,6 +148,8 @@ subprojects {
     }
 
     test {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
         useJUnit {
             excludeCategories 'io.netflix.titus.testkit.junit.category.IntegrationTest'
         }
@@ -158,14 +160,21 @@ subprojects {
         }
     }
 
-    task testAll(type: Test) {
+    task integrationTest(type: Test) {
         useJUnit {
+            includeCategories 'io.netflix.titus.testkit.junit.category.IntegrationTest'
         }
 
         reports {
             junitXml.enabled = true
             html.enabled = true
         }
+    }
+
+    task testAll {
+        dependsOn 'test'
+        dependsOn 'integrationTest'
+        tasks.findByName('integrationTest').mustRunAfter 'test'
     }
 }
 
