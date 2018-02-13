@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.BasicTag;
@@ -85,7 +86,9 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private final LoadBalancerStore store;
     private final LoadBalancerConnector connector;
     private final LoadBalancerJobOperations jobOperations;
+    // TODO: make dynamic and switch to a Supplier<Long>
     private final long delayMs;
+    private final Supplier<Long> timeoutMs;
     private final Registry registry;
     private final Scheduler scheduler;
 
@@ -107,6 +110,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         this.connector = connector;
         this.jobOperations = loadBalancerJobOperations;
         this.delayMs = configuration.getReconciliationDelayMs();
+        this.timeoutMs = configuration::getReconciliationTimeoutMs;
         this.registry = registry;
         this.scheduler = scheduler;
 
@@ -145,11 +149,14 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         final Observable<Map.Entry<String, List<JobLoadBalancerState>>> cleanupOrphansAndSnapshot = updateOrphanAssociations()
                 .andThen(snapshotAssociationsByLoadBalancer());
 
-        // TODO(fabio): rate limit calls to reconcile (and to the connector)
+        // full reconciliation run
         final Observable<TargetStateBatchable> updatesForAll = cleanupOrphansAndSnapshot
-                .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1);
+                .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1)
+                .compose(ObservableExt.subscriptionTimeout(timeoutMs.get(), TimeUnit.MILLISECONDS, scheduler))
+                .doOnError(e -> logger.error("reconciliation failed", e))
+                .onErrorResumeNext(Observable.empty());
 
-        // TODO(fabio): timeout for each run (subscription)
+        // schedule periodic full reconciliations
         return ObservableExt.periodicGenerator(updatesForAll, delayMs, delayMs, TimeUnit.MILLISECONDS, scheduler)
                 .compose(SpectatorExt.subscriptionMetrics(METRIC_RECONCILER, DefaultLoadBalancerReconciler.class, registry))
                 .flatMap(Observable::from, 1);
