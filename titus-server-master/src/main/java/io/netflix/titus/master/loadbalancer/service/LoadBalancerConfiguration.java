@@ -40,6 +40,12 @@ public interface LoadBalancerConfiguration {
     long getCooldownPeriodMs();
 
     /**
+     * Max execution time for a full reconciliation.
+     */
+    @DefaultValue("90000")
+    long getReconciliationTimeoutMs();
+
+    /**
      * Delay between full reconciliation runs.
      */
     @DefaultValue("30000")

@@ -141,6 +141,15 @@ public class ObservableExt {
     }
 
     /**
+     * Returns an Observable that mirrors the source Observable but applies a timeout policy for its completion. If
+     * onCompleted or onError are not emitted within the specified timeout duration after it has been subscribed to,
+     * the resulting {@link Observable} terminates and notifies observers of a {@link java.util.concurrent.TimeoutException}.
+     */
+    public static <T> Observable.Transformer<T, T> subscriptionTimeout(Supplier<Long> timeout, TimeUnit unit, Scheduler scheduler) {
+        return (observable) -> observable.lift(new SubscriptionTimeout<T>(timeout, unit, scheduler));
+    }
+
+    /**
      * Emit single {@link Either} value containing all source observable values, or an error which caused the
      * stream to terminate.
      */

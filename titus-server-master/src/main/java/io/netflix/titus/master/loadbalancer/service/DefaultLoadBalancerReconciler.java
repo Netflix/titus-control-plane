@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.BasicTag;
@@ -56,6 +57,14 @@ import rx.Scheduler;
 import static io.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode.JobNotFound;
 import static io.netflix.titus.master.MetricConstants.METRIC_LOADBALANCER;
 
+/**
+ * This implementation assumes that it "owns" a LoadBalancer once jobs are associated with it, so no other systems can
+ * be sharing the same LoadBalancer. All targets that are registered by external systems will be deregistered by this
+ * reconciliation implementation.
+ * <p>
+ * This was a simple way to get a first version out of the door, but it will likely be changed in the future once we
+ * have a good way to track which targets should be managed by this reconciler.
+ */
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
 
@@ -77,12 +86,15 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private final LoadBalancerStore store;
     private final LoadBalancerConnector connector;
     private final LoadBalancerJobOperations jobOperations;
+    // TODO: make dynamic and switch to a Supplier<Long>
     private final long delayMs;
+    private final Supplier<Long> timeoutMs;
     private final Registry registry;
     private final Scheduler scheduler;
 
     private final Counter registerCounter;
     private final Counter deregisterCounter;
+    private final ContinuousSubscriptionMetrics fullReconciliationMetrics;
     private final ContinuousSubscriptionMetrics orphanUpdateMetrics;
     private final ContinuousSubscriptionMetrics removeMetrics;
     private final ContinuousSubscriptionMetrics registeredIpsMetrics;
@@ -99,6 +111,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         this.connector = connector;
         this.jobOperations = loadBalancerJobOperations;
         this.delayMs = configuration.getReconciliationDelayMs();
+        this.timeoutMs = configuration::getReconciliationTimeoutMs;
         this.registry = registry;
         this.scheduler = scheduler;
 
@@ -106,6 +119,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         final Id updatesCounterId = registry.createId(METRIC_RECONCILER + ".updates", tags);
         this.registerCounter = registry.counter(updatesCounterId.withTag("operation", "register"));
         this.deregisterCounter = registry.counter(updatesCounterId.withTag("operation", "deregister"));
+        this.fullReconciliationMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".full", tags, registry);
         this.orphanUpdateMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".orphanUpdates", tags, registry);
         this.removeMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".remove", tags, registry);
         this.registeredIpsMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".getRegisteredIps", tags, registry);
@@ -137,11 +151,15 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         final Observable<Map.Entry<String, List<JobLoadBalancerState>>> cleanupOrphansAndSnapshot = updateOrphanAssociations()
                 .andThen(snapshotAssociationsByLoadBalancer());
 
-        // TODO(fabio): rate limit calls to reconcile (and to the connector)
+        // full reconciliation run
         final Observable<TargetStateBatchable> updatesForAll = cleanupOrphansAndSnapshot
-                .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1);
+                .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1)
+                .compose(ObservableExt.subscriptionTimeout(timeoutMs, TimeUnit.MILLISECONDS, scheduler))
+                .compose(fullReconciliationMetrics.asObservable())
+                .doOnError(e -> logger.error("reconciliation failed", e))
+                .onErrorResumeNext(Observable.empty());
 
-        // TODO(fabio): timeout for each run (subscription)
+        // schedule periodic full reconciliations
         return ObservableExt.periodicGenerator(updatesForAll, delayMs, delayMs, TimeUnit.MILLISECONDS, scheduler)
                 .compose(SpectatorExt.subscriptionMetrics(METRIC_RECONCILER, DefaultLoadBalancerReconciler.class, registry))
                 .flatMap(Observable::from, 1);
@@ -149,6 +167,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     private Observable<TargetStateBatchable> reconcile(String loadBalancerId, List<JobLoadBalancerState> associations) {
         final Observable<TargetStateBatchable> updatesForLoadBalancer = connector.getRegisteredIps(loadBalancerId)
+                // the same metrics transformer can be used for all subscriptions only because they are all being
+                // serialized with flatMap(maxConcurrent: 1)
                 .compose(registeredIpsMetrics.asSingle())
                 .flatMapObservable(registeredIps -> updatesFor(loadBalancerId, associations, registeredIps));
 
