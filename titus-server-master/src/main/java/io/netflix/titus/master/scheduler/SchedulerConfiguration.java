@@ -62,6 +62,14 @@ public interface SchedulerConfiguration {
     @DefaultValue("true")
     boolean isExitUponFenzoSchedulingErrorEnabled();
 
+    /**
+     * An option to enable fenzo downscaling of agents.
+     *
+     * @return whether or not fenzo should downscale agents.
+     */
+    @DefaultValue("true")
+    boolean isFenzoDownScalingEnabled();
+
     @DefaultValue("30000")
     long getTierSlaUpdateIntervalMs();
 

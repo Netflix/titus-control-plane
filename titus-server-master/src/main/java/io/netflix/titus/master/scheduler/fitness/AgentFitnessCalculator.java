@@ -69,7 +69,8 @@ public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
         calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.1));
         calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.1));
-        calculators.add(new WeightedFitnessCalculator(new JobSpreadingFitnessCalculator(), 0.8));
+        calculators.add(new WeightedFitnessCalculator(new ImageSpreadingFitnessCalculator(), 0.2));
+        calculators.add(new WeightedFitnessCalculator(new SecurityGroupSpreadingFitnessCalculator(), 0.6));
         return new WeightedAverageFitnessCalculator(calculators);
     }
 
@@ -77,8 +78,8 @@ public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
         calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.1));
         calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.2));
-        calculators.add(new WeightedFitnessCalculator(new ImageFitnessCalculator(agentResourceCache), 0.3));
-        calculators.add(new WeightedFitnessCalculator(new SecurityGroupFitnessCalculator(agentResourceCache), 0.4));
+        calculators.add(new WeightedFitnessCalculator(new CachedImageFitnessCalculator(agentResourceCache), 0.3));
+        calculators.add(new WeightedFitnessCalculator(new CachedSecurityGroupFitnessCalculator(agentResourceCache), 0.4));
         return new WeightedAverageFitnessCalculator(calculators);
     }
 
@@ -86,8 +87,8 @@ public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
         calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.2));
         calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.2));
-        calculators.add(new WeightedFitnessCalculator(new ImageFitnessCalculator(agentResourceCache), 0.3));
-        calculators.add(new WeightedFitnessCalculator(new SecurityGroupFitnessCalculator(agentResourceCache), 0.3));
+        calculators.add(new WeightedFitnessCalculator(new CachedImageFitnessCalculator(agentResourceCache), 0.3));
+        calculators.add(new WeightedFitnessCalculator(new CachedSecurityGroupFitnessCalculator(agentResourceCache), 0.3));
         return new WeightedAverageFitnessCalculator(calculators);
     }
 }

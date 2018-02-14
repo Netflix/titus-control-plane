@@ -16,7 +16,7 @@
 
 package io.netflix.titus.master.scheduler.fitness;
 
-import java.util.Collection;
+import java.util.List;
 
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
@@ -25,22 +25,29 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheImage;
 
+import static io.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.countMatchingTasks;
+import static io.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getAllTasksOnAgent;
+
 /**
- * A fitness calculator that will prefer placing tasks on agents that do not have a task with the same image and security
- * groups.
+ * A fitness calculator that will prefer placing tasks on agents that do not have a task with the same image.
  */
-public class JobSpreadingFitnessCalculator implements VMTaskFitnessCalculator {
+public class ImageSpreadingFitnessCalculator implements VMTaskFitnessCalculator {
     private static final double MATCHING_TASK_SCORE = 0.5;
     private static final double NO_MATCHING_TASK_SCORE = 1.0;
 
     @Override
     public String getName() {
-        return "Job Spreading Fitness Calculator";
+        return "Image Spreading Fitness Calculator";
     }
 
     @Override
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        long matchingTaskCount = countMatchingTasks(taskRequest, targetVM.getRunningTasks());
+        List<TaskRequest> allTasksOnAgent = getAllTasksOnAgent(targetVM);
+        AgentResourceCacheImage taskRequestImage = AgentResourceCacheFunctions.getImage(taskRequest);
+        long matchingTaskCount = countMatchingTasks(allTasksOnAgent, taskOnAgent -> {
+            AgentResourceCacheImage taskOnAgentImage = AgentResourceCacheFunctions.getImage(taskOnAgent);
+            return taskRequestImage.equals(taskOnAgentImage);
+        });
 
         if (matchingTaskCount == 0) {
             return NO_MATCHING_TASK_SCORE;
@@ -48,16 +55,5 @@ public class JobSpreadingFitnessCalculator implements VMTaskFitnessCalculator {
 
         double matchingTaskRatio = 1.0 / (double) matchingTaskCount;
         return matchingTaskRatio * MATCHING_TASK_SCORE;
-    }
-
-    private long countMatchingTasks(TaskRequest currentTaskRequest, Collection<TaskRequest> assignedTaskRequests) {
-        String currentTaskRequestJoinedSecurityGroupIds = FitnessCalculatorFunctions.getJoinedSecurityGroupIds(currentTaskRequest);
-        AgentResourceCacheImage currentTaskRequestImage = AgentResourceCacheFunctions.getImage(currentTaskRequest);
-        return assignedTaskRequests.stream().filter(assignedTaskRequest -> {
-            String assignedTaskRequestJoinedSecurityGroupIds = FitnessCalculatorFunctions.getJoinedSecurityGroupIds(assignedTaskRequest);
-            AgentResourceCacheImage assignedTaskRequestImage = AgentResourceCacheFunctions.getImage(assignedTaskRequest);
-            return currentTaskRequestJoinedSecurityGroupIds.equals(assignedTaskRequestJoinedSecurityGroupIds) &&
-                    currentTaskRequestImage.equals(assignedTaskRequestImage);
-        }).count();
     }
 }

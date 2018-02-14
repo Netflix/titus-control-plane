@@ -31,6 +31,7 @@ import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,12 +39,13 @@ import static io.netflix.titus.api.agent.service.AgentManagementFunctions.observ
 
 @Singleton
 public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDownOrderEvaluator {
-
     private static final Logger logger = LoggerFactory.getLogger(TitusInactiveClusterScaleDownConstraintEvaluator.class);
+    private static final List<Set<VirtualMachineLease>> EMPTY_RESULT = Collections.singletonList(Collections.emptySet());
 
     private final InactiveClusterScaleDownConstraintEvaluator delegate;
     private final String serverGroupAttrName;
-    
+
+    private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
     private final TitusRuntime titusRuntime;
 
@@ -52,8 +54,10 @@ public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDo
     @Inject
     public TitusInactiveClusterScaleDownConstraintEvaluator(
             MasterConfiguration config,
+            SchedulerConfiguration schedulerConfiguration,
             AgentManagementService agentManagementService,
             TitusRuntime titusRuntime) {
+        this.schedulerConfiguration = schedulerConfiguration;
         this.agentManagementService = agentManagementService;
         this.titusRuntime = titusRuntime;
         this.delegate = new InactiveClusterScaleDownConstraintEvaluator(this::isInactive);
@@ -67,6 +71,9 @@ public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDo
 
     @Override
     public List<Set<VirtualMachineLease>> evaluate(Collection<VirtualMachineLease> candidates) {
+        if (!schedulerConfiguration.isFenzoDownScalingEnabled()) {
+            return EMPTY_RESULT;
+        }
         List<Set<VirtualMachineLease>> result = delegate.evaluate(candidates);
         if (logger.isDebugEnabled()) {
             logger.debug("Inactive and active sets: {}", ScaleDownUtils.toCompactString(result));

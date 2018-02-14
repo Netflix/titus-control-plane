@@ -16,11 +16,14 @@
 
 package io.netflix.titus.master.scheduler.fitness;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QueuableTask;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.Job;
@@ -35,11 +38,9 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.scheduler.ScheduledRequest;
-import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheImage;
 
 import static io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.EMPTY_JOINED_SECURITY_GROUP_IDS;
 import static io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER;
-import static io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.createImage;
 
 public class FitnessCalculatorFunctions {
 
@@ -109,5 +110,15 @@ public class FitnessCalculatorFunctions {
             return StringExt.concatenate(securityGroupIds, SECURITY_GROUP_ID_DELIMITER);
         }
         return EMPTY_JOINED_SECURITY_GROUP_IDS;
+    }
+
+    public static List<TaskRequest> getAllTasksOnAgent(VirtualMachineCurrentState targetVm) {
+        List<TaskRequest> tasksOnAgent = new ArrayList<>(targetVm.getRunningTasks());
+        targetVm.getTasksCurrentlyAssigned().forEach(t -> tasksOnAgent.add(t.getRequest()));
+        return tasksOnAgent;
+    }
+
+    public static long countMatchingTasks(List<TaskRequest> tasksOnAgent, Predicate<TaskRequest> predicate) {
+        return tasksOnAgent.stream().filter(predicate).count();
     }
 }

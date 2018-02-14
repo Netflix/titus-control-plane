@@ -56,13 +56,15 @@ import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
 @ProxyConfiguration(types = {Logging, Spectator, ActiveGuard})
 public class DefaultAgentManagementService implements AgentManagementService {
 
+    private final AgentManagementConfiguration configuration;
     private final InstanceCloudConnector instanceCloudConnector;
-
     private final AgentCache agentCache;
 
     @Inject
-    public DefaultAgentManagementService(InstanceCloudConnector instanceCloudConnector,
+    public DefaultAgentManagementService(AgentManagementConfiguration configuration,
+                                         InstanceCloudConnector instanceCloudConnector,
                                          AgentCache AgentCache) {
+        this.configuration = configuration;
         this.instanceCloudConnector = instanceCloudConnector;
         this.agentCache = AgentCache;
     }
@@ -139,6 +141,9 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable updateCapacity(String agentServerGroupId, Optional<Integer> min, Optional<Integer> desired) {
+        if (!configuration.isInstanceGroupUpdateCapacityEnabled()) {
+            return Completable.complete();
+        }
         return Observable.fromCallable(() -> agentCache.getInstanceGroup(agentServerGroupId))
                 .flatMap(instanceGroup -> {
                             if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable && min.isPresent()) {
@@ -152,6 +157,9 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable scaleUp(String instanceGroupId, int scaleUpCount) {
+        if (!configuration.isInstanceGroupUpdateCapacityEnabled()) {
+            return Completable.complete();
+        }
         return Observable.fromCallable(() -> agentCache.getInstanceGroup(instanceGroupId))
                 .flatMap(instanceGroup -> {
                             Completable cloudUpdate = instanceCloudConnector.scaleUp(instanceGroup.getId(), scaleUpCount);
@@ -182,10 +190,9 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Observable<List<Either<Boolean, Throwable>>> terminateAgents(String agentServerGroupId, List<String> agentInstanceIds, boolean shrink) {
-        if (agentInstanceIds.isEmpty()) {
+        if (!configuration.isInstanceGroupUpdateCapacityEnabled() || agentInstanceIds.isEmpty()) {
             return Observable.empty();
         }
-
         return Observable.fromCallable(() -> resolveServerGroup(agentInstanceIds))
                 .flatMap(instanceGroupId ->
                         instanceCloudConnector.terminateInstances(agentServerGroupId, agentInstanceIds, shrink)
