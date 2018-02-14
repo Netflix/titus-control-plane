@@ -255,7 +255,9 @@ public final class V2GrpcModelConverters {
         taskBuilder.putTaskContext(TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID, worker.getWorkerInstanceId());
         taskBuilder.putTaskContext(TASK_ATTRIBUTES_TASK_INDEX, Integer.toString(worker.getWorkerIndex()));
         taskBuilder.putTaskContext(TASK_ATTRIBUTES_TASK_ORIGINAL_ID, v2TaskId);
-        taskBuilder.putTaskContext(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, worker.getJobId() + "-worker-" + worker.getWorkerIndex() + "-" + worker.getResubmitOf());
+        if (worker.getResubmitOf() >= 0) {
+            taskBuilder.putTaskContext(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, worker.getJobId() + "-worker-" + worker.getWorkerIndex() + "-" + worker.getResubmitOf());
+        }
         taskBuilder.putTaskContext(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(worker.getTotalResubmitCount()));
 
         parseTitusExecutorDetails(worker.getStatusData()).ifPresent(details -> {
