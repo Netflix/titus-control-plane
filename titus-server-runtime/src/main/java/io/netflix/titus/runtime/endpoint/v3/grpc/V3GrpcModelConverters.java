@@ -387,7 +387,10 @@ public final class V3GrpcModelConverters {
     }
 
     public static Constraints toGrpcConstraints(Map<String, String> constraints) {
-        return Constraints.getDefaultInstance();
+        if (constraints.isEmpty()) {
+            return Constraints.getDefaultInstance();
+        }
+        return Constraints.newBuilder().putAllConstraints(constraints).build();
     }
 
     public static com.netflix.titus.grpc.protogen.Container toGrpcContainer(Container container) {
