@@ -60,12 +60,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DefaultAgentManagementServiceTest {
-
+    private final AgentManagementConfiguration configuration = mock(AgentManagementConfiguration.class);
     private final InstanceCloudConnector connector = mock(InstanceCloudConnector.class);
-
     private final AgentCache agentCache = mock(AgentCache.class);
 
-    private final DefaultAgentManagementService service = new DefaultAgentManagementService(connector, agentCache);
+    private final DefaultAgentManagementService service = new DefaultAgentManagementService(configuration, connector, agentCache);
 
     private final PublishSubject<CacheUpdateEvent> agentCacheEventSubject = PublishSubject.create();
     private final ExtTestSubscriber<AgentEvent> eventSubscriber = new ExtTestSubscriber<>();
@@ -82,6 +81,8 @@ public class DefaultAgentManagementServiceTest {
         this.serverGroups = agentServerGroups(Tier.Flex, 5).toList(2);
         this.serverGen0 = agentInstances(serverGroups.get(0)).apply(serverSet0::add, 5);
         this.serverGen1 = agentInstances(serverGroups.get(1)).apply(serverSet1::add, 5);
+
+        when(configuration.isInstanceGroupUpdateCapacityEnabled()).thenReturn(true);
 
         when(agentCache.getInstanceGroups()).thenReturn(serverGroups);
         when(agentCache.getInstanceGroup(serverGroups.get(0).getId())).thenReturn(serverGroups.get(0));

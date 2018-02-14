@@ -46,6 +46,12 @@ public interface AgentManagementConfiguration {
     @DefaultValue("600")
     int getAutoScaleRuleCoolDownSec();
 
-    @DefaultValue("1")
+    @DefaultValue("8")
     int getAutoScaleRuleShortfallAdjustingFactor();
+
+    /**
+     * @return whether or not agent management should allow capacity updates to instance groups
+     */
+    @DefaultValue("true")
+    boolean isInstanceGroupUpdateCapacityEnabled();
 }
