@@ -8,6 +8,7 @@ import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -20,7 +21,9 @@ import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import com.sun.jersey.spi.resource.Singleton;
+import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudGateway;
+import io.netflix.titus.testkit.embedded.cloud.endpoint.rest.representation.AddSimulatedInstanceGroup;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -42,6 +45,19 @@ public class SimulatedAgentsServiceResource {
             return gateway.getAllInstanceGroups();
         }
         return gateway.getInstanceGroups(new HashSet<>(ids));
+    }
+
+    @POST
+    @Path("/instanceGroups")
+    public Response addInstanceGroup(AddSimulatedInstanceGroup newInstanceGroup) {
+        gateway.addInstanceGroup(
+                newInstanceGroup.getId(),
+                AwsInstanceType.withName(newInstanceGroup.getInstanceType()),
+                newInstanceGroup.getMin(),
+                newInstanceGroup.getDesired(),
+                newInstanceGroup.getMax()
+        );
+        return Response.noContent().build();
     }
 
     @GET

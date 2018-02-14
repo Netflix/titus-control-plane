@@ -28,6 +28,9 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobStatus;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,22 +52,12 @@ public class Terminator {
     }
 
     public void doClean() {
-        Iterator<JobChangeNotification> it = context.getJobManagementClientBlocking().observeJobs(Empty.getDefaultInstance());
         Set<String> jobIdsToRemove = new HashSet<>();
         Set<String> unknownJobs = new HashSet<>();
-        while (it.hasNext()) {
-            JobChangeNotification event = it.next();
-            if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
-                break;
-            }
-            if (event.getNotificationCase() != JobChangeNotification.NotificationCase.JOBUPDATE) {
-                continue;
-            }
-            Job job = event.getJobUpdate().getJob();
-            if (isActivePreviousSessionJob(job)) {
-                jobIdsToRemove.add(job.getId());
-            } else {
-                unknownJobs.add(job.getId());
+        while (!doTry(jobIdsToRemove, unknownJobs)) {
+            try {
+                Thread.sleep(1_000);
+            } catch (InterruptedException e) {
             }
         }
 
@@ -75,9 +68,47 @@ public class Terminator {
             logger.warn("Removing old jobs: {}", jobIdsToRemove);
 
             List<Observable<Void>> killActions = jobIdsToRemove.stream()
-                    .map(jid -> context.getJobManagementClient().killJob(jid))
+                    .map(jid -> context.getJobManagementClient()
+                            .killJob(jid)
+                            .onErrorResumeNext(e -> {
+                                StatusRuntimeException ex = (StatusRuntimeException) e;
+                                return ex.getStatus().getCode() == Status.Code.NOT_FOUND
+                                        ? Observable.empty()
+                                        : Observable.error(e);
+
+                            })
+                    )
                     .collect(Collectors.toList());
-            Observable.mergeDelayError(killActions, 10).toBlocking().firstOrDefault(null);
+            try {
+                Observable.mergeDelayError(killActions, 10).toBlocking().firstOrDefault(null);
+            } catch (Throwable e) {
+                logger.warn("Not all jobs successfully terminated", e);
+            }
+        }
+    }
+
+    private boolean doTry(Set<String> jobIdsToRemove, Set<String> unknownJobs) {
+        try {
+            Iterator<JobChangeNotification> it = context.getJobManagementClientBlocking().observeJobs(Empty.getDefaultInstance());
+            while (it.hasNext()) {
+                JobChangeNotification event = it.next();
+                if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
+                    break;
+                }
+                if (event.getNotificationCase() != JobChangeNotification.NotificationCase.JOBUPDATE) {
+                    continue;
+                }
+                Job job = event.getJobUpdate().getJob();
+                if (isActivePreviousSessionJob(job)) {
+                    jobIdsToRemove.add(job.getId());
+                } else {
+                    unknownJobs.add(job.getId());
+                }
+            }
+            return true;
+        } catch (Throwable e) {
+            logger.warn("Could not load active jobs from TitusMaster: {}", ExceptionExt.toMessageChain(e));
+            return false;
         }
     }
 

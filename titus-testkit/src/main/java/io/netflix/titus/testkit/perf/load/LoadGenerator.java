@@ -59,8 +59,8 @@ public class LoadGenerator {
         boolean clean = getOptions().hasOption("c");
         int scaleFactor = getIntOpt(cli, 's', 1);
         Map<String, String> config = ImmutableMap.<String, String>builder()
-                .put("scaleFactor", Integer.toString(scaleFactor))
-                .put("clean", Boolean.toString(clean))
+                .put("titus.load.scaleFactor", Integer.toString(scaleFactor))
+                .put("titus.load.clean", Boolean.toString(clean))
                 .build();
 
         this.injector = Guice.createInjector(new AbstractModule() {

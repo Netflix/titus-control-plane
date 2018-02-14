@@ -27,6 +27,7 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -145,20 +146,11 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
     }
 
     public Job<?> getJob() {
-        Optional<Job<?>> jobOpt = v3JobOperations.getJob(jobId);
-        if (!jobOpt.isPresent()) {
-            throw new IllegalStateException("jobId: " + jobId + " was not present");
-        }
-        return jobOpt.get();
+        return v3JobOperations.getJob(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId));
     }
 
     public Task getTask() {
-        Optional<Pair<Job<?>, Task>> taskByIdOpt = v3JobOperations.findTaskById(taskId);
-        if (!taskByIdOpt.isPresent()) {
-            throw new IllegalStateException("taskId: " + taskId + " was not present");
-        }
-        Pair<Job<?>, Task> jobTaskPair = taskByIdOpt.get();
-        return jobTaskPair.getRight();
+        return v3JobOperations.findTaskById(taskId).map(Pair::getRight).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
     }
 
     public V3JobOperations getV3JobOperations() {
