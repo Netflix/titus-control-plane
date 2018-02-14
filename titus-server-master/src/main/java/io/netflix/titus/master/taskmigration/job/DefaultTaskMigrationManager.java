@@ -26,6 +26,7 @@ import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
@@ -197,6 +198,12 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
                         }
                     }
                 }
+            }
+        } catch (JobManagerException e) {
+            if (e.getErrorCode() == JobManagerException.ErrorCode.JobNotFound || e.getErrorCode() == JobManagerException.ErrorCode.TaskNotFound) {
+                logger.info("Job/task already terminated. Migration not needed: {}", e.getMessage());
+            } else {
+                logger.error("Unable to migrate tasks for jobId: {} with error:", jobId, e);
             }
         } catch (Exception e) {
             logger.error("Unable to migrate tasks for jobId: {} with error:", jobId, e);

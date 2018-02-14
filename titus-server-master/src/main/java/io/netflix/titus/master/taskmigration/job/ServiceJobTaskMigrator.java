@@ -38,10 +38,10 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.common.util.StringExt;
-import io.netflix.titus.common.util.code.CodeInvariants;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.job.V2JobMgrIntf;
@@ -169,8 +169,14 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
                         logger.debug("Added v3 taskId: {} to migration map", taskId);
                     }
                 }
+            } catch (JobManagerException e) {
+                if (e.getErrorCode() == JobManagerException.ErrorCode.JobNotFound || e.getErrorCode() == JobManagerException.ErrorCode.TaskNotFound) {
+                    logger.info("Task {} already terminated. Migration not needed: {}", taskId, e.getMessage());
+                } else {
+                    logger.warn("Unable to add taskId: {} to migration map with error:", taskId, e);
+                }
             } catch (Exception e) {
-                CodeInvariants.codeInvariants().unexpectedError("Unable to add taskId: {} to migration map with error:", taskId, e);
+                logger.warn("Unable to add taskId: {} to migration map with error:", taskId, e);
             }
         }
     }
@@ -198,6 +204,12 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
                         logger.debug("Updating migration manager for jobId: {} with task size: {}", jobId, taskMigrationDetailsList.size());
                         updateMigrationManager(taskMigrationManager, taskMigrationDetailsList);
                     });
+                } catch (JobManagerException e) {
+                    if (e.getErrorCode() == JobManagerException.ErrorCode.JobNotFound || e.getErrorCode() == JobManagerException.ErrorCode.TaskNotFound) {
+                        logger.info("Job/task already terminated. Migration not needed: {}", e.getMessage());
+                    } else {
+                        logger.error("Unable to execute the run iteration with error: ", e);
+                    }
                 } catch (Exception e) {
                     logger.error("Unable to execute the run iteration with error: ", e);
                 } finally {

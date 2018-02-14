@@ -11,11 +11,14 @@ import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup.Capacity;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
+import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import io.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import org.apache.mesos.Protos;
+
+import static io.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor.awsInstanceGroup;
 
 @Singleton
 public class SimulatedCloudGateway {
@@ -36,6 +39,10 @@ public class SimulatedCloudGateway {
                 .filter(g -> instanceGroupIds.contains(g.getName()))
                 .map(this::toSimulatedInstanceGroup)
                 .collect(Collectors.toList());
+    }
+
+    public void addInstanceGroup(String id, AwsInstanceType instanceType, int min, int desired, int max) {
+        simulatedCloud.createAgentInstanceGroups(awsInstanceGroup(id, instanceType, min, desired, max));
     }
 
     public List<SimulatedInstance> getInstances(String instanceGroupId) {
