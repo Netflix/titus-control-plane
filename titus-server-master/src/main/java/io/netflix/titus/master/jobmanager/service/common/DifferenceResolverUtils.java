@@ -129,7 +129,7 @@ public class DifferenceResolverUtils {
                 long deadline = task.getStatus().getTimestamp() + runtimeLimitMs;
                 if (deadline < clock.wallTime()) {
                     actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore,
-                            TaskStatus.REASON_RUNNING_TOO_LONG, "Task running too long (runtimeLimit=" + runtimeLimitMs + "ms)")
+                            TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED, "Task running too long (runtimeLimit=" + runtimeLimitMs + "ms)")
                     );
                 }
                 return;

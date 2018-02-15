@@ -37,7 +37,7 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
 
     public static final String REASON_STUCK_IN_STATE = "stuckInState";
 
-    public static final String REASON_RUNNING_TOO_LONG = "runningTooLong";
+    public static final String REASON_RUNTIME_LIMIT_EXCEEDED = "runtimeLimitExceeded";
 
     public static final String REASON_ERROR = "error";
 

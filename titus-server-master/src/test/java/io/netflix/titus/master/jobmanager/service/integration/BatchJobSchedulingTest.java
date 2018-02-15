@@ -331,7 +331,7 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .advance(120_000, TimeUnit.MILLISECONDS)
-                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_RUNNING_TOO_LONG)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED)
         );
     }
 }
