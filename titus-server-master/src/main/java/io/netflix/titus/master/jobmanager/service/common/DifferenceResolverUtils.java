@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -118,6 +119,22 @@ public class DifferenceResolverUtils {
         runningJobView.getJobHolder().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
             TaskState taskState = task.getStatus().getState();
+
+            if (JobFunctions.isBatchJob(runningJobView.getJob()) && taskState == TaskState.Started) {
+                Job<BatchJobExt> batchJob = runningJobView.getJob();
+
+                // We expect runtime limit to be always set, so this is just extra safety measure.
+                long runtimeLimitMs = Math.max(60_000, batchJob.getJobDescriptor().getExtensions().getRuntimeLimitMs());
+
+                long deadline = task.getStatus().getTimestamp() + runtimeLimitMs;
+                if (deadline < clock.wallTime()) {
+                    actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore,
+                            TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED, "Task running too long (runtimeLimit=" + runtimeLimitMs + "ms)")
+                    );
+                }
+                return;
+            }
+
             TaskTimeoutChangeActions.TimeoutStatus timeoutStatus = TaskTimeoutChangeActions.getTimeoutStatus(taskHolder, clock);
             switch (timeoutStatus) {
                 case Ignore:

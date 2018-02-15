@@ -33,7 +33,6 @@ import org.junit.Test;
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.changeBatchJobSize;
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.changeRetryLimit;
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
-import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class BatchJobSchedulingTest {
@@ -44,7 +43,7 @@ public class BatchJobSchedulingTest {
      * Run single batch task that terminates with exit code 0.
      */
     @Test
-    public void testRunAndCompleteOkOneJobTask() throws Exception {
+    public void testRunAndCompleteOkOneJobTask() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -56,7 +55,7 @@ public class BatchJobSchedulingTest {
      * Run multiple batch tasks that terminates with exit code 0.
      */
     @Test
-    public void testRunAndCompleteOkJobWithManyTasks() throws Exception {
+    public void testRunAndCompleteOkJobWithManyTasks() {
         JobDescriptor<BatchJobExt> twoTaskJob = changeBatchJobSize(oneTaskBatchJobDescriptor(), 2);
         jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
                 .expectJobEvent()
@@ -72,7 +71,7 @@ public class BatchJobSchedulingTest {
      * Check that containers terminating with exit code 0 are not restarted.
      */
     @Test
-    public void testTaskCompletedOkIsNotRestarted() throws Exception {
+    public void testTaskCompletedOkIsNotRestarted() {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
         jobsScenarioBuilder.scheduleJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
@@ -85,7 +84,7 @@ public class BatchJobSchedulingTest {
      * Check that containers that fail with non zero exit code, and are not retryable, are not restarted.
      */
     @Test
-    public void testFailedTaskWithNoRetriesFinishesImmediately() throws Exception {
+    public void testFailedTaskWithNoRetriesFinishesImmediately() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -97,7 +96,7 @@ public class BatchJobSchedulingTest {
      * Check container restart for failing containers that are retryable.
      */
     @Test
-    public void testFailedTaskWithRetriesIsResubmitted() throws Exception {
+    public void testFailedTaskWithRetriesIsResubmitted() {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
         jobsScenarioBuilder.scheduleJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
@@ -111,7 +110,7 @@ public class BatchJobSchedulingTest {
      * Check that in a job with multiple tasks, if some tasks complete and some fail, only the latter are resubmitted.
      */
     @Test
-    public void testOnlyFailedTasksAreResubmittedInMultiTaskJob() throws Exception {
+    public void testOnlyFailedTasksAreResubmittedInMultiTaskJob() {
         JobDescriptor<BatchJobExt> twoTaskJob = changeRetryLimit(changeBatchJobSize(oneTaskBatchJobDescriptor(), 2), 1);
         jobsScenarioBuilder.scheduleJob(twoTaskJob, jobScenario -> jobScenario
                 .expectJobEvent()
@@ -154,7 +153,7 @@ public class BatchJobSchedulingTest {
     /**
      * Run a retryable job, with a task in a specific state. Check that the task is resubmitted after kill.
      */
-    private void testKillingRetryableTaskInActiveState(TaskState taskState) throws Exception {
+    private void testKillingRetryableTaskInActiveState(TaskState taskState) {
         JobDescriptor<BatchJobExt> jobWithOneRetry = changeRetryLimit(oneTaskBatchJobDescriptor(), 1);
         jobsScenarioBuilder.scheduleJob(jobWithOneRetry, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
@@ -168,7 +167,7 @@ public class BatchJobSchedulingTest {
      * Check that killing a task that is already in KillInitiated state has no effect.
      */
     @Test
-    public void testKillingTaskInKillInitiatedState() throws Exception {
+    public void testKillingTaskInKillInitiatedState() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -192,7 +191,7 @@ public class BatchJobSchedulingTest {
      * Check that killing a job with running task, terminates the task first.
      */
     @Test
-    public void testKillingJobInAcceptedState() throws Exception {
+    public void testKillingJobInAcceptedState() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -226,7 +225,7 @@ public class BatchJobSchedulingTest {
      * Check that killing a job with a failed tasks, terminates the job.
      */
     @Test
-    public void testKillingJobInAcceptedStateWithFailedTasks() throws Exception {
+    public void testKillingJobInAcceptedStateWithFailedTasks() {
         JobDescriptor<BatchJobExt> jobWithRetries = JobFunctions.changeRetryLimit(oneTaskBatchJobDescriptor(), 2);
         jobsScenarioBuilder.scheduleJob(jobWithRetries, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
@@ -239,7 +238,7 @@ public class BatchJobSchedulingTest {
     }
 
     @Test
-    public void testKillingJobInKillInitiatedState() throws Exception {
+    public void testKillingJobInKillInitiatedState() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
@@ -261,7 +260,7 @@ public class BatchJobSchedulingTest {
      * Check task timeout in Launched state. if the timeout passes, task should be moved to KillInitiated state.
      */
     @Test
-    public void testTaskLaunchingTimeout() throws Exception {
+    public void testTaskLaunchingTimeout() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Launched))
@@ -276,7 +275,7 @@ public class BatchJobSchedulingTest {
      * Check task timeout in StartInitiated state. if the timeout passes, task should be moved to KillInitiated state.
      */
     @Test
-    public void testStartInitiatedTimeout() throws Exception {
+    public void testStartInitiatedTimeout() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.StartInitiated))
@@ -292,7 +291,7 @@ public class BatchJobSchedulingTest {
      * number of Mesos kill reattempts is made. The total timeout in this state is (attempts_count * timeout).
      */
     @Test
-    public void testKillReattemptsInKillInitiatedTimeout() throws Exception {
+    public void testKillReattemptsInKillInitiatedTimeout() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.StartInitiated))
@@ -314,12 +313,25 @@ public class BatchJobSchedulingTest {
     }
 
     @Test
-    public void testJobEnableStatusNotPossibleForBatchJob() throws Exception {
+    public void testJobEnableStatusNotPossibleForBatchJob() {
         jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
                 .expectFailure(() -> jobScenario.changeJobEnabledStatus(false), error -> {
                     assertThat(error).isInstanceOf(JobManagerException.class);
                     assertThat(((JobManagerException) error).getErrorCode()).isEqualTo(ErrorCode.NotServiceJob);
                 })
+        );
+    }
+
+    @Test
+    public void testBatchJobRuntimeLimit() {
+        JobDescriptor<BatchJobExt> jobWithRuntimeLimit = oneTaskBatchJobDescriptor().but(jd ->
+                jd.getExtensions().toBuilder().withRuntimeLimitMs(120_000).build()
+        );
+        jobsScenarioBuilder.scheduleJob(jobWithRuntimeLimit, jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
+                .advance(120_000, TimeUnit.MILLISECONDS)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED)
         );
     }
 }
