@@ -88,7 +88,12 @@ public class TaskRetryPolicyTest {
 
     @Test
     public void testBatchRetryPolicyResetIfTaskInStartedStateLongEnough() throws Exception {
-        JobDescriptor<BatchJobExt> jobWithRetries = changeRetryPolicy(oneTaskBatchJobDescriptor(), EXPONENTIAL);
+        JobDescriptor<BatchJobExt> jobWithRetries = changeRetryPolicy(
+                oneTaskBatchJobDescriptor().but(jd ->
+                        jd.getExtensions().toBuilder().withRuntimeLimitMs(3600_000).build() // Prevent runtimeLimit timeout
+                ),
+                EXPONENTIAL
+        );
         int retryLimit = jobWithRetries.getExtensions().getRetryPolicy().getRetries();
         testRetryPolicyResetIfTaskInStartedStateLongEnough(jobWithRetries, retryLimit);
     }
