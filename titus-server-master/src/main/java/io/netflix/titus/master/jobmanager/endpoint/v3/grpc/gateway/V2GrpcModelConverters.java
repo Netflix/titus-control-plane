@@ -80,7 +80,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static io.netflix.titus.api.jobmanager.model.job.Container.RESOURCE_GPU;
-import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_ERROR;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
@@ -436,7 +435,7 @@ public final class V2GrpcModelConverters {
                         grpcReason = REASON_NORMAL;
                         break;
                     case Error:
-                        grpcReason = REASON_ERROR;
+                        grpcReason = REASON_FAILED;
                         break;
                     case Lost:
                         grpcReason = REASON_TASK_LOST;

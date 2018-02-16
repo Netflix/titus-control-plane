@@ -27,8 +27,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
+import io.netflix.titus.master.mesos.ContainerEvent;
 
-public class Status {
+public class Status implements ContainerEvent {
 
     public static class Payload {
         private final String type;

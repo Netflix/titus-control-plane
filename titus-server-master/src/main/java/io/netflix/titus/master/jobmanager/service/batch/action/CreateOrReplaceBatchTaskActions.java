@@ -137,7 +137,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(clock.wallTime()).build())
                 .withOriginalId(oldTask.getOriginalId())
                 .withResubmitOf(oldTask.getId())
-                .withResubmitNumber(oldTask.getResubmitNumber() + 1)
+                .withResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getResubmitNumber() : oldTask.getResubmitNumber() + 1)
                 .build();
     }
 }

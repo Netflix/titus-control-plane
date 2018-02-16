@@ -45,6 +45,8 @@ import io.netflix.titus.master.job.V2JobMgrIntf;
 import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.job.worker.WorkerStateMonitor;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import io.netflix.titus.master.mesos.ContainerEvent;
+import io.netflix.titus.master.mesos.V3ContainerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -109,7 +111,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                         })
                         .takeWhile(keepGoing -> keepGoing))
                 .subscribe();
-        vmService.getTaskStatusObservable().subscribe(new Observer<Status>() {
+        vmService.getTaskStatusObservable().subscribe(new Observer<ContainerEvent>() {
             @Override
             public void onCompleted() {
                 logger.error("Unexpected end of vmTaskStatusObservable");
@@ -121,22 +123,36 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
             }
 
             @Override
-            public void onNext(Status args) {
-                logger.info("In monitor: args=" + args);
-                try {
-                    V2JobMgrIntf jobMgr = jobOps.getJobMgr(args.getJobId());
-                    if (jobMgr != null) {
-                        jobMgr.handleStatus(args);
-                        return;
+            public void onNext(ContainerEvent containerEvent) {
+                logger.info("In monitor: args=" + containerEvent);
+
+                // V2
+                if (containerEvent instanceof Status) {
+                    Status args = (Status) containerEvent;
+                    try {
+                        V2JobMgrIntf jobMgr = jobOps.getJobMgr(args.getJobId());
+                        if (jobMgr != null) {
+                            jobMgr.handleStatus(args);
+                            return;
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Exception during handling task status update notification", e);
                     }
+                    killOrphanedTask(args);
+                    return;
+                }
+
+                // V3
+                try {
+                    V3ContainerEvent args = (V3ContainerEvent) containerEvent;
                     if (args.getTaskId() != null && !JobFunctions.isV2Task(args.getTaskId())) {
                         Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
                         if (jobAndTaskOpt.isPresent()) {
                             Task task = jobAndTaskOpt.get().getRight();
-                            TaskState newState = V2JobState.toV3TaskState(args.getState());
+                            TaskState newState = args.getTaskState();
                             if (task.getStatus().getState() != newState) {
 
-                                String reasonCode = V2JobState.toV3ReasonCode(args.getState(), args.getReason());
+                                String reasonCode = args.getReasonCode();
 
                                 // We send kill operation even if task is in Accepted state, but if the latter is the case
                                 // we do not want to report Mesos 'lost' state in task status.
@@ -146,12 +162,12 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                                 TaskStatus taskStatus = JobModel.newTaskStatus()
                                         .withState(newState)
                                         .withReasonCode(reasonCode)
-                                        .withReasonMessage("Mesos task state change event: " + args.getMessage())
+                                        .withReasonMessage("Mesos task state change event: " + args.getReasonMessage())
                                         .withTimestamp(args.getTimestamp())
                                         .build();
 
                                 // Failures are logged only, as the reconciler will take care of it if needed.
-                                final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getData());
+                                final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails());
                                 v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus).subscribe(
                                         () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
                                         e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
@@ -205,6 +221,24 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
         }
 
         logger.warn("Received Mesos callback for unknown task: {} (state {}). Terminating it.", taskId, status.getState());
+        vmService.killTask(taskId);
+    }
+
+    private void killOrphanedTask(V3ContainerEvent status) {
+        String taskId = status.getTaskId();
+
+        // This should never happen, but lets check it anyway
+        if (taskId == null) {
+            logger.warn("Task status update notification received, but no task id is given: {}", status);
+            return;
+        }
+
+        // If it is already terminated, do nothing
+        if (TaskState.isTerminalState(status.getTaskState())) {
+            return;
+        }
+
+        logger.warn("Received Mesos callback for unknown task: {} (state {}). Terminating it.", taskId, status.getTaskState());
         vmService.killTask(taskId);
     }
 

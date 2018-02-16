@@ -17,8 +17,11 @@
 package io.netflix.titus.api.jobmanager.model.job;
 
 import java.util.Objects;
+import java.util.Set;
 
 import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.StringExt;
 
 /**
  */
@@ -27,27 +30,87 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
 
     public static final String REASON_NORMAL = "normal";
 
+    /**
+     * Job was explicitly terminated by a user.
+     */
     public static final String REASON_JOB_KILLED = "killed";
 
+    /**
+     * Task was explicitly terminated by a user.
+     */
     public static final String REASON_TASK_KILLED = "killed";
 
+    /**
+     * Task was lost, and its final status is unknown.
+     */
     public static final String REASON_TASK_LOST = "lost";
 
+    /**
+     * Invalid container definition (security group, image name, etc).
+     */
+    public static final String REASON_INVALID_REQUEST = "invalidRequest";
+
+    /**
+     * Task was terminated as a result of job scaling down.
+     */
     public static final String REASON_SCALED_DOWN = "scaledDown";
 
+    /**
+     * Task was terminated, as it did not progress to the next state in the expected time.
+     */
     public static final String REASON_STUCK_IN_STATE = "stuckInState";
 
+    /**
+     * Task was terminated, as its runtime limit was exceeded.
+     */
     public static final String REASON_RUNTIME_LIMIT_EXCEEDED = "runtimeLimitExceeded";
 
-    public static final String REASON_ERROR = "error";
-
+    /**
+     * Task completed with non zero error code.
+     */
     public static final String REASON_FAILED = "failed";
+
+    /**
+     * Container crashed due to some internal system error.
+     */
+    public static final String REASON_CRASHED = "crashed";
+
+    /**
+     * Transient error, not an agent specific (for example AWS rate limiting).
+     */
+    public static final String REASON_TRANSIENT_SYSTEM_ERROR = "transientSystemError";
+
+    /**
+     * An error scoped to an agent instance on which a container was run. The agent should be quarantined or terminated.
+     */
+    public static final String REASON_LOCAL_SYSTEM_ERROR = "localSystemError";
+
+    /**
+     * Unrecognized error which cannot be classified neither as local/non-local or transient.
+     * If there are multiple occurences of this error, the agent should be quarantined or terminated.
+     */
+    public static final String REASON_UNKNOWN_SYSTEM_ERROR = "unknownSystemError";
 
     public static final String REASON_UNKNOWN = "unknown";
 
+    private static Set<String> SYSTEM_LEVEL_ERRORS = CollectionsExt.asSet(
+            REASON_STUCK_IN_STATE,
+            REASON_CRASHED,
+            REASON_TRANSIENT_SYSTEM_ERROR,
+            REASON_LOCAL_SYSTEM_ERROR,
+            REASON_UNKNOWN_SYSTEM_ERROR
+    );
 
     public TaskStatus(TaskState taskState, String reasonCode, String reasonMessage, long timestamp) {
         super(taskState, reasonCode, reasonMessage, timestamp);
+    }
+
+    public static boolean isSystemError(TaskStatus status) {
+        if (status.getState() != TaskState.Finished) {
+            return false;
+        }
+        String reasonCode = status.getReasonCode();
+        return !StringExt.isEmpty(reasonCode) && SYSTEM_LEVEL_ERRORS.contains(reasonCode);
     }
 
     public static boolean areEquivalent(TaskStatus first, TaskStatus second) {

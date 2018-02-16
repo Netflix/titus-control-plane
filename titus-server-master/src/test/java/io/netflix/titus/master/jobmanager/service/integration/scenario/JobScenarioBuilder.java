@@ -52,6 +52,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedVirtualMachineMasterService.MesosEvent;
+import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.Subscriber;
 import rx.schedulers.TestScheduler;
@@ -476,7 +477,9 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         }
 
         AtomicBoolean done = new AtomicBoolean();
-        String data = taskState == TaskState.StartInitiated ? vmService.toString(vmService.buildExecutorDetails(task.getId())) : "";
+        Optional<TitusExecutorDetails> data = taskState == TaskState.StartInitiated
+                ? Optional.of(vmService.buildExecutorDetails(task.getId()))
+                : Optional.empty();
 
         TaskStatus taskStatus = JobModel.newTaskStatus()
                 .withState(taskState)
