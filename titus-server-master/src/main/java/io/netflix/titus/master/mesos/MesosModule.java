@@ -16,7 +16,11 @@
 
 package io.netflix.titus.master.mesos;
 
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.runtime.health.guice.HealthModule;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.mesos.resolver.DefaultMesosMasterResolver;
@@ -34,5 +38,11 @@ public class MesosModule extends AbstractModule {
                 bindAdditionalHealthIndicator().to(MesosHealthIndicator.class);
             }
         });
+    }
+
+    @Provides
+    @Singleton
+    public MesosConfiguration getMesosConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(MesosConfiguration.class);
     }
 }

@@ -26,6 +26,7 @@ import javax.inject.Singleton;
 import com.google.inject.Injector;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.mesos.MesosConfiguration;
 import io.netflix.titus.master.mesos.MesosMasterResolver;
 import io.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import io.netflix.titus.master.mesos.VirtualMachineMasterServiceMesosImpl;
@@ -55,10 +56,11 @@ public class EmbeddedVirtualMachineMasterService extends VirtualMachineMasterSer
     @Inject
     public EmbeddedVirtualMachineMasterService(MasterConfiguration config,
                                                SchedulerConfiguration schedulerConfiguration,
+                                               MesosConfiguration mesosConfiguration,
                                                MesosSchedulerDriverFactory mesosSchedulerDriverFactory,
                                                Injector injector,
                                                Registry metricsRegistry) {
-        super(config, schedulerConfiguration, FIXED_RESOLVER, mesosSchedulerDriverFactory, injector, metricsRegistry);
+        super(config, schedulerConfiguration, mesosConfiguration, FIXED_RESOLVER, mesosSchedulerDriverFactory, injector, metricsRegistry);
     }
 
     SimulatedLocalMesosSchedulerDriver getSimulatedMesosDriver() {

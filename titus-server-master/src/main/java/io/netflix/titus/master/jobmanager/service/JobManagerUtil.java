@@ -84,7 +84,7 @@ public final class JobManagerUtil {
         return Pair.of(applicationSLA.getTier(), capacityGroup);
     }
 
-    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, String statusData) {
+    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, Optional<TitusExecutorDetails> detailsOpt) {
         return oldTask -> {
             TaskState oldState = oldTask.getStatus().getState();
             TaskState newState = newTaskStatus.getState();
@@ -92,7 +92,7 @@ public final class JobManagerUtil {
             // De-duplicate task status updates. 'Launched' state is reported from two places, so we get
             // 'Launched' state update twice. For other states there may be multiple updates, each with different reason.
             // For example in 'StartInitiated', multiple updates are send reporting progress of a container setup.
-            if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus()) && StringExt.isEmpty(statusData)) {
+            if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus()) && !detailsOpt.isPresent()) {
                 return Optional.empty();
             }
             if (newState == oldState && newState == TaskState.Launched) {
@@ -105,7 +105,7 @@ public final class JobManagerUtil {
             }
 
             final Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
-            Task newTaskWithPlacementData = parseDetails(statusData).map(details -> {
+            Task newTaskWithPlacementData = detailsOpt.map(details -> {
                 if (details.getNetworkConfiguration() != null && !StringExt.isEmpty(details.getNetworkConfiguration().getIpAddress())) {
                     return newTask.toBuilder()
                             .withTaskContext(CollectionsExt.copyAndAdd(

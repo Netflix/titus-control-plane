@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
-import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 
 public enum V2JobState {
     Accepted,
@@ -127,24 +126,5 @@ public enum V2JobState {
             case Failed:
         }
         return TaskState.Finished;
-    }
-
-    public static String toV3ReasonCode(V2JobState v2TaskState, JobCompletedReason reason) {
-        if (v2TaskState != V2JobState.Failed) {
-            return TaskStatus.REASON_NORMAL;
-        }
-        switch (reason) {
-            case Normal:
-                return TaskStatus.REASON_NORMAL;
-            case Error:
-                return TaskStatus.REASON_ERROR;
-            case Lost:
-                return TaskStatus.REASON_TASK_LOST;
-            case Killed:
-                return TaskStatus.REASON_TASK_KILLED;
-            case Failed:
-                return TaskStatus.REASON_FAILED;
-        }
-        return TaskStatus.REASON_UNKNOWN;
     }
 }

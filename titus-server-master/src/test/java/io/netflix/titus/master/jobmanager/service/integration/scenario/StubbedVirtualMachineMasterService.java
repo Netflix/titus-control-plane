@@ -28,8 +28,8 @@ import com.netflix.fenzo.functions.Action1;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.Status;
 import io.netflix.titus.master.VirtualMachineMasterService;
+import io.netflix.titus.master.mesos.ContainerEvent;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import org.apache.mesos.Protos;
 import rx.Observable;
@@ -166,7 +166,7 @@ class StubbedVirtualMachineMasterService implements VirtualMachineMasterService 
     }
 
     @Override
-    public Observable<Status> getTaskStatusObservable() {
+    public Observable<ContainerEvent> getTaskStatusObservable() {
         return null;
     }
 }

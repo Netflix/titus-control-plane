@@ -88,8 +88,6 @@ class ContainerPlayer {
                 return Protos.TaskState.TASK_FAILED;
             case TaskStatus.REASON_TASK_LOST:
                 return Protos.TaskState.TASK_LOST;
-            case TaskStatus.REASON_ERROR:
-                return Protos.TaskState.TASK_ERROR;
         }
         return Protos.TaskState.TASK_ERROR;
     }

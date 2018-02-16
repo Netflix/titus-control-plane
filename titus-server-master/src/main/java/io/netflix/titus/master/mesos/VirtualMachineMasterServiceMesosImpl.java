@@ -69,9 +69,10 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     private SchedulerDriver mesosDriver;
     private MesosSchedulerCallbackHandler mesosCallbackHandler;
     private ExecutorService executor;
+    private final MesosConfiguration mesosConfiguration;
     private MesosMasterResolver mesosMasterResolver;
     private Subject<String, String> vmLeaseRescindedObserver;
-    private Subject<Status, Status> vmTaskStatusObserver;
+    private Subject<ContainerEvent, ContainerEvent> vmTaskStatusObserver;
     private ObjectMapper mapper = new ObjectMapper();
     private final AtomicBoolean initializationDone = new AtomicBoolean(false);
     private double offerSecDelayInterval = 5;
@@ -85,11 +86,13 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     @Inject
     public VirtualMachineMasterServiceMesosImpl(MasterConfiguration config,
                                                 SchedulerConfiguration schedulerConfiguration,
+                                                MesosConfiguration mesosConfiguration,
                                                 MesosMasterResolver mesosMasterResolver,
                                                 MesosSchedulerDriverFactory mesosDriverFactory,
                                                 Injector injector,
                                                 Registry metricsRegistry) {
         this.config = config;
+        this.mesosConfiguration = mesosConfiguration;
         this.mesosMasterResolver = mesosMasterResolver;
         this.mesosDriverFactory = mesosDriverFactory;
         this.injector = injector;
@@ -208,7 +211,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     }
 
     @Override
-    public Observable<Status> getTaskStatusObservable() {
+    public Observable<ContainerEvent> getTaskStatusObservable() {
         return vmTaskStatusObserver;
     }
 
@@ -225,7 +228,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         }
 
         mesosCallbackHandler = new MesosSchedulerCallbackHandler(leaseHandler, vmLeaseRescindedObserver, vmTaskStatusObserver,
-                v2JobOperations, v3JobOperations, config, metricsRegistry);
+                v2JobOperations, v3JobOperations, config, mesosConfiguration, metricsRegistry);
 
         FrameworkInfo framework = FrameworkInfo.newBuilder()
                 .setUser("root") // Fix to root, to enable running master as non-root

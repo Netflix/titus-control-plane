@@ -19,10 +19,15 @@ package io.netflix.titus.master.mesos;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.cache.Cache;
@@ -39,10 +44,14 @@ import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
+import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.RegExpExt;
+import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.V2JobOperations;
+import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.ExecutorID;
@@ -69,8 +78,14 @@ import static io.netflix.titus.master.mesos.MesosTracer.traceMesosRequest;
 
 public class MesosSchedulerCallbackHandler implements Scheduler {
 
+    private static final Set<TaskState> ACTIVE_MESOS_TASK_STATES = CollectionsExt.asSet(
+            TaskState.TASK_STAGING,
+            TaskState.TASK_STARTING,
+            TaskState.TASK_RUNNING
+    );
+
     private Observer<String> vmLeaseRescindedObserver;
-    private Observer<Status> vmTaskStatusObserver;
+    private Observer<ContainerEvent> vmTaskStatusObserver;
     private static final Logger logger = LoggerFactory.getLogger(MesosSchedulerCallbackHandler.class);
     private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
@@ -89,6 +104,12 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private long reconciliationTrial = 0;
     private final com.netflix.fenzo.functions.Action1<List<? extends VirtualMachineLease>> leaseHandler;
 
+    private final Function<String, Matcher> invalidRequestMessageMatcherFactory;
+    private final Function<String, Matcher> crashedMessageMatcherFactory;
+    private final Function<String, Matcher> transientSystemErrorMessageMatcherFactory;
+    private final Function<String, Matcher> localSystemErrorMessageMatcherFactory;
+    private final Function<String, Matcher> unknownSystemErrorMessageMatcherFactory;
+
     private final Subscription subscription;
     private ScheduledThreadPoolExecutor executor;
     private boolean connected;
@@ -105,10 +126,11 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     public MesosSchedulerCallbackHandler(
             Action1<List<? extends VirtualMachineLease>> leaseHandler,
             Observer<String> vmLeaseRescindedObserver,
-            Observer<Status> vmTaskStatusObserver,
+            Observer<ContainerEvent> vmTaskStatusObserver,
             V2JobOperations v2JobOperations,
             V3JobOperations v3JobOperations,
             MasterConfiguration config,
+            MesosConfiguration mesosConfiguration,
             Registry registry) {
         this.leaseHandler = leaseHandler;
         this.vmLeaseRescindedObserver = vmLeaseRescindedObserver;
@@ -124,6 +146,13 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         lastValidOfferReceiveMillis = registry.gauge(MetricConstants.METRIC_MESOS + "lastValidOfferReceiveMillis", new AtomicLong());
         numInvalidOffers = registry.counter(MetricConstants.METRIC_MESOS + "numInvalidOffers");
         numOfferTooSmall = registry.counter(MetricConstants.METRIC_MESOS + "numOfferTooSmall");
+
+        this.invalidRequestMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getInvalidRequestMessagePattern, "invalidRequestMessagePattern", Pattern.DOTALL, logger);
+        this.crashedMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getCrashedMessagePattern, "crashedMessagePattern", Pattern.DOTALL, logger);
+        this.transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        this.localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        this.unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
+
         this.subscription = Observable
                 .interval(10, 10, TimeUnit.SECONDS)
                 .doOnNext(tick -> {
@@ -349,16 +378,19 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
         logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, taskStatus.getMessage());
 
-        TaskState previous = lastStatusUpdate.getIfPresent(taskId);
-        TaskState effectiveState;
-        if (previous != null && isTerminal(previous) && taskState == TaskState.TASK_LOST) {
-            effectiveState = previous;
-            // Replace task status only once (as we cannot remove item from cache, we overwrite the value)
-            lastStatusUpdate.put(taskId, taskState);
+        if (JobFunctions.isV2Task(taskId)) {
+            v2StatusUpdate(taskStatus);
         } else {
-            effectiveState = taskState;
-            lastStatusUpdate.put(taskId, taskState);
+            v3StatusUpdate(taskStatus);
         }
+    }
+
+    private void v2StatusUpdate(TaskStatus taskStatus) {
+        String taskId = taskStatus.getTaskId().getValue();
+        TaskState taskState = taskStatus.getState();
+
+        TaskState previous = lastStatusUpdate.getIfPresent(taskId);
+        TaskState effectiveState = getEffectiveState(taskId, taskState, previous);
 
         V2JobState state;
         JobCompletedReason reason = JobCompletedReason.Normal;
@@ -396,15 +428,9 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             data = new String(taskStatus.getData().toByteArray());
             logMesosCallbackDebug("Mesos status object data: %s", data);
         }
-        final Status status;
-        if (JobFunctions.isV2Task(taskId)) {
-            WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
-            status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
-                    taskStatus.getMessage(), data, state);
-        } else {
-            status = new Status("<v3Job>", taskId, -1, -1, -1, Status.TYPE.ERROR,
-                    taskStatus.getMessage(), data, state);
-        }
+        WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
+        Status status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
+                taskStatus.getMessage(), data, state);
         status.setReason(reason);
 
         logger.debug("Publishing task status: {}", status);
@@ -412,11 +438,126 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         vmTaskStatusObserver.onNext(status);
     }
 
+    private void v3StatusUpdate(TaskStatus taskStatus) {
+        String taskId = taskStatus.getTaskId().getValue();
+        TaskState taskState = taskStatus.getState();
+
+        TaskState previous = lastStatusUpdate.getIfPresent(taskId);
+        TaskState effectiveState = getEffectiveState(taskId, taskState, previous);
+
+        io.netflix.titus.api.jobmanager.model.job.TaskState v3TaskState;
+        String reasonCode;
+        switch (effectiveState) {
+            case TASK_STAGING:
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+                break;
+            case TASK_STARTING:
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.StartInitiated;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+                break;
+            case TASK_RUNNING:
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Started;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+                break;
+            case TASK_ERROR: // TERMINAL: The task description contains an error.
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_INVALID_REQUEST;
+                break;
+            case TASK_FAILED: // TERMINAL: The task failed to finish successfully.
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
+                break;
+            case TASK_LOST: // The task failed but can be rescheduled.
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
+                break;
+            case TASK_UNKNOWN: // The master has no knowledge of the task.
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
+                break;
+            case TASK_KILLED: // TERMINAL: The task was killed by the executor.
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+                break;
+            case TASK_KILLING:
+                // Ignore today. In the future we can split Titus KillInitiated state into two steps: KillRequested and Killing.
+                return;
+            case TASK_FINISHED: // The task finished successfully on its own without external interference.
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+                break;
+            case TASK_DROPPED: // The task failed to launch because of a transient error.
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
+                break;
+            case TASK_UNREACHABLE: // The task was running on an agent that has lost contact with the master
+                // Ignore. We will handle this state once we add 'Disconnected' state support in Titus.
+                return;
+            case TASK_GONE: // The task is no longer running. This can occur if the agent has been terminated along with all of its tasks
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
+                break;
+            case TASK_GONE_BY_OPERATOR: // The task was running on an agent that the master cannot contact; the operator has asserted that the agent has been shutdown
+                v3TaskState = io.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
+                break;
+            default:
+                logger.warn("Unexpected Mesos task state " + effectiveState);
+                return;
+        }
+
+        if (v3TaskState == io.netflix.titus.api.jobmanager.model.job.TaskState.Finished && !StringExt.isEmpty(taskStatus.getMessage())) {
+            String message = taskStatus.getMessage();
+            if (invalidRequestMessageMatcherFactory.apply(message).matches()) {
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_INVALID_REQUEST;
+            } else if (crashedMessageMatcherFactory.apply(message).matches()) {
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_CRASHED;
+            } else if (transientSystemErrorMessageMatcherFactory.apply(message).matches()) {
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
+            } else if (localSystemErrorMessageMatcherFactory.apply(message).matches()) {
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
+            } else if (unknownSystemErrorMessageMatcherFactory.apply(message).matches()) {
+                reasonCode = io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
+            }
+        }
+
+        Optional<TitusExecutorDetails> details;
+        if (taskStatus.getData() != null) {
+            String data = new String(taskStatus.getData().toByteArray());
+            logMesosCallbackDebug("Mesos status object data: %s", data);
+            details = JobManagerUtil.parseDetails(data);
+        } else {
+            details = Optional.empty();
+        }
+
+        V3ContainerEvent event = new V3ContainerEvent(
+                taskId,
+                v3TaskState,
+                reasonCode,
+                taskStatus.getMessage(),
+                System.currentTimeMillis(),
+                details
+        );
+
+        logger.debug("Publishing task status: {}", event);
+        vmTaskStatusObserver.onNext(event);
+    }
+
+    private TaskState getEffectiveState(String taskId, TaskState taskState, TaskState previous) {
+        TaskState effectiveState;
+        if (previous != null && isTerminal(previous) && taskState == TaskState.TASK_LOST) {
+            effectiveState = previous;
+            // Replace task status only once (as we cannot remove item from cache, we overwrite the value)
+            lastStatusUpdate.put(taskId, taskState);
+        } else {
+            effectiveState = taskState;
+            lastStatusUpdate.put(taskId, taskState);
+        }
+        return effectiveState;
+    }
+
     private boolean isTerminal(TaskState taskState) {
-        return taskState == TaskState.TASK_FINISHED
-                || taskState == TaskState.TASK_ERROR
-                || taskState == TaskState.TASK_FAILED
-                || taskState == TaskState.TASK_LOST
-                || taskState == TaskState.TASK_KILLED;
+        return !ACTIVE_MESOS_TASK_STATES.contains(taskState);
     }
 }

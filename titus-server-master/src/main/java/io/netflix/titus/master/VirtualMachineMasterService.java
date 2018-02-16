@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
+import io.netflix.titus.master.mesos.ContainerEvent;
 import org.apache.mesos.Protos;
 import rx.Observable;
 
@@ -35,5 +36,5 @@ public interface VirtualMachineMasterService {
 
     Observable<String> getLeaseRescindedObservable();
 
-    Observable<Status> getTaskStatusObservable();
+    Observable<ContainerEvent> getTaskStatusObservable();
 }
