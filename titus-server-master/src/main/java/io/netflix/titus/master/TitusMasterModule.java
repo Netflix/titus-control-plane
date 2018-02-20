@@ -22,8 +22,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
-import io.netflix.titus.common.runtime.TitusRuntime;
-import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.master.agent.AgentModule;
 import io.netflix.titus.master.agent.endpoint.AgentEndpointModule;
 import io.netflix.titus.master.appscale.endpoint.v3.AutoScalingModule;
@@ -67,8 +65,6 @@ public class TitusMasterModule extends AbstractModule {
     protected void configure() {
         // Configuration
         bind(CoreConfiguration.class).to(MasterConfiguration.class);
-
-        bind(TitusRuntime.class).to(DefaultTitusRuntime.class);
 
         install(new TitusEntitySanitizerModule());
 

@@ -35,6 +35,7 @@ import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import io.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import io.netflix.titus.runtime.endpoint.common.rest.metric.ResettableInputStreamFilter;
 import io.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
+import io.netflix.titus.runtime.endpoint.fit.FitResource;
 
 /**
  * We use this module to wire up our endpoints.
@@ -76,10 +77,13 @@ public final class JerseyModule extends JerseyServletModule {
             config.getClasses().add(TitusExceptionMapper.class);
             config.getClasses().add(InstrumentedResourceMethodDispatchAdapter.class);
 
-            // Resources
+            // Runtime resources
             config.getClasses().add(HealthCheckResource.class);
             config.getClasses().add(LeaderResource.class);
+            config.getClasses().add(FitResource.class);
             config.getClasses().add(ServerStatusResource.class);
+
+            // V2 resources
             config.getClasses().add(SchedulerResource.class);
             config.getClasses().add(VmManagementResource.class);
             config.getClasses().add(JobManagementResource.class);

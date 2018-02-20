@@ -32,15 +32,18 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.jobmanager.store.JobStoreException;
 import io.netflix.titus.api.json.ObjectMappers;
+import io.netflix.titus.common.framework.fit.Fit;
+import io.netflix.titus.common.framework.fit.FitInjection;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import rx.Completable;
 import rx.Emitter;
@@ -110,20 +113,30 @@ public class CassandraJobStore implements JobStore {
     private final CassandraStoreConfiguration configuration;
 
     @Inject
-    public CassandraJobStore(CassandraStoreConfiguration configuration, Session session, Registry registry) {
-        this(configuration, session, registry, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
+    public CassandraJobStore(CassandraStoreConfiguration configuration, Session session, TitusRuntime titusRuntime) {
+        this(configuration, session, titusRuntime, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 
     CassandraJobStore(CassandraStoreConfiguration configuration,
                       Session session,
-                      Registry registry,
+                      TitusRuntime titusRuntime,
                       ObjectMapper mapper,
                       int initialBucketCount,
                       int maxBucketSize) {
         this.configuration = configuration;
-        this.session = session;
+
+        if (titusRuntime.isFitEnabled()) {
+            FitInjection injection = Fit.newFitInjectionBuilder("cassandraDriver")
+                    .withExceptionType(DriverException.class)
+                    .build();
+            titusRuntime.getFit().getChild("jobManagement").addInjection(injection);
+            this.session = Fit.newFitProxy(session, injection);
+        } else {
+            this.session = session;
+        }
+
         this.mapper = mapper;
-        this.activeJobIdsBucketManager = new BalancedBucketManager<>(initialBucketCount, maxBucketSize, METRIC_NAME_ROOT, registry);
+        this.activeJobIdsBucketManager = new BalancedBucketManager<>(initialBucketCount, maxBucketSize, METRIC_NAME_ROOT, titusRuntime.getRegistry());
 
         retrieveActiveJobIdBucketsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING);
         retrieveActiveJobIdsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_IDS_STRING);

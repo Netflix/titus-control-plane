@@ -75,7 +75,7 @@ public class TitusMasterGrpcServer {
     }
 
     @PostConstruct
-    public void start() throws Exception {
+    public void start() {
         if (!started.getAndSet(true)) {
             ServerBuilder serverBuilder = configure(ServerBuilder.forPort(config.getPort()));
             serverBuilder.addService(ServerInterceptors.intercept(

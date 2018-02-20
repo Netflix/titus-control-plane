@@ -26,6 +26,8 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
+import io.netflix.titus.common.framework.fit.Fit;
+import io.netflix.titus.common.framework.fit.FitComponent;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ReflectionExt;
 import io.netflix.titus.common.util.code.CodePointTracker;
@@ -49,11 +51,13 @@ public class DefaultTitusRuntime implements TitusRuntime {
 
     private final SpectatorCodePointTracker codePointTracker;
     private final Registry registry;
+    private final FitComponent fitRootComponent;
 
     @Inject
     public DefaultTitusRuntime(Registry registry) {
         this.codePointTracker = new SpectatorCodePointTracker(registry);
         this.registry = registry;
+        this.fitRootComponent = Fit.newFitComponent("application");
     }
 
     @Override
@@ -91,6 +95,16 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Override
     public Clock getClock() {
         return Clocks.system();
+    }
+
+    @Override
+    public boolean isFitEnabled() {
+        return "true".equals(System.getProperty("titus.runtime.fit.enabled", "false"));
+    }
+
+    @Override
+    public FitComponent getFit() {
+        return fitRootComponent;
     }
 
     @Override

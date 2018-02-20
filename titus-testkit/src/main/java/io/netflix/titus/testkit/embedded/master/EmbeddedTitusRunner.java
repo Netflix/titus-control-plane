@@ -24,27 +24,16 @@ import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 public class EmbeddedTitusRunner {
 
     public static void main(String[] args) throws InterruptedException {
-        if (args.length != 2 && args.length != 5) {
-            System.err.println("ERROR: provide jobFile, stageFile, workerFile, agentFile, and tierFile");
-            return;
-        }
-
         LifecycleInjector injector = InjectorBuilder.fromModule(new EmbeddedCloudModule()).createInjector();
         SimulatedCloud cloud = injector.getInstance(SimulatedCloud.class);
 
         EmbeddedTitusMaster.Builder builder = EmbeddedTitusMaster.aTitusMaster()
                 .withSimulatedCloud(cloud)
-                .withProperty("titus.master.grpcServer.v3EnabledApps", "v3App")
+                .withCassadraV3JobStore()
+                .withProperty("titus.master.grpcServer.v3EnabledApps", ".*")
                 .withApiPort(8080)
                 .withGrpcPort(8090);
-//        if (args.length == 5) {
-//            builder.withJobDataFromFile(args[0], args[1], args[2])
-//                    .withAgentClusterFileConfig(args[3])
-//                    .withTierConfigFile(args[4]);
-//        } else {
-//            builder.withAgentClusterFileConfig(args[0])
-//                    .withTierConfigFile(args[1]);
-//        }
+
         EmbeddedTitusMaster titusMaster = builder.build();
         titusMaster.boot();
         System.out.println("TitusMaster started");

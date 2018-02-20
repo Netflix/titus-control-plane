@@ -32,6 +32,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.sampullara.cli.Args;
 import com.sampullara.cli.Argument;
+import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
 import io.netflix.titus.master.zookeeper.ZookeeperModule;
 import org.slf4j.Logger;
@@ -60,6 +61,7 @@ public class TitusMaster {
                             new AbstractModule() {
                                 @Override
                                 protected void configure() {
+                                    bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
                                     bind(Registry.class).toInstance(new DefaultRegistry());
                                 }
                             }
