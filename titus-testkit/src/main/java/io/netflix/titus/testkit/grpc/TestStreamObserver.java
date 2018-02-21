@@ -148,6 +148,9 @@ public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
 
     public void awaitDone() throws InterruptedException {
         terminatedLatch.await();
+        if(hasError()) {
+            throw new IllegalStateException("GRPC stream terminated with an error", error);
+        }
     }
 
     @Override

@@ -22,7 +22,6 @@ dependencies {
 
     // Misc dependencies
     compile "io.swagger:swagger-jaxrs:${swaggerVersion}"
-    compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
 
     testCompile project(':titus-testkit')
     testCompile "com.netflix.governator:governator-test-junit:${governatorVersion}"

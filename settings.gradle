@@ -4,6 +4,7 @@ include 'titus-api',\
         'titus-grpc-api',\
         'titus-server-gateway',\
         'titus-server-master',\
+        'titus-server-federation',\
         'titus-server-runtime',\
         'titus-testkit'
 

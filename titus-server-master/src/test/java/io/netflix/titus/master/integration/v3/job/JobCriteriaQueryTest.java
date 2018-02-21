@@ -162,8 +162,12 @@ public class JobCriteriaQueryTest {
         jobsScenarioBuilder.schedule(jobDescriptor, 1, jobScenarioBuilder -> jobScenarioBuilder
                 .template(launchJob())
                 .allTasks(completeTask())
-                .killJob()
-                .findTasks(TaskQuery.newBuilder().putFilteringCriteria("jobIds", jobsScenarioBuilder.takeJobId(0)).setPage(PAGE).build(),
+                .expectJobUpdateEvent(job -> job.getStatus().getState() == JobState.Finished, "Expected job to complete")
+                .findTasks(TaskQuery.newBuilder()
+                                .putFilteringCriteria("jobIds", jobsScenarioBuilder.takeJobId(0))
+                                .putFilteringCriteria("taskStates", TaskStatus.TaskState.Finished.name())
+                                .setPage(PAGE)
+                                .build(),
                         tasks -> tasks.size() == numberOfTasks && tasks.stream().allMatch(task -> task.getStatus().getState() == TaskStatus.TaskState.Finished)));
     }
 

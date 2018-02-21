@@ -24,7 +24,7 @@ import com.google.inject.Provides;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import io.grpc.Channel;
-import io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 
