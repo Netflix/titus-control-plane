@@ -52,17 +52,21 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core",
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api"
             ]
         },
         "com.google.inject.extensions:guice-assistedinject": {
@@ -94,7 +98,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -160,26 +164,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -188,7 +192,7 @@
             "project": true
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -196,35 +200,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -232,30 +221,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -263,6 +244,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -425,17 +419,21 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core",
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api"
             ]
         },
         "com.google.inject.extensions:guice-assistedinject": {
@@ -467,7 +465,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -533,26 +531,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -561,7 +559,7 @@
             "project": true
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -569,35 +567,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -605,30 +588,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -636,6 +611,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -798,17 +786,21 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core",
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api"
             ]
         },
         "com.google.inject.extensions:guice-assistedinject": {
@@ -840,7 +832,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -906,26 +898,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -934,7 +926,7 @@
             "project": true
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -942,35 +934,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -978,30 +955,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -1009,6 +978,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -1208,17 +1190,21 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core",
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api"
             ]
         },
         "com.google.inject.extensions:guice-assistedinject": {
@@ -1250,7 +1236,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -1316,26 +1302,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1344,7 +1330,7 @@
             "project": true
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -1352,35 +1338,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -1388,30 +1359,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -1419,6 +1382,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -1582,17 +1558,21 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core",
-                "io.netflix.titus:titus-common"
+                "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api"
             ]
         },
         "com.google.inject.extensions:guice-assistedinject": {
@@ -1624,7 +1604,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -1690,26 +1670,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1718,7 +1698,7 @@
             "project": true
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -1726,35 +1706,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -1762,30 +1727,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -1793,6 +1750,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -1981,7 +1951,7 @@
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
+            "locked": "1.0.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -2006,20 +1976,24 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.curator:curator-client",
@@ -2069,7 +2043,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -2077,7 +2051,6 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
             "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
@@ -2162,6 +2135,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -2261,41 +2235,42 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
-                "io.netflix.titus:titus-server-gateway"
+                "io.netflix.titus:titus-server-gateway",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-grpc-api"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
@@ -2349,7 +2324,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -2357,35 +2332,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -2393,30 +2353,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -2424,6 +2376,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -2457,7 +2422,8 @@
             "locked": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
-                "io.netflix.titus:titus-server-master"
+                "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.swagger:swagger-models": {
@@ -2620,6 +2586,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit",
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -2637,6 +2604,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -2871,7 +2839,7 @@
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
+            "locked": "1.0.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -2896,20 +2864,24 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.curator:curator-client",
@@ -2959,7 +2931,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -2967,7 +2939,6 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
             "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
@@ -3052,6 +3023,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -3151,41 +3123,42 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
-                "io.netflix.titus:titus-server-gateway"
+                "io.netflix.titus:titus-server-gateway",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-grpc-api"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
@@ -3239,7 +3212,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -3247,35 +3220,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -3283,30 +3241,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -3314,6 +3264,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -3347,7 +3310,8 @@
             "locked": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
-                "io.netflix.titus:titus-server-master"
+                "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.swagger:swagger-models": {
@@ -3510,6 +3474,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit",
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -3527,6 +3492,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -3761,7 +3727,7 @@
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
+            "locked": "1.0.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -3786,20 +3752,24 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.curator:curator-client",
@@ -3849,7 +3819,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -3857,7 +3827,6 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
             "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
@@ -3942,6 +3911,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -4041,41 +4011,42 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
-                "io.netflix.titus:titus-server-gateway"
+                "io.netflix.titus:titus-server-gateway",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-grpc-api"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
@@ -4129,7 +4100,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -4137,35 +4108,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -4173,30 +4129,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -4204,6 +4152,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -4237,7 +4198,8 @@
             "locked": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
-                "io.netflix.titus:titus-server-master"
+                "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.swagger:swagger-models": {
@@ -4400,6 +4362,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit",
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -4417,6 +4380,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -4652,7 +4616,7 @@
             ]
         },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "0.1.9",
+            "locked": "1.0.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -4677,20 +4641,24 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.0.19",
+            "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-api",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.netflix.titus:titus-common",
+                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.curator:curator-client",
@@ -4740,7 +4708,7 @@
             ]
         },
         "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.3.0",
+            "locked": "0.4.3",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -4748,7 +4716,6 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.3.0",
             "transitive": [
-                "com.google.api.grpc:proto-google-common-protos",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf",
                 "io.netflix.titus:titus-common",
@@ -4833,6 +4800,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -4932,41 +4900,42 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
-                "io.grpc:grpc-netty",
+                "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
-        "io.grpc:grpc-netty": {
-            "locked": "1.3.1",
+        "io.grpc:grpc-netty-shaded": {
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
-                "io.netflix.titus:titus-server-gateway"
+                "io.netflix.titus:titus-server-gateway",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-grpc-api"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.3.1",
+            "locked": "1.9.1",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
@@ -5020,7 +4989,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -5028,35 +4997,20 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
-                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
-                "io.netty:netty-handler-proxy",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-codec-http2": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
-        "io.netty:netty-codec-socks": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.netty:netty-handler-proxy"
-            ]
-        },
         "io.netty:netty-common": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -5064,30 +5018,22 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-codec-http2",
                 "io.reactivex:rxnetty"
             ]
         },
-        "io.netty:netty-handler-proxy": {
-            "locked": "4.1.8.Final",
-            "transitive": [
-                "io.grpc:grpc-netty"
-            ]
-        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.8.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll"
             ]
         },
@@ -5095,6 +5041,19 @@
             "locked": "4.1.5.Final",
             "transitive": [
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.opencensus:opencensus-api": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core",
+                "io.opencensus:opencensus-contrib-grpc-metrics"
+            ]
+        },
+        "io.opencensus:opencensus-contrib-grpc-metrics": {
+            "locked": "0.10.0",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "io.reactivex:rxjava": {
@@ -5128,7 +5087,8 @@
             "locked": "1.5.12",
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
-                "io.netflix.titus:titus-server-master"
+                "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime"
             ]
         },
         "io.swagger:swagger-models": {
@@ -5291,6 +5251,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit",
                 "org.eclipse.jetty:jetty-webapp"
             ]
@@ -5308,6 +5269,7 @@
             "transitive": [
                 "io.netflix.titus:titus-server-gateway",
                 "io.netflix.titus:titus-server-master",
+                "io.netflix.titus:titus-server-runtime",
                 "io.netflix.titus:titus-testkit"
             ]
         },
