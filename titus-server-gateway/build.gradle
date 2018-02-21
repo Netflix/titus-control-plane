@@ -18,7 +18,7 @@ dependencies {
     compile "javax.servlet:javax.servlet-api:${servletVersion}"
 
     // GRPC dependencies
-    compile "io.grpc:grpc-netty:${grpcVersion}"
+    compile "io.grpc:grpc-netty-shaded:${grpcVersion}"
 
     // Misc dependencies
     compile "io.swagger:swagger-jaxrs:${swaggerVersion}"

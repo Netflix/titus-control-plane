@@ -1,0 +1,17 @@
+apply plugin: 'application'
+apply plugin: 'nebula.ospackage-application'
+
+mainClassName = 'io.netflix.titus.federation.startup.TitusFederationMain'
+
+dependencies {
+    compile project(':titus-server-runtime')
+
+    testCompile project(':titus-testkit')
+    testCompile "com.netflix.governator:governator-test-junit:${governatorVersion}"
+}
+
+ospackage {
+    version = '0.0.1'
+    release = '1'
+}
+

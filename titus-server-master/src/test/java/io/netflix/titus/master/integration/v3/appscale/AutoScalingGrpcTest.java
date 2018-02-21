@@ -37,6 +37,7 @@ import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -152,6 +153,7 @@ public class AutoScalingGrpcTest {
      * @throws Exception
      */
     @Test
+    @Ignore // GRPC request/response semantics requires that a value is always returned
     public void testGetNonexistentPolicy() throws Exception {
         ScalingPolicyID scalingPolicyID = ScalingPolicyID.newBuilder().setId("deadbeef").build();
         TestStreamObserver<GetPolicyResult> getResponse = new TestStreamObserver<>();
@@ -159,7 +161,7 @@ public class AutoScalingGrpcTest {
 
         getResponse.awaitDone();
         assertThat(getResponse.getEmittedItems().size()).isEqualTo(0);
-        assertThat(getResponse.isCompleted()).isTrue();
+        assertThat(getResponse.hasError()).isFalse();
     }
 
     /**

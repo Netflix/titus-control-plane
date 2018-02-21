@@ -87,7 +87,7 @@ subprojects {
         spectatorVersion = '0.59.+'
         mesosVersion = '1.1.3'
         protobufVersion = '3.3.+'
-        grpcVersion = '1.3.+'
+        grpcVersion = '1.9.+'
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
         zkVersion = '0.4'
