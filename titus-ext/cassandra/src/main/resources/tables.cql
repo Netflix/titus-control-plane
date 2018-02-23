@@ -72,7 +72,7 @@ CREATE TABLE "archived_tasks" (
   PRIMARY KEY (task_id)
 ) WITH
   comment='The archived tasks'
-  AND compression={};
+  AND compression={}
   AND default_time_to_live = 2592000;
 
 // ------------------------------------------------------------------
