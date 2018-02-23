@@ -22,7 +22,7 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.master.loadBalancer")
 public interface LoadBalancerConfiguration {
 
-    @DefaultValue("false")
+    @DefaultValue("true")
     boolean isEngineEnabled();
 
     @DefaultValue("4")
