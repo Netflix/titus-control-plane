@@ -30,7 +30,7 @@ public interface GrpcEndpointConfiguration {
     int getPort();
 
     @PropertyName(name = "loadbalancer.enabled")
-    @DefaultValue("false")
+    @DefaultValue("true")
     boolean getLoadBalancerGrpcEnabled();
 
     /**
