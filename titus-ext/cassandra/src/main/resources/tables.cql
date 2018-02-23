@@ -50,8 +50,9 @@ CREATE TABLE "archived_jobs" (
   value text,
   PRIMARY KEY (job_id)
 ) WITH
-  comment='The archived jobs' AND
-  compression={};
+  comment='The archived jobs'
+  AND compression={}
+  AND default_time_to_live = 2592000;
 
 CREATE TABLE "archived_task_ids" (
   job_id text,
@@ -62,15 +63,17 @@ CREATE TABLE "archived_task_ids" (
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
   AND gc_grace_seconds = 21600
-  AND speculative_retry = 'NONE';
+  AND speculative_retry = 'NONE'
+  AND default_time_to_live = 2592000;
 
 CREATE TABLE "archived_tasks" (
   task_id text,
   value text,
   PRIMARY KEY (task_id)
 ) WITH
-  comment='The archived tasks' AND
-  compression={};
+  comment='The archived tasks'
+  AND compression={};
+  AND default_time_to_live = 2592000;
 
 // ------------------------------------------------------------------
 // Agent Management schema
