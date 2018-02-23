@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -82,6 +83,15 @@ public final class ReflectionExt {
             return true;
         }
         return false;
+    }
+
+    public static List<Class<?>> findAllInterfaces(Class<?> type) {
+        List<Class<?>> result = new ArrayList<>();
+        Collections.addAll(result, type.getInterfaces());
+        if (type.getSuperclass() != Object.class) {
+            result.addAll(findAllInterfaces(type.getSuperclass()));
+        }
+        return result;
     }
 
     public static <T, A extends Annotation> List<Method> findAnnotatedMethods(T instance, Class<A> methodAnnotation) {

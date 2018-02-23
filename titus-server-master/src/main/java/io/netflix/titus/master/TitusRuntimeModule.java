@@ -20,10 +20,12 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.common.framework.fit.Fit;
+import io.netflix.titus.common.framework.fit.FitComponent;
 import io.netflix.titus.common.jhiccup.JHiccupModule;
-import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.guice.ContainerEventBusModule;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
@@ -38,14 +40,23 @@ public class TitusRuntimeModule extends AbstractModule {
         // Framework services
         install(new ContainerEventBusModule());
         install(new JHiccupModule());
-
-        bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
-        bind(Registry.class).toInstance(new DefaultRegistry());
     }
 
     @Singleton
     @Provides
     public RxEventBus getRxEventBugs(Registry registry) {
         return new DefaultRxEventBus(registry.createId(MetricConstants.METRIC_ROOT + "eventbus."), registry);
+    }
+
+    @Provides
+    @Singleton
+    public TitusRuntime getTitusRuntime(Registry registry) {
+        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(registry);
+
+        // Setup FIT component hierarchy
+        FitComponent root = titusRuntime.getFit();
+        root.addChild(Fit.newFitComponent("jobManagement"));
+
+        return titusRuntime;
     }
 }

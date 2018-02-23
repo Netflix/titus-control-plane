@@ -7,8 +7,9 @@ import java.util.stream.Collectors;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
-import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.store.JobStore;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.runtime.TitusRuntimes;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.ext.cassandra.store.CassandraJobStore;
 import io.netflix.titus.ext.cassandra.store.CassandraStoreConfiguration;
@@ -46,9 +47,11 @@ public class EmbeddedCassandraStoreFactory {
     };
 
     private final Session session;
+    private final TitusRuntime titusRuntime;
 
-    public EmbeddedCassandraStoreFactory(Session session) {
+    public EmbeddedCassandraStoreFactory(Session session, TitusRuntime titusRuntime) {
         this.session = session;
+        this.titusRuntime = titusRuntime;
     }
 
     public void shutdown() {
@@ -56,7 +59,7 @@ public class EmbeddedCassandraStoreFactory {
     }
 
     public JobStore getJobStore() {
-        return new CassandraJobStore(CONFIGURATION, session, new DefaultRegistry());
+        return new CassandraJobStore(CONFIGURATION, session, titusRuntime);
     }
 
     public static Builder newBuilder() {
@@ -66,6 +69,12 @@ public class EmbeddedCassandraStoreFactory {
     public static class Builder {
 
         private File jobInputFolder;
+        private TitusRuntime titusRuntime;
+
+        public Builder withTitusRuntime(TitusRuntime titusRuntime) {
+            this.titusRuntime = titusRuntime;
+            return this;
+        }
 
         public Builder withJobStoreFiles(File folder) {
             Preconditions.checkArgument(folder.exists(), "%s not found", folder);
@@ -88,7 +97,10 @@ public class EmbeddedCassandraStoreFactory {
             if (jobInputFolder != null) {
                 loadJobStore(session);
             }
-            return new EmbeddedCassandraStoreFactory(session);
+            if (titusRuntime == null) {
+                titusRuntime = TitusRuntimes.internal();
+            }
+            return new EmbeddedCassandraStoreFactory(session, titusRuntime);
         }
 
         private void loadJobStore(Session session) {

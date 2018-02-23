@@ -3,6 +3,7 @@ apply plugin: 'java'
 dependencies {
     compile project(':titus-server-master')
     compile project(':titus-server-gateway')
+    compile project(':titus-ext-cassandra-testkit')
     compile "commons-cli:commons-cli:${apacheCommonsCliVersion}"
 
     compile("com.netflix.governator:governator-jetty:${governatorVersion}") { transitive = false }

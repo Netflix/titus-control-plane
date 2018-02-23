@@ -39,6 +39,7 @@ import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.ext.cassandra.testkit.store.EmbeddedCassandraStoreFactory;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -59,6 +60,8 @@ import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidato
 import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.grpc.V3HeaderInterceptor;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
@@ -113,6 +116,7 @@ public class EmbeddedTitusMaster {
 
     private final V2StorageProvider storageProvider;
     private final JobStore jobStore;
+    private final boolean cassandraJobStore;
     private final AgentStore agentStore;
 
     private final SimulatedCloud simulatedCloud;
@@ -138,6 +142,7 @@ public class EmbeddedTitusMaster {
         );
         this.storageProvider = builder.v2JobStore;
         this.jobStore = builder.v3JobStore == null ? new InMemoryJobStore() : builder.v3JobStore;
+        this.cassandraJobStore = builder.cassandraJobStore;
         this.agentStore = builder.agentStore == null ? new InMemoryAgentStore() : builder.agentStore;
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
@@ -172,6 +177,7 @@ public class EmbeddedTitusMaster {
                 Modules.override(new TitusRuntimeModule()).with(new AbstractModule() {
                     @Override
                     protected void configure() {
+                        bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
                         bind(Registry.class).toInstance(new DefaultRegistry());
                     }
                 }),
@@ -186,7 +192,6 @@ public class EmbeddedTitusMaster {
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(EmbeddedMasterMonitor.class);
                                       bind(V2StorageProvider.class).toInstance(storageProvider);
-                                      bind(JobStore.class).toInstance(jobStore);
                                       bind(AgentStore.class).toInstance(agentStore);
 
                                       bind(VirtualMachineMasterService.class).to(EmbeddedVirtualMachineMasterService.class);
@@ -202,6 +207,24 @@ public class EmbeddedTitusMaster {
                                   @Singleton
                                   public SimulatedAgentConfiguration getSimulatedAgentConfiguration(ConfigProxyFactory factory) {
                                       return factory.newProxy(SimulatedAgentConfiguration.class);
+                                  }
+
+                                  @Provides
+                                  @Singleton
+                                  public JobStore getJobStore(TitusRuntime titusRuntime) {
+                                      if (!cassandraJobStore) {
+                                          return jobStore;
+                                      }
+                                      try {
+                                          JobStore jobStore = EmbeddedCassandraStoreFactory.newBuilder()
+                                                  .withTitusRuntime(titusRuntime)
+                                                  .build()
+                                                  .getJobStore();
+                                          return jobStore;
+                                      } catch (Throwable e) {
+                                          e.printStackTrace();
+                                          return null;
+                                      }
                                   }
                               }
                         ),
@@ -373,6 +396,7 @@ public class EmbeddedTitusMaster {
 
         private V2StorageProvider v2JobStore;
         private JobStore v3JobStore;
+        private boolean cassandraJobStore;
         private AgentStore agentStore;
         private List<SimulatedTitusAgentCluster> agentClusters = new ArrayList<>();
         private SimulatedCloud simulatedCloud;
@@ -410,6 +434,11 @@ public class EmbeddedTitusMaster {
 
         public Builder withV3JobStore(JobStore jobStore) {
             this.v3JobStore = jobStore;
+            return this;
+        }
+
+        public Builder withCassadraV3JobStore() {
+            this.cassandraJobStore = true;
             return this;
         }
 

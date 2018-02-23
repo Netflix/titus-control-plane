@@ -37,6 +37,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.json.ObjectMappers;
+import io.netflix.titus.common.runtime.TitusRuntimes;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import io.netflix.titus.testkit.model.job.JobGenerator;
@@ -359,7 +360,7 @@ public class CassandraJobStoreTest {
         if (session == null) {
             session = cassandraCqlUnit.getSession();
         }
-        return new CassandraJobStore(CONFIGURATION, session, new DefaultRegistry(), ObjectMappers.storeMapper(),
+        return new CassandraJobStore(CONFIGURATION, session, TitusRuntimes.internal(), ObjectMappers.storeMapper(),
                 INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 
