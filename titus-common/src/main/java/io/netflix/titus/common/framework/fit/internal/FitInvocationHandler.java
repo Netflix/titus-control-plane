@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.util.ReflectionExt;
 import rx.Observable;
@@ -52,30 +53,38 @@ public class FitInvocationHandler implements InvocationHandler {
     }
 
     private static CompletableFuture<?> handleCompletableFuture(FitInjection injection, Method method, Object target, Object[] arguments) {
-        return injection.beforeFuture(method.getName(), () -> {
-            return injection.afterFuture(method.getName(), () -> {
-                try {
-                    return (CompletableFuture<?>) method.invoke(target, arguments);
-                } catch (IllegalAccessException e) {
-                    throw new IllegalStateException("Reflective invocation of method not allowed: " + method.getName(), e);
-                } catch (InvocationTargetException e) {
-                    throw new IllegalStateException("Unexpected method invocation error: " + method.getName(), e);
-                }
-            });
+        return injection.aroundCompletableFuture(method.getName(), () -> {
+            try {
+                return (CompletableFuture<?>) method.invoke(target, arguments);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Reflective invocation of method not allowed: " + method.getName(), e);
+            } catch (InvocationTargetException e) {
+                throw new IllegalStateException("Unexpected method invocation error: " + method.getName(), e);
+            }
+        });
+    }
+
+    private static ListenableFuture<?> handleListenableFuture(FitInjection injection, Method method, Object target, Object[] arguments) {
+        return injection.aroundListenableFuture(method.getName(), () -> {
+            try {
+                return (ListenableFuture<?>) method.invoke(target, arguments);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Reflective invocation of method not allowed: " + method.getName(), e);
+            } catch (InvocationTargetException e) {
+                throw new IllegalStateException("Unexpected method invocation error: " + method.getName(), e);
+            }
         });
     }
 
     private static Observable<?> handleObservable(FitInjection injection, Method method, Object target, Object[] arguments) {
-        return injection.beforeObservable(method.getName(), () -> {
-            return injection.afterObservable(method.getName(), () -> {
-                try {
-                    return (Observable<?>) method.invoke(target, arguments);
-                } catch (IllegalAccessException e) {
-                    throw new IllegalStateException("Reflective invocation of method not allowed: " + method.getName(), e);
-                } catch (InvocationTargetException e) {
-                    throw new IllegalStateException("Unexpected method invocation error: " + method.getName(), e);
-                }
-            });
+        return injection.aroundObservable(method.getName(), () -> {
+            try {
+                return (Observable<?>) method.invoke(target, arguments);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Reflective invocation of method not allowed: " + method.getName(), e);
+            } catch (InvocationTargetException e) {
+                throw new IllegalStateException("Unexpected method invocation error: " + method.getName(), e);
+            }
         });
     }
 
@@ -92,6 +101,8 @@ public class FitInvocationHandler implements InvocationHandler {
             Class<?> returnType = method.getReturnType();
             if (returnType.isAssignableFrom(CompletableFuture.class)) {
                 handlers.put(method, args -> handleCompletableFuture(injection, method, delegate, args));
+            } else if (returnType.isAssignableFrom(ListenableFuture.class)) {
+                handlers.put(method, args -> handleListenableFuture(injection, method, delegate, args));
             } else if (returnType.isAssignableFrom(Observable.class)) {
                 handlers.put(method, args -> handleObservable(injection, method, delegate, args));
             } else {

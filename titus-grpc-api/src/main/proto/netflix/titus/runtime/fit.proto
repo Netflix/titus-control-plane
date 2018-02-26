@@ -21,7 +21,7 @@ message FitActionDescriptor {
 message FitAction {
     string id = 1;
 
-    FitActionDescriptor actionDescriptor = 2;
+    string actionKind = 2;
 
     map<string, string> properties = 3;
 }

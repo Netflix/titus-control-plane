@@ -5,8 +5,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.common.framework.fit.FitActionDescriptor;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.util.ErrorGenerator;
@@ -28,7 +31,6 @@ public class FitErrorAction extends AbstractFitAction {
     );
 
     private final double expectedRatio;
-    private final boolean runBefore;
 
     private final Constructor<? extends Throwable> exceptionConstructor;
     private final ErrorGenerator errorGenerator;
@@ -36,7 +38,6 @@ public class FitErrorAction extends AbstractFitAction {
     public FitErrorAction(String id, Map<String, String> properties, FitInjection injection) {
         super(id, DESCRIPTOR, properties, injection);
 
-        this.runBefore = Boolean.parseBoolean(properties.getOrDefault("before", "true"));
         this.expectedRatio = Double.parseDouble(properties.getOrDefault("percentage", "100")) / 100;
         long errorTimeMs = TimeUnitExt.parse(properties.getOrDefault("errorTime", "1m"))
                 .map(p -> p.getRight().toMillis(p.getLeft()))
@@ -71,29 +72,21 @@ public class FitErrorAction extends AbstractFitAction {
     }
 
     @Override
-    public <T> Supplier<Observable<T>> beforeObservable(String injectionPoint, Supplier<Observable<T>> source) {
+    public <T> Supplier<Observable<T>> aroundObservable(String injectionPoint, Supplier<Observable<T>> source) {
         if (runBefore) {
             return () -> Observable.defer(() -> {
                 doFail(injectionPoint);
                 return source.get();
             });
         }
-        return source;
+        return () -> source.get().concatWith(Observable.defer(() -> {
+            doFail(injectionPoint);
+            return Observable.empty();
+        }));
     }
 
     @Override
-    public <T> Supplier<Observable<T>> afterObservable(String injectionPoint, Supplier<Observable<T>> source) {
-        if (!runBefore) {
-            return () -> source.get().concatWith(Observable.defer(() -> {
-                doFail(injectionPoint);
-                return Observable.empty();
-            }));
-        }
-        return source;
-    }
-
-    @Override
-    public <T> Supplier<CompletableFuture<T>> beforeCompletableFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
+    public <T> Supplier<CompletableFuture<T>> aroundCompletableFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
         if (runBefore) {
             return () -> {
                 if (errorGenerator.shouldFail()) {
@@ -104,15 +97,20 @@ public class FitErrorAction extends AbstractFitAction {
                 return source.get();
             };
         }
-        return source;
+        return () -> source.get().thenApply(result -> doFail(injectionPoint) ? null : result);
     }
 
     @Override
-    public <T> Supplier<CompletableFuture<T>> afterCompletableFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
-        if (!runBefore) {
-            return () -> source.get().thenApply(result -> doFail(injectionPoint) ? null : result);
+    public <T> Supplier<ListenableFuture<T>> aroundListenableFuture(String injectionPoint, Supplier<ListenableFuture<T>> source) {
+        if (runBefore) {
+            return () -> {
+                if (errorGenerator.shouldFail()) {
+                    return Futures.immediateFailedFuture(newException(injectionPoint));
+                }
+                return source.get();
+            };
         }
-        return source;
+        return () -> Futures.transform(source.get(), (Function<T, T>) input -> doFail(injectionPoint) ? null : input);
     }
 
     private boolean doFail(String injectionPoint) {

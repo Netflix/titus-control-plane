@@ -12,12 +12,14 @@ public abstract class AbstractFitAction implements FitAction {
     private final FitActionDescriptor descriptor;
     private final Map<String, String> properties;
     private final FitInjection injection;
+    protected final boolean runBefore;
 
     protected AbstractFitAction(String id, FitActionDescriptor descriptor, Map<String, String> properties, FitInjection injection) {
         this.id = id;
         this.descriptor = descriptor;
         this.properties = properties;
         this.injection = injection;
+        this.runBefore = Boolean.parseBoolean(properties.getOrDefault("before", "true"));
     }
 
     @Override

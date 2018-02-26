@@ -41,7 +41,7 @@ public final class ProtobufFitConverters {
     public static Fit.FitAction toGrpcFitAction(FitAction coreFitAction) {
         return Fit.FitAction.newBuilder()
                 .setId(coreFitAction.getId())
-                .setActionDescriptor(toGrpcFitActionDescriptor(coreFitAction.getDescriptor()))
+                .setActionKind(coreFitAction.getDescriptor().getKind())
                 .putAllProperties(coreFitAction.getProperties())
                 .build();
     }

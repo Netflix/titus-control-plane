@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.common.framework.fit.FitAction;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import rx.Observable;
@@ -16,18 +17,25 @@ import rx.Observable;
 public class DefaultFitInjection implements FitInjection {
 
     private final String id;
+    private final String description;
     private final Class<? extends Throwable> exceptionType;
 
     private final ConcurrentMap<String, FitAction> actions = new ConcurrentHashMap<>();
 
     private DefaultFitInjection(InternalBuilder builder) {
         this.id = builder.id;
+        this.description = builder.description;
         this.exceptionType = builder.exceptionType;
     }
 
     @Override
     public String getId() {
         return id;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
     }
 
     @Override
@@ -47,7 +55,9 @@ public class DefaultFitInjection implements FitInjection {
 
     @Override
     public FitAction getAction(String actionId) {
-        return Preconditions.checkNotNull(actions.get(actionId), "Action %s not found", actionId);
+        FitAction action = actions.get(actionId);
+        Preconditions.checkArgument(action != null, "Action %s not found", actionId);
+        return action;
     }
 
     @Override
@@ -71,37 +81,28 @@ public class DefaultFitInjection implements FitInjection {
     }
 
     @Override
-    public <T> Observable<T> beforeObservable(String injectionPoint, Supplier<Observable<T>> source) {
+    public <T> Observable<T> aroundObservable(String injectionPoint, Supplier<Observable<T>> source) {
         Supplier<Observable<T>> result = source;
         for (FitAction action : actions.values()) {
-            result = action.beforeObservable(injectionPoint, source);
+            result = action.aroundObservable(injectionPoint, source);
         }
         return result.get();
     }
 
     @Override
-    public <T> Observable<T> afterObservable(String injectionPoint, Supplier<Observable<T>> source) {
-        Supplier<Observable<T>> result = source;
-        for (FitAction action : actions.values()) {
-            result = action.afterObservable(injectionPoint, source);
-        }
-        return result.get();
-    }
-
-    @Override
-    public <T> CompletableFuture<T> beforeFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
+    public <T> CompletableFuture<T> aroundCompletableFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
         Supplier<CompletableFuture<T>> result = source;
         for (FitAction action : actions.values()) {
-            result = action.beforeCompletableFuture(injectionPoint, result);
+            result = action.aroundCompletableFuture(injectionPoint, result);
         }
         return result.get();
     }
 
     @Override
-    public <T> CompletableFuture<T> afterFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
-        Supplier<CompletableFuture<T>> result = source;
+    public <T> ListenableFuture<T> aroundListenableFuture(String injectionPoint, Supplier<ListenableFuture<T>> source) {
+        Supplier<ListenableFuture<T>> result = source;
         for (FitAction action : actions.values()) {
-            result = action.afterCompletableFuture(injectionPoint, result);
+            result = action.aroundListenableFuture(injectionPoint, result);
         }
         return result.get();
     }
@@ -114,9 +115,17 @@ public class DefaultFitInjection implements FitInjection {
 
         private final String id;
         private Class<? extends Throwable> exceptionType = RuntimeException.class;
+        private String description = "Not provided";
 
         private InternalBuilder(String id) {
             this.id = id;
+        }
+
+
+        @Override
+        public Builder withDescription(String description) {
+            this.description = description;
+            return this;
         }
 
         @Override

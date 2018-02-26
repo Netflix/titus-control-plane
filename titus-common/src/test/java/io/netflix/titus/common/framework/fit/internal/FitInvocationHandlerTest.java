@@ -1,9 +1,11 @@
 package io.netflix.titus.common.framework.fit.internal;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.common.framework.fit.Fit;
 import io.netflix.titus.common.framework.fit.FitComponent;
 import io.netflix.titus.common.framework.fit.FitInjection;
@@ -54,30 +56,34 @@ public class FitInvocationHandlerTest {
 
     @Test
     public void testBeforeCompletableFuture() throws Exception {
-        configureAction(true);
-        try {
-            myApi.runCompletableFuture("hello").get();
-            fail("Expected FIT injected error");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause()).isInstanceOf(MyException.class);
-            assertThat(myApiImpl.getExecutionCounter()).isEqualTo(0);
-        }
-
-        assertThat(myApi.runCompletableFuture("hello").get()).isEqualTo("hello");
+        runBefore(true, () -> myApi.runCompletableFuture("hello").get(), 0);
     }
 
     @Test
     public void testAfterCompletableFuture() throws Exception {
-        configureAction(false);
-        try {
-            myApi.runCompletableFuture("hello").get();
-            fail("Expected FIT injected error");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause()).isInstanceOf(MyException.class);
-            assertThat(myApiImpl.getExecutionCounter()).isEqualTo(1);
-        }
+        runBefore(false, () -> myApi.runCompletableFuture("hello").get(), 1);
+    }
 
-        assertThat(myApi.runCompletableFuture("hello").get()).isEqualTo("hello");
+    @Test
+    public void testBeforeListenableFuture() throws Exception {
+        runBefore(true, () -> myApi.runListenableFuture("hello").get(), 0);
+    }
+
+    @Test
+    public void testAfterListenableFuture() throws Exception {
+        runBefore(false, () -> myApi.runListenableFuture("hello").get(), 1);
+    }
+
+    private void runBefore(boolean before, Callable<String> action, int executionCount) throws Exception {
+        configureAction(before);
+        try {
+            action.call();
+            fail("Expected FIT injected error");
+        } catch (Exception e) {
+            assertThat(e.getCause()).isInstanceOf(MyException.class);
+            assertThat(myApiImpl.getExecutionCounter()).isEqualTo(executionCount);
+        }
+        assertThat(action.call()).isEqualTo("hello");
     }
 
     @Test
@@ -126,6 +132,8 @@ public class FitInvocationHandlerTest {
 
         CompletableFuture<String> runCompletableFuture(String arg);
 
+        ListenableFuture<String> runListenableFuture(String arg);
+
         Observable<String> runObservable(String arg);
     }
 
@@ -141,6 +149,12 @@ public class FitInvocationHandlerTest {
         public String runSynchronous(String arg) {
             executionCounter++;
             return arg;
+        }
+
+        @Override
+        public ListenableFuture<String> runListenableFuture(String arg) {
+            executionCounter++;
+            return Futures.immediateFuture(arg);
         }
 
         @Override
