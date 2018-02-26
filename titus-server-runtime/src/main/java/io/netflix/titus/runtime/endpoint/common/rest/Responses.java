@@ -25,6 +25,7 @@ import javax.ws.rs.core.Response;
 import io.netflix.titus.api.service.TitusServiceException;
 import rx.Completable;
 import rx.Observable;
+import rx.Single;
 
 public class Responses {
     public static <T> List<T> fromObservable(Observable<?> observable) {
@@ -42,6 +43,20 @@ public class Responses {
         }
 
         return (T) result.get(0);
+    }
+
+    public static <T> T fromSingle(Single<?> single) {
+        T value;
+        try {
+            value = (T) single.toBlocking().value();
+        } catch (Exception e) {
+            throw fromException(e);
+        }
+        if (value == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        return value;
     }
 
     public static Response fromVoidObservable(Observable<Void> observable, Response.Status statusCode) {

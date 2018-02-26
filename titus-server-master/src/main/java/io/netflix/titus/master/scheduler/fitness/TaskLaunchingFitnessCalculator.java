@@ -27,6 +27,7 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
  * as we only want to use empty agents if there are no other agents available.
  */
 public class TaskLaunchingFitnessCalculator implements VMTaskFitnessCalculator {
+
     private static final double EMPTY_HOST_SCORE = 0.01;
     private static final double LAUNCHING_TASKS_SCORE = 0.5;
     private static final double NOT_LAUNCHING_TASKS_SCORE = 1.0;

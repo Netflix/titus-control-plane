@@ -49,6 +49,8 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
+import static io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder.LOAD_BALANCER_SANITIZER;
+
 @Singleton
 public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStore.class);
@@ -109,7 +111,9 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     COLUMN_LOAD_BALANCER);
 
     @Inject
-    public CassandraLoadBalancerStore(CassandraStoreConfiguration configuration, @Named(LOAD_BALANCER_SANITIZER) EntitySanitizer entitySanitizer, Session session) {
+    public CassandraLoadBalancerStore(CassandraStoreConfiguration configuration,
+                                      @Named(LOAD_BALANCER_SANITIZER) EntitySanitizer entitySanitizer,
+                                      Session session) {
         this.configuration = configuration;
         this.entitySanitizer = entitySanitizer;
 
@@ -163,6 +167,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     /**
      * Returns an observable stream of the currently associated load balancers for a Job.
+     *
      * @param jobId
      * @return
      */
@@ -181,11 +186,12 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId) {
         logger.debug("Getting all associated load balancers for job {}", jobId);
-        return  jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
+        return jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
     }
 
     /**
      * Returns all current load balancer associations.
+     *
      * @return
      */
     @Override
@@ -213,6 +219,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     /**
      * Marks the persisted and in-memory state as Dissociated and removes from association in-memory map.
+     *
      * @param jobLoadBalancer
      * @param state
      * @return
@@ -236,6 +243,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     /**
      * Removes the persisted Job/load balancer and state and removes in-memory state.
+     *
      * @param jobLoadBalancer
      * @return
      */
@@ -272,6 +280,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     /**
      * Adds a new Job and associated Load Balancer by replacing any current set of associations
      * for the Job.
+     *
      * @param association
      */
     private void addJobLoadBalancerAssociation(JobLoadBalancer association) {
@@ -293,6 +302,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     /**
      * Removes a Job's associated Load Balancer by replacing any current set of associations
      * for the Job.
+     *
      * @param association
      */
     private void removeJobLoadBalancerAssociation(JobLoadBalancer association) {

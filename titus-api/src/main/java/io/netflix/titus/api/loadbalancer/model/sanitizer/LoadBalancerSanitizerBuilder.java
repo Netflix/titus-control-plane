@@ -20,6 +20,9 @@ import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 
 public class LoadBalancerSanitizerBuilder {
+
+    public static final String LOAD_BALANCER_SANITIZER = "loadbalancer";
+
     private final EntitySanitizerBuilder sanitizerBuilder = EntitySanitizerBuilder.stdBuilder();
 
     public EntitySanitizer build() {

@@ -20,9 +20,8 @@ import com.netflix.fenzo.VirtualMachineLease;
 import io.netflix.titus.common.util.StringExt;
 import org.apache.mesos.Protos;
 
-class LeaseAttributes {
-
-    static String getOrDefault(VirtualMachineLease lease, String attrName, String defaultValue) {
+public class LeaseAttributes {
+    public static String getOrDefault(VirtualMachineLease lease, String attrName, String defaultValue) {
         if (lease.getAttributeMap() == null) {
             return defaultValue;
         }

@@ -25,12 +25,14 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagemen
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultAgentManagementServiceGrpc;
 import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
+import io.netflix.titus.gateway.endpoint.v3.grpc.DefaultSchedulerServiceGrpc;
 import io.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration;
 import io.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 
@@ -42,6 +44,7 @@ public class GrpcModule extends AbstractModule {
         bind(AgentManagementServiceImplBase.class).to(DefaultAgentManagementServiceGrpc.class);
         bind(AutoScalingServiceGrpc.AutoScalingServiceImplBase.class).to(DefaultAutoScalingServiceGrpc.class);
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
+        bind(SchedulerServiceGrpc.SchedulerServiceImplBase.class).to(DefaultSchedulerServiceGrpc.class);
         bind(TitusGatewayGrpcServer.class).asEagerSingleton();
         bind(SessionContext.class).to(AnonymousSessionContext.class);
     }

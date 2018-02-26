@@ -727,7 +727,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
 
     private ScheduledRequest createRequest(V2JobMgrIntf jobMgr, V2WorkerMetadata mwmdr, WorkerRequest req) {
         return new ScheduledRequest(jobMgr, mwmdr, req, config, schedulingService.getV2ConstraintEvaluatorTransformer(),
-                schedulingService.getGlobalConstraints(), applicationSlaManagementService);
+                schedulingService.getSystemSoftConstraint(), schedulingService.getSystemHardConstraint(), applicationSlaManagementService);
     }
 
     @Override

@@ -41,6 +41,11 @@ public class EmbeddedCassandraStoreFactory {
         }
 
         @Override
+        public boolean isFailOnInconsistentSchedulerData() {
+            return false;
+        }
+
+        @Override
         public int getConcurrencyLimit() {
             return 10;
         }

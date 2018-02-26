@@ -24,6 +24,7 @@ import com.google.rpc.DebugInfo;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
+import io.netflix.titus.api.scheduler.service.SchedulerException;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.util.tuple.Pair;
 
@@ -150,6 +151,16 @@ public final class ErrorResponses {
                     return Status.FAILED_PRECONDITION;
                 case InvalidDesiredCapacity:
                     return Status.INVALID_ARGUMENT;
+            }
+        } else if (cause instanceof SchedulerException) {
+            SchedulerException e = (SchedulerException) cause;
+            switch (e.getErrorCode()) {
+                case InvalidArgument:
+                case SystemSelectorAlreadyExists:
+                case SystemSelectorEvaluationError:
+                    return Status.INVALID_ARGUMENT;
+                case SystemSelectorNotFound:
+                    return Status.NOT_FOUND;
             }
         }
         return Status.INTERNAL;

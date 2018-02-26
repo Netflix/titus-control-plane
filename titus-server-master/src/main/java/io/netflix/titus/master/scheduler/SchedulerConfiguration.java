@@ -59,6 +59,12 @@ public interface SchedulerConfiguration {
     @DefaultValue("true")
     boolean isCriticalServiceJobSpreadingEnabled();
 
+    /**
+     * @return whether or not to use system selectors
+     */
+    @DefaultValue("false")
+    boolean isSystemSelectorsEnabled();
+
     @DefaultValue("true")
     boolean isExitUponFenzoSchedulingErrorEnabled();
 
@@ -87,8 +93,14 @@ public interface SchedulerConfiguration {
     int getDelayAutoScaleDownBySecs();
 
     /**
-     * Return the attribute name to use from the agent when comparing against instance groups
+     * Return the attribute name to use to get the instance group id
      */
     @DefaultValue("asg")
     String getInstanceGroupAttributeName();
+
+    /**
+     * Return the attribute name to use to get the instance id
+     */
+    @DefaultValue("id")
+    String getInstanceAttributeName();
 }

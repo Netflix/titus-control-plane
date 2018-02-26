@@ -27,16 +27,17 @@ import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import io.netflix.titus.api.model.ResourceDimension;
+import io.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 
-import static io.netflix.titus.api.loadbalancer.store.LoadBalancerStore.LOAD_BALANCER_SANITIZER;
+import static io.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+import static io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder.LOAD_BALANCER_SANITIZER;
+import static io.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder.SCHEDULER_SANITIZER;
 
 /**
  */
 public class TitusEntitySanitizerModule extends AbstractModule {
-
-    public static final String JOB_SANITIZER = "job";
-    public static final String AGENT_SANITIZER = "agent";
 
     // TODO Compute this dynamically from the available instance types within a tier
     private static final ResourceDimension MAX_CONTAINER_SIZE = new ResourceDimension(64, 16, 256_000_000, 256_000_000, 10_000);
@@ -67,6 +68,13 @@ public class TitusEntitySanitizerModule extends AbstractModule {
     @Named(LOAD_BALANCER_SANITIZER)
     public EntitySanitizer getLoadBalancerEntitySanitizer() {
         return new LoadBalancerSanitizerBuilder().build();
+    }
+
+    @Provides
+    @Singleton
+    @Named(SCHEDULER_SANITIZER)
+    public EntitySanitizer getSchedulerEntitySanitizer() {
+        return new SchedulerSanitizerBuilder().build();
     }
 
     @Provides

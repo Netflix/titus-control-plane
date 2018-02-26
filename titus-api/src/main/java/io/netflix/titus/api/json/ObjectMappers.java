@@ -123,6 +123,16 @@ import io.netflix.titus.api.jobmanager.store.mixin.TaskMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.TaskStatusMixin;
 import io.netflix.titus.api.jobmanager.store.mixin.TwoLevelResourceMixIn;
 import io.netflix.titus.api.model.ResourceDimension;
+import io.netflix.titus.api.scheduler.model.Match;
+import io.netflix.titus.api.scheduler.model.Must;
+import io.netflix.titus.api.scheduler.model.Operator;
+import io.netflix.titus.api.scheduler.model.Should;
+import io.netflix.titus.api.scheduler.model.SystemSelector;
+import io.netflix.titus.api.scheduler.store.mixin.MatchMixin;
+import io.netflix.titus.api.scheduler.store.mixin.MustMixin;
+import io.netflix.titus.api.scheduler.store.mixin.OperatorMixin;
+import io.netflix.titus.api.scheduler.store.mixin.ShouldMixin;
+import io.netflix.titus.api.scheduler.store.mixin.SystemSelectorMixin;
 import io.netflix.titus.api.store.v2.ResourceDimensionMixin;
 import io.netflix.titus.common.util.PropertiesExt;
 import io.netflix.titus.common.util.ReflectionExt;
@@ -346,6 +356,13 @@ public class ObjectMappers {
         objectMapper.addMixIn(Container.class, ContainerMixin.class);
         objectMapper.addMixIn(Image.class, ImageMixin.class);
         objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
+
+        // Scheduler
+        objectMapper.addMixIn(Match.class, MatchMixin.class);
+        objectMapper.addMixIn(Must.class, MustMixin.class);
+        objectMapper.addMixIn(Operator.class, OperatorMixin.class);
+        objectMapper.addMixIn(Should.class, ShouldMixin.class);
+        objectMapper.addMixIn(SystemSelector.class, SystemSelectorMixin.class);
 
         return objectMapper;
     }

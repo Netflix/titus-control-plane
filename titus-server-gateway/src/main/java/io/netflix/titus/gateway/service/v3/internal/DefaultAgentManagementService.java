@@ -60,8 +60,8 @@ import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_
 import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_GROUP_LIFECYCLE_STATE;
 import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_GROUP_TIER;
 import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_OVERRIDE_STATE;
+import static io.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
 import static io.netflix.titus.gateway.service.v3.internal.GrpcServiceUtil.getRxJavaAdjustedTimeout;
-import static io.netflix.titus.runtime.TitusEntitySanitizerModule.AGENT_SANITIZER;
 
 @Singleton
 public class DefaultAgentManagementService implements AgentManagementService {

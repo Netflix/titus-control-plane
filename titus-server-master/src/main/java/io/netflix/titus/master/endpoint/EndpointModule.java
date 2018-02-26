@@ -35,8 +35,8 @@ import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcTitusSe
 import io.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
 import static io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.RoutingGrpcTitusServiceGateway.NAME_V2_ENGINE_GATEWAY;
-import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
 
 public class EndpointModule extends AbstractModule {
     @Override

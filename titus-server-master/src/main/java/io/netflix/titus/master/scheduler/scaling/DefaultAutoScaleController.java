@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.scheduler.autoscale;
+package io.netflix.titus.master.scheduler.scaling;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +43,6 @@ import io.netflix.titus.api.model.event.ScaleDownEvent;
 import io.netflix.titus.api.model.event.ScaleUpEvent;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.scheduler.AutoScaleController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;

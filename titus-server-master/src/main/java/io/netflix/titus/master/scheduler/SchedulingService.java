@@ -27,7 +27,9 @@ import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
 import io.netflix.titus.api.model.v2.JobConstraints;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import rx.functions.Action1;
 
 /**
@@ -49,7 +51,9 @@ public interface SchedulingService {
 
     void initRunningTask(QueuableTask task, String hostname);
 
-    GlobalConstraintEvaluator getGlobalConstraints();
+    SystemSoftConstraint getSystemSoftConstraint();
+
+    SystemHardConstraint getSystemHardConstraint();
 
     ConstraintEvaluatorTransformer<JobConstraints> getV2ConstraintEvaluatorTransformer();
 

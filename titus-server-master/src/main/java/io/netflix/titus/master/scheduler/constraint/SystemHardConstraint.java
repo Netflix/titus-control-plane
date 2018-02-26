@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,8 @@
 
 package io.netflix.titus.master.scheduler.constraint;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import com.netflix.fenzo.VirtualMachineLease;
-
 /**
+ * The system hard constraint that is applied to all tasks in the system.
  */
-public class ScaleDownUtils {
-
-    public static String toCompactString(List<Set<VirtualMachineLease>> result) {
-        List<Set<String>> hostGroups = result.stream()
-                .map(g -> g.stream().map(VirtualMachineLease::hostname).collect(Collectors.toSet()))
-                .collect(Collectors.toList());
-
-        return "{groups=" + hostGroups + '}';
-    }
+public interface SystemHardConstraint extends GlobalConstraintEvaluator {
 }

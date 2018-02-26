@@ -89,9 +89,9 @@ import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_OB
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_CAPACITY;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_PROCESSES;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_STATUS;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
 import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
 import static io.netflix.titus.gateway.service.v3.internal.GrpcServiceUtil.getRxJavaAdjustedTimeout;
-import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 
 @Singleton

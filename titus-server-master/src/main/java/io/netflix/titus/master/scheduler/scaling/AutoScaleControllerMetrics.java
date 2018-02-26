@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.scheduler.autoscale;
+package io.netflix.titus.master.scheduler.scaling;
 
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;

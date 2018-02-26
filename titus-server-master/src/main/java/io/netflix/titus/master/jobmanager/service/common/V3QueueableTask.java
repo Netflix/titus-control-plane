@@ -37,8 +37,9 @@ import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
-import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 
 import static io.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 
@@ -72,7 +73,8 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                            Task task,
                            Supplier<Set<String>> activeTasksGetter,
                            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-                           GlobalConstraintEvaluator globalConstraintsEvaluator) {
+                           SystemSoftConstraint systemSoftConstraint,
+                           SystemHardConstraint systemHardConstraint) {
         this.job = job;
         this.task = task;
 
@@ -99,8 +101,8 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
             assignedResources.setConsumedNamedResources(consumeResults);
         }
 
-        this.hardConstraints = toFenzoHardConstraints(job, globalConstraintsEvaluator, constraintEvaluatorTransformer, activeTasksGetter);
-        this.softConstraints = toFenzoSoftConstraints(job, constraintEvaluatorTransformer, activeTasksGetter);
+        this.softConstraints = toFenzoSoftConstraints(job, systemSoftConstraint, constraintEvaluatorTransformer, activeTasksGetter);
+        this.hardConstraints = toFenzoHardConstraints(job, systemHardConstraint, constraintEvaluatorTransformer, activeTasksGetter);
 
         setupCustomNamedResources(job);
     }
@@ -192,8 +194,12 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         return Collections.singletonMap(Container.RESOURCE_GPU, (double) job.getJobDescriptor().getContainer().getContainerResources().getGpu());
     }
 
-    private List<VMTaskFitnessCalculator> toFenzoSoftConstraints(Job<?> job, ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer, Supplier<Set<String>> activeTasksGetter) {
+    private List<VMTaskFitnessCalculator> toFenzoSoftConstraints(Job<?> job,
+                                                                 SystemSoftConstraint systemSoftConstraint,
+                                                                 ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                                                 Supplier<Set<String>> activeTasksGetter) {
         List<VMTaskFitnessCalculator> result = new ArrayList<>();
+        result.add(systemSoftConstraint);
         job.getJobDescriptor().getContainer().getSoftConstraints().forEach((key, value) ->
                 constraintEvaluatorTransformer.softConstraint(Pair.of(key, value), activeTasksGetter).ifPresent(result::add)
         );
@@ -201,15 +207,15 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     }
 
     private List<ConstraintEvaluator> toFenzoHardConstraints(Job<?> job,
-                                                             GlobalConstraintEvaluator globalConstraints,
+                                                             SystemHardConstraint systemHardConstraint,
                                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                                              Supplier<Set<String>> runningTasksGetter) {
-        List<ConstraintEvaluator> hardConstraints = new ArrayList<>();
-        hardConstraints.add(globalConstraints);
+        List<ConstraintEvaluator> result = new ArrayList<>();
+        result.add(systemHardConstraint);
         job.getJobDescriptor().getContainer().getHardConstraints().forEach((key, value) ->
-                constraintEvaluatorTransformer.hardConstraint(Pair.of(key, value), runningTasksGetter).ifPresent(hardConstraints::add)
+                constraintEvaluatorTransformer.hardConstraint(Pair.of(key, value), runningTasksGetter).ifPresent(result::add)
         );
-        return hardConstraints;
+        return result;
     }
 
     private void setupCustomNamedResources(Job<?> job) {
