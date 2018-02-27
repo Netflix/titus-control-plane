@@ -228,7 +228,9 @@ public final class V2GrpcModelConverters {
         } else {
             BatchJobSpec.Builder batchJobBuilder = BatchJobSpec.newBuilder();
             batchJobBuilder.setSize(stageMetadata.getNumWorkers());
-            batchJobBuilder.setRetryPolicy(RetryPolicy.newBuilder().setImmediate(RetryPolicy.Immediate.getDefaultInstance()));
+            batchJobBuilder.setRetryPolicy(RetryPolicy.newBuilder().setImmediate(
+                    RetryPolicy.Immediate.newBuilder().setRetries(sla.getRetries())
+            ));
             batchJobBuilder.setRuntimeLimitSec(sla.getRuntimeLimitSecs());
             descriptorBuilder.setBatch(batchJobBuilder);
         }
