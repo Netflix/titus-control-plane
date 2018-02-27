@@ -38,6 +38,7 @@ import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.audit.model.AuditLogEvent;
+import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.api.model.event.TaskStateChangeEvent;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.ServiceJobProcesses;
@@ -53,7 +54,6 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.MetricConstants;
-import io.netflix.titus.api.audit.service.AuditLogService;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.job.worker.WorkerRequest;
@@ -566,14 +566,9 @@ public final class V2JobStore {
                 }
                 ref.set(jobsInitializer.call(V2JobStore.this, jobDefsMap));
             }
-        } catch (IOException e) {
-            logger.error(
-                    String.format("Exiting due to storage init failure: %s: ", e.getMessage()),
-                    e
-            );
+        } catch (Throwable e /* catch a Throwable only because we are going to System.exit right away */) {
+            logger.error(String.format("Exiting due to storage init failure: %s: ", e.getMessage()), e);
             System.exit(1); // can't deal with storage error
-        } catch (Exception e) {
-            logger.error("UNEXPECTED: " + e.getMessage(), e);
         }
         initMillis.set(System.currentTimeMillis() - st);
         logger.info("Enabling terminated jobs removal from the storage");
