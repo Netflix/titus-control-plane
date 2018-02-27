@@ -16,6 +16,7 @@
 
 package io.netflix.titus.api.model;
 
+import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
@@ -40,11 +41,14 @@ public class Pagination {
     @Min(value = 0, message = "'totalItems' value cannot be negative")
     private final int totalItems;
 
-    public Pagination(Page currentPage, boolean hasMore, int totalPages, int totalItems) {
+    private final String cursor;
+
+    public Pagination(Page currentPage, boolean hasMore, int totalPages, int totalItems, String cursor) {
         this.currentPage = currentPage;
         this.hasMore = hasMore;
         this.totalPages = totalPages;
         this.totalItems = totalItems;
+        this.cursor = cursor;
     }
 
     public Page getCurrentPage() {
@@ -63,6 +67,10 @@ public class Pagination {
         return totalItems;
     }
 
+    public String getCursor() {
+        return cursor;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -71,28 +79,17 @@ public class Pagination {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         Pagination that = (Pagination) o;
-
-        if (hasMore != that.hasMore) {
-            return false;
-        }
-        if (totalPages != that.totalPages) {
-            return false;
-        }
-        if (totalItems != that.totalItems) {
-            return false;
-        }
-        return currentPage != null ? currentPage.equals(that.currentPage) : that.currentPage == null;
+        return hasMore == that.hasMore &&
+                totalPages == that.totalPages &&
+                totalItems == that.totalItems &&
+                Objects.equals(currentPage, that.currentPage) &&
+                Objects.equals(cursor, that.cursor);
     }
 
     @Override
     public int hashCode() {
-        int result = currentPage != null ? currentPage.hashCode() : 0;
-        result = 31 * result + (hasMore ? 1 : 0);
-        result = 31 * result + totalPages;
-        result = 31 * result + totalItems;
-        return result;
+        return Objects.hash(currentPage, hasMore, totalPages, totalItems, cursor);
     }
 
     @Override
@@ -102,6 +99,7 @@ public class Pagination {
                 ", hasMore=" + hasMore +
                 ", totalPages=" + totalPages +
                 ", totalItems=" + totalItems +
+                ", cursor='" + cursor + '\'' +
                 '}';
     }
 }

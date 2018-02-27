@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -40,10 +39,12 @@ import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.api.service.TitusServiceException.ErrorCode;
+import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
 import io.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -97,49 +98,87 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     @Override
     public Pair<List<Job>, Pagination> findJobsByCriteria(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Optional<Page> pageOpt) {
-        return findByCriteria(
-                () -> v2EngineGateway.findJobsByCriteria(queryCriteria, Optional.of(Page.unlimited())),
-                () -> v3EngineGateway.findJobsByCriteria(queryCriteria, Optional.of(Page.unlimited())),
-                pageOpt
-        );
-    }
-
-    @Override
-    public Pair<List<Task>, Pagination> findTasksByCriteria(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Optional<Page> pageOpt) {
-        return findByCriteria(
-                () -> v2EngineGateway.findTasksByCriteria(queryCriteria, Optional.of(Page.unlimited())),
-                () -> v3EngineGateway.findTasksByCriteria(queryCriteria, Optional.of(Page.unlimited())),
-                pageOpt
-        );
-    }
-
-    private <T> Pair<List<T>, Pagination> findByCriteria(Supplier<Pair<List<T>, Pagination>> v2Supplier,
-                                                         Supplier<Pair<List<T>, Pagination>> v3Supplier,
-                                                         Optional<Page> pageOpt) {
         if (!pageOpt.isPresent()) {
             throw TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, "Page not provided").build();
         }
         Page page = pageOpt.get();
 
         // Get all matching entities, as we need totals anyway.
-        Pair<List<T>, Pagination> v2Result = v2Supplier.get();
-        Pair<List<T>, Pagination> v3Result = v3Supplier.get();
+        Pair<List<Job>, Pagination> v2Result = v2EngineGateway.findJobsByCriteria(queryCriteria, Optional.of(Page.unlimited()));
+        Pair<List<Job>, Pagination> v3Result = v3EngineGateway.findJobsByCriteria(queryCriteria, Optional.of(Page.unlimited()));
 
-        List<T> allItems = new ArrayList<>(v2Result.getLeft());
+        List<Job> allItems = new ArrayList<>(v2Result.getLeft());
         allItems.addAll(v3Result.getLeft());
+        allItems.sort(JobManagerCursors.jobCursorOrderComparator());
 
-        int offset = page.getPageSize() * page.getPageNumber();
+        int offset;
+        if (StringExt.isEmpty(page.getCursor())) {
+            offset = page.getPageSize() * page.getPageNumber();
+        } else {
+            offset = JobManagerCursors
+                    .jobIndexOf(allItems, page.getCursor())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid cursor: " + page.getCursor())) + 1;
+        }
+
+        boolean isEmptyResult = offset >= allItems.size();
+        boolean hasMore = allItems.size() > (offset + page.getPageSize());
+        int endOffset = Math.min(allItems.size(), offset + page.getPageSize());
 
         Pagination joinedPagination = new Pagination(
                 page,
-                allItems.size() > (offset + page.getPageSize()),
+                hasMore,
                 PaginationUtil.numberOfPages(page, allItems.size()),
-                allItems.size()
+                allItems.size(),
+                isEmptyResult ? "" : JobManagerCursors.newCursorFrom(allItems.get(endOffset - 1))
         );
 
-        List<T> pageItems = offset >= allItems.size()
+        List<Job> pageItems = isEmptyResult
                 ? Collections.emptyList()
-                : allItems.subList(offset, Math.min(allItems.size(), offset + page.getPageSize()));
+                : allItems.subList(offset, endOffset);
+
+        return Pair.of(pageItems, joinedPagination);
+    }
+
+    @Override
+    public Pair<List<Task>, Pagination> findTasksByCriteria(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Optional<Page> pageOpt) {
+        if (!pageOpt.isPresent()) {
+            throw TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, "Page not provided").build();
+        }
+        Page page = pageOpt.get();
+
+        // Get all matching entities, as we need totals anyway.
+        Pair<List<Task>, Pagination> v2Result = v2EngineGateway.findTasksByCriteria(queryCriteria, Optional.of(Page.unlimited()));
+        Pair<List<Task>, Pagination> v3Result = v3EngineGateway.findTasksByCriteria(queryCriteria, Optional.of(Page.unlimited()));
+
+        List<Task> allItems = new ArrayList<>(v2Result.getLeft());
+        allItems.addAll(v3Result.getLeft());
+        allItems.sort(JobManagerCursors.taskCursorOrderComparator());
+
+        int offset;
+        if (StringExt.isEmpty(page.getCursor())) {
+            offset = page.getPageSize() * page.getPageNumber();
+        } else {
+            offset = JobManagerCursors
+                    .taskIndexOf(allItems, page.getCursor())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid cursor: " + page.getCursor())) + 1;
+        }
+
+        boolean isEmptyResult = offset >= allItems.size();
+        boolean hasMore = allItems.size() > (offset + page.getPageSize());
+        int endOffset = Math.min(allItems.size(), offset + page.getPageSize());
+
+        Pagination joinedPagination = new Pagination(
+                page,
+                hasMore,
+                PaginationUtil.numberOfPages(page, allItems.size()),
+                allItems.size(),
+                isEmptyResult ? "" : JobManagerCursors.newCursorFrom(allItems.get(endOffset - 1))
+        );
+
+        List<Task> pageItems = isEmptyResult
+                ? Collections.emptyList()
+                : allItems.subList(offset, endOffset);
+
         return Pair.of(pageItems, joinedPagination);
     }
 

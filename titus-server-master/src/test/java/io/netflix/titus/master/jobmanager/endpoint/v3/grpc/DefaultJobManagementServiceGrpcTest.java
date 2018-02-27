@@ -113,7 +113,7 @@ public class DefaultJobManagementServiceGrpcTest {
         JobQuery jobQuery = JobQuery.newBuilder().setPage(requestedPage).build();
 
         io.netflix.titus.api.model.Pagination pagination = new io.netflix.titus.api.model.Pagination(
-                toPage(requestedPage), false, 1, 1
+                toPage(requestedPage), false, 1, 1, ""
         );
         when(gateway.findJobsByCriteria(any(), any())).thenReturn(Pair.of(singletonList(JOB), pagination));
 

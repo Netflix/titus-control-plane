@@ -209,7 +209,7 @@ public class V2GrpcTitusServiceGateway
                 .filter(criteriaEvaluator)
                 .collect(Collectors.toList());
 
-        Pair<List<Pair<V2JobMetadata, List<V2WorkerMetadata>>>, Pagination> paginationPair = PaginationUtil.takePage(page, filtered);
+        Pair<List<Pair<V2JobMetadata, List<V2WorkerMetadata>>>, Pagination> paginationPair = PaginationUtil.takePage(page, filtered, p -> ""); // Do not generate cursor for V2 model
 
         List<Job> grpcJobs = paginationPair.getLeft().stream()
                 .map(jobAndTasks -> V2GrpcModelConverters.toGrpcJob(jobAndTasks.getLeft()))
@@ -240,7 +240,7 @@ public class V2GrpcTitusServiceGateway
                 .filter(criteriaEvaluator)
                 .collect(Collectors.toList());
 
-        Pair<List<Pair<V2JobMetadata, V2WorkerMetadata>>, Pagination> paginationPair = PaginationUtil.takePage(page, filtered);
+        Pair<List<Pair<V2JobMetadata, V2WorkerMetadata>>, Pagination> paginationPair = PaginationUtil.takePage(page, filtered, task -> "");
 
         List<Task> grpcTasks = paginationPair.getLeft().stream()
                 .map(jobAndTasks -> V2GrpcModelConverters.toGrpcTask(configuration, jobAndTasks.getRight(), logStorageInfo))
@@ -255,12 +255,12 @@ public class V2GrpcTitusServiceGateway
         if (queryCriteria.getJobState().isPresent()) {
             JobStatus.JobState jobState = ((JobStatus.JobState) queryCriteria.getJobState().get());
             if (jobState == JobStatus.JobState.KillInitiated) {
-                return Optional.of(Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0)));
+                return Optional.of(Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, "")));
             }
         }
         // If client asks only for tasks in 'KillInitiated' state, return empty reply as V2 does not support this state.
         if (queryCriteria.getTaskStates().size() == 1 && first(queryCriteria.getTaskStates()) == TaskStatus.TaskState.KillInitiated) {
-            return Optional.of(Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0)));
+            return Optional.of(Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, "")));
         }
         return Optional.empty();
     }

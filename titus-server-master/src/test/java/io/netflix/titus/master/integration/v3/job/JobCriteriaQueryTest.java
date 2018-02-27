@@ -560,11 +560,11 @@ public class JobCriteriaQueryTest {
         // Jobs
         JobQueryResult jobQueryResult = client.findJobs(JobQuery.newBuilder().setPage(firstPageOf5).build());
         assertThat(jobQueryResult.getItemsList()).hasSize(5);
-        assertThat(jobQueryResult.getPagination()).isEqualTo(Pagination.newBuilder().setCurrentPage(firstPageOf5).setTotalPages(2).setTotalItems(6).setHasMore(true).build());
+        checkPage(jobQueryResult.getPagination(), firstPageOf5, 2, 6, true);
 
         JobQueryResult jobQueryResult2 = client.findJobs(JobQuery.newBuilder().setPage(secondPageOf5).build());
         assertThat(jobQueryResult2.getItemsList()).hasSize(1);
-        assertThat(jobQueryResult2.getPagination()).isEqualTo(Pagination.newBuilder().setCurrentPage(secondPageOf5).setTotalPages(2).setTotalItems(6).build());
+        checkPage(jobQueryResult2.getPagination(), secondPageOf5, 2, 6, false);
 
         Set<String> foundJobIds = new HashSet<>();
         jobQueryResult.getItemsList().forEach(j -> foundJobIds.add(j.getId()));
@@ -574,16 +574,23 @@ public class JobCriteriaQueryTest {
         // Tasks
         TaskQueryResult taskQueryResult = client.findTasks(TaskQuery.newBuilder().setPage(firstPageOf5).build());
         assertThat(taskQueryResult.getItemsList()).hasSize(5);
-        assertThat(taskQueryResult.getPagination()).isEqualTo(Pagination.newBuilder().setCurrentPage(firstPageOf5).setTotalPages(2).setTotalItems(6).setHasMore(true).build());
+        checkPage(taskQueryResult.getPagination(), firstPageOf5, 2, 6, true);
 
         TaskQueryResult taskQueryResult2 = client.findTasks(TaskQuery.newBuilder().setPage(secondPageOf5).build());
         assertThat(taskQueryResult2.getItemsList()).hasSize(1);
-        assertThat(taskQueryResult2.getPagination()).isEqualTo(Pagination.newBuilder().setCurrentPage(secondPageOf5).setTotalPages(2).setTotalItems(6).build());
+        checkPage(taskQueryResult2.getPagination(), secondPageOf5, 2, 6, false);
 
         Set<String> foundTasksIds = new HashSet<>();
         taskQueryResult.getItemsList().forEach(j -> foundTasksIds.add(j.getId()));
         taskQueryResult2.getItemsList().forEach(j -> foundTasksIds.add(j.getId()));
         assertThat(foundTasksIds).hasSize(6);
+    }
+
+    private void checkPage(Pagination pagination, Page current, int totalPages, int totalItems, boolean hasMore) {
+        assertThat(pagination.getCurrentPage()).isEqualTo(current);
+        assertThat(pagination.getTotalPages()).isEqualTo(totalPages);
+        assertThat(pagination.getTotalItems()).isEqualTo(totalItems);
+        assertThat(pagination.getHasMore()).isEqualTo(hasMore);
     }
 
     @Test(timeout = 30_000)
