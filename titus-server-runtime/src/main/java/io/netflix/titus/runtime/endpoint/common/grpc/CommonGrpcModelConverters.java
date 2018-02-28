@@ -62,7 +62,7 @@ public class CommonGrpcModelConverters {
     );
 
     public static Page toPage(com.netflix.titus.grpc.protogen.Page grpcPage) {
-        return new Page(grpcPage.getPageNumber(), grpcPage.getPageSize());
+        return new Page(grpcPage.getPageNumber(), grpcPage.getPageSize(), grpcPage.getCursor());
     }
 
     public static com.netflix.titus.grpc.protogen.Page toGrpcPage(Page runtimePage) {
@@ -78,6 +78,7 @@ public class CommonGrpcModelConverters {
                 .setTotalItems(runtimePagination.getTotalItems())
                 .setTotalPages(runtimePagination.getTotalPages())
                 .setHasMore(runtimePagination.hasMore())
+                .setCursor(runtimePagination.getCursor())
                 .build();
     }
 

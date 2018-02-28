@@ -18,6 +18,7 @@ package io.netflix.titus.api.model;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 import io.netflix.titus.common.util.tuple.Pair;
 
@@ -29,10 +30,10 @@ public final class PaginationUtil {
     private PaginationUtil() {
     }
 
-    public static <T> Pair<List<T>, Pagination> takePage(Page page, List<T> items) {
+    public static <T> Pair<List<T>, Pagination> takePage(Page page, List<T> items, Function<T, String> cursorFactory) {
         int totalItems = items.size();
         if (totalItems <= 0) {
-            Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0));
+            Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, ""));
         }
 
         int firstItem = page.getPageNumber() * page.getPageSize();
@@ -44,7 +45,9 @@ public final class PaginationUtil {
                 ? items.subList(firstItem, lastItem)
                 : Collections.emptyList();
 
-        return Pair.of(pageItems, new Pagination(page, more, totalPages, totalItems));
+        String cursor = pageItems.isEmpty() ? "" : cursorFactory.apply(pageItems.get(pageItems.size() - 1));
+
+        return Pair.of(pageItems, new Pagination(page, more, totalPages, totalItems, cursor));
     }
 
     public static int numberOfPages(Page page, int totalItems) {

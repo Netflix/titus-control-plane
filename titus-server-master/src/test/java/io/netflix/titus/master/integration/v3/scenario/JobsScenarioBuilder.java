@@ -129,6 +129,10 @@ public class JobsScenarioBuilder extends ExternalResource {
         return this;
     }
 
+    public JobScenarioBuilder takeJob(String jobId) {
+        return jobScenarioBuilders.stream().filter(j -> j.getJobId().equals(jobId)).findFirst().orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
+    }
+
     public JobScenarioBuilder takeJob(int idx) {
         Preconditions.checkArgument(idx < jobScenarioBuilders.size(), "Invalid job index: %s (max=%s)", idx, jobScenarioBuilders.size());
         return jobScenarioBuilders.get(idx);

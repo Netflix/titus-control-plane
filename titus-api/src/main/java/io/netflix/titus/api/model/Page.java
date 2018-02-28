@@ -16,15 +16,19 @@
 
 package io.netflix.titus.api.model;
 
+import java.util.Objects;
 import javax.validation.constraints.Min;
+
+import io.netflix.titus.common.model.sanitizer.NeverNull;
 
 /**
  * An entity representing single page of a collection.
  */
+@NeverNull
 public class Page {
 
-    private static final Page EMPTY = new Page(0, 0);
-    private static final Page UNLIMITED = new Page(0, Integer.MAX_VALUE / 2); // Do not use MAX_VALUE to prevent overflow
+    private static final Page EMPTY = new Page(0, 0, "");
+    private static final Page UNLIMITED = new Page(0, Integer.MAX_VALUE / 2, ""); // Do not use MAX_VALUE to prevent overflow
 
     /**
      * Requested page number, starting from 0 (defaults to 0 if not specified).
@@ -38,9 +42,12 @@ public class Page {
     @Min(value = 0, message = "Page size cannot be negative")
     private final int pageSize;
 
-    public Page(int pageNumber, int pageSize) {
+    private final String cursor;
+
+    public Page(int pageNumber, int pageSize, String cursor) {
         this.pageNumber = pageNumber;
         this.pageSize = pageSize;
+        this.cursor = cursor;
     }
 
     public int getPageNumber() {
@@ -51,6 +58,10 @@ public class Page {
         return pageSize;
     }
 
+    public String getCursor() {
+        return cursor;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -59,20 +70,15 @@ public class Page {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         Page page = (Page) o;
-
-        if (pageNumber != page.pageNumber) {
-            return false;
-        }
-        return pageSize == page.pageSize;
+        return pageNumber == page.pageNumber &&
+                pageSize == page.pageSize &&
+                Objects.equals(cursor, page.cursor);
     }
 
     @Override
     public int hashCode() {
-        int result = pageNumber;
-        result = 31 * result + pageSize;
-        return result;
+        return Objects.hash(pageNumber, pageSize, cursor);
     }
 
     @Override
@@ -80,6 +86,7 @@ public class Page {
         return "Page{" +
                 "pageNumber=" + pageNumber +
                 ", pageSize=" + pageSize +
+                ", cursor='" + cursor + '\'' +
                 '}';
     }
 
@@ -89,5 +96,41 @@ public class Page {
 
     public static Page unlimited() {
         return UNLIMITED;
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private int pageNumber;
+        private int pageSize;
+        private String cursor = "";
+
+        private Builder() {
+        }
+
+        public Builder withPageNumber(int pageNumber) {
+            this.pageNumber = pageNumber;
+            return this;
+        }
+
+        public Builder withPageSize(int pageSize) {
+            this.pageSize = pageSize;
+            return this;
+        }
+
+        public Builder withCursor(String cursor) {
+            this.cursor = cursor;
+            return this;
+        }
+
+        public Builder but() {
+            return newBuilder().withPageNumber(pageNumber).withPageSize(pageSize).withCursor(cursor);
+        }
+
+        public Page build() {
+            return new Page(pageNumber, pageSize, cursor);
+        }
     }
 }

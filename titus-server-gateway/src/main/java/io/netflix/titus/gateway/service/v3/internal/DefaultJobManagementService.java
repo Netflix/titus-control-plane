@@ -314,8 +314,11 @@ public class DefaultJobManagementService implements JobManagementService {
                                                List<Task> activeTasks,
                                                List<Task> archivedTasks) {
         List<Task> tasks = deDupTasks(activeTasks, archivedTasks);
-        Page page = new Page(taskQuery.getPage().getPageNumber(), taskQuery.getPage().getPageSize());
-        Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePage(page, tasks);
+        // TODO Set the cursor value after V2 engine is removed
+        Page page = new Page(taskQuery.getPage().getPageNumber(), taskQuery.getPage().getPageSize(), "");
+
+        // Cursors not supported for point queries.
+        Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePage(page, tasks, task -> "");
 
         return TaskQueryResult.newBuilder()
                 .addAllItems(paginationPair.getLeft())

@@ -45,6 +45,7 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -180,6 +181,14 @@ public class JobScenarioBuilder {
 
     public JobScenarioBuilder template(Function<JobScenarioBuilder, JobScenarioBuilder> templateFun) {
         return templateFun.apply(this);
+    }
+
+    public JobScenarioBuilder onV2Template(Function<JobScenarioBuilder, JobScenarioBuilder> templateFun) {
+        return !JobFunctions.isV2JobId(jobId) ? this : templateFun.apply(this);
+    }
+
+    public JobScenarioBuilder onV3Template(Function<JobScenarioBuilder, JobScenarioBuilder> templateFun) {
+        return JobFunctions.isV2JobId(jobId) ? this : templateFun.apply(this);
     }
 
     public JobScenarioBuilder allTasks(Function<TaskScenarioBuilder, TaskScenarioBuilder> taskActions) {

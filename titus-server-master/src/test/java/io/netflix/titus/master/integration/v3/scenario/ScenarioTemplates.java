@@ -154,4 +154,17 @@ public class ScenarioTemplates {
                 .expectStateUpdateSkipOther(lockedState)
                 .expectStateUpdates(TaskState.KillInitiated, TaskState.Finished);
     }
+
+    public static Function<TaskScenarioBuilder, TaskScenarioBuilder> terminateAndShrinkV2() {
+        return taskScenarioBuilder -> taskScenarioBuilder
+                .killTaskAndShrink()
+                .expectStateUpdateSkipOther(TaskState.Finished);
+    }
+
+    public static Function<TaskScenarioBuilder, TaskScenarioBuilder> terminateAndShrinkV3() {
+        return taskScenarioBuilder -> taskScenarioBuilder
+                .killTaskAndShrink()
+                .expectStateUpdateSkipOther(TaskState.KillInitiated)
+                .expectStateUpdateSkipOther(TaskState.Finished);
+    }
 }
