@@ -580,13 +580,16 @@ public final class V2JobStore {
         executor.scheduleWithFixedDelay(this::deleteOldTerminatedJobs,
                 DELETE_TERMINATED_JOBS_INITIAL_DELAY_SECS, DELETE_TERMINATED_JOBS_DELAY_SECS, TimeUnit.SECONDS
         );
-        new Thread(() -> {
+        final Thread postInitThread = new Thread(() -> {
             try {
                 doPostInit(jobsToArchive, ref.get());
             } catch (Throwable e) {
                 logger.error("Archived state initialization failure", e);
             }
-        }).start();
+        });
+        postInitThread.setDaemon(true);
+        postInitThread.setName(getClass().getSimpleName() + ".postInit");
+        postInitThread.start();
     }
 
     private long getTerminatedAt(V2JobMetadata mjmd) {
