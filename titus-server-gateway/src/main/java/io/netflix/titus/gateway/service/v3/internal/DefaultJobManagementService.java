@@ -314,6 +314,7 @@ public class DefaultJobManagementService implements JobManagementService {
                                                List<Task> activeTasks,
                                                List<Task> archivedTasks) {
         List<Task> tasks = deDupTasks(activeTasks, archivedTasks);
+        // TODO Set the cursor value after V2 engine is removed
         Page page = new Page(taskQuery.getPage().getPageNumber(), taskQuery.getPage().getPageSize(), "");
 
         // Selectors not supported for point queries.
