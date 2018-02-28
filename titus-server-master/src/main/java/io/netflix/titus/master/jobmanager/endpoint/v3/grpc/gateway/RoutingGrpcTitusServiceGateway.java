@@ -16,7 +16,6 @@
 
 package io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +38,7 @@ import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.api.service.TitusServiceException.ErrorCode;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
@@ -107,8 +107,7 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         Pair<List<Job>, Pagination> v2Result = v2EngineGateway.findJobsByCriteria(queryCriteria, Optional.of(Page.unlimited()));
         Pair<List<Job>, Pagination> v3Result = v3EngineGateway.findJobsByCriteria(queryCriteria, Optional.of(Page.unlimited()));
 
-        List<Job> allItems = new ArrayList<>(v2Result.getLeft());
-        allItems.addAll(v3Result.getLeft());
+        List<Job> allItems = CollectionsExt.merge(v2Result.getLeft(), v3Result.getLeft());
         allItems.sort(JobManagerCursors.jobCursorOrderComparator());
 
         int offset;
@@ -150,8 +149,7 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         Pair<List<Task>, Pagination> v2Result = v2EngineGateway.findTasksByCriteria(queryCriteria, Optional.of(Page.unlimited()));
         Pair<List<Task>, Pagination> v3Result = v3EngineGateway.findTasksByCriteria(queryCriteria, Optional.of(Page.unlimited()));
 
-        List<Task> allItems = new ArrayList<>(v2Result.getLeft());
-        allItems.addAll(v3Result.getLeft());
+        List<Task> allItems = CollectionsExt.merge(v2Result.getLeft(), v3Result.getLeft());
         allItems.sort(JobManagerCursors.taskCursorOrderComparator());
 
         int offset;

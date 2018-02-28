@@ -209,7 +209,8 @@ public class V2GrpcTitusServiceGateway
                 .filter(criteriaEvaluator)
                 .collect(Collectors.toList());
 
-        Pair<List<Pair<V2JobMetadata, List<V2WorkerMetadata>>>, Pagination> paginationPair = PaginationUtil.takePage(page, filtered, p -> ""); // Do not generate cursor for V2 model
+        // Do not generate cursor for V2 model, as this is done in the routing layer when V2 and V3 data are merged.
+        Pair<List<Pair<V2JobMetadata, List<V2WorkerMetadata>>>, Pagination> paginationPair = PaginationUtil.takePage(page, filtered, p -> "");
 
         List<Job> grpcJobs = paginationPair.getLeft().stream()
                 .map(jobAndTasks -> V2GrpcModelConverters.toGrpcJob(jobAndTasks.getLeft()))

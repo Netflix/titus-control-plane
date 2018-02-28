@@ -317,7 +317,7 @@ public class DefaultJobManagementService implements JobManagementService {
         // TODO Set the cursor value after V2 engine is removed
         Page page = new Page(taskQuery.getPage().getPageNumber(), taskQuery.getPage().getPageSize(), "");
 
-        // Selectors not supported for point queries.
+        // Cursors not supported for point queries.
         Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePage(page, tasks, task -> "");
 
         return TaskQueryResult.newBuilder()
