@@ -80,7 +80,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1037,7 +1037,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1994,7 +1994,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2988,7 +2988,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3946,7 +3946,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -4910,7 +4910,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -5923,7 +5923,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -6936,7 +6936,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -7950,7 +7950,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]

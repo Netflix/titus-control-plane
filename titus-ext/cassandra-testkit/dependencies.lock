@@ -82,7 +82,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -835,7 +835,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -1588,7 +1588,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -2378,7 +2378,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -3132,7 +3132,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -3892,7 +3892,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -4690,7 +4690,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -5488,7 +5488,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -6287,7 +6287,7 @@
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
-            "locked": "2.6.1",
+            "locked": "2.6.2",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
