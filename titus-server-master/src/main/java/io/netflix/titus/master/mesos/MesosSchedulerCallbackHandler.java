@@ -43,6 +43,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
+import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.RegExpExt;
@@ -286,7 +287,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     public void reconcileTasks(final SchedulerDriver driver) {
-        if(!mesosConfiguration.isReconcilerEnabled()) {
+        if (!mesosConfiguration.isReconcilerEnabled()) {
             logger.info("Task reconciliation is turned-off");
             return;
         }
@@ -426,13 +427,17 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
         // V2 engine
         for (V2JobMgrIntf jmgr : v2JobOperations.getAllJobMgrs()) {
-            try {
-                for (V2WorkerMetadata worker : jmgr.getWorkers()) {
-                    if (taskId.equals(WorkerNaming.getTaskId(worker))) {
-                        return true;
+            V2JobMetadata jobMetadata = jmgr.getJobMetadata();
+            if (jobMetadata != null) {
+                try {
+                    for (V2WorkerMetadata worker : jmgr.getWorkers()) {
+                        if (taskId.equals(WorkerNaming.getTaskId(worker))) {
+                            return true;
+                        }
                     }
+                } catch (Exception ignore) {
+                    logger.debug("Error during searching through V2 tasks of job: {}", jobMetadata.getJobId());
                 }
-            } catch (Exception ignore) {
             }
         }
         return false;

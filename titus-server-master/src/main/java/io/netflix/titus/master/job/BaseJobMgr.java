@@ -809,7 +809,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                 logger.warn("Job not found in store: {}", jobId);
             }
         } catch (InvalidJobException e) {
-            // shouldn't happen
+            logger.error("Unexpected exception when handling job: {}", jobId, e);
         } catch (IOException e) {
             // no reasonable way to handle storage exceptions
             logger.error("Can't store job state: jobId={}, newState={}, error={}", jobId, state, e.getMessage(), e);
@@ -827,8 +827,10 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         if (enforceSlaFuture != null) {
             enforceSlaFuture.cancel(false);
         }
-        auditLogService.submit(AuditLogEvent.of(AuditLogEvent.Type.JOB_TERMINATE, jobId, state + ": " + mesg, jobMetadata));
-        eventBus.publish(new JobStateChangeEvent<>(jobId, JobState.Finished, System.currentTimeMillis(), jobMetadata));
+        if(jobMetadata != null) {
+            auditLogService.submit(AuditLogEvent.of(AuditLogEvent.Type.JOB_TERMINATE, jobId, state + ": " + mesg, jobMetadata));
+            eventBus.publish(new JobStateChangeEvent<>(jobId, JobState.Finished, System.currentTimeMillis(), jobMetadata));
+        }
     }
 
     protected V2WorkerMetadata replaceWorker(V2WorkerMetadata replaced) throws InvalidJobStateChangeException, IOException, InvalidJobException {
