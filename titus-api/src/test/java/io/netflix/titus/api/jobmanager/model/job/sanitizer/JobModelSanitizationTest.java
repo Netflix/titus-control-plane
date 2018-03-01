@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobModelSanitizationTest {
@@ -109,6 +110,18 @@ public class JobModelSanitizationTest {
     public void testBatchWithNoSecurityGroup() {
         JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(c ->
                 c.getSecurityProfile().toBuilder().withSecurityGroups(Collections.emptyList()).build()
+        ));
+        Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(1);
+        assertThat(CollectionsExt.first(violations).getPropertyPath().toString()).contains("securityGroups");
+    }
+
+    @Test
+    public void testBatchWithTooManySecurityGroups() {
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(c ->
+                c.getSecurityProfile().toBuilder().withSecurityGroups(
+                        asList("sg-1", "sg-2", "sg-3", "sg-4", "sg-5", "sg-6", "sg-7")
+                ).build()
         ));
         Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
         assertThat(violations).hasSize(1);

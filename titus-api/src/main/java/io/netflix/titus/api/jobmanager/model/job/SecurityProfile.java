@@ -35,7 +35,7 @@ public class SecurityProfile {
     private static final SecurityProfile EMPTY = newBuilder().build();
 
     @FieldInvariant(value = "@asserts.isValidSyntax(value)", message = "Syntactically invalid security group ids: #{value}")
-    @Size(min = 1, message = "At least one security group must be given")
+    @Size(min = 1, max = 6, message = "Number of security groups must be between 1 and 6")
     private final List<String> securityGroups;
 
     @FieldInvariant(value = "@asserts.isValidIamRole(value)", message = "Syntactically invalid IAM role: #{value}")
