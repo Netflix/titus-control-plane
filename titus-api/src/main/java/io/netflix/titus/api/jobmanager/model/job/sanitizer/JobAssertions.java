@@ -29,6 +29,7 @@ import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Image;
 import io.netflix.titus.api.model.ResourceDimension;
+import io.netflix.titus.common.util.StringExt;
 
 /**
  */
@@ -47,6 +48,11 @@ public class JobAssertions {
 
     public boolean isValidSyntax(List<String> securityGroups) {
         return securityGroups.stream().allMatch(sg -> SG_PATTERN.matcher(sg).matches());
+    }
+
+    public boolean isValidIamRole(String iamRole) {
+        // TODO We should make full ARN validation
+        return !StringExt.safeTrim(iamRole).isEmpty();
     }
 
     public Map<String, String> validateImage(Image image) {

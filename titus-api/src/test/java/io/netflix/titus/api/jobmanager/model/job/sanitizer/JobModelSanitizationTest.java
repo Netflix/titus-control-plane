@@ -34,11 +34,13 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobModelSanitizationTest {
@@ -102,6 +104,38 @@ public class JobModelSanitizationTest {
 
         // Security group violation expected
         assertThat(entitySanitizer.validate(job)).hasSize(1);
+    }
+
+    @Test
+    public void testBatchWithNoSecurityGroup() {
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(c ->
+                c.getSecurityProfile().toBuilder().withSecurityGroups(Collections.emptyList()).build()
+        ));
+        Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(1);
+        assertThat(CollectionsExt.first(violations).getPropertyPath().toString()).contains("securityGroups");
+    }
+
+    @Test
+    public void testBatchWithTooManySecurityGroups() {
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(c ->
+                c.getSecurityProfile().toBuilder().withSecurityGroups(
+                        asList("sg-1", "sg-2", "sg-3", "sg-4", "sg-5", "sg-6", "sg-7")
+                ).build()
+        ));
+        Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(1);
+        assertThat(CollectionsExt.first(violations).getPropertyPath().toString()).contains("securityGroups");
+    }
+
+    @Test
+    public void testBatchWithNoIamRole() {
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(c ->
+                c.getSecurityProfile().toBuilder().withIamRole("").build()
+        ));
+        Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(1);
+        assertThat(CollectionsExt.first(violations).getPropertyPath().toString()).contains("iamRole");
     }
 
     @Test

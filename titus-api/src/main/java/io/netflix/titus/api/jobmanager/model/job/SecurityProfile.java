@@ -18,6 +18,7 @@ package io.netflix.titus.api.jobmanager.model.job;
 
 import java.util.List;
 import java.util.Map;
+import javax.validation.constraints.Size;
 
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
@@ -34,8 +35,10 @@ public class SecurityProfile {
     private static final SecurityProfile EMPTY = newBuilder().build();
 
     @FieldInvariant(value = "@asserts.isValidSyntax(value)", message = "Syntactically invalid security group ids: #{value}")
+    @Size(min = 1, max = 6, message = "Number of security groups must be between 1 and 6")
     private final List<String> securityGroups;
 
+    @FieldInvariant(value = "@asserts.isValidIamRole(value)", message = "Syntactically invalid IAM role: #{value}")
     private final String iamRole;
 
     @CollectionInvariants
