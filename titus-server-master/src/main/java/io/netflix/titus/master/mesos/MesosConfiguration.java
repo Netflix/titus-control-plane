@@ -20,4 +20,10 @@ public interface MesosConfiguration {
 
     @DefaultValue("unknownSystemError")
     String getUnknownSystemErrorMessagePattern();
+
+    @DefaultValue("true")
+    boolean isReconcilerEnabled();
+
+    @DefaultValue("false")
+    boolean isAllowReconcilerUpdatesForUnknownTasks();
 }

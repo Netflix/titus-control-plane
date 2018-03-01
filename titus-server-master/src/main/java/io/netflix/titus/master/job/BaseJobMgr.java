@@ -524,7 +524,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                     }
                 }
             } catch (IOException e) {
-                logger.warn("Can't store task state: " + e.getMessage());
+                logger.warn("Can't store task state for job {}: {}", jobId, e.getMessage(), e);
                 return;
             } catch (InvalidJobException | InvalidJobStateChangeException e) {
                 logger.warn(jobId + ": Unexpected error storing task state to " + status.getState() + ": " + e.getMessage());
@@ -803,12 +803,16 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         V2JobMetadata jobMetadata = null;
         try {
             jobMetadata = getJobMetadata();
-            store.storeJobState(jobId, state);
+            if (jobMetadata != null) {
+                store.storeJobState(jobId, state);
+            } else {
+                logger.warn("Job not found in store: {}", jobId);
+            }
         } catch (InvalidJobException e) {
             // shouldn't happen
         } catch (IOException e) {
             // no reasonable way to handle storage exceptions
-            logger.error("Can't store job state to failed");
+            logger.error("Can't store job state: jobId={}, newState={}, error={}", jobId, state, e.getMessage(), e);
         } catch (InvalidJobStateChangeException e) {
             // ignore, must be already in terminal state
             logger.warn(jobId + ": error changing state to Failed: " + e.getMessage());
