@@ -36,6 +36,8 @@ import rx.Observable;
  */
 public interface V3JobOperations {
 
+    String COMPONENT = "jobManagement";
+
     enum Trigger {
         API,
         Mesos,

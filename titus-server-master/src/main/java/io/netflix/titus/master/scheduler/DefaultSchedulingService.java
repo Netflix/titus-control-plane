@@ -78,6 +78,8 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
+import io.netflix.titus.common.framework.fit.Fit;
+import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -126,6 +128,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
+    private final Optional<FitInjection> fitInjection;
     private TaskScheduler taskScheduler;
     private TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
@@ -246,6 +249,16 @@ public class DefaultSchedulingService implements SchedulingService {
         this.agentResourceCache = agentResourceCache;
         this.globalConstraintsEvaluator = globalConstraintsEvaluator;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
+
+        if (titusRuntime.isFitEnabled()) {
+            this.fitInjection = Optional.of(Fit.newFitInjectionBuilder("taskLaunchAndStore")
+                    .withDescription("Break write to store during Fenzo task launch")
+                    .build()
+            );
+            titusRuntime.getFit().getChild(COMPONENT).addInjection(fitInjection.get());
+        } else {
+            this.fitInjection = Optional.empty();
+        }
 
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
                 .withLeaseRejectAction(virtualMachineService::rejectLease)
@@ -630,6 +643,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     consumeResult);
 
                             // FIXME This is obvious shortcoming. Failed model updates must be propagated into change action result.
+                            fitInjection.ifPresent(i -> i.beforeImmediate("storeLaunchConfiguration"));
+
                             AtomicReference<Throwable> errorRef = new AtomicReference<>();
                             boolean updated = v3JobOperations.recordTaskPlacement(
                                     task.getId(),
@@ -642,6 +657,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                         }
                                     }
                             ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+                            fitInjection.ifPresent(i -> i.afterImmediate("storeLaunchConfiguration"));
 
                             if (errorRef.get() != null) {
                                 if (JobManagerException.hasErrorCode(errorRef.get(), JobManagerException.ErrorCode.UnexpectedTaskState)) {

@@ -18,6 +18,7 @@ package io.netflix.titus.ext.cassandra.store;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -28,7 +29,6 @@ import javax.inject.Singleton;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
@@ -36,6 +36,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.store.JobStore;
@@ -45,6 +46,8 @@ import io.netflix.titus.common.framework.fit.Fit;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
@@ -56,6 +59,9 @@ import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
 @Singleton
 @ProxyConfiguration(types = {Logging, Spectator})
 public class CassandraJobStore implements JobStore {
+
+    private static final Logger logger = LoggerFactory.getLogger(CassandraJobStore.class);
+
     private static final int INITIAL_BUCKET_COUNT = 100;
     private static final int MAX_BUCKET_SIZE = 2_000;
     private static final String METRIC_NAME_ROOT = "titusMaster.jobManager.cassandra";
@@ -111,6 +117,7 @@ public class CassandraJobStore implements JobStore {
     private final ObjectMapper mapper;
     private final BalancedBucketManager<String> activeJobIdsBucketManager;
     private final CassandraStoreConfiguration configuration;
+    private final Optional<FitInjection> fitInjection;
 
     @Inject
     public CassandraJobStore(CassandraStoreConfiguration configuration, Session session, TitusRuntime titusRuntime) {
@@ -124,15 +131,18 @@ public class CassandraJobStore implements JobStore {
                       int initialBucketCount,
                       int maxBucketSize) {
         this.configuration = configuration;
+        this.session = session;
 
         if (titusRuntime.isFitEnabled()) {
-            FitInjection injection = Fit.newFitInjectionBuilder("cassandraDriver")
+            FitInjection fitInjection = Fit.newFitInjectionBuilder("cassandraDriver")
+                    .withDescription("Fail Cassandra driver requests")
                     .withExceptionType(DriverException.class)
                     .build();
-            titusRuntime.getFit().getChild("jobManagement").addInjection(injection);
-            this.session = Fit.newFitProxy(session, injection);
+            titusRuntime.getFit().getChild("jobManagement").addInjection(fitInjection);
+
+            this.fitInjection = Optional.of(fitInjection);
         } else {
-            this.session = session;
+            this.fitInjection = Optional.empty();
         }
 
         this.mapper = mapper;
@@ -434,22 +444,30 @@ public class CassandraJobStore implements JobStore {
     }
 
     private Observable<ResultSet> execute(Statement statement) {
-        return Observable.create(emitter -> {
-            ResultSetFuture resultSetFuture = session.executeAsync(statement);
-            Futures.addCallback(resultSetFuture, new FutureCallback<ResultSet>() {
-                @Override
-                public void onSuccess(@Nullable ResultSet result) {
-                    emitter.onNext(result);
-                    emitter.onCompleted();
-                }
+        return Observable.<ResultSet>create(
+                emitter -> {
+                    ListenableFuture resultSetFuture = fitInjection
+                            .map(injection -> injection.aroundListenableFuture(
+                                    "executeAsync", () -> session.executeAsync(statement))
+                            )
+                            .orElseGet(() -> session.executeAsync(statement));
 
-                @Override
-                public void onFailure(@Nonnull Throwable e) {
-                    emitter.onError(JobStoreException.cassandraDriverError(e));
-                }
-            });
-            emitter.setCancellation(() -> resultSetFuture.cancel(true));
-        }, Emitter.BackpressureMode.NONE);
+                    Futures.addCallback(resultSetFuture, new FutureCallback<ResultSet>() {
+                        @Override
+                        public void onSuccess(@Nullable ResultSet result) {
+                            emitter.onNext(result);
+                            emitter.onCompleted();
+                        }
+
+                        @Override
+                        public void onFailure(@Nonnull Throwable e) {
+                            emitter.onError(JobStoreException.cassandraDriverError(e));
+                        }
+                    });
+                    emitter.setCancellation(() -> resultSetFuture.cancel(true));
+                },
+                Emitter.BackpressureMode.NONE
+        ).doOnError(e -> logger.info("Cassandra operation error: {}", e.getMessage()));
     }
 
     private int getConcurrencyLimit() {

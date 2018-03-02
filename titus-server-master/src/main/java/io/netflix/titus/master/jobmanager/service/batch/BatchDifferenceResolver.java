@@ -114,7 +114,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
-                Retryers.exponentialBackoff(5000, 5000, TimeUnit.MILLISECONDS),
+                Retryers.exponentialBackoff(500, 5000, TimeUnit.MILLISECONDS),
                 scheduler
         );
     }

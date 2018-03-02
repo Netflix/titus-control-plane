@@ -39,7 +39,9 @@ public class DefaultFitComponent implements FitComponent {
 
     @Override
     public FitComponent getChild(String id) {
-        return Preconditions.checkNotNull(children.get(id), "FitComponent %s not found", id);
+        FitComponent child = children.get(id);
+        Preconditions.checkArgument(child != null, "FitComponent %s not found", id);
+        return child;
     }
 
     @Override
@@ -69,8 +71,8 @@ public class DefaultFitComponent implements FitComponent {
     }
 
     @Override
-    public void visitInjections(Consumer<FitInjection> evaluator) {
+    public void acceptInjections(Consumer<FitInjection> evaluator) {
         injections.values().forEach(evaluator);
-        children.values().forEach(c -> c.visitInjections(evaluator));
+        children.values().forEach(c -> c.acceptInjections(evaluator));
     }
 }

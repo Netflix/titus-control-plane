@@ -34,6 +34,8 @@ import rx.functions.Action1;
  */
 public interface SchedulingService {
 
+    String COMPONENT = "scheduler";
+
     /**
      * FIXME Starting the scheduler explicitly is a workaround needed because of the circular dependencies between components.
      */
