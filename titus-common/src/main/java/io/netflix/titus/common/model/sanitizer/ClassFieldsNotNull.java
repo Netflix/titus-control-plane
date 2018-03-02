@@ -35,7 +35,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Constraint(validatedBy = {NeverNullValidator.class})
-public @interface NeverNull {
+public @interface ClassFieldsNotNull {
 
     String message() default "{NeverNull.message}";
 
@@ -44,13 +44,13 @@ public @interface NeverNull {
     Class<? extends Payload>[] payload() default {};
 
     /**
-     * Defines several {@link NeverNull} annotations on the same element.
+     * Defines several {@link ClassFieldsNotNull} annotations on the same element.
      */
     @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
     @Retention(RUNTIME)
     @Documented
     @interface List {
 
-        NeverNull[] value();
+        ClassFieldsNotNull[] value();
     }
 }

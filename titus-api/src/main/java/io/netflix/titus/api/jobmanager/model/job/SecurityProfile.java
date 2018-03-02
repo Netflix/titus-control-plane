@@ -22,14 +22,14 @@ import javax.validation.constraints.Size;
 
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import io.netflix.titus.common.util.CollectionsExt;
 
 import static io.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 public class SecurityProfile {
 
     private static final SecurityProfile EMPTY = newBuilder().build();

@@ -23,13 +23,13 @@ import java.util.Set;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import io.netflix.titus.common.util.ReflectionExt;
 
-public class NeverNullValidator implements ConstraintValidator<NeverNull, Object> {
+public class NeverNullValidator implements ConstraintValidator<ClassFieldsNotNull, Object> {
 
     @Override
-    public void initialize(NeverNull constraintAnnotation) {
+    public void initialize(ClassFieldsNotNull constraintAnnotation) {
     }
 
     @Override

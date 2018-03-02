@@ -24,13 +24,13 @@ import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.model.sanitizer.ClassInvariant;
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 @ClassInvariant.List({
         @ClassInvariant(condition = "min <= desired", message = "'min'(#{min}) must be <= 'desired'(#{desired})"),
         @ClassInvariant(condition = "desired <= max", message = "'desired'(#{desired}) must be <= 'max'(#{max})")
 })
-@NeverNull
+@ClassFieldsNotNull
 public class AgentInstanceGroup {
 
     private final String id;

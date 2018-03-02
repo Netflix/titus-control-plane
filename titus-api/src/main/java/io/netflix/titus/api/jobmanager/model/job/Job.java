@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import javax.validation.Valid;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import io.netflix.titus.common.util.CollectionsExt;
 
 import static io.netflix.titus.common.util.CollectionsExt.nonNull;
@@ -32,7 +32,7 @@ import static java.util.Arrays.asList;
  * entity is created. For example, service job can be re-sized ({@link JobDescriptor} update), or change state from
  * {@link JobState#Accepted} to {@link JobState#Finished}.
  */
-@NeverNull
+@ClassFieldsNotNull
 public class Job<E extends JobDescriptor.JobDescriptorExt> {
 
     private final String id;

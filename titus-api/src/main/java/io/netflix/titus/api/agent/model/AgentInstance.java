@@ -20,9 +20,9 @@ import java.util.Comparator;
 import java.util.Map;
 
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
-@NeverNull
+@ClassFieldsNotNull
 public class AgentInstance {
 
     private static final Comparator<AgentInstance> ID_COMPARATOR = Comparator.comparing(AgentInstance::getId);

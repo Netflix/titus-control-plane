@@ -16,11 +16,11 @@
 
 package io.netflix.titus.api.jobmanager.model.job;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 public class JobStatus extends ExecutableStatus<JobState> {
     public JobStatus(JobState state, String reasonCode, String reasonMessage, long timestamp) {
         super(state, reasonCode, reasonMessage, timestamp);

@@ -28,7 +28,7 @@ import com.google.common.base.Preconditions;
 
 public class TestModel {
 
-    @NeverNull
+    @ClassFieldsNotNull
     @ClassInvariant(condition = "#fit()", message = "Simulated failure (OS=#{@env['os.name']})")
     public static class Root {
 
@@ -61,7 +61,7 @@ public class TestModel {
         }
     }
 
-    @NeverNull
+    @ClassFieldsNotNull
     @ClassInvariant(condition = "min <= max", message = "'min'(#{min} must be <= 'max'(#{max}")
     public static class Child {
 

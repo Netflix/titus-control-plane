@@ -18,9 +18,9 @@ package io.netflix.titus.api.agent.model;
 
 import javax.validation.constraints.Min;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
-@NeverNull
+@ClassFieldsNotNull
 public class InstanceOverrideStatus {
 
     private static final InstanceOverrideStatus OVERRIDE_NONE = new InstanceOverrideStatus(InstanceOverrideState.None, "none", 0);
