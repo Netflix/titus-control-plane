@@ -32,7 +32,8 @@ import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import static io.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.isCriticalTier;
 import static io.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.isServiceJob;
 
-public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
+public class TitusFitnessCalculator implements VMTaskFitnessCalculator {
+
     private final SchedulerConfiguration configuration;
     private final VMTaskFitnessCalculator criticalServiceJobSpreader;
     private final VMTaskFitnessCalculator criticalServiceJobBinPacker;
@@ -41,7 +42,7 @@ public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
     public static final com.netflix.fenzo.functions.Func1<Double, Boolean> fitnessGoodEnoughFunction =
             f -> f > 0.9;
 
-    public AgentFitnessCalculator(SchedulerConfiguration configuration, AgentResourceCache agentResourceCache) {
+    public TitusFitnessCalculator(SchedulerConfiguration configuration, AgentResourceCache agentResourceCache) {
         this.configuration = configuration;
         this.criticalServiceJobSpreader = criticalServiceJobSpreader();
         this.criticalServiceJobBinPacker = criticalServiceJobBinPacker(agentResourceCache);
@@ -50,7 +51,7 @@ public class AgentFitnessCalculator implements VMTaskFitnessCalculator {
 
     @Override
     public String getName() {
-        return "Titus Agent Fitness Calculator";
+        return "Titus Fitness Calculator";
     }
 
     @Override

@@ -38,7 +38,6 @@ import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.aws.AwsInstanceType;
-import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.scheduler.constraint.GlobalAgentClusterConstraint;
 import io.netflix.titus.testkit.model.agent.AgentDeployment;
 import org.apache.mesos.Protos;
@@ -52,13 +51,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class GlobalAgentClusterConstraintTest {
-
-    private final MasterConfiguration config = mock(MasterConfiguration.class);
-
     private final SchedulerConfiguration schedulerConfiguration = mock(SchedulerConfiguration.class);
-
     private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
-
     private final AgentStatusMonitor agentStatusMonitor = mock(AgentStatusMonitor.class);
 
     private final TaskRequest nonGpuTaskRequest = createTaskRequest(0);
@@ -66,8 +60,8 @@ public class GlobalAgentClusterConstraintTest {
 
     @Before
     public void setUp() throws Exception {
-        when(config.getAutoScalerMapHostnameAttributeName()).thenReturn("id");
         when(schedulerConfiguration.getInstanceGroupAttributeName()).thenReturn("asg");
+        when(schedulerConfiguration.getInstanceAttributeName()).thenReturn("id");
     }
 
     @Test
@@ -135,7 +129,7 @@ public class GlobalAgentClusterConstraintTest {
         when(agentStatusMonitor.getStatus(anyString())).thenAnswer(argument ->
                 AgentStatus.healthy("test", agentDeployment.getInstance(argument.getArgument(0)), "test", System.currentTimeMillis())
         );
-        return new GlobalAgentClusterConstraint(config, schedulerConfiguration, agentManagementService, agentStatusMonitor);
+        return new GlobalAgentClusterConstraint(schedulerConfiguration, agentManagementService, agentStatusMonitor);
     }
 
     private VirtualMachineCurrentState createVirtualMachine(AgentDeployment agentDeployment, AwsInstanceType instanceType) {

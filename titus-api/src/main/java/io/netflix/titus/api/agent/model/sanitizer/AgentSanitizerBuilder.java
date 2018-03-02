@@ -21,6 +21,8 @@ import io.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 
 public class AgentSanitizerBuilder {
 
+    public static final String AGENT_SANITIZER = "agent";
+
     private final EntitySanitizerBuilder sanitizerBuilder = EntitySanitizerBuilder.stdBuilder();
 
     public EntitySanitizer build() {

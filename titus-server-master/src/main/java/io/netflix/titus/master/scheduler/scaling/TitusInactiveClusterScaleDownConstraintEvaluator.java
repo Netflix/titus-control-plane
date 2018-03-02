@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.scheduler.constraint;
+package io.netflix.titus.master.scheduler.scaling;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +32,7 @@ import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
+import io.netflix.titus.master.scheduler.constraint.LeaseAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

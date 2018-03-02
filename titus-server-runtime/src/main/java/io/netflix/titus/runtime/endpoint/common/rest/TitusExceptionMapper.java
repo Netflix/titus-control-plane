@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.sun.jersey.api.NotFoundException;
 import com.sun.jersey.api.ParamException;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
+import io.netflix.titus.api.scheduler.service.SchedulerException;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.util.CollectionsExt;
 
@@ -60,6 +61,9 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
         }
         if (exception instanceof JobManagerException) {
             return fromJobManagerException((JobManagerException) exception);
+        }
+        if (exception instanceof SchedulerException) {
+            return fromSchedulerException((SchedulerException) exception);
         }
 
         ErrorResponse errorResponse = ErrorResponse.newError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unexpected error: " + exception.getMessage())
@@ -206,6 +210,28 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
             case NotServiceJob:
             case UnexpectedTaskState:
                 errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
+            default:
+                errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+        ErrorResponse errorResponse = errorBuilder.build();
+        return Response.status(errorResponse.getStatusCode()).entity(errorResponse).build();
+    }
+
+    private Response fromSchedulerException(SchedulerException e) {
+        ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
+                .clientRequest(httpServletRequest)
+                .serverContext()
+                .exceptionContext(e);
+
+        switch (e.getErrorCode()) {
+            case InvalidArgument:
+            case SystemSelectorAlreadyExists:
+            case SystemSelectorEvaluationError:
+                errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
+                break;
+            case SystemSelectorNotFound:
+                errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
+                break;
             default:
                 errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }

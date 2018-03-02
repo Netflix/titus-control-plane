@@ -53,7 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
 
 /**
  */

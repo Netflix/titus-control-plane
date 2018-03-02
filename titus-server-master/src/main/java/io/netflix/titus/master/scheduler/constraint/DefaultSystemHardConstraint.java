@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.scheduler;
+package io.netflix.titus.master.scheduler.constraint;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -28,49 +28,48 @@ import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.config.MasterConfiguration;
-import io.netflix.titus.master.scheduler.constraint.CompositeGlobalConstraintEvaluator;
-import io.netflix.titus.master.scheduler.constraint.GlobalAgentClusterConstraint;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
-import io.netflix.titus.master.scheduler.constraint.GlobalInactiveClusterConstraintEvaluator;
-import io.netflix.titus.master.scheduler.constraint.GlobalTaskLaunchingConstraintEvaluator;
-import io.netflix.titus.master.scheduler.constraint.GlobalTaskResubmitConstraintEvaluator;
+import io.netflix.titus.master.scheduler.SchedulerConfiguration;
+import io.netflix.titus.master.scheduler.systemselector.SystemSelectorConstraintEvaluator;
 
 import static java.util.Arrays.asList;
 
 @Singleton
-public class TitusGlobalConstraintEvaluator implements GlobalConstraintEvaluator {
-
+public class DefaultSystemHardConstraint implements SystemHardConstraint {
     private final MasterConfiguration config;
     private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
     private final AgentStatusMonitor agentStatusMonitor;
     private final TitusRuntime titusRuntime;
     private final GlobalTaskLaunchingConstraintEvaluator globalTaskLaunchingConstraintEvaluator;
+    private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
 
     private CompositeGlobalConstraintEvaluator delegate;
 
     @Inject
-    public TitusGlobalConstraintEvaluator(MasterConfiguration config,
-                                          SchedulerConfiguration schedulerConfiguration,
-                                          AgentManagementService agentManagementService,
-                                          AgentStatusMonitor agentStatusMonitor,
-                                          TitusRuntime titusRuntime,
-                                          GlobalTaskLaunchingConstraintEvaluator globalTaskLaunchingConstraintEvaluator) {
+    public DefaultSystemHardConstraint(MasterConfiguration config,
+                                       SchedulerConfiguration schedulerConfiguration,
+                                       AgentManagementService agentManagementService,
+                                       AgentStatusMonitor agentStatusMonitor,
+                                       TitusRuntime titusRuntime,
+                                       GlobalTaskLaunchingConstraintEvaluator globalTaskLaunchingConstraintEvaluator,
+                                       SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator) {
         this.config = config;
         this.schedulerConfiguration = schedulerConfiguration;
         this.agentManagementService = agentManagementService;
         this.agentStatusMonitor = agentStatusMonitor;
         this.titusRuntime = titusRuntime;
         this.globalTaskLaunchingConstraintEvaluator = globalTaskLaunchingConstraintEvaluator;
+        this.systemSelectorConstraintEvaluator = systemSelectorConstraintEvaluator;
     }
 
     @Activator
     public void enterActiveMode() {
         this.delegate = new CompositeGlobalConstraintEvaluator(asList(
                 new GlobalInactiveClusterConstraintEvaluator(config, agentManagementService, titusRuntime),
-                new GlobalAgentClusterConstraint(config, schedulerConfiguration, agentManagementService, agentStatusMonitor),
+                new GlobalAgentClusterConstraint(schedulerConfiguration, agentManagementService, agentStatusMonitor),
                 new GlobalTaskResubmitConstraintEvaluator(),
-                globalTaskLaunchingConstraintEvaluator
+                globalTaskLaunchingConstraintEvaluator,
+                systemSelectorConstraintEvaluator
         ));
 
     }

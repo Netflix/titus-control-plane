@@ -31,7 +31,6 @@ import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -51,23 +50,17 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalAgentClusterConstraint.class);
 
+    private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
-
-    private final String instanceGroupAttributeName;
     private final AgentStatusMonitor agentStatusMonitor;
 
-    private final String instanceIdAttribute;
-
     @Inject
-    public GlobalAgentClusterConstraint(MasterConfiguration configuration,
-                                        SchedulerConfiguration schedulerConfiguration,
+    public GlobalAgentClusterConstraint(SchedulerConfiguration schedulerConfiguration,
                                         AgentManagementService agentManagementService,
                                         AgentStatusMonitor agentStatusMonitor) {
+        this.schedulerConfiguration = schedulerConfiguration;
         this.agentManagementService = agentManagementService;
         this.agentStatusMonitor = agentStatusMonitor;
-
-        this.instanceIdAttribute = configuration.getAutoScalerMapHostnameAttributeName();
-        this.instanceGroupAttributeName = schedulerConfiguration.getInstanceGroupAttributeName();
     }
 
     @Override
@@ -91,7 +84,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
     private Pair<Boolean, String> evaluateHealthy(VirtualMachineCurrentState targetVM) {
         AgentStatus status;
         try {
-            status = agentStatusMonitor.getStatus(targetVM.getCurrAvailableResources().getAttributeMap().get(instanceIdAttribute).getText().getValue());
+            status = agentStatusMonitor.getStatus(getAgentAttributeValue(targetVM, schedulerConfiguration.getInstanceAttributeName()));
         } catch (Exception e) {
             logger.debug("Cannot evaluate health of agent: ", e);
             return Pair.of(false, "Unhealthy: Cannot find agent");
@@ -104,6 +97,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
         // Since we moved to using Fenzo queues, we know the task request will be of this type.
         Tier tier = getTier((QueuableTask) taskRequest);
 
+        String instanceGroupAttributeName = schedulerConfiguration.getInstanceGroupAttributeName();
         String instanceGroupId = getAgentAttributeValue(targetVM, instanceGroupAttributeName);
         if (Strings.isNullOrEmpty(instanceGroupId)) {
             return new Result(false, "No info for agent instance type attribute: " + instanceGroupAttributeName);

@@ -7,6 +7,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import com.netflix.fenzo.ConstraintEvaluator;
+import com.netflix.fenzo.TaskRequest;
+import com.netflix.fenzo.TaskTrackerState;
+import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
@@ -21,8 +24,9 @@ import io.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder.EventHolder;
 import io.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import io.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
-import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.schedulers.Schedulers;
@@ -74,8 +78,18 @@ public class JobsScenarioBuilder {
 
         TestClock clock = Clocks.testScheduler(testScheduler);
 
-        GlobalConstraintEvaluator globalConstraintEvaluator = (taskRequest, targetVM, taskTrackerState) ->
-                new ConstraintEvaluator.Result(true, null);
+        SystemSoftConstraint systemSoftConstraint = new SystemSoftConstraint() {
+            @Override
+            public String getName() {
+                return "Test System Soft Constraint";
+            }
+
+            @Override
+            public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
+                return 1.0;
+            }
+        };
+        SystemHardConstraint systemHardConstraint = (taskRequest, targetVM, taskTrackerState) -> new ConstraintEvaluator.Result(true, "");
 
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
                 configuration,
@@ -84,7 +98,8 @@ public class JobsScenarioBuilder {
                 vmService,
                 jobStore,
                 constraintEvaluatorTransformer,
-                globalConstraintEvaluator,
+                systemSoftConstraint,
+                systemHardConstraint,
                 clock,
                 testScheduler
         );
@@ -95,7 +110,8 @@ public class JobsScenarioBuilder {
                 vmService,
                 jobStore,
                 constraintEvaluatorTransformer,
-                globalConstraintEvaluator,
+                systemSoftConstraint,
+                systemHardConstraint,
                 clock,
                 testScheduler
         );
@@ -111,7 +127,8 @@ public class JobsScenarioBuilder {
                         jobStore,
                         schedulingService,
                         capacityGroupService,
-                        globalConstraintEvaluator,
+                        systemSoftConstraint,
+                        systemHardConstraint,
                         constraintEvaluatorTransformer,
                         registry,
                         clock,

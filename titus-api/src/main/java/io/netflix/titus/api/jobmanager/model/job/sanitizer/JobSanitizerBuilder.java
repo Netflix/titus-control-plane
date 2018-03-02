@@ -29,8 +29,8 @@ import io.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
  */
 public class JobSanitizerBuilder {
 
+    public static final String JOB_SANITIZER = "job";
     public static final String DEFAULT_CAPACITY_GROUP = "DEFAULT";
-
     private static final String MODEL_ROOT_PACKAGE = Job.class.getPackage().getName();
 
     private final EntitySanitizerBuilder sanitizerBuilder = EntitySanitizerBuilder.stdBuilder();

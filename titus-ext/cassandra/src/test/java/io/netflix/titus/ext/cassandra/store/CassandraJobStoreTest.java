@@ -84,6 +84,11 @@ public class CassandraJobStoreTest {
         }
 
         @Override
+        public boolean isFailOnInconsistentSchedulerData() {
+            return false;
+        }
+
+        @Override
         public int getConcurrencyLimit() {
             return 10;
         }

@@ -125,4 +125,8 @@ final class StoreUtils {
     static Completable remove(Session session, PreparedStatement deleteStatment, List<String> ids) {
         return execute(session, deleteStatment.bind(ids)).toCompletable();
     }
+
+    static Completable remove(Session session, PreparedStatement deleteStatment, String id) {
+        return execute(session, deleteStatment.bind(id)).toCompletable();
+    }
 }

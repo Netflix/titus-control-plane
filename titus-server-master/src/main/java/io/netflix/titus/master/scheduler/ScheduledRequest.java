@@ -41,7 +41,9 @@ import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.V2JobMgrIntf;
 import io.netflix.titus.master.job.worker.WorkerRequest;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 
 /**
@@ -104,7 +106,8 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
 
     public ScheduledRequest(V2JobMgrIntf jobMgr, V2WorkerMetadata task, WorkerRequest request, MasterConfiguration config,
                             ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
-                            GlobalConstraintEvaluator globalConstraintsEvaluator,
+                            SystemSoftConstraint systemSoftConstraint,
+                            SystemHardConstraint systemHardConstraint,
                             ApplicationSlaManagementService applicationSlaManagementService) {
         this.config = config;
         this.jobMgr = jobMgr;
@@ -129,7 +132,7 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
             }
             assignedResources.setConsumedNamedResources(consumeResults);
         }
-        setupConstraints(jobMgr, globalConstraintsEvaluator);
+        setupConstraints(jobMgr, systemSoftConstraint, systemHardConstraint);
         setupCustomNamedResources(request);
         qAttributes = getQAttributes(jobMgr, applicationSlaManagementService);
 
@@ -151,12 +154,15 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
         }
     }
 
-    private void setupConstraints(V2JobMgrIntf jobMgr, GlobalConstraintEvaluator globalConstraints) {
+    private void setupConstraints(V2JobMgrIntf jobMgr, SystemSoftConstraint systemSoftConstraint, SystemHardConstraint systemHardConstraint) {
         V2StageMetadata stageMetadata = jobMgr.getJobMetadata().getStageMetadata(stageNum);
         List<JobConstraints> stageHC = stageMetadata.getHardConstraints();
         List<JobConstraints> stageSC = stageMetadata.getSoftConstraints();
+        softConstraints = new ArrayList<>();
+        softConstraints.add(systemSoftConstraint);
         hardConstraints = new ArrayList<>();
-        hardConstraints.add(globalConstraints);
+        hardConstraints.add(systemHardConstraint);
+
         if ((stageHC == null || stageHC.isEmpty()) && (stageSC == null || stageSC.isEmpty())) {
             return;
         }
@@ -172,7 +178,6 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
             }
         }
         if (stageSC != null && !stageSC.isEmpty()) {
-            softConstraints = new ArrayList<>();
             for (JobConstraints c : stageSC) {
                 v2ConstraintEvaluatorTransformer.softConstraint(c, () -> coTasks).ifPresent(softConstraints::add);
             }

@@ -72,7 +72,7 @@ public class CassandraAgentStoreTest {
 
         AgentStore bootstrappingTitusStore = createAgentStore();
         serverGroups.forEach(agentServerGroup ->
-                bootstrappingTitusStore.storeAgentInstanceGroup(agentServerGroup).get()
+                bootstrappingTitusStore.storeAgentInstanceGroup(agentServerGroup).await()
         );
 
         AgentStore agentStore = createAgentStore();
@@ -86,9 +86,7 @@ public class CassandraAgentStoreTest {
         List<AgentInstance> instances = AgentGenerator.agentInstances().toList(2);
 
         AgentStore bootstrappingTitusStore = createAgentStore();
-        instances.forEach(instance ->
-                bootstrappingTitusStore.storeAgentInstance(instance).get()
-        );
+        instances.forEach(instance -> bootstrappingTitusStore.storeAgentInstance(instance).await());
 
         AgentStore agentStore = createAgentStore();
         List<AgentInstance> result = agentStore.retrieveAgentInstances().toList().toBlocking().first();
@@ -101,10 +99,10 @@ public class CassandraAgentStoreTest {
         List<AgentInstanceGroup> serverGroups = agentServerGroups().toList(2);
 
         AgentStore agentStore = createAgentStore();
-        serverGroups.forEach(sg -> agentStore.storeAgentInstanceGroup(sg).get());
+        serverGroups.forEach(sg -> agentStore.storeAgentInstanceGroup(sg).await());
 
         assertThat(agentStore.retrieveAgentInstanceGroups().toList().toBlocking().first()).hasSize(2);
-        agentStore.removeAgentInstanceGroups(singletonList(serverGroups.get(0).getId())).get();
+        agentStore.removeAgentInstanceGroups(singletonList(serverGroups.get(0).getId())).await();
         assertThat(agentStore.retrieveAgentInstanceGroups().toList().toBlocking().first()).hasSize(1);
     }
 
@@ -113,10 +111,10 @@ public class CassandraAgentStoreTest {
         List<AgentInstance> instances = AgentGenerator.agentInstances().toList(2);
 
         AgentStore agentStore = createAgentStore();
-        instances.forEach(instance -> agentStore.storeAgentInstance(instance).get());
+        instances.forEach(instance -> agentStore.storeAgentInstance(instance).await());
 
         assertThat(agentStore.retrieveAgentInstances().toList().toBlocking().first()).hasSize(2);
-        agentStore.removeAgentInstances(singletonList(instances.get(0).getId())).get();
+        agentStore.removeAgentInstances(singletonList(instances.get(0).getId())).await();
         assertThat(agentStore.retrieveAgentInstances().toList().toBlocking().first()).hasSize(1);
     }
 

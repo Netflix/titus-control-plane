@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.scheduler.constraint;
+package io.netflix.titus.master.scheduler.scaling;
 
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +25,7 @@ import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.plugins.BalancedScaleDownConstraintEvaluator;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.scheduler.constraint.LeaseAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

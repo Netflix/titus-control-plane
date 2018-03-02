@@ -41,9 +41,10 @@ import io.netflix.titus.master.jobmanager.service.common.action.TitusChangeActio
 import io.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import io.netflix.titus.master.jobmanager.service.event.JobEventFactory;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.slf4j.Logger;
@@ -82,7 +83,8 @@ public class JobReconciliationFrameworkFactory {
     private final JobStore store;
     private final SchedulingService schedulingService;
     private final ApplicationSlaManagementService capacityGroupService;
-    private final GlobalConstraintEvaluator globalConstraintEvaluator;
+    private final SystemSoftConstraint systemSoftConstraint;
+    private final SystemHardConstraint systemHardConstraint;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
     private final Registry registry;
     private final Clock clock;
@@ -100,10 +102,12 @@ public class JobReconciliationFrameworkFactory {
                                              JobStore store,
                                              SchedulingService schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
-                                             GlobalConstraintEvaluator globalConstraintEvaluator,
+                                             SystemSoftConstraint systemSoftConstraint,
+                                             SystemHardConstraint systemHardConstraint,
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              Registry registry) {
-        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService, globalConstraintEvaluator, constraintEvaluatorTransformer, registry, Clocks.system(), Schedulers.computation());
+        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService,
+                systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, registry, Clocks.system(), Schedulers.computation());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -112,7 +116,8 @@ public class JobReconciliationFrameworkFactory {
                                              JobStore store,
                                              SchedulingService schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
-                                             GlobalConstraintEvaluator globalConstraintEvaluator,
+                                             SystemSoftConstraint systemSoftConstraint,
+                                             SystemHardConstraint systemHardConstraint,
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              Registry registry,
                                              Clock clock,
@@ -121,7 +126,8 @@ public class JobReconciliationFrameworkFactory {
         this.store = store;
         this.schedulingService = schedulingService;
         this.capacityGroupService = capacityGroupService;
-        this.globalConstraintEvaluator = globalConstraintEvaluator;
+        this.systemSoftConstraint = systemSoftConstraint;
+        this.systemHardConstraint = systemHardConstraint;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.registry = registry;
         this.clock = clock;
@@ -248,7 +254,8 @@ public class JobReconciliationFrameworkFactory {
                         task,
                         () -> JobManagerUtil.filterActiveTaskIds(engine),
                         constraintEvaluatorTransformer,
-                        globalConstraintEvaluator
+                        systemSoftConstraint,
+                        systemHardConstraint
                 );
                 schedulingService.getTaskQueueAction().call(queueableTask);
             } catch (Exception e) {
@@ -276,7 +283,8 @@ public class JobReconciliationFrameworkFactory {
                     task,
                     () -> JobManagerUtil.filterActiveTaskIds(engine),
                     constraintEvaluatorTransformer,
-                    globalConstraintEvaluator
+                    systemSoftConstraint,
+                    systemHardConstraint
             ), host);
         } catch (Exception e) {
             logger.error("Failed to initialize running task in Fenzo: {} with error:", task.getId(), e);

@@ -43,18 +43,18 @@ public class AgentManagementException extends RuntimeException {
     }
 
     public static AgentManagementException agentGroupNotFound(String agentGroupId) {
-        return new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s is not found", null, agentGroupId);
+        return new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s not found", null, agentGroupId);
     }
 
     public static <T> T checkInstanceGroupFound(T instanceGroupData, String instanceGroupId) {
         if (instanceGroupData == null) {
-            throw new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s is not found", null, instanceGroupId);
+            throw new AgentManagementException(ErrorCode.InstanceGroupNotFound, "Instance group %s not found", null, instanceGroupId);
         }
         return instanceGroupData;
     }
 
     public static AgentManagementException agentNotFound(String agentInstanceId) {
-        return new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s is not found", null, agentInstanceId);
+        return new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s not found", null, agentInstanceId);
     }
 
     public static AgentManagementException invalidArgument(String message, Object... args) {
@@ -63,7 +63,7 @@ public class AgentManagementException extends RuntimeException {
 
     public static AgentInstance checkAgentFound(AgentInstance agentInstance, String agentInstanceId) {
         if (agentInstance == null) {
-            throw new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s is not found", null, agentInstanceId);
+            throw new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s not found", null, agentInstanceId);
         }
         return agentInstance;
     }

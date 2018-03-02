@@ -72,9 +72,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
 import static io.netflix.titus.common.util.CollectionsExt.first;
 import static io.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil.newObservable;
-import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
 
 /**
  * {@link TitusServiceGateway} implementation bridging GRPC/v3 API to legacy Titus runtime.

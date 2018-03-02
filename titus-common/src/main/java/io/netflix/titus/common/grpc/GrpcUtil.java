@@ -28,6 +28,7 @@ import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
+import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 import rx.Subscription;
@@ -152,5 +153,16 @@ public class GrpcUtil {
     public static void attachCancellingCallback(StreamObserver responseObserver, Subscription subscription) {
         ServerCallStreamObserver serverObserver = (ServerCallStreamObserver) responseObserver;
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
+    }
+
+    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter, long timeout) {
+        return Observable.create(
+                emitter,
+                Emitter.BackpressureMode.NONE
+        ).timeout(timeout, TimeUnit.MILLISECONDS);
+    }
+
+    public static Completable createRequestCompletable(Action1<Emitter<Empty>> emitter, long timeout) {
+        return createRequestObservable(emitter, timeout).toCompletable();
     }
 }
