@@ -29,8 +29,14 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import io.netflix.titus.api.scheduler.service.SchedulerException;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.util.cache.Cache;
+import io.netflix.titus.common.util.cache.Caches;
+import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_SERVICE;
 
 /**
  * Evaluates system selector expressions based on an expression statement and the context.
@@ -40,33 +46,41 @@ public class SystemSelectorEvaluator {
 
     private static final Logger logger = LoggerFactory.getLogger(SystemSelectorEvaluator.class);
     private static final String SCRIPT_ENGINE_NAME = "nashorn";
-
-    private final ConcurrentMap<Long, ScriptEngineEvaluator> scriptEngineEvaluators = new ConcurrentHashMap<>();
+    private static final String METRIC_SCRIPT_ENGINE_EVALUATORS = "systemSelectorEvaluator.scriptEngineEvaluators";
+    private final Cache<Long, ScriptEngineEvaluator> scriptEngineEvaluators;
     private final ScriptEngine validatorScriptEngine;
 
     @Inject
-    public SystemSelectorEvaluator() {
+    public SystemSelectorEvaluator(SchedulerConfiguration configuration,TitusRuntime titusRuntime) {
+        scriptEngineEvaluators = Caches.instrumentedCacheWithMaxSize(
+                configuration.getSchedulerMaxConcurrent(), METRIC_SCHEDULING_SERVICE + METRIC_SCRIPT_ENGINE_EVALUATORS, titusRuntime.getRegistry()
+        );
         validatorScriptEngine = new ScriptEngineManager().getEngineByName(SCRIPT_ENGINE_NAME);
     }
 
     public void validate(String expression, Map<String, Object> context) {
-        try {
-            ScriptContext scriptContext = validatorScriptEngine.getContext();
-            for (Map.Entry<String, Object> entry : context.entrySet()) {
-                scriptContext.setAttribute(entry.getKey(), entry.getValue(), ScriptContext.ENGINE_SCOPE);
-            }
-            validatorScriptEngine.eval(expression, scriptContext);
-        } catch (ScriptException e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Unable to eval expression: {}", expression, e);
-            }
-            throw SchedulerException.systemSelectorEvaluationError("Unable to evaluate expression: %s", e, expression);
-        }
+        //TODO put this code back once we add have empty instances for all context objects
+//        try {
+//            ScriptContext scriptContext = validatorScriptEngine.getContext();
+//            for (Map.Entry<String, Object> entry : context.entrySet()) {
+//                scriptContext.setAttribute(entry.getKey(), entry.getValue(), ScriptContext.ENGINE_SCOPE);
+//            }
+//            validatorScriptEngine.eval(expression, scriptContext);
+//        } catch (ScriptException e) {
+//            if (logger.isDebugEnabled()) {
+//                logger.debug("Unable to eval expression: {}", expression, e);
+//            }
+//            throw SchedulerException.systemSelectorEvaluationError("Unable to evaluate expression: %s", e, expression);
+//        }
     }
 
     public boolean evaluate(String expression, Map<String, Object> context) {
+        // Create a script engine per scheduler thread in order to reduce contention
         long threadId = Thread.currentThread().getId();
-        ScriptEngineEvaluator scriptEngineEvaluator = scriptEngineEvaluators.computeIfAbsent(threadId, t -> new ScriptEngineEvaluator());
+        ScriptEngineEvaluator scriptEngineEvaluator = scriptEngineEvaluators.get(threadId, t -> new ScriptEngineEvaluator());
+        if (scriptEngineEvaluator == null) {
+            throw SchedulerException.systemSelectorEvaluationError("Unable to evaluate expression: %s because scriptEngineEvaluator was null", null, expression);
+        }
         return scriptEngineEvaluator.evaluate(expression, context);
     }
 
