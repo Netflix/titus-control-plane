@@ -22,11 +22,11 @@ import javax.validation.constraints.Min;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
 
     @Min(value = 1, message = "Batch job must have at least one task")

@@ -22,6 +22,12 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
+import io.grpc.Channel;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netflix.titus.common.network.http.HttpClient;
 import io.netflix.titus.common.network.http.RxHttpClient;
 import io.netflix.titus.common.network.http.internal.okhttp.CompositeRetryInterceptor;
@@ -29,11 +35,14 @@ import io.netflix.titus.common.network.http.internal.okhttp.EndpointResolverInte
 import io.netflix.titus.common.network.http.internal.okhttp.OkHttpClient;
 import io.netflix.titus.common.network.http.internal.okhttp.PassthroughInterceptor;
 import io.netflix.titus.common.network.http.internal.okhttp.RxOkHttpClient;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.gateway.connector.titusmaster.internal.ConfigurationLeaderResolver;
 import io.netflix.titus.gateway.connector.titusmaster.internal.LeaderEndpointResolver;
+import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import okhttp3.Interceptor;
 
 public class TitusMasterConnectorModule extends AbstractModule {
+    public static final String MANAGED_CHANNEL_NAME = "ManagedChannel";
     public static final String TITUS_MASTER_CLIENT = "TitusMaster";
     public static final String RX_TITUS_MASTER_CLIENT = "RxTitusMaster";
 
@@ -47,10 +56,8 @@ public class TitusMasterConnectorModule extends AbstractModule {
         bind(LeaderResolver.class).to(ConfigurationLeaderResolver.class);
 
         install(new JobManagementClientModule());
-        install(new AgentManagementClientModule());
         install(new AutoScalingClientModule());
         install(new LoadBalancerClientModule());
-        install(new SchedulerClientModule());
     }
 
     @Named(TITUS_MASTER_CLIENT)
@@ -76,5 +83,29 @@ public class TitusMasterConnectorModule extends AbstractModule {
                 .connectTimeout(DEFAULT_CONNECT_TIMEOUT)
                 .readTimeout(DEFAULT_READ_TIMEOUT);
         return builder.build();
+    }
+
+    @Provides
+    @Singleton
+    @Named(MANAGED_CHANNEL_NAME)
+    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
+        return NettyChannelBuilder
+                .forTarget("leader://titusmaster")
+                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
+                .usePlaintext(true)
+                .maxHeaderListSize(65536)
+                .build();
+    }
+
+    @Provides
+    @Singleton
+    AgentManagementServiceStub managementClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return AgentManagementServiceGrpc.newStub(channel);
+    }
+
+    @Provides
+    @Singleton
+    SchedulerServiceStub schedulerClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return SchedulerServiceGrpc.newStub(channel);
     }
 }

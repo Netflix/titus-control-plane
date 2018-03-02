@@ -18,9 +18,9 @@ package io.netflix.titus.api.agent.model;
 
 import javax.validation.constraints.Min;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
-@NeverNull
+@ClassFieldsNotNull
 public class HealthStatus {
 
     private static final HealthStatus UNKNOWN = new HealthStatus(HealthState.Unknown, "Health status not determined yet", 0);

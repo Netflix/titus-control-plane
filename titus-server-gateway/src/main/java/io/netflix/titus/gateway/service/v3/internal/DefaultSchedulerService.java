@@ -28,11 +28,8 @@ import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
-import io.grpc.ClientCall;
-import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.service.TitusServiceException;
-import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
@@ -43,16 +40,12 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.getCreateSystemSelectorMethod;
-import static com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.getDeleteSystemSelectorMethod;
-import static com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.getGetSystemSelectorMethod;
-import static com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.getGetSystemSelectorsMethod;
-import static com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.getUpdateSystemSelectorMethod;
 import static io.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder.SCHEDULER_SANITIZER;
 import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
+import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultSchedulerService implements SchedulerService {
@@ -77,18 +70,18 @@ public class DefaultSchedulerService implements SchedulerService {
     @Override
     public Observable<SystemSelectors> getSystemSelectors() {
         return createRequestObservable(emitter -> {
-            StreamObserver<SystemSelectors> simpleStreamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(getGetSystemSelectorsMethod(), Empty.getDefaultInstance(), simpleStreamObserver);
-            attachCancellingCallback(emitter, clientCall);
+            attachCancellingCallback(emitter);
+            StreamObserver<SystemSelectors> streamObserver = createSimpleStreamObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getSystemSelectors(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<SystemSelector> getSystemSelector(String id) {
         return createRequestObservable(emitter -> {
-            StreamObserver<SystemSelector> simpleStreamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(getGetSystemSelectorMethod(), SystemSelectorId.newBuilder().setId(id).build(), simpleStreamObserver);
-            attachCancellingCallback(emitter, clientCall);
+            attachCancellingCallback(emitter);
+            StreamObserver<SystemSelector> streamObserver = createSimpleStreamObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -101,9 +94,9 @@ public class DefaultSchedulerService implements SchedulerService {
         }
 
         return createRequestCompletable(emitter -> {
-            StreamObserver<Empty> simpleStreamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(getCreateSystemSelectorMethod(), systemSelector, simpleStreamObserver);
-            attachCancellingCallback(emitter, clientCall);
+            attachCancellingCallback(emitter);
+            StreamObserver<Empty> streamObserver = createSimpleStreamObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).createSystemSelector(systemSelector, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -116,23 +109,19 @@ public class DefaultSchedulerService implements SchedulerService {
         }
 
         return createRequestCompletable(emitter -> {
-            StreamObserver<Empty> simpleStreamObserver = createSimpleStreamObserver(emitter);
+            attachCancellingCallback(emitter);
+            StreamObserver<Empty> streamObserver = createSimpleStreamObserver(emitter);
             SystemSelectorUpdate systemSelectorUpdate = SystemSelectorUpdate.newBuilder().setId(id).setSystemSelector(systemSelector).build();
-            ClientCall clientCall = call(getUpdateSystemSelectorMethod(), systemSelectorUpdate, simpleStreamObserver);
-            attachCancellingCallback(emitter, clientCall);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateSystemSelector(systemSelectorUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable deleteSystemSelector(String id) {
         return createRequestCompletable(emitter -> {
-            StreamObserver<Empty> simpleStreamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(getDeleteSystemSelectorMethod(), SystemSelectorId.newBuilder().setId(id).build(), simpleStreamObserver);
-            attachCancellingCallback(emitter, clientCall);
+            attachCancellingCallback(emitter);
+            StreamObserver<Empty> streamObserver = createSimpleStreamObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
-    }
-
-    private <ReqT, RespT> ClientCall call(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, configuration.getRequestTimeout(), responseObserver);
     }
 }

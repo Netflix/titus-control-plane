@@ -22,6 +22,7 @@ import java.util.function.BiConsumer;
 import com.google.protobuf.Empty;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
+import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractStub;
@@ -62,7 +63,7 @@ public class GrpcUtil {
         );
     }
 
-    public static StreamObserver<Empty> createEmptyStreamObserver(Emitter emitter) {
+    public static StreamObserver<Empty> createEmptyStreamObserver(Emitter<Empty> emitter) {
         return createStreamObserver(
                 ignored -> {
                 },
@@ -88,6 +89,12 @@ public class GrpcUtil {
                 onCompleted.call();
             }
         };
+    }
+
+    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
+                                                                           SessionContext sessionContext,
+                                                                           long deadlineMs) {
+        return GrpcUtil.createWrappedStub(sessionContext, client).withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(SessionContext sessionContext, STUB client) {
@@ -148,6 +155,10 @@ public class GrpcUtil {
 
     public static void attachCancellingCallback(Emitter emitter, ClientCall clientCall) {
         emitter.setCancellation(() -> clientCall.cancel(CANCELLING_MESSAGE, null));
+    }
+
+    public static void attachCancellingCallback(Emitter emitter) {
+        emitter.setCancellation(() -> Context.current().withCancellation().cancel(null));
     }
 
     public static void attachCancellingCallback(StreamObserver responseObserver, Subscription subscription) {

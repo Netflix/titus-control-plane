@@ -21,13 +21,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 import static io.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 public class ServiceJobTask extends Task {
 
     private final MigrationDetails migrationDetails;

@@ -19,12 +19,12 @@ package io.netflix.titus.api.model;
 import java.util.Objects;
 import javax.validation.constraints.Min;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 /**
  * An entity representing single page of a collection.
  */
-@NeverNull
+@ClassFieldsNotNull
 public class Page {
 
     private static final Page EMPTY = new Page(0, 0, "");

@@ -26,8 +26,7 @@ import com.google.common.base.Preconditions;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.SchedulingConstraintSetValidator.SchedulingConstraintSet;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.SchedulingConstraintValidator.SchedulingConstraint;
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
-import io.netflix.titus.common.model.sanitizer.Template;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import io.netflix.titus.common.util.CollectionsExt;
 
 import static io.netflix.titus.common.util.CollectionsExt.asSet;
@@ -35,7 +34,7 @@ import static io.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 @SchedulingConstraintSet
 public class Container {
 

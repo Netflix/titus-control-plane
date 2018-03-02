@@ -19,13 +19,13 @@ package io.netflix.titus.api.agent.model;
 import javax.validation.constraints.Min;
 
 import io.netflix.titus.common.model.sanitizer.ClassInvariant;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 @ClassInvariant.List({
         @ClassInvariant(condition = "min <= max", message = "'min'(#{min}) must be <= 'max'(#{max})"),
         @ClassInvariant(condition = "minIdleToKeep <= maxIdleToKeep", message = "'minIdleToKeep'(#{minIdleToKeep}) must be <= 'maxIdleToKeep'(#{maxIdleToKeep})"),
 })
-@NeverNull
+@ClassFieldsNotNull
 public class AutoScaleRule {
 
     @Min(value = 0, message = "'min' must be >= 0, but is #{#root}")

@@ -25,13 +25,13 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.common.model.sanitizer.ClassInvariant;
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import io.netflix.titus.common.model.sanitizer.Template;
 import io.netflix.titus.common.util.CollectionsExt;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 @ClassInvariant(expr = "@asserts.notExceedsComputeResources(capacityGroup, container)")
 public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
 
