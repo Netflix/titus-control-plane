@@ -6,10 +6,10 @@ import java.util.concurrent.CompletableFuture;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.netflix.titus.common.framework.fit.Fit;
-import io.netflix.titus.common.framework.fit.FitComponent;
+import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.framework.fit.internal.action.FitErrorAction;
+import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
 
@@ -18,15 +18,20 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class FitInvocationHandlerTest {
 
-    private final FitInjection fitInjection = Fit.newFitInjectionBuilder("testInjection")
+    private final FitFramework fitFramework = FitFramework.newFitFramework();
+
+    private final FitInjection fitInjection = fitFramework.newFitInjectionBuilder("testInjection")
             .withExceptionType(MyException.class)
             .build();
 
-    private final FitComponent fitComponent = Fit.newFitComponent("root").addInjection(fitInjection);
-
     private final MyApiImpl myApiImpl = new MyApiImpl();
 
-    private final MyApi myApi = Fit.newFitProxy(myApiImpl, fitInjection);
+    private final MyApi myApi = fitFramework.newFitProxy(myApiImpl, fitInjection);
+
+    @Before
+    public void setUp() {
+        fitFramework.getRootComponent().addInjection(fitInjection);
+    }
 
     @Test
     public void testBeforeSynchronous() {

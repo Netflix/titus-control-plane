@@ -40,6 +40,16 @@ public interface FitAction {
     void afterImmediate(String injectionPoint);
 
     /**
+     * Method to be called at the end of the client's code section.
+     *
+     * @param result value returned by the client, which can be intercepted and modified by the FIT action
+     */
+    default <T> T afterImmediate(String injectionPoint, T result) {
+        afterImmediate(injectionPoint);
+        return result;
+    }
+
+    /**
      * Wraps an observable to inject on subscribe or after completion errors.
      */
     <T> Supplier<Observable<T>> aroundObservable(String injectionPoint, Supplier<Observable<T>> source);

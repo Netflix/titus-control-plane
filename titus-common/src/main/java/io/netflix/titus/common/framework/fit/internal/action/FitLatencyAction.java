@@ -13,6 +13,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.netflix.titus.common.framework.fit.AbstractFitAction;
 import io.netflix.titus.common.framework.fit.FitActionDescriptor;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.util.unit.TimeUnitExt;
@@ -24,7 +25,7 @@ public class FitLatencyAction extends AbstractFitAction {
 
     public static final FitActionDescriptor DESCRIPTOR = new FitActionDescriptor(
             "latency",
-            "Add a latency to request execution",
+            "Add latency to request execution",
             ImmutableMap.of(
                     "before", "Insert latency before running the downstream action (defaults to 'true')",
                     "latency", "Latency duration (defaults to 100ms)",

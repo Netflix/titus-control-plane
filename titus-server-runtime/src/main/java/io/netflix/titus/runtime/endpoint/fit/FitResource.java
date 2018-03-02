@@ -20,8 +20,8 @@ import javax.ws.rs.core.Response;
 import com.netflix.titus.runtime.Fit;
 import io.netflix.titus.common.framework.fit.FitAction;
 import io.netflix.titus.common.framework.fit.FitComponent;
+import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.framework.fit.FitInjection;
-import io.netflix.titus.common.framework.fit.FitRegistry;
 import io.netflix.titus.common.runtime.TitusRuntime;
 
 @Path("/api/diagnostic/fit")
@@ -30,25 +30,23 @@ import io.netflix.titus.common.runtime.TitusRuntime;
 @Singleton
 public class FitResource {
 
-    private final FitComponent fitRootComponent;
-    private final FitRegistry fitRegistry;
+    private final FitFramework fitFramework;
 
     @Inject
     public FitResource(TitusRuntime titusRuntime) {
-        this.fitRootComponent = titusRuntime.getFit();
-        this.fitRegistry = io.netflix.titus.common.framework.fit.Fit.getDefaultFitActionRegistry();
+        this.fitFramework = titusRuntime.getFitFramework();
     }
 
     @GET
     @Path("/components")
     public Fit.FitComponent getFitComponents() {
-        return ProtobufFitConverters.toGrpcFitComponent(fitRootComponent);
+        return ProtobufFitConverters.toGrpcFitComponent(fitFramework.getRootComponent());
     }
 
     @GET
     @Path("/actionDescriptors")
     public List<Fit.FitActionDescriptor> getFitActionDescriptors() {
-        return fitRegistry.getFitActionDescriptors().stream()
+        return fitFramework.getFitRegistry().getFitActionDescriptors().stream()
                 .map(ProtobufFitConverters::toGrpcFitActionDescriptor)
                 .collect(Collectors.toList());
     }
@@ -56,7 +54,7 @@ public class FitResource {
     @GET
     @Path("/actions")
     public List<Fit.FitAction> getActions() {
-        return findAllActions(fitRootComponent).stream().map(ProtobufFitConverters::toGrpcFitAction).collect(Collectors.toList());
+        return findAllActions(fitFramework.getRootComponent()).stream().map(ProtobufFitConverters::toGrpcFitAction).collect(Collectors.toList());
     }
 
     @POST
@@ -65,7 +63,9 @@ public class FitResource {
         FitComponent fitComponent = getFitComponentOrFail(request.getComponentId());
         FitInjection fitInjection = getFitInjectionOrFail(request.getInjectionId(), fitComponent);
 
-        Function<FitInjection, FitAction> fitActionFactory = fitRegistry.newFitActionFactory(request.getActionKind(), request.getActionId(), request.getPropertiesMap());
+        Function<FitInjection, FitAction> fitActionFactory = fitFramework.getFitRegistry().newFitActionFactory(
+                request.getActionKind(), request.getActionId(), request.getPropertiesMap()
+        );
         fitInjection.addAction(fitActionFactory.apply(fitInjection));
 
         return Response.noContent().build();
@@ -89,7 +89,7 @@ public class FitResource {
     }
 
     private FitComponent getFitComponentOrFail(String componentId) {
-        return fitRootComponent
+        return fitFramework.getRootComponent()
                 .findChild(componentId)
                 .orElseThrow(() -> new IllegalArgumentException("FIT component not found: " + componentId));
     }

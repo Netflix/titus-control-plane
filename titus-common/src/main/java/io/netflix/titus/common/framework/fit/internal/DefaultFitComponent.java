@@ -28,8 +28,10 @@ public class DefaultFitComponent implements FitComponent {
     }
 
     @Override
-    public void addChild(FitComponent childComponent) {
-        children.put(childComponent.getId(), childComponent);
+    public FitComponent createChild(String childId) {
+        DefaultFitComponent newChild = new DefaultFitComponent(childId);
+        children.put(childId, newChild);
+        return newChild;
     }
 
     @Override

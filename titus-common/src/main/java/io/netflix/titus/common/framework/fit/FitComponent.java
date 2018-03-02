@@ -18,7 +18,7 @@ public interface FitComponent {
     /**
      * Adds new sub-component instance.
      */
-    void addChild(FitComponent childComponent);
+    FitComponent createChild(String childId);
 
     /**
      * Gets all direct children of this component.

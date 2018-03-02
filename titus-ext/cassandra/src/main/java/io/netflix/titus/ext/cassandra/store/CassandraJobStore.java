@@ -42,7 +42,7 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.jobmanager.store.JobStoreException;
 import io.netflix.titus.api.json.ObjectMappers;
-import io.netflix.titus.common.framework.fit.Fit;
+import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -133,12 +133,13 @@ public class CassandraJobStore implements JobStore {
         this.configuration = configuration;
         this.session = session;
 
-        if (titusRuntime.isFitEnabled()) {
-            FitInjection fitInjection = Fit.newFitInjectionBuilder("cassandraDriver")
+        FitFramework fit = titusRuntime.getFitFramework();
+        if (fit.isActive()) {
+            FitInjection fitInjection = fit.newFitInjectionBuilder("cassandraDriver")
                     .withDescription("Fail Cassandra driver requests")
                     .withExceptionType(DriverException.class)
                     .build();
-            titusRuntime.getFit().getChild("jobManagement").addInjection(fitInjection);
+            fit.getRootComponent().getChild("jobManagement").addInjection(fitInjection);
 
             this.fitInjection = Optional.of(fitInjection);
         } else {
@@ -467,7 +468,7 @@ public class CassandraJobStore implements JobStore {
                     emitter.setCancellation(() -> resultSetFuture.cancel(true));
                 },
                 Emitter.BackpressureMode.NONE
-        ).doOnError(e -> logger.info("Cassandra operation error: {}", e.getMessage()));
+        ).doOnError(e -> logger.error("Cassandra operation error: {}", e.getMessage()));
     }
 
     private int getConcurrencyLimit() {

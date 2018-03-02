@@ -17,7 +17,7 @@
 package io.netflix.titus.common.runtime;
 
 import com.netflix.spectator.api.Registry;
-import io.netflix.titus.common.framework.fit.FitComponent;
+import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.util.code.CodePointTracker;
 import io.netflix.titus.common.util.time.Clock;
 import rx.Observable;
@@ -49,12 +49,7 @@ public interface TitusRuntime {
     Clock getClock();
 
     /**
-     * Returns true if FIT framework should be activated during bootstrap process.
+     * Returns FIT framework.
      */
-    boolean isFitEnabled();
-
-    /**
-     * Returns FIT root ('application') component.
-     */
-    FitComponent getFit();
+    FitFramework getFitFramework();
 }
