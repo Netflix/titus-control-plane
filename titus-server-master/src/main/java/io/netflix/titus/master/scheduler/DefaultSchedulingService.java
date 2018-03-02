@@ -78,7 +78,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
-import io.netflix.titus.common.framework.fit.Fit;
+import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ExceptionExt;
@@ -257,12 +257,13 @@ public class DefaultSchedulingService implements SchedulingService {
         this.systemHardConstraint = systemHardConstraint;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
 
-        if (titusRuntime.isFitEnabled()) {
-            this.fitInjection = Optional.of(Fit.newFitInjectionBuilder("taskLaunchAndStore")
+        FitFramework fit = titusRuntime.getFitFramework();
+        if (fit.isActive()) {
+            this.fitInjection = Optional.of(fit.newFitInjectionBuilder("taskLaunchAndStore")
                     .withDescription("Break write to store during Fenzo task launch")
                     .build()
             );
-            titusRuntime.getFit().getChild(COMPONENT).addInjection(fitInjection.get());
+            fit.getRootComponent().getChild(COMPONENT).addInjection(fitInjection.get());
         } else {
             this.fitInjection = Optional.empty();
         }

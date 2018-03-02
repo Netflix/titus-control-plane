@@ -1,10 +1,11 @@
-package io.netflix.titus.common.framework.fit.internal.action;
+package io.netflix.titus.common.framework.fit;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
-import io.netflix.titus.common.framework.fit.FitAction;
-import io.netflix.titus.common.framework.fit.FitActionDescriptor;
-import io.netflix.titus.common.framework.fit.FitInjection;
+import com.google.common.util.concurrent.ListenableFuture;
+import rx.Observable;
 
 public abstract class AbstractFitAction implements FitAction {
 
@@ -39,5 +40,33 @@ public abstract class AbstractFitAction implements FitAction {
 
     public FitInjection getInjection() {
         return injection;
+    }
+
+    @Override
+    public void beforeImmediate(String injectionPoint) {
+    }
+
+    @Override
+    public void afterImmediate(String injectionPoint) {
+    }
+
+    @Override
+    public <T> T afterImmediate(String injectionPoint, T result) {
+        return result;
+    }
+
+    @Override
+    public <T> Supplier<Observable<T>> aroundObservable(String injectionPoint, Supplier<Observable<T>> source) {
+        return source;
+    }
+
+    @Override
+    public <T> Supplier<CompletableFuture<T>> aroundCompletableFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
+        return source;
+    }
+
+    @Override
+    public <T> Supplier<ListenableFuture<T>> aroundListenableFuture(String injectionPoint, Supplier<ListenableFuture<T>> source) {
+        return source;
     }
 }

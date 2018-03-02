@@ -71,6 +71,13 @@ public interface FitInjection {
     void afterImmediate(String injectionPoint);
 
     /**
+     * Method to be called at the end of the client's code section.
+     *
+     * @param result value returned by the client, which can be intercepted and modified by the FIT action
+     */
+    <T> T afterImmediate(String injectionPoint, T result);
+
+    /**
      * Executes before/after FIT handlers around the provided action.
      */
     default void aroundImmediate(String injectionPoint, Runnable action) {

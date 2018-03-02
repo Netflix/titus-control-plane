@@ -1,8 +1,7 @@
 package io.netflix.titus.common.runtime;
 
 import com.netflix.spectator.api.DefaultRegistry;
-import io.netflix.titus.common.framework.fit.Fit;
-import io.netflix.titus.common.framework.fit.FitComponent;
+import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.code.CodePointTracker;
 import io.netflix.titus.common.util.code.LoggingCodePointTracker;
@@ -15,7 +14,7 @@ public final class TitusRuntimes {
     public static TitusRuntime internal() {
         return new DefaultTitusRuntime(new DefaultRegistry()) {
             private final LoggingCodePointTracker loggingCodePointTracker = new LoggingCodePointTracker();
-            private final FitComponent rootFitComponent = Fit.newFitComponent("application");
+            private final FitFramework fitFramework = FitFramework.inactiveFitFramework();
 
             @Override
             public CodePointTracker getCodePointTracker() {
@@ -23,8 +22,8 @@ public final class TitusRuntimes {
             }
 
             @Override
-            public FitComponent getFit() {
-                return rootFitComponent;
+            public FitFramework getFitFramework() {
+                return fitFramework;
             }
         };
     }

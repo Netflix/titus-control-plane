@@ -26,8 +26,7 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
-import io.netflix.titus.common.framework.fit.Fit;
-import io.netflix.titus.common.framework.fit.FitComponent;
+import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ReflectionExt;
 import io.netflix.titus.common.util.code.CodePointTracker;
@@ -41,6 +40,8 @@ import rx.Observable;
 @Singleton
 public class DefaultTitusRuntime implements TitusRuntime {
 
+    public static final String FIT_ACTIVATION_PROPERTY = "titus.runtime.fit.enabled";
+
     private static final String METRICS_RUNTIME_ROOT = "titus.system.";
     private static final String METRICS_PERSISTENT_STREAM = METRICS_RUNTIME_ROOT + "persistentStream";
 
@@ -51,13 +52,15 @@ public class DefaultTitusRuntime implements TitusRuntime {
 
     private final SpectatorCodePointTracker codePointTracker;
     private final Registry registry;
-    private final FitComponent fitRootComponent;
+    private final FitFramework fitFramework;
 
     @Inject
     public DefaultTitusRuntime(Registry registry) {
         this.codePointTracker = new SpectatorCodePointTracker(registry);
         this.registry = registry;
-        this.fitRootComponent = Fit.newFitComponent("application");
+
+        boolean isFitEnabled = "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false"));
+        this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
     }
 
     @Override
@@ -98,16 +101,6 @@ public class DefaultTitusRuntime implements TitusRuntime {
     }
 
     @Override
-    public boolean isFitEnabled() {
-        return "true".equals(System.getProperty("titus.runtime.fit.enabled", "false"));
-    }
-
-    @Override
-    public FitComponent getFit() {
-        return fitRootComponent;
-    }
-
-    @Override
     public CodePointTracker getCodePointTracker() {
         return codePointTracker;
     }
@@ -115,5 +108,10 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Override
     public Registry getRegistry() {
         return registry;
+    }
+
+    @Override
+    public FitFramework getFitFramework() {
+        return fitFramework;
     }
 }

@@ -10,6 +10,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.netflix.titus.common.framework.fit.AbstractFitAction;
 import io.netflix.titus.common.framework.fit.FitActionDescriptor;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.util.ErrorGenerator;

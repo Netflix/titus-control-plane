@@ -2,6 +2,7 @@ package io.netflix.titus.common.framework.fit;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -21,4 +22,12 @@ public interface FitRegistry {
      * is needed, and it is not always available at this stage.
      */
     Function<FitInjection, FitAction> newFitActionFactory(String actionKind, String id, Map<String, String> properties);
+
+    /**
+     * Add new FIT action kind to the registry.
+     *
+     * @param descriptor action descriptor
+     * @param factory action creator
+     */
+    void registerActionKind(FitActionDescriptor descriptor, BiFunction<String, Map<String, String>, Function<FitInjection, FitAction>> factory);
 }

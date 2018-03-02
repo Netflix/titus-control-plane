@@ -34,10 +34,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
-import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
-import io.netflix.titus.master.Status;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.V2JobOperations;
@@ -79,7 +78,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     private Action1<List<? extends VirtualMachineLease>> leaseHandler = null;
     private final MesosSchedulerDriverFactory mesosDriverFactory;
     private final Injector injector;
-    private final Registry metricsRegistry;
+    private final TitusRuntime titusRuntime;
     private boolean active;
     private final BlockingQueue<String> killQueue = new LinkedBlockingQueue<>();
 
@@ -90,13 +89,13 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
                                                 MesosMasterResolver mesosMasterResolver,
                                                 MesosSchedulerDriverFactory mesosDriverFactory,
                                                 Injector injector,
-                                                Registry metricsRegistry) {
+                                                TitusRuntime titusRuntime) {
         this.config = config;
         this.mesosConfiguration = mesosConfiguration;
         this.mesosMasterResolver = mesosMasterResolver;
         this.mesosDriverFactory = mesosDriverFactory;
         this.injector = injector;
-        this.metricsRegistry = metricsRegistry;
+        this.titusRuntime = titusRuntime;
         this.vmLeaseRescindedObserver = PublishSubject.create();
         this.vmTaskStatusObserver = PublishSubject.create();
         executor = Executors.newSingleThreadExecutor(r -> {
@@ -228,7 +227,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         }
 
         mesosCallbackHandler = new MesosSchedulerCallbackHandler(leaseHandler, vmLeaseRescindedObserver, vmTaskStatusObserver,
-                v2JobOperations, v3JobOperations, config, mesosConfiguration, metricsRegistry);
+                v2JobOperations, v3JobOperations, config, mesosConfiguration, titusRuntime);
 
         FrameworkInfo framework = FrameworkInfo.newBuilder()
                 .setUser("root") // Fix to root, to enable running master as non-root
