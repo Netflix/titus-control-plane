@@ -43,6 +43,7 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
+import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.RegExpExt;
@@ -50,6 +51,7 @@ import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.job.V2JobMgrIntf;
 import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
@@ -91,6 +93,9 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private final V3JobOperations v3JobOperations;
     private volatile ScheduledFuture reconcilerFuture = null;
     private final MasterConfiguration config;
+    private final MesosConfiguration mesosConfiguration;
+    private final Registry registry;
+
     private AtomicLong lastOfferReceivedAt = new AtomicLong(System.currentTimeMillis());
     private AtomicLong lastValidOfferReceivedAt = new AtomicLong(System.currentTimeMillis());
     private final AtomicLong lastOfferReceivedMillis;
@@ -138,6 +143,9 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.config = config;
+        this.mesosConfiguration = mesosConfiguration;
+        this.registry = registry;
+
         numMesosRegistered = registry.counter(MetricConstants.METRIC_MESOS + "numMesosRegistered");
         numMesosDisconnects = registry.counter(MetricConstants.METRIC_MESOS + "numMesosDisconnects");
         numOfferRescinded = registry.counter(MetricConstants.METRIC_MESOS + "numOfferRescinded");
@@ -279,6 +287,10 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     public void reconcileTasks(final SchedulerDriver driver) {
+        if (!mesosConfiguration.isReconcilerEnabled()) {
+            logger.info("Task reconciliation is turned-off");
+            return;
+        }
         try {
             if (reconciliationTrial++ % 2 == 0) {
                 reconcileTasksKnownToUs(driver);
@@ -376,6 +388,11 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         String taskId = taskStatus.getTaskId().getValue();
         TaskState taskState = taskStatus.getState();
 
+        if (isReconcilerUpdateForUnknownTask(taskStatus) && !mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
+            logger.info("Ignoring reconciler triggered task status update: {}", taskId);
+            return;
+        }
+
         logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, taskStatus.getMessage());
 
         if (JobFunctions.isV2Task(taskId)) {
@@ -383,6 +400,47 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         } else {
             v3StatusUpdate(taskStatus);
         }
+    }
+
+    private boolean isReconcilerUpdateForUnknownTask(TaskStatus taskStatus) {
+        if (taskStatus.getReason() != TaskStatus.Reason.REASON_RECONCILIATION) {
+            return false;
+        }
+
+        String taskId = taskStatus.getTaskId().getValue();
+        boolean known = isKnown(taskId);
+
+        registry.counter(
+                MetricConstants.METRIC_MESOS + "reconcilerUpdates",
+                "taskId", taskId,
+                "isKnown", Boolean.toString(known)
+        ).increment();
+
+        return !known;
+    }
+
+    private boolean isKnown(String taskId) {
+        // V3 engine
+        if (!JobFunctions.isV2Task(taskId)) {
+            return v3JobOperations.findTaskById(taskId).isPresent();
+        }
+
+        // V2 engine
+        for (V2JobMgrIntf jmgr : v2JobOperations.getAllJobMgrs()) {
+            V2JobMetadata jobMetadata = jmgr.getJobMetadata();
+            if (jobMetadata != null) {
+                try {
+                    for (V2WorkerMetadata worker : jmgr.getWorkers()) {
+                        if (taskId.equals(WorkerNaming.getTaskId(worker))) {
+                            return true;
+                        }
+                    }
+                } catch (Exception ignore) {
+                    logger.debug("Error during searching through V2 tasks of job: {}", jobMetadata.getJobId());
+                }
+            }
+        }
+        return false;
     }
 
     private void v2StatusUpdate(TaskStatus taskStatus) {
