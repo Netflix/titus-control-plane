@@ -44,4 +44,10 @@ public class V3ServiceModule extends AbstractModule {
     public GrpcClientConfiguration getGrpcClientConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(GrpcClientConfiguration.class);
     }
+
+    @Provides
+    @Singleton
+    public JobManagerConfiguration getJobManagerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(JobManagerConfiguration.class);
+    }
 }

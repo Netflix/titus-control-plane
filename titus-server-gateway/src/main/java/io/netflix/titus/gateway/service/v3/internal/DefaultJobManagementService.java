@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -53,6 +54,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import io.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.jobmanager.store.JobStoreException;
@@ -63,11 +65,14 @@ import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.ExceptionExt;
+import io.netflix.titus.common.util.RegExpExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.gateway.service.v3.JobManagementService;
+import io.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
@@ -101,25 +106,32 @@ public class DefaultJobManagementService implements JobManagementService {
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
 
     private final GrpcClientConfiguration configuration;
+    private final JobManagerConfiguration jobManagerConfiguration;
     private final JobManagementServiceStub client;
     private final SessionContext sessionContext;
     private final JobStore store;
     private final LogStorageInfo<io.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
+    private final Function<String, Matcher> uncompliantClientMatcher;
 
     @Inject
     public DefaultJobManagementService(GrpcClientConfiguration configuration,
+                                       JobManagerConfiguration jobManagerConfiguration,
                                        JobManagementServiceStub client,
                                        SessionContext sessionContext,
                                        JobStore store,
                                        LogStorageInfo<io.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                        @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer) {
         this.configuration = configuration;
+        this.jobManagerConfiguration = jobManagerConfiguration;
         this.client = client;
         this.sessionContext = sessionContext;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
         this.entitySanitizer = entitySanitizer;
+        this.uncompliantClientMatcher = RegExpExt.dynamicMatcher(
+                jobManagerConfiguration::getNoncompliantClientWhiteList, "noncompliantClientWhiteList", 0, logger
+        );
     }
 
     @Override
@@ -132,14 +144,21 @@ public class DefaultJobManagementService implements JobManagementService {
         }
         io.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
+        // TODO Remove this code section once all clients are compliant and they set explicitly security group(s) and IAM role.
+        if (isInNonCompliantWhiteList(sanitizedCoreJobDescriptor)) {
+            sanitizedCoreJobDescriptor = addMissingSecurityGroupAndIamRole(sanitizedCoreJobDescriptor);
+        }
+
         Set<ConstraintViolation<io.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
         if (!violations.isEmpty()) {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
+
+        JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
         return toObservable(emitter -> {
             final Action1<? super JobId> onNext = value -> emitter.onNext(value.getId());
             StreamObserver<JobId> streamObserver = GrpcUtil.createStreamObserver(onNext, emitter::onError, emitter::onCompleted);
-            ClientCall clientCall = call(METHOD_CREATE_JOB, jobDescriptor, streamObserver);
+            ClientCall clientCall = call(METHOD_CREATE_JOB, effectiveJobDescriptor, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
         });
     }
@@ -287,6 +306,34 @@ public class DefaultJobManagementService implements JobManagementService {
             ClientCall clientCall = call(METHOD_KILL_TASK, taskKillRequest, streamObserver);
             GrpcUtil.attachCancellingCallback(emitter, clientCall);
         });
+    }
+
+    private boolean isInNonCompliantWhiteList(io.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+        io.netflix.titus.api.jobmanager.model.job.JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
+        String jobClusterId = jobDescriptor.getApplicationName() + '-' + jobGroupInfo.getStack() + '-' + jobGroupInfo.getDetail() + '-' + jobGroupInfo.getSequence();
+        return uncompliantClientMatcher.apply(jobClusterId).matches();
+    }
+
+    private io.netflix.titus.api.jobmanager.model.job.JobDescriptor addMissingSecurityGroupAndIamRole(io.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+        SecurityProfile securityProfile = jobDescriptor.getContainer().getSecurityProfile();
+        if (!securityProfile.getSecurityGroups().isEmpty() && !securityProfile.getIamRole().isEmpty()) {
+            return jobDescriptor;
+        }
+        SecurityProfile.Builder builder = securityProfile.toBuilder();
+        String nonCompliant = null;
+        if (securityProfile.getSecurityGroups().isEmpty()) {
+            builder.withSecurityGroups(jobManagerConfiguration.getDefaultSecurityGroups());
+            nonCompliant = "noSecurityGroups";
+        }
+        if (securityProfile.getIamRole().isEmpty()) {
+            builder.withIamRole(jobManagerConfiguration.getDefaultIamRole());
+            nonCompliant = nonCompliant == null ? "noIamRole" : nonCompliant + ",noIamRole";
+        }
+        return jobDescriptor.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(jobDescriptor.getAttributes(), "titus.noncompliant", nonCompliant))
+                .withContainer(jobDescriptor.getContainer().toBuilder()
+                        .withSecurityProfile(builder.build()).build()
+                ).build();
     }
 
     private Observable<Job> retrieveArchivedJob(String jobId) {
