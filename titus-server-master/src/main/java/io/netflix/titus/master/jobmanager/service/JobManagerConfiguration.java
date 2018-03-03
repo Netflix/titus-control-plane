@@ -70,4 +70,10 @@ public interface JobManagerConfiguration {
 
     @DefaultValue("10000")
     long getTaskLivenessPollerIntervalMs();
+
+    /**
+     * @return whether or not the ignoreLaunchGuard flag should be sent to the agent on a v3 task.
+     */
+    @DefaultValue("false")
+    boolean isV3IgnoreLaunchGuardEnabled();
 }
