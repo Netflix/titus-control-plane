@@ -8,6 +8,7 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.jobManager")
 public interface JobManagerConfiguration {
 
+    @DefaultValue("_none_")
     String getDefaultIamRole();
 
     List<String> getDefaultSecurityGroups();
