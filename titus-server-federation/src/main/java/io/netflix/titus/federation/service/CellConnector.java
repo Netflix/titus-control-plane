@@ -16,16 +16,14 @@
 
 package io.netflix.titus.federation.service;
 
-import java.util.SortedMap;
+import java.util.Map;
+import java.util.Optional;
 
 import io.grpc.ManagedChannel;
 import io.netflix.titus.api.federation.model.Cell;
 
 public interface CellConnector {
-    /**
-     * @return a {@link SortedMap} that conveys the idea of precedence (an order) between {@link Cell cells}
-     */
-    SortedMap<Cell, ManagedChannel> getChannels();
+    Map<Cell, ManagedChannel> getChannels();
 
-    ManagedChannel getChannelForCell(Cell cell);
+    Optional<ManagedChannel> getChannelForCell(Cell cell);
 }

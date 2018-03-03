@@ -14,6 +14,8 @@ import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import io.netflix.titus.common.util.guice.ContainerEventBusModule;
 import io.netflix.titus.federation.endpoint.EndpointModule;
 import io.netflix.titus.federation.jobmanager.JobManagerModule;
+import io.netflix.titus.federation.service.CellConnector;
+import io.netflix.titus.federation.service.DefaultCellConnector;
 import io.netflix.titus.runtime.TitusEntitySanitizerModule;
 import io.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import io.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
@@ -32,6 +34,7 @@ public class TitusFederationModule extends AbstractModule {
         install(new TitusEntitySanitizerModule());
 
         bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
+        bind(CellConnector.class).to(DefaultCellConnector.class);
 
         install(new EndpointModule());
         install(new JobManagerModule());
