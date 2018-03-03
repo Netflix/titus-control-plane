@@ -48,9 +48,9 @@ import rx.Completable;
 import rx.Observable;
 
 import static io.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
-import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
@@ -75,8 +75,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Observable<AgentInstanceGroups> getInstanceGroups() {
         return createRequestObservable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<AgentInstanceGroups> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            StreamObserver<AgentInstanceGroups> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getInstanceGroups(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -84,8 +83,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Observable<AgentInstanceGroup> getInstanceGroup(String id) {
         return createRequestObservable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<AgentInstanceGroup> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            StreamObserver<AgentInstanceGroup> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getInstanceGroup(Id.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -93,8 +91,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Observable<AgentInstance> getAgentInstance(String id) {
         return createRequestObservable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<AgentInstance> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            StreamObserver<AgentInstance> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getAgentInstance(Id.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -102,8 +99,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Observable<AgentInstances> findAgentInstances(AgentQuery query) {
         return createRequestObservable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<AgentInstances> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            StreamObserver<AgentInstances> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findAgentInstances(query, streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -111,8 +107,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Completable updateInstanceGroupTier(TierUpdate tierUpdate) {
         return createRequestCompletable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupTier(tierUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -126,8 +121,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
         }
 
         return createRequestCompletable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateAutoScalingRule(autoScalingRuleUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -135,8 +129,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
         return createRequestCompletable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupLifecycleState(lifecycleStateUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -144,8 +137,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate) {
         return createRequestCompletable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceOverrideState(overrideStateUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -153,8 +145,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public Observable<AgentChangeEvent> observeAgents() {
         return createRequestObservable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<AgentChangeEvent> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
+            StreamObserver<AgentChangeEvent> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).observeAgents(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }

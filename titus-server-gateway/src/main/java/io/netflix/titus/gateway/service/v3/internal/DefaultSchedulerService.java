@@ -41,9 +41,10 @@ import rx.Completable;
 import rx.Observable;
 
 import static io.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder.SCHEDULER_SANITIZER;
-import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
+import static io.netflix.titus.common.grpc.GrpcUtil.createEmptyClientResponseObserver;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
@@ -70,8 +71,7 @@ public class DefaultSchedulerService implements SchedulerService {
     @Override
     public Observable<SystemSelectors> getSystemSelectors() {
         return createRequestObservable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<SystemSelectors> streamObserver = createSimpleStreamObserver(emitter);
+            StreamObserver<SystemSelectors> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getSystemSelectors(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -79,8 +79,7 @@ public class DefaultSchedulerService implements SchedulerService {
     @Override
     public Observable<SystemSelector> getSystemSelector(String id) {
         return createRequestObservable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<SystemSelector> streamObserver = createSimpleStreamObserver(emitter);
+            StreamObserver<SystemSelector> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -94,8 +93,7 @@ public class DefaultSchedulerService implements SchedulerService {
         }
 
         return createRequestCompletable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<Empty> streamObserver = createSimpleStreamObserver(emitter);
+            StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).createSystemSelector(systemSelector, streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -109,8 +107,7 @@ public class DefaultSchedulerService implements SchedulerService {
         }
 
         return createRequestCompletable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<Empty> streamObserver = createSimpleStreamObserver(emitter);
+            StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
             SystemSelectorUpdate systemSelectorUpdate = SystemSelectorUpdate.newBuilder().setId(id).setSystemSelector(systemSelector).build();
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateSystemSelector(systemSelectorUpdate, streamObserver);
         }, configuration.getRequestTimeout());
@@ -119,8 +116,7 @@ public class DefaultSchedulerService implements SchedulerService {
     @Override
     public Completable deleteSystemSelector(String id) {
         return createRequestCompletable(emitter -> {
-            attachCancellingCallback(emitter);
-            StreamObserver<Empty> streamObserver = createSimpleStreamObserver(emitter);
+            StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
