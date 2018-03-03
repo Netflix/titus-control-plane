@@ -22,10 +22,11 @@ import java.util.function.BiConsumer;
 import com.google.protobuf.Empty;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
-import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractStub;
+import io.grpc.stub.ClientCallStreamObserver;
+import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -76,6 +77,52 @@ public class GrpcUtil {
         return new StreamObserver<T>() {
             @Override
             public void onNext(T value) {
+                onNext.call(value);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                onError.call(t);
+            }
+
+            @Override
+            public void onCompleted() {
+                onCompleted.call();
+            }
+        };
+    }
+
+    public static <REQ, RESP> ClientResponseObserver<REQ, RESP> createSimpleClientResponseObserver(Emitter<RESP> emitter) {
+        return createClientResponseObserver(
+                requestStream -> emitter.setCancellation(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                emitter::onNext,
+                emitter::onError,
+                emitter::onCompleted
+        );
+    }
+
+    public static <REQ> ClientResponseObserver<REQ, Empty> createEmptyClientResponseObserver(Emitter<Empty> emitter) {
+        return createClientResponseObserver(
+                requestStream -> emitter.setCancellation(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                ignored -> {
+                },
+                emitter::onError,
+                emitter::onCompleted
+        );
+    }
+
+    public static <REQ, RESP> ClientResponseObserver<REQ, RESP> createClientResponseObserver(final Action1<ClientCallStreamObserver<REQ>> beforeStart,
+                                                                                             final Action1<? super RESP> onNext,
+                                                                                             final Action1<Throwable> onError,
+                                                                                             final Action0 onCompleted) {
+        return new ClientResponseObserver<REQ, RESP>() {
+            @Override
+            public void beforeStart(ClientCallStreamObserver<REQ> requestStream) {
+                beforeStart.call(requestStream);
+            }
+
+            @Override
+            public void onNext(RESP value) {
                 onNext.call(value);
             }
 
@@ -155,10 +202,6 @@ public class GrpcUtil {
 
     public static void attachCancellingCallback(Emitter emitter, ClientCall clientCall) {
         emitter.setCancellation(() -> clientCall.cancel(CANCELLING_MESSAGE, null));
-    }
-
-    public static void attachCancellingCallback(Emitter emitter) {
-        emitter.setCancellation(() -> Context.current().withCancellation().cancel(null));
     }
 
     public static void attachCancellingCallback(StreamObserver responseObserver, Subscription subscription) {
