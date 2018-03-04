@@ -24,11 +24,11 @@ import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
 
     @Valid

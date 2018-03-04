@@ -21,19 +21,21 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.appscale.store.AppScalePolicyStore;
+import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
-import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
-import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
+import io.netflix.titus.api.scheduler.store.SchedulerStore;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.master.scheduler.store.InMemorySchedulerStore;
 import io.netflix.titus.master.store.cache.ApplicationSlaStoreCache;
 import io.netflix.titus.master.store.file.SimpleCachedFileStorageProvider;
 import io.netflix.titus.master.store.memory.InMemoryApplicationSlaStore;
 import io.netflix.titus.master.store.sanitizer.ApplicationSlaStoreSanitizer;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
+import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 
-import static io.netflix.titus.runtime.TitusEntitySanitizerModule.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
 
 public class StoreModule extends AbstractModule {
     @Override
@@ -42,6 +44,7 @@ public class StoreModule extends AbstractModule {
         bind(JobStore.class).to(InMemoryJobStore.class);
         bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
         bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
+        bind(SchedulerStore.class).to(InMemorySchedulerStore.class);
     }
 
     @Singleton

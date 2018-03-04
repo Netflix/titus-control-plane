@@ -39,6 +39,7 @@ import io.netflix.titus.common.util.Evaluators;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.worker.WorkerRequest;
+import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.TaskInfoFactory;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
 import io.titanframework.messages.TitanProtos;
@@ -62,11 +63,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
 
     private final MasterConfiguration config;
+    private final JobManagerConfiguration jobManagerConfiguration;
     private final String iamArnPrefix;
 
     @Inject
-    public DefaultV3TaskInfoFactory(MasterConfiguration config) {
+    public DefaultV3TaskInfoFactory(MasterConfiguration config,
+                                    JobManagerConfiguration jobManagerConfiguration) {
         this.config = config;
+        this.jobManagerConfiguration = jobManagerConfiguration;
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
         this.iamArnPrefix = ARN_PREFIX + accountId + ARN_SUFFIX;
@@ -139,6 +143,11 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         if (task instanceof BatchJobTask) {
             BatchJobTask batchJobTask = (BatchJobTask) task;
             containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INDEX", "" + batchJobTask.getIndex());
+        }
+
+        // Set whether or not to ignore the launch guard
+        if (jobManagerConfiguration.isV3IgnoreLaunchGuardEnabled()) {
+            containerInfoBuilder.setIgnoreLaunchGuard(true);
         }
 
         // AWS Values

@@ -25,6 +25,7 @@ import io.netflix.titus.gateway.service.v3.internal.DefaultAgentManagementServic
 import io.netflix.titus.gateway.service.v3.internal.DefaultAutoScalingService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultJobManagementService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultLoadBalancerService;
+import io.netflix.titus.gateway.service.v3.internal.DefaultSchedulerService;
 import io.netflix.titus.gateway.service.v3.internal.DefaultTitusManagementService;
 
 public class V3ServiceModule extends AbstractModule {
@@ -35,11 +36,18 @@ public class V3ServiceModule extends AbstractModule {
         bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
         bind(TitusManagementService.class).to(DefaultTitusManagementService.class);
         bind(AgentManagementService.class).to(DefaultAgentManagementService.class);
+        bind(SchedulerService.class).to(DefaultSchedulerService.class);
     }
 
     @Provides
     @Singleton
     public GrpcClientConfiguration getGrpcClientConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(GrpcClientConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public JobManagerConfiguration getJobManagerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(JobManagerConfiguration.class);
     }
 }

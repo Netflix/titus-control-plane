@@ -78,6 +78,8 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.InvalidJobException;
+import io.netflix.titus.common.framework.fit.FitFramework;
+import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -93,11 +95,14 @@ import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.jobmanager.service.TaskInfoFactory;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
-import io.netflix.titus.master.scheduler.autoscale.DefaultAutoScaleController;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
-import io.netflix.titus.master.scheduler.fitness.AgentFitnessCalculator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
+import io.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
+import io.netflix.titus.master.scheduler.scaling.DefaultAutoScaleController;
+import io.netflix.titus.master.scheduler.scaling.FenzoAutoScaleRuleWrapper;
 import io.netflix.titus.master.store.InvalidJobStateChangeException;
 import io.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
@@ -126,6 +131,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
+    private final Optional<FitInjection> fitInjection;
     private TaskScheduler taskScheduler;
     private TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
@@ -160,7 +166,8 @@ public class DefaultSchedulingService implements SchedulingService {
     private final Timer schedulingIterationLatency;
 
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
-    private final GlobalConstraintEvaluator globalConstraintsEvaluator;
+    private final SystemSoftConstraint systemSoftConstraint;
+    private final SystemHardConstraint systemHardConstraint;
     private final Scheduler threadScheduler;
     private Action1<QueuableTask> taskQueueAction;
     private final TitusRuntime titusRuntime;
@@ -186,7 +193,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     final VirtualMachineMasterService virtualMachineService,
                                     MasterConfiguration config,
                                     SchedulerConfiguration schedulerConfiguration,
-                                    GlobalConstraintEvaluator globalConstraintsEvaluator,
+                                    SystemSoftConstraint systemSoftConstraint,
+                                    SystemHardConstraint systemHardConstraint,
                                     ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
@@ -199,7 +207,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     AgentResourceCache agentResourceCache) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, config, schedulerConfiguration,
-                globalConstraintsEvaluator, v2ConstraintEvaluatorTransformer,
+                systemSoftConstraint, systemHardConstraint, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
                 tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
                 preferentialNamedConsumableResourceEvaluator,
@@ -216,7 +224,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     final VirtualMachineMasterService virtualMachineService,
                                     MasterConfiguration config,
                                     SchedulerConfiguration schedulerConfiguration,
-                                    GlobalConstraintEvaluator globalConstraintsEvaluator,
+                                    SystemSoftConstraint systemSoftConstraint,
+                                    SystemHardConstraint systemHardConstraint,
                                     ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
@@ -244,14 +253,26 @@ public class DefaultSchedulingService implements SchedulingService {
         this.taskMigrator = taskMigrator;
         this.titusRuntime = titusRuntime;
         this.agentResourceCache = agentResourceCache;
-        this.globalConstraintsEvaluator = globalConstraintsEvaluator;
+        this.systemSoftConstraint = systemSoftConstraint;
+        this.systemHardConstraint = systemHardConstraint;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
+
+        FitFramework fit = titusRuntime.getFitFramework();
+        if (fit.isActive()) {
+            this.fitInjection = Optional.of(fit.newFitInjectionBuilder("taskLaunchAndStore")
+                    .withDescription("Break write to store during Fenzo task launch")
+                    .build()
+            );
+            fit.getRootComponent().getChild(COMPONENT).addInjection(fitInjection.get());
+        } else {
+            this.fitInjection = Optional.empty();
+        }
 
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
                 .withLeaseRejectAction(virtualMachineService::rejectLease)
                 .withLeaseOfferExpirySecs(config.getMesosLeaseOfferExpirySecs())
-                .withFitnessCalculator(new AgentFitnessCalculator(schedulerConfiguration, agentResourceCache))
-                .withFitnessGoodEnoughFunction(AgentFitnessCalculator.fitnessGoodEnoughFunction)
+                .withFitnessCalculator(new TitusFitnessCalculator(schedulerConfiguration, agentResourceCache))
+                .withFitnessGoodEnoughFunction(TitusFitnessCalculator.fitnessGoodEnoughFunction)
                 .withAutoScaleByAttributeName(config.getAutoscaleByAttributeName())
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
                 .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
@@ -325,8 +346,13 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public GlobalConstraintEvaluator getGlobalConstraints() {
-        return globalConstraintsEvaluator;
+    public SystemSoftConstraint getSystemSoftConstraint() {
+        return systemSoftConstraint;
+    }
+
+    @Override
+    public SystemHardConstraint getSystemHardConstraint() {
+        return systemHardConstraint;
     }
 
     @Override
@@ -376,7 +402,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                                           TaskScheduler.Builder schedulerBuilder) {
         int minMinIdle = 4;
         schedulerBuilder = schedulerBuilder
-                .withAutoScalerMapHostnameAttributeName(config.getAutoScalerMapHostnameAttributeName())
+                .withAutoScalerMapHostnameAttributeName(schedulerConfiguration.getInstanceAttributeName())
                 .withDelayAutoscaleUpBySecs(schedulerConfiguration.getDelayAutoScaleUpBySecs())
                 .withDelayAutoscaleDownBySecs(schedulerConfiguration.getDelayAutoScaleDownBySecs());
         schedulerBuilder = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle));
@@ -485,7 +511,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void preSchedulingHook() {
-        globalConstraintsEvaluator.prepare();
+        systemHardConstraint.prepare();
         setupTierAutoscalerConfig();
     }
 
@@ -630,6 +656,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     consumeResult);
 
                             // FIXME This is obvious shortcoming. Failed model updates must be propagated into change action result.
+                            fitInjection.ifPresent(i -> i.beforeImmediate("storeLaunchConfiguration"));
+
                             AtomicReference<Throwable> errorRef = new AtomicReference<>();
                             boolean updated = v3JobOperations.recordTaskPlacement(
                                     task.getId(),
@@ -642,6 +670,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                         }
                                     }
                             ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+                            fitInjection.ifPresent(i -> i.afterImmediate("storeLaunchConfiguration"));
 
                             if (errorRef.get() != null) {
                                 if (JobManagerException.hasErrorCode(errorRef.get(), JobManagerException.ErrorCode.UnexpectedTaskState)) {

@@ -19,9 +19,9 @@ package io.netflix.titus.common.util.cache;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
@@ -41,7 +41,7 @@ public interface Cache<K, V> {
      * mapping for the key
      * @throws NullPointerException if the specified key is null
      */
-    @CheckForNull
+    @Nullable
     V getIfPresent(@Nonnull Object key);
 
     /**
@@ -69,7 +69,7 @@ public interface Cache<K, V> {
      * @throws RuntimeException      or Error if the mappingFunction does so, in which case the mapping is
      *                               left unestablished
      */
-    @CheckForNull
+    @Nullable
     V get(@Nonnull K key, @Nonnull Function<? super K, ? extends V> mappingFunction);
 
     /**

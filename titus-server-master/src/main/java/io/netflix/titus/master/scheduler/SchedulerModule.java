@@ -27,15 +27,26 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.ScaleDownOrderEvaluator;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import io.netflix.titus.api.model.v2.JobConstraints;
+import io.netflix.titus.api.scheduler.service.SchedulerService;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.master.scheduler.autoscale.DefaultAutoScaleController;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
-import io.netflix.titus.master.scheduler.constraint.TitusInactiveClusterScaleDownConstraintEvaluator;
-import io.netflix.titus.master.scheduler.constraint.ZoneBalancedClusterScaleDownConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.DefaultSystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.DefaultSystemSoftConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
+import io.netflix.titus.master.scheduler.constraint.V2ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.V3ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.endpoint.grpc.DefaultSchedulerServiceGrpc;
 import io.netflix.titus.master.scheduler.fitness.NetworkInterfaceFitnessEvaluator;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import io.netflix.titus.master.scheduler.resourcecache.DefaultAgentResourceCache;
+import io.netflix.titus.master.scheduler.scaling.AutoScaleController;
+import io.netflix.titus.master.scheduler.scaling.DefaultAutoScaleController;
+import io.netflix.titus.master.scheduler.scaling.TitusInactiveClusterScaleDownConstraintEvaluator;
+import io.netflix.titus.master.scheduler.scaling.ZoneBalancedClusterScaleDownConstraintEvaluator;
+import io.netflix.titus.master.scheduler.service.DefaultSchedulerService;
 
 public final class SchedulerModule extends AbstractModule {
 
@@ -57,9 +68,15 @@ public final class SchedulerModule extends AbstractModule {
         bind(SchedulingService.class).to(DefaultSchedulingService.class).asEagerSingleton();
         bind(AgentResourceCache.class).to(DefaultAgentResourceCache.class);
 
-        bind(GlobalConstraintEvaluator.class).to(TitusGlobalConstraintEvaluator.class);
+        bind(SystemSoftConstraint.class).to(DefaultSystemSoftConstraint.class);
+        bind(SystemHardConstraint.class).to(DefaultSystemHardConstraint.class);
+
         bind(V2_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE).to(V2ConstraintEvaluatorTransformer.class);
         bind(V3_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE).to(V3ConstraintEvaluatorTransformer.class);
+
+        bind(SchedulerServiceGrpc.SchedulerServiceImplBase.class).to(DefaultSchedulerServiceGrpc.class);
+
+        bind(SchedulerService.class).to(DefaultSchedulerService.class);
     }
 
     @Provides

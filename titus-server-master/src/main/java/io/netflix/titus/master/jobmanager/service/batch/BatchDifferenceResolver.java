@@ -52,9 +52,10 @@ import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskAc
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
@@ -75,7 +76,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private final JobStore jobStore;
 
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
-    private final GlobalConstraintEvaluator globalConstraintEvaluator;
+    private final SystemSoftConstraint systemSoftConstraint;
+    private final SystemHardConstraint systemHardConstraint;
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
@@ -89,8 +91,10 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-            GlobalConstraintEvaluator globalConstraintEvaluator) {
-        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer, globalConstraintEvaluator, Clocks.system(), Schedulers.computation());
+            SystemSoftConstraint systemSoftConstraint,
+            SystemHardConstraint systemHardConstraint) {
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer,
+                systemSoftConstraint, systemHardConstraint, Clocks.system(), Schedulers.computation());
     }
 
     public BatchDifferenceResolver(
@@ -100,7 +104,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-            GlobalConstraintEvaluator globalConstraintEvaluator,
+            SystemSoftConstraint systemSoftConstraint,
+            SystemHardConstraint systemHardConstraint,
             Clock clock,
             Scheduler scheduler) {
         this.configuration = configuration;
@@ -109,12 +114,13 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         this.vmService = vmService;
         this.jobStore = jobStore;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
-        this.globalConstraintEvaluator = globalConstraintEvaluator;
+        this.systemSoftConstraint = systemSoftConstraint;
+        this.systemHardConstraint = systemHardConstraint;
         this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
-                Retryers.exponentialBackoff(5000, 5000, TimeUnit.MILLISECONDS),
+                Retryers.exponentialBackoff(500, 5000, TimeUnit.MILLISECONDS),
                 scheduler
         );
     }
@@ -145,7 +151,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
-            if(killInitiatedActions.isEmpty()) {
+            if (killInitiatedActions.isEmpty()) {
                 return findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore);
             }
             return killInitiatedActions;
@@ -202,7 +208,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                         refTask,
                         () -> JobManagerUtil.filterActiveTaskIds(engine),
                         constraintEvaluatorTransformer,
-                        globalConstraintEvaluator
+                        systemSoftConstraint,
+                        systemHardConstraint
                 ));
             }
         }

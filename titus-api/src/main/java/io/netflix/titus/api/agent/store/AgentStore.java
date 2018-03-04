@@ -25,8 +25,6 @@ import rx.Observable;
 
 public interface AgentStore {
 
-    String AGENT_SANITIZER = "agent";
-
     /**
      * Retrieve all agent instance groups.
      */

@@ -53,9 +53,10 @@ import io.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskAc
 import io.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import io.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import io.netflix.titus.master.scheduler.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.SchedulingService;
-import io.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
@@ -77,7 +78,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final VirtualMachineMasterService vmService;
     private final JobStore jobStore;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
-    private final GlobalConstraintEvaluator globalConstraintEvaluator;
+    private final SystemSoftConstraint systemSoftConstraint;
+    private final SystemHardConstraint systemHardConstraint;
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
@@ -91,8 +93,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-            GlobalConstraintEvaluator globalConstraintEvaluator) {
-        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer, globalConstraintEvaluator, Clocks.system(), Schedulers.computation());
+            SystemSoftConstraint systemSoftConstraint,
+            SystemHardConstraint systemHardConstraint) {
+        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer,
+                systemSoftConstraint, systemHardConstraint, Clocks.system(), Schedulers.computation());
     }
 
     public ServiceDifferenceResolver(
@@ -102,7 +106,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-            GlobalConstraintEvaluator globalConstraintEvaluator,
+            SystemSoftConstraint systemSoftConstraint,
+            SystemHardConstraint systemHardConstraint,
             Clock clock,
             Scheduler scheduler) {
         this.configuration = configuration;
@@ -111,7 +116,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.vmService = vmService;
         this.jobStore = jobStore;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
-        this.globalConstraintEvaluator = globalConstraintEvaluator;
+        this.systemSoftConstraint = systemSoftConstraint;
+        this.systemHardConstraint = systemHardConstraint;
         this.clock = clock;
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
@@ -147,7 +153,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
                     engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state"
             );
-            if(killInitiatedActions.isEmpty()) {
+            if (killInitiatedActions.isEmpty()) {
                 return findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore);
             }
             return killInitiatedActions;
@@ -215,7 +221,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                         refTask,
                         () -> JobManagerUtil.filterActiveTaskIds(engine),
                         constraintEvaluatorTransformer,
-                        globalConstraintEvaluator
+                        systemSoftConstraint,
+                        systemHardConstraint
                 ));
             }
         }

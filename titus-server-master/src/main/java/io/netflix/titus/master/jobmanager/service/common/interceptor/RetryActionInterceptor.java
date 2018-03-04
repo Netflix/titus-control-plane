@@ -68,7 +68,7 @@ public class RetryActionInterceptor implements TitusChangeActionInterceptor<Bool
         }
         long delayMs = retryRecord.getRetryPolicy().getDelayMs().orElse(-1L);
         if (delayMs < 0) {
-            return false;
+            return true;
         }
         long pauseTime = retryRecord.getLastFailureTime() + delayMs;
         return scheduler.now() >= pauseTime;

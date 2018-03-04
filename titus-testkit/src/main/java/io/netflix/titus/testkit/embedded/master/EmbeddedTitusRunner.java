@@ -18,6 +18,7 @@ package io.netflix.titus.testkit.embedded.master;
 
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
+import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.testkit.embedded.cloud.EmbeddedCloudModule;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 
@@ -27,6 +28,7 @@ public class EmbeddedTitusRunner {
         LifecycleInjector injector = InjectorBuilder.fromModule(new EmbeddedCloudModule()).createInjector();
         SimulatedCloud cloud = injector.getInstance(SimulatedCloud.class);
 
+        System.setProperty(DefaultTitusRuntime.FIT_ACTIVATION_PROPERTY, "true");
         EmbeddedTitusMaster.Builder builder = EmbeddedTitusMaster.aTitusMaster()
                 .withSimulatedCloud(cloud)
                 .withCassadraV3JobStore()

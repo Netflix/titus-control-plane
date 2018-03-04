@@ -144,3 +144,17 @@ CREATE TABLE "load_balancer_jobs" (
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
   AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
+
+// ------------------------------------------------------------------
+// Scheduler schema
+
+CREATE TABLE "system_selectors" (
+  id text,
+  value text,
+  PRIMARY KEY (id)
+) WITH
+  comment='The system selectors'
+  AND compression={}
+  AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
+  AND gc_grace_seconds = 21600
+  AND speculative_retry = 'NONE';

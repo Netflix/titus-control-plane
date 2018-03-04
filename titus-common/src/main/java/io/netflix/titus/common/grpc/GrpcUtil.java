@@ -25,9 +25,12 @@ import io.grpc.ClientCall;
 import io.grpc.Deadline;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractStub;
+import io.grpc.stub.ClientCallStreamObserver;
+import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
+import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 import rx.Subscription;
@@ -61,7 +64,7 @@ public class GrpcUtil {
         );
     }
 
-    public static StreamObserver<Empty> createEmptyStreamObserver(Emitter emitter) {
+    public static StreamObserver<Empty> createEmptyStreamObserver(Emitter<Empty> emitter) {
         return createStreamObserver(
                 ignored -> {
                 },
@@ -87,6 +90,58 @@ public class GrpcUtil {
                 onCompleted.call();
             }
         };
+    }
+
+    public static <REQ, RESP> ClientResponseObserver<REQ, RESP> createSimpleClientResponseObserver(Emitter<RESP> emitter) {
+        return createClientResponseObserver(
+                requestStream -> emitter.setCancellation(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                emitter::onNext,
+                emitter::onError,
+                emitter::onCompleted
+        );
+    }
+
+    public static <REQ> ClientResponseObserver<REQ, Empty> createEmptyClientResponseObserver(Emitter<Empty> emitter) {
+        return createClientResponseObserver(
+                requestStream -> emitter.setCancellation(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                ignored -> {
+                },
+                emitter::onError,
+                emitter::onCompleted
+        );
+    }
+
+    public static <REQ, RESP> ClientResponseObserver<REQ, RESP> createClientResponseObserver(final Action1<ClientCallStreamObserver<REQ>> beforeStart,
+                                                                                             final Action1<? super RESP> onNext,
+                                                                                             final Action1<Throwable> onError,
+                                                                                             final Action0 onCompleted) {
+        return new ClientResponseObserver<REQ, RESP>() {
+            @Override
+            public void beforeStart(ClientCallStreamObserver<REQ> requestStream) {
+                beforeStart.call(requestStream);
+            }
+
+            @Override
+            public void onNext(RESP value) {
+                onNext.call(value);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                onError.call(t);
+            }
+
+            @Override
+            public void onCompleted() {
+                onCompleted.call();
+            }
+        };
+    }
+
+    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
+                                                                           SessionContext sessionContext,
+                                                                           long deadlineMs) {
+        return GrpcUtil.createWrappedStub(sessionContext, client).withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(SessionContext sessionContext, STUB client) {
@@ -152,5 +207,16 @@ public class GrpcUtil {
     public static void attachCancellingCallback(StreamObserver responseObserver, Subscription subscription) {
         ServerCallStreamObserver serverObserver = (ServerCallStreamObserver) responseObserver;
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
+    }
+
+    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter, long timeout) {
+        return Observable.create(
+                emitter,
+                Emitter.BackpressureMode.NONE
+        ).timeout(timeout, TimeUnit.MILLISECONDS);
+    }
+
+    public static Completable createRequestCompletable(Action1<Emitter<Empty>> emitter, long timeout) {
+        return createRequestObservable(emitter, timeout).toCompletable();
     }
 }

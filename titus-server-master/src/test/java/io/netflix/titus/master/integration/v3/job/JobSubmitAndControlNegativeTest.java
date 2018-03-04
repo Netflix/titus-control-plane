@@ -153,11 +153,11 @@ public class JobSubmitAndControlNegativeTest {
     public void testJobWithBadSecurityProfile() throws Exception {
         SecurityProfile securityProfile = SecurityProfile.newBuilder()
                 .addSecurityGroups("not-good-security-group")
-                .setIamRole("   ") // Should be trimmed down, and replaced with template value
+                .setIamRole("   ")
                 .build();
         submitBadJob(
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setSecurityProfile(securityProfile)).build(),
-                "container.securityProfile.securityGroups"
+                "container.securityProfile.securityGroups", "container.securityProfile.iamRole"
         );
     }
 

@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
@@ -87,13 +87,13 @@ public class InstrumentedCache<K, V> implements io.netflix.titus.common.util.cac
         );
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public V getIfPresent(@Nonnull Object key) {
         return cache.getIfPresent(key);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public V get(@Nonnull K key, @Nonnull Function<? super K, ? extends V> mappingFunction) {
         return cache.get(key, mappingFunction);

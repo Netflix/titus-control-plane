@@ -49,7 +49,7 @@ public class CachedImageFitnessCalculator implements VMTaskFitnessCalculator {
 
     @Override
     public String getName() {
-        return "Cached Image Fitness Calculator";
+        return "Image Fitness Calculator";
     }
 
     @Override

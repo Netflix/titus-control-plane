@@ -33,6 +33,7 @@ import static io.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctio
  * the same security groups so that the network interface already exists.
  */
 public class CachedSecurityGroupFitnessCalculator implements VMTaskFitnessCalculator {
+
     private static final double SECURITY_GROUPS_NOT_CACHED_SCORE = 0.01;
     private static final double SECURITY_GROUPS_CACHED_SCORE = 1.0;
 

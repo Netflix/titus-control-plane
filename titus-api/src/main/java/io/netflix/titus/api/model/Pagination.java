@@ -20,14 +20,14 @@ import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 /**
  * An entity representing pagination information returned to a client iterating over its elements.
  * It includes current page that the client requested, and the total collection size.
  * As not always pageCount * pageSize == itemCount, the item count is included as well.
  */
-@NeverNull
+@ClassFieldsNotNull
 public class Pagination {
 
     @Valid

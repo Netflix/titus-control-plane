@@ -60,6 +60,11 @@ public class TestStoreLoadCommand implements Command {
         }
 
         @Override
+        public boolean isFailOnInconsistentSchedulerData() {
+            return false;
+        }
+
+        @Override
         public int getConcurrencyLimit() {
             return MAX_RETRIEVE_TASK_CONCURRENCY;
         }

@@ -32,6 +32,7 @@ import static io.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctio
  * A fitness calculator that will prefer placing tasks on agents that do not have a task with the same image.
  */
 public class ImageSpreadingFitnessCalculator implements VMTaskFitnessCalculator {
+
     private static final double MATCHING_TASK_SCORE = 0.5;
     private static final double NO_MATCHING_TASK_SCORE = 1.0;
 

@@ -38,13 +38,14 @@ import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 
-@IntegrationTest
+@Category(IntegrationTest.class)
 public class CassandraLoadBalancerStoreTest {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStoreTest.class);
 

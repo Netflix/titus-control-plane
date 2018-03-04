@@ -17,7 +17,6 @@
 package io.netflix.titus.gateway.service.v3.internal;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -29,7 +28,6 @@ import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
@@ -37,8 +35,6 @@ import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import io.grpc.ClientCall;
-import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.agent.model.AutoScaleRule;
 import io.netflix.titus.api.service.TitusServiceException;
@@ -49,19 +45,13 @@ import io.netflix.titus.gateway.service.v3.AgentManagementService;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import rx.Completable;
-import rx.Emitter;
 import rx.Observable;
-import rx.functions.Action1;
 
-import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_FIND_AGENT_INSTANCES;
-import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_GET_AGENT_INSTANCE;
-import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_OBSERVE_AGENTS;
-import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_UPDATE_AUTO_SCALING_RULE;
-import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_GROUP_LIFECYCLE_STATE;
-import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_GROUP_TIER;
-import static com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_OVERRIDE_STATE;
-import static io.netflix.titus.gateway.service.v3.internal.GrpcServiceUtil.getRxJavaAdjustedTimeout;
-import static io.netflix.titus.runtime.TitusEntitySanitizerModule.AGENT_SANITIZER;
+import static io.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
+import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultAgentManagementService implements AgentManagementService {
@@ -84,47 +74,42 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Observable<AgentInstanceGroups> getInstanceGroups() {
-        return toObservable(emitter -> {
-            StreamObserver<AgentInstanceGroups> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(AgentManagementServiceGrpc.METHOD_GET_INSTANCE_GROUPS, Empty.getDefaultInstance(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestObservable(emitter -> {
+            StreamObserver<AgentInstanceGroups> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getInstanceGroups(Empty.getDefaultInstance(), streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<AgentInstanceGroup> getInstanceGroup(String id) {
-        return toObservable(emitter -> {
-            StreamObserver<AgentInstanceGroup> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(AgentManagementServiceGrpc.METHOD_GET_INSTANCE_GROUP, Id.newBuilder().setId(id).build(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestObservable(emitter -> {
+            StreamObserver<AgentInstanceGroup> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getInstanceGroup(Id.newBuilder().setId(id).build(), streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<AgentInstance> getAgentInstance(String id) {
-        return Observable.create(emitter -> {
-            StreamObserver<AgentInstance> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_GET_AGENT_INSTANCE, Id.newBuilder().setId(id).build(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        return createRequestObservable(emitter -> {
+            StreamObserver<AgentInstance> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getAgentInstance(Id.newBuilder().setId(id).build(), streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<AgentInstances> findAgentInstances(AgentQuery query) {
-        return toObservable(emitter -> {
-            StreamObserver<AgentInstances> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_FIND_AGENT_INSTANCES, query, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestObservable(emitter -> {
+            StreamObserver<AgentInstances> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findAgentInstances(query, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable updateInstanceGroupTier(TierUpdate tierUpdate) {
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_UPDATE_INSTANCE_GROUP_TIER, tierUpdate, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupTier(tierUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
@@ -135,56 +120,33 @@ public class DefaultAgentManagementService implements AgentManagementService {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_UPDATE_AUTO_SCALING_RULE, autoScalingRuleUpdate, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateAutoScalingRule(autoScalingRuleUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_UPDATE_INSTANCE_GROUP_LIFECYCLE_STATE, lifecycleStateUpdate, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupLifecycleState(lifecycleStateUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate) {
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_UPDATE_INSTANCE_OVERRIDE_STATE, overrideStateUpdate, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceOverrideState(overrideStateUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<AgentChangeEvent> observeAgents() {
-        return Observable.create(emitter -> {
-            StreamObserver<AgentChangeEvent> streamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            ClientCall clientCall = callStreaming(METHOD_OBSERVE_AGENTS, Empty.getDefaultInstance(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-    }
-
-    private <ReqT, RespT> ClientCall call(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, configuration.getRequestTimeout(), responseObserver);
-    }
-
-    private <ReqT, RespT> ClientCall callStreaming(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.callStreaming(sessionContext, client, methodDescriptor, request, responseObserver);
-    }
-
-    private Completable toCompletable(Action1<Emitter<Empty>> emitter) {
-        return toObservable(emitter).toCompletable();
-    }
-
-    private <T> Observable<T> toObservable(Action1<Emitter<T>> emitter) {
-        return Observable.create(
-                emitter,
-                Emitter.BackpressureMode.NONE
-        ).timeout(getRxJavaAdjustedTimeout(configuration.getRequestTimeout()), TimeUnit.MILLISECONDS);
+        return createRequestObservable(emitter -> {
+            StreamObserver<AgentChangeEvent> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).observeAgents(Empty.getDefaultInstance(), streamObserver);
+        }, configuration.getRequestTimeout());
     }
 }

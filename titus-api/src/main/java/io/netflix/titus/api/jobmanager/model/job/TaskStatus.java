@@ -19,13 +19,13 @@ package io.netflix.titus.api.jobmanager.model.job;
 import java.util.Objects;
 import java.util.Set;
 
-import io.netflix.titus.common.model.sanitizer.NeverNull;
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.StringExt;
 
 /**
  */
-@NeverNull
+@ClassFieldsNotNull
 public class TaskStatus extends ExecutableStatus<TaskState> {
 
     public static final String REASON_NORMAL = "normal";

@@ -34,6 +34,7 @@ import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import rx.Completable;
 import rx.Observable;
 
+import static io.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
 import static io.netflix.titus.common.util.guice.ProxyType.ActiveGuard;
 import static io.netflix.titus.common.util.guice.ProxyType.Logging;
 import static io.netflix.titus.common.util.guice.ProxyType.Spectator;
