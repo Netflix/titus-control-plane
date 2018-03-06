@@ -73,7 +73,7 @@ class MesosStateTracker {
             if (current == null) {
                 taskTrackers.put(taskId, effective = new TaskTracker(taskId, false));
             } else {
-                current.runningAndUnKnown();
+                current.runningAndUnknown();
                 effective = current;
             }
             expiryQueue.add(effective);
@@ -146,7 +146,7 @@ class MesosStateTracker {
             lastUpdateTimestamp = clock.wallTime();
         }
 
-        private void runningAndUnKnown() {
+        private void runningAndUnknown() {
             if (known) {
                 known = false;
                 newGauge();
