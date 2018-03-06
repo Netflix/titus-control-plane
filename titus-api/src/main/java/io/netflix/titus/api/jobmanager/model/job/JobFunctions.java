@@ -35,6 +35,7 @@ import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.retry.Retryer;
 import io.netflix.titus.common.util.retry.Retryers;
+import io.netflix.titus.common.util.time.Clock;
 
 /**
  * Collection of functions for working with jobs and tasks.
@@ -217,11 +218,11 @@ public final class JobFunctions {
         return input.but(jd -> input.getExtensions().toBuilder().withRetryPolicy(newRetryPolicy).build());
     }
 
-    public static Optional<Long> getTimeInState(Task task, TaskState checkedState) {
+    public static Optional<Long> getTimeInState(Task task, TaskState checkedState, Clock clock) {
         return findTaskStatus(task, checkedState).map(checkedStatus -> {
             TaskState currentState = task.getStatus().getState();
             if (currentState == checkedState) {
-                return System.currentTimeMillis() - task.getStatus().getTimestamp();
+                return clock.wallTime() - task.getStatus().getTimestamp();
             }
             if (TaskState.isAfter(checkedState, currentState)) {
                 return 0L;

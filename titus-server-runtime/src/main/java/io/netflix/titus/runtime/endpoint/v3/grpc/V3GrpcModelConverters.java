@@ -70,6 +70,7 @@ import static io.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
 import static io.netflix.titus.common.util.StringExt.nonNull;
 import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
+import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER;
 import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
 import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
 import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
@@ -572,6 +573,7 @@ public final class V3GrpcModelConverters {
         Map<String, String> taskContext = new HashMap<>(coreTask.getTaskContext());
         taskContext.put(TASK_ATTRIBUTES_TASK_ORIGINAL_ID, coreTask.getOriginalId());
         taskContext.put(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(coreTask.getResubmitNumber()));
+        taskContext.put(TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER, Integer.toString(coreTask.getSystemResubmitNumber()));
         coreTask.getResubmitOf().ifPresent(resubmitOf -> taskContext.put(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, resubmitOf));
 
         com.netflix.titus.grpc.protogen.Task.Builder taskBuilder = com.netflix.titus.grpc.protogen.Task.newBuilder()

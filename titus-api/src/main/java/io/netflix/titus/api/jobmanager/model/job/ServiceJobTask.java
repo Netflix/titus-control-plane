@@ -37,12 +37,13 @@ public class ServiceJobTask extends Task {
                            Optional<String> resubmitOf,
                            String jobId,
                            int resubmitNumber,
+                           int systemResubmitNumber,
                            TaskStatus status,
                            List<TaskStatus> statusHistory,
                            List<TwoLevelResource> twoLevelResources,
                            Map<String, String> taskContext,
                            MigrationDetails migrationDetails) {
-        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, twoLevelResources, taskContext);
+        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext);
         this.migrationDetails = migrationDetails;
     }
 
@@ -76,7 +77,16 @@ public class ServiceJobTask extends Task {
 
     @Override
     public String toString() {
-        return "ServiceJobTask{" +
+        return "BatchJobTask{" +
+                "id='" + getId() + '\'' +
+                ", jobId='" + getJobId() + '\'' +
+                ", status=" + getStatus() +
+                ", originalId='" + getOriginalId() + '\'' +
+                ", resubmitOf=" + getResubmitOf() +
+                ", resubmitNumber=" + getResubmitNumber() +
+                ", systemResubmitNumber=" + getSystemResubmitNumber() +
+                ", twoLevelResources=" + getTwoLevelResources() +
+                ", taskContext=" + getTaskContext() +
                 "migrationDetails=" + migrationDetails +
                 '}';
     }
@@ -122,6 +132,7 @@ public class ServiceJobTask extends Task {
                     Optional.ofNullable(resubmitOf),
                     jobId,
                     resubmitNumber,
+                    systemResubmitNumber,
                     status,
                     nonNull(statusHistory),
                     nonNull(twoLevelResources),

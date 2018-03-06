@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -130,7 +131,7 @@ public class BatchJobSchedulingTest {
      * See {@link #testKillingRetryableTaskInActiveState(TaskState)}.
      */
     @Test
-    public void testKillingRetryableTaskInAcceptedState() throws Exception {
+    public void testKillingRetryableTaskInAcceptedState() {
         testKillingRetryableTaskInActiveState(TaskState.Accepted);
     }
 
@@ -138,7 +139,7 @@ public class BatchJobSchedulingTest {
      * See {@link #testKillingRetryableTaskInActiveState(TaskState)}.
      */
     @Test
-    public void testKillingRetryableTaskInStartInitiatedState() throws Exception {
+    public void testKillingRetryableTaskInStartInitiatedState() {
         testKillingRetryableTaskInActiveState(TaskState.Launched);
     }
 
@@ -146,7 +147,7 @@ public class BatchJobSchedulingTest {
      * See {@link #testKillingRetryableTaskInActiveState(TaskState)}.
      */
     @Test
-    public void testKillingRetryableTaskInStartedState() throws Exception {
+    public void testKillingRetryableTaskInStartedState() {
         testKillingRetryableTaskInActiveState(TaskState.Started);
     }
 
@@ -202,7 +203,7 @@ public class BatchJobSchedulingTest {
     }
 
     /**
-     * Check that killing a job with
+     * Check killing a job with retryable tasks. There should be no task resubmit attempts.
      */
     @Test
     public void testJobKillWithTaskInAcceptedStateWithRetries() {
@@ -256,6 +257,22 @@ public class BatchJobSchedulingTest {
         );
     }
 
+    @Test
+    public void testSystemErrorsAreRetriedAlways() {
+        JobDescriptor<BatchJobExt> jobWithRetries = JobFunctions.changeRetryPolicy(
+                oneTaskBatchJobDescriptor(),
+                JobModel.newImmediateRetryPolicy().withRetries(0).build()
+        );
+        jobsScenarioBuilder.scheduleJob(jobWithRetries, jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
+                // Fail the task just before job kill operation is triggered
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_LOCAL_SYSTEM_ERROR)
+                .advance(60, TimeUnit.SECONDS)
+                .expectTaskStateChangeEvent(0, 1, TaskState.Accepted)
+        );
+    }
+
     /**
      * Check task timeout in Launched state. if the timeout passes, task should be moved to KillInitiated state.
      */
@@ -298,7 +315,7 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.killTask(0, 0))
                 .template(ScenarioTemplates.passKillInitiatedTimeoutWithKillReattempt(0, 0))
                 .template(ScenarioTemplates.passFinalKillInitiatedTimeout())
-                .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_STUCK_IN_STATE))
+                .template(ScenarioTemplates.handleTaskFinishedTransitionInSingleTaskJob(0, 0, TaskStatus.REASON_STUCK_IN_KILLING_STATE))
         );
     }
 

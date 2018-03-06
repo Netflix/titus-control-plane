@@ -77,7 +77,11 @@ public class DifferenceResolverUtils {
 
     public static boolean hasReachedRetryLimit(Job<?> refJob, Task task) {
         int retryLimit = apply(refJob, BatchJobExt::getRetryPolicy, ServiceJobExt::getRetryPolicy).getRetries();
-        return task.getStatus().getState() == TaskState.Finished && task.getResubmitNumber() >= retryLimit;
+        if (task.getStatus().getState() != TaskState.Finished || TaskStatus.isSystemError(task.getStatus())) {
+            return false;
+        }
+        int userRetries = task.getResubmitNumber() - task.getSystemResubmitNumber();
+        return userRetries >= retryLimit;
     }
 
     public static boolean hasJobState(EntityHolder root, JobState state) {
@@ -171,18 +175,19 @@ public class DifferenceResolverUtils {
                                             taskParam -> Optional.of(taskParam.toBuilder()
                                                     .withStatus(taskParam.getStatus().toBuilder()
                                                             .withState(TaskState.Finished)
-                                                            .withReasonCode(TaskStatus.REASON_STUCK_IN_STATE)
+                                                            .withReasonCode(TaskStatus.REASON_STUCK_IN_KILLING_STATE)
                                                             .withReasonMessage("stuck in " + taskState + "state")
                                                             .build()
                                                     )
                                                     .build()
                                             ),
-                                            "TimedOut in KillInitiated state"
+                                            "TimedOut in KillInitiated state",
+                                            clock
                                     )
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));
-                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
+                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_KILLING_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
                         }
                     } else {
                         actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Task stuck in " + taskState + " state"));

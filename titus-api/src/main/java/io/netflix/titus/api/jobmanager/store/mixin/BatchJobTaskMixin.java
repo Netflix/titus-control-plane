@@ -33,6 +33,7 @@ public abstract class BatchJobTaskMixin {
                       @JsonProperty("resubmitOf") Optional<String> resubmitOf,
                       @JsonProperty("jobId") String jobId,
                       @JsonProperty("resubmitNumber") int resubmitNumber,
+                      @JsonProperty("systemResubmitNumber") int systemResubmitNumber,
                       @JsonProperty("status") TaskStatus status,
                       @JsonProperty("statusHistory") List<TaskStatus> statusHistory,
                       @JsonProperty("twoLevelResources") List<TwoLevelResource> twoLevelResources,

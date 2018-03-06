@@ -50,16 +50,25 @@ public class DefaultTitusRuntime implements TitusRuntime {
     private static final long INITIAL_RETRY_DELAY_MS = 10;
     private static final long MAX_RETRY_DELAY_MS = 10_000;
 
-    private final SpectatorCodePointTracker codePointTracker;
+    private final CodePointTracker codePointTracker;
     private final Registry registry;
+    private final Clock clock;
     private final FitFramework fitFramework;
 
     @Inject
     public DefaultTitusRuntime(Registry registry) {
-        this.codePointTracker = new SpectatorCodePointTracker(registry);
-        this.registry = registry;
+        this(
+                new SpectatorCodePointTracker(registry),
+                registry,
+                Clocks.system(),
+                "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false"))
+        );
+    }
 
-        boolean isFitEnabled = "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false"));
+    public DefaultTitusRuntime(CodePointTracker codePointTracker, Registry registry, Clock clock, boolean isFitEnabled) {
+        this.codePointTracker = codePointTracker;
+        this.registry = registry;
+        this.clock = clock;
         this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
     }
 
@@ -97,7 +106,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
 
     @Override
     public Clock getClock() {
-        return Clocks.system();
+        return clock;
     }
 
     @Override

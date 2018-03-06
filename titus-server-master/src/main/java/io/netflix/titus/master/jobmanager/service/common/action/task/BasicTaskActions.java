@@ -21,6 +21,7 @@ import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.util.DateTimeExt;
+import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -117,7 +118,8 @@ public class BasicTaskActions {
                                                              JobManagerConfiguration configuration,
                                                              ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                              Function<Task, Optional<Task>> changeFunction,
-                                                             String reason) {
+                                                             String reason,
+                                                             Clock clock) {
         return TitusChangeAction.newAction("updateTaskInRunningModel")
                 .id(taskId)
                 .trigger(trigger)
@@ -141,7 +143,7 @@ public class BasicTaskActions {
                             // Add retryer data to task context.
                             EntityHolder newTaskHolder;
                             if (newTask.getStatus().getState() == TaskState.Finished) {
-                                long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(taskHolder, configuration.getTaskRetryerResetTimeMs());
+                                long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(taskHolder, configuration.getTaskRetryerResetTimeMs(), clock);
                                 String retryDelayString = DateTimeExt.toTimeUnitString(retryDelayMs);
 
                                 newTask = newTask.toBuilder()

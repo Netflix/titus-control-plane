@@ -77,7 +77,7 @@ public class JobRateLimitingTest {
         testLargeBatchJobWithFailingTasksRateLimiting(LARGE_SERVIE_JOB);
     }
 
-    private void testLargeBatchJobWithFailingTasksRateLimiting(JobDescriptor<?> jobDescriptor) throws Exception {
+    private void testLargeBatchJobWithFailingTasksRateLimiting(JobDescriptor<?> jobDescriptor) {
         jobsScenarioBuilder.scheduleJob(jobDescriptor, jobScenario -> jobScenario
                 .expectJobEvent()
                 // First batch fails, and is retried
@@ -96,16 +96,16 @@ public class JobRateLimitingTest {
      * Run all tasks of a large job. Fail them all, and check that they are rescheduled in partitions.
      */
     @Test
-    public void testLargeBatchJobTaskRetryRateLimiting() throws Exception {
+    public void testLargeBatchJobTaskRetryRateLimiting() {
         testLargeServiceJobTaskRetryRateLimiting(LARGE_BATCH_JOB);
     }
 
     @Test
-    public void testLargeServiceJobTaskRetryRateLimiting() throws Exception {
+    public void testLargeServiceJobTaskRetryRateLimiting() {
         testLargeServiceJobTaskRetryRateLimiting(LARGE_SERVIE_JOB);
     }
 
-    private void testLargeServiceJobTaskRetryRateLimiting(JobDescriptor<?> jobDescriptor) throws Exception {
+    private void testLargeServiceJobTaskRetryRateLimiting(JobDescriptor<?> jobDescriptor) {
         jobsScenarioBuilder.scheduleJob(jobDescriptor, jobScenario -> jobScenario
                 .expectJobEvent()
                 // Start all tasks
@@ -114,6 +114,7 @@ public class JobRateLimitingTest {
                 .advance().allTasks(tasks -> acceptAndStartNewPartition(jobScenario, tasks))
                 // Fail all tasks
                 .advance().allTasks(tasks -> tasks.forEach(task -> jobScenario.triggerMesosFinishedEvent(task, -1, TaskStatus.REASON_FAILED)))
+                .advance(1, TimeUnit.SECONDS)
                 // Expect all be restarted in partitions
                 .advance().allTasks(tasks -> acceptAndStartNewPartition(jobScenario, tasks))
                 .advance().allTasks(tasks -> acceptAndStartNewPartition(jobScenario, tasks))

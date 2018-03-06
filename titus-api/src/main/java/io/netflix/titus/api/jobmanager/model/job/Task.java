@@ -19,6 +19,7 @@ package io.netflix.titus.api.jobmanager.model.job;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import io.netflix.titus.common.util.CollectionsExt;
@@ -36,6 +37,7 @@ public abstract class Task {
     private final String originalId;
     private final Optional<String> resubmitOf;
     private final int resubmitNumber;
+    private final int systemResubmitNumber;
     private final List<TwoLevelResource> twoLevelResources;
     private final Map<String, String> taskContext;
 
@@ -46,6 +48,7 @@ public abstract class Task {
                    String originalId,
                    Optional<String> resubmitOf,
                    int resubmitNumber,
+                   int systemResubmitNumber,
                    List<TwoLevelResource> twoLevelResources,
                    Map<String, String> taskContext) {
         this.id = id;
@@ -55,6 +58,7 @@ public abstract class Task {
         this.originalId = originalId;
         this.resubmitOf = resubmitOf;
         this.resubmitNumber = resubmitNumber;
+        this.systemResubmitNumber = systemResubmitNumber;
         this.twoLevelResources = CollectionsExt.nullableImmutableCopyOf(twoLevelResources);
         this.taskContext = CollectionsExt.nullableImmutableCopyOf(taskContext);
     }
@@ -87,6 +91,10 @@ public abstract class Task {
         return resubmitNumber;
     }
 
+    public int getSystemResubmitNumber() {
+        return systemResubmitNumber;
+    }
+
     public List<TwoLevelResource> getTwoLevelResources() {
         return twoLevelResources;
     }
@@ -103,48 +111,22 @@ public abstract class Task {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         Task task = (Task) o;
-
-        if (resubmitNumber != task.resubmitNumber) {
-            return false;
-        }
-        if (id != null ? !id.equals(task.id) : task.id != null) {
-            return false;
-        }
-        if (jobId != null ? !jobId.equals(task.jobId) : task.jobId != null) {
-            return false;
-        }
-        if (status != null ? !status.equals(task.status) : task.status != null) {
-            return false;
-        }
-        if (statusHistory != null ? !statusHistory.equals(task.statusHistory) : task.statusHistory != null) {
-            return false;
-        }
-        if (originalId != null ? !originalId.equals(task.originalId) : task.originalId != null) {
-            return false;
-        }
-        if (resubmitOf != null ? !resubmitOf.equals(task.resubmitOf) : task.resubmitOf != null) {
-            return false;
-        }
-        if (twoLevelResources != null ? !twoLevelResources.equals(task.twoLevelResources) : task.twoLevelResources != null) {
-            return false;
-        }
-        return taskContext != null ? taskContext.equals(task.taskContext) : task.taskContext == null;
+        return resubmitNumber == task.resubmitNumber &&
+                systemResubmitNumber == task.systemResubmitNumber &&
+                Objects.equals(id, task.id) &&
+                Objects.equals(jobId, task.jobId) &&
+                Objects.equals(status, task.status) &&
+                Objects.equals(statusHistory, task.statusHistory) &&
+                Objects.equals(originalId, task.originalId) &&
+                Objects.equals(resubmitOf, task.resubmitOf) &&
+                Objects.equals(twoLevelResources, task.twoLevelResources) &&
+                Objects.equals(taskContext, task.taskContext);
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (jobId != null ? jobId.hashCode() : 0);
-        result = 31 * result + (status != null ? status.hashCode() : 0);
-        result = 31 * result + (statusHistory != null ? statusHistory.hashCode() : 0);
-        result = 31 * result + (originalId != null ? originalId.hashCode() : 0);
-        result = 31 * result + (resubmitOf != null ? resubmitOf.hashCode() : 0);
-        result = 31 * result + resubmitNumber;
-        result = 31 * result + (twoLevelResources != null ? twoLevelResources.hashCode() : 0);
-        result = 31 * result + (taskContext != null ? taskContext.hashCode() : 0);
-        return result;
+        return Objects.hash(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext);
     }
 
     @Override
@@ -157,6 +139,7 @@ public abstract class Task {
                 ", originalId='" + originalId + '\'' +
                 ", resubmitOf=" + resubmitOf +
                 ", resubmitNumber=" + resubmitNumber +
+                ", systemResubmitNumber=" + systemResubmitNumber +
                 ", twoLevelResources=" + twoLevelResources +
                 ", taskContext=" + taskContext +
                 '}';
@@ -172,6 +155,7 @@ public abstract class Task {
         protected String originalId;
         protected String resubmitOf;
         protected int resubmitNumber;
+        protected int systemResubmitNumber;
         protected List<TwoLevelResource> twoLevelResources;
         protected Map<String, String> taskContext;
 
@@ -220,6 +204,11 @@ public abstract class Task {
             return self();
         }
 
+        public B withSystemResubmitNumber(int systemResubmitNumber) {
+            this.systemResubmitNumber = systemResubmitNumber;
+            return self();
+        }
+
         public B withTwoLevelResources(List<TwoLevelResource> twoLevelResources) {
             this.twoLevelResources = twoLevelResources;
             return self();
@@ -251,9 +240,16 @@ public abstract class Task {
         public abstract T build();
 
         protected B but(TaskBuilder<T, B> newBuilder) {
-            return newBuilder.withId(id).withJobId(jobId).withStatus(status).withStatusHistory(statusHistory)
-                    .withOriginalId(originalId).withResubmitOf(resubmitOf).withResubmitNumber(resubmitNumber)
-                    .withTwoLevelResources(twoLevelResources).withTaskContext(taskContext);
+            return newBuilder.withId(id)
+                    .withJobId(jobId)
+                    .withStatus(status)
+                    .withStatusHistory(statusHistory)
+                    .withOriginalId(originalId)
+                    .withResubmitOf(resubmitOf)
+                    .withResubmitNumber(resubmitNumber)
+                    .withSystemResubmitNumber(resubmitNumber)
+                    .withTwoLevelResources(twoLevelResources)
+                    .withTaskContext(taskContext);
         }
 
         protected B newBuilder(TaskBuilder<T, B> newBuilder, Task task) {
@@ -265,6 +261,7 @@ public abstract class Task {
                     .withOriginalId(task.getOriginalId())
                     .withResubmitOf(task.getResubmitOf().orElse(null))
                     .withResubmitNumber(task.getResubmitNumber())
+                    .withSystemResubmitNumber(task.getSystemResubmitNumber())
                     .withTwoLevelResources(task.getTwoLevelResources())
                     .withTaskContext(task.getTaskContext());
 

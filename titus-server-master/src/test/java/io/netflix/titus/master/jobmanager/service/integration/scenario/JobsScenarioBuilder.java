@@ -10,10 +10,11 @@ import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.runtime.TitusRuntimes;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -48,6 +49,8 @@ public class JobsScenarioBuilder {
     public static final long KILL_INITIATED_TIMEOUT_MS = 30_000;
 
     private final TestScheduler testScheduler = Schedulers.test();
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
@@ -115,7 +118,6 @@ public class JobsScenarioBuilder {
                 clock,
                 testScheduler
         );
-        DefaultRegistry registry = new DefaultRegistry();
         this.jobOperations = new DefaultV3JobOperations(
                 configuration,
                 jobStore,
@@ -130,11 +132,11 @@ public class JobsScenarioBuilder {
                         systemSoftConstraint,
                         systemHardConstraint,
                         constraintEvaluatorTransformer,
-                        registry,
+                        titusRuntime.getRegistry(),
                         clock,
                         testScheduler
                 ),
-                registry
+                titusRuntime
         );
         jobOperations.enterActiveMode();
     }
