@@ -222,9 +222,9 @@ public class ScenarioTemplates {
                 .advance()
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated);
-                    assertThat(task.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_STUCK_IN_STATE);
+                    assertThat(task.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_STUCK_IN_KILLING_STATE);
                 })
-                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated, TaskStatus.REASON_STUCK_IN_STATE)
+                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated, TaskStatus.REASON_STUCK_IN_KILLING_STATE)
                 .expectTaskInActiveState(taskIdx, resubmit, TaskState.KillInitiated)
                 .expectMesosTaskKill(taskIdx, resubmit);
     }

@@ -36,11 +36,12 @@ public class BatchJobTask extends Task {
                          Optional<String> resubmitOf,
                          String jobId,
                          int resubmitNumber,
+                         int systemResubmitNumber,
                          TaskStatus status,
                          List<TaskStatus> statusHistory,
                          List<TwoLevelResource> twoLevelResources,
                          Map<String, String> taskContext) {
-        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, twoLevelResources, taskContext);
+        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext);
         this.index = index;
     }
 
@@ -82,6 +83,7 @@ public class BatchJobTask extends Task {
                 ", originalId='" + getOriginalId() + '\'' +
                 ", resubmitOf=" + getResubmitOf() +
                 ", resubmitNumber=" + getResubmitNumber() +
+                ", systemResubmitNumber=" + getSystemResubmitNumber() +
                 ", twoLevelResources=" + getTwoLevelResources() +
                 ", taskContext=" + getTaskContext() +
                 '}';
@@ -129,6 +131,7 @@ public class BatchJobTask extends Task {
                     Optional.ofNullable(resubmitOf),
                     jobId,
                     resubmitNumber,
+                    systemResubmitNumber,
                     status,
                     nonNull(statusHistory),
                     nonNull(twoLevelResources),

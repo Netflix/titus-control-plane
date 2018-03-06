@@ -61,6 +61,11 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
     public static final String REASON_STUCK_IN_STATE = "stuckInState";
 
     /**
+     * Task which was in KillInitiated state, was terminated, as it did not progress to the Finished state in the expected time.
+     */
+    public static final String REASON_STUCK_IN_KILLING_STATE = "stuckInKillingState";
+
+    /**
      * Task was terminated, as its runtime limit was exceeded.
      */
     public static final String REASON_RUNTIME_LIMIT_EXCEEDED = "runtimeLimitExceeded";

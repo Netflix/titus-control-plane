@@ -69,7 +69,7 @@ public class CreateOrReplaceBatchTaskActions {
 
     private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder, EntityHolder taskHolder, JobManagerConfiguration configuration, JobStore jobStore, Clock clock) {
         BatchJobTask oldTask = taskHolder.getEntity();
-        long timeInStartedState = JobFunctions.getTimeInState(oldTask, TaskState.Started).orElse(0L);
+        long timeInStartedState = JobFunctions.getTimeInState(oldTask, TaskState.Started, clock).orElse(0L);
         Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
                 : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
@@ -137,7 +137,8 @@ public class CreateOrReplaceBatchTaskActions {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(clock.wallTime()).build())
                 .withOriginalId(oldTask.getOriginalId())
                 .withResubmitOf(oldTask.getId())
-                .withResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getResubmitNumber() : oldTask.getResubmitNumber() + 1)
+                .withResubmitNumber(oldTask.getResubmitNumber() + 1)
+                .withSystemResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
                 .build();
     }
 }

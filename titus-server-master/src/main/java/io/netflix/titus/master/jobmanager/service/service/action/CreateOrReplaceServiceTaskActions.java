@@ -65,7 +65,7 @@ public class CreateOrReplaceServiceTaskActions {
 
     private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder, EntityHolder taskHolder, JobManagerConfiguration configuration, JobStore jobStore, Clock clock) {
         ServiceJobTask oldTask = taskHolder.getEntity();
-        long timeInStartedState = JobFunctions.getTimeInState(oldTask, TaskState.Started).orElse(0L);
+        long timeInStartedState = JobFunctions.getTimeInState(oldTask, TaskState.Started, clock).orElse(0L);
         Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
                 : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
@@ -129,6 +129,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .withOriginalId(oldTask.getOriginalId())
                 .withResubmitOf(oldTask.getId())
                 .withResubmitNumber(oldTask.getResubmitNumber() + 1)
+                .withSystemResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
                 .build();
     }
 }

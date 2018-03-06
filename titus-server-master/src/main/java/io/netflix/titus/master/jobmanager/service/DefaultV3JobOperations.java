@@ -27,7 +27,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -50,10 +49,12 @@ import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.ProxyType;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.rx.ObservableExt;
+import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
@@ -84,6 +85,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final long RECONCILER_SHUTDOWN_TIMEOUT_MS = 30_000;
 
+    private final Clock clock;
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
     private final JobManagerConfiguration jobManagerConfiguration;
@@ -99,12 +101,13 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   JobStore store,
                                   VirtualMachineMasterService vmService,
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
-                                  Registry registry) {
+                                  TitusRuntime titusRuntime) {
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
-        this.jobMetricsCollector = new V3JobMetricsCollector(registry);
+        this.jobMetricsCollector = new V3JobMetricsCollector(titusRuntime.getRegistry());
+        this.clock = titusRuntime.getClock();
     }
 
     @Activator
@@ -249,7 +252,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
         ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
-        return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason)).toCompletable();
+        return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, clock)).toCompletable();
     }
 
     @Override

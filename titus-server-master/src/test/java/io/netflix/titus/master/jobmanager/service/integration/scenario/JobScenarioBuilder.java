@@ -57,6 +57,7 @@ import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.Subscriber;
 import rx.schedulers.TestScheduler;
 
+import static io.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder.RECONCILER_ACTIVE_TIMEOUT_MS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
@@ -102,7 +103,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> advance() {
-        testScheduler.advanceTimeBy(JobsScenarioBuilder.RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
     }
 
@@ -122,7 +123,14 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> advance(long time, TimeUnit timeUnit) {
-        testScheduler.advanceTimeBy(time, timeUnit);
+        long timeMs = timeUnit.toMillis(time);
+        long steps = timeMs / RECONCILER_ACTIVE_TIMEOUT_MS;
+        if (steps > 0) {
+            for (int i = 0; i < steps; i++) {
+                advance();
+            }
+        }
+        testScheduler.advanceTimeBy(timeMs - steps * RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
     }
 

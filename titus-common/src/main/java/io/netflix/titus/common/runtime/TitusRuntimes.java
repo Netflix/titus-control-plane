@@ -1,10 +1,10 @@
 package io.netflix.titus.common.runtime;
 
 import com.netflix.spectator.api.DefaultRegistry;
-import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
-import io.netflix.titus.common.util.code.CodePointTracker;
 import io.netflix.titus.common.util.code.LoggingCodePointTracker;
+import io.netflix.titus.common.util.time.Clocks;
+import rx.schedulers.TestScheduler;
 
 public final class TitusRuntimes {
 
@@ -12,19 +12,29 @@ public final class TitusRuntimes {
     }
 
     public static TitusRuntime internal() {
-        return new DefaultTitusRuntime(new DefaultRegistry()) {
-            private final LoggingCodePointTracker loggingCodePointTracker = new LoggingCodePointTracker();
-            private final FitFramework fitFramework = FitFramework.inactiveFitFramework();
+        return new DefaultTitusRuntime(
+                new LoggingCodePointTracker(),
+                new DefaultRegistry(),
+                Clocks.system(),
+                false
+        );
+    }
 
-            @Override
-            public CodePointTracker getCodePointTracker() {
-                return loggingCodePointTracker;
-            }
+    public static TitusRuntime test() {
+        return new DefaultTitusRuntime(
+                new LoggingCodePointTracker(),
+                new DefaultRegistry(),
+                Clocks.test(),
+                false
+        );
+    }
 
-            @Override
-            public FitFramework getFitFramework() {
-                return fitFramework;
-            }
-        };
+    public static TitusRuntime test(TestScheduler testScheduler) {
+        return new DefaultTitusRuntime(
+                new LoggingCodePointTracker(),
+                new DefaultRegistry(),
+                Clocks.testScheduler(testScheduler),
+                false
+        );
     }
 }
