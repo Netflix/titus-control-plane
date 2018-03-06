@@ -101,6 +101,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private final MesosConfiguration mesosConfiguration;
     private final Registry registry;
     private final Optional<FitInjection> taskStatusUpdateFitInjection;
+    private final MesosStateTracker mesosStateTracker;
 
     private AtomicLong lastOfferReceivedAt = new AtomicLong(System.currentTimeMillis());
     private AtomicLong lastValidOfferReceivedAt = new AtomicLong(System.currentTimeMillis());
@@ -151,6 +152,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         this.config = config;
         this.mesosConfiguration = mesosConfiguration;
         this.registry = titusRuntime.getRegistry();
+        this.mesosStateTracker = new MesosStateTracker(config, titusRuntime);
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
@@ -407,9 +409,14 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
         TaskStatus effectiveTaskStatus = taskStatusUpdateFitInjection.map(i -> i.afterImmediate("update", taskStatus)).orElse(taskStatus);
 
-        if (isReconcilerUpdateForUnknownTask(effectiveTaskStatus) && !mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
-            logger.info("Ignoring reconciler triggered task status update: {}", taskId);
-            return;
+        if (isReconcilerUpdateForUnknownTask(effectiveTaskStatus)) {
+            mesosStateTracker.unknownTaskStatusUpdate(taskStatus);
+            if(!mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
+                logger.info("Ignoring reconciler triggered task status update: {}", taskId);
+                return;
+            }
+        } else {
+            mesosStateTracker.knownTaskStatusUpdate(taskStatus);
         }
 
         logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, effectiveTaskStatus.getMessage());
@@ -432,7 +439,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         registry.counter(
                 MetricConstants.METRIC_MESOS + "reconcilerUpdates",
                 "taskId", taskId,
-                "isKnown", Boolean.toString(known)
+                "known", Boolean.toString(known)
         ).increment();
 
         return !known;
