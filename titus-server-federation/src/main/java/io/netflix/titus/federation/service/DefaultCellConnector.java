@@ -15,10 +15,13 @@
  */
 package io.netflix.titus.federation.service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -26,24 +29,30 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
 import io.netflix.titus.api.federation.model.Cell;
-import io.netflix.titus.federation.startup.TitusFederationConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
 public class DefaultCellConnector implements CellConnector {
     private static Logger logger = LoggerFactory.getLogger(DefaultCellConnector.class);
-    private final List<Cell> cells;
+
+    private static final long SHUTDOWN_TIMEOUT_MS = 5_000;
     private final Map<Cell, ManagedChannel> channels;
 
     @Inject
-    public DefaultCellConnector(TitusFederationConfiguration appConfig) {
-        cells = CellInfoUtil.extractCellsFromCellSpecification(appConfig.getCells());
-        channels = cells.stream()
-                .collect(Collectors.toMap(cell -> cell,
-                        cell -> NettyChannelBuilder.forTarget(cell.getAddress())
-                                .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
-                                .build()));
+    public DefaultCellConnector(CellInfoResolver cellInfoResolver) {
+        List<Cell> cells = cellInfoResolver.resolve();
+
+        if (cells != null && !cells.isEmpty()) {
+            channels = cellInfoResolver.resolve()
+                    .stream()
+                    .collect(Collectors.toMap(cell -> cell,
+                            cell -> NettyChannelBuilder.forTarget(cell.getAddress())
+                                    .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
+                                    .build()));
+        } else {
+            channels = Collections.emptyMap();
+        }
     }
 
     @Override
@@ -53,9 +62,26 @@ public class DefaultCellConnector implements CellConnector {
 
     @Override
     public Optional<ManagedChannel> getChannelForCell(Cell cell) {
-        if (channels.containsKey(cell)) {
-            return Optional.of(channels.get(cell));
+        return Optional.ofNullable(channels.get(cell));
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        if (channels == null) {
+            return;
         }
-        return Optional.empty();
+
+        channels.values()
+                .forEach(channel -> {
+                    logger.info("shutting down gRPC channels");
+                    channel.shutdown();
+                    try {
+                        channel.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        if (!channel.isTerminated()) {
+                            channel.shutdownNow();
+                        }
+                    }
+                });
     }
 }
