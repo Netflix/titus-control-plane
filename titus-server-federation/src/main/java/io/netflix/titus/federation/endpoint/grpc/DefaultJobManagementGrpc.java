@@ -16,7 +16,37 @@
 
 package io.netflix.titus.federation.endpoint.grpc;
 
+import javax.inject.Inject;
+
+import com.google.protobuf.Empty;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import io.grpc.stub.StreamObserver;
+import io.netflix.titus.federation.service.JobManagementService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Subscription;
+
+import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
+import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 
 public class DefaultJobManagementGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementGrpc.class);
+
+    private final JobManagementService jobManagementService;
+
+    @Inject
+    public DefaultJobManagementGrpc(JobManagementService jobManagementService) {
+        this.jobManagementService = jobManagementService;
+    }
+
+    @Override
+    public void observeJobs(Empty request, StreamObserver<JobChangeNotification> responseObserver) {
+        Subscription subscription = jobManagementService.observeJobs().subscribe(
+                responseObserver::onNext,
+                e -> safeOnError(logger, e, responseObserver),
+                responseObserver::onCompleted
+        );
+        attachCancellingCallback(responseObserver, subscription);
+    }
 }

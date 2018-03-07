@@ -200,8 +200,12 @@ public class GrpcUtil {
         return clientCall;
     }
 
-    public static void attachCancellingCallback(Emitter emitter, ClientCall clientCall) {
-        emitter.setCancellation(() -> clientCall.cancel(CANCELLING_MESSAGE, null));
+    public static void attachCancellingCallback(Emitter emitter, ClientCall... clientCalls) {
+        emitter.setCancellation(() -> {
+            for (ClientCall call : clientCalls) {
+                call.cancel(CANCELLING_MESSAGE, null);
+            }
+        });
     }
 
     public static void attachCancellingCallback(StreamObserver responseObserver, Subscription subscription) {

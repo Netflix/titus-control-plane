@@ -8,6 +8,7 @@ dependencies {
 
     testCompile project(':titus-testkit')
     testCompile "com.netflix.governator:governator-test-junit:${governatorVersion}"
+    testCompile "io.grpc:grpc-testing:${grpcVersion}"
 }
 
 ospackage {
