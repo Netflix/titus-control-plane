@@ -93,17 +93,17 @@ import static io.netflix.titus.master.job.worker.WorkerRequest.V2_NETFLIX_APP_ME
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.LABEL_LEGACY_NAME;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.SPACE_SPLIT_RE;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.TASK_CONTEXT_AGENT_ATTRIBUTES;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_ID;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID;
 import static java.util.Arrays.asList;
 
 public final class V2GrpcModelConverters {

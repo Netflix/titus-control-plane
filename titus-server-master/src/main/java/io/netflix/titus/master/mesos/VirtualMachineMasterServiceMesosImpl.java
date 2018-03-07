@@ -35,6 +35,8 @@ import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
+import io.netflix.titus.common.framework.fit.FitFramework;
+import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.master.VirtualMachineMasterService;
@@ -81,6 +83,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     private final TitusRuntime titusRuntime;
     private boolean active;
     private final BlockingQueue<String> killQueue = new LinkedBlockingQueue<>();
+    private final Optional<FitInjection> taskStatusUpdateFitInjection;
 
     @Inject
     public VirtualMachineMasterServiceMesosImpl(MasterConfiguration config,
@@ -108,6 +111,17 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         // the next scheduling interval.
         offerSecDelayInterval = schedulerConfiguration.getSchedulerIterationIntervalMs() / (double) 1000;
         logger.info("Using offer second delay of " + offerSecDelayInterval);
+
+        FitFramework fit = titusRuntime.getFitFramework();
+        if (fit.isActive()) {
+            FitInjection fitInjection = fit.newFitInjectionBuilder("taskStatusUpdate")
+                    .withDescription("Mesos callback API")
+                    .build();
+            fit.getRootComponent().getChild(COMPONENT).addInjection(fitInjection);
+            this.taskStatusUpdateFitInjection = Optional.of(fitInjection);
+        } else {
+            this.taskStatusUpdateFitInjection = Optional.empty();
+        }
     }
 
     /**
@@ -227,7 +241,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         }
 
         mesosCallbackHandler = new MesosSchedulerCallbackHandler(leaseHandler, vmLeaseRescindedObserver, vmTaskStatusObserver,
-                v2JobOperations, v3JobOperations, config, mesosConfiguration, titusRuntime);
+                v2JobOperations, v3JobOperations, taskStatusUpdateFitInjection, config, mesosConfiguration, titusRuntime);
 
         FrameworkInfo framework = FrameworkInfo.newBuilder()
                 .setUser("root") // Fix to root, to enable running master as non-root

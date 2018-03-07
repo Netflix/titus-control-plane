@@ -13,6 +13,8 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
+import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.TitusRuntimes;
 import io.netflix.titus.common.util.time.Clocks;
@@ -53,6 +55,7 @@ public class JobsScenarioBuilder {
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
+    private final JobConfiguration jobSanitizerConfiguration = mock(JobConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
     private final StubbedSchedulingService schedulingService = new StubbedSchedulingService();
     private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
@@ -132,6 +135,10 @@ public class JobsScenarioBuilder {
                         systemSoftConstraint,
                         systemHardConstraint,
                         constraintEvaluatorTransformer,
+                        new JobSanitizerBuilder()
+                                .withJobConstrainstConfiguration(jobSanitizerConfiguration)
+                                .withMaxContainerSizeResolver(instanceType -> null)
+                                .build(),
                         titusRuntime.getRegistry(),
                         clock,
                         testScheduler

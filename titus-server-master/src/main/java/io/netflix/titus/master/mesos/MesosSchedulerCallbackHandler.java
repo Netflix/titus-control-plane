@@ -45,7 +45,6 @@ import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
-import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
@@ -57,7 +56,7 @@ import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.V2JobMgrIntf;
 import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.ExecutorID;
 import org.apache.mesos.Protos.FrameworkID;
@@ -82,8 +81,6 @@ import static io.netflix.titus.master.mesos.MesosTracer.logMesosCallbackWarn;
 import static io.netflix.titus.master.mesos.MesosTracer.traceMesosRequest;
 
 public class MesosSchedulerCallbackHandler implements Scheduler {
-
-    public static final String COMPONENT = "mesos";
 
     private static final Set<TaskState> ACTIVE_MESOS_TASK_STATES = CollectionsExt.asSet(
             TaskState.TASK_STAGING,
@@ -141,6 +138,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             Observer<ContainerEvent> vmTaskStatusObserver,
             V2JobOperations v2JobOperations,
             V3JobOperations v3JobOperations,
+            Optional<FitInjection> taskStatusUpdateFitInjection,
             MasterConfiguration config,
             MesosConfiguration mesosConfiguration,
             TitusRuntime titusRuntime) {
@@ -149,21 +147,11 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         this.vmTaskStatusObserver = vmTaskStatusObserver;
         this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
+        this.taskStatusUpdateFitInjection = taskStatusUpdateFitInjection;
         this.config = config;
         this.mesosConfiguration = mesosConfiguration;
         this.registry = titusRuntime.getRegistry();
         this.mesosStateTracker = new MesosStateTracker(config, titusRuntime);
-
-        FitFramework fit = titusRuntime.getFitFramework();
-        if (fit.isActive()) {
-            FitInjection fitInjection = fit.newFitInjectionBuilder("taskStatusUpdate")
-                    .withDescription("Mesos callback API")
-                    .build();
-            fit.getRootComponent().getChild(COMPONENT).addInjection(fitInjection);
-            this.taskStatusUpdateFitInjection = Optional.of(fitInjection);
-        } else {
-            this.taskStatusUpdateFitInjection = Optional.empty();
-        }
 
         numMesosRegistered = registry.counter(MetricConstants.METRIC_MESOS + "numMesosRegistered");
         numMesosDisconnects = registry.counter(MetricConstants.METRIC_MESOS + "numMesosDisconnects");

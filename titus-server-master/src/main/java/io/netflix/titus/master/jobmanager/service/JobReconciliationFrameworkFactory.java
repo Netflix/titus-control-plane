@@ -1,24 +1,33 @@
 package io.netflix.titus.master.jobmanager.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.validation.ConstraintViolation;
 
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.store.JobStore;
@@ -31,6 +40,8 @@ import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.Differe
 import io.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import io.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationEngine;
 import io.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationFramework;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -46,24 +57,23 @@ import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransform
 import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+
 /**
  * Helper class that encapsulates the creation process of job {@link ReconciliationFramework}.
- * TODO sanitize each record to make sure the data is correct
- * TODO sanitize the data based on all records loaded to verify things like unique ENI assignments
  */
 @Singleton
 public class JobReconciliationFrameworkFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(JobReconciliationFrameworkFactory.class);
 
-    private static final String ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.bootstrap.";
+    static final String ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.bootstrap.";
 
     private enum TaskFenzoCheck {AddedToFenzo, EffectivelyFinished, FenzoAddError, Inconsistent}
 
@@ -86,6 +96,8 @@ public class JobReconciliationFrameworkFactory {
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
+    private final EntitySanitizer entitySanitizer;
+    private final InitializationErrorCollector errorCollector; // Keep reference so it is not garbage collected (it holds metrics)
     private final Registry registry;
     private final Clock clock;
     private final Scheduler scheduler;
@@ -93,7 +105,6 @@ public class JobReconciliationFrameworkFactory {
     private final Gauge loadedJobs;
     private final Gauge loadedTasks;
     private final Gauge storeLoadTimeMs;
-    private final Gauge failedToAddToFenzoTasks;
 
     @Inject
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -105,9 +116,10 @@ public class JobReconciliationFrameworkFactory {
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                             @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer,
                                              Registry registry) {
         this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService,
-                systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, registry, Clocks.system(), Schedulers.computation());
+                systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, entitySanitizer, registry, Clocks.system(), Schedulers.computation());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -119,6 +131,7 @@ public class JobReconciliationFrameworkFactory {
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                                             EntitySanitizer entitySanitizer,
                                              Registry registry,
                                              Clock clock,
                                              Scheduler scheduler) {
@@ -129,6 +142,8 @@ public class JobReconciliationFrameworkFactory {
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
+        this.entitySanitizer = entitySanitizer;
+        this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, registry);
         this.registry = registry;
         this.clock = clock;
         this.scheduler = scheduler;
@@ -136,7 +151,6 @@ public class JobReconciliationFrameworkFactory {
         this.loadedJobs = registry.gauge(ROOT_METRIC_NAME + "loadedJobs");
         this.loadedTasks = registry.gauge(ROOT_METRIC_NAME + "loadedTasks");
         this.storeLoadTimeMs = registry.gauge(ROOT_METRIC_NAME + "storeLoadTimeMs");
-        this.failedToAddToFenzoTasks = registry.gauge(ROOT_METRIC_NAME + "failedToAddToFenzoTasks");
 
         this.dispatchingResolver = DifferenceResolvers.dispatcher(rootModel -> {
             Job<?> job = rootModel.getEntity();
@@ -152,41 +166,31 @@ public class JobReconciliationFrameworkFactory {
     }
 
     ReconciliationFramework<JobManagerReconcilerEvent> newInstance() {
-        List<Pair<Job, List<Task>>> jobsAndTasks = loadJobsAndTasksFromStore();
+        List<Pair<Job, List<Task>>> jobsAndTasks = checkGlobalConsistency(loadJobsAndTasksFromStore(errorCollector));
 
         // initialize fenzo with running tasks
         List<ReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
-        List<String> failedToAddToFenzoTaskIds = new ArrayList<>();
-        List<String> inconsistentTaskIds = new ArrayList<>();
         for (Pair<Job, List<Task>> pair : jobsAndTasks) {
             Job job = pair.getLeft();
             List<Task> tasks = pair.getRight();
             ReconciliationEngine<JobManagerReconcilerEvent> engine = newRestoredEngine(job, tasks);
             engines.add(engine);
             for (Task task : tasks) {
-                TaskFenzoCheck check = addTaskToFenzo(engine, job, task);
-                if (check == TaskFenzoCheck.FenzoAddError) {
-                    failedToAddToFenzoTaskIds.add(task.getId());
-                } else if (check == TaskFenzoCheck.Inconsistent) {
-                    inconsistentTaskIds.add(task.getId());
+                Optional<Task> validatedTask = validateTask(task);
+                if (validatedTask.isPresent()) {
+                    TaskFenzoCheck check = addTaskToFenzo(engine, job, task);
+                    if (check == TaskFenzoCheck.FenzoAddError) {
+                        errorCollector.taskAddToFenzoError(task.getId());
+                    } else if (check == TaskFenzoCheck.Inconsistent) {
+                        errorCollector.inconsistentTask(task.getId());
+                    }
+                } else {
+                    errorCollector.invalidTaskRecord(task.getId());
                 }
             }
         }
 
-        failedToAddToFenzoTasks.set(failedToAddToFenzoTaskIds.size());
-
-        if (!inconsistentTaskIds.isEmpty()) {
-            logger.info("Found {} task with inconsistent state: {}", inconsistentTaskIds.size(), inconsistentTaskIds);
-        }
-        if (!failedToAddToFenzoTaskIds.isEmpty()) {
-            logger.info("Failed to add to Fenzo {} tasks: {}", failedToAddToFenzoTaskIds.size(), failedToAddToFenzoTaskIds);
-        }
-        int failedTotal = inconsistentTaskIds.size() + failedToAddToFenzoTaskIds.size();
-        if (failedTotal > jobManagerConfiguration.getMaxFailedTasks()) {
-            String message = String.format("Exiting because the number of failed tasks (%s) was greater than allowed maximum (%s)", failedTotal, failedToAddToFenzoTaskIds.size());
-            logger.error(message);
-            throw new IllegalStateException(message);
-        }
+        errorCollector.failIfTooManyBadRecords();
 
         return new DefaultReconciliationFramework<>(
                 engines,
@@ -315,38 +319,123 @@ public class JobReconciliationFrameworkFactory {
         return true;
     }
 
-    private List<Pair<Job, List<Task>>> loadJobsAndTasksFromStore() {
+    private List<Pair<Job, List<Task>>> loadJobsAndTasksFromStore(InitializationErrorCollector errorCollector) {
         long startTime = clock.wallTime();
 
         // load all job/task pairs
-        List<Pair<Job, List<Task>>> pairs;
+        List<Pair<Job, Pair<List<Task>, Integer>>> jobTasksPairs;
         try {
-            pairs = store.init().andThen(store.retrieveJobs().toList().flatMap(retrievedJobs -> {
-                List<Observable<Pair<Job, List<Task>>>> retrieveTasksObservables = new ArrayList<>();
+            jobTasksPairs = store.init().andThen(store.retrieveJobs().flatMap(retrievedJobsAndErrors -> {
+                errorCollector.corruptedJobRecords(retrievedJobsAndErrors.getRight());
+
+                List<Job<?>> retrievedJobs = retrievedJobsAndErrors.getLeft();
+                List<Observable<Pair<Job, Pair<List<Task>, Integer>>>> retrieveTasksObservables = new ArrayList<>();
                 for (Job job : retrievedJobs) {
+
                     // TODO Finished jobs that were not archived immediately should be moved by background archive process
-                    if (job.getStatus().getState() != JobState.Finished) {
-                        Observable<Pair<Job, List<Task>>> retrieveTasksObservable = store.retrieveTasksForJob(job.getId())
-                                .toList()
-                                .map(taskList -> new Pair<>(job, taskList));
+                    if (job.getStatus().getState() == JobState.Finished) {
+                        logger.info("Not loading finished job: {}", job.getId());
+                        continue;
+                    }
+
+                    Optional<Job> validatedJob = validateJob(job);
+                    if (validatedJob.isPresent()) {
+                        Observable<Pair<Job, Pair<List<Task>, Integer>>> retrieveTasksObservable = store.retrieveTasksForJob(job.getId())
+                                .map(taskList -> new Pair<>(validatedJob.get(), taskList));
                         retrieveTasksObservables.add(retrieveTasksObservable);
+                    } else {
+                        errorCollector.invalidJob(job.getId());
                     }
                 }
                 return Observable.merge(retrieveTasksObservables, MAX_RETRIEVE_TASK_CONCURRENCY);
             })).toList().toBlocking().singleOrDefault(Collections.emptyList());
 
-            int taskCount = pairs.stream().map(p -> p.getRight().size()).reduce(0, (a, v) -> a + v);
-            loadedJobs.set(pairs.size());
-            loadedTasks.set(taskCount);
+            int corruptedTaskRecords = jobTasksPairs.stream().mapToInt(p -> p.getRight().getRight()).sum();
+            errorCollector.corruptedTaskRecords(corruptedTaskRecords);
 
-            logger.info("{} jobs and {} tasks loaded from store in {}ms", pairs.size(), taskCount, clock.wallTime() - startTime);
+            int taskCount = jobTasksPairs.stream().map(p -> p.getRight().getLeft().size()).reduce(0, (a, v) -> a + v);
+            loadedJobs.set(jobTasksPairs.size());
+            loadedTasks.set(taskCount);
+            logger.info("{} jobs and {} tasks loaded from store in {}ms", jobTasksPairs.size(), taskCount, clock.wallTime() - startTime);
         } catch (Exception e) {
             logger.error("Failed to load jobs from the store during initialization:", e);
             throw new IllegalStateException("Failed to load jobs from the store during initialization", e);
         } finally {
             storeLoadTimeMs.set(clock.wallTime() - startTime);
         }
-        return pairs;
+
+        return jobTasksPairs.stream().map(p -> Pair.of(p.getLeft(), p.getRight().getLeft())).collect(Collectors.toList());
+    }
+
+    private Optional<Job> validateJob(Job job) {
+        Set<ConstraintViolation<Job>> violations = entitySanitizer.validate(job);
+
+        if (!violations.isEmpty()) {
+            logger.error("Bad job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
+            return Optional.empty();
+        }
+
+        return Optional.of(job);
+    }
+
+    private Optional<Task> validateTask(Task task) {
+        Set<ConstraintViolation<Task>> violations = entitySanitizer.validate(task);
+
+        if (!violations.isEmpty()) {
+            logger.error("Bad task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
+            return Optional.empty();
+        }
+
+        return Optional.of(task);
+    }
+
+    private List<Pair<Job, List<Task>>> checkGlobalConsistency(List<Pair<Job, List<Task>>> jobsAndTasks) {
+        Map<String, Map<String, Set<String>>> eniAssignmentMap = new HashMap<>();
+
+        List<Pair<Job, List<Task>>> filtered = jobsAndTasks.stream()
+                .map(jobAndTasks -> {
+                            List<Task> filteredTasks = jobAndTasks.getRight().stream()
+                                    .map(task -> checkTaskEniAssignment(task, eniAssignmentMap))
+                                    .filter(Optional::isPresent)
+                                    .map(Optional::get)
+                                    .collect(Collectors.toList());
+                            return Pair.of(jobAndTasks.getLeft(), filteredTasks);
+                        }
+                ).collect(Collectors.toList());
+
+        // Report overlaps
+        eniAssignmentMap.forEach((eniSignature, assignments) -> {
+            if (assignments.size() > 1) {
+                errorCollector.eniOverlaps(eniSignature, assignments);
+            }
+        });
+
+        return filtered;
+    }
+
+    private Optional<Task> checkTaskEniAssignment(Task task, Map<String, Map<String, Set<String>>> eniAssignmentMap) {
+        // Find agent
+        String agent = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+        if (agent == null) {
+            errorCollector.launchedTaskWithUnidentifiedAgent(task.getId());
+            return Optional.empty();
+        }
+
+        // Find ENI assignment
+        Optional<TwoLevelResource> eniAssignmentOpt = task.getTwoLevelResources().stream()
+                .filter(r -> r.getName().equals("ENIs"))
+                .findFirst();
+        if (!eniAssignmentOpt.isPresent()) {
+            return Optional.of(task);
+        }
+        TwoLevelResource eniAssignment = eniAssignmentOpt.get();
+
+        // Record
+        String eniSignature = "ENI@" + agent + '#' + eniAssignment.getIndex();
+        Map<String, Set<String>> eniSGs = eniAssignmentMap.computeIfAbsent(eniSignature, e -> new HashMap<>());
+        eniSGs.computeIfAbsent(eniAssignment.getValue(), sg -> new HashSet<>()).add(task.getId());
+
+        return eniSGs.size() == 1 ? Optional.of(task) : Optional.empty();
     }
 
     private static int compareByStatusCreationTime(EntityHolder holder1, EntityHolder holder2) {

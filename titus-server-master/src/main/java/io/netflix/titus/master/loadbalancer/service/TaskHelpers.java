@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

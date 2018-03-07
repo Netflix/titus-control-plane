@@ -42,7 +42,7 @@ public class StdValueSanitizer extends AbstractFieldSanitizer<Object> {
         if (fieldType == String.class) {
             return doStringCleanup((String) fieldValue);
         }
-        if (!fieldType.isAssignableFrom(Enum.class) && innerEntityPredicate.apply(fieldValue.getClass())) {
+        if (!fieldType.isAssignableFrom(Enum.class) && fieldValue != null && innerEntityPredicate.apply(fieldValue.getClass())) {
             return apply(fieldValue, NOTHING);
         }
         return Optional.empty();

@@ -39,7 +39,7 @@ import io.netflix.titus.common.util.rx.batch.LargestPerTimeBucket;
 import io.netflix.titus.common.util.rx.batch.Priority;
 import io.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;

@@ -150,12 +150,12 @@ public class TestStoreLoadCommand implements Command {
         for (int i = 0; i < iterations; i++) {
             long loadStartTime = System.currentTimeMillis();
             List<Pair<Job, List<Task>>> pairs = new ArrayList<>();
-            titusStore.init().andThen(titusStore.retrieveJobs().toList().flatMap(retrievedJobs -> {
+            titusStore.init().andThen(titusStore.retrieveJobs().flatMap(retrievedJobsAndErrors -> {
+                List<Job<?>> retrievedJobs = retrievedJobsAndErrors.getLeft();
                 List<Observable<Pair<Job, List<Task>>>> retrieveTasksObservables = new ArrayList<>();
                 for (Job job : retrievedJobs) {
                     Observable<Pair<Job, List<Task>>> retrieveTasksObservable = titusStore.retrieveTasksForJob(job.getId())
-                            .toList()
-                            .map(taskList -> new Pair<>(job, taskList));
+                            .map(taskList -> new Pair<>(job, taskList.getLeft()));
                     retrieveTasksObservables.add(retrieveTasksObservable);
                 }
                 return Observable.merge(retrieveTasksObservables, MAX_RETRIEVE_TASK_CONCURRENCY);

@@ -48,7 +48,7 @@ import static io.netflix.titus.common.util.ExceptionExt.rethrow;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.TIMEOUT_MS;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.discoverActiveTest;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.toMesosTaskState;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_ID;
 import static io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreTaskState;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;

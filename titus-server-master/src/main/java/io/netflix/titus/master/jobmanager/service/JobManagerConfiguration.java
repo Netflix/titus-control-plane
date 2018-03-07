@@ -63,7 +63,13 @@ public interface JobManagerConfiguration {
     long getMaxActiveJobs();
 
     /**
-     * @return the maximum number failed tasks to allow before exiting.
+     * @return the maximum allowed number of failed jobs
+     */
+    @DefaultValue("0")
+    long getMaxFailedJobs();
+
+    /**
+     * @return the maximum allowed number of failed tasks
      */
     @DefaultValue("0")
     long getMaxFailedTasks();

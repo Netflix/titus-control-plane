@@ -16,6 +16,7 @@
 
 package io.netflix.titus.api.jobmanager.model.job.sanitizer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,11 @@ public class JobAssertions {
     }
 
     public Map<String, String> validateImage(Image image) {
+        // As class-level constraints are evaluated after field-level constraints we have to check for null value here.
+        if(image == null) {
+            return Collections.emptyMap();
+        }
+
         Map<String, String> violations = new HashMap<>();
         if (!IMAGE_NAME_PATTERN.matcher(image.getName()).matches()) {
             violations.put("name", "image name is not valid");
@@ -76,6 +82,10 @@ public class JobAssertions {
     }
 
     public Map<String, String> notExceedsComputeResources(String capacityGroup, Container container) {
+        // As class-level constraints are evaluated after field-level constraints we have to check for null value here.
+        if(container == null) {
+            return Collections.emptyMap();
+        }
         ResourceDimension maxContainerSize = maxContainerSizeResolver.apply(capacityGroup);
         ContainerResources resources = container.getContainerResources();
 

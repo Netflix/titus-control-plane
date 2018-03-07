@@ -26,10 +26,12 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.DefaultDecoder;
 import com.netflix.archaius.DefaultPropertyFactory;
 import com.netflix.archaius.config.MapConfig;
+import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Image;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
+import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.ResourceDimension;
@@ -40,6 +42,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,6 +90,37 @@ public class JobModelSanitizationTest {
         Optional<Job<BatchJobExt>> updated = entitySanitizer.sanitize(job);
         assertThat(updated).isPresent();
         assertThat(updated.get().getJobDescriptor().getContainer().getContainerResources().getNetworkMbps()).isEqualTo(128);
+    }
+
+    @Test
+    public void testJobWithNullFieldValues() {
+        Job<BatchJobExt> job = JobGenerator.batchJobs(
+                oneTaskBatchJobDescriptor().but(jd -> jd.toBuilder().withContainer(null).build()
+                )
+        ).getValue();
+
+        assertThat(entitySanitizer.sanitize(job)).isEmpty();
+        assertThat(entitySanitizer.validate(job)).isNotEmpty();
+    }
+
+    @Test
+    public void testBatchTaskWithNullFieldValues() {
+        BatchJobTask task = JobGenerator.batchTasks(JobGenerator.batchJobs(oneTaskBatchJobDescriptor()).getValue()).getValue().toBuilder()
+                .withStatus(null)
+                .build();
+
+        assertThat(entitySanitizer.sanitize(task)).isEmpty();
+        assertThat(entitySanitizer.validate(task)).isNotEmpty();
+    }
+
+    @Test
+    public void testServiceTaskWithNullFieldValues() {
+        ServiceJobTask task = JobGenerator.serviceTasks(JobGenerator.serviceJobs(oneTaskServiceJobDescriptor()).getValue()).getValue().toBuilder()
+                .withStatus(null)
+                .build();
+
+        assertThat(entitySanitizer.sanitize(task)).isEmpty();
+        assertThat(entitySanitizer.validate(task)).isNotEmpty();
     }
 
     @Test

@@ -16,12 +16,9 @@
 
 package io.netflix.titus.runtime.endpoint.common.rest;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collection;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.validation.ConstraintViolation;
-import javax.validation.metadata.ConstraintDescriptor;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -36,6 +33,7 @@ import com.sun.jersey.api.ParamException;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.scheduler.service.SchedulerException;
 import io.netflix.titus.api.service.TitusServiceException;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import io.netflix.titus.common.util.CollectionsExt;
 
 @Provider
@@ -178,15 +176,10 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
         }
 
         if (!CollectionsExt.isNullOrEmpty(e.getConstraintViolations())) {
-            Map<String, String> violationsMap = new HashMap<>();
-            for (ConstraintViolation<?> violation : e.getConstraintViolations()) {
-                ConstraintDescriptor<?> descriptor = violation.getConstraintDescriptor();
-                Object message = descriptor.getAttributes().get("message");
-                if (message != null) {
-                    violationsMap.put(violation.getPropertyPath().toString(), message.toString());
-                }
-            }
-            errorBuilder.withContext("constraintViolations", violationsMap);
+            errorBuilder.withContext(
+                    "constraintViolations",
+                    EntitySanitizerUtil.toStringMap((Collection) e.getConstraintViolations())
+            );
         }
 
         ErrorResponse errorResponse = errorBuilder.build();

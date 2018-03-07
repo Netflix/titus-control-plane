@@ -32,17 +32,17 @@ public class ServiceJobTask extends Task {
 
     private final MigrationDetails migrationDetails;
 
-    private ServiceJobTask(String id,
-                           String originalId,
-                           Optional<String> resubmitOf,
-                           String jobId,
-                           int resubmitNumber,
-                           int systemResubmitNumber,
-                           TaskStatus status,
-                           List<TaskStatus> statusHistory,
-                           List<TwoLevelResource> twoLevelResources,
-                           Map<String, String> taskContext,
-                           MigrationDetails migrationDetails) {
+    public ServiceJobTask(String id,
+                          String originalId,
+                          Optional<String> resubmitOf,
+                          String jobId,
+                          int resubmitNumber,
+                          int systemResubmitNumber,
+                          TaskStatus status,
+                          List<TaskStatus> statusHistory,
+                          List<TwoLevelResource> twoLevelResources,
+                          Map<String, String> taskContext,
+                          MigrationDetails migrationDetails) {
         super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext);
         this.migrationDetails = migrationDetails;
     }

@@ -17,6 +17,7 @@
 package io.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -192,8 +193,8 @@ class StubbedJobStore implements JobStore {
     }
 
     @Override
-    public Observable<Job<?>> retrieveJobs() {
-        return ObservableExt.fromCollection(jobs::values);
+    public Observable<Pair<List<Job<?>>, Integer>> retrieveJobs() {
+        return Observable.just(Pair.of(new ArrayList<>(jobs.values()), 0));
     }
 
     @Override
@@ -242,9 +243,11 @@ class StubbedJobStore implements JobStore {
     }
 
     @Override
-    public Observable<Task> retrieveTasksForJob(String jobId) {
-        return ObservableExt.fromCollection(() ->
-                tasks.values().stream().filter(t -> t.getJobId().equals(jobId)).collect(Collectors.toList())
+    public Observable<Pair<List<Task>, Integer>> retrieveTasksForJob(String jobId) {
+        return ObservableExt.fromCallable(() -> {
+                    List<Task> jobTasks = tasks.values().stream().filter(t -> t.getJobId().equals(jobId)).collect(Collectors.toList());
+                    return Collections.singletonList(Pair.of(jobTasks, 0));
+                }
         );
     }
 

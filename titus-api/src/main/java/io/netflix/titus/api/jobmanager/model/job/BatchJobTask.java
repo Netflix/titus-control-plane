@@ -21,16 +21,19 @@ import java.util.Map;
 import java.util.Optional;
 import javax.validation.constraints.Min;
 
+import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+
 import static io.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
  */
+@ClassFieldsNotNull
 public class BatchJobTask extends Task {
 
     @Min(value = 0)
     private final int index;
 
-    private BatchJobTask(String id,
+    public BatchJobTask(String id,
                          int index,
                          String originalId,
                          Optional<String> resubmitOf,

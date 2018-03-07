@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.runtime.endpoint.v3.grpc;
+package io.netflix.titus.api.jobmanager;
 
 public class TaskAttributes {
     /*

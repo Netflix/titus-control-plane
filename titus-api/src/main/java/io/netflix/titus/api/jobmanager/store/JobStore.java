@@ -16,8 +16,11 @@
 
 package io.netflix.titus.api.jobmanager.store;
 
+import java.util.List;
+
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
@@ -32,11 +35,12 @@ public interface JobStore {
     Completable init();
 
     /**
-     * Retrieve all jobs.
+     * Retrieve all jobs. The result contains also number of records that could not be loaded from the database or
+     * which were corrupted and could not be mapped to {@link Job} instance.
      *
      * @return all the jobs.
      */
-    Observable<Job<?>> retrieveJobs();
+    Observable<Pair<List<Job<?>>, Integer>> retrieveJobs();
 
     /**
      * Retrieve the job with the specified jobId.
@@ -73,7 +77,7 @@ public interface JobStore {
      * @param jobId
      * @return the tasks for the job.
      */
-    Observable<Task> retrieveTasksForJob(String jobId);
+    Observable<Pair<List<Task>, Integer>> retrieveTasksForJob(String jobId);
 
     /**
      * Retrieve a specific task.

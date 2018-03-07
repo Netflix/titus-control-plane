@@ -37,7 +37,7 @@ import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransform
 import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import rx.Observable;
 
 import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
