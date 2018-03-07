@@ -144,6 +144,12 @@ public class GrpcUtil {
         return GrpcUtil.createWrappedStub(sessionContext, client).withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
     }
 
+    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, SessionContext sessionContext) {
+        return sessionContext.getCallerId()
+                .map(callerId -> V3HeaderInterceptor.attachCallerId(client, callerId + ",TitusGateway"))
+                .orElse(client);
+    }
+
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(SessionContext sessionContext, STUB client) {
         return sessionContext.getCallerId()
                 .map(callerId -> V3HeaderInterceptor.attachCallerId(client, callerId + ",TitusGateway"))
