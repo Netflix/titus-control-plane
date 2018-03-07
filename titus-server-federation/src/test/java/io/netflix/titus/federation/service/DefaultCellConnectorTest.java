@@ -34,7 +34,8 @@ public class DefaultCellConnectorTest {
         TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
         when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
 
-        DefaultCellConnector defaultCellConnector = new DefaultCellConnector(titusFederationConfiguration);
+        DefaultCellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
+        DefaultCellConnector defaultCellConnector = new DefaultCellConnector(cellInfoResolver);
         Map<Cell, ManagedChannel> channels = defaultCellConnector.getChannels();
 
         assertThat(channels).isNotEmpty();
