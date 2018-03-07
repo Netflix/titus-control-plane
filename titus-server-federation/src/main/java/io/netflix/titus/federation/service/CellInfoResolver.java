@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2017 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.netflix.titus.federation.service;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
 
-import io.grpc.ManagedChannel;
 import io.netflix.titus.api.federation.model.Cell;
 
-public interface CellConnector {
-    Map<Cell, ManagedChannel> getChannels();
-
-    Optional<ManagedChannel> getChannelForCell(Cell cell);
+public interface CellInfoResolver {
+    List<Cell> resolve();
 }

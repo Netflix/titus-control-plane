@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2017 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.netflix.titus.federation.service;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-import io.grpc.ManagedChannel;
 import io.netflix.titus.api.federation.model.Cell;
+import io.netflix.titus.federation.startup.TitusFederationConfiguration;
 
-public interface CellConnector {
-    Map<Cell, ManagedChannel> getChannels();
 
-    Optional<ManagedChannel> getChannelForCell(Cell cell);
+@Singleton
+public class DefaultCellInfoResolver implements CellInfoResolver {
+    private final List<Cell> cells;
+
+    @Inject
+    public DefaultCellInfoResolver(TitusFederationConfiguration appConfig) {
+        cells = CellInfoUtil.extractCellsFromCellSpecification(appConfig.getCells());
+    }
+
+    @Override
+    public List<Cell> resolve() {
+        return cells;
+    }
 }
