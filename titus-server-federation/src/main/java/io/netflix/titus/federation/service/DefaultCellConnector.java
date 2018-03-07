@@ -67,10 +67,6 @@ public class DefaultCellConnector implements CellConnector {
 
     @PreDestroy
     public void shutdown() {
-        if (channels == null) {
-            return;
-        }
-
         channels.values()
                 .forEach(channel -> {
                     logger.info("shutting down gRPC channels");
