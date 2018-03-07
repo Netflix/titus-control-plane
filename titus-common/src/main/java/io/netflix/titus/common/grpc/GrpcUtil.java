@@ -22,7 +22,6 @@ import java.util.function.BiConsumer;
 import com.google.protobuf.Empty;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
-import io.grpc.Deadline;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ClientCallStreamObserver;
@@ -141,7 +140,7 @@ public class GrpcUtil {
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
                                                                            SessionContext sessionContext,
                                                                            long deadlineMs) {
-        return GrpcUtil.createWrappedStub(sessionContext, client).withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
+        return createWrappedStub(sessionContext, client).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(SessionContext sessionContext, STUB client) {
@@ -183,7 +182,7 @@ public class GrpcUtil {
                                                                                  long deadlineMs,
                                                                                  StreamObserver<RespT> responseObserver) {
         STUB wrappedStub = GrpcUtil.createWrappedStub(sessionContext, client);
-        CallOptions callOptions = wrappedStub.getCallOptions().withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
+        CallOptions callOptions = wrappedStub.getCallOptions().withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
         ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, callOptions);
         asyncUnaryCall(clientCall, request, responseObserver);
         return clientCall;
