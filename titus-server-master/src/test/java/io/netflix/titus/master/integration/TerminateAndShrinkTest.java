@@ -54,6 +54,7 @@ import static com.jayway.awaitility.Awaitility.await;
 import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.hamcrest.Matchers.hasSize;
 
 @Category(IntegrationTest.class)
 public class TerminateAndShrinkTest extends BaseIntegrationTest {
@@ -256,15 +257,16 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
         titusMaster.observeLaunchedTasks().subscribe(scaleUp1Holders::add);
 
         autoStartNewTasks();
-        jobObserver.updateJobSize(30, 0, 100);
+        jobObserver.updateJobSize(30, 0, 100); // 1 already exists, 29 will be launched
 
         // Terminate & shrink
-        for (int i = 0; i < 30; i += 2) {
+        for (int i = 0; i < 29; i += 2) {
             jobObserver.terminateAndShrink(scaleUp1Holders.get(i).getTaskId());
         }
 
         // Scale down to 1
         jobObserver.updateJobSize(1, 0, 30);
+        await().timeout(20, TimeUnit.SECONDS).until(() -> client.findJob(jobId).toBlocking().single().getTasks(), hasSize(1));
 
         // Now scale up
         List<TaskExecutorHolder> newHolders = new ArrayList<>();
@@ -277,7 +279,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
                 new JobSetInstanceCountsCmd("myUser", jobId, 21, 0, 100)
         ).toBlocking().firstOrDefault(null);
 
-        await().timeout(20, TimeUnit.SECONDS).until(() -> newHolders.size() == 20);
+        await().timeout(20, TimeUnit.SECONDS).until(() -> newHolders, hasSize(20));
         List<TaskExecutorHolder> invalidIndexes = newHolders.stream().filter(h -> TitusTaskIdParser.getTaskIndexFromTaskId(h.getTaskId()) > 20).collect(Collectors.toList());
         assertThat(invalidIndexes).isEmpty();
     }
