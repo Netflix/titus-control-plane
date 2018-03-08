@@ -31,7 +31,7 @@ import static io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters
 
 public class InstanceGroupScenarioBuilder {
 
-    static final long TIMEOUT_MS = 5000;
+    static final long TIMEOUT_MS = 10_000L;
 
     private static final Logger logger = LoggerFactory.getLogger(InstanceGroupScenarioBuilder.class);
 

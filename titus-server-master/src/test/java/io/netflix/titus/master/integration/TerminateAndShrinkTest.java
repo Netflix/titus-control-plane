@@ -277,7 +277,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
                 new JobSetInstanceCountsCmd("myUser", jobId, 21, 0, 100)
         ).toBlocking().firstOrDefault(null);
 
-        await().timeout(10, TimeUnit.SECONDS).until(() -> newHolders.size() == 20);
+        await().timeout(20, TimeUnit.SECONDS).until(() -> newHolders.size() == 20);
         List<TaskExecutorHolder> invalidIndexes = newHolders.stream().filter(h -> TitusTaskIdParser.getTaskIndexFromTaskId(h.getTaskId()) > 20).collect(Collectors.toList());
         assertThat(invalidIndexes).isEmpty();
     }

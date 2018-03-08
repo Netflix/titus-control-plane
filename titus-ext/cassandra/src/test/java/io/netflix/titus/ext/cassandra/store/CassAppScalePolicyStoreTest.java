@@ -55,7 +55,7 @@ import rx.Observable;
 public class CassAppScalePolicyStoreTest {
     private static Logger log = LoggerFactory.getLogger(CassAppScalePolicyStoreTest.class);
 
-    private static final long STARTUP_TIMEOUT = 30_000L;
+    private static final long STARTUP_TIMEOUT = 60_000L;
     private static final String CONFIGURATION_FILE_NAME = "relocated-cassandra.yaml";
 
     @Rule
