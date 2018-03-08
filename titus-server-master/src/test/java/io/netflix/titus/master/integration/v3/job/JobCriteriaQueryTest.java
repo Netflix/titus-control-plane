@@ -144,12 +144,12 @@ public class JobCriteriaQueryTest {
         assertThat(taskQueryResult.getItemsList()).hasSize(2);
     }
 
-    @Test(timeout = 30_000)
+    @Test(timeout = 60_000)
     public void testFindArchivedTasksByTaskIdsV2() throws Exception {
         testFindArchivedTasksByTaskIds(true);
     }
 
-    @Test(timeout = 30_000)
+    @Test(timeout = 60_000)
     public void testFindArchivedTasksByTaskIdsV3() throws Exception {
         testFindArchivedTasksByTaskIds(false);
     }
