@@ -140,16 +140,10 @@ public class GrpcUtil {
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
                                                                            SessionContext sessionContext,
                                                                            long deadlineMs) {
-        return createWrappedStub(sessionContext, client).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
+        return createWrappedStub(client, sessionContext).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, SessionContext sessionContext) {
-        return sessionContext.getCallerId()
-                .map(callerId -> V3HeaderInterceptor.attachCallerId(client, callerId + ",TitusGateway"))
-                .orElse(client);
-    }
-
-    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(SessionContext sessionContext, STUB client) {
         return sessionContext.getCallerId()
                 .map(callerId -> V3HeaderInterceptor.attachCallerId(client, callerId + ",TitusGateway"))
                 .orElse(client);
@@ -187,7 +181,7 @@ public class GrpcUtil {
                                                                                  ReqT request,
                                                                                  long deadlineMs,
                                                                                  StreamObserver<RespT> responseObserver) {
-        STUB wrappedStub = GrpcUtil.createWrappedStub(sessionContext, client);
+        STUB wrappedStub = createWrappedStub(client, sessionContext);
         CallOptions callOptions = wrappedStub.getCallOptions().withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
         ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, callOptions);
         asyncUnaryCall(clientCall, request, responseObserver);
@@ -199,7 +193,7 @@ public class GrpcUtil {
                                                                                           MethodDescriptor<ReqT, RespT> methodDescriptor,
                                                                                           ReqT request,
                                                                                           StreamObserver<RespT> responseObserver) {
-        STUB wrappedStub = GrpcUtil.createWrappedStub(sessionContext, client);
+        STUB wrappedStub = createWrappedStub(client, sessionContext);
         ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, wrappedStub.getCallOptions());
         asyncServerStreamingCall(clientCall, request, responseObserver);
         return clientCall;
