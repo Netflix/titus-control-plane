@@ -11,6 +11,6 @@ public class GrpcModule extends AbstractModule {
     protected void configure() {
         bind(TitusFederationGrpcServer.class).asEagerSingleton();
         bind(SessionContext.class).to(AnonymousSessionContext.class);
-        bind(JobManagementServiceGrpc.JobManagementServiceImplBase.class).to(DefaultJobManagementGrpc.class);
+        bind(JobManagementServiceGrpc.JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
     }
 }

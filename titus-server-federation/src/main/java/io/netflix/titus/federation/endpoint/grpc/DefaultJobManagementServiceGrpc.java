@@ -30,13 +30,13 @@ import rx.Subscription;
 import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
 import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 
-public class DefaultJobManagementGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementGrpc.class);
+public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementServiceGrpc.class);
 
     private final JobManagementService jobManagementService;
 
     @Inject
-    public DefaultJobManagementGrpc(JobManagementService jobManagementService) {
+    public DefaultJobManagementServiceGrpc(JobManagementService jobManagementService) {
         this.jobManagementService = jobManagementService;
     }
 
