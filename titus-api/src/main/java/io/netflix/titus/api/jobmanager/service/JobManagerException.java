@@ -65,6 +65,10 @@ public class JobManagerException extends RuntimeException {
         return new JobManagerException(ErrorCode.JobNotFound, format("Job with id %s does not exist", jobId));
     }
 
+    public static JobManagerException v3JobNotFound(String jobId) {
+        return new JobManagerException(ErrorCode.JobNotFound, format("Job with id %s does not exist, or is running on the V2 engine", jobId));
+    }
+
     public static JobManagerException unexpectedJobState(Job job, JobState expectedState) {
         return new JobManagerException(
                 ErrorCode.UnexpectedJobState,

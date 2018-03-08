@@ -51,7 +51,7 @@ public class DefaultLoadBalancerJobValidator implements LoadBalancerJobValidator
     @Override
     public void validateJobId(String jobId) throws LoadBalancerException, JobManagerException {
         // Job must exist
-        Job<?> job = v3JobOperations.getJob(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId));
+        Job job = v3JobOperations.getJob(jobId).orElseThrow(() -> JobManagerException.v3JobNotFound(jobId));
 
         // Job must be active
         JobState state = job.getStatus().getState();
