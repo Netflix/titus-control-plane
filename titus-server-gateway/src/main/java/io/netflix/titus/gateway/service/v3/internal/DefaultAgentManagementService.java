@@ -146,7 +146,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Observable<AgentChangeEvent> observeAgents() {
         return createRequestObservable(emitter -> {
             StreamObserver<AgentChangeEvent> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).observeAgents(Empty.getDefaultInstance(), streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, sessionContext).observeAgents(Empty.getDefaultInstance(), streamObserver);
+        });
     }
 }

@@ -106,7 +106,7 @@ public class AggregatingJobManagementService implements JobManagementService {
             );
             clients.forEach((cell, client) -> {
                 StreamObserver<JobChangeNotification> streamObserver = new FilterOutFirstMarker(emitter, markersEmitted);
-                createWrappedStub(sessionContext, client).observeJobs(Empty.getDefaultInstance(), streamObserver);
+                createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
             });
         });
     }
