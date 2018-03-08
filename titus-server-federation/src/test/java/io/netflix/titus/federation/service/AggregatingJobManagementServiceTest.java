@@ -31,11 +31,11 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification.SnapshotEnd;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import io.grpc.ManagedChannel;
-import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import io.netflix.titus.api.federation.model.Cell;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
+import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.util.CollectionsExt;
 import org.junit.After;
 import org.junit.Before;
@@ -205,8 +205,7 @@ public class AggregatingJobManagementServiceTest {
                     responseObserver::onError,
                     responseObserver::onCompleted
             );
-            ServerCallStreamObserver<JobChangeNotification> serverResponseObserver = (ServerCallStreamObserver<JobChangeNotification>) responseObserver;
-            serverResponseObserver.setOnCancelHandler(subscription::unsubscribe);
+            GrpcUtil.attachCancellingCallback(responseObserver, subscription);
         }
     }
 }

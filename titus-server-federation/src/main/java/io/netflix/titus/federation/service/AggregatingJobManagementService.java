@@ -35,20 +35,19 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import io.grpc.ClientCall;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.federation.model.Cell;
-import io.netflix.titus.common.grpc.GrpcUtil;
+import io.netflix.titus.common.grpc.EmitterWithMultipleSubscriptions;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.getObserveJobsMethod;
-import static io.netflix.titus.common.grpc.GrpcUtil.callStreaming;
+import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class AggregatingJobManagementService implements JobManagementService {
@@ -97,20 +96,17 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<JobChangeNotification> observeJobs() {
-        return Observable.create(emitter -> {
+        return createRequestObservable(delegate -> {
+            Emitter<JobChangeNotification> emitter = new EmitterWithMultipleSubscriptions<>(delegate);
             Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(connector, JobManagementServiceGrpc::newStub);
             final CountDownLatch markersEmitted = new CallbackCountDownLatch(clients.size(),
                     () -> emitter.onNext(buildJobSnapshotEndMarker())
             );
-
-            ClientCall[] clientCalls = clients.entrySet().stream().map(entry -> {
-                JobManagementServiceStub client = entry.getValue();
+            clients.forEach((cell, client) -> {
                 StreamObserver<JobChangeNotification> streamObserver = new FilterOutFirstMarker(emitter, markersEmitted);
-                return callStreaming(sessionContext, client, getObserveJobsMethod(), Empty.getDefaultInstance(), streamObserver);
-            }).toArray(ClientCall[]::new);
-
-            GrpcUtil.attachCancellingCallback(emitter, clientCalls);
-        }, Emitter.BackpressureMode.NONE);
+                createWrappedStub(sessionContext, client).observeJobs(Empty.getDefaultInstance(), streamObserver);
+            });
+        });
     }
 
     @Override
@@ -142,3 +138,4 @@ public class AggregatingJobManagementService implements JobManagementService {
         return JobChangeNotification.newBuilder().setSnapshotEnd(marker).build();
     }
 }
+

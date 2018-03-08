@@ -18,15 +18,18 @@ package io.netflix.titus.federation.service;
 
 import java.util.concurrent.CountDownLatch;
 
+import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
-import io.grpc.stub.StreamObserver;
+import io.grpc.stub.ClientCallStreamObserver;
+import io.grpc.stub.ClientResponseObserver;
+import io.netflix.titus.common.grpc.GrpcUtil;
 import rx.Emitter;
 
 /**
  * Filter out the first <tt>marker</tt> from a source stream, decrementing a {@link CountDownLatch} when it is received.
  */
-class FilterOutFirstMarker implements StreamObserver<JobChangeNotification> {
+class FilterOutFirstMarker implements ClientResponseObserver<Empty, JobChangeNotification> {
 
     private final Emitter<JobChangeNotification> emitter;
     private final CountDownLatch latch;
@@ -36,6 +39,11 @@ class FilterOutFirstMarker implements StreamObserver<JobChangeNotification> {
     FilterOutFirstMarker(Emitter<JobChangeNotification> destination, CountDownLatch markersReceived) {
         this.emitter = destination;
         this.latch = markersReceived;
+    }
+
+    @Override
+    public void beforeStart(ClientCallStreamObserver<Empty> requestStream) {
+        GrpcUtil.attachCancellingCallback(emitter, requestStream);
     }
 
     @Override

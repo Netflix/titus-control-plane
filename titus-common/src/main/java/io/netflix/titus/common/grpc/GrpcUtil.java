@@ -207,16 +207,28 @@ public class GrpcUtil {
         });
     }
 
+    public static void attachCancellingCallback(Emitter emitter, ClientCallStreamObserver<?>... clientCalls) {
+        emitter.setCancellation(() -> {
+            for (ClientCallStreamObserver<?> call : clientCalls) {
+                call.cancel(CANCELLING_MESSAGE, null);
+            }
+        });
+    }
+
     public static void attachCancellingCallback(StreamObserver responseObserver, Subscription subscription) {
         ServerCallStreamObserver serverObserver = (ServerCallStreamObserver) responseObserver;
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
     }
 
-    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter, long timeout) {
+    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter) {
         return Observable.create(
                 emitter,
                 Emitter.BackpressureMode.NONE
-        ).timeout(timeout, TimeUnit.MILLISECONDS);
+        );
+    }
+
+    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter, long timeout) {
+        return createRequestObservable(emitter).timeout(timeout, TimeUnit.MILLISECONDS);
     }
 
     public static Completable createRequestCompletable(Action1<Emitter<Empty>> emitter, long timeout) {
