@@ -18,6 +18,7 @@ package io.netflix.titus.federation.service;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
@@ -54,6 +55,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     private final CellConnector connector;
     private final SessionContext sessionContext;
 
+    @Inject
     public AggregatingJobManagementService(CellConnector connector, SessionContext sessionContext) {
         this.connector = connector;
         this.sessionContext = sessionContext;
