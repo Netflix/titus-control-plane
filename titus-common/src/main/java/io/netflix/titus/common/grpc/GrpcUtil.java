@@ -22,7 +22,6 @@ import java.util.function.BiConsumer;
 import com.google.protobuf.Empty;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
-import io.grpc.Deadline;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ClientCallStreamObserver;
@@ -141,7 +140,7 @@ public class GrpcUtil {
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
                                                                            SessionContext sessionContext,
                                                                            long deadlineMs) {
-        return GrpcUtil.createWrappedStub(sessionContext, client).withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
+        return createWrappedStub(sessionContext, client).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(SessionContext sessionContext, STUB client) {
@@ -183,7 +182,7 @@ public class GrpcUtil {
                                                                                  long deadlineMs,
                                                                                  StreamObserver<RespT> responseObserver) {
         STUB wrappedStub = GrpcUtil.createWrappedStub(sessionContext, client);
-        CallOptions callOptions = wrappedStub.getCallOptions().withDeadline(Deadline.after(deadlineMs, TimeUnit.MILLISECONDS));
+        CallOptions callOptions = wrappedStub.getCallOptions().withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
         ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, callOptions);
         asyncUnaryCall(clientCall, request, responseObserver);
         return clientCall;
@@ -200,8 +199,20 @@ public class GrpcUtil {
         return clientCall;
     }
 
-    public static void attachCancellingCallback(Emitter emitter, ClientCall clientCall) {
-        emitter.setCancellation(() -> clientCall.cancel(CANCELLING_MESSAGE, null));
+    public static void attachCancellingCallback(Emitter emitter, ClientCall... clientCalls) {
+        emitter.setCancellation(() -> {
+            for (ClientCall call : clientCalls) {
+                call.cancel(CANCELLING_MESSAGE, null);
+            }
+        });
+    }
+
+    public static void attachCancellingCallback(Emitter emitter, ClientCallStreamObserver... clientCalls) {
+        emitter.setCancellation(() -> {
+            for (ClientCallStreamObserver call : clientCalls) {
+                call.cancel(CANCELLING_MESSAGE, null);
+            }
+        });
     }
 
     public static void attachCancellingCallback(StreamObserver responseObserver, Subscription subscription) {
@@ -209,11 +220,15 @@ public class GrpcUtil {
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
     }
 
-    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter, long timeout) {
+    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter) {
         return Observable.create(
                 emitter,
                 Emitter.BackpressureMode.NONE
-        ).timeout(timeout, TimeUnit.MILLISECONDS);
+        );
+    }
+
+    public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter, long timeout) {
+        return createRequestObservable(emitter).timeout(timeout, TimeUnit.MILLISECONDS);
     }
 
     public static Completable createRequestCompletable(Action1<Emitter<Empty>> emitter, long timeout) {

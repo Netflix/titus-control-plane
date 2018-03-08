@@ -26,7 +26,6 @@ import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
-import io.netflix.titus.federation.jobmanager.endpoint.rest.JobManagementResource;
 import io.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import io.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import io.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
