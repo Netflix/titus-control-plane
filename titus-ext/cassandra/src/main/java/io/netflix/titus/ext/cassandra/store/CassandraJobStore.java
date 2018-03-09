@@ -230,7 +230,7 @@ public class CassandraJobStore implements JobStore {
         }).flatMap(observables -> Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(resultSet -> {
             List<Row> allRows = resultSet.all();
             if (allRows.isEmpty()) {
-                logger.warn("Job id with no record");
+                logger.debug("Job id with no record");
                 return Collections.emptyList();
             }
             return allRows.stream()
