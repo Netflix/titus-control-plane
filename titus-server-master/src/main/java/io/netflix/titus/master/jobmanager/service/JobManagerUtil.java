@@ -46,7 +46,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import org.apache.mesos.Protos;
 
 import static io.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;

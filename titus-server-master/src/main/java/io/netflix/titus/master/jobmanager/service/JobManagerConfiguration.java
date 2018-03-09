@@ -63,7 +63,13 @@ public interface JobManagerConfiguration {
     long getMaxActiveJobs();
 
     /**
-     * @return the maximum number failed tasks to allow before exiting.
+     * @return the maximum allowed number of jobs that could not be loaded from the database (corrupted records, inconsistent data, etc)
+     */
+    @DefaultValue("0")
+    long getMaxFailedJobs();
+
+    /**
+     * @return the maximum allowed number of tasks that could not be loaded from the database (corrupted records, inconsistent data, etc)
      */
     @DefaultValue("0")
     long getMaxFailedTasks();

@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import rx.Scheduler;
 

@@ -10,7 +10,7 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.common.data.generator.DataGenerator;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import org.junit.Test;
 
 import static io.netflix.titus.api.jobmanager.model.job.JobFunctions.changeServiceJobCapacity;

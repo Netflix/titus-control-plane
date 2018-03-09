@@ -69,11 +69,11 @@ import static io.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static io.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
 import static io.netflix.titus.common.util.StringExt.nonNull;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
 
 public final class V3GrpcModelConverters {
 
@@ -576,6 +576,11 @@ public final class V3GrpcModelConverters {
         taskContext.put(TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER, Integer.toString(coreTask.getSystemResubmitNumber()));
         coreTask.getResubmitOf().ifPresent(resubmitOf -> taskContext.put(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, resubmitOf));
 
+        if (coreTask instanceof BatchJobTask) {
+            BatchJobTask batchTask = (BatchJobTask) coreTask;
+            taskContext.put(TASK_ATTRIBUTES_TASK_INDEX, Integer.toString(batchTask.getIndex()));
+        }
+
         com.netflix.titus.grpc.protogen.Task.Builder taskBuilder = com.netflix.titus.grpc.protogen.Task.newBuilder()
                 .setId(coreTask.getId())
                 .setJobId(coreTask.getJobId())
@@ -584,10 +589,7 @@ public final class V3GrpcModelConverters {
                 .putAllTaskContext(taskContext)
                 .setLogLocation(toGrpcLogLocation(coreTask, logStorageInfo));
 
-        if (coreTask instanceof BatchJobTask) {
-            BatchJobTask batchTask = (BatchJobTask) coreTask;
-            taskContext.put(TASK_ATTRIBUTES_TASK_INDEX, Integer.toString(batchTask.getIndex()));
-        } else if (coreTask instanceof ServiceJobTask) {
+        if (coreTask instanceof ServiceJobTask) {
             ServiceJobTask serviceTask = (ServiceJobTask) coreTask;
             taskBuilder.setMigrationDetails(toGrpcMigrationDetails(serviceTask.getMigrationDetails()));
         }

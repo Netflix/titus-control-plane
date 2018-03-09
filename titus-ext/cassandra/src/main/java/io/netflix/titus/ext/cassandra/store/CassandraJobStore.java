@@ -17,10 +17,12 @@
 package io.netflix.titus.ext.cassandra.store;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -39,13 +41,17 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.jobmanager.store.JobStoreException;
+import io.netflix.titus.api.jobmanager.store.JobStoreFitAction;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.framework.fit.FitInjection;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
+import io.netflix.titus.common.util.tuple.Either;
+import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -117,7 +123,8 @@ public class CassandraJobStore implements JobStore {
     private final ObjectMapper mapper;
     private final BalancedBucketManager<String> activeJobIdsBucketManager;
     private final CassandraStoreConfiguration configuration;
-    private final Optional<FitInjection> fitInjection;
+    private final Optional<FitInjection> fitDriverInjection;
+    private final Optional<FitInjection> fitBadDataInjection;
 
     @Inject
     public CassandraJobStore(CassandraStoreConfiguration configuration, Session session, TitusRuntime titusRuntime) {
@@ -135,15 +142,22 @@ public class CassandraJobStore implements JobStore {
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
-            FitInjection fitInjection = fit.newFitInjectionBuilder("cassandraDriver")
+            FitInjection fitDriverInjection = fit.newFitInjectionBuilder("cassandraDriver")
                     .withDescription("Fail Cassandra driver requests")
                     .withExceptionType(DriverException.class)
                     .build();
-            fit.getRootComponent().getChild("jobManagement").addInjection(fitInjection);
+            FitInjection fitBadDataInjection = fit.newFitInjectionBuilder("dataCorruption")
+                    .withDescription("Corrupt data loaded from the database")
+                    .build();
+            fit.getRootComponent().getChild(V3JobOperations.COMPONENT)
+                    .addInjection(fitDriverInjection)
+                    .addInjection(fitBadDataInjection);
 
-            this.fitInjection = Optional.of(fitInjection);
+            this.fitDriverInjection = Optional.of(fitDriverInjection);
+            this.fitBadDataInjection = Optional.of(fitBadDataInjection);
         } else {
-            this.fitInjection = Optional.empty();
+            this.fitDriverInjection = Optional.empty();
+            this.fitBadDataInjection = Optional.empty();
         }
 
         this.mapper = mapper;
@@ -185,7 +199,19 @@ public class CassandraJobStore implements JobStore {
                                     List<String> jobIds = new ArrayList<>();
                                     for (Row jobIdRow : jobIdsResultSet.all()) {
                                         String jobId = jobIdRow.getString(0);
-                                        jobIds.add(jobId);
+
+                                        if (fitBadDataInjection.isPresent()) {
+                                            String effectiveJobId = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.LostJobIds.name(), jobId);
+                                            if (effectiveJobId != null) {
+                                                jobIds.add(effectiveJobId);
+                                            }
+                                            String phantomId = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.PhantomJobIds.name(), jobId);
+                                            if (phantomId != null) {
+                                                jobIds.add(phantomId);
+                                            }
+                                        } else {
+                                            jobIds.add(jobId);
+                                        }
                                     }
                                     activeJobIdsBucketManager.addItems(bucket, jobIds);
                                     return Observable.empty();
@@ -197,14 +223,49 @@ public class CassandraJobStore implements JobStore {
     }
 
     @Override
-    public Observable<Job<?>> retrieveJobs() {
-        return Observable.fromCallable(() -> {
+    public Observable<Pair<List<Job<?>>, Integer>> retrieveJobs() {
+        Observable result = Observable.fromCallable(() -> {
             List<String> jobIds = activeJobIdsBucketManager.getItems();
             return jobIds.stream().map(retrieveActiveJobStatement::bind).map(this::execute).collect(Collectors.toList());
-        }).flatMap(observables -> Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(resultSet -> resultSet.all().stream()
-                .map(row -> row.getString(0))
-                .map(value -> (Job<?>) ObjectMappers.readValue(mapper, value, Job.class))
-                .collect(Collectors.toList())));
+        }).flatMap(observables -> Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(resultSet -> {
+            List<Row> allRows = resultSet.all();
+            if (allRows.isEmpty()) {
+                logger.debug("Job id with no record");
+                return Collections.emptyList();
+            }
+            return allRows.stream()
+                    .map(row -> row.getString(0))
+                    .map(value -> {
+                        String effectiveValue;
+                        if (fitBadDataInjection.isPresent()) {
+                            effectiveValue = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.CorruptedRawJobRecords.name(), value);
+                        } else {
+                            effectiveValue = value;
+                        }
+
+                        Job<?> job;
+                        try {
+                            job = ObjectMappers.readValue(mapper, effectiveValue, Job.class);
+                        } catch (Exception e) {
+                            logger.error("Cannot map serialized job data to Job class: {}", effectiveValue, e);
+                            return Either.ofError(e);
+                        }
+
+                        if (!fitBadDataInjection.isPresent()) {
+                            return Either.ofValue(job);
+                        }
+
+                        Job<?> effectiveJob = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.CorruptedJobRecords.name(), job);
+                        return Either.ofValue(effectiveJob);
+                    })
+                    .collect(Collectors.toList());
+        })).toList().map(everything -> {
+            List<Job> goodJobs = (List<Job>) everything.stream().filter(Either::hasValue).map(Either::getValue).collect(Collectors.toList());
+            int errors = everything.size() - goodJobs.size();
+            return Pair.of(goodJobs, errors);
+        });
+
+        return result;
     }
 
     @Override
@@ -257,7 +318,14 @@ public class CassandraJobStore implements JobStore {
             String jobId = job.getId();
             checkIfJobIsActive(jobId);
             return jobId;
-        }).flatMap(jobId -> retrieveTasksForJob(jobId).toList().flatMap(tasks -> {
+        }).flatMap(jobId -> retrieveTasksForJob(jobId).flatMap(tasksAndErrors -> {
+            List<Task> tasks = tasksAndErrors.getLeft();
+
+            int errors = tasksAndErrors.getRight();
+            if (errors > 0) {
+                logger.warn("Some tasks records could not be loaded during the job delete operation. Ignoring them: {}", errors);
+            }
+
             List<Completable> completables = tasks.stream().map(this::deleteTask).collect(Collectors.toList());
             return Completable.merge(Observable.from(completables), getConcurrencyLimit()).toObservable();
         })).toList().flatMap(ignored -> {
@@ -270,24 +338,68 @@ public class CassandraJobStore implements JobStore {
     }
 
     @Override
-    public Observable<Task> retrieveTasksForJob(String jobId) {
+    public Observable<Pair<List<Task>, Integer>> retrieveTasksForJob(String jobId) {
         return Observable.fromCallable(() -> {
             checkIfJobIsActive(jobId);
             return retrieveActiveTaskIdsForJobStatement.bind(jobId).setFetchSize(Integer.MAX_VALUE);
         }).flatMap(retrieveActiveTaskIdsForJob -> execute(retrieveActiveTaskIdsForJob).flatMap(taskIdsResultSet -> {
-            List<String> taskIds = taskIdsResultSet.all().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+            List<String> taskIds = taskIdsResultSet.all().stream()
+                    .map(row -> row.getString(0))
+                    .flatMap(taskId -> {
+                        if (fitBadDataInjection.isPresent()) {
+                            List<String> effectiveTaskIds = new ArrayList<>();
+                            String effectiveTaskId = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.LostTaskIds.name(), taskId);
+                            if (effectiveTaskId != null) {
+                                effectiveTaskIds.add(effectiveTaskId);
+                            }
+                            String phantomId = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.PhantomTaskIds.name(), taskId);
+                            if (phantomId != null) {
+                                effectiveTaskIds.add(phantomId);
+                            }
+                            return effectiveTaskIds.stream();
+                        }
+                        return Stream.of(taskId);
+                    })
+                    .collect(Collectors.toList());
+
             List<Observable<ResultSet>> observables = taskIds.stream().map(retrieveActiveTaskStatement::bind).map(this::execute).collect(Collectors.toList());
 
             return Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(tasksResultSet -> {
-                List<Task> tasks = new ArrayList<>();
+                List<Either<Task, Throwable>> tasks = new ArrayList<>();
                 for (Row row : tasksResultSet.all()) {
                     String value = row.getString(0);
-                    Task task = ObjectMappers.readValue(mapper, value, Task.class);
-                    tasks.add(task);
+
+                    String effectiveValue;
+                    if (fitBadDataInjection.isPresent()) {
+                        effectiveValue = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.CorruptedRawTaskRecords.name(), value);
+                    } else {
+                        effectiveValue = value;
+                    }
+
+                    Task task;
+                    try {
+                        task = ObjectMappers.readValue(mapper, effectiveValue, Task.class);
+
+                        if (!fitBadDataInjection.isPresent()) {
+                            tasks.add(Either.ofValue(task));
+                        } else {
+                            Task effectiveTask = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.CorruptedTaskRecords.name(), task);
+                            effectiveTask = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.DuplicatedEni.name(), effectiveTask);
+                            effectiveTask = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.CorruptedTaskPlacementData.name(), effectiveTask);
+                            tasks.add(Either.ofValue(effectiveTask));
+                        }
+                    } catch (Exception e) {
+                        logger.error("Cannot map serialized task data to Task class: {}", effectiveValue, e);
+                        tasks.add(Either.ofError(e));
+                    }
                 }
                 return tasks;
             });
-        }));
+        })).toList().map(taskErrorPairs -> {
+            List<Task> tasks = taskErrorPairs.stream().filter(Either::hasValue).map(Either::getValue).collect(Collectors.toList());
+            int errors = (int) taskErrorPairs.stream().filter(Either::hasError).count();
+            return Pair.of(tasks, errors);
+        });
     }
 
     @Override
@@ -447,7 +559,7 @@ public class CassandraJobStore implements JobStore {
     private Observable<ResultSet> execute(Statement statement) {
         return Observable.<ResultSet>create(
                 emitter -> {
-                    ListenableFuture resultSetFuture = fitInjection
+                    ListenableFuture resultSetFuture = fitDriverInjection
                             .map(injection -> injection.aroundListenableFuture(
                                     "executeAsync", () -> session.executeAsync(statement))
                             )

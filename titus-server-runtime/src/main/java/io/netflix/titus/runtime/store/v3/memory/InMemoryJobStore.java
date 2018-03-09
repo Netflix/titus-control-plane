@@ -17,6 +17,8 @@
 package io.netflix.titus.runtime.store.v3.memory;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
 import com.google.common.cache.Cache;
@@ -25,6 +27,7 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.jobmanager.store.JobStoreException;
+import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
@@ -52,8 +55,8 @@ public class InMemoryJobStore implements JobStore {
     }
 
     @Override
-    public Observable<Job<?>> retrieveJobs() {
-        return Observable.from(new ArrayList<>(jobs.asMap().values()));
+    public Observable<Pair<List<Job<?>>, Integer>> retrieveJobs() {
+        return Observable.just(Pair.of(new ArrayList<>(jobs.asMap().values()), 0));
     }
 
     @Override
@@ -90,8 +93,11 @@ public class InMemoryJobStore implements JobStore {
     }
 
     @Override
-    public Observable<Task> retrieveTasksForJob(String jobId) {
-        return Observable.from(tasks.asMap().values()).filter(task -> task.getJobId().equals(jobId));
+    public Observable<Pair<List<Task>, Integer>> retrieveTasksForJob(String jobId) {
+        List<Task> jobTask = tasks.asMap().values().stream()
+                .filter(task -> task.getJobId().equals(jobId))
+                .collect(Collectors.toList());
+        return Observable.just(Pair.of(jobTask, 0));
     }
 
     @Override

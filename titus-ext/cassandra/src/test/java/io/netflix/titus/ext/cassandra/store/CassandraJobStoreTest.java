@@ -22,7 +22,6 @@ import java.util.UUID;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
-import com.netflix.spectator.api.DefaultRegistry;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -38,6 +37,7 @@ import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPo
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.common.runtime.TitusRuntimes;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import io.netflix.titus.testkit.model.job.JobGenerator;
@@ -102,9 +102,10 @@ public class CassandraJobStoreTest {
         bootstrappingStore.storeJob(job).await();
         JobStore store = getJobStore(session);
         store.init().await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs).hasSize(1);
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft()).hasSize(1);
+        assertThat(jobsAndErrors.getRight()).isEqualTo(0);
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
     }
 
     @Test
@@ -121,8 +122,8 @@ public class CassandraJobStoreTest {
         JobStore store = getJobStore();
         store.storeJob(job).await();
         store.init().await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
     }
 
     @Test
@@ -131,8 +132,8 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
     }
 
     /**
@@ -154,8 +155,8 @@ public class CassandraJobStoreTest {
             completables.add(store.storeJob(job));
         }
         Completable.merge(Observable.from(completables), MAX_CONCURRENCY).await();
-        List<Job<?>> retrievedJobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(retrievedJobs.size()).isEqualTo(numberOfJobsToCreate);
+        Pair<List<Job<?>>, Integer> retrievedJobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(retrievedJobsAndErrors.getLeft()).hasSize(numberOfJobsToCreate);
         assertItemsPerBucket(session, numberOfBuckets, MAX_BUCKET_SIZE);
 
         int j = 0;
@@ -176,8 +177,8 @@ public class CassandraJobStoreTest {
             completables.add(store.storeJob(job));
         }
         Completable.merge(Observable.from(completables), MAX_CONCURRENCY).await();
-        retrievedJobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(retrievedJobs.size()).isEqualTo(numberOfJobsToCreate + MAX_BUCKET_SIZE);
+        retrievedJobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(retrievedJobsAndErrors.getLeft()).hasSize(numberOfJobsToCreate + MAX_BUCKET_SIZE);
         assertItemsPerBucket(session, numberOfBuckets + 1, MAX_BUCKET_SIZE);
     }
 
@@ -195,14 +196,14 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Job<BatchJobExt> newJob = Job.newBuilder(job)
                 .withStatus(JobStatus.newBuilder().withState(JobState.Finished).build())
                 .build();
         store.updateJob(newJob).await();
-        List<Job<?>> newJobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(newJobs.get(0)).isEqualTo(newJob);
+        Pair<List<Job<?>>, Integer> newJobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(newJobsAndErrors.getLeft().get(0)).isEqualTo(newJob);
     }
 
     @Test
@@ -211,11 +212,11 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         store.deleteJob(job).await();
-        jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs).isEmpty();
+        jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft()).isEmpty();
     }
 
     @Test
@@ -224,12 +225,12 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
-        List<Task> tasks = store.retrieveTasksForJob(job.getId()).toList().toBlocking().first();
-        assertThat(tasks.get(0)).isEqualTo(task);
+        Pair<List<Task>, Integer> tasks = store.retrieveTasksForJob(job.getId()).toBlocking().first();
+        assertThat(tasks.getLeft().get(0)).isEqualTo(task);
     }
 
     @Test
@@ -238,8 +239,8 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
@@ -252,8 +253,8 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
@@ -266,8 +267,8 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
@@ -286,17 +287,18 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task firstTask = createTaskObject(job);
         store.storeTask(firstTask).await();
         Task retrievedTask = store.retrieveTask(firstTask.getId()).toBlocking().first();
         assertThat(firstTask).isEqualTo(retrievedTask);
         Task secondTask = createTaskObject(job);
         store.replaceTask(firstTask, secondTask).await();
-        List<Task> tasks = store.retrieveTasksForJob(job.getId()).toList().toBlocking().first();
-        assertThat(tasks).hasSize(1);
-        assertThat(tasks.get(0)).isEqualTo(secondTask);
+        Pair<List<Task>, Integer> tasks = store.retrieveTasksForJob(job.getId()).toBlocking().first();
+        assertThat(tasks.getLeft()).hasSize(1);
+        assertThat(tasks.getRight()).isEqualTo(0);
+        assertThat(tasks.getLeft().get(0)).isEqualTo(secondTask);
     }
 
     @Test
@@ -305,15 +307,15 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
         assertThat(task).isEqualTo(retrievedTask);
         store.deleteTask(task).await();
-        List<Task> tasks = store.retrieveTasksForJob(job.getId()).toList().toBlocking().first();
-        assertThat(tasks).isEmpty();
+        Pair<List<Task>, Integer> tasks = store.retrieveTasksForJob(job.getId()).toBlocking().first();
+        assertThat(tasks.getLeft()).isEmpty();
     }
 
     @Test
@@ -333,8 +335,8 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         store.deleteTask(task).await();
@@ -348,8 +350,8 @@ public class CassandraJobStoreTest {
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        List<Job<?>> jobs = store.retrieveJobs().toList().toBlocking().first();
-        assertThat(jobs.get(0)).isEqualTo(job);
+        Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
+        assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
         store.deleteTask(task).await();

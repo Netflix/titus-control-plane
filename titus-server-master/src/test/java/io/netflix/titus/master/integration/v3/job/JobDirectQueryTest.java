@@ -23,7 +23,7 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;

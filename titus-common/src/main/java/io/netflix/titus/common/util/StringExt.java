@@ -160,6 +160,13 @@ public final class StringExt {
     }
 
     /**
+     * Concatenate enum values.
+     */
+    public static <E extends Enum> String concatenate(E[] array, String delimiter) {
+        return concatenate(array, delimiter, Enum::name);
+    }
+
+    /**
      * Given sequence of string values, return the first one that is not empty (see {@link #isNotEmpty(String)} or
      * {@link Optional#empty()}.
      */

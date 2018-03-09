@@ -22,6 +22,7 @@ import io.netflix.titus.common.framework.fit.FitAction;
 import io.netflix.titus.common.framework.fit.FitComponent;
 import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.framework.fit.FitInjection;
+import io.netflix.titus.common.framework.fit.FitUtil;
 import io.netflix.titus.common.runtime.TitusRuntime;
 
 @Path("/api/diagnostic/fit")
@@ -60,8 +61,8 @@ public class FitResource {
     @POST
     @Path("/actions")
     public Response addAction(Fit.AddAction request) {
-        FitComponent fitComponent = getFitComponentOrFail(request.getComponentId());
-        FitInjection fitInjection = getFitInjectionOrFail(request.getInjectionId(), fitComponent);
+        FitComponent fitComponent = FitUtil.getFitComponentOrFail(fitFramework, request.getComponentId());
+        FitInjection fitInjection = FitUtil.getFitInjectionOrFail(request.getInjectionId(), fitComponent);
 
         Function<FitInjection, FitAction> fitActionFactory = fitFramework.getFitRegistry().newFitActionFactory(
                 request.getActionKind(), request.getActionId(), request.getPropertiesMap()
@@ -76,8 +77,8 @@ public class FitResource {
     public Response deleteAction(@PathParam("actionId") String actionId,
                                  @QueryParam("componentId") String componentId,
                                  @QueryParam("injectionId") String injectionId) {
-        FitInjection fitInjection = getFitInjectionOrFail(injectionId, getFitComponentOrFail(componentId));
-        fitInjection.removeAction(getFitActionOrFail(actionId, fitInjection).getId());
+        FitInjection fitInjection = FitUtil.getFitInjectionOrFail(injectionId, FitUtil.getFitComponentOrFail(fitFramework, componentId));
+        fitInjection.removeAction(FitUtil.getFitActionOrFail(actionId, fitInjection).getId());
         return Response.noContent().build();
     }
 
@@ -86,21 +87,5 @@ public class FitResource {
         fitComponent.getInjections().forEach(i -> result.addAll(i.getActions()));
         fitComponent.getChildren().forEach(c -> result.addAll(findAllActions(c)));
         return result;
-    }
-
-    private FitComponent getFitComponentOrFail(String componentId) {
-        return fitFramework.getRootComponent()
-                .findChild(componentId)
-                .orElseThrow(() -> new IllegalArgumentException("FIT component not found: " + componentId));
-    }
-
-    private FitInjection getFitInjectionOrFail(String fitInjectionId, FitComponent fitComponent) {
-        return fitComponent.findInjection(fitInjectionId)
-                .orElseThrow(() -> new IllegalArgumentException("FIT injection not found: " + fitInjectionId));
-    }
-
-    private FitAction getFitActionOrFail(String actionId, FitInjection fitInjection) {
-        return fitInjection.findAction(actionId)
-                .orElseThrow(() -> new IllegalArgumentException("FIT action not found: " + actionId));
     }
 }

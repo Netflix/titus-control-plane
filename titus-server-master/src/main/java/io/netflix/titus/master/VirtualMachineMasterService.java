@@ -26,6 +26,8 @@ import rx.Observable;
 
 public interface VirtualMachineMasterService {
 
+    String COMPONENT = "mesos";
+
     void launchTasks(List<Protos.TaskInfo> requests, List<VirtualMachineLease> leases);
 
     void rejectLease(VirtualMachineLease lease);

@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
 
 public class AgentResourceCacheUpdater {
     private static final Logger logger = LoggerFactory.getLogger(AgentResourceCacheUpdater.class);

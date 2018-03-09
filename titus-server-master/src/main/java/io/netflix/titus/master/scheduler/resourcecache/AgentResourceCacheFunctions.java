@@ -43,7 +43,7 @@ import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.master.scheduler.ScheduledRequest;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 
 public class AgentResourceCacheFunctions {
     public static final String SECURITY_GROUP_ID_DELIMITER = ":";

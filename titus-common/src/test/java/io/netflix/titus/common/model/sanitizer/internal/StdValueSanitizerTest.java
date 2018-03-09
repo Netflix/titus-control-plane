@@ -45,4 +45,19 @@ public class StdValueSanitizerTest {
         assertThat(sanitized.getChild().getMax()).isEqualTo(2);
         assertThat(sanitized.getNullableChild().getOptionalValue()).isEqualTo("child2");
     }
+
+    @Test
+    public void testSanitizationOfNullNestedObjects() {
+        Root root = new Root(
+                "  root1   ",
+                null,
+                null
+        );
+
+        Optional<Object> sanitizedOpt = new StdValueSanitizer(type -> true).apply(root);
+        assertThat(sanitizedOpt).isPresent();
+
+        Root sanitized = (Root) sanitizedOpt.get();
+        assertThat(sanitized.getName()).isEqualTo("root1");
+    }
 }

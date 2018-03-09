@@ -62,6 +62,13 @@ public class TwoLevelResource {
         return index;
     }
 
+    public Builder toBuilder() {
+        return newBuilder()
+                .withName(name)
+                .withIndex(index)
+                .withValue(value);
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }

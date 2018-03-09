@@ -60,7 +60,7 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.CollectionsExt;
-import io.netflix.titus.runtime.endpoint.v3.grpc.TaskAttributes;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;

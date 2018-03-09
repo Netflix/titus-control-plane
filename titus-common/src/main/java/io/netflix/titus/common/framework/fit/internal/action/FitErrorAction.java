@@ -6,16 +6,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.common.framework.fit.AbstractFitAction;
 import io.netflix.titus.common.framework.fit.FitActionDescriptor;
 import io.netflix.titus.common.framework.fit.FitInjection;
-import io.netflix.titus.common.util.ErrorGenerator;
-import io.netflix.titus.common.util.time.Clocks;
-import io.netflix.titus.common.util.unit.TimeUnitExt;
+import io.netflix.titus.common.framework.fit.FitUtil;
+import io.netflix.titus.common.util.CollectionsExt;
 import rx.Observable;
 
 public class FitErrorAction extends AbstractFitAction {
@@ -23,33 +20,19 @@ public class FitErrorAction extends AbstractFitAction {
     public static final FitActionDescriptor DESCRIPTOR = new FitActionDescriptor(
             "exception",
             "Throw an exception",
-            ImmutableMap.of(
-                    "before", "Throw exception before running the downstream action (defaults to 'true')",
-                    "percentage", "Percentage of requests to fail (defaults to 50)",
-                    "errorTime", "Time window during which requests will fail (defaults to '1m')",
-                    "upTime", "Time window during which no errors occur (defaults to '1m')"
+            CollectionsExt.copyAndAdd(
+                    FitUtil.PERIOD_ERROR_PROPERTIES,
+                    "before", "Throw exception before running the downstream action (defaults to 'true')"
             )
     );
 
-    private final double expectedRatio;
-
     private final Constructor<? extends Throwable> exceptionConstructor;
-    private final ErrorGenerator errorGenerator;
+    private final Supplier<Boolean> shouldFailFunction;
 
     public FitErrorAction(String id, Map<String, String> properties, FitInjection injection) {
         super(id, DESCRIPTOR, properties, injection);
 
-        this.expectedRatio = Double.parseDouble(properties.getOrDefault("percentage", "100")) / 100;
-        long errorTimeMs = TimeUnitExt.parse(properties.getOrDefault("errorTime", "1m"))
-                .map(p -> p.getRight().toMillis(p.getLeft()))
-                .orElseThrow(() -> new IllegalArgumentException("Invalid 'errorTime' parameter: " + properties.get("errorTime")));
-        long upTimeMs = TimeUnitExt.parse(properties.getOrDefault("upTime", "1m"))
-                .map(p -> p.getRight().toMillis(p.getLeft()))
-                .orElseThrow(() -> new IllegalArgumentException("Invalid 'upTime' parameter: " + properties.get("upTime")));
-
-        Preconditions.checkArgument(upTimeMs > 0 || errorTimeMs > 0, "Both upTime and errorTime cannot be equal to 0");
-
-        this.errorGenerator = ErrorGenerator.periodicFailures(upTimeMs, errorTimeMs, expectedRatio, Clocks.system());
+        this.shouldFailFunction = FitUtil.periodicErrors(properties);
 
         try {
             this.exceptionConstructor = getInjection().getExceptionType().getConstructor(String.class);
@@ -90,7 +73,7 @@ public class FitErrorAction extends AbstractFitAction {
     public <T> Supplier<CompletableFuture<T>> aroundCompletableFuture(String injectionPoint, Supplier<CompletableFuture<T>> source) {
         if (runBefore) {
             return () -> {
-                if (errorGenerator.shouldFail()) {
+                if (shouldFailFunction.get()) {
                     CompletableFuture<T> future = new CompletableFuture<>();
                     future.completeExceptionally(newException(injectionPoint));
                     return future;
@@ -105,7 +88,7 @@ public class FitErrorAction extends AbstractFitAction {
     public <T> Supplier<ListenableFuture<T>> aroundListenableFuture(String injectionPoint, Supplier<ListenableFuture<T>> source) {
         if (runBefore) {
             return () -> {
-                if (errorGenerator.shouldFail()) {
+                if (shouldFailFunction.get()) {
                     return Futures.immediateFailedFuture(newException(injectionPoint));
                 }
                 return source.get();
@@ -115,7 +98,7 @@ public class FitErrorAction extends AbstractFitAction {
     }
 
     private boolean doFail(String injectionPoint) {
-        if (errorGenerator.shouldFail()) {
+        if (shouldFailFunction.get()) {
             Throwable exception = newException(injectionPoint);
             if (exception instanceof RuntimeException) {
                 throw (RuntimeException) exception;
