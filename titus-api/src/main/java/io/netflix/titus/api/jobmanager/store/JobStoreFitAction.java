@@ -124,7 +124,7 @@ public class JobStoreFitAction extends AbstractFitAction {
                 case CorruptedRawTaskRecords:
                     return handleCorruptedRawData(result);
                 case DuplicatedEni:
-                    return handleDuplicatedEni(result);
+                    return handleDuplicatedEni(result, false);
                 case CorruptedTaskPlacementData:
                     return handleCorruptedTaskPlacementData(result);
             }
@@ -139,9 +139,10 @@ public class JobStoreFitAction extends AbstractFitAction {
             case CorruptedRawJobRecords:
             case CorruptedTaskRecords:
             case CorruptedRawTaskRecords:
-            case DuplicatedEni:
             case CorruptedTaskPlacementData:
                 return result;
+            case DuplicatedEni:
+                return handleDuplicatedEni(result, true);
             case PhantomJobIds:
             case PhantomTaskIds:
                 return null;
@@ -177,7 +178,7 @@ public class JobStoreFitAction extends AbstractFitAction {
         return result instanceof String ? (T) ("BadJSON" + result) : result;
     }
 
-    private <T> T handleDuplicatedEni(T result) {
+    private <T> T handleDuplicatedEni(T result, boolean storeOnly) {
         if (!(result instanceof Task)) {
             return result;
         }
@@ -186,23 +187,29 @@ public class JobStoreFitAction extends AbstractFitAction {
         if (task.getTwoLevelResources().isEmpty()) {
             return result;
         }
-
-        // Store current assignment
         TwoLevelResource original = task.getTwoLevelResources().get(0);
-        ConcurrentMap<Integer, TwoLevelResource> agentAssignments = twoLevelResourceAssignments.computeIfAbsent(
-                task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "DEFAULT"),
-                k -> new ConcurrentHashMap<>()
-        );
-        agentAssignments.put(original.getIndex(), original);
 
-        // Find another assignment on the same agent with different resource value
-        Optional<Task> taskOverride = agentAssignments.values().stream().filter(a -> !a.getValue().equals(original.getValue()))
-                .findFirst()
-                .map(match -> {
-                    TwoLevelResource override = original.toBuilder().withIndex(match.getIndex()).build();
-                    return task.toBuilder().withTwoLevelResources(override).build();
-                });
-        return (T) taskOverride.orElse(task);
+        synchronized (twoLevelResourceAssignments) {
+            // Store current assignment
+            ConcurrentMap<Integer, TwoLevelResource> agentAssignments = twoLevelResourceAssignments.computeIfAbsent(
+                    task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "DEFAULT"),
+                    k -> new ConcurrentHashMap<>()
+            );
+            agentAssignments.put(original.getIndex(), original);
+
+            if (storeOnly) {
+                return result;
+            }
+
+            // Find another assignment on the same agent with different resource value
+            Optional<Task> taskOverride = agentAssignments.values().stream().filter(a -> !a.getValue().equals(original.getValue()))
+                    .findFirst()
+                    .map(match -> {
+                        TwoLevelResource override = original.toBuilder().withIndex(match.getIndex()).build();
+                        return task.toBuilder().withTwoLevelResources(override).build();
+                    });
+            return (T) taskOverride.orElse(task);
+        }
     }
 
     private <T> T handleCorruptedTaskPlacementData(T result) {
@@ -213,7 +220,8 @@ public class JobStoreFitAction extends AbstractFitAction {
         Task task = (Task) result;
 
         Map<String, String> corruptedTaskContext = CollectionsExt.copyAndRemove(
-                task.getTaskContext(), TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP
+                task.getTaskContext(),
+                TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST
         );
         return (T) task.toBuilder().withTaskContext(corruptedTaskContext).build();
     }

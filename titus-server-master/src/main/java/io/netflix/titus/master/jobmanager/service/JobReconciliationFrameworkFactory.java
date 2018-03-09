@@ -414,6 +414,12 @@ public class JobReconciliationFrameworkFactory {
     }
 
     private Optional<Task> checkTaskEniAssignment(Task task, Map<String, Map<String, Set<String>>> eniAssignmentMap) {
+        // Filter out tasks that will not be put back into Fenzo queue.
+        TaskState taskState = task.getStatus().getState();
+        if (taskState == TaskState.Accepted || isTaskEffectivelyFinished(task)) {
+            return Optional.of(task);
+        }
+
         // Find agent
         String agent = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
         if (agent == null) {

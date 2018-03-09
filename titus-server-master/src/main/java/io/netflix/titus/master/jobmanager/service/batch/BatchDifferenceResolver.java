@@ -57,6 +57,8 @@ import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransform
 import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
@@ -68,6 +70,8 @@ import static io.netflix.titus.master.jobmanager.service.common.DifferenceResolv
 
 @Singleton
 public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobManagerReconcilerEvent> {
+
+    private static final Logger logger = LoggerFactory.getLogger(BatchDifferenceResolver.class);
 
     private final JobManagerConfiguration configuration;
     private final ApplicationSlaManagementService capacityGroupService;
@@ -179,6 +183,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             for (int i = 0; i < refJobView.getRequiredSize() && allowedNewTasks.get() > 0; i++) {
                 if (!refJobView.getIndexes().contains(i)) {
                     allowedNewTasks.decrementAndGet();
+                    logger.info("Adding missing task: jobId={}, index={}, requiredSize={}, currentSize={}", refJobView.getJob().getId(), i, refJobView.getRequiredSize(), refJobView.getTasks().size());
                     missingTasks.add(createNewTaskAction(refJobView, i));
                 }
             }
@@ -240,6 +245,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
             if (refAndStoreInSync) {
                 if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTask, clock)) {
+                    logger.info("Retrying task: oldTaskId={}, index={}", referenceTask.getId(), storeTask.getIndex());
                     actions.add(createNewTaskAction(refJobView, storeTask.getIndex()));
                 }
             } else {
