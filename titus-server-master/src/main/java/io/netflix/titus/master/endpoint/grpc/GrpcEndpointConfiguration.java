@@ -31,7 +31,20 @@ public interface GrpcEndpointConfiguration {
     /**
      * Application name regular expression for identifying V3 enabled applications.
      */
+    @DefaultValue(".*")
     String getV3EnabledApps();
+
+    /**
+     * Application name regular expression for identifying applications that should not be running on V3 engine.
+     */
+    @DefaultValue("NOT_V3_ENABLED")
+    String getNotV3EnabledApps();
+
+    /**
+     * Image name regular expression for identifying applications that should not be running on V3 engine.
+     */
+    @DefaultValue("NOT_V3_ENABLED")
+    String getNotV3EnabledImages();
 
     @PropertyName(name = "loadbalancer.enabled")
     @DefaultValue("true")

@@ -29,7 +29,8 @@ public final class RegExpExt {
     public static Function<String, Matcher> dynamicMatcher(Supplier<String> regExpSource, String propertyName, int flags, Logger errorLogger) {
         return dynamicMatcherInternal(
                 regExpSource,
-                flags, e -> errorLogger.warn("Not valid regular expression value in '{}' property: {}", propertyName, e.getMessage())
+                flags,
+                e -> errorLogger.warn("Not valid regular expression value in '{}' property: {}", propertyName, e.getMessage())
         );
     }
 

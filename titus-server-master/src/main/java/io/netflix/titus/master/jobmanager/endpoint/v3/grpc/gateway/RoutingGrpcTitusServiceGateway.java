@@ -20,7 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
+import java.util.function.Function;
+import java.util.regex.Matcher;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -39,6 +40,7 @@ import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.RegExpExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
@@ -49,8 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import static io.netflix.titus.common.util.StringExt.safeTrim;
-
 @Singleton
 public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
@@ -59,10 +59,10 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     private static final Logger logger = LoggerFactory.getLogger(RoutingGrpcTitusServiceGateway.class);
     private final GrpcTitusServiceGateway v2EngineGateway;
     private final GrpcTitusServiceGateway v3EngineGateway;
-    private final GrpcEndpointConfiguration configuration;
 
-    private volatile String whiteListRegExpStr;
-    private volatile Optional<Pattern> whiteListRegExp;
+    private final Function<String, Matcher> whiteListJobClusterInfoMatcher;
+    private final Function<String, Matcher> blackListJobClusterInfoMatcher;
+    private final Function<String, Matcher> blackListImageMatcher;
 
     @Inject
     public RoutingGrpcTitusServiceGateway(
@@ -71,12 +71,25 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
             GrpcEndpointConfiguration configuration) {
         this.v2EngineGateway = v2EngineGateway;
         this.v3EngineGateway = v3EngineGateway;
-        this.configuration = configuration;
 
-        this.whiteListRegExpStr = safeTrim(configuration.getV3EnabledApps()).intern();
-        this.whiteListRegExp = whiteListRegExpStr.isEmpty()
-                ? Optional.empty()
-                : Optional.of(Pattern.compile(whiteListRegExpStr)); // Do not try/catch, as we let it fail on initialization
+        this.whiteListJobClusterInfoMatcher = RegExpExt.dynamicMatcher(
+                configuration::getV3EnabledApps,
+                "titus.master.grpcServer.v3EnabledApps",
+                0,
+                logger
+        );
+        this.blackListJobClusterInfoMatcher = RegExpExt.dynamicMatcher(
+                configuration::getNotV3EnabledApps,
+                "titus.master.grpcServer.notV3EnabledApps",
+                0,
+                logger
+        );
+        this.blackListImageMatcher = RegExpExt.dynamicMatcher(
+                configuration::getNotV3EnabledImages,
+                "titus.master.grpcServer.notV3EnabledImage",
+                0,
+                logger
+        );
     }
 
     @Override
@@ -243,31 +256,25 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     }
 
     private boolean isV3Enabled(JobDescriptor jobDescriptor) {
-        if (!whiteListRegExpStr.equals(configuration.getV3EnabledApps())) {
-            resetWhiteListRegExp();
+        String jobGroupId = buildJobGroupId(jobDescriptor);
+        boolean inAppWhiteList = whiteListJobClusterInfoMatcher.apply(jobGroupId).matches();
+        boolean inAppBlackList = blackListJobClusterInfoMatcher.apply(jobGroupId).matches();
+
+        if (!inAppWhiteList || inAppBlackList) {
+            return false;
         }
-        return whiteListRegExp.map(re -> re.matcher(buildJobGroupId(jobDescriptor)).matches()).orElse(false);
+
+        String imageName = jobDescriptor.getContainer().getImage().getName();
+        if (StringExt.isEmpty(imageName)) {
+            // Lack of name, implies that the digest is set, which is supported only in V3 engine
+            return true;
+        }
+
+        return !blackListImageMatcher.apply(imageName).matches();
     }
 
     private String buildJobGroupId(JobDescriptor jobDescriptor) {
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         return jobDescriptor.getApplicationName() + '-' + jobGroupInfo.getStack() + '-' + jobGroupInfo.getDetail() + '-' + jobGroupInfo.getSequence();
-    }
-
-    private void resetWhiteListRegExp() {
-        this.whiteListRegExpStr = safeTrim(configuration.getV3EnabledApps());
-
-        if (whiteListRegExpStr.isEmpty()) {
-            this.whiteListRegExp = Optional.empty();
-            return;
-        }
-
-        try {
-            this.whiteListRegExp = Optional.of(Pattern.compile(whiteListRegExpStr));
-        } catch (Exception e) {
-            // If the new regexp is invalid, log this fact, and keep using the previous one.
-            String activePattern = whiteListRegExp.map(Pattern::toString).orElse("<no_pattern>");
-            logger.warn("Invalid V3 application white list regexp {}. Staying with the previous one: {}", whiteListRegExpStr, activePattern, e);
-        }
     }
 }
