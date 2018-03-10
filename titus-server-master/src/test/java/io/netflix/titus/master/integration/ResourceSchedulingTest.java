@@ -96,7 +96,7 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
         String jobId = runServiceJob(jobSpec);
 
         // We need to examine internal data structure to check ENI assignments
-        Collection<V2WorkerMetadata> tasksMetadata = ((EmbeddedStorageProvider)titusMaster.getStorageProvider()).getJob(jobId)
+        Collection<V2WorkerMetadata> tasksMetadata = ((EmbeddedStorageProvider) titusMaster.getStorageProvider()).getJob(jobId)
                 .getStageMetadata(1)
                 .getAllWorkers();
 

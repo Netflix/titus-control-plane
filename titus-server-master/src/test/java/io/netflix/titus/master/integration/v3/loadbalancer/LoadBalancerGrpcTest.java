@@ -29,6 +29,7 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
@@ -51,7 +52,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
  * through the Gateway and Master servers.
  */
 @Category(IntegrationTest.class)
-public class LoadBalancerGrpcTest {
+public class LoadBalancerGrpcTest extends BaseIntegrationTest {
     private final Logger logger = LoggerFactory.getLogger(LoadBalancerGrpcTest.class);
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
 
@@ -121,7 +122,7 @@ public class LoadBalancerGrpcTest {
                         );
                     }
             );
-            currentPageNum ++;
+            currentPageNum++;
         } while (result.getPagination().getHasMore());
         // Make sure that all of the data was checked
         verificationMap.forEach(

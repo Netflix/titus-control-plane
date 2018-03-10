@@ -19,6 +19,7 @@ package io.netflix.titus.master.integration.v3.job;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
@@ -38,7 +39,7 @@ import static io.netflix.titus.master.integration.v3.scenario.ScenarioUtil.baseS
 import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.twoPartitionsPerTierStack;
 
 @Category(IntegrationTest.class)
-public class TaskMigrationTest {
+public class TaskMigrationTest extends BaseIntegrationTest {
 
     private static final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierStack(2));
 

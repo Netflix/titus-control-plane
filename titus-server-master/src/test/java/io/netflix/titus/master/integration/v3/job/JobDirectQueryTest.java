@@ -21,9 +21,10 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
-import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;
@@ -42,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 @Category(IntegrationTest.class)
-public class JobDirectQueryTest {
+public class JobDirectQueryTest extends BaseIntegrationTest {
     private static final String NON_EXISTING_V2_ID = "Titus-non_existing_id";
     private static final String NON_EXISTING_V3_ID = "non_existing_id";
 

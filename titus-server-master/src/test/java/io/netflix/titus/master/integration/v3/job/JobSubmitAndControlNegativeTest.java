@@ -42,6 +42,7 @@ import io.grpc.StatusRuntimeException;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.util.Evaluators;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -65,7 +66,7 @@ import static org.junit.Assert.fail;
 /**
  */
 @Category(IntegrationTest.class)
-public class JobSubmitAndControlNegativeTest {
+public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
 
     private final JobDescriptor.Builder BATCH_JOB_DESCR_BUILDER = toGrpcJobDescriptor(batchJobDescriptors().getValue()).toBuilder();
 

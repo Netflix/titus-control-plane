@@ -32,6 +32,7 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyStatus;
 import io.netflix.titus.api.appscale.model.PolicyType;
 import io.netflix.titus.master.appscale.endpoint.v3.grpc.AutoScalingTestUtils;
 import io.netflix.titus.master.appscale.service.AutoScalingPolicyTests;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -49,7 +50,7 @@ import static com.netflix.titus.grpc.protogen.ScalingPolicyStatus.ScalingPolicyS
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Category(IntegrationTest.class)
-public class AutoScalingGrpcTest {
+public class AutoScalingGrpcTest extends BaseIntegrationTest {
     private static Logger log = LoggerFactory.getLogger(AutoScalingGrpcTest.class);
 
     private AutoScalingServiceGrpc.AutoScalingServiceStub client;

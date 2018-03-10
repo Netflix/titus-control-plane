@@ -20,6 +20,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.common.aws.AwsInstanceType;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -37,7 +38,7 @@ import static io.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 
 @Category(IntegrationTest.class)
-public class V3JobSchedulingTest {
+public class V3JobSchedulingTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 

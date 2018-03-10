@@ -3,12 +3,15 @@ package io.netflix.titus.testkit.embedded.cloud.connector.remote;
 import com.netflix.governator.LifecycleInjector;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.connector.AbstractSimulatedMesosSchedulerDriverTest;
+import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.util.NetworkExt;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.junit.After;
+import org.junit.experimental.categories.Category;
 
+@Category(IntegrationTest.class)
 public class SimulatedRemoteMesosSchedulerDriverTest extends AbstractSimulatedMesosSchedulerDriverTest {
 
     private LifecycleInjector injector;

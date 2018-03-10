@@ -20,7 +20,7 @@ import org.junit.Test;
 
 /**
  * Collection of tests focusing on Mesos integration.
- *
+ * <p>
  * TODO test when Mesos sends inconsistent data with internal state
  */
 public class BatchJobMesosIntegrationTest {
