@@ -22,10 +22,6 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import io.netflix.titus.api.jobmanager.model.job.Job;
-import io.netflix.titus.api.store.v2.V2JobMetadata;
-import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import io.netflix.titus.master.scheduler.ScheduledRequest;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheImage;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
@@ -54,7 +50,7 @@ public class CachedImageFitnessCalculator implements VMTaskFitnessCalculator {
 
     @Override
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        Optional<AgentResourceCacheInstance> instanceOpt = agentResourceCache.getActive(targetVM.getHostname());
+        Optional<AgentResourceCacheInstance> instanceOpt = agentResourceCache.get(targetVM.getHostname());
         if (instanceOpt.isPresent()) {
             AgentResourceCacheInstance instance = instanceOpt.get();
             AgentResourceCacheImage image = getImage(taskRequest);

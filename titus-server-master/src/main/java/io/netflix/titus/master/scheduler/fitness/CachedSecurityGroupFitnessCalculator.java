@@ -50,7 +50,7 @@ public class CachedSecurityGroupFitnessCalculator implements VMTaskFitnessCalcul
 
     @Override
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        Optional<AgentResourceCacheInstance> instanceOpt = agentResourceCache.getActive(targetVM.getHostname());
+        Optional<AgentResourceCacheInstance> instanceOpt = agentResourceCache.get(targetVM.getHostname());
         if (instanceOpt.isPresent()) {
             String joinSecurityGroupIds = getJoinedSecurityGroupIds(taskRequest);
             AgentResourceCacheInstance instance = instanceOpt.get();
