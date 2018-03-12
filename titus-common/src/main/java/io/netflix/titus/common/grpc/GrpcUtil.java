@@ -36,12 +36,17 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
 
-import static io.grpc.stub.ClientCalls.asyncServerStreamingCall;
 import static io.grpc.stub.ClientCalls.asyncUnaryCall;
 
 public class GrpcUtil {
 
     private static final String CANCELLING_MESSAGE = "Cancelling the call";
+
+    /**
+     * For request/response GRPC calls, we set execution deadline at both RxJava and GRPC level. As we prefer the timeout
+     * be triggered by GRPC, which may give us potentially more insight, we adjust RxJava timeout value by this factor.
+     */
+    private static final double RX_CLIENT_TIMEOUT_FACTOR = 1.2;
 
     public static <T> void safeOnError(Logger logger, Throwable error, StreamObserver<T> responseObserver) {
         try {
@@ -58,15 +63,6 @@ public class GrpcUtil {
     public static <T> StreamObserver<T> createSimpleStreamObserver(Emitter<T> emitter) {
         return createStreamObserver(
                 emitter::onNext,
-                emitter::onError,
-                emitter::onCompleted
-        );
-    }
-
-    public static StreamObserver<Empty> createEmptyStreamObserver(Emitter<Empty> emitter) {
-        return createStreamObserver(
-                ignored -> {
-                },
                 emitter::onError,
                 emitter::onCompleted
         );
@@ -93,7 +89,7 @@ public class GrpcUtil {
 
     public static <REQ, RESP> ClientResponseObserver<REQ, RESP> createSimpleClientResponseObserver(Emitter<RESP> emitter) {
         return createClientResponseObserver(
-                requestStream -> emitter.setCancellation(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                emitter,
                 emitter::onNext,
                 emitter::onError,
                 emitter::onCompleted
@@ -102,11 +98,23 @@ public class GrpcUtil {
 
     public static <REQ> ClientResponseObserver<REQ, Empty> createEmptyClientResponseObserver(Emitter<Empty> emitter) {
         return createClientResponseObserver(
-                requestStream -> emitter.setCancellation(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                emitter,
                 ignored -> {
                 },
                 emitter::onError,
                 emitter::onCompleted
+        );
+    }
+
+    public static <REQ, RESP> ClientResponseObserver<REQ, RESP> createClientResponseObserver(Emitter<?> emitter,
+                                                                                             final Action1<? super RESP> onNext,
+                                                                                             final Action1<Throwable> onError,
+                                                                                             final Action0 onCompleted) {
+        return createClientResponseObserver(
+                requestStream -> emitter.setCancellation(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                onNext,
+                onError,
+                onCompleted
         );
     }
 
@@ -188,17 +196,6 @@ public class GrpcUtil {
         return clientCall;
     }
 
-    public static <STUB extends AbstractStub<STUB>, ReqT, RespT> ClientCall callStreaming(SessionContext sessionContext,
-                                                                                          STUB client,
-                                                                                          MethodDescriptor<ReqT, RespT> methodDescriptor,
-                                                                                          ReqT request,
-                                                                                          StreamObserver<RespT> responseObserver) {
-        STUB wrappedStub = createWrappedStub(client, sessionContext);
-        ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, wrappedStub.getCallOptions());
-        asyncServerStreamingCall(clientCall, request, responseObserver);
-        return clientCall;
-    }
-
     public static void attachCancellingCallback(Emitter emitter, ClientCall... clientCalls) {
         emitter.setCancellation(() -> {
             for (ClientCall call : clientCalls) {
@@ -228,10 +225,14 @@ public class GrpcUtil {
     }
 
     public static <T> Observable<T> createRequestObservable(Action1<Emitter<T>> emitter, long timeout) {
-        return createRequestObservable(emitter).timeout(timeout, TimeUnit.MILLISECONDS);
+        return createRequestObservable(emitter).timeout(getRxJavaAdjustedTimeout(timeout), TimeUnit.MILLISECONDS);
     }
 
     public static Completable createRequestCompletable(Action1<Emitter<Empty>> emitter, long timeout) {
         return createRequestObservable(emitter, timeout).toCompletable();
+    }
+
+    public static long getRxJavaAdjustedTimeout(long initialTimeoutMs) {
+        return (long) (initialTimeoutMs * RX_CLIENT_TIMEOUT_FACTOR);
     }
 }
