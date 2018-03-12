@@ -16,6 +16,7 @@
 
 package io.netflix.titus.master.integration.v3;
 
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -23,7 +24,7 @@ import org.junit.experimental.categories.Category;
 /**
  */
 @Category(IntegrationTest.class)
-public class V3ResourceSchedulingTest {
+public class V3ResourceSchedulingTest extends BaseIntegrationTest {
     /**
      * TODO Implement once V3 service job is supported.
      * <p>

@@ -21,6 +21,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
@@ -42,7 +43,7 @@ import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskB
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 @Category(IntegrationTest.class)
-public class TaskLifecycleTest {
+public class TaskLifecycleTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 

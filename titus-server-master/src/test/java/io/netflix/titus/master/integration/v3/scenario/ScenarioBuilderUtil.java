@@ -17,16 +17,9 @@
 package io.netflix.titus.master.integration.v3.scenario;
 
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import org.apache.mesos.Protos;
 import org.junit.Test;
 
-import static io.netflix.titus.testkit.junit.master.TitusStackResource.V2_ENGINE_APP_PREFIX;
-import static io.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
-import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
-import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static java.util.Arrays.stream;
 
 /**

@@ -14,21 +14,25 @@ import io.grpc.StatusRuntimeException;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
+import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class JobCursoryQueryTest {
+@Category(IntegrationTest.class)
+public class JobCursorQueryTest extends BaseIntegrationTest {
 
     private static final int JOBS_PER_ENGINE = 3;
     private static final int TASKS_PER_JOB = 2;

@@ -39,6 +39,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.tuple.Triple;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -64,7 +65,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * TODO Error codes
  */
 @Category(IntegrationTest.class)
-public class JobCriteriaQueryTest {
+public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     private static final Page PAGE = Page.newBuilder().setPageNumber(0).setPageSize(100).build();
 

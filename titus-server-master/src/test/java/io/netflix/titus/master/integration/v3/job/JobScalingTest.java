@@ -22,6 +22,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -38,7 +39,7 @@ import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicS
 import static io.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 @Category(IntegrationTest.class)
-public class JobScalingTest {
+public class JobScalingTest extends BaseIntegrationTest {
 
     private final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2));
 

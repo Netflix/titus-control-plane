@@ -30,12 +30,14 @@ import io.netflix.titus.master.zookeeper.CuratorServiceImpl;
 import io.netflix.titus.master.zookeeper.DefaultZookeeperClusterResolver;
 import io.netflix.titus.master.zookeeper.ZookeeperClusterResolver;
 import io.netflix.titus.master.zookeeper.ZookeeperPaths;
+import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -47,6 +49,7 @@ import static io.netflix.titus.master.ConfigurationMockSamples.withExecutionEnvi
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+@Category(IntegrationTest.class)
 public class ZookeeperMasterMonitorTest {
 
     private static TemporaryFolder tempFolder = new TemporaryFolder();

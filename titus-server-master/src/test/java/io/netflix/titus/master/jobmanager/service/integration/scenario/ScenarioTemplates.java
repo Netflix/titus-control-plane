@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
@@ -27,7 +28,6 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.TaskAttributes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

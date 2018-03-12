@@ -27,6 +27,7 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
@@ -54,7 +55,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  */
 @Category(IntegrationTest.class)
-public class JobObserveTest {
+public class JobObserveTest extends BaseIntegrationTest {
 
     private static final String V2_ENGINE_APP = "myV2App";
 
