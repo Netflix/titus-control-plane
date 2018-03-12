@@ -19,6 +19,7 @@ package io.netflix.titus.federation.service;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,6 +29,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.SnapshotEnd;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import io.grpc.ManagedChannel;
@@ -37,6 +39,7 @@ import io.netflix.titus.api.federation.model.Cell;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.federation.startup.TitusFederationConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -62,18 +65,21 @@ public class AggregatingJobManagementServiceTest {
     public final GrpcServerRule cellTwo = new GrpcServerRule().directExecutor();
     private final PublishSubject<JobChangeNotification> cellTwoUpdates = PublishSubject.create();
 
-    private CellConnector connector;
+    private String stackName;
     private AggregatingJobManagementService service;
 
     @Before
     public void setUp() throws Exception {
-        connector = mock(CellConnector.class);
+        stackName = UUID.randomUUID().toString();
+        TitusFederationConfiguration configuration = mock(TitusFederationConfiguration.class);
+        when(configuration.getStack()).thenReturn(stackName);
+        CellConnector connector = mock(CellConnector.class);
         when(connector.getChannels()).thenReturn(CollectionsExt.<Cell, ManagedChannel>newHashMap()
                 .entry(new Cell("one", "1"), cellOne.getChannel())
                 .entry(new Cell("two", "2"), cellTwo.getChannel())
                 .toMap()
         );
-        service = new AggregatingJobManagementService(connector, new AnonymousSessionContext());
+        service = new AggregatingJobManagementService(configuration, connector, new AnonymousSessionContext());
     }
 
     @After
@@ -100,8 +106,8 @@ public class AggregatingJobManagementServiceTest {
 
         final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs().test();
         List<JobChangeNotification> expected = Stream.concat(
-                cellOneSnapshot.stream().map(this::toNotification),
-                cellTwoSnapshot.stream().map(this::toNotification)
+                cellOneSnapshot.stream().map(this::toNotification).map(this::withStackName),
+                cellTwoSnapshot.stream().map(this::toNotification).map(this::withStackName)
         ).collect(Collectors.toList());
         // single marker for all cells
         final JobChangeNotification mergedMarker = JobChangeNotification.newBuilder().setSnapshotEnd(SnapshotEnd.newBuilder()).build();
@@ -121,7 +127,7 @@ public class AggregatingJobManagementServiceTest {
         testSubscriber.awaitValueCount(9, 1, TimeUnit.SECONDS);
         onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).last().isNotEqualTo(mergedMarker);
-        assertThat(onNextEvents).contains(cellOneUpdate, cellTwoUpdate);
+        assertThat(onNextEvents).contains(withStackName(cellOneUpdate), withStackName(cellTwoUpdate));
     }
 
     @Test
@@ -178,6 +184,24 @@ public class AggregatingJobManagementServiceTest {
 
     private JobChangeNotification toNotification(Job job) {
         return JobChangeNotification.newBuilder().setJobUpdate(JobUpdate.newBuilder().setJob(job)).build();
+    }
+
+    private JobChangeNotification withStackName(JobChangeNotification jobChangeNotification) {
+        switch (jobChangeNotification.getNotificationCase()) {
+            case JOBUPDATE:
+                JobDescriptor jobDescriptor = jobChangeNotification.getJobUpdate().getJob().getJobDescriptor().toBuilder()
+                        .putAttributes("titus.stack", stackName)
+                        .build();
+                Job job = jobChangeNotification.getJobUpdate().getJob().toBuilder()
+                        .setJobDescriptor(jobDescriptor)
+                        .build();
+                JobUpdate jobUpdate = jobChangeNotification.getJobUpdate().toBuilder()
+                        .setJob(job)
+                        .build();
+                return jobChangeNotification.toBuilder().setJobUpdate(jobUpdate).build();
+            default:
+                return jobChangeNotification;
+        }
     }
 
     private static class CellWithFixedJobsService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
