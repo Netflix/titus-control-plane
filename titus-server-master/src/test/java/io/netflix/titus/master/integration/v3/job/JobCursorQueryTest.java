@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.job.CellAssertions.assertCellDecoration;
 import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,7 +73,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         allJobsInOrder = client.findJobs(JobQuery.newBuilder().setPage(Page.newBuilder().setPageSize(Integer.MAX_VALUE / 2)).build()).getItemsList();
         assertThat(allJobsInOrder).hasSize(2 * JOBS_PER_ENGINE);
         for (Job job : allJobsInOrder) {
-            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+            assertCellDecoration(job.getJobDescriptor());
         }
 
         allTasksInOrder = client.findTasks(TaskQuery.newBuilder().setPage(Page.newBuilder().setPageSize(Integer.MAX_VALUE / 2)).build()).getItemsList();
@@ -87,7 +88,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result0.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(0, 2));
         for (Job job : result0.getItemsList()) {
-            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+            assertCellDecoration(job.getJobDescriptor());
         }
 
         // Page 1
@@ -96,7 +97,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result1.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(2, 4));
         for (Job job : result1.getItemsList()) {
-            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+            assertCellDecoration(job.getJobDescriptor());
         }
 
         // Page 2
@@ -106,7 +107,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         assertThat(result2.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(4, 6));
         assertThat(result2.getPagination().getHasMore()).isFalse();
         for (Job job : result2.getItemsList()) {
-            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+            assertCellDecoration(job.getJobDescriptor());
         }
 
         // Check cursor points to the latest returned element

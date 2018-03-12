@@ -24,6 +24,13 @@ import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 
 class CellDecorator {
+    /**
+     * Stack name that can be replaced in a federated deployment, where all Cells have the same Stack name.
+     */
+    private static final String STACK_NAME_KEY = "titus.stack";
+    /**
+     * Unique Cell name for a deployment.
+     */
     private static final String CELL_NAME_KEY = "titus.cell";
 
     private final Supplier<String> cellNameSupplier;
@@ -33,8 +40,10 @@ class CellDecorator {
     }
 
     Job addCellInfo(Job job) {
+        final String name = cellNameSupplier.get();
         final JobDescriptor jobDescriptor = job.getJobDescriptor().toBuilder()
-                .putAttributes(CELL_NAME_KEY, cellNameSupplier.get())
+                .putAttributes(CELL_NAME_KEY, name)
+                .putAttributes(STACK_NAME_KEY, name)
                 .build();
         return job.toBuilder().setJobDescriptor(jobDescriptor).build();
     }

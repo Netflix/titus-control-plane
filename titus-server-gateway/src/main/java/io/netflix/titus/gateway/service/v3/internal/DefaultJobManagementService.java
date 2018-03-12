@@ -67,7 +67,6 @@ import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.ExceptionExt;
 import io.netflix.titus.common.util.RegExpExt;
 import io.netflix.titus.common.util.StringExt;
-import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.gateway.service.v3.JobManagementService;
@@ -190,7 +189,6 @@ public class DefaultJobManagementService implements JobManagementService {
     @Override
     public Observable<Job> findJob(String jobId) {
         Observable<Job> observable = createRequestObservable(emitter -> {
-            emitter = ObservableExt.decorate(emitter, cellDecorator::addCellInfo);
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         }, configuration.getRequestTimeout());
@@ -204,34 +202,35 @@ public class DefaultJobManagementService implements JobManagementService {
             }
         });
 
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        return observable.map(cellDecorator::addCellInfo)
+                .timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
-        return createRequestObservable(emitter -> {
-            emitter = ObservableExt.decorate(emitter, cellDecorator::addCellInfo);
+        final Observable<JobQueryResult> observable = createRequestObservable(emitter -> {
             StreamObserver<JobQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJobs(jobQuery, streamObserver);
         }, configuration.getRequestTimeout());
+        return observable.map(cellDecorator::addCellInfo);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
-        return createRequestObservable(emitter -> {
-            emitter = ObservableExt.decorate(emitter, cellDecorator::addCellInfo);
+        final Observable<JobChangeNotification> observable = createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext).observeJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         });
+        return observable.map(cellDecorator::addCellInfo);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJobs() {
-        return createRequestObservable(emitter -> {
-            emitter = ObservableExt.decorate(emitter, cellDecorator::addCellInfo);
+        final Observable<JobChangeNotification> observable = createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
         });
+        return observable.map(cellDecorator::addCellInfo);
     }
 
     @Override
@@ -375,7 +374,7 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @VisibleForTesting
     static List<Task> deDupTasks(List<Task> activeTasks, List<Task> archivedTasks) {
-        Map<String, Task> archivedTasksMap = archivedTasks.stream().collect(Collectors.toMap(task -> task.getId(), Function.identity()));
+        Map<String, Task> archivedTasksMap = archivedTasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
         List<Task> uniqueActiveTasks = activeTasks.stream().filter(activeTask -> {
             if (archivedTasksMap.containsKey(activeTask.getId())) {
                 logger.warn("Duplicate Task detected (archived) {} - (active) {}", archivedTasksMap.get(activeTask.getId()), activeTask);

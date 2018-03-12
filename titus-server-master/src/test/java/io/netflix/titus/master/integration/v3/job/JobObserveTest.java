@@ -19,7 +19,6 @@ package io.netflix.titus.master.integration.v3.job;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -42,6 +41,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.job.CellAssertions.assertCellDecoration;
 import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.completeTask;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.jobAccepted;
@@ -100,10 +100,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         assertThat(emittedItems).hasSize(16);
         emittedItems.stream()
                 .filter(n -> n.getNotificationCase() == NotificationCase.JOBUPDATE)
-                .forEach(n -> {
-                    Map<String, String> attributes = n.getJobUpdate().getJob().getJobDescriptor().getAttributesMap();
-                    assertThat(attributes).containsEntry("titus.cell", "dev");
-                });
+                .forEach(n -> assertCellDecoration(n.getJobUpdate().getJob().getJobDescriptor()));
     }
 
     @Test(timeout = 30_000)
