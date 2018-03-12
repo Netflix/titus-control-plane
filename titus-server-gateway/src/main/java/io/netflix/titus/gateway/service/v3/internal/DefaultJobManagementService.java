@@ -47,8 +47,6 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import io.grpc.ClientCall;
-import io.grpc.MethodDescriptor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -78,25 +76,13 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
-import rx.Emitter;
 import rx.Observable;
-import rx.functions.Action1;
 
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_CREATE_JOB;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_FIND_JOB;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_FIND_JOBS;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_FIND_TASK;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_FIND_TASKS;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_KILL_JOB;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_KILL_TASK;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_OBSERVE_JOB;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_OBSERVE_JOBS;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_CAPACITY;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_PROCESSES;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.METHOD_UPDATE_JOB_STATUS;
 import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
-import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
-import static io.netflix.titus.gateway.service.v3.internal.GrpcServiceUtil.getRxJavaAdjustedTimeout;
+import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 
 @Singleton
@@ -155,12 +141,16 @@ public class DefaultJobManagementService implements JobManagementService {
         }
 
         JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
-        return toObservable(emitter -> {
-            final Action1<? super JobId> onNext = value -> emitter.onNext(value.getId());
-            StreamObserver<JobId> streamObserver = GrpcUtil.createStreamObserver(onNext, emitter::onError, emitter::onCompleted);
-            ClientCall clientCall = call(METHOD_CREATE_JOB, effectiveJobDescriptor, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                    emitter,
+                    jobId -> emitter.onNext(jobId.getId()),
+                    emitter::onError,
+                    emitter::onCompleted
+            );
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
@@ -170,41 +160,34 @@ public class DefaultJobManagementService implements JobManagementService {
         if (!violations.isEmpty()) {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
-        return toCompletable(
-                emitter -> {
-                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-                    ClientCall clientCall = call(METHOD_UPDATE_JOB_CAPACITY, jobCapacityUpdate, streamObserver);
-                    GrpcUtil.attachCancellingCallback(emitter, clientCall);
-                });
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateJobCapacity(jobCapacityUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
-        return toCompletable(
-                emitter -> {
-                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-                    ClientCall clientCall = call(METHOD_UPDATE_JOB_PROCESSES, jobProcessesUpdate, streamObserver);
-                    GrpcUtil.attachCancellingCallback(emitter, clientCall);
-                }
-        );
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateJobProcesses(jobProcessesUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable changeJobInServiceStatus(JobStatusUpdate statusUpdate) {
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_UPDATE_JOB_STATUS, statusUpdate, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateJobStatus(statusUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<Job> findJob(String jobId) {
-        Observable<Job> observable = Observable.create(emitter -> {
-            StreamObserver<Job> streamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_FIND_JOB, JobId.newBuilder().setId(jobId).build(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        Observable<Job> observable = createRequestObservable(emitter -> {
+            StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+        }, configuration.getRequestTimeout());
 
         observable = observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -220,47 +203,42 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @Override
     public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
-        return toObservable(emitter -> {
-            StreamObserver<JobQueryResult> streamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_FIND_JOBS, jobQuery, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJobs(jobQuery, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
-        return Observable.create(emitter -> {
-            StreamObserver<JobChangeNotification> streamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = callStreaming(METHOD_OBSERVE_JOB, JobId.newBuilder().setId(jobId).build(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-    }
-
-    @Override
-    public Observable<JobChangeNotification> observeJobs() {
-        return Observable.create(emitter -> {
-            StreamObserver<JobChangeNotification> streamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = callStreaming(METHOD_OBSERVE_JOBS, Empty.getDefaultInstance(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
-    }
-
-    @Override
-    public Completable killJob(String jobId) {
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_KILL_JOB, JobId.newBuilder().setId(jobId).build(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext).observeJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         });
     }
 
     @Override
+    public Observable<JobChangeNotification> observeJobs() {
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
+        });
+    }
+
+    @Override
+    public Completable killJob(String jobId) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).killJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+        }, configuration.getRequestTimeout());
+    }
+
+    @Override
     public Observable<Task> findTask(String taskId) {
-        Observable<Task> observable = Observable.create(emitter -> {
-            StreamObserver<Task> streamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_FIND_TASK, TaskId.newBuilder().setId(taskId).build(), streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        Observable<Task> observable = createRequestObservable(emitter -> {
+            StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
+        }, configuration.getRequestTimeout());
 
         observable = observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -276,11 +254,10 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @Override
     public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
-        Observable<TaskQueryResult> observable = Observable.create(emitter -> {
-            StreamObserver<TaskQueryResult> streamObserver = createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_FIND_TASKS, taskQuery, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        }, Emitter.BackpressureMode.NONE);
+        Observable<TaskQueryResult> observable = createRequestObservable(emitter -> {
+            StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
+        }, configuration.getRequestTimeout());
 
         observable = observable.flatMap(result -> {
             Map<String, String> filteringCriteriaMap = taskQuery.getFilteringCriteriaMap();
@@ -301,11 +278,10 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @Override
     public Completable killTask(TaskKillRequest taskKillRequest) {
-        return toCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_KILL_TASK, taskKillRequest, streamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).killTask(taskKillRequest, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     private boolean isInNonCompliantWhiteList(io.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
@@ -384,25 +360,6 @@ public class DefaultJobManagementService implements JobManagementService {
                     }
                     return Observable.error(TitusServiceException.unexpected("Not able to retrieve the task: %s (%s)", taskId, ExceptionExt.toMessageChain(e)));
                 }).map(task -> V3GrpcModelConverters.toGrpcTask(task, logStorageInfo));
-    }
-
-    private <ReqT, RespT> ClientCall call(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, configuration.getRequestTimeout(), responseObserver);
-    }
-
-    private <ReqT, RespT> ClientCall callStreaming(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.callStreaming(sessionContext, client, methodDescriptor, request, responseObserver);
-    }
-
-    private Completable toCompletable(Action1<Emitter<Empty>> emitter) {
-        return toObservable(emitter).toCompletable();
-    }
-
-    private <T> Observable<T> toObservable(Action1<Emitter<T>> emitter) {
-        return Observable.create(
-                emitter,
-                Emitter.BackpressureMode.NONE
-        ).timeout(getRxJavaAdjustedTimeout(configuration.getRequestTimeout()), TimeUnit.MILLISECONDS);
     }
 
     @VisibleForTesting
