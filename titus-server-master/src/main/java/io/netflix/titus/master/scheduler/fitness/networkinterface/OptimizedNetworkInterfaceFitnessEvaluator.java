@@ -1,30 +1,33 @@
-package io.netflix.titus.master.scheduler.fitness;
+/*
+ * Copyright 2018 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.netflix.titus.master.scheduler.fitness.networkinterface;
 
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import com.google.common.base.Strings;
-import com.netflix.fenzo.DefaultPreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
-import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
 import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetworkInterface;
 
 /**
- * Network interface preference/fitness evaluator. Two strategies are applied depending on the dynamic configuration
- * setting ({@link SchedulerConfiguration#isOptimizingNetworkInterfaceAllocationEnabled()}):
- * <ul>
- * <li>optimizing evaluator - tries to reuse provisioned network resources</li>
- * <li>spreading evaluator - prefers unused or the least recently used network resources</li>
- * </ul>
- * Spreading mode is recommended in steady system state, as it keeps all resource allocations hot. Optimizing evaluator
- * performs better for higher traffic spikes, as it minimizes amount of work required to provision resources for a
- * container.
+ * Prefers to reuse provisioned network resources
  */
-@Singleton
-public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsumableResourceEvaluator {
+public class OptimizedNetworkInterfaceFitnessEvaluator implements PreferentialNamedConsumableResourceEvaluator {
 
     private enum NetworkInterfaceState {
         // Cases for network interface that is actively used by some tasks
@@ -50,23 +53,15 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
     private static final double PARTITION_SIZE = 1.0 / (NetworkInterfaceState.values().length);
 
     private final AgentResourceCache cache;
-    private final SchedulerConfiguration configuration;
 
-    @Inject
-    public NetworkInterfaceFitnessEvaluator(AgentResourceCache cache,
-                                            SchedulerConfiguration configuration) {
+    public OptimizedNetworkInterfaceFitnessEvaluator(AgentResourceCache cache) {
         this.cache = cache;
-        this.configuration = configuration;
     }
 
     @Override
     public double evaluateIdle(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesLimit) {
-        if (!configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
-            return DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
-        }
-
         AgentResourceCacheNetworkInterface networkInterface = null;
-        Optional<AgentResourceCacheInstance> cacheInstanceOpt = this.cache.getActive(hostname);
+        Optional<AgentResourceCacheInstance> cacheInstanceOpt = this.cache.get(hostname);
         if (cacheInstanceOpt.isPresent()) {
             networkInterface = cacheInstanceOpt.get().getNetworkInterface(index);
         }
@@ -101,11 +96,7 @@ public class NetworkInterfaceFitnessEvaluator implements PreferentialNamedConsum
 
     @Override
     public double evaluate(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
-        if (!configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
-            return DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
-        }
-
-        Optional<AgentResourceCacheInstance> cacheInstanceOpt = this.cache.getActive(hostname);
+        Optional<AgentResourceCacheInstance> cacheInstanceOpt = this.cache.get(hostname);
         AgentResourceCacheNetworkInterface networkInterface = null;
         if (cacheInstanceOpt.isPresent()) {
             networkInterface = cacheInstanceOpt.get().getNetworkInterface(index);

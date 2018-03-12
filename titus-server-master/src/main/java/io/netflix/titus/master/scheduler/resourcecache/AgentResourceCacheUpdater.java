@@ -16,9 +16,8 @@
 
 package io.netflix.titus.master.scheduler.resourcecache;
 
-import java.util.Optional;
-import java.util.function.Function;
-
+import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.ConsumeResult;
+import com.netflix.fenzo.queues.QueuableTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -29,6 +28,7 @@ import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -83,6 +83,18 @@ public class AgentResourceCacheUpdater {
         ObservableExt.safeUnsubscribe(v2TaskSubscription, v3TaskSubscription);
     }
 
+    public void createOrUpdateAgentResourceCacheForTask(QueuableTask task, String hostname) {
+        ConsumeResult consumeResult = CollectionsExt.first(task.getAssignedResources().getConsumedNamedResources());
+        long time = titusRuntime.getClock().wallTime();
+        AgentResourceCacheInstance instance = AgentResourceCacheFunctions.createInstance(hostname, task, consumeResult, time);
+        agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
+            if (instanceOpt.isPresent()) {
+                return AgentResourceCacheFunctions.updateInstance(instanceOpt.get(), instance);
+            }
+            return instance;
+        });
+    }
+
     private void createOrUpdateAgentResourceCacheForV2Task(TaskStateChangeEvent event) {
         @SuppressWarnings("unchecked")
         Pair<V2JobMetadata, V2WorkerMetadata> jobAndTaskPair = (Pair<V2JobMetadata, V2WorkerMetadata>) event.getSource();
@@ -90,23 +102,21 @@ public class AgentResourceCacheUpdater {
         V2WorkerMetadata task = jobAndTaskPair.getRight();
         String hostname = task.getSlave();
         if (task.getState() == V2JobState.Started) {
-            agentResourceCache.createOrUpdateActive(hostname, instanceOpt -> {
+            agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
                 AgentResourceCacheInstance instance = AgentResourceCacheFunctions.createInstance(hostname, job, task, titusRuntime.getClock().wallTime());
                 if (instanceOpt.isPresent()) {
-                    return AgentResourceCacheFunctions.mergeInstances(instanceOpt.get(), instance);
+                    return AgentResourceCacheFunctions.updateInstance(instanceOpt.get(), instance);
                 }
                 return instance;
             });
         } else if (V2JobState.isTerminalState(task.getState())) {
-            Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> finishedFunction = instanceOpt -> {
+            agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
                 if (instanceOpt.isPresent()) {
                     AgentResourceCacheInstance existingInstance = instanceOpt.get();
                     return AgentResourceCacheFunctions.removeTaskFromInstance(existingInstance, task, titusRuntime.getClock().wallTime());
                 }
                 return null;
-            };
-            agentResourceCache.createOrUpdateIdle(hostname, finishedFunction);
-            agentResourceCache.createOrUpdateActive(hostname, finishedFunction);
+            });
         }
     }
 
@@ -115,23 +125,21 @@ public class AgentResourceCacheUpdater {
         Task task = event.getCurrentTask();
         String hostname = task.getTaskContext().get(TASK_ATTRIBUTES_AGENT_HOST);
         if (task.getStatus().getState() == TaskState.Started) {
-            agentResourceCache.createOrUpdateActive(hostname, instanceOpt -> {
+            agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
                 AgentResourceCacheInstance instance = AgentResourceCacheFunctions.createInstance(hostname, job, task, titusRuntime.getClock().wallTime());
                 if (instanceOpt.isPresent()) {
-                    return AgentResourceCacheFunctions.mergeInstances(instanceOpt.get(), instance);
+                    return AgentResourceCacheFunctions.updateInstance(instanceOpt.get(), instance);
                 }
                 return instance;
             });
         } else if (task.getStatus().getState() == TaskState.Finished) {
-            Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> finishedFunction = instanceOpt -> {
+            agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
                 if (instanceOpt.isPresent()) {
                     AgentResourceCacheInstance existingInstance = instanceOpt.get();
                     return AgentResourceCacheFunctions.removeTaskFromInstance(existingInstance, task, titusRuntime.getClock().wallTime());
                 }
                 return null;
-            };
-            agentResourceCache.createOrUpdateIdle(hostname, finishedFunction);
-            agentResourceCache.createOrUpdateActive(hostname, finishedFunction);
+            });
         }
     }
 }

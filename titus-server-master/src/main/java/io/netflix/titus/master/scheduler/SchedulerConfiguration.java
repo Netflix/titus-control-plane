@@ -18,6 +18,7 @@ package io.netflix.titus.master.scheduler;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import io.netflix.titus.master.scheduler.fitness.networkinterface.TitusNetworkInterfaceFitnessEvaluator;
 
 @Configuration(prefix = "titus.scheduler")
 public interface SchedulerConfiguration {
@@ -44,7 +45,7 @@ public interface SchedulerConfiguration {
     boolean isGlobalTaskLaunchingConstraintEvaluatorEnabled();
 
     /**
-     * Option used by component {@link io.netflix.titus.master.scheduler.fitness.NetworkInterfaceFitnessEvaluator}.
+     * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.
      *
      * @return whether or not to use an optimizing algorithm for network interface allocation
      */
@@ -103,4 +104,11 @@ public interface SchedulerConfiguration {
      */
     @DefaultValue("id")
     String getInstanceAttributeName();
+
+    /**
+     * Return the amount of time in milliseconds that is preferred before re-using a network interface. This delay
+     * only impacts the score during network interface allocation, but will not prevent a network interface from being chosen.
+     */
+    @DefaultValue("300000")
+    long getPreferredNetworkInterfaceDelayMs();
 }

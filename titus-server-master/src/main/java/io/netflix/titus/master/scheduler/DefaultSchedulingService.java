@@ -43,7 +43,7 @@ import javax.inject.Singleton;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
-import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
+import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.ConsumeResult;
 import com.netflix.fenzo.ScaleDownAction;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.ScaleDownOrderEvaluator;
@@ -277,7 +277,6 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
                 .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
-                .withSchedulingEventListener(new DefaultSchedulingEventListener(titusRuntime, agentResourceCache))
                 .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent());
 
         taskScheduler = setupTaskSchedulerAndAutoScaler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
@@ -619,11 +618,11 @@ public class DefaultSchedulingService implements SchedulingService {
         long recordStartTime = System.currentTimeMillis();
         try {
             for (TaskAssignmentResult assignmentResult : requests) {
-                List<PreferentialNamedConsumableResourceSet.ConsumeResult> consumeResults = assignmentResult.getrSets();
+                List<ConsumeResult> consumeResults = assignmentResult.getrSets();
                 TitusQueuableTask task = (TitusQueuableTask) assignmentResult.getRequest();
 
                 boolean taskFound;
-                PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult = consumeResults.get(0);
+                ConsumeResult consumeResult = consumeResults.get(0);
                 if (JobFunctions.isV2Task(task.getId())) {
                     final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(task.getId());
                     taskFound = jobMgr != null;
@@ -763,6 +762,7 @@ public class DefaultSchedulingService implements SchedulingService {
     @Override
     public void initRunningTask(QueuableTask task, String hostname) {
         schedulingService.initializeRunningTask(task, hostname);
+        agentResourceCacheUpdater.createOrUpdateAgentResourceCacheForTask(task, hostname);
     }
 
     @Activator

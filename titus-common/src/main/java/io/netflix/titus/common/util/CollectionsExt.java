@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -218,10 +219,15 @@ public final class CollectionsExt {
 
     @SafeVarargs
     public static <T> Set<T> merge(Set<T>... sets) {
+        return merge(HashSet::new, sets);
+    }
+
+    @SafeVarargs
+    public static <T> Set<T> merge(Supplier<Set<T>> supplier, Set<T>... sets) {
         if (isNullOrEmpty(sets)) {
             return Collections.emptySet();
         }
-        Set<T> result = new HashSet<>();
+        Set<T> result = supplier.get();
         for (Set<T> next : sets) {
             result.addAll(next);
         }

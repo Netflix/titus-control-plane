@@ -36,14 +36,12 @@ import rx.schedulers.Schedulers;
 public class DefaultAgentResourceCache implements AgentResourceCache {
     private static final Logger logger = LoggerFactory.getLogger(DefaultAgentResourceCache.class);
 
-    private static final int MAX_CACHE_SIZE = 10_000;
+    private static final int MAX_CACHE_SIZE = 20_000;
     private static final String METRIC_NAME_ROOT = "titusMaster.scheduler.agentResourceCache";
-    private static final String CREATE_OR_UPDATE_IDLE = "createOrUpdateIdle";
-    private static final String CREATE_OR_UPDATE_ACTIVE = "createOrUpdateActive";
+    private static final String ACTION_NAME = "createOrUpdate";
 
     private final InstrumentedEventLoop eventLoop;
-    private final Cache<String, AgentResourceCacheInstance> idleCache;
-    private final Cache<String, AgentResourceCacheInstance> activeCache;
+    private final Cache<String, AgentResourceCacheInstance> cache;
 
     @Inject
     public DefaultAgentResourceCache(Registry registry) {
@@ -53,48 +51,29 @@ public class DefaultAgentResourceCache implements AgentResourceCache {
     public DefaultAgentResourceCache(Registry registry,
                                      Scheduler scheduler) {
         eventLoop = ObservableExt.createEventLoop(METRIC_NAME_ROOT, registry, scheduler);
-        idleCache = Caches.instrumentedCacheWithMaxSize(MAX_CACHE_SIZE, METRIC_NAME_ROOT + ".idle", registry);
-        activeCache = Caches.instrumentedCacheWithMaxSize(MAX_CACHE_SIZE, METRIC_NAME_ROOT + ".active", registry);
+        cache = Caches.instrumentedCacheWithMaxSize(MAX_CACHE_SIZE, METRIC_NAME_ROOT + ".active", registry);
     }
 
     @Override
-    public void createOrUpdateIdle(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function) {
-        eventLoop.schedule(CREATE_OR_UPDATE_IDLE, () -> {
-            AgentResourceCacheInstance existingCacheInstance = idleCache.getIfPresent(hostname);
+    public void createOrUpdate(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function) {
+        eventLoop.schedule(ACTION_NAME, () -> {
+            AgentResourceCacheInstance existingCacheInstance = cache.getIfPresent(hostname);
             AgentResourceCacheInstance newCacheInstance = function.apply(Optional.ofNullable(existingCacheInstance));
             if (!Objects.equals(newCacheInstance, existingCacheInstance)) {
-                logger.debug("Creating or updating idle entry with hostname: {} and value: {}", hostname, newCacheInstance);
-                idleCache.put(hostname, newCacheInstance);
+                logger.debug("Creating or updating entry with hostname: {} and value: {}", hostname, newCacheInstance);
+                cache.put(hostname, newCacheInstance);
             }
         });
     }
 
     @Override
-    public void createOrUpdateActive(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function) {
-        eventLoop.schedule(CREATE_OR_UPDATE_ACTIVE, () -> {
-            AgentResourceCacheInstance existingCacheInstance = activeCache.getIfPresent(hostname);
-            AgentResourceCacheInstance newCacheInstance = function.apply(Optional.ofNullable(existingCacheInstance));
-            if (!Objects.equals(newCacheInstance, existingCacheInstance)) {
-                logger.debug("Creating or updating active entry with hostname: {} and value: {}", hostname, newCacheInstance);
-                activeCache.put(hostname, newCacheInstance);
-            }
-        });
-    }
-
-    @Override
-    public Optional<AgentResourceCacheInstance> getIdle(String hostname) {
-        return Optional.ofNullable(idleCache.getIfPresent(hostname));
-    }
-
-    @Override
-    public Optional<AgentResourceCacheInstance> getActive(String hostname) {
-        return Optional.ofNullable(activeCache.getIfPresent(hostname));
+    public Optional<AgentResourceCacheInstance> get(String hostname) {
+        return Optional.ofNullable(cache.getIfPresent(hostname));
     }
 
     @Override
     public void shutdown() {
         eventLoop.shutdown();
-        idleCache.shutdown();
-        activeCache.shutdown();
+        cache.shutdown();
     }
 }

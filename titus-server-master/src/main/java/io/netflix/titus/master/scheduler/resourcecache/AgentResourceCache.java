@@ -24,36 +24,20 @@ import java.util.function.Function;
  */
 public interface AgentResourceCache {
     /**
-     * Creates or updates the agent resource idle cache instance with the specified callable function.
+     * Creates or updates the agent resource cache instance with the specified function.
      *
      * @param hostname the instance's hostname
      * @param function a function that returns the computed {@link AgentResourceCacheInstance}
      */
-    void createOrUpdateIdle(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function);
+    void createOrUpdate(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function);
 
     /**
-     * Creates or updates the agent resource active cache instance with the specified function function.
+     * Returns {@link Optional<AgentResourceCacheInstance>} for a given instance id in the agent resource cache.
      *
      * @param hostname the instance's hostname
-     * @param function a function that returns the computed {@link AgentResourceCacheInstance}
+     * @return {@link Optional<AgentResourceCacheInstance>} for a given instance id in the agent resource cache
      */
-    void createOrUpdateActive(String hostname, Function<Optional<AgentResourceCacheInstance>, AgentResourceCacheInstance> function);
-
-    /**
-     * Returns the {@link AgentResourceCacheInstance} for a given instance id in the agent resource idle cache or null if it does not exist.
-     *
-     * @param hostname the instance's hostname
-     * @return the {@link AgentResourceCacheInstance} in an optional or empty if it does not exist.
-     */
-    Optional<AgentResourceCacheInstance> getIdle(String hostname);
-
-    /**
-     * Returns the {@link AgentResourceCacheInstance} for a given instance id in the agent resource active cache or null if it does not exist.
-     *
-     * @param hostname the instance's hostname
-     * @return the {@link AgentResourceCacheInstance} in an optional or empty if it does not exist.
-     */
-    Optional<AgentResourceCacheInstance> getActive(String hostname);
+    Optional<AgentResourceCacheInstance> get(String hostname);
 
     /**
      * Shuts down the cache
