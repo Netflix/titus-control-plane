@@ -27,9 +27,19 @@ public class MathExtTest {
         Assertions.assertThat(scaledValue).isEqualTo(0.1);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testScaleMinAndMaxValidation() {
+        MathExt.scale(10.0, 10.0, 10.0);
+    }
+
     @Test
     public void testScaleBetween1and10() {
         double scaledValue = MathExt.scale(10.0, 0.0, 100.0, 0.0, 10.0);
         Assertions.assertThat(scaledValue).isEqualTo(1.0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testScaleRangeValueValidation() {
+        MathExt.scale(10.0, 9.0, 10.0, 10.0, 9.0);
     }
 }

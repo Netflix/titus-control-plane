@@ -16,6 +16,8 @@
 
 package io.netflix.titus.common.util;
 
+import com.google.common.base.Preconditions;
+
 public class MathExt {
     /**
      * Scale the value using feature scaling such that the value is normalized between the range of [0.0, 1.0].
@@ -26,6 +28,7 @@ public class MathExt {
      * @return the scaled value
      */
     public static double scale(double value, double min, double max) {
+        Preconditions.checkArgument(min < max, "min must be less than max");
         return (value - min) / (max - min);
     }
 
@@ -40,6 +43,8 @@ public class MathExt {
      * @return the scaled value
      */
     public static double scale(double value, double min, double max, double minRangeValue, double maxRangeValue) {
+        Preconditions.checkArgument(min < max, "min must be less than max");
+        Preconditions.checkArgument(minRangeValue <= maxRangeValue, "minRangeValue must be less than or equal to maxRangeValue");
         return minRangeValue + (((value - min) * (maxRangeValue - minRangeValue)) / (max - min));
     }
 }
