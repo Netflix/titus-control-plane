@@ -34,13 +34,14 @@ import static io.netflix.titus.common.util.CollectionsExt.asSet;
 final class RestUtil {
 
     static final Set<String> IGNORED_QUERY_PARAMS = asSet(
-            "debug", "fields", "page", "pagesize", "accesstoken"
+            "debug", "fields", "page", "pagesize", "cursor", "accesstoken"
     );
 
     static Page createPage(MultivaluedMap<String, String> map) {
         Page.Builder pageBuilder = Page.newBuilder();
         pageBuilder.setPageNumber(Integer.parseInt(getFirstOrDefault(map, "page", "0")));
         pageBuilder.setPageSize(Integer.parseInt(getFirstOrDefault(map, "pageSize", "10")));
+        pageBuilder.setCursor(getFirstOrDefault(map, "cursor", ""));
         return pageBuilder.build();
     }
 

@@ -69,6 +69,7 @@ public class CommonGrpcModelConverters {
         return com.netflix.titus.grpc.protogen.Page.newBuilder()
                 .setPageNumber(runtimePage.getPageNumber())
                 .setPageSize(runtimePage.getPageSize())
+                .setCursor(runtimePage.getCursor())
                 .build();
     }
 
