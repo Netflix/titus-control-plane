@@ -372,7 +372,9 @@ public class JobReconciliationFrameworkFactory {
 
         if (!violations.isEmpty()) {
             logger.error("Bad job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
-            return Optional.empty();
+            if(jobManagerConfiguration.isFailOnDataValidation()) {
+                return Optional.empty();
+            }
         }
 
         return Optional.of(job);
@@ -383,7 +385,9 @@ public class JobReconciliationFrameworkFactory {
 
         if (!violations.isEmpty()) {
             logger.error("Bad task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
-            return Optional.empty();
+            if(jobManagerConfiguration.isFailOnDataValidation()) {
+                return Optional.empty();
+            }
         }
 
         return Optional.of(task);

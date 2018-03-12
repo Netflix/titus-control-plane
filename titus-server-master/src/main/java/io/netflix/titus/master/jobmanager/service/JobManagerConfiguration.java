@@ -82,4 +82,10 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("false")
     boolean isV3IgnoreLaunchGuardEnabled();
+
+    /**
+     * Feature flag controlling job/task validation process.
+     */
+    @DefaultValue("false")
+    boolean isFailOnDataValidation();
 }
