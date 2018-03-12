@@ -290,7 +290,7 @@ public class DefaultJobManagementService implements JobManagementService {
         return uncompliantClientMatcher.apply(jobClusterId).matches();
     }
 
-    private io.netflix.titus.api.jobmanager.model.job.JobDescriptor addMissingSecurityGroupAndIamRole(io.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+    private io.netflix.titus.api.jobmanager.model.job.JobDescriptor addMissingSecurityGroupAndIamRole(io.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
         SecurityProfile securityProfile = jobDescriptor.getContainer().getSecurityProfile();
         if (!securityProfile.getSecurityGroups().isEmpty() && !securityProfile.getIamRole().isEmpty()) {
             return jobDescriptor;
