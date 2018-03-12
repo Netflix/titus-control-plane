@@ -41,6 +41,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.api.jobmanager.store.JobStoreException;
@@ -119,6 +121,7 @@ public class CassandraJobStore implements JobStore {
     private final PreparedStatement deleteActiveTaskIdStatement;
     private final PreparedStatement deleteActiveTaskStatement;
 
+    private final TitusRuntime titusRuntime;
     private final Session session;
     private final ObjectMapper mapper;
     private final BalancedBucketManager<String> activeJobIdsBucketManager;
@@ -139,6 +142,7 @@ public class CassandraJobStore implements JobStore {
                       int maxBucketSize) {
         this.configuration = configuration;
         this.session = session;
+        this.titusRuntime = titusRuntime;
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
@@ -249,6 +253,20 @@ public class CassandraJobStore implements JobStore {
                         } catch (Exception e) {
                             logger.error("Cannot map serialized job data to Job class: {}", effectiveValue, e);
                             return Either.ofError(e);
+                        }
+
+                        // TODO Remove this code when there are no more jobs with missing migration data (caused by a bug in ServiceJobExt builder).
+                        if (job.getJobDescriptor().getExtensions() instanceof ServiceJobExt) {
+                            Job<ServiceJobExt> serviceJob = (Job<ServiceJobExt>) job;
+                            ServiceJobExt ext = serviceJob.getJobDescriptor().getExtensions();
+                            if (ext.getMigrationPolicy() == null) {
+                                titusRuntime.getCodePointTracker().markReachable("Corrupted task migration record in Cassandra: " + job.getId());
+                                ServiceJobExt fixedExt = ext.toBuilder().withMigrationPolicy(SystemDefaultMigrationPolicy.newBuilder().build()).build();
+                                logger.warn("Service job with no migration policy defined. Setting system default: {}", job.getId());
+                                job = serviceJob.toBuilder().withJobDescriptor(
+                                        serviceJob.getJobDescriptor().toBuilder().withExtensions(fixedExt).build()
+                                ).build();
+                            }
                         }
 
                         if (!fitBadDataInjection.isPresent()) {
