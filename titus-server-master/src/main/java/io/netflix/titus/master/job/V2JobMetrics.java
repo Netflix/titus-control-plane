@@ -61,19 +61,25 @@ public class V2JobMetrics {
             return;
         }
 
-        TaskMetricHolder taskMetricH = taskMetrics.computeIfAbsent(task, myTask -> new TaskMetricHolder(task));
-        logger.debug("State transition change for task {} ({}): {}", task.getWorkerInstanceId(), task, task.getState());
+        String taskId = WorkerNaming.getTaskId(task);
+
+        // Synchronize, to make sure we create only one instance of TaskMetricHolder.
+        TaskMetricHolder taskMetricH;
+        synchronized (taskMetrics) {
+            taskMetricH = taskMetrics.computeIfAbsent(task, myTask -> new TaskMetricHolder(task));
+        }
+        logger.debug("State transition change for task {}: {}", taskId, task.getState());
 
         TaskState v3TaskState = toV3TaskState(task.getState());
         taskMetricH.transition(v3TaskState);
 
         // Look at all tasks, in case something leaked
-        taskMetrics.entrySet().forEach(e -> {
-            V2WorkerMetadata t = e.getKey();
-            if (V2JobState.isTerminalState(t.getState())) {
-                logger.debug("Removing task {} ({}): {}", t.getWorkerInstanceId(), t, t.getState());
-                e.getValue().transition(v3TaskState);
-                taskMetrics.remove(t);
+        taskMetrics.forEach((nextTask, nextMetrics) -> {
+            if (V2JobState.isTerminalState(nextTask.getState())) {
+                String nextTaskId = WorkerNaming.getTaskId(nextTask);
+                logger.debug("Removing task {}: {}", nextTaskId, nextTask.getState());
+                nextMetrics.transition(v3TaskState);
+                taskMetrics.remove(nextTask);
             }
         });
     }
