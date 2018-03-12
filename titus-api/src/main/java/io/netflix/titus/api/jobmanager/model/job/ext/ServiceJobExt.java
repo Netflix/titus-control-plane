@@ -132,7 +132,8 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
                 .withCapacity(serviceJobExt.getCapacity())
                 .withEnabled(serviceJobExt.isEnabled())
                 .withRetryPolicy(serviceJobExt.getRetryPolicy())
-                .withServiceJobProcesses(serviceJobExt.getServiceJobProcesses());
+                .withServiceJobProcesses(serviceJobExt.getServiceJobProcesses())
+                .withMigrationPolicy(serviceJobExt.getMigrationPolicy());
     }
 
     public static final class Builder {
