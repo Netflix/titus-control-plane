@@ -71,6 +71,9 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
 
         allJobsInOrder = client.findJobs(JobQuery.newBuilder().setPage(Page.newBuilder().setPageSize(Integer.MAX_VALUE / 2)).build()).getItemsList();
         assertThat(allJobsInOrder).hasSize(2 * JOBS_PER_ENGINE);
+        for (Job job : allJobsInOrder) {
+            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+        }
 
         allTasksInOrder = client.findTasks(TaskQuery.newBuilder().setPage(Page.newBuilder().setPageSize(Integer.MAX_VALUE / 2)).build()).getItemsList();
         assertThat(allTasksInOrder).hasSize(2 * JOBS_PER_ENGINE * TASKS_PER_JOB);
@@ -83,12 +86,18 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
                 .setPage(Page.newBuilder().setPageSize(2)).build()
         );
         assertThat(result0.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(0, 2));
+        for (Job job : result0.getItemsList()) {
+            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+        }
 
         // Page 1
         JobQueryResult result1 = client.findJobs(JobQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(2).setCursor(result0.getPagination().getCursor())).build()
         );
         assertThat(result1.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(2, 4));
+        for (Job job : result1.getItemsList()) {
+            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+        }
 
         // Page 2
         JobQueryResult result2 = client.findJobs(JobQuery.newBuilder()
@@ -96,6 +105,9 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result2.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(4, 6));
         assertThat(result2.getPagination().getHasMore()).isFalse();
+        for (Job job : result2.getItemsList()) {
+            assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
+        }
 
         // Check cursor points to the latest returned element
         JobQueryResult result3 = client.findJobs(JobQuery.newBuilder()

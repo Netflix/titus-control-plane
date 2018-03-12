@@ -39,6 +39,7 @@ import io.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import rx.BackpressureOverflow;
 import rx.Completable;
+import rx.Emitter;
 import rx.Notification;
 import rx.Observable;
 import rx.Scheduler;
@@ -391,5 +392,9 @@ public class ObservableExt {
      */
     public static InstrumentedEventLoop createEventLoop(String metricNameRoot, Registry registry, Scheduler scheduler) {
         return new InstrumentedEventLoop(metricNameRoot, registry, scheduler);
+    }
+
+    public static <T> Emitter<T> decorate(Emitter<T> actual, Function<T, T> onNextDecorator) {
+        return new DecoratedEmitter<T>(actual, onNextDecorator);
     }
 }

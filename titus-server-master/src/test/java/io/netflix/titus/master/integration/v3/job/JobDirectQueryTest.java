@@ -131,6 +131,7 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
     private void testFindBatchJob(String jobId) {
         Job job = client.findJob(JobId.newBuilder().setId(jobId).build());
         assertThat(job.getId()).isEqualTo(jobId);
+        assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
     }
 
     @Test(timeout = 30_000)
@@ -147,6 +148,7 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
         Job job = client.findJob(JobId.newBuilder().setId(jobId).build());
         assertThat(job.getId()).isEqualTo(jobId);
         assertThat(job.getJobDescriptor().getContainer().getResources().getAllocateIP()).isTrue();
+        assertThat(job.getJobDescriptor().getAttributesMap()).containsEntry("titus.cell", "dev");
     }
 
     @Test(timeout = 30_000)

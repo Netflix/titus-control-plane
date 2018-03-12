@@ -19,6 +19,7 @@ package io.netflix.titus.master.integration.v3.job;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -95,7 +96,14 @@ public class JobObserveTest extends BaseIntegrationTest {
         jobsScenarioBuilder.takeJob(0).template(ScenarioTemplates.killV2Job());
         jobsScenarioBuilder.takeJob(1).template(ScenarioTemplates.killJob());
 
-        assertThat(eventObserver.getEmittedItems()).hasSize(16);
+        List<JobChangeNotification> emittedItems = eventObserver.getEmittedItems();
+        assertThat(emittedItems).hasSize(16);
+        emittedItems.stream()
+                .filter(n -> n.getNotificationCase() == NotificationCase.JOBUPDATE)
+                .forEach(n -> {
+                    Map<String, String> attributes = n.getJobUpdate().getJob().getJobDescriptor().getAttributesMap();
+                    assertThat(attributes).containsEntry("titus.cell", "dev");
+                });
     }
 
     @Test(timeout = 30_000)
