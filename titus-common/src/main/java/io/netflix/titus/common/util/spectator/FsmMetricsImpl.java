@@ -27,8 +27,8 @@ import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 
 /**
- * Metric collector for a Finite State Machine (FSM). It reports a current state of an FSM, and the state transitions.
- * If FSM reaches the terminal state, the current state indicators are cleared, to prevent infinite accumulation.
+ * Metrics collector for a Finite State Machine (FSM). It reports the current state of an FSM, and the state transitions.
+ * If the FSM reaches the terminal state, the current state indicators are cleared to prevent infinite accumulation.
  * If multiple state transitions happen simultaneously, the result state is undefined. Callers are expected to serialize
  * all updates.
  */
