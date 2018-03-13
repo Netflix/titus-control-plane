@@ -7,11 +7,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -19,15 +19,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -195,7 +195,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -363,19 +363,19 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -451,11 +451,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -463,15 +463,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -639,7 +639,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -807,19 +807,19 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -895,11 +895,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -907,15 +907,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1083,7 +1083,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -1251,19 +1251,19 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1376,11 +1376,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1388,15 +1388,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1564,7 +1564,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -1732,19 +1732,19 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1821,11 +1821,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1833,15 +1833,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2009,7 +2009,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -2177,19 +2177,19 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2290,11 +2290,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2302,15 +2302,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2781,7 +2781,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.httpcomponents:httpclient"
@@ -3215,13 +3215,13 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -3346,7 +3346,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3408,7 +3408,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -3600,11 +3600,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -3612,15 +3612,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -4091,7 +4091,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.httpcomponents:httpclient"
@@ -4525,13 +4525,13 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -4656,7 +4656,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -4718,7 +4718,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -4910,11 +4910,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -4922,15 +4922,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -5401,7 +5401,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.httpcomponents:httpclient"
@@ -5835,13 +5835,13 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -5966,7 +5966,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -6028,7 +6028,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -6221,11 +6221,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -6233,15 +6233,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.289",
+            "locked": "1.11.294",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -6712,7 +6712,7 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.10",
             "transitive": [
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.httpcomponents:httpclient"
@@ -7146,13 +7146,13 @@
             ]
         },
         "org.apache.httpcomponents:httpclient": {
-            "locked": "4.5.2",
+            "locked": "4.5.5",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-core"
             ]
         },
         "org.apache.httpcomponents:httpcore": {
-            "locked": "4.4.4",
+            "locked": "4.4.9",
             "transitive": [
                 "org.apache.httpcomponents:httpclient"
             ]
@@ -7277,7 +7277,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -7339,7 +7339,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"

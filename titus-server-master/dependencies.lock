@@ -658,7 +658,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1426,7 +1426,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2194,7 +2194,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2999,7 +2999,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3768,7 +3768,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -4941,7 +4941,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -5004,7 +5004,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -6223,7 +6223,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -6286,7 +6286,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -7505,7 +7505,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -7568,7 +7568,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -8788,7 +8788,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -8851,7 +8851,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"

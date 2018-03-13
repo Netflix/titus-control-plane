@@ -551,7 +551,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1190,7 +1190,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -1829,7 +1829,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -2505,7 +2505,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3145,7 +3145,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -3786,7 +3786,8 @@
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
+                "io.grpc:grpc-stub",
+                "io.grpc:grpc-testing"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
@@ -3812,9 +3813,14 @@
         "io.grpc:grpc-stub": {
             "locked": "1.9.1",
             "transitive": [
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
             ]
+        },
+        "io.grpc:grpc-testing": {
+            "locked": "1.9.1",
+            "requested": "1.9.+"
         },
         "io.netflix.titus:titus-api": {
             "project": true,
@@ -4056,6 +4062,7 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -4293,7 +4300,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -4356,10 +4363,11 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -5065,7 +5073,8 @@
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
+                "io.grpc:grpc-stub",
+                "io.grpc:grpc-testing"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
@@ -5091,9 +5100,14 @@
         "io.grpc:grpc-stub": {
             "locked": "1.9.1",
             "transitive": [
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
             ]
+        },
+        "io.grpc:grpc-testing": {
+            "locked": "1.9.1",
+            "requested": "1.9.+"
         },
         "io.netflix.titus:titus-api": {
             "project": true,
@@ -5335,6 +5349,7 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -5572,7 +5587,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -5635,10 +5650,11 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -6344,7 +6360,8 @@
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
+                "io.grpc:grpc-stub",
+                "io.grpc:grpc-testing"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
@@ -6370,9 +6387,14 @@
         "io.grpc:grpc-stub": {
             "locked": "1.9.1",
             "transitive": [
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
             ]
+        },
+        "io.grpc:grpc-testing": {
+            "locked": "1.9.1",
+            "requested": "1.9.+"
         },
         "io.netflix.titus:titus-api": {
             "project": true,
@@ -6614,6 +6636,7 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -6851,7 +6874,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -6914,10 +6937,11 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-testkit"
             ]
         },
@@ -7624,7 +7648,8 @@
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
-                "io.grpc:grpc-stub"
+                "io.grpc:grpc-stub",
+                "io.grpc:grpc-testing"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
@@ -7650,9 +7675,14 @@
         "io.grpc:grpc-stub": {
             "locked": "1.9.1",
             "transitive": [
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-common",
                 "io.netflix.titus:titus-grpc-api"
             ]
+        },
+        "io.grpc:grpc-testing": {
+            "locked": "1.9.1",
+            "requested": "1.9.+"
         },
         "io.netflix.titus:titus-api": {
             "project": true,
@@ -7894,6 +7924,7 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -8131,7 +8162,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b09",
+            "locked": "3.0.1-b10",
             "transitive": [
                 "io.netflix.titus:titus-common"
             ]
@@ -8194,10 +8225,11 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.15.0",
+            "locked": "2.16.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
+                "io.grpc:grpc-testing",
                 "io.netflix.titus:titus-testkit"
             ]
         },
