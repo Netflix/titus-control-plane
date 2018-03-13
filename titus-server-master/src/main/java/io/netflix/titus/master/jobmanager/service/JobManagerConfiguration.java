@@ -88,4 +88,23 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("false")
     boolean isFailOnDataValidation();
+
+    /**
+     * @return whether or not the nested containers should be allowed.
+     */
+    @DefaultValue("false")
+    boolean isNestedContainersEnabled();
+
+    /**
+     * @return the min that can be set on the killWaitSeconds field. The default value be used instead if the value specified
+     * if lower than the min.
+     */
+    @DefaultValue("10")
+    int getMinKillWaitSeconds();
+
+    /**
+     * @return maximum amount of seconds to wait before forcefully terminating a container.
+     */
+    @DefaultValue("10")
+    int getDefaultKillWaitSeconds();
 }

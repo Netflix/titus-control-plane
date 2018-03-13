@@ -24,4 +24,5 @@ public class JobAttributes {
     public static String JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING = "titus.agent.allowNetworkBursting";
     public static String JOB_ATTRIBUTES_BATCH = "titus.agent.batch";
     public static String JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS = "titus.agent.allowNestedContainers";
+    public static String JOB_ATTRIBUTES_KILL_WAIT_SECONDS = "titus.agent.killWaitSeconds";
 }

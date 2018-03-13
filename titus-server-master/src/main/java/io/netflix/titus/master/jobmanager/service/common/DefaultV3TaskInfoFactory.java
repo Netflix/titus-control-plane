@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.primitives.Ints;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -50,6 +51,7 @@ import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS;
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_BATCH;
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_KILL_WAIT_SECONDS;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
 
 /**
@@ -137,9 +139,17 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
 
         // Configure agent job attributes
         containerInfoBuilder.setAllowCpuBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_CPU_BURSTING)));
-        containerInfoBuilder.setAllowNestedContainers(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
+        containerInfoBuilder.setAllowNetworkBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
         containerInfoBuilder.setBatch(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_BATCH)));
-        containerInfoBuilder.setAllowNestedContainers(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS)));
+
+        boolean allowNestedContainers = jobManagerConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
+        containerInfoBuilder.setAllowNestedContainers(allowNestedContainers);
+
+        Integer killWaitSeconds = Ints.tryParse(attributes.get(JOB_ATTRIBUTES_KILL_WAIT_SECONDS));
+        if (killWaitSeconds == null || killWaitSeconds < jobManagerConfiguration.getMinKillWaitSeconds()) {
+            killWaitSeconds = jobManagerConfiguration.getDefaultKillWaitSeconds();
+        }
+        containerInfoBuilder.setKillWaitSeconds(killWaitSeconds);
 
         // Configure Environment Variables
         Map<String, String> userProvidedEnv = container.getEnv().entrySet()
