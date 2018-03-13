@@ -17,17 +17,20 @@
 package io.netflix.titus.common.util.spectator;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 
 /**
  * Metric collector for a Finite State Machine (FSM). It reports a current state of an FSM, and the state transitions.
  * If FSM reaches the terminal state, the current state indicators are cleared, to prevent infinite accumulation.
+ * If multiple state transitions happen simultaneously, the result state is undefined. Callers are expected to serialize
+ * all updates.
  */
 class FsmMetricsImpl<S> implements SpectatorExt.FsmMetrics<S> {
 
@@ -41,7 +44,12 @@ class FsmMetricsImpl<S> implements SpectatorExt.FsmMetrics<S> {
         Id currentStateId = registry.createId(rootId.name() + "currentState", rootId.tags());
         Id updatesId = registry.createId(rootId.name() + "updates", rootId.tags());
         this.stateHolders = trackedStates.stream()
-                .map(s -> new StateHolder<>(updatesId, currentStateId, nameOf.apply(s), s, finalStateEval.apply(s), registry))
+                .map(s -> {
+                    boolean isFinal = finalStateEval.apply(s);
+                    return isFinal
+                            ? new FinalStateHolder<>(updatesId, nameOf.apply(s), s, registry)
+                            : new TransientStateHolder<>(updatesId, currentStateId, nameOf.apply(s), s, registry);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -50,26 +58,52 @@ class FsmMetricsImpl<S> implements SpectatorExt.FsmMetrics<S> {
         stateHolders.forEach(h -> h.moveToState(nextState));
     }
 
-    private static class StateHolder<S> {
+    private interface StateHolder<S> {
+        void moveToState(S nextState);
+    }
+
+    private static class TransientStateHolder<S> implements StateHolder<S> {
         private final S state;
         private final Counter stateCounter;
-        private final AtomicInteger currentState;
+        private final Gauge currentStateGauge;
 
-        private StateHolder(Id updatesId, Id currentStateId, String stateName, S state, boolean isFinal, Registry registry) {
+        private TransientStateHolder(Id updatesId, Id currentStateId, String stateName, S state, Registry registry) {
             this.state = state;
             this.stateCounter = registry.counter(updatesId.withTag("state", stateName));
-            this.currentState = isFinal
-                    ? new AtomicInteger()
-                    : registry.gauge(currentStateId.withTag("state", stateName), new AtomicInteger());
+            this.currentStateGauge = registry.gauge(currentStateId.withTag("state", stateName));
+            currentStateGauge.set(0.0);
         }
 
-        private void moveToState(S nextState) {
+        public void moveToState(S nextState) {
             if (nextState.equals(state)) {
-                if (currentState.getAndSet(1) == 0) { // Actual transition
+                if (currentStateGauge.value() == 0.0) { // Actual transition
+                    stateCounter.increment();
+                    currentStateGauge.set(1.0);
+                }
+            } else {
+                currentStateGauge.set(0.0);
+            }
+        }
+    }
+
+    private static class FinalStateHolder<S> implements StateHolder<S> {
+        private final S state;
+        private final Counter stateCounter;
+        private final AtomicBoolean currentState;
+
+        private FinalStateHolder(Id updatesId, String stateName, S state, Registry registry) {
+            this.state = state;
+            this.stateCounter = registry.counter(updatesId.withTag("state", stateName));
+            this.currentState = new AtomicBoolean();
+        }
+
+        public void moveToState(S nextState) {
+            if (nextState.equals(state)) {
+                if (!currentState.getAndSet(true)) { // Actual transition
                     stateCounter.increment();
                 }
             } else {
-                currentState.set(0);
+                currentState.set(false);
             }
         }
     }

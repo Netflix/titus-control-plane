@@ -827,7 +827,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         if (enforceSlaFuture != null) {
             enforceSlaFuture.cancel(false);
         }
-        if(jobMetadata != null) {
+        if (jobMetadata != null) {
             auditLogService.submit(AuditLogEvent.of(AuditLogEvent.Type.JOB_TERMINATE, jobId, state + ": " + mesg, jobMetadata));
             eventBus.publish(new JobStateChangeEvent<>(jobId, JobState.Finished, System.currentTimeMillis(), jobMetadata));
         }
@@ -894,6 +894,9 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                     );
                 } else if (t.getState() == V2JobState.Accepted) {
                     queueTask(t);
+                }
+                if (!V2JobState.isTerminalState(t.getState())) {
+                    jobMetrics.updateTaskMetrics(t);
                 }
             }
             stageAssignments.put(1, new WorkerAssignments(1, numTasks, workerHosts));
