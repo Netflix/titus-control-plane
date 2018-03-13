@@ -28,7 +28,7 @@ public final class Evaluators {
     }
 
     /**
-     * Evaluate the given function only if value is not null.
+     * Evaluate the given function only if the value is not null.
      */
     public static <T> void acceptNotNull(T value, Consumer<T> consumer) {
         if (value != null) {
@@ -37,7 +37,18 @@ public final class Evaluators {
     }
 
     /**
-     * Evaluate the given function only if value is not null, and return the evaluated value.
+     * Evaluate the given consumer only if the value is true.
+     */
+    public static <T> void acceptIfTrue(T value, Consumer<Boolean> consumer) {
+        if (value instanceof Boolean && value == Boolean.TRUE) {
+            consumer.accept(true);
+        } else if (value instanceof String && Boolean.parseBoolean((String) value)) {
+            consumer.accept(true);
+        }
+    }
+
+    /**
+     * Evaluate the given function only if value is not null and return the evaluated value.
      * Otherwise return null.
      */
     public static <T, R> R applyNotNull(T value, Function<T, R> transformer) {
