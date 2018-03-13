@@ -27,6 +27,8 @@ import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.config.MasterConfiguration;
+import io.netflix.titus.master.endpoint.common.CellInfoResolver;
+import io.netflix.titus.master.endpoint.common.ConfigurableCellInfoResolver;
 import io.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
 import io.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import io.netflix.titus.master.job.V2JobOperations;
@@ -42,6 +44,7 @@ public class EndpointModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TitusMasterGrpcServer.class).asEagerSingleton();
+        bind(CellInfoResolver.class).to(ConfigurableCellInfoResolver.class);
     }
 
     @Provides

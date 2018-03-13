@@ -47,6 +47,12 @@ class V2EndpointModelAsserts implements EndpointModelAsserts<
     }
 
     @Override
+    public void assertCellInfo(TitusJobInfo titusJobInfo, String cellName) {
+        assertThat(titusJobInfo.getLabels()).containsEntry("titus.cell", cellName);
+        assertThat(titusJobInfo.getLabels()).containsEntry("titus.stack", cellName);
+    }
+
+    @Override
     public void assertJobKilled(TitusJobInfo titusJobInfo) {
         for (TaskInfo task : titusJobInfo.getTasks()) {
             assertThat(task.getState()).isIn(TASK_TERMINAL_STATES);

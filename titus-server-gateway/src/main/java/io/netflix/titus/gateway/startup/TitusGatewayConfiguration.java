@@ -35,7 +35,4 @@ public interface TitusGatewayConfiguration {
 
     @DefaultValue("true")
     boolean isProxyErrorLoggingEnabled();
-
-    @DefaultValue("dev")
-    String getCellName();
 }

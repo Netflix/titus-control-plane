@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.integration.v3.job;
+package io.netflix.titus.master.endpoint.common;
 
-import com.netflix.titus.grpc.protogen.JobDescriptor;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class CellAssertions {
-    static void assertCellInfo(JobDescriptor jobDescriptor) {
-        assertThat(jobDescriptor.getAttributesMap()).containsEntry("titus.cell", "dev");
-        assertThat(jobDescriptor.getAttributesMap()).containsEntry("titus.stack", "dev");
-    }
+public interface CellInfoResolver {
+    String getCellName();
 }

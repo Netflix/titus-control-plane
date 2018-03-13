@@ -16,12 +16,13 @@
 
 package io.netflix.titus.master.endpoint.v2;
 
+import java.util.UUID;
+
 import com.google.common.base.Preconditions;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
-import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.v2.ServiceJobProcesses;
 import io.netflix.titus.api.model.v2.V2JobDefinition;
 import io.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
@@ -35,6 +36,7 @@ import io.netflix.titus.master.endpoint.EndpointModelAsserts;
 import io.netflix.titus.master.endpoint.TitusDataGenerator;
 import io.netflix.titus.master.endpoint.TitusServiceGateway;
 import io.netflix.titus.master.endpoint.TitusServiceGatewayTestCompatibilityTestSuite;
+import io.netflix.titus.master.endpoint.common.CellInfoResolver;
 import io.netflix.titus.master.endpoint.common.ContextResolver;
 import io.netflix.titus.master.endpoint.common.EmptyContextResolver;
 import io.netflix.titus.master.endpoint.v2.rest.RestConfig;
@@ -76,16 +78,22 @@ public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestComp
 
     private final SchedulingService schedulingService = mock(SchedulingService.class);
 
+    private final CellInfoResolver cellInfoResolver = mock(CellInfoResolver.class);
+
     private final LogStorageInfo logStorageInfo = EmptyLogStorageInfo.INSTANCE;
 
     private final ContextResolver contextResolver = EmptyContextResolver.INSTANCE;
 
     private V2LegacyTitusServiceGateway gateway;
+    private String cellName;
 
     @Before
     public void setUp() throws Exception {
         gateway = new V2LegacyTitusServiceGateway(config, restConfig, v2JobOperations, jobSubmitLimiter, apiOperations,
-                applicationSlaManagementService, schedulingService, contextResolver, logStorageInfo);
+                applicationSlaManagementService, schedulingService, contextResolver, cellInfoResolver, logStorageInfo);
+
+        cellName = UUID.randomUUID().toString();
+        when(cellInfoResolver.getCellName()).thenReturn(cellName);
 
         when(v2JobOperations.submit(any())).then(c -> {
             V2JobDefinition mjd = (V2JobDefinition) c.getArguments()[0];
@@ -215,5 +223,10 @@ public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestComp
     @Override
     protected TitusServiceGateway<String, TitusJobSpec, TitusJobType, TitusJobInfo, TitusTaskInfo, TitusTaskState> createGateway() {
         return gateway;
+    }
+
+    @Override
+    protected String getCellName() {
+        return cellName;
     }
 }

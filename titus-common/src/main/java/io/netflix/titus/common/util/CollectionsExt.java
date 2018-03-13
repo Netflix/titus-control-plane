@@ -391,6 +391,19 @@ public final class CollectionsExt {
         return Optional.of(collection);
     }
 
+    /**
+     * @return true when the <tt>map</tt> contains all keys
+     */
+    @SafeVarargs
+    public static <T> boolean containsKeys(Map<T, ?> map, T... keys) {
+        for (T key : keys) {
+            if (!map.containsKey(key)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static class MapBuilder<K, V> {
 
         private final Map<K, V> out;

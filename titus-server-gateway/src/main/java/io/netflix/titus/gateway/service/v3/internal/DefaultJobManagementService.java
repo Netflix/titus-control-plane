@@ -71,7 +71,6 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import io.netflix.titus.gateway.service.v3.JobManagementService;
 import io.netflix.titus.gateway.service.v3.JobManagerConfiguration;
-import io.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
@@ -100,11 +99,9 @@ public class DefaultJobManagementService implements JobManagementService {
     private final LogStorageInfo<io.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
     private final Function<String, Matcher> uncompliantClientMatcher;
-    private final CellDecorator cellDecorator;
 
     @Inject
-    public DefaultJobManagementService(TitusGatewayConfiguration gatewayConfiguration,
-                                       GrpcClientConfiguration configuration,
+    public DefaultJobManagementService(GrpcClientConfiguration configuration,
                                        JobManagerConfiguration jobManagerConfiguration,
                                        JobManagementServiceStub client,
                                        SessionContext sessionContext,
@@ -121,7 +118,6 @@ public class DefaultJobManagementService implements JobManagementService {
         this.uncompliantClientMatcher = RegExpExt.dynamicMatcher(
                 jobManagerConfiguration::getNoncompliantClientWhiteList, "noncompliantClientWhiteList", 0, logger
         );
-        this.cellDecorator = new CellDecorator(gatewayConfiguration::getCellName);
     }
 
     @Override
@@ -193,44 +189,38 @@ public class DefaultJobManagementService implements JobManagementService {
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         }, configuration.getRequestTimeout());
 
-        observable = observable.onErrorResumeNext(e -> {
+        return observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
                     ((StatusRuntimeException) e).getStatus().getCode() == Status.Code.NOT_FOUND) {
                 return retrieveArchivedJob(jobId);
             } else {
                 return Observable.error(e);
             }
-        });
-
-        return observable.map(cellDecorator::addCellInfo)
-                .timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        }).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
-        final Observable<JobQueryResult> observable = createRequestObservable(emitter -> {
+        return createRequestObservable(emitter -> {
             StreamObserver<JobQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJobs(jobQuery, streamObserver);
         }, configuration.getRequestTimeout());
-        return observable.map(cellDecorator::addCellInfo);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
-        final Observable<JobChangeNotification> observable = createRequestObservable(emitter -> {
+        return createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext).observeJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         });
-        return observable.map(cellDecorator::addCellInfo);
     }
 
     @Override
     public Observable<JobChangeNotification> observeJobs() {
-        final Observable<JobChangeNotification> observable = createRequestObservable(emitter -> {
+        return createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
         });
-        return observable.map(cellDecorator::addCellInfo);
     }
 
     @Override
@@ -330,9 +320,7 @@ public class DefaultJobManagementService implements JobManagementService {
                         }
                     }
                     return Observable.error(TitusServiceException.unexpected("Not able to retrieve the job: %s (%s)", jobId, ExceptionExt.toMessageChain(e)));
-                })
-                .map(V3GrpcModelConverters::toGrpcJob)
-                .map(cellDecorator::addCellInfo);
+                }).map(V3GrpcModelConverters::toGrpcJob);
     }
 
     private Observable<List<Task>> retrieveArchivedTasksForJobs(Set<String> jobIds) {

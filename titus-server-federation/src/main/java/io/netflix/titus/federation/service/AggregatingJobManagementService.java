@@ -43,7 +43,6 @@ import io.netflix.titus.api.federation.model.Cell;
 import io.netflix.titus.common.grpc.EmitterWithMultipleSubscriptions;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
-import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.federation.startup.TitusFederationConfiguration;
 import rx.Completable;
 import rx.Emitter;
@@ -104,11 +103,8 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<JobChangeNotification> observeJobs() {
-        return createRequestObservable(delegate -> {
-            Emitter<JobChangeNotification> emitter = ObservableExt.decorate(
-                    new EmitterWithMultipleSubscriptions<>(delegate),
-                    this::addStackName
-            );
+        final Observable<JobChangeNotification> observable = createRequestObservable(delegate -> {
+            Emitter<JobChangeNotification> emitter = new EmitterWithMultipleSubscriptions<>(delegate);
             Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(connector, JobManagementServiceGrpc::newStub);
             final CountDownLatch markersEmitted = new CallbackCountDownLatch(clients.size(),
                     () -> emitter.onNext(buildJobSnapshotEndMarker())
@@ -118,6 +114,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                 createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
             });
         });
+        return observable.map(this::addStackName);
     }
 
     @Override
