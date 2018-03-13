@@ -48,13 +48,12 @@ import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 
+import static io.netflix.titus.api.jobmanager.model.job.JobModel.STACK_NAME_KEY;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class AggregatingJobManagementService implements JobManagementService {
-    private static final String STACK_NAME_KEY = "titus.stack";
-
     private final TitusFederationConfiguration configuration;
     private final CellConnector connector;
     private final SessionContext sessionContext;

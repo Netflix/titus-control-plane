@@ -32,6 +32,15 @@ import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicyBuild
  */
 public final class JobModel {
 
+    /**
+     * Stack name that can be replaced in a federated deployment, where all Cells have the same Stack name.
+     */
+    public static final String STACK_NAME_KEY = "titus.stack";
+    /**
+     * Unique Cell name for a deployment.
+     */
+    public static final String CELL_NAME_KEY = "titus.cell";
+
     private JobModel() {
     }
 

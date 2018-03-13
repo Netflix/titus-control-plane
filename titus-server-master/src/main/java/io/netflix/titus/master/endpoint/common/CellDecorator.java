@@ -21,18 +21,11 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 
 public class CellDecorator {
-    /**
-     * Stack name that can be replaced in a federated deployment, where all Cells have the same Stack name.
-     */
-    public static final String STACK_NAME_KEY = "titus.stack";
-    /**
-     * Unique Cell name for a deployment.
-     */
-    public static final String CELL_NAME_KEY = "titus.cell";
 
     private final Supplier<String> cellNameSupplier;
 
@@ -41,34 +34,34 @@ public class CellDecorator {
     }
 
     /**
-     * Adds {@link CellDecorator#CELL_NAME_KEY "titus.cell"} and {@link CellDecorator#STACK_NAME_KEY "titus.stack"}
+     * Adds {@link JobModel#CELL_NAME_KEY "titus.cell"} and {@link JobModel#STACK_NAME_KEY "titus.stack"}
      * labels to a {@link TitusJobSpec V2 job spec} if they are not already present.
      */
     public TitusJobSpec ensureCellInfo(TitusJobSpec jobSpec) {
         final Map<String, String> originalLabels = jobSpec.getLabels();
-        if (CollectionsExt.containsKeys(originalLabels, CELL_NAME_KEY, STACK_NAME_KEY)) {
+        if (CollectionsExt.containsKeys(originalLabels, JobModel.CELL_NAME_KEY, JobModel.STACK_NAME_KEY)) {
             return jobSpec;
         }
 
         final Map<String, String> labels = new HashMap<>(originalLabels);
         final String cellName = cellNameSupplier.get();
-        labels.putIfAbsent(CELL_NAME_KEY, cellName);
-        labels.putIfAbsent(STACK_NAME_KEY, cellName);
+        labels.putIfAbsent(JobModel.CELL_NAME_KEY, cellName);
+        labels.putIfAbsent(JobModel.STACK_NAME_KEY, cellName);
         return new TitusJobSpec.Builder(jobSpec).labels(labels).build();
     }
 
     /**
-     * Adds {@link CellDecorator#CELL_NAME_KEY "titus.cell"} and {@link CellDecorator#STACK_NAME_KEY "titus.stack"}
+     * Adds {@link JobModel#CELL_NAME_KEY "titus.cell"} and {@link JobModel#STACK_NAME_KEY "titus.stack"}
      * attributes to a {@link JobDescriptor V3 job spec} if they are not already present.
      */
     public JobDescriptor ensureCellInfo(JobDescriptor jobDescriptor) {
         final String cellName = cellNameSupplier.get();
         final JobDescriptor.Builder builder = jobDescriptor.toBuilder();
-        if (!jobDescriptor.containsAttributes(CELL_NAME_KEY)) {
-            builder.putAttributes(CELL_NAME_KEY, cellName);
+        if (!jobDescriptor.containsAttributes(JobModel.CELL_NAME_KEY)) {
+            builder.putAttributes(JobModel.CELL_NAME_KEY, cellName);
         }
-        if (!jobDescriptor.containsAttributes(STACK_NAME_KEY)) {
-            builder.putAttributes(STACK_NAME_KEY, cellName);
+        if (!jobDescriptor.containsAttributes(JobModel.STACK_NAME_KEY)) {
+            builder.putAttributes(JobModel.STACK_NAME_KEY, cellName);
         }
         return builder.build();
     }
