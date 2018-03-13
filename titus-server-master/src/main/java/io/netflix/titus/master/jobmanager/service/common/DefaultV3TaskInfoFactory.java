@@ -46,9 +46,10 @@ import io.titanframework.messages.TitanProtos;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
 import org.apache.mesos.Protos;
 
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_CPU_BURSTING;
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS;
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
-import static io.netflix.titus.common.util.Evaluators.acceptIfTrue;
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_BATCH;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
 
 /**
@@ -134,9 +135,11 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             containerInfoBuilder.setMetatronCreds(metatronBuilder.build());
         }
 
-        // Configure attribute features
-        acceptIfTrue(attributes.get(JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING), containerInfoBuilder::setAllowNetworkBursting);
-        acceptIfTrue(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS), containerInfoBuilder::setAllowNestedContainers);
+        // Configure agent job attributes
+        containerInfoBuilder.setAllowCpuBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_CPU_BURSTING)));
+        containerInfoBuilder.setAllowNestedContainers(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
+        containerInfoBuilder.setBatch(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_BATCH)));
+        containerInfoBuilder.setAllowNestedContainers(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS)));
 
         // Configure Environment Variables
         Map<String, String> userProvidedEnv = container.getEnv().entrySet()

@@ -20,6 +20,8 @@ public class JobAttributes {
     /*
      * Job attributes.
      */
-    public static String JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING = "titus.allowNetworkBursting";
-    public static String JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS = "titus.allowNestedContainers";
+    public static String JOB_ATTRIBUTES_ALLOW_CPU_BURSTING = "titus.agent.allowCpuBursting";
+    public static String JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING = "titus.agent.allowNetworkBursting";
+    public static String JOB_ATTRIBUTES_BATCH = "titus.agent.batch";
+    public static String JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS = "titus.agent.allowNestedContainers";
 }
