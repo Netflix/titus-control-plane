@@ -75,11 +75,11 @@ class V3JobMetricsCollector {
 
             TaskMetricHolder taskMetricH = taskMetrics.computeIfAbsent(task.getId(), myTask -> new TaskMetricHolder(task));
             logger.debug("State transition change for task {}: {}", task.getId(), taskState);
-            taskMetricH.transition(taskState);
+            taskMetricH.transition(TaskStateReport.of(task.getStatus()));
         }
 
         private void finish() {
-            taskMetrics.forEach((key, value) -> value.transition(TaskState.Finished));
+            taskMetrics.forEach((key, value) -> value.transition(TaskStateReport.Finished));
             taskMetrics.clear();
         }
 
@@ -103,13 +103,13 @@ class V3JobMetricsCollector {
         }
 
         private class TaskMetricHolder {
-            private final SpectatorExt.FsmMetrics<TaskState> stateMetrics;
+            private final SpectatorExt.FsmMetrics<TaskStateReport> stateMetrics;
 
             private TaskMetricHolder(Task task) {
-                this.stateMetrics = SpectatorExt.fsmMetrics(TaskState.setOfAll(), stateIdOf(task), TaskState::isTerminalState, registry);
+                this.stateMetrics = SpectatorExt.fsmMetrics(TaskStateReport.setOfAll(), stateIdOf(task), TaskStateReport::isTerminalState, registry);
             }
 
-            private void transition(TaskState state) {
+            private void transition(TaskStateReport state) {
                 stateMetrics.transition(state);
             }
         }

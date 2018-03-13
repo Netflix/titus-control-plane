@@ -21,16 +21,15 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
-import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
 import io.netflix.titus.common.util.spectator.SpectatorExt.FsmMetrics;
+import io.netflix.titus.master.jobmanager.service.TaskStateReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.netflix.titus.api.model.v2.V2JobState.toV3TaskState;
 import static io.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_JOB;
 
 /**
@@ -62,35 +61,56 @@ public class V2JobMetrics {
         }
 
         String taskId = WorkerNaming.getTaskId(task);
+        TaskMetricHolder taskMetricH = taskMetrics.computeIfAbsent(task, myTask -> new TaskMetricHolder(task));
 
-        // Synchronize, to make sure we create only one instance of TaskMetricHolder.
-        TaskMetricHolder taskMetricH;
-        synchronized (taskMetrics) {
-            taskMetricH = taskMetrics.computeIfAbsent(task, myTask -> new TaskMetricHolder(task));
-        }
         logger.debug("State transition change for task {}: {}", taskId, task.getState());
 
-        TaskState v3TaskState = toV3TaskState(task.getState());
-        taskMetricH.transition(v3TaskState);
+        TaskStateReport taskStateReport = toTaskStateReport(task.getState());
+        taskMetricH.transition(taskStateReport);
 
-        // Look at all tasks, in case something leaked
+        clearFinishedTasks();
+    }
+
+    /**
+     * Look at all tasks, in case something leaked.testContainerLifecycleMetrics
+     */
+    private void clearFinishedTasks() {
         taskMetrics.forEach((nextTask, nextMetrics) -> {
             if (V2JobState.isTerminalState(nextTask.getState())) {
                 String nextTaskId = WorkerNaming.getTaskId(nextTask);
                 logger.debug("Removing task {}: {}", nextTaskId, nextTask.getState());
-                nextMetrics.transition(v3TaskState);
+                nextMetrics.transition(toTaskStateReport(nextTask.getState()));
                 taskMetrics.remove(nextTask);
             }
         });
     }
 
+    private TaskStateReport toTaskStateReport(V2JobState state) {
+        switch (state) {
+            case Accepted:
+                return TaskStateReport.Accepted;
+            case Launched:
+                return TaskStateReport.Launched;
+            case StartInitiated:
+                return TaskStateReport.StartInitiated;
+            case Started:
+                return TaskStateReport.Started;
+            case Failed:
+                return TaskStateReport.Failed;
+            case Completed:
+                return TaskStateReport.Finished;
+            case Noop:
+                break;
+        }
+        return TaskStateReport.Failed;
+    }
+
     public void finish() {
-        taskMetrics.entrySet().forEach(e -> {
-            V2WorkerMetadata t = e.getKey();
-            if (V2JobState.isTerminalState(t.getState())) {
-                e.getValue().transition(toV3TaskState(t.getState()));
+        taskMetrics.forEach((task, metrics) -> {
+            if (V2JobState.isTerminalState(task.getState())) {
+                metrics.transition(toTaskStateReport(task.getState()));
             } else {
-                logger.warn("Job {} finished with task in non-final state {}", t.getJobId(), t.getWorkerInstanceId());
+                logger.warn("Job {} finished with task in non-final state {}", task.getJobId(), task.getWorkerInstanceId());
             }
         });
         taskMetrics.clear();
@@ -117,13 +137,13 @@ public class V2JobMetrics {
     }
 
     private class TaskMetricHolder {
-        private final FsmMetrics<TaskState> stateMetrics;
+        private final FsmMetrics<TaskStateReport> stateMetrics;
 
         private TaskMetricHolder(V2WorkerMetadata task) {
-            this.stateMetrics = SpectatorExt.fsmMetrics(TaskState.setOfAll(), stateIdOf(task), TaskState::isTerminalState, registry);
+            this.stateMetrics = SpectatorExt.fsmMetrics(TaskStateReport.setOfAll(), stateIdOf(task), TaskStateReport::isTerminalState, registry);
         }
 
-        private void transition(TaskState state) {
+        private void transition(TaskStateReport state) {
             stateMetrics.transition(state);
         }
     }
