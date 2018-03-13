@@ -96,11 +96,18 @@ public interface JobManagerConfiguration {
     boolean isNestedContainersEnabled();
 
     /**
-     * @return the min that can be set on the killWaitSeconds field. The default value be used instead if the value specified
-     * if lower than the min.
+     * @return the min that can be set on the killWaitSeconds field. The default value will be used instead if the value specified
+     * is lower than the min.
      */
     @DefaultValue("10")
     int getMinKillWaitSeconds();
+
+    /**
+     * @return the max that can be set on the killWaitSeconds field. The default value will be used instead if the value specified
+     * is greater than the max.
+     */
+    @DefaultValue("300")
+    int getMaxKillWaitSeconds();
 
     /**
      * @return maximum amount of seconds to wait before forcefully terminating a container.
