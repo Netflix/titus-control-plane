@@ -124,8 +124,6 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
 
             @Override
             public void onNext(ContainerEvent containerEvent) {
-                logger.info("In monitor: args=" + containerEvent);
-
                 // V2
                 if (containerEvent instanceof Status) {
                     Status args = (Status) containerEvent;

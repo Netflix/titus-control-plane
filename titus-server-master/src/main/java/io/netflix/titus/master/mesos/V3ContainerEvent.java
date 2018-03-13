@@ -1,5 +1,6 @@
 package io.netflix.titus.master.mesos;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -49,5 +50,39 @@ public class V3ContainerEvent implements ContainerEvent {
 
     public Optional<TitusExecutorDetails> getTitusExecutorDetails() {
         return titusExecutorDetails;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        V3ContainerEvent that = (V3ContainerEvent) o;
+        return timestamp == that.timestamp &&
+                Objects.equals(taskId, that.taskId) &&
+                taskState == that.taskState &&
+                Objects.equals(reasonCode, that.reasonCode) &&
+                Objects.equals(reasonMessage, that.reasonMessage) &&
+                Objects.equals(titusExecutorDetails, that.titusExecutorDetails);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(taskId, taskState, reasonCode, reasonMessage, timestamp, titusExecutorDetails);
+    }
+
+    @Override
+    public String toString() {
+        return "V3ContainerEvent{" +
+                "taskId='" + taskId + '\'' +
+                ", taskState=" + taskState +
+                ", reasonCode='" + reasonCode + '\'' +
+                ", reasonMessage='" + reasonMessage + '\'' +
+                ", timestamp=" + timestamp +
+                ", titusExecutorDetails=" + titusExecutorDetails +
+                '}';
     }
 }
