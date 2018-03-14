@@ -33,6 +33,7 @@ import io.netflix.titus.common.aws.AwsInstanceDescriptor;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.model.ResourceDimensions;
 
 import static io.netflix.titus.common.data.generator.DataGenerator.range;
 import static io.netflix.titus.common.data.generator.DataGenerator.rangeInt;
@@ -103,7 +104,10 @@ public final class AgentGenerator {
                     builder.withId("AgentInstanceGroup#" + idx);
                     builder.withAttributes(Collections.singletonMap(ATTR_SUBNET, idx + ".0.0.0/8"));
                 })
-                .bind(DataGenerator.items(instanceTypes), AgentInstanceGroup.Builder::withInstanceType)
+                .bind(DataGenerator.items(instanceTypes), (builder, instanceType) -> builder
+                        .withInstanceType(instanceType)
+                        .withResourceDimension(ResourceDimensions.fromAwsInstanceType(AwsInstanceType.withName(instanceType)))
+                )
                 .bind(autoScaleRules(), AgentInstanceGroup.Builder::withAutoScaleRule)
                 .map(builder -> builder
                         .withTier(tier)
@@ -119,7 +123,8 @@ public final class AgentGenerator {
                                 .withState(InstanceGroupLifecycleState.Active)
                                 .withDetail("ASG activated")
                                 .withTimestamp(System.currentTimeMillis())
-                                .build())
+                                .build()
+                        )
                 )
                 .map(AgentInstanceGroup.Builder::build);
     }

@@ -37,6 +37,7 @@ import io.netflix.titus.api.agent.model.event.AgentEvent;
 import io.netflix.titus.api.agent.service.AgentManagementException;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
@@ -44,7 +45,9 @@ import io.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.agent.ServerInfo;
 import io.netflix.titus.master.agent.service.cache.AgentCache;
+import io.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import rx.Completable;
 import rx.Observable;
 
@@ -59,14 +62,17 @@ public class DefaultAgentManagementService implements AgentManagementService {
     private final AgentManagementConfiguration configuration;
     private final InstanceCloudConnector instanceCloudConnector;
     private final AgentCache agentCache;
+    private final ServerInfoResolver serverInfoResolver;
 
     @Inject
     public DefaultAgentManagementService(AgentManagementConfiguration configuration,
                                          InstanceCloudConnector instanceCloudConnector,
-                                         AgentCache AgentCache) {
+                                         AgentCache AgentCache,
+                                         ServerInfoResolver serverInfoResolver) {
         this.configuration = configuration;
         this.instanceCloudConnector = instanceCloudConnector;
         this.agentCache = AgentCache;
+        this.serverInfoResolver = serverInfoResolver;
     }
 
     @Activator
@@ -105,6 +111,24 @@ public class DefaultAgentManagementService implements AgentManagementService {
                 })
                 .filter(pair -> !pair.getRight().isEmpty())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public ResourceDimension getResourceLimits(String instanceType) {
+        return findResourceLimits(instanceType).orElseThrow(() -> AgentManagementException.instanceTypeNotFound(instanceType));
+    }
+
+    @Override
+    public Optional<ResourceDimension> findResourceLimits(String instanceType) {
+        ResourceDimension result = serverInfoResolver.resolve(instanceType)
+                .map(ServerInfo::toResourceDimension)
+                .orElseGet(() -> getInstanceGroups().stream()
+                        .filter(instanceGroup -> instanceType.equals(instanceGroup.getInstanceType()))
+                        .findFirst()
+                        .map(AgentInstanceGroup::getResourceDimension)
+                        .orElse(null)
+                );
+        return Optional.ofNullable(result);
     }
 
     @Override

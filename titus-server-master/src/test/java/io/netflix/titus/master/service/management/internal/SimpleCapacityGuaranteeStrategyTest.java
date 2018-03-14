@@ -67,7 +67,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     );
 
     @Test
-    public void testSingleInstanceFitsAll() throws Exception {
+    public void testSingleInstanceFitsAll() {
         List<AgentInstanceGroup> instanceGroups = asList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 2),
                 getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
@@ -92,7 +92,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testLargeAllocation() throws Exception {
+    public void testLargeAllocation() {
         List<AgentInstanceGroup> instanceGroups = asList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 10),
                 getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
@@ -117,7 +117,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testFlexTierMultiInstanceAllocation() throws Exception {
+    public void testFlexTierMultiInstanceAllocation() {
         List<AgentInstanceGroup> instanceGroups = asList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 0),
                 getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
@@ -156,7 +156,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testTierSharedInstanceAllocation() throws Exception {
+    public void testTierSharedInstanceAllocation() {
         List<AgentInstanceGroup> instanceGroups = asList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 0),
                 getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 0, 0),
@@ -184,7 +184,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testBuffer() throws Exception {
+    public void testBuffer() {
         List<AgentInstanceGroup> instanceGroups = singletonList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 2)
         );
@@ -205,7 +205,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testAllocationNotChangedIfNoAppInTier() throws Exception {
+    public void testAllocationNotChangedIfNoAppInTier() {
         List<AgentInstanceGroup> instanceGroups = singletonList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 1)
         );
@@ -217,7 +217,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testAllocationNotChangedIfOnlyDefaultAppInFlexTier() throws Exception {
+    public void testAllocationNotChangedIfOnlyDefaultAppInFlexTier() {
         List<AgentInstanceGroup> instanceGroups = singletonList(
                 getInstanceGroup(Tier.Flex, R4_8XLARGE_ID, 0, 1)
         );
@@ -229,7 +229,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testAllocationsMinLimitsAreApplied() throws Exception {
+    public void testAllocationsMinLimitsAreApplied() {
         List<AgentInstanceGroup> instanceGroups = asList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 2, 10),
                 getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 3, 10),
@@ -253,7 +253,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testResourceShortageReporting() throws Exception {
+    public void testResourceShortageReporting() {
         List<AgentInstanceGroup> instanceGroups = singletonList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 2)
         );
@@ -276,6 +276,7 @@ public class SimpleCapacityGuaranteeStrategyTest {
                 .build();
         return AgentGenerator.agentServerGroups(tier, 0, singletonList(instanceType)).getValue()
                 .toBuilder()
+                .withResourceDimension(ResourceDimension.empty())
                 .withMin(0)
                 .withMax(max)
                 .withAutoScaleRule(autoScaleRule)

@@ -22,6 +22,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.netflix.titus.api.model.ResourceDimension;
 
 /**
  * Entity describing server resources.
@@ -136,6 +137,26 @@ public class ServerInfo {
 
     public static Builder newBuilder() {
         return new Builder();
+    }
+
+    public static ServerInfo from(ResourceDimension resourceDimension) {
+        return newBuilder()
+                .withCpus((int) resourceDimension.getCpu())
+                .withGpus((int) resourceDimension.getGpu())
+                .withMemoryGB((int) (resourceDimension.getMemoryMB() / 1024))
+                .withStorageGB((int) (resourceDimension.getDiskMB() / 1024))
+                .withNetworkMbs((int) resourceDimension.getNetworkMbs())
+                .build();
+    }
+
+    public static ResourceDimension toResourceDimension(ServerInfo serverInfo) {
+        return ResourceDimension.newBuilder()
+                .withCpus(serverInfo.getCpus())
+                .withGpu(serverInfo.getGpus())
+                .withMemoryMB(serverInfo.getMemoryGB() * 1024)
+                .withDiskMB(serverInfo.getStorageGB() * 1024)
+                .withNetworkMbs(serverInfo.getNetworkMbs())
+                .build();
     }
 
     public static final class Builder {

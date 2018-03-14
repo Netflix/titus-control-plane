@@ -28,7 +28,9 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.VirtualMachineLease;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.api.jobmanager.model.job.Job;
+import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.JobModel;
 import io.netflix.titus.api.jobmanager.model.job.Task;
@@ -46,7 +48,6 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import io.netflix.titus.api.jobmanager.TaskAttributes;
 import org.apache.mesos.Protos;
 
 import static io.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
@@ -72,8 +73,13 @@ public final class JobManagerUtil {
                 .collect(Collectors.toSet());
     }
 
-    public static Pair<Tier, String> getTierAssignment(Job<?> job, ApplicationSlaManagementService capacityGroupService) {
-        String capacityGroup = job.getJobDescriptor().getCapacityGroup();
+    public static Pair<Tier, String> getTierAssignment(Job job, ApplicationSlaManagementService capacityGroupService) {
+        return getTierAssignment(job.getJobDescriptor(), capacityGroupService);
+
+    }
+
+    public static Pair<Tier, String> getTierAssignment(JobDescriptor<?> jobDescriptor, ApplicationSlaManagementService capacityGroupService) {
+        String capacityGroup = jobDescriptor.getCapacityGroup();
 
         ApplicationSLA applicationSLA = capacityGroupService.getApplicationSLA(capacityGroup);
         if (applicationSLA == null) {

@@ -149,6 +149,7 @@ public final class ErrorResponses {
                 case UnexpectedJobState:
                 case UnexpectedTaskState:
                     return Status.FAILED_PRECONDITION;
+                case InvalidContainerResources:
                 case InvalidDesiredCapacity:
                     return Status.INVALID_ARGUMENT;
             }

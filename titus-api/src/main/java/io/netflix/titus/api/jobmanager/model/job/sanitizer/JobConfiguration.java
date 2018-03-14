@@ -39,14 +39,49 @@ public interface JobConfiguration {
     @DefaultValue("1.0")
     double getCpuMin();
 
+    /**
+     * An upper bound on CPUs a single container may allocate. The actual limit may be lower, as it also depends
+     * on instance types available in a tier.
+     */
+    @DefaultValue("64")
+    int getCpuMax();
+
+    /**
+     * An upper bound on GPUs a single container may allocate. The actual limit may be lower, as it also depends
+     * on instance types available in a tier.
+     */
+    @DefaultValue("16")
+    int getGpuMax();
+
     @DefaultValue("512")
     int getMemoryMbMin();
+
+    /**
+     * An upper bound on memory a single container may allocate. The actual limit may be lower, as it also depends
+     * on instance types available in a tier.
+     */
+    @DefaultValue("524288")
+    int getMemoryMbMax();
 
     @DefaultValue("1024")
     int getDiskMbMin();
 
+    /**
+     * An upper bound on disk a single container may allocate. The actual limit may be lower, as it also depends
+     * on instance types available in a tier.
+     */
+    @DefaultValue("1048576")
+    int getDiskMbMax();
+
     @DefaultValue("128")
     int getNetworkMbpsMin();
+
+    /**
+     * An upper bound on network a single container may allocate. The actual limit may be lower, as it also depends
+     * on instance types available in a tier.
+     */
+    @DefaultValue("40000")
+    int getNetworkMbpsMax();
 
     @DefaultValue("" + DEFAULT_RUNTIME_LIMIT_SEC)
     long getDefaultRuntimeLimitSec();

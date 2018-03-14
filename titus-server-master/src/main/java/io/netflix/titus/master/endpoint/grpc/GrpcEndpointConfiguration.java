@@ -56,4 +56,10 @@ public interface GrpcEndpointConfiguration {
      */
     @DefaultValue("30000")
     long getShutdownTimeoutMs();
+
+    /**
+     * TODO Feature flag. Remove once stable.
+     */
+    @DefaultValue("false")
+    boolean isJobSizeValidationEnabled();
 }

@@ -34,13 +34,17 @@ import io.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import io.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import io.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
 import io.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.agent.ServerInfo;
 import io.netflix.titus.master.agent.service.cache.AgentCache;
 import io.netflix.titus.master.agent.service.cache.CacheUpdateEvent;
 import io.netflix.titus.master.agent.service.cache.CacheUpdateType;
+import io.netflix.titus.master.agent.service.server.ServerInfoResolver;
+import io.netflix.titus.master.model.ResourceDimensions;
 import io.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,8 +67,9 @@ public class DefaultAgentManagementServiceTest {
     private final AgentManagementConfiguration configuration = mock(AgentManagementConfiguration.class);
     private final InstanceCloudConnector connector = mock(InstanceCloudConnector.class);
     private final AgentCache agentCache = mock(AgentCache.class);
+    private final ServerInfoResolver serverInfoResolver = mock(ServerInfoResolver.class);
 
-    private final DefaultAgentManagementService service = new DefaultAgentManagementService(configuration, connector, agentCache);
+    private final DefaultAgentManagementService service = new DefaultAgentManagementService(configuration, connector, agentCache, serverInfoResolver);
 
     private final PublishSubject<CacheUpdateEvent> agentCacheEventSubject = PublishSubject.create();
     private final ExtTestSubscriber<AgentEvent> eventSubscriber = new ExtTestSubscriber<>();
@@ -97,7 +102,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testFindAgentInstances() throws Exception {
+    public void testFindAgentInstances() {
         List<AgentInstanceGroup> serverGroups = service.getInstanceGroups();
         assertThat(serverGroups).hasSize(2);
 
@@ -109,7 +114,24 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testUpdateTier() throws Exception {
+    public void testGetResourceLimitsWithNoAdjustment() {
+        ResourceDimension result = service.getResourceLimits(serverGroups.get(0).getInstanceType());
+        assertThat(result).isEqualTo(serverGroups.get(0).getResourceDimension());
+    }
+
+    @Test
+    public void testGetResourceLimitsWithAdjustment() {
+        String instanceType = serverGroups.get(0).getInstanceType();
+        ResourceDimension adjustedResources = ResourceDimensions.multiply(serverGroups.get(0).getResourceDimension(), 0.5);
+
+        when(serverInfoResolver.resolve(instanceType)).thenReturn(Optional.of(ServerInfo.from(adjustedResources)));
+
+        ResourceDimension result = service.getResourceLimits(instanceType);
+        assertThat(result).isEqualTo(adjustedResources);
+    }
+
+    @Test
+    public void testUpdateTier() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         service.updateInstanceGroupTier(serverGroups.get(0).getId(), Tier.Critical).toObservable().subscribe(testSubscriber);
 
@@ -119,7 +141,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testUpdateAutoScalingRule() throws Exception {
+    public void testUpdateAutoScalingRule() {
         AutoScaleRule updatedAutoScaleRule = serverGroups.get(0).getAutoScaleRule().toBuilder().withMax(1000).build();
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
@@ -131,7 +153,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testUpdateLifecycle() throws Exception {
+    public void testUpdateLifecycle() {
         InstanceGroupLifecycleStatus updatedInstanceGroupLifecycleStatus = InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build();
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
@@ -143,7 +165,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testUpdateCapacity() throws Exception {
+    public void testUpdateCapacity() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         service.updateCapacity(serverGroups.get(0).getId(), Optional.of(100), Optional.of(1000)).toObservable().subscribe(testSubscriber);
 
@@ -156,7 +178,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testScaleUp() throws Exception {
+    public void testScaleUp() {
         AgentInstanceGroup instanceGroup = serverGroups.get(0);
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
@@ -170,7 +192,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testUpdateOverride() throws Exception {
+    public void testUpdateOverride() {
         String agentId = serverSet0.get(0).getId();
         when(agentCache.getAgentInstance(agentId)).thenReturn(serverSet0.get(0));
 
@@ -185,7 +207,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testTerminateAgentsFromOneServerGroup() throws Exception {
+    public void testTerminateAgentsFromOneServerGroup() {
         String agentId1 = serverSet0.get(0).getId();
         String agentId2 = serverSet0.get(1).getId();
         List<String> agentIds = asList(agentId1, agentId2);
@@ -206,7 +228,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testTerminateAgentsFromDifferentServerGroups() throws Exception {
+    public void testTerminateAgentsFromDifferentServerGroups() {
         String agentId1 = serverSet0.get(0).getId();
         String agentId2 = serverSet1.get(0).getId();
         List<String> agentIds = asList(agentId1, agentId2);
@@ -221,7 +243,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testEventOnServerGroupUpdate() throws Exception {
+    public void testEventOnServerGroupUpdate() {
         serverGroups.set(0, serverGroups.get(0).toBuilder().withMax(1000).build());
         agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, serverGroups.get(0).getId()));
         AgentEvent event = eventSubscriber.takeNext();
@@ -229,7 +251,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testEventOnServerGroupRemoved() throws Exception {
+    public void testEventOnServerGroupRemoved() {
         String id = serverGroups.get(0).getId();
         serverGroups.remove(0);
 
@@ -239,7 +261,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testEventOnServerUpdate() throws Exception {
+    public void testEventOnServerUpdate() {
         serverSet0.set(0, serverSet0.get(0).toBuilder().withHostname("changed").build());
         when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
 
@@ -249,7 +271,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testEventOnServerRemovedAndGroupRefresh() throws Exception {
+    public void testEventOnServerRemovedAndGroupRefresh() {
         serverSet0.remove(0);
         when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
 
@@ -259,7 +281,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testEventOnServerRemoved() throws Exception {
+    public void testEventOnServerRemoved() {
         String id = serverSet0.get(0).getId();
         serverSet0.remove(0);
         when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
