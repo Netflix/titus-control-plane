@@ -16,13 +16,24 @@
 
 package io.netflix.titus.api.jobmanager;
 
-public class JobAttributes {
-    /*
-     * Job attributes.
+/**
+ * Constant keys for Job attributes.
+ */
+public final class JobAttributes {
+    public static final String JOB_ATTRIBUTES_ALLOW_CPU_BURSTING = "titus.agent.allowCpuBursting";
+    public static final String JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING = "titus.agent.allowNetworkBursting";
+    public static final String JOB_ATTRIBUTES_BATCH = "titus.agent.batch";
+    public static final String JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS = "titus.agent.allowNestedContainers";
+    public static final String JOB_ATTRIBUTES_KILL_WAIT_SECONDS = "titus.agent.killWaitSeconds";
+    /**
+     * Stack name that can be replaced in a federated deployment, where all Cells have the same Stack name.
      */
-    public static String JOB_ATTRIBUTES_ALLOW_CPU_BURSTING = "titus.agent.allowCpuBursting";
-    public static String JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING = "titus.agent.allowNetworkBursting";
-    public static String JOB_ATTRIBUTES_BATCH = "titus.agent.batch";
-    public static String JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS = "titus.agent.allowNestedContainers";
-    public static String JOB_ATTRIBUTES_KILL_WAIT_SECONDS = "titus.agent.killWaitSeconds";
+    public static final String JOB_ATTRIBUTES_STACK = "titus.stack";
+    /**
+     * Unique Cell name for a deployment.
+     */
+    public static final String JOB_ATTRIBUTES_CELL = "titus.cell";
+
+    private JobAttributes() {
+    }
 }

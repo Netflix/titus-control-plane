@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import com.netflix.titus.grpc.protogen.JobDescriptor;
-import io.netflix.titus.api.jobmanager.model.job.JobModel;
+import io.netflix.titus.api.jobmanager.JobAttributes;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 
@@ -34,34 +34,34 @@ public class CellDecorator {
     }
 
     /**
-     * Adds {@link JobModel#CELL_NAME_KEY "titus.cell"} and {@link JobModel#STACK_NAME_KEY "titus.stack"}
+     * Adds {@link JobAttributes#JOB_ATTRIBUTES_CELL "titus.cell"} and {@link JobAttributes#JOB_ATTRIBUTES_STACK "titus.stack"}
      * labels to a {@link TitusJobSpec V2 job spec} if they are not already present.
      */
     public TitusJobSpec ensureCellInfo(TitusJobSpec jobSpec) {
         final Map<String, String> originalLabels = jobSpec.getLabels();
-        if (CollectionsExt.containsKeys(originalLabels, JobModel.CELL_NAME_KEY, JobModel.STACK_NAME_KEY)) {
+        if (CollectionsExt.containsKeys(originalLabels, JobAttributes.JOB_ATTRIBUTES_CELL, JobAttributes.JOB_ATTRIBUTES_STACK)) {
             return jobSpec;
         }
 
         final Map<String, String> labels = new HashMap<>(originalLabels);
         final String cellName = cellNameSupplier.get();
-        labels.putIfAbsent(JobModel.CELL_NAME_KEY, cellName);
-        labels.putIfAbsent(JobModel.STACK_NAME_KEY, cellName);
+        labels.putIfAbsent(JobAttributes.JOB_ATTRIBUTES_CELL, cellName);
+        labels.putIfAbsent(JobAttributes.JOB_ATTRIBUTES_STACK, cellName);
         return new TitusJobSpec.Builder(jobSpec).labels(labels).build();
     }
 
     /**
-     * Adds {@link JobModel#CELL_NAME_KEY "titus.cell"} and {@link JobModel#STACK_NAME_KEY "titus.stack"}
+     * Adds {@link JobAttributes#JOB_ATTRIBUTES_CELL "titus.cell"} and {@link JobAttributes#JOB_ATTRIBUTES_STACK "titus.stack"}
      * attributes to a {@link JobDescriptor V3 job spec} if they are not already present.
      */
     public JobDescriptor ensureCellInfo(JobDescriptor jobDescriptor) {
         final String cellName = cellNameSupplier.get();
         final JobDescriptor.Builder builder = jobDescriptor.toBuilder();
-        if (!jobDescriptor.containsAttributes(JobModel.CELL_NAME_KEY)) {
-            builder.putAttributes(JobModel.CELL_NAME_KEY, cellName);
+        if (!jobDescriptor.containsAttributes(JobAttributes.JOB_ATTRIBUTES_CELL)) {
+            builder.putAttributes(JobAttributes.JOB_ATTRIBUTES_CELL, cellName);
         }
-        if (!jobDescriptor.containsAttributes(JobModel.STACK_NAME_KEY)) {
-            builder.putAttributes(JobModel.STACK_NAME_KEY, cellName);
+        if (!jobDescriptor.containsAttributes(JobAttributes.JOB_ATTRIBUTES_STACK)) {
+            builder.putAttributes(JobAttributes.JOB_ATTRIBUTES_STACK, cellName);
         }
         return builder.build();
     }

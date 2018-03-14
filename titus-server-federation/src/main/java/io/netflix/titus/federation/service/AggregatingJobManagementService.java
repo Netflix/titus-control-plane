@@ -48,7 +48,7 @@ import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 
-import static io.netflix.titus.api.jobmanager.model.job.JobModel.STACK_NAME_KEY;
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
@@ -140,7 +140,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         switch (notification.getNotificationCase()) {
             case JOBUPDATE:
                 JobDescriptor jobDescriptor = notification.getJobUpdate().getJob().getJobDescriptor().toBuilder()
-                        .putAttributes(STACK_NAME_KEY, configuration.getStack())
+                        .putAttributes(JOB_ATTRIBUTES_STACK, configuration.getStack())
                         .build();
                 Job job = notification.getJobUpdate().getJob().toBuilder().setJobDescriptor(jobDescriptor).build();
                 JobChangeNotification.JobUpdate jobUpdate = notification.getJobUpdate().toBuilder().setJob(job).build();

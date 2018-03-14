@@ -18,8 +18,8 @@ package io.netflix.titus.api.jobmanager.model.job;
 
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
+import io.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import io.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicyBuilder;
 import io.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
@@ -31,15 +31,6 @@ import io.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicyBuild
  * A collection of factory, and help methods operating on job data model.
  */
 public final class JobModel {
-
-    /**
-     * Stack name that can be replaced in a federated deployment, where all Cells have the same Stack name.
-     */
-    public static final String STACK_NAME_KEY = "titus.stack";
-    /**
-     * Unique Cell name for a deployment.
-     */
-    public static final String CELL_NAME_KEY = "titus.cell";
 
     private JobModel() {
     }
