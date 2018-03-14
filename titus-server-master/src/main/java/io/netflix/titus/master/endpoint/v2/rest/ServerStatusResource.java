@@ -31,6 +31,7 @@ import javax.ws.rs.core.MediaType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.ServerStatusRepresentation;
 import io.netflix.titus.common.util.DateTimeExt;
 import io.netflix.titus.common.util.guice.ActivationLifecycle;
+import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.cluster.LeaderActivator;
 
 /**
@@ -60,8 +61,10 @@ public class ServerStatusResource {
 
         if (!leaderActivator.isLeader()) {
             return new ServerStatusRepresentation(
-                    DateTimeExt.toUtcDateTimeString(uptime),
                     false,
+                    false,
+                    DateTimeExt.toUtcDateTimeString(uptime),
+                    null,
                     null,
                     null,
                     null,
@@ -69,17 +72,26 @@ public class ServerStatusResource {
             );
         }
 
-        List<ServerStatusRepresentation.ServiceActivation> serviceActivations = activationLifecycle.getServiceActionTimesMs().stream()
+        boolean active = activationLifecycle.getActivationTimeMs() != -1;
+
+        List<ServerStatusRepresentation.ServiceActivation> serviceActivationTimes = activationLifecycle.getServiceActionTimesMs().stream()
+                .sorted((first, second) -> Long.compare(second.getRight(), first.getRight()))
                 .map(p -> new ServerStatusRepresentation.ServiceActivation(p.getLeft(), DateTimeExt.toTimeUnitString(p.getRight())))
                 .collect(Collectors.toList());
 
+        List<String> serviceActivationOrder = activationLifecycle.getServiceActionTimesMs().stream()
+                .map(Pair::getLeft)
+                .collect(Collectors.toList());
+
         return new ServerStatusRepresentation(
-                DateTimeExt.toTimeUnitString(uptime),
                 true,
+                active,
+                DateTimeExt.toTimeUnitString(uptime),
                 DateTimeExt.toUtcDateTimeString(leaderActivator.getElectionTime()),
                 DateTimeExt.toUtcDateTimeString(leaderActivator.getActivationTime()),
                 DateTimeExt.toTimeUnitString(activationLifecycle.getActivationTimeMs()),
-                serviceActivations
+                serviceActivationTimes,
+                serviceActivationOrder
         );
     }
 }

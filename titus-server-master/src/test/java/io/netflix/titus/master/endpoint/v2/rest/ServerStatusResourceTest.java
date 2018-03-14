@@ -72,8 +72,8 @@ public class ServerStatusResourceTest {
 
         assertThat(result.isLeader()).isTrue();
         assertThat(result.getActivationTime()).isEqualTo("100ms");
-        assertThat(result.getServiceActionTime()).hasSize(1);
-        assertThat(result.getServiceActionTime().get(0).getDuration()).isEqualTo("90ms");
+        assertThat(result.getServiceActivationTimes()).hasSize(1);
+        assertThat(result.getServiceActivationTimes().get(0).getDuration()).isEqualTo("90ms");
     }
 
     @Test
