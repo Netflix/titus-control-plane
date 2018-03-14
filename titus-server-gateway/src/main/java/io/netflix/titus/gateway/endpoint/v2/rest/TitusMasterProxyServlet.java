@@ -421,7 +421,7 @@ public class TitusMasterProxyServlet extends HttpServlet {
         }
 
         String path = request.getPathInfo();
-        if (!path.contains("jobs") && !path.contains("tasks")) {
+        if (!path.contains("/jobs") && !path.contains("/tasks")) {
             return true;
         }
 
