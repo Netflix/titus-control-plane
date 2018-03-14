@@ -19,6 +19,7 @@ package io.netflix.titus.master.scheduler.fitness.networkinterface;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.fenzo.DefaultPreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -56,7 +57,9 @@ public class TitusNetworkInterfaceFitnessEvaluator implements PreferentialNamedC
     @Override
     public double evaluateIdle(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesLimit) {
         double score;
-        if (configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
+        if (configuration.isFenzoNetworkInterfaceAllocationEnabled()) {
+            score = DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
+        } else if (configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
             score = optimizedFitnessEvaluator.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
         } else {
             score = simpleFitnessEvaluator.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
@@ -69,7 +72,9 @@ public class TitusNetworkInterfaceFitnessEvaluator implements PreferentialNamedC
     @Override
     public double evaluate(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
         double score;
-        if (configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
+        if (configuration.isFenzoNetworkInterfaceAllocationEnabled()) {
+            score = DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
+        } else if (configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
             score = optimizedFitnessEvaluator.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
         } else {
             score = simpleFitnessEvaluator.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
