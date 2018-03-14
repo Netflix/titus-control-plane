@@ -140,12 +140,11 @@ public class JobStoreFitAction extends AbstractFitAction {
             case CorruptedTaskRecords:
             case CorruptedRawTaskRecords:
             case CorruptedTaskPlacementData:
+            case PhantomJobIds:
+            case PhantomTaskIds:
                 return result;
             case DuplicatedEni:
                 return handleDuplicatedEni(result, true);
-            case PhantomJobIds:
-            case PhantomTaskIds:
-                return null;
         }
         return result;
     }
