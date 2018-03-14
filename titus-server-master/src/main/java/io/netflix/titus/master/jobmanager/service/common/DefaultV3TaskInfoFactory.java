@@ -145,7 +145,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         boolean allowNestedContainers = jobManagerConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
         containerInfoBuilder.setAllowNestedContainers(allowNestedContainers);
 
-        Integer killWaitSeconds = Ints.tryParse(attributes.get(JOB_ATTRIBUTES_KILL_WAIT_SECONDS));
+        final String attributeKillWaitSeconds = attributes.get(JOB_ATTRIBUTES_KILL_WAIT_SECONDS);
+        Integer killWaitSeconds = attributeKillWaitSeconds == null ? null : Ints.tryParse(attributeKillWaitSeconds);
         if (killWaitSeconds == null || killWaitSeconds < jobManagerConfiguration.getMinKillWaitSeconds() || killWaitSeconds > jobManagerConfiguration.getMaxKillWaitSeconds()) {
             killWaitSeconds = jobManagerConfiguration.getDefaultKillWaitSeconds();
         }
