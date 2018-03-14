@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
+import static io.netflix.titus.api.agent.service.AgentManagementFunctions.isActiveOrPhasedOut;
+
 @Singleton
 public class DefaultAvailableCapacityService implements AvailableCapacityService {
 
@@ -125,7 +127,7 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
     private ResourceDimension resolveCapacityOf(Tier tier) {
         ResourceDimension total = ResourceDimension.empty();
         for (AgentInstanceGroup instanceGroup : agentManagementService.getInstanceGroups()) {
-            if (instanceGroup.getTier() == tier && instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active) {
+            if (instanceGroup.getTier() == tier && isActiveOrPhasedOut(instanceGroup)) {
                 Optional<ServerInfo> serverInfo = serverInfoResolver.resolve(instanceGroup.getInstanceType());
                 if (serverInfo.isPresent()) {
                     total = ResourceDimensions.add(total, toResourceDimension(serverInfo.get(), instanceGroup.getMax()));

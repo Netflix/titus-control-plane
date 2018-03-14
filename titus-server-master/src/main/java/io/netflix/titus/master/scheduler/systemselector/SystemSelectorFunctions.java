@@ -34,6 +34,8 @@ import io.netflix.titus.master.scheduler.ScheduledRequest;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
 
+import static io.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getAgentAttributeValue;
+
 public class SystemSelectorFunctions {
 
     //TODO I need to create a context with fake job, task, instance group, instance
@@ -85,10 +87,5 @@ public class SystemSelectorFunctions {
             context.put(INSTANCE_GROUP, AgentInstanceGroup.newBuilder());
             context.put(INSTANCE, AgentInstance.newBuilder());
         }
-    }
-
-    private static String getAgentAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
-        Protos.Attribute attribute = targetVM.getCurrAvailableResources().getAttributeMap().get(attributeName);
-        return Strings.nullToEmpty(attribute.getText().getValue());
     }
 }

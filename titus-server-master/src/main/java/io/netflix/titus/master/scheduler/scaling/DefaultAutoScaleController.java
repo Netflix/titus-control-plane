@@ -201,8 +201,8 @@ public class DefaultAutoScaleController implements AutoScaleController {
         }
 
         InstanceGroupLifecycleState currentState = instanceGroup.getLifecycleStatus().getState();
-        if (currentState != InstanceGroupLifecycleState.Active) {
-            logger.warn("Instance group {} is not active (current state={}), but scale up requested", instanceGroupName, currentState);
+        if (currentState != InstanceGroupLifecycleState.Active && currentState != InstanceGroupLifecycleState.PhasedOut) {
+            logger.warn("Instance group {} is not active or phased out (current state={}), but scale up requested", instanceGroupName, currentState);
             return false;
         }
         return true;
