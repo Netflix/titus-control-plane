@@ -39,9 +39,6 @@ import static io.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerB
  */
 public class TitusEntitySanitizerModule extends AbstractModule {
 
-    // TODO Compute this dynamically from the available instance types within a tier
-    private static final ResourceDimension MAX_CONTAINER_SIZE = new ResourceDimension(64, 16, 256_000_000, 256_000_000, 10_000);
-
     @Override
     protected void configure() {
     }
@@ -52,7 +49,13 @@ public class TitusEntitySanitizerModule extends AbstractModule {
     public EntitySanitizer getJobEntitySanitizer(JobConfiguration jobConfiguration) {
         return new JobSanitizerBuilder()
                 .withJobConstrainstConfiguration(jobConfiguration)
-                .withMaxContainerSizeResolver(capacityGroup -> MAX_CONTAINER_SIZE)
+                .withMaxContainerSizeResolver(capacityGroup -> ResourceDimension.newBuilder()
+                        .withCpus(jobConfiguration.getCpuMax())
+                        .withGpu(jobConfiguration.getGpuMax())
+                        .withMemoryMB(jobConfiguration.getMemoryMbMax())
+                        .withDiskMB(jobConfiguration.getDiskMbMax())
+                        .withNetworkMbs(jobConfiguration.getNetworkMbpsMax())
+                        .build())
                 .build();
     }
 

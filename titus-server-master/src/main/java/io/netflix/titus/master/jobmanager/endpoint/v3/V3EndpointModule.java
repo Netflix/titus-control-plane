@@ -27,6 +27,7 @@ import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
@@ -44,6 +45,7 @@ import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcTitusSe
 import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V3GrpcTitusServiceGateway;
 import io.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import io.netflix.titus.master.master.MasterMonitor;
+import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
 import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
@@ -78,11 +80,15 @@ public class V3EndpointModule extends AbstractModule {
     public TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, com.netflix.titus.grpc.protogen.Task, TaskStatus.TaskState> getV3RoutingServiceGateway(
             @Named(NAME_V2_ENGINE_GATEWAY) GrpcTitusServiceGateway v2EngineGateway,
             @Named(NAME_V3_ENGINE_GATEWAY) GrpcTitusServiceGateway v3EngineGateway,
+            AgentManagementService agentManagementService,
+            ApplicationSlaManagementService capacityGroupManagement,
             ApiOperations apiOperations,
             MasterMonitor masterMonitor,
             LeaderActivator leaderActivator,
             GrpcEndpointConfiguration configuration) {
-        RoutingGrpcTitusServiceGateway serviceGateway = new RoutingGrpcTitusServiceGateway(v2EngineGateway, v3EngineGateway, configuration);
+        RoutingGrpcTitusServiceGateway serviceGateway = new RoutingGrpcTitusServiceGateway(
+                v2EngineGateway, v3EngineGateway, agentManagementService, capacityGroupManagement, configuration
+        );
         return new LegacyTitusServiceGatewayGuard<>(serviceGateway, apiOperations, masterMonitor, leaderActivator);
     }
 }

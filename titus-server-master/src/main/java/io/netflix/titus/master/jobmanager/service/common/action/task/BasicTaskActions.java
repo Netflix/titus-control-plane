@@ -95,7 +95,7 @@ public class BasicTaskActions {
                     return titusStore.updateTask(referenceTask)
                             .andThen(Observable.fromCallable(() -> {
                                 if (referenceTask.getStatus().getState() == TaskState.Finished) {
-                                    Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(engine.getReferenceView().getEntity(), capacityGroupService);
+                                    Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment((Job)engine.getReferenceView().getEntity(), capacityGroupService);
                                     QAttributes qAttributes = new V3QAttributes(tierAssignment.getLeft().ordinal(), tierAssignment.getRight());
                                     String hostName = referenceTask.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "hostUnknown");
                                     schedulingService.removeTask(referenceTask.getId(), qAttributes, hostName);

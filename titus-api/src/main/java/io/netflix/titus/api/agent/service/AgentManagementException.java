@@ -24,7 +24,8 @@ public class AgentManagementException extends RuntimeException {
         InitializationError,
         InvalidArgument,
         InstanceGroupNotFound,
-        AgentNotFound
+        AgentNotFound,
+        InstanceTypeNotFound,
     }
 
     private final ErrorCode errorCode;
@@ -56,6 +57,11 @@ public class AgentManagementException extends RuntimeException {
     public static AgentManagementException agentNotFound(String agentInstanceId) {
         return new AgentManagementException(ErrorCode.AgentNotFound, "Agent instance %s not found", null, agentInstanceId);
     }
+
+    public static AgentManagementException instanceTypeNotFound(String instanceType) {
+        return new AgentManagementException(ErrorCode.InstanceTypeNotFound, "Instance type %s not found", null, instanceType);
+    }
+
 
     public static AgentManagementException invalidArgument(String message, Object... args) {
         throw new AgentManagementException(ErrorCode.InvalidArgument, message, null, args);

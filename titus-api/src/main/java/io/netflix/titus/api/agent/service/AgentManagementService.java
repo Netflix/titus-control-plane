@@ -27,6 +27,7 @@ import io.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import io.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import io.netflix.titus.api.agent.model.event.AgentEvent;
 import io.netflix.titus.api.agent.service.AgentManagementException.ErrorCode;
+import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.util.tuple.Either;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -67,6 +68,19 @@ public interface AgentManagementService {
     List<Pair<AgentInstanceGroup, List<AgentInstance>>> findAgentInstances(Predicate<Pair<AgentInstanceGroup, AgentInstance>> filter);
 
     /**
+     * For a given instance type, return the maximum amount of resources that can be allocated to a container.
+     *
+     * @throws AgentManagementException if the instance type is not known
+     */
+    ResourceDimension getResourceLimits(String instanceType);
+
+    /**
+     * For a given instance type, return the maximum amount of resources that can be allocated to a container or
+     * {@link Optional#empty()} if the instance type is not known.
+     */
+    Optional<ResourceDimension> findResourceLimits(String instanceType);
+
+    /**
      * Change tier assignment of an agent instance group.
      */
     Completable updateInstanceGroupTier(String instanceGroupId, Tier tier);
@@ -94,7 +108,6 @@ public interface AgentManagementService {
      * @param min                  if set, change the min size of the server group
      * @param desired              if set, change the desired size of the server group
      * @return AgentManagementException if the server group is not found
-     *
      * @deprecated Use instead {@link #scaleUp(String, int)}.
      */
     @Deprecated
@@ -104,8 +117,8 @@ public interface AgentManagementService {
      * Increase instance group size by the given number of instances. The following constraints are checked prior
      * to admitting scale up:
      * <ul>
-     *     <li>scaleUpCount >= 0 (if scaleUpCount == 0, the operation is void)</li>
-     *     <li>desired + scaleUpCount <= max instance group size (throws an error if not)</li>
+     * <li>scaleUpCount >= 0 (if scaleUpCount == 0, the operation is void)</li>
+     * <li>desired + scaleUpCount <= max instance group size (throws an error if not)</li>
      * </ul>
      *
      * @param scaleUpCount number of instances to add (must be >= 0)

@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -33,10 +34,15 @@ import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobGroupInfo;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import io.netflix.titus.api.agent.service.AgentManagementService;
+import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.model.PaginationUtil;
+import io.netflix.titus.api.model.ResourceDimension;
+import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import io.netflix.titus.common.util.CollectionsExt;
@@ -45,7 +51,11 @@ import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
 import io.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
+import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import io.netflix.titus.master.model.ResourceDimensions;
+import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +69,9 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     private static final Logger logger = LoggerFactory.getLogger(RoutingGrpcTitusServiceGateway.class);
     private final GrpcTitusServiceGateway v2EngineGateway;
     private final GrpcTitusServiceGateway v3EngineGateway;
+    private final AgentManagementService agentManagementService;
+    private final ApplicationSlaManagementService capacityGroupService;
+    private final GrpcEndpointConfiguration configuration;
 
     private final Function<String, Matcher> whiteListJobClusterInfoMatcher;
     private final Function<String, Matcher> blackListJobClusterInfoMatcher;
@@ -68,9 +81,14 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     public RoutingGrpcTitusServiceGateway(
             @Named("grpcToV2Engine") GrpcTitusServiceGateway v2EngineGateway,
             @Named("grpcToV3Engine") GrpcTitusServiceGateway v3EngineGateway,
+            AgentManagementService agentManagementService,
+            ApplicationSlaManagementService capacityGroupService,
             GrpcEndpointConfiguration configuration) {
         this.v2EngineGateway = v2EngineGateway;
         this.v3EngineGateway = v3EngineGateway;
+        this.agentManagementService = agentManagementService;
+        this.capacityGroupService = capacityGroupService;
+        this.configuration = configuration;
 
         this.whiteListJobClusterInfoMatcher = RegExpExt.dynamicMatcher(
                 configuration::getV3EnabledApps,
@@ -94,7 +112,46 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
+        if (configuration.isJobSizeValidationEnabled()) {
+            // TODO Move this code to V3GrpcTitusServiceGateway once we get rid of V2 engine.
+            io.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+
+            Tier tier = findTier(coreJobDescriptor);
+            ResourceDimension requestedResources = toResourceDimension(coreJobDescriptor.getContainer().getContainerResources());
+            List<ResourceDimension> tierResourceLimits = getTierResourceLimits(tier);
+            if (isTooLarge(requestedResources, tierResourceLimits)) {
+                return Observable.error(JobManagerException.invalidContainerResources(tier, requestedResources, tierResourceLimits));
+            }
+        }
+
         return isV3Enabled(jobDescriptor) ? v3EngineGateway.createJob(jobDescriptor) : v2EngineGateway.createJob(jobDescriptor);
+    }
+
+    private Tier findTier(io.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+        return JobManagerUtil.getTierAssignment(jobDescriptor, capacityGroupService).getLeft();
+    }
+
+    private boolean isTooLarge(ResourceDimension requestedResources, List<ResourceDimension> tierResourceLimits) {
+        return tierResourceLimits.stream().noneMatch(limit -> ResourceDimensions.isBigger(limit, requestedResources));
+    }
+
+    private List<ResourceDimension> getTierResourceLimits(Tier tier) {
+        return agentManagementService.getInstanceGroups().stream()
+                .filter(instanceGroup -> instanceGroup.getTier().equals(tier))
+                .map(instanceGroup ->
+                        agentManagementService.findResourceLimits(instanceGroup.getInstanceType()).orElse(instanceGroup.getResourceDimension())
+                )
+                .collect(Collectors.toList());
+    }
+
+    private ResourceDimension toResourceDimension(ContainerResources containerResources) {
+        return ResourceDimension.newBuilder()
+                .withCpus(containerResources.getCpu())
+                .withGpu(containerResources.getGpu())
+                .withMemoryMB(containerResources.getMemoryMB())
+                .withDiskMB(containerResources.getDiskMB())
+                .withNetworkMbs(containerResources.getNetworkMbps())
+                .build();
     }
 
     @Override

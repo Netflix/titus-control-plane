@@ -16,11 +16,15 @@
 
 package io.netflix.titus.api.jobmanager.service;
 
+import java.util.List;
+
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.model.ResourceDimension;
+import io.netflix.titus.api.model.Tier;
 
 import static java.lang.String.format;
 
@@ -35,6 +39,7 @@ public class JobManagerException extends RuntimeException {
         TaskNotFound,
         JobTerminating,
         TaskTerminating,
+        InvalidContainerResources,
         InvalidDesiredCapacity,
     }
 
@@ -103,6 +108,13 @@ public class JobManagerException extends RuntimeException {
             return new JobManagerException(ErrorCode.TaskTerminating, format("Task %s is terminated", task.getId()));
         }
         return new JobManagerException(ErrorCode.TaskTerminating, format("Task %s is in the termination process", task.getId()));
+    }
+
+    public static JobManagerException invalidContainerResources(Tier tier, ResourceDimension requestedResources, List<ResourceDimension> tierResourceLimits) {
+        return new JobManagerException(
+                ErrorCode.InvalidContainerResources,
+                format("Job too large to run in the %s tier: requested=%s, limits=%s", tier, requestedResources, tierResourceLimits)
+        );
     }
 
     public static JobManagerException invalidDesiredCapacity(String jobId, int targetDesired, ServiceJobProcesses serviceJobProcesses) {
