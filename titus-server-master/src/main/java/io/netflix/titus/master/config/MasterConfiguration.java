@@ -161,4 +161,8 @@ public interface MasterConfiguration extends CoreConfiguration {
     @PropertyName(name = "titusMaster.store.maxInvalidJobs")
     @DefaultValue("0")
     long getMaxInvalidJobs();
+
+    @PropertyName(name = "titusMaster.v2Enabled")
+    @DefaultValue("false")
+    boolean isV2Enabled();
 }

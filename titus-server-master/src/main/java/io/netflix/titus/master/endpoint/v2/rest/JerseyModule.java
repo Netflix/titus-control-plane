@@ -28,6 +28,7 @@ import com.netflix.governator.providers.Advises;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
+import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import io.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
@@ -70,7 +71,7 @@ public final class JerseyModule extends JerseyServletModule {
     @Advises
     @Singleton
     @Named("governator")
-    UnaryOperator<DefaultResourceConfig> getConfig() {
+    UnaryOperator<DefaultResourceConfig> getConfig(MasterConfiguration configuration) {
         return config -> {
             // Providers
             config.getClasses().add(JsonMessageReaderWriter.class);
@@ -86,10 +87,13 @@ public final class JerseyModule extends JerseyServletModule {
             // V2 resources
             config.getClasses().add(SchedulerResource.class);
             config.getClasses().add(VmManagementResource.class);
-            config.getClasses().add(JobManagementResource.class);
             config.getClasses().add(LogsResource.class);
             config.getClasses().add(ApplicationSlaManagementResource.class);
             config.getClasses().add(ResourceConsumptionResource.class);
+
+            if (configuration.isV2Enabled()) {
+                config.getClasses().add(JobManagementResource.class);
+            }
             return config;
         };
     }

@@ -35,4 +35,7 @@ public interface TitusGatewayConfiguration {
 
     @DefaultValue("true")
     boolean isProxyErrorLoggingEnabled();
+
+    @DefaultValue("false")
+    boolean isV2Enabled();
 }

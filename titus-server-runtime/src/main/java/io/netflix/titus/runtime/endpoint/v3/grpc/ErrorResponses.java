@@ -142,6 +142,7 @@ public final class ErrorResponses {
                     return Status.RESOURCE_EXHAUSTED;
                 case JobNotFound:
                 case TaskNotFound:
+                case V2EngineTurnedOff:
                     return Status.NOT_FOUND;
                 case JobTerminating:
                 case TaskTerminating:

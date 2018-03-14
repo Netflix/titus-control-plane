@@ -37,6 +37,7 @@ import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.grpc.V3HeaderInterceptor;
 import io.netflix.titus.gateway.startup.TitusGatewayModule;
 import io.netflix.titus.master.TitusMaster;
+import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.util.NetworkExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,6 +80,7 @@ public class EmbeddedTitusGateway {
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
+        props.put("titusMaster.v2Enabled", Boolean.toString(builder.v2Enabled));
         props.put("titus.gateway.masterIp", masterGrpcHost);
         props.put("titus.gateway.masterGrpcPort", masterGrpcPort);
         props.put("titus.gateway.masterHttpPort", masterHttpPort);
@@ -188,6 +190,14 @@ public class EmbeddedTitusGateway {
         private int httpPort;
         private JobStore store;
         private Properties properties = new Properties();
+
+        // Enable V2 engine by default
+        private boolean v2Enabled = true;
+
+        public Builder withV2Engine(boolean v2Enabled) {
+            this.v2Enabled = v2Enabled;
+            return this;
+        }
 
         public Builder withMasterEndpoint(String host, int grpcPort, int httpPort) {
             this.masterGrpcHost = host;
