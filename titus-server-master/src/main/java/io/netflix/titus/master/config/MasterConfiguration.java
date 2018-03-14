@@ -127,23 +127,23 @@ public interface MasterConfiguration extends CoreConfiguration {
     boolean getCheckUniqueJobIdSequence();
 
     @PropertyName(name = "titus.jobspec.cpu.max")
-    @DefaultValue("32")
-        //r3.8xl limit
+    @DefaultValue("64")
+        // r4.16xl limit
     int getMaxCPUs();
 
     @PropertyName(name = "titus.jobspec.memory.mb.max")
-    @DefaultValue("244000")
-        // r3.8xl limit
+    @DefaultValue("465000")
+        // r4.16xl limit
     int getMaxMemory();
 
     @PropertyName(name = "titus.jobspec.disk.mb.max")
-    @DefaultValue("640000")
-        // r3.8xl limit
+    @DefaultValue("2000000")
+        // r4.16xl limit
     int getMaxDisk();
 
     @PropertyName(name = "titus.jobspec.network.mbps.max")
-    @DefaultValue("6000")
-        // r3.8xl limit
+    @DefaultValue("15000")
+        // r4.16xl limit
     int getMaxNetworkMbps();
 
     @PropertyName(name = "titus.jobspec.batch.instances.max")
