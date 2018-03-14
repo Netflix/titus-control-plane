@@ -19,6 +19,7 @@ package io.netflix.titus.master.endpoint.v2.rest;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -43,6 +44,7 @@ import io.netflix.titus.master.cluster.LeaderActivator;
 public class ServerStatusResource {
 
     public static final String PATH_API_V2_STATUS = "/api/v2/status";
+    public static final String NOT_APPLICABLE = "N/A";
 
     private final ActivationLifecycle activationLifecycle;
     private final LeaderActivator leaderActivator;
@@ -64,11 +66,11 @@ public class ServerStatusResource {
                     false,
                     false,
                     DateTimeExt.toUtcDateTimeString(uptime),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
+                    NOT_APPLICABLE,
+                    NOT_APPLICABLE,
+                    NOT_APPLICABLE,
+                    Collections.emptyList(),
+                    Collections.emptyList()
             );
         }
 
@@ -89,7 +91,7 @@ public class ServerStatusResource {
                 DateTimeExt.toTimeUnitString(uptime),
                 DateTimeExt.toUtcDateTimeString(leaderActivator.getElectionTime()),
                 DateTimeExt.toUtcDateTimeString(leaderActivator.getActivationTime()),
-                DateTimeExt.toTimeUnitString(activationLifecycle.getActivationTimeMs()),
+                active ? DateTimeExt.toTimeUnitString(activationLifecycle.getActivationTimeMs()) : NOT_APPLICABLE,
                 serviceActivationTimes,
                 serviceActivationOrder
         );

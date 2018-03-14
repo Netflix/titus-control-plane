@@ -31,6 +31,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import static io.netflix.titus.master.endpoint.v2.rest.ServerStatusResource.NOT_APPLICABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -52,7 +53,7 @@ public class ServerStatusResourceTest {
     private static HttpTestClient client;
 
     @BeforeClass
-    public static void setUpClass() throws Exception {
+    public static void setUpClass() {
         client = new HttpTestClient(jaxRsServer.getBaseURI());
     }
 
@@ -62,7 +63,7 @@ public class ServerStatusResourceTest {
     }
 
     @Test
-    public void testLeader() throws Exception {
+    public void testActivatedServer() throws Exception {
         when(leaderActivator.isLeader()).thenReturn(true);
         when(leaderActivator.isActivated()).thenReturn(true);
         when(activationLifecycle.getActivationTimeMs()).thenReturn(100L);
@@ -71,14 +72,37 @@ public class ServerStatusResourceTest {
         ServerStatusRepresentation result = client.doGET(ServerStatusResource.PATH_API_V2_STATUS, ServerStatusRepresentation.class);
 
         assertThat(result.isLeader()).isTrue();
+        assertThat(result.isActive()).isTrue();
         assertThat(result.getActivationTime()).isEqualTo("100ms");
         assertThat(result.getServiceActivationTimes()).hasSize(1);
         assertThat(result.getServiceActivationTimes().get(0).getDuration()).isEqualTo("90ms");
+        assertThat(result.getServiceActivationOrder()).hasSize(1);
     }
 
     @Test
-    public void testNoLeader() throws Exception {
+    public void tesNotLeaderServer() throws Exception {
         ServerStatusRepresentation result = client.doGET(ServerStatusResource.PATH_API_V2_STATUS, ServerStatusRepresentation.class);
+
         assertThat(result.isLeader()).isFalse();
+        assertThat(result.isActive()).isFalse();
+        assertThat(result.getActivationTime()).isEqualTo(NOT_APPLICABLE);
+        assertThat(result.getServiceActivationTimes()).hasSize(0);
+        assertThat(result.getServiceActivationTimes()).hasSize(0);
+        assertThat(result.getServiceActivationOrder()).hasSize(0);
+    }
+
+    @Test
+    public void testUnactivatedServer() throws Exception {
+        when(leaderActivator.isLeader()).thenReturn(true);
+        when(activationLifecycle.getActivationTimeMs()).thenReturn(-1L);
+
+        ServerStatusRepresentation result = client.doGET(ServerStatusResource.PATH_API_V2_STATUS, ServerStatusRepresentation.class);
+
+        assertThat(result.isLeader()).isTrue();
+        assertThat(result.isActive()).isFalse();
+        assertThat(result.getActivationTime()).isEqualTo(NOT_APPLICABLE);
+        assertThat(result.getServiceActivationTimes()).hasSize(0);
+        assertThat(result.getServiceActivationTimes()).hasSize(0);
+        assertThat(result.getServiceActivationOrder()).hasSize(0);
     }
 }
