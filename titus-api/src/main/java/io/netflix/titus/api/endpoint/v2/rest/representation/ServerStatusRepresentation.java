@@ -24,30 +24,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class ServerStatusRepresentation {
 
     private final boolean leader;
+    private final boolean active;
     private final String uptime;
     private final String electionTimeStamp;
     private final String activeTimeStamp;
     private final String activationTime;
-    private final List<ServiceActivation> serviceActionTime;
+    private final List<ServiceActivation> serviceActivationTimes;
+    private final List<String> serviceActivationOrder;
 
     @JsonCreator
     public ServerStatusRepresentation(
-            @JsonProperty("upTime") String uptime,
             @JsonProperty("leader") boolean leader,
+            @JsonProperty("active") boolean active,
+            @JsonProperty("upTime") String uptime,
             @JsonProperty("electionTimeStamp") String electionTimeStamp,
             @JsonProperty("activeTimeStamp") String activeTimeStamp,
             @JsonProperty("activationTime") String activationTime,
-            @JsonProperty("serviceActionTime") List<ServiceActivation> serviceActionTime) {
+            @JsonProperty("serviceActivationTimes") List<ServiceActivation> serviceActivationTimes,
+            @JsonProperty("serviceActivationOrder") List<String> serviceActivationOrder) {
         this.leader = leader;
+        this.active = active;
         this.uptime = uptime;
         this.electionTimeStamp = electionTimeStamp;
         this.activeTimeStamp = activeTimeStamp;
         this.activationTime = activationTime;
-        this.serviceActionTime = serviceActionTime;
+        this.serviceActivationTimes = serviceActivationTimes;
+        this.serviceActivationOrder = serviceActivationOrder;
     }
 
     public boolean isLeader() {
         return leader;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public String getUptime() {
@@ -66,8 +76,12 @@ public class ServerStatusRepresentation {
         return activationTime;
     }
 
-    public List<ServiceActivation> getServiceActionTime() {
-        return serviceActionTime;
+    public List<ServiceActivation> getServiceActivationTimes() {
+        return serviceActivationTimes;
+    }
+
+    public List<String> getServiceActivationOrder() {
+        return serviceActivationOrder;
     }
 
     public static class ServiceActivation {
