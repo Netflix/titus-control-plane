@@ -57,7 +57,7 @@ public interface JobConfiguration {
     int getMemoryMbMin();
 
     /**
-     * An upper bound on memory a single container may allocate. The actual limit may be lower, as it also depends
+     * An upper bound on memory (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
     @DefaultValue("524288")
@@ -67,7 +67,7 @@ public interface JobConfiguration {
     int getDiskMbMin();
 
     /**
-     * An upper bound on disk a single container may allocate. The actual limit may be lower, as it also depends
+     * An upper bound on disk (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
     @DefaultValue("1048576")
@@ -77,7 +77,7 @@ public interface JobConfiguration {
     int getNetworkMbpsMin();
 
     /**
-     * An upper bound on network a single container may allocate. The actual limit may be lower, as it also depends
+     * An upper bound on network (megabits per second) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
     @DefaultValue("40000")
