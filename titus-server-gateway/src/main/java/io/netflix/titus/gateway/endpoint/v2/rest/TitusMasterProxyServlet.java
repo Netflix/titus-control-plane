@@ -425,7 +425,7 @@ public class TitusMasterProxyServlet extends HttpServlet {
             return true;
         }
 
-        response.setStatus(404);
+        response.setStatus(403);
         response.getOutputStream().print("V2 Engine is turned off");
         return false;
     }

@@ -138,11 +138,12 @@ public final class ErrorResponses {
         } else if (cause instanceof JobManagerException) {
             JobManagerException e = (JobManagerException) cause;
             switch (e.getErrorCode()) {
+                case V2EngineTurnedOff:
+                    return Status.PERMISSION_DENIED;
                 case JobCreateLimited:
                     return Status.RESOURCE_EXHAUSTED;
                 case JobNotFound:
                 case TaskNotFound:
-                case V2EngineTurnedOff:
                     return Status.NOT_FOUND;
                 case JobTerminating:
                 case TaskTerminating:
