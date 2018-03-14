@@ -42,6 +42,7 @@ import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.guice.ContainerEventBusModule;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
+import io.netflix.titus.master.cluster.LeaderActivator;
 import io.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import org.slf4j.Logger;
@@ -85,6 +86,7 @@ public class TitusRuntimeModule extends AbstractModule {
 
         if (fitFramework.isActive()) {
             FitComponent root = fitFramework.getRootComponent();
+            root.createChild(LeaderActivator.COMPONENT);
             root.createChild(V3JobOperations.COMPONENT);
             root.createChild(SchedulingService.COMPONENT);
             root.createChild(VirtualMachineMasterService.COMPONENT);

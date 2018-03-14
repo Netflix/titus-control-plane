@@ -20,6 +20,9 @@ package io.netflix.titus.master.cluster;
  * Counterpart of {@link DefaultLeaderElector} that performs lead activation/inactivation mechanics.
  */
 public interface LeaderActivator {
+
+    String COMPONENT = "clusterManager";
+
     long getElectionTime();
 
     long getActivationTime();

@@ -16,18 +16,23 @@
 
 package io.netflix.titus.master.cluster;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.inject.Injector;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
+import io.netflix.titus.common.framework.fit.FitFramework;
+import io.netflix.titus.common.framework.fit.FitInjection;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.ActivationLifecycle;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
 import io.netflix.titus.common.util.guice.ContainerEventBus.ContainerEventListener;
 import io.netflix.titus.common.util.guice.ContainerEventBus.ContainerStartedEvent;
+import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import org.slf4j.Logger;
@@ -52,24 +57,46 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     private final Injector injector;
     private final ActivationLifecycle activationLifecycle;
 
-    private final AtomicInteger isLeaderGauge;
-    private final AtomicInteger isActivatedGauge;
-    private final AtomicLong activationTimeGauge;
+    private final Gauge isLeaderGauge;
+    private final Gauge isActivatedGauge;
+    private final Gauge activationTimeGauge;
 
     private volatile boolean activated;
     private volatile long electionTime = -1;
     private volatile long activationTime = -1;
 
+    private final Optional<FitInjection> beforeActivationFitInjection;
+
     @Inject
     public DefaultLeaderActivator(Injector injector,
                                   ContainerEventBus eventBus,
                                   ActivationLifecycle activationLifecycle,
-                                  Registry registry) {
+                                  TitusRuntime titusRuntime) {
         this.injector = injector;
         this.activationLifecycle = activationLifecycle;
-        this.isLeaderGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isLeaderGauge", new AtomicInteger());
-        this.isActivatedGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isActivatedGauge", new AtomicInteger());
-        this.activationTimeGauge = registry.gauge(MetricConstants.METRIC_LEADER + "activationTime", new AtomicLong());
+
+        Registry registry = titusRuntime.getRegistry();
+        this.isLeaderGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isLeaderGauge");
+        this.isActivatedGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isActivatedGauge");
+        this.activationTimeGauge = registry.gauge(MetricConstants.METRIC_LEADER + "activationTime");
+
+        Clock clock = titusRuntime.getClock();
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "inActiveStateTime")
+                .monitorValue(this, self -> activated ? clock.wallTime() - activationTime : 0L);
+
+        FitFramework fit = titusRuntime.getFitFramework();
+        if (fit.isActive()) {
+            FitInjection beforeActivationFitInjection = fit.newFitInjectionBuilder("beforeActivation")
+                    .withDescription("Inject failures after the node becomes the leader, but before the activation process is started")
+                    .build();
+            fit.getRootComponent().getChild(COMPONENT).addInjection(beforeActivationFitInjection);
+
+            this.beforeActivationFitInjection = Optional.of(beforeActivationFitInjection);
+        } else {
+            this.beforeActivationFitInjection = Optional.empty();
+        }
+
         eventBus.registerListener(this);
     }
 
@@ -141,8 +168,21 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     }
 
     private void activate() {
-        activationLifecycle.activate();
-        injector.getInstance(SchedulingService.class).startScheduling();
+        beforeActivationFitInjection.ifPresent(i -> i.beforeImmediate("beforeActivation"));
+
+        try {
+            try {
+                activationLifecycle.activate();
+                injector.getInstance(SchedulingService.class).startScheduling();
+            } catch (Exception e) {
+                stopBeingLeader();
+
+                // As stopBeingLeader method not always terminates the process, lets make sure it does.
+                System.exit(-1);
+            }
+        } catch (Throwable e) {
+            System.exit(-1);
+        }
         isActivatedGauge.set(1);
         activated = true;
         activationTime = System.currentTimeMillis();
