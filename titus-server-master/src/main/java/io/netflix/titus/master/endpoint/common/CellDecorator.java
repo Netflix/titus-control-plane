@@ -43,7 +43,7 @@ public class CellDecorator {
             return jobSpec;
         }
 
-        final Map<String, String> labels = new HashMap<>(originalLabels);
+        final Map<String, String> labels = originalLabels == null ? new HashMap<>() : new HashMap<>(originalLabels);
         final String cellName = cellNameSupplier.get();
         labels.putIfAbsent(JobAttributes.JOB_ATTRIBUTES_CELL, cellName);
         labels.putIfAbsent(JobAttributes.JOB_ATTRIBUTES_STACK, cellName);

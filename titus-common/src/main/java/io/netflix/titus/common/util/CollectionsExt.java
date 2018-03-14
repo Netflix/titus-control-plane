@@ -396,6 +396,10 @@ public final class CollectionsExt {
      */
     @SafeVarargs
     public static <T> boolean containsKeys(Map<T, ?> map, T... keys) {
+        if (map == null) {
+            return false;
+        }
+
         for (T key : keys) {
             if (!map.containsKey(key)) {
                 return false;

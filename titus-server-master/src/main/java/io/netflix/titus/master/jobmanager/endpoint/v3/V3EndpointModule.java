@@ -35,6 +35,7 @@ import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.cluster.LeaderActivator;
+import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.TitusServiceGateway;
 import io.netflix.titus.master.endpoint.adapter.LegacyTitusServiceGatewayGuard;
 import io.netflix.titus.master.endpoint.common.CellInfoResolver;
@@ -87,9 +88,11 @@ public class V3EndpointModule extends AbstractModule {
             MasterMonitor masterMonitor,
             LeaderActivator leaderActivator,
             GrpcEndpointConfiguration configuration,
+            MasterConfiguration masterConfiguration,
             CellInfoResolver cellInfoResolver) {
         RoutingGrpcTitusServiceGateway serviceGateway = new RoutingGrpcTitusServiceGateway(
-                v2EngineGateway, v3EngineGateway, agentManagementService, capacityGroupManagement, configuration, cellInfoResolver
+                v2EngineGateway, v3EngineGateway, agentManagementService, capacityGroupManagement,
+                configuration, masterConfiguration, cellInfoResolver
         );
         return new LegacyTitusServiceGatewayGuard<>(serviceGateway, apiOperations, masterMonitor, leaderActivator);
     }

@@ -41,6 +41,7 @@ public class JobManagerException extends RuntimeException {
         TaskTerminating,
         InvalidContainerResources,
         InvalidDesiredCapacity,
+        V2EngineTurnedOff,
     }
 
     private final ErrorCode errorCode;
@@ -60,6 +61,10 @@ public class JobManagerException extends RuntimeException {
 
     public static boolean hasErrorCode(Throwable error, ErrorCode errorCode) {
         return (error instanceof JobManagerException) && ((JobManagerException) error).getErrorCode() == errorCode;
+    }
+
+    public static JobManagerException v2EngineOff() {
+        return new JobManagerException(ErrorCode.V2EngineTurnedOff, "V2 engine is turned off. Please, use V3 engine only.");
     }
 
     public static JobManagerException jobCreateLimited(String violation) {

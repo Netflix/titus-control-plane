@@ -150,6 +150,7 @@ public class EmbeddedTitusMaster {
         Properties embeddedProperties = new Properties();
         embeddedProperties.put("governator.jetty.embedded.port", apiPort);
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
+        embeddedProperties.put("titusMaster.v2Enabled", Boolean.toString(builder.v2Enabled));
         config.setProperties(embeddedProperties);
 
         if (builder.remoteCloud == null) {
@@ -402,9 +403,17 @@ public class EmbeddedTitusMaster {
         private SimulatedCloud simulatedCloud;
         private Pair<String, Integer> remoteCloud;
 
+        // Enable V2 engine by default
+        private boolean v2Enabled = true;
+
         public Builder() {
             props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
             props.put("titusMaster.job.configuration.defaultIamRole", "iam-12345");
+        }
+
+        public Builder withV2Engine(boolean v2Enabled) {
+            this.v2Enabled = v2Enabled;
+            return this;
         }
 
         public Builder withApiPort(int apiPort) {

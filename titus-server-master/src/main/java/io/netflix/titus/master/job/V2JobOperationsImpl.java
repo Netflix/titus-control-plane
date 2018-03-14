@@ -99,6 +99,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
     private ScheduledThreadPoolExecutor executor;
     private V2JobStore store;
     final AuditLogService auditLogService;
+    private final MasterConfiguration masterConfiguration;
     private final JobManagerConfiguration jobManagerConfiguration;
 
     /**
@@ -106,6 +107,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
      */
     @Inject
     public V2JobOperationsImpl(Injector injector,
+                               MasterConfiguration masterConfiguration,
                                JobManagerConfiguration jobManagerConfiguration,
                                VirtualMachineMasterService vmService,
                                ApiOperations apiOps,
@@ -116,6 +118,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
                                Registry registry) {
         this.injector = injector;
         auditLogService = injector.getInstance(AuditLogService.class);
+        this.masterConfiguration = masterConfiguration;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.eventBus = eventBus;
         this.registry = registry;
@@ -211,7 +214,12 @@ public class V2JobOperationsImpl implements V2JobOperations {
 
     @Override
     public String submit(V2JobDefinition jobDefinition) throws IllegalArgumentException {
+        if (!masterConfiguration.isV2Enabled()) {
+            throw new IllegalStateException("The V2 engine is deprecated, and should not be used anymore. Please, use the V3 engine instead");
+        }
+
         awaitReady();
+
         JobType jobType = getJobType(jobDefinition);
         if (jobType == null) {
             throw new IllegalStateException("Job type not defined for job definition: " + jobDefinition);

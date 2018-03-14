@@ -134,7 +134,11 @@ public class TitusMasterProxyServlet extends HttpServlet {
         proxyRequest(request, response);
     }
 
-    private void proxyRequest(HttpServletRequest request, HttpServletResponse response) {
+    private void proxyRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (!isAccessAllowed(request, response)) {
+            return;
+        }
+
         final long start = registry.clock().wallTime();
         try {
             doProxyRequest(request, response);
@@ -409,6 +413,21 @@ public class TitusMasterProxyServlet extends HttpServlet {
                 .withTag("method", method)
                 .withTag("status", status)
                 .withTag("statusCode", String.valueOf(statusCode));
+    }
+
+    private boolean isAccessAllowed(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (configuration.isV2Enabled()) {
+            return true;
+        }
+
+        String path = request.getPathInfo();
+        if (!path.contains("/jobs") && !path.contains("/tasks")) {
+            return true;
+        }
+
+        response.setStatus(403);
+        response.getOutputStream().print("V2 Engine is turned off");
+        return false;
     }
 
     /**
