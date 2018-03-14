@@ -43,7 +43,6 @@ import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
-import io.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import io.netflix.titus.api.jobmanager.service.JobManagerException;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
@@ -65,6 +64,8 @@ import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.TitusServiceGateway;
+import io.netflix.titus.master.endpoint.common.CellDecorator;
+import io.netflix.titus.master.endpoint.common.CellInfoResolver;
 import io.netflix.titus.master.endpoint.common.ContextResolver;
 import io.netflix.titus.master.endpoint.common.SchedulerUtil;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
@@ -104,6 +105,7 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
     private final SchedulingService schedulingService;
     private final ContextResolver contextResolver;
     private final LogStorageInfo<V2WorkerMetadata> logStorageInfo;
+    private final CellDecorator cellDecorator;
 
     @Inject
     public V2LegacyTitusServiceGateway(MasterConfiguration config,
@@ -114,6 +116,7 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
                                        ApplicationSlaManagementService applicationSlaManagementService,
                                        SchedulingService schedulingService,
                                        ContextResolver contextResolver,
+                                       CellInfoResolver cellInfoResolver,
                                        LogStorageInfo<V2WorkerMetadata> logStorageInfo
     ) {
         super(apiOperations);
@@ -125,11 +128,13 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
         this.schedulingService = schedulingService;
         this.contextResolver = contextResolver;
         this.logStorageInfo = logStorageInfo;
+        this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
     }
 
     @Override
-    public Observable<String> createJob(TitusJobSpec jobSpec) {
+    public Observable<String> createJob(TitusJobSpec originalJobSpec) {
         return newObservable(subscriber -> {
+            final TitusJobSpec jobSpec = cellDecorator.ensureCellInfo(originalJobSpec);
             final List<Parameter> parameters = TitusJobSpec.getParameters(jobSpec);
 
             JobSla jobSla = new JobSla(

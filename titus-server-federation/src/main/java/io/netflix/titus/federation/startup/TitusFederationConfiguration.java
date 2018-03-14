@@ -8,4 +8,7 @@ public interface TitusFederationConfiguration {
 
     @DefaultValue("cell1=hostName1:7001;cell2=hostName2:7002")
     String getCells();
+
+    @DefaultValue("dev")
+    String getStack();
 }

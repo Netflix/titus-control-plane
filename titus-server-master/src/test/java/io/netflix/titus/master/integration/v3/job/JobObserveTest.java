@@ -41,6 +41,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.job.CellAssertions.assertCellInfo;
 import static io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.completeTask;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.jobAccepted;
@@ -95,7 +96,11 @@ public class JobObserveTest extends BaseIntegrationTest {
         jobsScenarioBuilder.takeJob(0).template(ScenarioTemplates.killV2Job());
         jobsScenarioBuilder.takeJob(1).template(ScenarioTemplates.killJob());
 
-        assertThat(eventObserver.getEmittedItems()).hasSize(16);
+        List<JobChangeNotification> emittedItems = eventObserver.getEmittedItems();
+        assertThat(emittedItems).hasSize(16);
+        emittedItems.stream()
+                .filter(n -> n.getNotificationCase() == NotificationCase.JOBUPDATE)
+                .forEach(n -> assertCellInfo(n.getJobUpdate().getJob().getJobDescriptor()));
     }
 
     @Test(timeout = 30_000)

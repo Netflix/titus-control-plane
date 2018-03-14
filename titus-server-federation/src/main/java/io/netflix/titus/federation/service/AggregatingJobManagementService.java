@@ -43,20 +43,24 @@ import io.netflix.titus.api.federation.model.Cell;
 import io.netflix.titus.common.grpc.EmitterWithMultipleSubscriptions;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
+import io.netflix.titus.federation.startup.TitusFederationConfiguration;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
 
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class AggregatingJobManagementService implements JobManagementService {
+    private final TitusFederationConfiguration configuration;
     private final CellConnector connector;
     private final SessionContext sessionContext;
 
     @Inject
-    public AggregatingJobManagementService(CellConnector connector, SessionContext sessionContext) {
+    public AggregatingJobManagementService(TitusFederationConfiguration configuration, CellConnector connector, SessionContext sessionContext) {
+        this.configuration = configuration;
         this.connector = connector;
         this.sessionContext = sessionContext;
     }
@@ -98,7 +102,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<JobChangeNotification> observeJobs() {
-        return createRequestObservable(delegate -> {
+        final Observable<JobChangeNotification> observable = createRequestObservable(delegate -> {
             Emitter<JobChangeNotification> emitter = new EmitterWithMultipleSubscriptions<>(delegate);
             Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(connector, JobManagementServiceGrpc::newStub);
             final CountDownLatch markersEmitted = new CallbackCountDownLatch(clients.size(),
@@ -109,6 +113,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                 createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
             });
         });
+        return observable.map(this::addStackName);
     }
 
     @Override
@@ -129,6 +134,23 @@ public class AggregatingJobManagementService implements JobManagementService {
     @Override
     public Completable killTask(TaskKillRequest taskKillRequest) {
         return Completable.error(notImplemented("killTask"));
+    }
+
+    private JobChangeNotification addStackName(JobChangeNotification notification) {
+        switch (notification.getNotificationCase()) {
+            case JOBUPDATE:
+                JobDescriptor jobDescriptor = notification.getJobUpdate().getJob().getJobDescriptor().toBuilder()
+                        .putAttributes(JOB_ATTRIBUTES_STACK, configuration.getStack())
+                        .build();
+                Job job = notification.getJobUpdate().getJob().toBuilder().setJobDescriptor(jobDescriptor).build();
+                JobChangeNotification.JobUpdate jobUpdate = notification.getJobUpdate().toBuilder().setJob(job).build();
+                return notification.toBuilder().setJobUpdate(jobUpdate).build();
+            case TASKUPDATE:
+                // TODO(fabio): decorate tasks
+                return notification;
+            default:
+                return notification;
+        }
     }
 
     private static StatusException notImplemented(String operation) {

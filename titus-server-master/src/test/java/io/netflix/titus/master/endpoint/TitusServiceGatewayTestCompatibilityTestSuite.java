@@ -81,6 +81,7 @@ public abstract class TitusServiceGatewayTestCompatibilityTestSuite<USER, JOB_SP
         JOB actualJob = jobs.get(0);
         modelAsserts.assertJobId(actualJob, jobId);
         modelAsserts.assertSpecOfJob(actualJob, jobSpec);
+        modelAsserts.assertCellInfo(actualJob, getCellName());
     }
 
     @Test
@@ -253,4 +254,6 @@ public abstract class TitusServiceGatewayTestCompatibilityTestSuite<USER, JOB_SP
     protected abstract EndpointModelAsserts<USER, JOB_SPEC, JOB_TYPE, JOB, TASK, TASK_STATE> createModelAsserts();
 
     protected abstract TitusServiceGateway<USER, JOB_SPEC, JOB_TYPE, JOB, TASK, TASK_STATE> createGateway();
+
+    protected abstract String getCellName();
 }

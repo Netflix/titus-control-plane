@@ -189,16 +189,14 @@ public class DefaultJobManagementService implements JobManagementService {
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         }, configuration.getRequestTimeout());
 
-        observable = observable.onErrorResumeNext(e -> {
+        return observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
                     ((StatusRuntimeException) e).getStatus().getCode() == Status.Code.NOT_FOUND) {
                 return retrieveArchivedJob(jobId);
             } else {
                 return Observable.error(e);
             }
-        });
-
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        }).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -290,7 +288,7 @@ public class DefaultJobManagementService implements JobManagementService {
         return uncompliantClientMatcher.apply(jobClusterId).matches();
     }
 
-    private io.netflix.titus.api.jobmanager.model.job.JobDescriptor addMissingSecurityGroupAndIamRole(io.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+    private io.netflix.titus.api.jobmanager.model.job.JobDescriptor addMissingSecurityGroupAndIamRole(io.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
         SecurityProfile securityProfile = jobDescriptor.getContainer().getSecurityProfile();
         if (!securityProfile.getSecurityGroups().isEmpty() && !securityProfile.getIamRole().isEmpty()) {
             return jobDescriptor;
@@ -364,7 +362,7 @@ public class DefaultJobManagementService implements JobManagementService {
 
     @VisibleForTesting
     static List<Task> deDupTasks(List<Task> activeTasks, List<Task> archivedTasks) {
-        Map<String, Task> archivedTasksMap = archivedTasks.stream().collect(Collectors.toMap(task -> task.getId(), Function.identity()));
+        Map<String, Task> archivedTasksMap = archivedTasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
         List<Task> uniqueActiveTasks = activeTasks.stream().filter(activeTask -> {
             if (archivedTasksMap.containsKey(activeTask.getId())) {
                 logger.warn("Duplicate Task detected (archived) {} - (active) {}", archivedTasksMap.get(activeTask.getId()), activeTask);

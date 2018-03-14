@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static io.netflix.titus.master.integration.v3.job.CellAssertions.assertCellInfo;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.completeTask;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startV2TasksInNewJob;
@@ -40,7 +41,6 @@ import static io.netflix.titus.master.integration.v3.scenario.ScenarioUtil.baseB
 import static io.netflix.titus.master.integration.v3.scenario.ScenarioUtil.baseServiceJobDescriptor;
 import static io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static org.assertj.core.api.Assertions.assertThat;
-
 
 @Category(IntegrationTest.class)
 public class JobDirectQueryTest extends BaseIntegrationTest {
@@ -131,6 +131,7 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
     private void testFindBatchJob(String jobId) {
         Job job = client.findJob(JobId.newBuilder().setId(jobId).build());
         assertThat(job.getId()).isEqualTo(jobId);
+        assertCellInfo(job.getJobDescriptor());
     }
 
     @Test(timeout = 30_000)
@@ -147,6 +148,7 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
         Job job = client.findJob(JobId.newBuilder().setId(jobId).build());
         assertThat(job.getId()).isEqualTo(jobId);
         assertThat(job.getJobDescriptor().getContainer().getResources().getAllocateIP()).isTrue();
+        assertCellInfo(job.getJobDescriptor());
     }
 
     @Test(timeout = 30_000)

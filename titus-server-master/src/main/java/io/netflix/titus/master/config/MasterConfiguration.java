@@ -24,6 +24,10 @@ public interface MasterConfiguration extends CoreConfiguration {
     @PropertyName(name = "region")
     String getRegion();
 
+    @PropertyName(name = "titus.master.cellName")
+    @DefaultValue("dev")
+    String getCellName();
+
     @PropertyName(name = "titus.master.apiProxyPort")
     @DefaultValue("7001")
     int getApiProxyPort();

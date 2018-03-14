@@ -49,6 +49,8 @@ import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.RegExpExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.master.endpoint.common.CellDecorator;
+import io.netflix.titus.master.endpoint.common.CellInfoResolver;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
 import io.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -72,6 +74,7 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     private final AgentManagementService agentManagementService;
     private final ApplicationSlaManagementService capacityGroupService;
     private final GrpcEndpointConfiguration configuration;
+    private final CellDecorator cellDecorator;
 
     private final Function<String, Matcher> whiteListJobClusterInfoMatcher;
     private final Function<String, Matcher> blackListJobClusterInfoMatcher;
@@ -83,9 +86,11 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
             @Named("grpcToV3Engine") GrpcTitusServiceGateway v3EngineGateway,
             AgentManagementService agentManagementService,
             ApplicationSlaManagementService capacityGroupService,
-            GrpcEndpointConfiguration configuration) {
+            GrpcEndpointConfiguration configuration,
+            CellInfoResolver cellInfoResolver) {
         this.v2EngineGateway = v2EngineGateway;
         this.v3EngineGateway = v3EngineGateway;
+        this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
         this.agentManagementService = agentManagementService;
         this.capacityGroupService = capacityGroupService;
         this.configuration = configuration;
@@ -124,7 +129,8 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
             }
         }
 
-        return isV3Enabled(jobDescriptor) ? v3EngineGateway.createJob(jobDescriptor) : v2EngineGateway.createJob(jobDescriptor);
+        final JobDescriptor withCellInfo = cellDecorator.ensureCellInfo(jobDescriptor);
+        return isV3Enabled(withCellInfo) ? v3EngineGateway.createJob(withCellInfo) : v2EngineGateway.createJob(withCellInfo);
     }
 
     private Tier findTier(io.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {

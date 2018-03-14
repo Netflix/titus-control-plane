@@ -50,8 +50,7 @@ public class DefaultJobManagementServiceTest {
         List<Task> tasks = DefaultJobManagementService.deDupTasks(activeTasks, archivedTasks);
         assertThat(tasks.size()).isEqualTo(4);
 
-        List<String> taskIds = tasks.stream().map(task -> task.getId()).collect(Collectors.toList());
-        Collections.sort(taskIds);
+        List<String> taskIds = tasks.stream().map(Task::getId).sorted().collect(Collectors.toList());
         assertThat(taskIds).isEqualTo(expectedIdList);
 
         // disjoint lists
@@ -65,7 +64,7 @@ public class DefaultJobManagementServiceTest {
 
         tasks = DefaultJobManagementService.deDupTasks(activeTasks, archivedTasks);
         assertThat(tasks.size()).isEqualTo(4);
-        taskIds = tasks.stream().map(task -> task.getId()).collect(Collectors.toList());
+        taskIds = tasks.stream().map(Task::getId).collect(Collectors.toList());
         Collections.sort(taskIds);
         assertThat(taskIds).isEqualTo(expectedIdList);
 
