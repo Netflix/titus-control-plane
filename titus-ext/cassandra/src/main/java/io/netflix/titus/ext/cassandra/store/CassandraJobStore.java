@@ -210,7 +210,7 @@ public class CassandraJobStore implements JobStore {
                                                 jobIds.add(effectiveJobId);
                                             }
                                             String phantomId = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.PhantomJobIds.name(), jobId);
-                                            if (phantomId != null) {
+                                            if (phantomId != null && !phantomId.equals(jobId)) {
                                                 jobIds.add(phantomId);
                                             }
                                         } else {
@@ -371,7 +371,7 @@ public class CassandraJobStore implements JobStore {
                                 effectiveTaskIds.add(effectiveTaskId);
                             }
                             String phantomId = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.PhantomTaskIds.name(), taskId);
-                            if (phantomId != null) {
+                            if (phantomId != null && !phantomId.equals(taskId)) {
                                 effectiveTaskIds.add(phantomId);
                             }
                             return effectiveTaskIds.stream();
