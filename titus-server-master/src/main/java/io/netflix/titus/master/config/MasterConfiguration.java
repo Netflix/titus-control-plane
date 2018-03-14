@@ -142,8 +142,8 @@ public interface MasterConfiguration extends CoreConfiguration {
     int getMaxDisk();
 
     @PropertyName(name = "titus.jobspec.network.mbps.max")
-    @DefaultValue("6000")
-        // r3.8xl limit
+    @DefaultValue("15000")
+        // r4.16xl limit
     int getMaxNetworkMbps();
 
     @PropertyName(name = "titus.jobspec.batch.instances.max")
