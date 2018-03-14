@@ -47,6 +47,14 @@ public interface SchedulerConfiguration {
     /**
      * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.
      *
+     * @return whether or not to use the default fenzo network interface allocation strategy.
+     */
+    @DefaultValue("true")
+    boolean isFenzoNetworkInterfaceAllocationEnabled();
+
+    /**
+     * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.
+     *
      * @return whether or not to use an optimizing algorithm for network interface allocation
      */
     @DefaultValue("false")
