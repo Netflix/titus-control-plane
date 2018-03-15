@@ -114,4 +114,11 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("10")
     int getDefaultKillWaitSeconds();
+
+    /**
+     * @return Alternative location to fetch executor from. If set, the master will populate the command info to use this URI
+     * as opposed to the on-host executor
+     */
+    @DefaultValue("")
+    String getExecutorUri();
 }

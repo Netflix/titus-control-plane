@@ -93,8 +93,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         String taskId = task.getId();
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
 
-        Protos.CommandInfo commandInfo = Protos.CommandInfo.newBuilder().setValue(config.pathToTitusExecutor()).build();
-        Protos.ExecutorInfo executorInfo = newExecutorInfo(taskId, attributesMap, commandInfo);
+        Protos.ExecutorInfo executorInfo = newExecutorInfo(taskId, attributesMap);
         Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID);
         taskInfoBuilder = setupPrimaryResources(taskInfoBuilder, fenzoTask);
 
@@ -230,17 +229,39 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getNetworkMbps())));
     }
 
-    private Protos.ExecutorInfo newExecutorInfo(String taskId,
-                                                Map<String, String> attributesMap,
-                                                Protos.CommandInfo commandInfo) {
+    private Protos.CommandInfo newCommandInfo(boolean executorPerTask) {
+        final Protos.CommandInfo.URI.Builder uriBuilder = Protos.CommandInfo.URI.newBuilder();
+        final Protos.CommandInfo.Builder commandInfoBuilder = Protos.CommandInfo.newBuilder();
+        final String executorUri = jobManagerConfiguration.getExecutorUri();
 
+        // Using a special executor is only supported if executor per task mode is enabled
+        if (executorPerTask && !executorUri.isEmpty()) {
+            commandInfoBuilder.setShell(false);
+            commandInfoBuilder.setValue(config.titusExecutorCommand());
+            uriBuilder.setValue(executorUri);
+            uriBuilder.setExtract(true);
+            uriBuilder.setCache(true);
+            commandInfoBuilder.addUris(uriBuilder.build());
+        } else {
+            commandInfoBuilder.setValue(config.pathToTitusExecutor());
+        }
+
+        return commandInfoBuilder.build();
+    }
+
+    private Protos.ExecutorInfo newExecutorInfo(String taskId,
+                                                Map<String, String> attributesMap) {
+        // TODO: Deprecate single executor per machine
         boolean executorPerTask = attributesMap.containsKey(EXECUTOR_PER_TASK_LABEL);
         String executorName = LEGACY_EXECUTOR_NAME;
         String executorId = LEGACY_EXECUTOR_NAME;
+        final Protos.CommandInfo commandInfo = newCommandInfo(executorPerTask);
+
         if (executorPerTask) {
             executorName = EXECUTOR_PER_TASK_EXECUTOR_NAME;
             executorId = EXECUTOR_PER_TASK_EXECUTOR_NAME + "-" + taskId;
         }
+
 
         return Protos.ExecutorInfo.newBuilder()
                 .setExecutorId(Protos.ExecutorID.newBuilder().setValue(executorId).build())

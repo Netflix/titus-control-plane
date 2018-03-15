@@ -60,6 +60,10 @@ public interface MasterConfiguration extends CoreConfiguration {
     @DefaultValue("/apps/titus-executor/bin/run")
     String pathToTitusExecutor();
 
+    @PropertyName(name = "mesos.titus.executorCommand")
+    @DefaultValue("./titus-executor/bin/run")
+    String titusExecutorCommand();
+
     @PropertyName(name = "titus.master.active.slave.attribute.name")
     @DefaultValue("asg")
     String getActiveSlaveAttributeName();
