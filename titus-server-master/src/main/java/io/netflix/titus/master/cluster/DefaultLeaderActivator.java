@@ -22,7 +22,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.inject.Injector;
-import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import io.netflix.titus.common.framework.fit.FitFramework;
@@ -58,8 +57,8 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     private final Clock clock;
     private final ActivationLifecycle activationLifecycle;
 
-    private final Gauge isLeaderGauge;
-    private final Gauge isActivatedGauge;
+    private volatile boolean leader;
+    private volatile boolean activated;
 
     private volatile long electionTimestamp = -1;
     private volatile long activationStartTimestamp = -1;
@@ -79,10 +78,13 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
 
         Registry registry = titusRuntime.getRegistry();
 
-        this.isLeaderGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isLeaderGauge");
-        this.isActivatedGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isActivatedGauge");
-        isLeaderGauge.set(0);
-        isActivatedGauge.set(0);
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "isLeaderGauge")
+                .monitorValue(this, self -> leader ? 1 : 0);
+
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "isActivatedGauge")
+                .monitorValue(this, self -> activated ? 1 : 0);
 
         PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_LEADER + "activationTime")
@@ -130,25 +132,24 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
 
     @Override
     public boolean isLeader() {
-        State state = stateRef.get();
-        return state == State.Leader || state == State.StartedLeader;
+        return leader;
     }
 
     @Override
     public boolean isActivated() {
-        return isActivatedGauge.value() > 0;
+        return activated;
     }
 
     @Override
     public void becomeLeader() {
         logger.info("Becoming leader now");
         if (stateRef.compareAndSet(State.Starting, State.Leader)) {
-            isLeaderGauge.set(1);
+            leader = true;
             electionTimestamp = clock.wallTime();
             return;
         }
         if (stateRef.compareAndSet(State.Started, State.StartedLeader)) {
-            isLeaderGauge.set(1);
+            leader = true;
             electionTimestamp = clock.wallTime();
             activate();
         }
@@ -158,8 +159,8 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     @Override
     public void stopBeingLeader() {
         logger.info("Asked to stop being leader now");
-        isLeaderGauge.set(0);
-        isActivatedGauge.set(0);
+        leader = false;
+        activated = false;
 
         if (!isLeader()) {
             logger.warn("Unexpected to be told to stop being leader when we haven't entered leader mode before, ignoring.");
@@ -204,7 +205,7 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
             System.exit(-1);
         }
 
-        this.isActivatedGauge.set(1);
+        this.activated = true;
         this.activationEndTimestamp = clock.wallTime();
         this.activationTime = activationEndTimestamp - activationStartTimestamp;
     }
