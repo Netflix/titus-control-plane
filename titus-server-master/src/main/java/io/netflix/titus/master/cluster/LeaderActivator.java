@@ -23,7 +23,9 @@ public interface LeaderActivator {
 
     String COMPONENT = "clusterManager";
 
-    long getElectionTime();
+    long getElectionTimestamp();
+
+    long getActivationEndTimestamp();
 
     long getActivationTime();
 

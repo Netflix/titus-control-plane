@@ -55,14 +55,15 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     private final AtomicReference<State> stateRef = new AtomicReference<>(State.Starting);
 
     private final Injector injector;
+    private final Clock clock;
     private final ActivationLifecycle activationLifecycle;
 
     private final Gauge isLeaderGauge;
     private final Gauge isActivatedGauge;
-    private final Gauge activationTimeGauge;
 
-    private volatile boolean activated;
-    private volatile long electionTime = -1;
+    private volatile long electionTimestamp = -1;
+    private volatile long activationStartTimestamp = -1;
+    private volatile long activationEndTimestamp = -1;
     private volatile long activationTime = -1;
 
     private final Optional<FitInjection> beforeActivationFitInjection;
@@ -74,16 +75,22 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
                                   TitusRuntime titusRuntime) {
         this.injector = injector;
         this.activationLifecycle = activationLifecycle;
+        this.clock = titusRuntime.getClock();
 
         Registry registry = titusRuntime.getRegistry();
+
         this.isLeaderGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isLeaderGauge");
         this.isActivatedGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isActivatedGauge");
-        this.activationTimeGauge = registry.gauge(MetricConstants.METRIC_LEADER + "activationTime");
+        isLeaderGauge.set(0);
+        isActivatedGauge.set(0);
 
-        Clock clock = titusRuntime.getClock();
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "activationTime")
+                .monitorValue(this, self -> getActivationTime());
+
         PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_LEADER + "inActiveStateTime")
-                .monitorValue(this, self -> activated ? clock.wallTime() - activationTime : 0L);
+                .monitorValue(this, self -> isActivated() ? clock.wallTime() - activationEndTimestamp : 0L);
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
@@ -101,13 +108,24 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     }
 
     @Override
-    public long getElectionTime() {
-        return electionTime;
+    public long getElectionTimestamp() {
+        return electionTimestamp;
+    }
+
+    @Override
+    public long getActivationEndTimestamp() {
+        return activationEndTimestamp;
     }
 
     @Override
     public long getActivationTime() {
-        return activationTime;
+        if (isActivated()) {
+            return activationTime;
+        }
+        if (!isLeader()) {
+            return -1;
+        }
+        return clock.wallTime() - activationStartTimestamp;
     }
 
     @Override
@@ -118,7 +136,7 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
 
     @Override
     public boolean isActivated() {
-        return activated;
+        return isActivatedGauge.value() > 0;
     }
 
     @Override
@@ -126,12 +144,12 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
         logger.info("Becoming leader now");
         if (stateRef.compareAndSet(State.Starting, State.Leader)) {
             isLeaderGauge.set(1);
-            electionTime = System.currentTimeMillis();
+            electionTimestamp = clock.wallTime();
             return;
         }
         if (stateRef.compareAndSet(State.Started, State.StartedLeader)) {
             isLeaderGauge.set(1);
-            electionTime = System.currentTimeMillis();
+            electionTimestamp = clock.wallTime();
             activate();
         }
         logger.warn("Unexpected to be told to enter leader mode more than once, ignoring.");
@@ -168,6 +186,8 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     }
 
     private void activate() {
+        this.activationStartTimestamp = clock.wallTime();
+
         beforeActivationFitInjection.ifPresent(i -> i.beforeImmediate("beforeActivation"));
 
         try {
@@ -183,9 +203,9 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
         } catch (Throwable e) {
             System.exit(-1);
         }
-        isActivatedGauge.set(1);
-        activated = true;
-        activationTime = System.currentTimeMillis();
-        activationTimeGauge.set(activationLifecycle.getActivationTimeMs());
+
+        this.isActivatedGauge.set(1);
+        this.activationEndTimestamp = clock.wallTime();
+        this.activationTime = activationEndTimestamp - activationStartTimestamp;
     }
 }

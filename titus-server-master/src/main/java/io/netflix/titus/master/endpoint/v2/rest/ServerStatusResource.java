@@ -74,7 +74,7 @@ public class ServerStatusResource {
             );
         }
 
-        boolean active = activationLifecycle.getActivationTimeMs() != -1;
+        boolean active = leaderActivator.isActivated();
 
         List<ServerStatusRepresentation.ServiceActivation> serviceActivationTimes = activationLifecycle.getServiceActionTimesMs().stream()
                 .sorted((first, second) -> Long.compare(second.getRight(), first.getRight()))
@@ -89,9 +89,9 @@ public class ServerStatusResource {
                 true,
                 active,
                 DateTimeExt.toTimeUnitString(uptime),
-                DateTimeExt.toUtcDateTimeString(leaderActivator.getElectionTime()),
-                DateTimeExt.toUtcDateTimeString(leaderActivator.getActivationTime()),
-                active ? DateTimeExt.toTimeUnitString(activationLifecycle.getActivationTimeMs()) : NOT_APPLICABLE,
+                DateTimeExt.toUtcDateTimeString(leaderActivator.getElectionTimestamp()),
+                DateTimeExt.toUtcDateTimeString(leaderActivator.getActivationEndTimestamp()),
+                active ? DateTimeExt.toTimeUnitString(leaderActivator.getActivationTime()) : NOT_APPLICABLE,
                 serviceActivationTimes,
                 serviceActivationOrder
         );

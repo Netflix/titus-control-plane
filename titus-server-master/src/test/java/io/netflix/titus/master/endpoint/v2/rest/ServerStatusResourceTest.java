@@ -66,14 +66,12 @@ public class ServerStatusResourceTest {
     public void testActivatedServer() throws Exception {
         when(leaderActivator.isLeader()).thenReturn(true);
         when(leaderActivator.isActivated()).thenReturn(true);
-        when(activationLifecycle.getActivationTimeMs()).thenReturn(100L);
         when(activationLifecycle.getServiceActionTimesMs()).thenReturn(Collections.singletonList(Pair.of("myService", 90L)));
 
         ServerStatusRepresentation result = client.doGET(ServerStatusResource.PATH_API_V2_STATUS, ServerStatusRepresentation.class);
 
         assertThat(result.isLeader()).isTrue();
         assertThat(result.isActive()).isTrue();
-        assertThat(result.getActivationTime()).isEqualTo("100ms");
         assertThat(result.getServiceActivationTimes()).hasSize(1);
         assertThat(result.getServiceActivationTimes().get(0).getDuration()).isEqualTo("90ms");
         assertThat(result.getServiceActivationOrder()).hasSize(1);
