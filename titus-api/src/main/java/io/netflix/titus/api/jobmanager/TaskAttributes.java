@@ -20,21 +20,23 @@ public class TaskAttributes {
     /*
      * Agent attributes.
      */
-    public static String TASK_ATTRIBUTES_AGENT_REGION = "agent.region";
-    public static String TASK_ATTRIBUTES_AGENT_ZONE = "agent.zone";
-    public static String TASK_ATTRIBUTES_AGENT_HOST = "agent.host";
-    public static String TASK_ATTRIBUTES_AGENT_INSTANCE_ID = "agent.instanceId";
+    public static final String TASK_ATTRIBUTES_AGENT_REGION = "agent.region";
+    public static final String TASK_ATTRIBUTES_AGENT_ZONE = "agent.zone";
+    public static final String TASK_ATTRIBUTES_AGENT_HOST = "agent.host";
+    public static final String TASK_ATTRIBUTES_AGENT_INSTANCE_ID = "agent.instanceId";
 
     /*
      * Task attributes.
      */
-    public static String TASK_ATTRIBUTES_TASK_INDEX = "task.index";
-    public static String TASK_ATTRIBUTES_TASK_RESUBMIT_OF = "task.resubmitOf";
-    public static String TASK_ATTRIBUTES_TASK_ORIGINAL_ID = "task.originalId";
-    public static String TASK_ATTRIBUTES_V2_TASK_ID = "v2.taskId";
-    public static String TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID = "v2.taskInstanceId";
-    public static String TASK_ATTRIBUTES_RESUBMIT_NUMBER = "task.resubmitNumber";
-    public static String TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER = "task.systemResubmitNumber";
-    public static String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
-    public static String TASK_ATTRIBUTES_RETRY_DELAY = "task.retryDelay";
+    public static final String TASK_ATTRIBUTES_TASK_INDEX = "task.index";
+    public static final String TASK_ATTRIBUTES_TASK_RESUBMIT_OF = "task.resubmitOf";
+    public static final String TASK_ATTRIBUTES_TASK_ORIGINAL_ID = "task.originalId";
+    public static final String TASK_ATTRIBUTES_V2_TASK_ID = "v2.taskId";
+    public static final String TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID = "v2.taskInstanceId";
+    public static final String TASK_ATTRIBUTES_RESUBMIT_NUMBER = "task.resubmitNumber";
+    public static final String TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER = "task.systemResubmitNumber";
+    public static final String TASK_ATTRIBUTES_RETRY_DELAY = "task.retryDelay";
+    public static final String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
+    public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_ID = "task.networkInterfaceId";
+    public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX = "task.networkInterfaceIndex";
 }

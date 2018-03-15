@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,7 +43,6 @@ import io.netflix.titus.api.json.ObjectMappers;
 import io.netflix.titus.api.model.ApplicationSLA;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -112,17 +112,28 @@ public final class JobManagerUtil {
 
             final Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
             Task newTaskWithPlacementData = detailsOpt.map(details -> {
-                if (details.getNetworkConfiguration() != null && !StringExt.isEmpty(details.getNetworkConfiguration().getIpAddress())) {
-                    return newTask.toBuilder()
-                            .withTaskContext(CollectionsExt.copyAndAdd(
-                                    newTask.getTaskContext(),
-                                    TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, details.getNetworkConfiguration().getIpAddress()
-                            )).build();
+                if (details.getNetworkConfiguration() != null) {
+
+                    Map<String, String> newContext = new HashMap<>(newTask.getTaskContext());
+                    BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
+
+                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, details.getNetworkConfiguration().getIpAddress());
+                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, details.getNetworkConfiguration().getEniID());
+                    parseEniResourceId(details.getNetworkConfiguration().getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
+
+                    return newTask.toBuilder().withTaskContext(newContext).build();
                 }
                 return newTask;
             }).orElse(newTask);
             return Optional.of(newTaskWithPlacementData);
         };
+    }
+
+    public static Optional<String> parseEniResourceId(String resourceId) {
+        if (resourceId == null || !resourceId.startsWith("resource-eni-")) {
+            return Optional.empty();
+        }
+        return Optional.of(resourceId.substring("resource-eni-".length()));
     }
 
     public static Function<Task, Task> newTaskLaunchConfigurationUpdater(String zoneAttributeName,
