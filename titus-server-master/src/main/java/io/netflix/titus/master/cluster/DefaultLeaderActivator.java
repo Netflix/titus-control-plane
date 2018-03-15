@@ -16,18 +16,22 @@
 
 package io.netflix.titus.master.cluster;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.inject.Injector;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
+import io.netflix.titus.common.framework.fit.FitFramework;
+import io.netflix.titus.common.framework.fit.FitInjection;
+import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.guice.ActivationLifecycle;
 import io.netflix.titus.common.util.guice.ContainerEventBus;
 import io.netflix.titus.common.util.guice.ContainerEventBus.ContainerEventListener;
 import io.netflix.titus.common.util.guice.ContainerEventBus.ContainerStartedEvent;
+import io.netflix.titus.common.util.time.Clock;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.scheduler.SchedulingService;
 import org.slf4j.Logger;
@@ -50,43 +54,85 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     private final AtomicReference<State> stateRef = new AtomicReference<>(State.Starting);
 
     private final Injector injector;
+    private final Clock clock;
     private final ActivationLifecycle activationLifecycle;
 
-    private final AtomicInteger isLeaderGauge;
-    private final AtomicInteger isActivatedGauge;
-    private final AtomicLong activationTimeGauge;
-
+    private volatile boolean leader;
     private volatile boolean activated;
-    private volatile long electionTime = -1;
+
+    private volatile long electionTimestamp = -1;
+    private volatile long activationStartTimestamp = -1;
+    private volatile long activationEndTimestamp = -1;
     private volatile long activationTime = -1;
+
+    private final Optional<FitInjection> beforeActivationFitInjection;
 
     @Inject
     public DefaultLeaderActivator(Injector injector,
                                   ContainerEventBus eventBus,
                                   ActivationLifecycle activationLifecycle,
-                                  Registry registry) {
+                                  TitusRuntime titusRuntime) {
         this.injector = injector;
         this.activationLifecycle = activationLifecycle;
-        this.isLeaderGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isLeaderGauge", new AtomicInteger());
-        this.isActivatedGauge = registry.gauge(MetricConstants.METRIC_LEADER + "isActivatedGauge", new AtomicInteger());
-        this.activationTimeGauge = registry.gauge(MetricConstants.METRIC_LEADER + "activationTime", new AtomicLong());
+        this.clock = titusRuntime.getClock();
+
+        Registry registry = titusRuntime.getRegistry();
+
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "isLeaderGauge")
+                .monitorValue(this, self -> leader ? 1 : 0);
+
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "isActivatedGauge")
+                .monitorValue(this, self -> activated ? 1 : 0);
+
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "activationTime")
+                .monitorValue(this, self -> getActivationTime());
+
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_LEADER + "inActiveStateTime")
+                .monitorValue(this, self -> isActivated() ? clock.wallTime() - activationEndTimestamp : 0L);
+
+        FitFramework fit = titusRuntime.getFitFramework();
+        if (fit.isActive()) {
+            FitInjection beforeActivationFitInjection = fit.newFitInjectionBuilder("beforeActivation")
+                    .withDescription("Inject failures after the node becomes the leader, but before the activation process is started")
+                    .build();
+            fit.getRootComponent().getChild(COMPONENT).addInjection(beforeActivationFitInjection);
+
+            this.beforeActivationFitInjection = Optional.of(beforeActivationFitInjection);
+        } else {
+            this.beforeActivationFitInjection = Optional.empty();
+        }
+
         eventBus.registerListener(this);
     }
 
     @Override
-    public long getElectionTime() {
-        return electionTime;
+    public long getElectionTimestamp() {
+        return electionTimestamp;
+    }
+
+    @Override
+    public long getActivationEndTimestamp() {
+        return activationEndTimestamp;
     }
 
     @Override
     public long getActivationTime() {
-        return activationTime;
+        if (isActivated()) {
+            return activationTime;
+        }
+        if (!isLeader()) {
+            return -1;
+        }
+        return clock.wallTime() - activationStartTimestamp;
     }
 
     @Override
     public boolean isLeader() {
-        State state = stateRef.get();
-        return state == State.Leader || state == State.StartedLeader;
+        return leader;
     }
 
     @Override
@@ -98,13 +144,13 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     public void becomeLeader() {
         logger.info("Becoming leader now");
         if (stateRef.compareAndSet(State.Starting, State.Leader)) {
-            isLeaderGauge.set(1);
-            electionTime = System.currentTimeMillis();
+            leader = true;
+            electionTimestamp = clock.wallTime();
             return;
         }
         if (stateRef.compareAndSet(State.Started, State.StartedLeader)) {
-            isLeaderGauge.set(1);
-            electionTime = System.currentTimeMillis();
+            leader = true;
+            electionTimestamp = clock.wallTime();
             activate();
         }
         logger.warn("Unexpected to be told to enter leader mode more than once, ignoring.");
@@ -113,8 +159,8 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     @Override
     public void stopBeingLeader() {
         logger.info("Asked to stop being leader now");
-        isLeaderGauge.set(0);
-        isActivatedGauge.set(0);
+        leader = false;
+        activated = false;
 
         if (!isLeader()) {
             logger.warn("Unexpected to be told to stop being leader when we haven't entered leader mode before, ignoring.");
@@ -141,11 +187,26 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     }
 
     private void activate() {
-        activationLifecycle.activate();
-        injector.getInstance(SchedulingService.class).startScheduling();
-        isActivatedGauge.set(1);
-        activated = true;
-        activationTime = System.currentTimeMillis();
-        activationTimeGauge.set(activationLifecycle.getActivationTimeMs());
+        this.activationStartTimestamp = clock.wallTime();
+
+        beforeActivationFitInjection.ifPresent(i -> i.beforeImmediate("beforeActivation"));
+
+        try {
+            try {
+                activationLifecycle.activate();
+                injector.getInstance(SchedulingService.class).startScheduling();
+            } catch (Exception e) {
+                stopBeingLeader();
+
+                // As stopBeingLeader method not always terminates the process, lets make sure it does.
+                System.exit(-1);
+            }
+        } catch (Throwable e) {
+            System.exit(-1);
+        }
+
+        this.activated = true;
+        this.activationEndTimestamp = clock.wallTime();
+        this.activationTime = activationEndTimestamp - activationStartTimestamp;
     }
 }
