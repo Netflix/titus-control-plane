@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Strings;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import io.netflix.titus.api.jobmanager.TaskAttributes;
@@ -634,19 +635,14 @@ public class TaskDocument {
 
     private static void extractNetworkConfigurationData(TitusExecutorDetails titusExecutorDetails, TaskDocument taskDocument) {
         TitusExecutorDetails.NetworkConfiguration networkConfiguration = titusExecutorDetails.getNetworkConfiguration();
-        taskDocument.networkInterfaceId = StringExt.isNotEmpty(networkConfiguration.getEniID()) ? networkConfiguration.getEniID() :  "";
+        taskDocument.networkInterfaceId = Strings.nullToEmpty(networkConfiguration.getEniID());
         taskDocument.networkInterfaceIndex = JobManagerUtil.parseEniResourceId(networkConfiguration.getResourceID()).orElse("");
-        taskDocument.containerIp = StringExt.isNotEmpty(networkConfiguration.getIpAddress()) ? networkConfiguration.getIpAddress() : "";
+        taskDocument.containerIp = Strings.nullToEmpty(networkConfiguration.getIpAddress());
     }
 
     private static void extractNetworkConfigurationData(Map<String, String> taskContext, TaskDocument taskDocument) {
-        taskDocument.networkInterfaceId = StringExt.isNotEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID)) ?
-            taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID) : "";
-
-        taskDocument.containerIp = StringExt.isNotEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)) ?
-                taskContext.get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP) : "";
-
-        taskDocument.networkInterfaceIndex = StringExt.isNotEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX)) ?
-                taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX) : "";
+        taskDocument.networkInterfaceId = Strings.nullToEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID));
+        taskDocument.containerIp = Strings.nullToEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP));
+        taskDocument.networkInterfaceIndex = Strings.nullToEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX));
     }
 }
