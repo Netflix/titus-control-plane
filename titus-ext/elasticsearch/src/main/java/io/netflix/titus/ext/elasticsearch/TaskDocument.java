@@ -19,13 +19,16 @@ package io.netflix.titus.ext.elasticsearch;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
@@ -45,8 +48,24 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters;
+import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import io.netflix.titus.master.mesos.TitusExecutorDetails;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskDocument {
+    private static final Logger logger = LoggerFactory.getLogger(TaskDocument.class);
+    private static final String NETWORK_CONFIG_IP_ADDRESS = "ipAddress";
+    private static final String NETWORK_CONFIG_INTERFACE_ID = "interfaceId";
+    private static final String NETWORK_CONFIG_INTERFACE_INDEX = "interfaceIndex";
+
+    private static final Map<String, String> networkConfigurationKeysMap = new HashMap<String, String>() {{
+        put(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, NETWORK_CONFIG_IP_ADDRESS);
+        put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, NETWORK_CONFIG_INTERFACE_ID);
+        put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, NETWORK_CONFIG_INTERFACE_INDEX);
+    }};
+
     private String id;
     private String instanceId;
     private String jobId;
@@ -65,6 +84,7 @@ public class TaskDocument {
     private String state;
     private ComputedFields computedFields;
     private Map<String, String> titusContext;
+    private Map<String, String> networkConfiguration;
 
     /* Job Spec Fields */
     private String name;
@@ -295,6 +315,10 @@ public class TaskDocument {
         return hostInstanceId;
     }
 
+    public Map<String, String> getNetworkConfiguration() {
+        return networkConfiguration;
+    }
+
     public static class ComputedFields {
         Long msFromSubmittedToLaunched;
         Long msFromLaunchedToStarting;
@@ -399,6 +423,12 @@ public class TaskDocument {
         if (instanceId != null) {
             taskDocument.hostInstanceId = instanceId;
         }
+
+        if (v2WorkerMetadata.getStatusData() != null) {
+            Optional<TitusExecutorDetails> titusExecutorDetails = V2GrpcModelConverters.parseTitusExecutorDetails(v2WorkerMetadata.getStatusData());
+            titusExecutorDetails.ifPresent(executorDetails -> taskDocument.networkConfiguration = buildNetworkConfigurationMap(executorDetails));
+        }
+
 
         if (v2WorkerMetadata.getAcceptedAt() > 0) {
             taskDocument.submittedAt = dateFormat.format(new Date(v2WorkerMetadata.getAcceptedAt()));
@@ -526,6 +556,8 @@ public class TaskDocument {
             taskDocument.hostInstanceId = instanceId;
         }
 
+        taskDocument.networkConfiguration = buildNetworkConfigurationMap(taskContext);
+
         long acceptedAt = findTaskStatus(task, TaskState.Accepted).map(ExecutableStatus::getTimestamp).orElse(0L);
         long launchedAt = findTaskStatus(task, TaskState.Launched).map(ExecutableStatus::getTimestamp).orElse(0L);
         long startingAt = findTaskStatus(task, TaskState.StartInitiated).map(ExecutableStatus::getTimestamp).orElse(0L);
@@ -600,5 +632,28 @@ public class TaskDocument {
             default:
                 return TitusTaskState.FAILED;
         }
+    }
+
+    private static Map<String, String> buildNetworkConfigurationMap(TitusExecutorDetails titusExecutorDetails) {
+        TitusExecutorDetails.NetworkConfiguration networkConfiguration = titusExecutorDetails.getNetworkConfiguration();
+        Map<String, String> networkConfigurationMap = new HashMap<>();
+        BiConsumer<String, String> configSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> networkConfigurationMap.put(key, v));
+        configSetter.accept(NETWORK_CONFIG_INTERFACE_ID, networkConfiguration.getEniID());
+        JobManagerUtil.parseEniResourceId(networkConfiguration.getResourceID())
+                .ifPresent(index -> configSetter.accept(NETWORK_CONFIG_INTERFACE_INDEX, index));
+        configSetter.accept(NETWORK_CONFIG_IP_ADDRESS, networkConfiguration.getIpAddress());
+        return networkConfigurationMap;
+    }
+
+    private static Map<String, String> buildNetworkConfigurationMap(Map<String, String> taskContext) {
+        return taskContext.entrySet().stream()
+                .filter(e -> e.getKey().equals(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP) ||
+                        e.getKey().equals(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID) ||
+                        e.getKey().equals(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX))
+                .filter(e -> networkConfigurationKeysMap.containsKey(e.getKey()) && StringExt.isNotEmpty(e.getValue()))
+                .collect(Collectors.toMap(
+                        e -> networkConfigurationKeysMap.get(e.getKey()),
+                        e -> e.getValue())
+                );
     }
 }

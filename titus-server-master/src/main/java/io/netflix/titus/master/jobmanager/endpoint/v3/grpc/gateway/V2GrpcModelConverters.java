@@ -280,7 +280,7 @@ public final class V2GrpcModelConverters {
         return taskBuilder.build();
     }
 
-    private static Optional<TitusExecutorDetails> parseTitusExecutorDetails(Object statusData) {
+    public static Optional<TitusExecutorDetails> parseTitusExecutorDetails(Object statusData) {
         if (statusData == null || !(statusData instanceof Map)) {
             return Optional.empty();
         }
