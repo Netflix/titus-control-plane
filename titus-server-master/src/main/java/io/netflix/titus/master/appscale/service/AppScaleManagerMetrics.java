@@ -1,7 +1,6 @@
 package io.netflix.titus.master.appscale.service;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -11,29 +10,15 @@ import io.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import io.netflix.titus.api.appscale.model.PolicyStatus;
 import io.netflix.titus.api.appscale.service.AutoScalePolicyException;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static io.netflix.titus.common.util.CollectionsExt.asSet;
 
 
 public class AppScaleManagerMetrics {
-    private static Logger logger = LoggerFactory.getLogger(AppScaleManagerMetrics.class);
     private final Id errorMetricId;
     private Registry registry;
     private final AtomicInteger numTargets;
 
 
     private volatile Map<String, SpectatorExt.FsmMetrics<PolicyStatus>> fsmMetricsMap;
-
-    private final Set<PolicyStatus> TRACKED_STATES = asSet(
-            PolicyStatus.Pending,
-            PolicyStatus.Deleting,
-            PolicyStatus.Applied,
-            PolicyStatus.Error,
-            PolicyStatus.Deleted
-    );
-
 
     public AppScaleManagerMetrics(Registry registry) {
         errorMetricId = registry.createId(METRIC_APPSCALE_ERRORS);
@@ -51,8 +36,14 @@ public class AppScaleManagerMetrics {
     }
 
     private SpectatorExt.FsmMetrics<PolicyStatus> getFsmMetricsForPolicy(AutoScalingPolicy autoScalingPolicy) {
-        return fsmMetricsMap.computeIfAbsent(autoScalingPolicy.getRefId(), fsmMetrics ->
-                SpectatorExt.fsmMetrics(TRACKED_STATES, stateIdOf(autoScalingPolicy), policyStatus -> false, registry));
+        return fsmMetricsMap.computeIfAbsent(autoScalingPolicy.getRefId(), fsmMetrics -> {
+            PolicyStatus initialStatus = autoScalingPolicy.getStatus();
+            // TODO Status is null when the scaling policy is created
+            if (initialStatus == null) {
+                initialStatus = PolicyStatus.Pending;
+            }
+            return SpectatorExt.fsmMetrics(stateIdOf(autoScalingPolicy), policyStatus -> false, initialStatus, registry);
+        });
     }
 
 
@@ -68,5 +59,4 @@ public class AppScaleManagerMetrics {
     public void reportErrorForException(AutoScalePolicyException autoScalePolicyException) {
         registry.counter(errorMetricId.withTag("errorCode", autoScalePolicyException.getErrorCode().name())).increment();
     }
-
 }
