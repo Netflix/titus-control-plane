@@ -6,9 +6,9 @@ import java.util.concurrent.ConcurrentMap;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.jobmanager.model.job.Job;
-import io.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
+import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import io.netflix.titus.common.util.spectator.SpectatorExt;
 import io.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
@@ -55,19 +55,18 @@ class V3JobMetricsCollector {
     private class JobMetrics {
 
         private final Id taskRootId;
-        private final boolean serviceJob;
 
         private final ConcurrentMap<String, TaskMetricHolder> taskMetrics = new ConcurrentHashMap<>();
         private final String capacityGroup;
 
         private JobMetrics(Job<?> job) {
             this.capacityGroup = job.getJobDescriptor().getCapacityGroup();
-            this.serviceJob = JobFunctions.isServiceJob(job);
             this.taskRootId = buildTaskRootId(job.getId(), job.getJobDescriptor().getApplicationName());
         }
 
         private void updateTaskMetrics(Task task) {
-            TaskState taskState = task.getStatus().getState();
+            TaskStatus status = task.getStatus();
+            TaskState taskState = status.getState();
             // Do not create counters if task is already terminated
             if (taskState == TaskState.Finished && !taskMetrics.containsKey(task.getId())) {
                 return;
@@ -75,42 +74,37 @@ class V3JobMetricsCollector {
 
             TaskMetricHolder taskMetricH = taskMetrics.computeIfAbsent(task.getId(), myTask -> new TaskMetricHolder(task));
             logger.debug("State transition change for task {}: {}", task.getId(), taskState);
-            taskMetricH.transition(TaskStateReport.of(task.getStatus()));
+            taskMetricH.transition(TaskStateReport.of(status), status.getReasonCode());
         }
 
         private void finish() {
-            taskMetrics.forEach((key, value) -> value.transition(TaskStateReport.Finished));
+            taskMetrics.forEach((key, value) -> value.transition(TaskStateReport.Finished, ""));
             taskMetrics.clear();
         }
 
         private Id buildTaskRootId(String jobId, String applicationName) {
             Id id = registry.createId(METRIC_SCHEDULING_JOB, "t.application", applicationName);
-            if (serviceJob) {
-                id = id.withTag("t.jobId", jobId);
-            }
+            id = id.withTag("t.jobId", jobId);
             id = id.withTag("t.engine", "V3");
             return id;
         }
 
         private Id stateIdOf(Task task) {
-            Id id = taskRootId
-                    .withTag("t.capacityGroup", capacityGroup);
-            if (serviceJob) {
-                id = id.withTag("t.taskOriginalId", task.getOriginalId())
-                        .withTag("t.taskId", task.getId());
-            }
-            return id;
+            return taskRootId
+                    .withTag("t.capacityGroup", capacityGroup)
+                    .withTag("t.taskOriginalId", task.getOriginalId())
+                    .withTag("t.taskId", task.getId());
         }
 
         private class TaskMetricHolder {
             private final SpectatorExt.FsmMetrics<TaskStateReport> stateMetrics;
 
             private TaskMetricHolder(Task task) {
-                this.stateMetrics = SpectatorExt.fsmMetrics(TaskStateReport.setOfAll(), stateIdOf(task), TaskStateReport::isTerminalState, registry);
+                this.stateMetrics = SpectatorExt.fsmMetrics(stateIdOf(task), TaskStateReport::isTerminalState, TaskStateReport.of(task.getStatus()), registry);
             }
 
-            private void transition(TaskStateReport state) {
-                stateMetrics.transition(state);
+            private void transition(TaskStateReport state, String reason) {
+                stateMetrics.transition(state, reason);
             }
         }
     }

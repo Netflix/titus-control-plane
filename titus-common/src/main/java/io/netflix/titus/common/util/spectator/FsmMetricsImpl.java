@@ -16,15 +16,13 @@
 
 package io.netflix.titus.common.util.spectator;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import com.netflix.spectator.api.Counter;
-import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
+import io.netflix.titus.common.util.StringExt;
 
 /**
  * Metrics collector for a Finite State Machine (FSM). It reports the current state of an FSM, and the state transitions.
@@ -34,77 +32,84 @@ import com.netflix.spectator.api.Registry;
  */
 class FsmMetricsImpl<S> implements SpectatorExt.FsmMetrics<S> {
 
-    private final List<StateHolder<S>> stateHolders;
+    private final Function<S, String> nameOf;
+    private final Function<S, Boolean> finalStateEval;
+    private final Registry registry;
+    private final Id baseStateId;
+    private final Id baseUpdatesId;
+
+    private final AtomicReference<StateHolder> currentState;
 
     FsmMetricsImpl(Id rootId,
-                   List<S> trackedStates,
                    Function<S, String> nameOf,
                    Function<S, Boolean> finalStateEval,
+                   S initialState,
                    Registry registry) {
-        Id currentStateId = registry.createId(rootId.name() + "currentState", rootId.tags());
-        Id updatesId = registry.createId(rootId.name() + "updates", rootId.tags());
-        this.stateHolders = trackedStates.stream()
-                .map(s -> {
-                    boolean isFinal = finalStateEval.apply(s);
-                    return isFinal
-                            ? new FinalStateHolder<>(updatesId, nameOf.apply(s), s, registry)
-                            : new TransientStateHolder<>(updatesId, currentStateId, nameOf.apply(s), s, registry);
-                })
-                .collect(Collectors.toList());
+        this.nameOf = nameOf;
+        this.finalStateEval = finalStateEval;
+        this.registry = registry;
+        this.baseStateId = registry.createId(rootId.name() + "currentState", rootId.tags());
+        this.baseUpdatesId = registry.createId(rootId.name() + "updates", rootId.tags());
+        this.currentState = new AtomicReference<>(new StateHolder(initialState, ""));
     }
 
     @Override
     public void transition(S nextState) {
-        stateHolders.forEach(h -> h.moveToState(nextState));
+        transition(nextState, "");
     }
 
-    private interface StateHolder<S> {
-        void moveToState(S nextState);
-    }
-
-    private static class TransientStateHolder<S> implements StateHolder<S> {
-        private final S state;
-        private final Counter stateCounter;
-        private final Gauge currentStateGauge;
-
-        private TransientStateHolder(Id updatesId, Id currentStateId, String stateName, S state, Registry registry) {
-            this.state = state;
-            this.stateCounter = registry.counter(updatesId.withTag("state", stateName));
-            this.currentStateGauge = registry.gauge(currentStateId.withTag("state", stateName));
-            currentStateGauge.set(0.0);
+    @Override
+    public void transition(S nextState, String reason) {
+        boolean isCurrentFinal = finalStateEval.apply(currentState.get().state);
+        if (isCurrentFinal || currentState.get().state == nextState) {
+            return;
         }
+        currentState.getAndSet(new StateHolder(nextState, reason)).leaveState();
+    }
 
-        public void moveToState(S nextState) {
-            if (nextState.equals(state)) {
-                if (currentStateGauge.value() == 0.0) { // Actual transition
-                    stateCounter.increment();
-                    currentStateGauge.set(1.0);
-                }
-            } else {
-                currentStateGauge.set(0.0);
+    enum StateHolderLifecycle {Active, Inactive, Removable}
+
+    private class StateHolder {
+
+        private final Registry registry;
+        private final S state;
+        private final Id currentStateId;
+        private volatile StateHolderLifecycle lifecycle;
+
+        private StateHolder(S state, String reason) {
+            String stateName = nameOf.apply(state);
+            this.state = state;
+            this.lifecycle = StateHolderLifecycle.Active;
+            this.registry = FsmMetricsImpl.this.registry;
+
+            Id currentUpdateId = baseUpdatesId.withTag("state", stateName);
+            if (StringExt.isNotEmpty(reason)) {
+                currentUpdateId = currentUpdateId.withTag("reason", reason);
+            }
+            registry.counter(currentUpdateId).increment();
+
+            this.currentStateId = baseStateId.withTag("state", stateName);
+            if (!finalStateEval.apply(state)) {
+                PolledMeter.using(registry).withId(this.currentStateId).monitorValue(this,
+                        // Be sure to access all fields via 'self' object in this method
+                        self -> {
+                            switch (self.lifecycle) {
+                                case Active:
+                                    return 1;
+                                case Inactive:
+                                    self.lifecycle = StateHolderLifecycle.Removable;
+                                    return 0;
+                            }
+                            // Removable
+                            PolledMeter.remove(self.registry, self.currentStateId);
+                            return 0;
+                        }
+                );
             }
         }
-    }
 
-    private static class FinalStateHolder<S> implements StateHolder<S> {
-        private final S state;
-        private final Counter stateCounter;
-        private final AtomicBoolean currentState;
-
-        private FinalStateHolder(Id updatesId, String stateName, S state, Registry registry) {
-            this.state = state;
-            this.stateCounter = registry.counter(updatesId.withTag("state", stateName));
-            this.currentState = new AtomicBoolean();
-        }
-
-        public void moveToState(S nextState) {
-            if (nextState.equals(state)) {
-                if (!currentState.getAndSet(true)) { // Actual transition
-                    stateCounter.increment();
-                }
-            } else {
-                currentState.set(false);
-            }
+        private void leaveState() {
+            this.lifecycle = StateHolderLifecycle.Inactive;
         }
     }
 }

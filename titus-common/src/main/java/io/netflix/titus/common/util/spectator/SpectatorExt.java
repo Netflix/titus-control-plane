@@ -16,8 +16,6 @@
 
 package io.netflix.titus.common.util.spectator;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -27,8 +25,6 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import rx.Observable;
 
-import static java.util.Arrays.asList;
-
 /**
  * Collection of generic higher level metrics built on top of Spectator.
  */
@@ -36,6 +32,8 @@ public final class SpectatorExt {
 
     public interface FsmMetrics<S> {
         void transition(S nextState);
+
+        void transition(S nextState, String reason);
     }
 
     private SpectatorExt() {
@@ -45,21 +43,11 @@ public final class SpectatorExt {
      * Metric collector for a Finite State Machine (FSM). It reports a current state of an FSM, and the state transitions.
      * If FSM reaches the terminal state, the current state indicators are cleared, to prevent infinite accumulation.
      */
-    public static <E extends Enum<E>> FsmMetrics<E> fsmMetrics(Collection<E> trackedStates,
-                                                               Id rootId,
+    public static <E extends Enum<E>> FsmMetrics<E> fsmMetrics(Id rootId,
                                                                Function<E, Boolean> finalStateEval,
+                                                               E initialState,
                                                                Registry registry) {
-        return new FsmMetricsImpl<>(rootId, new ArrayList<>(trackedStates), Enum::name, finalStateEval, registry);
-    }
-
-    /**
-     * FSM metrics for an enum type (see {@link #fsmMetrics(Collection, Id, Function, Registry)}).
-     */
-    public static <E extends Enum<E>> FsmMetrics<E> fsmMetrics(Class<E> fsmType,
-                                                               Id rootId,
-                                                               Function<E, Boolean> finalStateEval,
-                                                               Registry registry) {
-        return new FsmMetricsImpl<>(rootId, asList(fsmType.getEnumConstants()), Enum::name, finalStateEval, registry);
+        return new FsmMetricsImpl<>(rootId, Enum::name, finalStateEval, initialState, registry);
     }
 
     /**

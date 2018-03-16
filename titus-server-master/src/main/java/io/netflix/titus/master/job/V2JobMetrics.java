@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.model.v2.WorkerNaming;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
@@ -30,6 +31,11 @@ import io.netflix.titus.master.jobmanager.service.TaskStateReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
+import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN;
 import static io.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_JOB;
 
 /**
@@ -66,7 +72,7 @@ public class V2JobMetrics {
         logger.debug("State transition change for task {}: {}", taskId, task.getState());
 
         TaskStateReport taskStateReport = toTaskStateReport(task.getState());
-        taskMetricH.transition(taskStateReport);
+        taskMetricH.transition(taskStateReport, toTaskStateReportReason(task.getState(), task.getReason()));
 
         clearFinishedTasks();
     }
@@ -76,13 +82,25 @@ public class V2JobMetrics {
      */
     private void clearFinishedTasks() {
         taskMetrics.forEach((nextTask, nextMetrics) -> {
-            if (V2JobState.isTerminalState(nextTask.getState())) {
+            V2JobState nextTaskState = nextTask.getState();
+            if (V2JobState.isTerminalState(nextTaskState)) {
                 String nextTaskId = WorkerNaming.getTaskId(nextTask);
-                logger.debug("Removing task {}: {}", nextTaskId, nextTask.getState());
-                nextMetrics.transition(toTaskStateReport(nextTask.getState()));
+                logger.debug("Removing task {}: {}", nextTaskId, nextTaskState);
+                nextMetrics.transition(toTaskStateReport(nextTaskState), toTaskStateReportReason(nextTaskState, nextTask.getReason()));
                 taskMetrics.remove(nextTask);
             }
         });
+    }
+
+    public void finish() {
+        taskMetrics.forEach((task, metrics) -> {
+            if (V2JobState.isTerminalState(task.getState())) {
+                metrics.transition(toTaskStateReport(task.getState()), toTaskStateReportReason(task.getState(), task.getReason()));
+            } else {
+                logger.warn("Job {} finished with task in non-final state {}", task.getJobId(), task.getWorkerInstanceId());
+            }
+        });
+        taskMetrics.clear();
     }
 
     private TaskStateReport toTaskStateReport(V2JobState state) {
@@ -105,15 +123,25 @@ public class V2JobMetrics {
         return TaskStateReport.Failed;
     }
 
-    public void finish() {
-        taskMetrics.forEach((task, metrics) -> {
-            if (V2JobState.isTerminalState(task.getState())) {
-                metrics.transition(toTaskStateReport(task.getState()));
-            } else {
-                logger.warn("Job {} finished with task in non-final state {}", task.getJobId(), task.getWorkerInstanceId());
-            }
-        });
-        taskMetrics.clear();
+    private String toTaskStateReportReason(V2JobState state, JobCompletedReason reason) {
+        if (state != V2JobState.Failed || reason == null) {
+            return "";
+        }
+        switch (reason) {
+            case Normal:
+                return REASON_NORMAL;
+            case Error:
+                return REASON_FAILED;
+            case Lost:
+                return REASON_TASK_LOST;
+            case TombStone:
+            case Killed:
+                return REASON_TASK_KILLED;
+            case Failed:
+                return REASON_FAILED;
+            default:
+                return REASON_UNKNOWN;
+        }
     }
 
     private Id buildTaskRootId(String jobId, String applicationName) {
@@ -126,25 +154,22 @@ public class V2JobMetrics {
     }
 
     private Id stateIdOf(V2WorkerMetadata task) {
-        Id id = taskRootId
+        return taskRootId
                 .withTag("t.taskIndex", Integer.toString(task.getWorkerIndex()))
-                .withTag("t.capacityGroup", capacityGroup);
-        if (serviceJob) {
-            id = id.withTag("t.taskInstanceId", task.getWorkerInstanceId());
-            id = id.withTag("t.taskId", WorkerNaming.getWorkerName(task.getJobId(), task.getWorkerIndex(), task.getWorkerNumber()));
-        }
-        return id;
+                .withTag("t.capacityGroup", capacityGroup)
+                .withTag("t.taskInstanceId", task.getWorkerInstanceId())
+                .withTag("t.taskId", WorkerNaming.getWorkerName(task.getJobId(), task.getWorkerIndex(), task.getWorkerNumber()));
     }
 
     private class TaskMetricHolder {
         private final FsmMetrics<TaskStateReport> stateMetrics;
 
         private TaskMetricHolder(V2WorkerMetadata task) {
-            this.stateMetrics = SpectatorExt.fsmMetrics(TaskStateReport.setOfAll(), stateIdOf(task), TaskStateReport::isTerminalState, registry);
+            this.stateMetrics = SpectatorExt.fsmMetrics(stateIdOf(task), TaskStateReport::isTerminalState, toTaskStateReport(task.getState()), registry);
         }
 
-        private void transition(TaskStateReport state) {
-            stateMetrics.transition(state);
+        private void transition(TaskStateReport state, String reason) {
+            stateMetrics.transition(state, reason);
         }
     }
 }
