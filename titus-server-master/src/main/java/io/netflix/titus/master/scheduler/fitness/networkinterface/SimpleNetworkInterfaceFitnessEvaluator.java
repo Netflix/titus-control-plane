@@ -29,16 +29,18 @@ import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetwork
 /**
  * Prefers to choose network interfaces in the following order:
  * <ul>
+ * <li>bin pack a network interface with running tasks with the same security groups</li>
  * <li>already configured with the correct security groups</li>
  * <li>not in the cache</li>
  * <li>last used as close to or greater than {@link SchedulerConfiguration#getPreferredNetworkInterfaceDelayMs()}</li>
  * </ul>
+ * Note that the scores are scaled to reduce the variance as this score is aggregated with the other fenzo scores.
  */
 public class SimpleNetworkInterfaceFitnessEvaluator implements PreferentialNamedConsumableResourceEvaluator {
 
     // Note that evaluateIdle scores must always be less than evaluate scores or consumable resources will not be re-used.
-    private static final double MIN_BIN_PACKED_SCORE = 0.2;
-    private static final double MAX_BIN_PACKED_SCORE = 1.0;
+    private static final double MIN_BIN_PACKED_SCORE = 0.11;
+    private static final double MAX_BIN_PACKED_SCORE = 0.20;
     private static final double ALREADY_CONFIGURED_SCORE = 0.100;
     private static final double UNKNOWN_SCORE = 0.099;
     private static final double MIN_DELAYED_SCORE = 0.090;
