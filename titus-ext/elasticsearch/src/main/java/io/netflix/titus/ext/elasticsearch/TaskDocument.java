@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
@@ -51,21 +50,8 @@ import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import io.netflix.titus.master.mesos.TitusExecutorDetails;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TaskDocument {
-    private static final Logger logger = LoggerFactory.getLogger(TaskDocument.class);
-    private static final String NETWORK_CONFIG_IP_ADDRESS = "ipAddress";
-    private static final String NETWORK_CONFIG_INTERFACE_ID = "interfaceId";
-    private static final String NETWORK_CONFIG_INTERFACE_INDEX = "interfaceIndex";
-
-    private static final Map<String, String> networkConfigurationKeysMap = new HashMap<String, String>() {{
-        put(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, NETWORK_CONFIG_IP_ADDRESS);
-        put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, NETWORK_CONFIG_INTERFACE_ID);
-        put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, NETWORK_CONFIG_INTERFACE_INDEX);
-    }};
-
     private String id;
     private String instanceId;
     private String jobId;
@@ -84,7 +70,6 @@ public class TaskDocument {
     private String state;
     private ComputedFields computedFields;
     private Map<String, String> titusContext;
-    private Map<String, String> networkConfiguration;
 
     /* Job Spec Fields */
     private String name;
@@ -118,6 +103,11 @@ public class TaskDocument {
     private String jobGroupDetail;
     private String jobGroupSequence;
     private String capacityGroup;
+
+    // Network configuration
+    private String containerIp;
+    private String networkInterfaceId;
+    private String networkInterfaceIndex;
 
     public String getName() {
         return name;
@@ -315,8 +305,16 @@ public class TaskDocument {
         return hostInstanceId;
     }
 
-    public Map<String, String> getNetworkConfiguration() {
-        return networkConfiguration;
+    public String getContainerIp() {
+        return containerIp;
+    }
+
+    public String getNetworkInterfaceId() {
+        return networkInterfaceId;
+    }
+
+    public String getNetworkInterfaceIndex() {
+        return networkInterfaceIndex;
     }
 
     public static class ComputedFields {
@@ -426,7 +424,7 @@ public class TaskDocument {
 
         if (v2WorkerMetadata.getStatusData() != null) {
             Optional<TitusExecutorDetails> titusExecutorDetails = V2GrpcModelConverters.parseTitusExecutorDetails(v2WorkerMetadata.getStatusData());
-            titusExecutorDetails.ifPresent(executorDetails -> taskDocument.networkConfiguration = buildNetworkConfigurationMap(executorDetails));
+            titusExecutorDetails.ifPresent(executorDetails -> extractNetworkConfigurationData(executorDetails, taskDocument));
         }
 
 
@@ -556,7 +554,7 @@ public class TaskDocument {
             taskDocument.hostInstanceId = instanceId;
         }
 
-        taskDocument.networkConfiguration = buildNetworkConfigurationMap(taskContext);
+        extractNetworkConfigurationData(taskContext, taskDocument);
 
         long acceptedAt = findTaskStatus(task, TaskState.Accepted).map(ExecutableStatus::getTimestamp).orElse(0L);
         long launchedAt = findTaskStatus(task, TaskState.Launched).map(ExecutableStatus::getTimestamp).orElse(0L);
@@ -634,26 +632,21 @@ public class TaskDocument {
         }
     }
 
-    private static Map<String, String> buildNetworkConfigurationMap(TitusExecutorDetails titusExecutorDetails) {
+    private static void extractNetworkConfigurationData(TitusExecutorDetails titusExecutorDetails, TaskDocument taskDocument) {
         TitusExecutorDetails.NetworkConfiguration networkConfiguration = titusExecutorDetails.getNetworkConfiguration();
-        Map<String, String> networkConfigurationMap = new HashMap<>();
-        BiConsumer<String, String> configSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> networkConfigurationMap.put(key, v));
-        configSetter.accept(NETWORK_CONFIG_INTERFACE_ID, networkConfiguration.getEniID());
-        JobManagerUtil.parseEniResourceId(networkConfiguration.getResourceID())
-                .ifPresent(index -> configSetter.accept(NETWORK_CONFIG_INTERFACE_INDEX, index));
-        configSetter.accept(NETWORK_CONFIG_IP_ADDRESS, networkConfiguration.getIpAddress());
-        return networkConfigurationMap;
+        taskDocument.networkInterfaceId = StringExt.isNotEmpty(networkConfiguration.getEniID()) ? networkConfiguration.getEniID() :  "";
+        taskDocument.networkInterfaceIndex = JobManagerUtil.parseEniResourceId(networkConfiguration.getResourceID()).orElse("");
+        taskDocument.containerIp = StringExt.isNotEmpty(networkConfiguration.getIpAddress()) ? networkConfiguration.getIpAddress() : "";
     }
 
-    private static Map<String, String> buildNetworkConfigurationMap(Map<String, String> taskContext) {
-        return taskContext.entrySet().stream()
-                .filter(e -> e.getKey().equals(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP) ||
-                        e.getKey().equals(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID) ||
-                        e.getKey().equals(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX))
-                .filter(e -> networkConfigurationKeysMap.containsKey(e.getKey()) && StringExt.isNotEmpty(e.getValue()))
-                .collect(Collectors.toMap(
-                        e -> networkConfigurationKeysMap.get(e.getKey()),
-                        e -> e.getValue())
-                );
+    private static void extractNetworkConfigurationData(Map<String, String> taskContext, TaskDocument taskDocument) {
+        taskDocument.networkInterfaceId = StringExt.isNotEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID)) ?
+            taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID) : "";
+
+        taskDocument.containerIp = StringExt.isNotEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)) ?
+                taskContext.get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP) : "";
+
+        taskDocument.networkInterfaceIndex = StringExt.isNotEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX)) ?
+                taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX) : "";
     }
 }
