@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory;
  * Network interface fitness evaluator. Two strategies are applied depending on the dynamic configuration
  * setting ({@link SchedulerConfiguration#isOptimizingNetworkInterfaceAllocationEnabled()}):
  *
+ * @see DefaultPreferentialNamedConsumableResourceEvaluator
  * @see SimpleNetworkInterfaceFitnessEvaluator
- * @see OptimizedNetworkInterfaceFitnessEvaluator
  */
 
 @Singleton
@@ -41,7 +41,6 @@ public class TitusNetworkInterfaceFitnessEvaluator implements PreferentialNamedC
     private static final Logger logger = LoggerFactory.getLogger(TitusNetworkInterfaceFitnessEvaluator.class);
 
     private final SchedulerConfiguration configuration;
-    private final PreferentialNamedConsumableResourceEvaluator optimizedFitnessEvaluator;
     private final PreferentialNamedConsumableResourceEvaluator simpleFitnessEvaluator;
 
     @Inject
@@ -50,7 +49,6 @@ public class TitusNetworkInterfaceFitnessEvaluator implements PreferentialNamedC
                                                  TitusRuntime titusRuntime) {
         this.configuration = configuration;
 
-        this.optimizedFitnessEvaluator = new OptimizedNetworkInterfaceFitnessEvaluator(cache);
         this.simpleFitnessEvaluator = new SimpleNetworkInterfaceFitnessEvaluator(cache, configuration, titusRuntime.getClock());
     }
 
@@ -59,8 +57,6 @@ public class TitusNetworkInterfaceFitnessEvaluator implements PreferentialNamedC
         double score;
         if (configuration.isFenzoNetworkInterfaceAllocationEnabled()) {
             score = DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
-        } else if (configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
-            score = optimizedFitnessEvaluator.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
         } else {
             score = simpleFitnessEvaluator.evaluateIdle(hostname, resourceName, index, subResourcesNeeded, subResourcesLimit);
         }
@@ -74,8 +70,6 @@ public class TitusNetworkInterfaceFitnessEvaluator implements PreferentialNamedC
         double score;
         if (configuration.isFenzoNetworkInterfaceAllocationEnabled()) {
             score = DefaultPreferentialNamedConsumableResourceEvaluator.INSTANCE.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
-        } else if (configuration.isOptimizingNetworkInterfaceAllocationEnabled()) {
-            score = optimizedFitnessEvaluator.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
         } else {
             score = simpleFitnessEvaluator.evaluate(hostname, resourceName, index, subResourcesNeeded, subResourcesUsed, subResourcesLimit);
         }

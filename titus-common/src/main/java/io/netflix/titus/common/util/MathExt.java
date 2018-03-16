@@ -47,4 +47,32 @@ public class MathExt {
         Preconditions.checkArgument(minRangeValue <= maxRangeValue, "minRangeValue must be less than or equal to maxRangeValue");
         return minRangeValue + (((value - min) * (maxRangeValue - minRangeValue)) / (max - min));
     }
+
+    /**
+     * Return the value if it falls within the range [min, max] otherwise return min if value is less than min or max if value
+     * is greater than max.
+     *
+     * @param value the value
+     * @param min   the min value
+     * @param max   the max value
+     * @return the value in the range [min, max]
+     */
+    public static double between(double value, double min, double max) {
+        Preconditions.checkArgument(min <= max, "min must be less than or equal to max");
+        return Math.max(Math.min(value, max), min);
+    }
+
+    /**
+     * Return the value if it falls within the range [min, max] otherwise return min if value is less than min or max if value
+     * is greater than max.
+     *
+     * @param value the value
+     * @param min   the min value
+     * @param max   the max value
+     * @return the value in the range [min, max]
+     */
+    public static long between(long value, long min, long max) {
+        Preconditions.checkArgument(min <= max, "min must be less than or equal to max");
+        return Math.max(Math.min(value, max), min);
+    }
 }

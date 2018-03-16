@@ -49,7 +49,7 @@ public interface SchedulerConfiguration {
      *
      * @return whether or not to use the default fenzo network interface allocation strategy.
      */
-    @DefaultValue("true")
+    @DefaultValue("false")
     boolean isFenzoNetworkInterfaceAllocationEnabled();
 
     /**
