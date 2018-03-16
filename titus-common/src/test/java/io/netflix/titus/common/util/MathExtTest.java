@@ -42,4 +42,18 @@ public class MathExtTest {
     public void testScaleRangeValueValidation() {
         MathExt.scale(10.0, 9.0, 10.0, 10.0, 9.0);
     }
+
+    @Test
+    public void testBetween0And1() {
+        Assertions.assertThat(MathExt.between(1.1, 0.0, 1.0)).isEqualTo(1.0);
+        Assertions.assertThat(MathExt.between(1.0, 2.0, 10.0)).isEqualTo(2.0);
+        Assertions.assertThat(MathExt.between(0.5, 0.0, 1.0)).isEqualTo(0.5);
+    }
+
+    @Test
+    public void testBetween0And1Long() {
+        Assertions.assertThat(MathExt.between(0, 5, 10)).isEqualTo(5);
+        Assertions.assertThat(MathExt.between(1, 2, 10)).isEqualTo(2);
+        Assertions.assertThat(MathExt.between(5, 0, 10)).isEqualTo(5);
+    }
 }

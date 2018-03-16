@@ -29,17 +29,22 @@ import io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetwork
 /**
  * Prefers to choose network interfaces in the following order:
  * <ul>
+ * <li>bin pack a network interface with running tasks with the same security groups</li>
  * <li>already configured with the correct security groups</li>
  * <li>not in the cache</li>
  * <li>last used as close to or greater than {@link SchedulerConfiguration#getPreferredNetworkInterfaceDelayMs()}</li>
  * </ul>
+ * Note that the scores are scaled to reduce the variance as this score is aggregated with the other fenzo scores.
  */
 public class SimpleNetworkInterfaceFitnessEvaluator implements PreferentialNamedConsumableResourceEvaluator {
 
-    private static final double ALREADY_CONFIGURED_SCORE = 1.0;
-    private static final double UNKNOWN_SCORE = 0.99;
-    private static final double MIN_DELAYED_SCORE = 0.90;
-    private static final double MAX_DELAYED_SCORE = 0.98;
+    // Note that evaluateIdle scores must always be less than evaluate scores or consumable resources will not be re-used.
+    private static final double MIN_BIN_PACKED_SCORE = 0.11;
+    private static final double MAX_BIN_PACKED_SCORE = 0.20;
+    private static final double ALREADY_CONFIGURED_SCORE = 0.100;
+    private static final double UNKNOWN_SCORE = 0.099;
+    private static final double MIN_DELAYED_SCORE = 0.090;
+    private static final double MAX_DELAYED_SCORE = 0.098;
 
     private final AgentResourceCache cache;
     private final SchedulerConfiguration configuration;
@@ -72,12 +77,14 @@ public class SimpleNetworkInterfaceFitnessEvaluator implements PreferentialNamed
 
         long delayMs = configuration.getPreferredNetworkInterfaceDelayMs();
         long lastUpdatedTimestamp = networkInterface.getTimestamp();
-        long timeDifference = Math.min(Math.max(clock.wallTime() - lastUpdatedTimestamp, 0), delayMs);
+        long timeDifference = MathExt.between(clock.wallTime() - lastUpdatedTimestamp, 0, delayMs);
         return MathExt.scale(timeDifference, 0.0, delayMs, MIN_DELAYED_SCORE, MAX_DELAYED_SCORE);
     }
 
     @Override
     public double evaluate(String hostname, String resourceName, int index, double subResourcesNeeded, double subResourcesUsed, double subResourcesLimit) {
-        return Math.min(1.0, (subResourcesUsed + subResourcesNeeded + 1.0) / (subResourcesLimit + 1));
+        // Calculate the bin packing score between 0.0 and 1.0 and then scale it such that it is between MIN_BIN_PACKED_SCORE and MAX_BIN_PACKED_SCORE
+        double score = (subResourcesUsed + subResourcesNeeded + 1.0) / (subResourcesLimit + 1);
+        return MathExt.scale(score, 0.0, 1.0, MIN_BIN_PACKED_SCORE, MAX_BIN_PACKED_SCORE);
     }
 }

@@ -148,7 +148,7 @@ public class ScheduledRequest implements TitusQueuableTask<V2JobMetadata, V2Work
         if (securityGroups != null && !securityGroups.isEmpty()) {
             NamedResourceSetRequest resourceSetRequest = new NamedResourceSetRequest(
                     SecurityGroupsResName, getConcatenatedString(securityGroups),
-                    1, request.getAllocateIP() ? 1 : 0
+                    1, 1
             );
             namedResources.put(resourceSetRequest.getResName(), resourceSetRequest);
         }

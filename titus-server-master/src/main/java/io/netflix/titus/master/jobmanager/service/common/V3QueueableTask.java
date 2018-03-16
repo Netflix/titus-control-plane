@@ -227,7 +227,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                     SecurityGroupsResName,
                     getConcatenatedSecurityGroups(securityGroups),
                     1,
-                    container.getContainerResources().isAllocateIP() ? 1 : 0
+                    1
             );
             namedResources.put(resourceSetRequest.getResName(), resourceSetRequest);
         }
