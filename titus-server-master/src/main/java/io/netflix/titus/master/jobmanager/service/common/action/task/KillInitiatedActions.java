@@ -18,8 +18,10 @@ package io.netflix.titus.master.jobmanager.service.common.action.task;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -163,13 +165,35 @@ public class KillInitiatedActions {
                                                                               String reasonCode,
                                                                               String reason) {
         List<ChangeAction> result = new ArrayList<>();
+
+        // Move running tasks to KillInitiated state
+        Set<String> runningTaskIds = new HashSet<>();
         engine.getRunningView().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
+            runningTaskIds.add(task.getId());
+
             TaskState state = task.getStatus().getState();
             if (state != TaskState.KillInitiated && state != TaskState.Finished) {
                 result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, reasonCode, reason));
             }
         });
+
+        // Immediately finish Accepted tasks, which are not yet in the running model.
+        engine.getReferenceView().getChildren().forEach(taskHolder -> {
+            Task task = taskHolder.getEntity();
+            TaskState state = task.getStatus().getState();
+            if (state == TaskState.Accepted && !runningTaskIds.contains(task.getId())) {
+                result.add(BasicTaskActions.updateTaskAndWriteItToStore(
+                        task.getId(),
+                        engine,
+                        taskRef -> JobFunctions.changeTaskStatus(taskRef, TaskState.Finished, reasonCode, reason),
+                        jobStore,
+                        V3JobOperations.Trigger.Reconciler,
+                        reason
+                ));
+            }
+        });
+
         return result;
     }
 
