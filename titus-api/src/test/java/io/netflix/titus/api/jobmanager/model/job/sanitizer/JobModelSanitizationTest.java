@@ -36,6 +36,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.model.EfsMount;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Before;
@@ -62,10 +63,7 @@ public class JobModelSanitizationTest {
 
     @Before
     public void setUp() {
-        entitySanitizer = new JobSanitizerBuilder()
-                .withJobConstrainstConfiguration(constraints)
-                .withMaxContainerSizeResolver(capacityGroup -> MAX_CONTAINER_SIZE)
-                .build();
+        entitySanitizer = newJobSanitizer(VerifierMode.Strict);
     }
 
     @Test
@@ -101,6 +99,24 @@ public class JobModelSanitizationTest {
 
         assertThat(entitySanitizer.sanitize(job)).isEmpty();
         assertThat(entitySanitizer.validate(job)).isNotEmpty();
+    }
+
+    @Test
+    public void testJobWithTooLargeContainerInStrictMode() {
+        assertThat(entitySanitizer.validate(newTooLargeJob())).hasSize(1);
+    }
+
+    @Test
+    public void testJobWithTooLargeContainerInPermissiveMode() {
+        assertThat(newJobSanitizer(VerifierMode.Permissive).validate(newTooLargeJob())).isEmpty();
+    }
+
+    private Job<BatchJobExt> newTooLargeJob() {
+        return JobGenerator.batchJobs(
+                oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().but(container ->
+                        container.getContainerResources().toBuilder().withCpu(100).build()
+                ))
+        ).getValue();
     }
 
     @Test
@@ -212,5 +228,13 @@ public class JobModelSanitizationTest {
         // Now do cleanup
         Job<BatchJobExt> sanitized = entitySanitizer.sanitize(job).get();
         assertThat(entitySanitizer.validate(sanitized)).isEmpty();
+    }
+
+    private EntitySanitizer newJobSanitizer(VerifierMode verifierMode) {
+        return new JobSanitizerBuilder()
+                .withVerifierMode(verifierMode)
+                .withJobConstrainstConfiguration(constraints)
+                .withMaxContainerSizeResolver(capacityGroup -> MAX_CONTAINER_SIZE)
+                .build();
     }
 }

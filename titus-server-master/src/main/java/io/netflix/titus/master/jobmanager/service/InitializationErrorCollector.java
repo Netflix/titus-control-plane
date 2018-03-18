@@ -25,7 +25,9 @@ class InitializationErrorCollector {
     private final AtomicInteger corruptedTaskRecords = new AtomicInteger();
 
     private final List<String> invalidJobs = new CopyOnWriteArrayList<>();
+    private final List<String> strictlyInvalidJobs = new CopyOnWriteArrayList<>();
     private final List<String> invalidTasks = new CopyOnWriteArrayList<>();
+    private final List<String> strictlyInvalidTasks = new CopyOnWriteArrayList<>();
     private final List<String> failedToAddToFenzoTask = new CopyOnWriteArrayList<>();
     private final List<String> inconsistentTasks = new CopyOnWriteArrayList<>();
     private final List<String> launchedTasksWithUnidentifiedAgents = new CopyOnWriteArrayList<>();
@@ -34,7 +36,9 @@ class InitializationErrorCollector {
     private final Gauge corruptedJobRecordsGauge;
     private final Gauge corruptedTaskRecordsGauge;
     private final Gauge invalidJobsGauge;
+    private final Gauge strictlyInvalidJobsGauge;
     private final Gauge invalidTasksGauge;
+    private final Gauge strictlyInvalidTasksGauge;
     private final Gauge failedToAddToFenzoTaskGauge;
     private final Gauge inconsistentTasksGauge;
     private final Gauge launchedTasksWithUnidentifiedAgentsGauge;
@@ -46,7 +50,9 @@ class InitializationErrorCollector {
         this.corruptedJobRecordsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "corruptedJobRecords");
         this.corruptedTaskRecordsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "corruptedTaskRecords");
         this.invalidJobsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "invalidJobs");
+        this.strictlyInvalidJobsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "strictlyInvalidJobs");
         this.invalidTasksGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "invalidTasks");
+        this.strictlyInvalidTasksGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "strictlyInvalidTasks");
         this.failedToAddToFenzoTaskGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "failedToAddToFenzoTask");
         this.inconsistentTasksGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "inconsistentTasks");
         this.launchedTasksWithUnidentifiedAgentsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "launchedTasksWithUnidentifiedAgents");
@@ -61,12 +67,20 @@ class InitializationErrorCollector {
         invalidJobs.add(jobId);
     }
 
+    public void strictlyInvalidJob(String jobId) {
+        strictlyInvalidJobs.add(jobId);
+    }
+
     void corruptedTaskRecords(int count) {
         corruptedTaskRecords.addAndGet(count);
     }
 
     void invalidTaskRecord(String taskId) {
         invalidTasks.add(taskId);
+    }
+
+    public void strictlyInvalidTask(String taskId) {
+        strictlyInvalidTasks.add(taskId);
     }
 
     void taskAddToFenzoError(String taskId) {
@@ -132,8 +146,14 @@ class InitializationErrorCollector {
         if (!invalidJobs.isEmpty()) {
             logger.info("Found {} jobs with invalid state: {}", invalidJobs.size(), invalidJobs);
         }
+        if (!strictlyInvalidJobs.isEmpty()) {
+            logger.info("Found {} jobs with strictly invalid state: {}", strictlyInvalidJobs.size(), strictlyInvalidJobs);
+        }
         if (!invalidTasks.isEmpty()) {
             logger.info("Found {} task with invalid state: {}", invalidTasks.size(), invalidTasks);
+        }
+        if (!strictlyInvalidTasks.isEmpty()) {
+            logger.info("Found {} task with strictly invalid state: {}", strictlyInvalidTasks.size(), strictlyInvalidTasks);
         }
         if (!launchedTasksWithUnidentifiedAgents.isEmpty()) {
             logger.info("Found {} launched task with no agent assignment: {}", launchedTasksWithUnidentifiedAgents.size(), launchedTasksWithUnidentifiedAgents);
@@ -153,7 +173,9 @@ class InitializationErrorCollector {
         corruptedJobRecordsGauge.set(corruptedJobRecords.get());
         corruptedTaskRecordsGauge.set(corruptedTaskRecords.get());
         invalidJobsGauge.set(invalidJobs.size());
+        strictlyInvalidJobsGauge.set(strictlyInvalidJobs.size());
         invalidTasksGauge.set(invalidTasks.size());
+        strictlyInvalidTasksGauge.set(strictlyInvalidTasks.size());
         failedToAddToFenzoTaskGauge.set(failedToAddToFenzoTask.size());
         inconsistentTasksGauge.set(invalidTasks.size());
         launchedTasksWithUnidentifiedAgentsGauge.set(launchedTasksWithUnidentifiedAgents.size());

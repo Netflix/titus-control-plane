@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import javax.validation.ConstraintViolation;
-import javax.validation.metadata.ConstraintDescriptor;
 
 /**
  * Collection of helper functions.
@@ -21,8 +20,7 @@ public final class EntitySanitizerUtil {
         }
         Map<String, String> violationsMap = new HashMap<>();
         for (ConstraintViolation<?> violation : violations) {
-            ConstraintDescriptor<?> descriptor = violation.getConstraintDescriptor();
-            Object message = descriptor.getAttributes().get("message");
+            Object message = violation.getMessage();
             if (message != null) {
                 violationsMap.put(violation.getPropertyPath().toString(), message.toString());
             }

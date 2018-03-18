@@ -50,7 +50,7 @@ import io.netflix.titus.master.master.MasterMonitor;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
-import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.RoutingGrpcTitusServiceGateway.NAME_V2_ENGINE_GATEWAY;
 import static io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.RoutingGrpcTitusServiceGateway.NAME_V3_ENGINE_GATEWAY;
 
@@ -73,7 +73,7 @@ public class V3EndpointModule extends AbstractModule {
     public GrpcTitusServiceGateway getV3ServiceGateway(V3JobOperations jobOperations,
                                                        JobSubmitLimiter jobSubmitLimiter,
                                                        LogStorageInfo<Task> v3LogStorage,
-                                                       @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer) {
+                                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
         return new V3GrpcTitusServiceGateway(jobOperations, jobSubmitLimiter, v3LogStorage, entitySanitizer);
     }
 

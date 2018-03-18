@@ -38,7 +38,7 @@ public class CollectionValidatorTest {
 
     @Before
     public void setUp() throws Exception {
-        validator = TestValidator.testValidator();
+        validator = TestValidator.testStrictValidator();
     }
 
     @Test

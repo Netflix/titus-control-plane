@@ -35,7 +35,7 @@ import io.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 
-import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
 
 public class StoreModule extends AbstractModule {
     @Override
@@ -49,7 +49,7 @@ public class StoreModule extends AbstractModule {
 
     @Singleton
     @Provides
-    public ApplicationSlaStore getApplicationSlaStore(@Named(JOB_SANITIZER) EntitySanitizer coreModelSanitizers) {
+    public ApplicationSlaStore getApplicationSlaStore(@Named(JOB_PERMISSIVE_SANITIZER) EntitySanitizer coreModelSanitizers) {
         return new ApplicationSlaStoreCache(
                 new ApplicationSlaStoreSanitizer(new InMemoryApplicationSlaStore(), coreModelSanitizers)
         );

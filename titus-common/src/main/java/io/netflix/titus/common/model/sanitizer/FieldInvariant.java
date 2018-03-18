@@ -46,6 +46,8 @@ public @interface FieldInvariant {
 
     String message() default "{FieldInvariant.message}";
 
+    VerifierMode mode() default VerifierMode.Permissive;
+
     Class<?>[] groups() default {};
 
     Class<? extends Payload>[] payload() default {};

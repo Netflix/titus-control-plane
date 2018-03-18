@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorFactory;
 
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 import org.hibernate.validator.internal.engine.constraintvalidation.ConstraintValidatorFactoryImpl;
 import org.springframework.expression.EvaluationContext;
 
@@ -30,11 +31,14 @@ import org.springframework.expression.EvaluationContext;
 public class ConstraintValidatorFactoryWrapper implements ConstraintValidatorFactory {
 
     private final ConstraintValidatorFactoryImpl delegate;
+    private final VerifierMode verifierMode;
     private final Function<Class<?>, Optional<ConstraintValidator<?, ?>>> applicationConstraintValidatorFactory;
     private final Supplier<EvaluationContext> spelContextFactory;
 
-    public ConstraintValidatorFactoryWrapper(Function<Class<?>, Optional<ConstraintValidator<?, ?>>> applicationConstraintValidatorFactory,
+    public ConstraintValidatorFactoryWrapper(VerifierMode verifierMode,
+                                             Function<Class<?>, Optional<ConstraintValidator<?, ?>>> applicationConstraintValidatorFactory,
                                              Supplier<EvaluationContext> spelContextFactory) {
+        this.verifierMode = verifierMode;
         this.applicationConstraintValidatorFactory = applicationConstraintValidatorFactory;
         this.spelContextFactory = spelContextFactory;
         this.delegate = new ConstraintValidatorFactoryImpl();
@@ -43,10 +47,10 @@ public class ConstraintValidatorFactoryWrapper implements ConstraintValidatorFac
     @Override
     public <T extends ConstraintValidator<?, ?>> T getInstance(Class<T> key) {
         if (key == SpELClassValidator.class) {
-            return (T) new SpELClassValidator(spelContextFactory);
+            return (T) new SpELClassValidator(verifierMode, spelContextFactory);
         }
         if (key == SpELFieldValidator.class) {
-            return (T) new SpELFieldValidator(spelContextFactory);
+            return (T) new SpELFieldValidator(verifierMode, spelContextFactory);
         }
         ConstraintValidator<?, ?> instance = applicationConstraintValidatorFactory.apply(key).orElseGet(() -> delegate.getInstance(key));
         return (T) instance;

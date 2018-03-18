@@ -22,6 +22,7 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
 import io.netflix.titus.common.model.sanitizer.ClassInvariant;
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -33,28 +34,37 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 public class SpELClassValidator implements ConstraintValidator<ClassInvariant, Object> {
 
     private final ExpressionParser parser = new SpelExpressionParser();
+    private final VerifierMode verifierMode;
     private final Supplier<EvaluationContext> spelContextFactory;
 
+    private boolean enabled;
     private Expression conditionExpression;
     private Expression exprExpression;
     private EvaluationContext spelContext;
 
-    public SpELClassValidator(Supplier<EvaluationContext> spelContextFactory) {
+    public SpELClassValidator(VerifierMode verifierMode, Supplier<EvaluationContext> spelContextFactory) {
+        this.verifierMode = verifierMode;
         this.spelContextFactory = spelContextFactory;
     }
 
     @Override
     public void initialize(ClassInvariant constraintAnnotation) {
-        if (!constraintAnnotation.condition().isEmpty()) {
-            this.conditionExpression = parser.parseExpression(constraintAnnotation.condition());
-        } else if (!constraintAnnotation.expr().isEmpty()) {
-            this.exprExpression = parser.parseExpression(constraintAnnotation.expr());
+        this.enabled = verifierMode.includes(constraintAnnotation.mode());
+        if (enabled) {
+            if (!constraintAnnotation.condition().isEmpty()) {
+                this.conditionExpression = parser.parseExpression(constraintAnnotation.condition());
+            } else if (!constraintAnnotation.expr().isEmpty()) {
+                this.exprExpression = parser.parseExpression(constraintAnnotation.expr());
+            }
+            this.spelContext = spelContextFactory.get();
         }
-        this.spelContext = spelContextFactory.get();
     }
 
     @Override
     public boolean isValid(Object value, ConstraintValidatorContext context) {
+        if (!enabled) {
+            return true;
+        }
         if (conditionExpression != null) {
             return (boolean) conditionExpression.getValue(spelContext, value);
         }
