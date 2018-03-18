@@ -43,7 +43,9 @@ import javax.inject.Singleton;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
+import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.ConsumeResult;
+import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.PreferentialNamedConsumableResource;
 import com.netflix.fenzo.ScaleDownAction;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.ScaleDownOrderEvaluator;
@@ -158,10 +160,15 @@ public class DefaultSchedulingService implements SchedulingService {
     private final AtomicLong totalAvailableMemory;
     private final AtomicLong totalAllocatedMemory;
     private final AtomicLong memoryUtilization;
+    private final AtomicLong totalAvailableDisk;
+    private final AtomicLong totalAllocatedDisk;
+    private final AtomicLong diskUtilization;
     private final AtomicLong totalAvailableNetworkMbps;
     private final AtomicLong totalAllocatedNetworkMbps;
     private final AtomicLong networkUtilization;
     private final AtomicLong dominantResourceUtilization;
+    private final AtomicLong totalAvailableNetworkInterfaces;
+    private final AtomicLong totalAllocatedNetworkInterfaces;
 
     private final Timer schedulingIterationLatency;
 
@@ -298,12 +305,17 @@ public class DefaultSchedulingService implements SchedulingService {
         totalAllocatedCpus = new AtomicLong(0);
         cpuUtilization = new AtomicLong(0);
         totalAvailableMemory = new AtomicLong(0);
-        memoryUtilization = new AtomicLong(0);
         totalAllocatedMemory = new AtomicLong(0);
+        memoryUtilization = new AtomicLong(0);
+        totalAvailableDisk = new AtomicLong(0);
+        totalAllocatedDisk = new AtomicLong(0);
+        diskUtilization = new AtomicLong(0);
         totalAvailableNetworkMbps = new AtomicLong(0);
         totalAllocatedNetworkMbps = new AtomicLong(0);
         networkUtilization = new AtomicLong(0);
         dominantResourceUtilization = new AtomicLong(0);
+        totalAvailableNetworkInterfaces = new AtomicLong(0);
+        totalAllocatedNetworkInterfaces = new AtomicLong(0);
 
         PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration").monitorValue(totalTasksPerIteration);
         PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration").monitorValue(assignedTasksPerIteration);
@@ -324,6 +336,8 @@ public class DefaultSchedulingService implements SchedulingService {
         PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkMbps").monitorValue(totalAllocatedNetworkMbps);
         PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "networkUtilization").monitorValue(networkUtilization);
         PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "dominantResourceUtilization").monitorValue(dominantResourceUtilization);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkInterfaces").monitorValue(totalAvailableNetworkInterfaces);
+        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkInterfaces").monitorValue(totalAllocatedNetworkInterfaces);
 
         schedulingIterationLatency = registry.timer(METRIC_SCHEDULING_SERVICE + "schedulingIterationLatency");
 
@@ -698,21 +712,21 @@ public class DefaultSchedulingService implements SchedulingService {
                 }
             }
         } finally {
-            logger.info("Recorded task placement decisions in JobManager in {}ms: tasks={}, offers={}", System.currentTimeMillis() - recordStartTime, requests.size(), leases.size());
+            logger.info("Recorded task placement decisions in JobManager in {}ms: tasks={}, offers={}", titusRuntime.getClock().wallTime() - recordStartTime, requests.size(), leases.size());
         }
 
-        long mesosStartTime = System.currentTimeMillis();
+        long mesosStartTime = titusRuntime.getClock().wallTime();
         if (taskInfoList.isEmpty()) {
             try {
                 leases.forEach(virtualMachineService::rejectLease);
             } finally {
-                logger.info("Rejected offers as no task effectively placed on the agent in {}ms: offers={}", System.currentTimeMillis() - mesosStartTime, leases.size());
+                logger.info("Rejected offers as no task effectively placed on the agent in {}ms: offers={}", titusRuntime.getClock().wallTime() - mesosStartTime, leases.size());
             }
         } else {
             try {
                 virtualMachineService.launchTasks(taskInfoList, leases);
             } finally {
-                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", System.currentTimeMillis() - mesosStartTime, taskInfoList.size(), leases.size());
+                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", titusRuntime.getClock().wallTime() - mesosStartTime, taskInfoList.size(), leases.size());
             }
         }
     }
@@ -815,21 +829,38 @@ public class DefaultSchedulingService implements SchedulingService {
             double usedCpu = 0.0;
             double totalMemory = 0.0;
             double usedMemory = 0.0;
+            double totalDisk = 0.0;
+            double usedDisk = 0.0;
             double totalNetworkMbps = 0.0;
             double usedNetworkMbps = 0.0;
+            long totalNetworkInterfaces = 0;
+            long usedNetworkInterfaces = 0;
             long totalDisabled = 0;
             long currentMinDisableDuration = 0;
             long currentMaxDisableDuration = 0;
-            long now = System.currentTimeMillis();
+            long now = titusRuntime.getClock().wallTime();
 
             for (VirtualMachineCurrentState state : vmCurrentStates) {
-                final VirtualMachineLease currAvailableResources = state.getCurrAvailableResources();
+                for (PreferentialNamedConsumableResourceSet set : state.getResourceSets().values()) {
+                    if (set.getName().equalsIgnoreCase("enis")) {
+                        List<PreferentialNamedConsumableResource> usageBy = set.getUsageBy();
+                        totalNetworkInterfaces += usageBy.size();
+                        for (PreferentialNamedConsumableResource consumableResource : usageBy) {
+                            if (!consumableResource.getUsageBy().isEmpty()) {
+                                usedNetworkInterfaces++;
+                            }
+                        }
+                    }
+                }
 
+                final VirtualMachineLease currAvailableResources = state.getCurrAvailableResources();
                 if (currAvailableResources != null) {
                     totalCpu += currAvailableResources.cpuCores();
                     totalMemory += currAvailableResources.memoryMB();
+                    totalDisk += currAvailableResources.diskMB();
                     totalNetworkMbps += currAvailableResources.networkMbps();
                 }
+
                 long disableDuration = state.getDisabledUntil() - now;
                 if (disableDuration > 0) {
                     totalDisabled++;
@@ -849,6 +880,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                 totalCpu += t.getCPUs();
                                 usedMemory += t.getMemory();
                                 totalMemory += t.getMemory();
+                                usedDisk += t.getDisk();
+                                totalDisk += t.getDisk();
                                 usedNetworkMbps += t.getNetworkMbps();
                                 totalNetworkMbps += t.getNetworkMbps();
                             }
@@ -858,6 +891,8 @@ public class DefaultSchedulingService implements SchedulingService {
                             totalCpu += t.getCPUs();
                             usedMemory += t.getMemory();
                             totalMemory += t.getMemory();
+                            usedDisk += t.getDisk();
+                            totalDisk += t.getDisk();
                             usedNetworkMbps += t.getNetworkMbps();
                             totalNetworkMbps += t.getNetworkMbps();
                         }
@@ -876,11 +911,17 @@ public class DefaultSchedulingService implements SchedulingService {
             totalAllocatedMemory.set((long) usedMemory);
             memoryUtilization.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedMemory * 100.0 / totalMemory);
+            totalAvailableDisk.set((long) totalDisk);
+            totalAllocatedDisk.set((long) usedDisk);
+            diskUtilization.set((long) (usedDisk * 100.0 / Math.max(1.0, totalDisk)));
+            dominantResourceUtilization = Math.max(dominantResourceUtilization, usedDisk * 100.0 / totalDisk);
             totalAvailableNetworkMbps.set((long) totalNetworkMbps);
             totalAllocatedNetworkMbps.set((long) usedNetworkMbps);
             networkUtilization.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedNetworkMbps * 100.0 / totalNetworkMbps);
             this.dominantResourceUtilization.set((long) dominantResourceUtilization);
+            totalAvailableNetworkInterfaces.set(totalNetworkInterfaces);
+            totalAllocatedNetworkInterfaces.set(usedNetworkInterfaces);
         } catch (Exception e) {
             logger.error("Error settings metrics with error: ", e);
         }

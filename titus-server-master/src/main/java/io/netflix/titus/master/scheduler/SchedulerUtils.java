@@ -3,6 +3,8 @@ package io.netflix.titus.master.scheduler;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.base.Strings;
+import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QueuableTask;
 import org.apache.mesos.Protos;
@@ -28,5 +30,10 @@ public class SchedulerUtils {
             }
         }
         return Optional.empty();
+    }
+
+    public static String getAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
+        Protos.Attribute attribute = targetVM.getCurrAvailableResources().getAttributeMap().get(attributeName);
+        return Strings.nullToEmpty(attribute.getText().getValue());
     }
 }

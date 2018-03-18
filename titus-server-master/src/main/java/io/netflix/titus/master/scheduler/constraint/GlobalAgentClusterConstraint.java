@@ -32,9 +32,12 @@ import io.netflix.titus.api.agent.service.AgentStatusMonitor;
 import io.netflix.titus.api.model.Tier;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.scheduler.SchedulerConfiguration;
+import io.netflix.titus.master.scheduler.SchedulerUtils;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValue;
 
 /**
  * A constraint to support global rules on picking agent clusters for jobs.
@@ -84,7 +87,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
     private Pair<Boolean, String> evaluateHealthy(VirtualMachineCurrentState targetVM) {
         AgentStatus status;
         try {
-            status = agentStatusMonitor.getStatus(getAgentAttributeValue(targetVM, schedulerConfiguration.getInstanceAttributeName()));
+            status = agentStatusMonitor.getStatus(getAttributeValue(targetVM, schedulerConfiguration.getInstanceAttributeName()));
         } catch (Exception e) {
             logger.debug("Cannot evaluate health of agent: ", e);
             return Pair.of(false, "Unhealthy: Cannot find agent");
@@ -98,7 +101,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
         Tier tier = getTier((QueuableTask) taskRequest);
 
         String instanceGroupAttributeName = schedulerConfiguration.getInstanceGroupAttributeName();
-        String instanceGroupId = getAgentAttributeValue(targetVM, instanceGroupAttributeName);
+        String instanceGroupId = getAttributeValue(targetVM, instanceGroupAttributeName);
         if (Strings.isNullOrEmpty(instanceGroupId)) {
             return new Result(false, "No info for agent instance type attribute: " + instanceGroupAttributeName);
         }
@@ -136,18 +139,11 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
         return tier;
     }
 
-    private String getAgentAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
-        Protos.Attribute attribute = targetVM.getCurrAvailableResources().getAttributeMap().get(attributeName);
-        return Strings.nullToEmpty(attribute.getText().getValue());
-    }
-
     private boolean taskRequestsGpu(TaskRequest taskRequest) {
         Map<String, Double> scalars = taskRequest.getScalarRequests();
         if (scalars != null && !scalars.isEmpty()) {
             final Double gpu = scalars.get("gpu");
-            if (gpu != null && gpu >= 1.0) {
-                return true;
-            }
+            return gpu != null && gpu >= 1.0;
         }
         return false;
     }
