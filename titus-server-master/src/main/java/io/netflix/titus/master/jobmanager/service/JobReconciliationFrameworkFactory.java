@@ -377,7 +377,7 @@ public class JobReconciliationFrameworkFactory {
         // Perform strict validation for reporting purposes
         Set<ConstraintViolation<Job>> strictViolations = strictEntitySanitizer.validate(job);
         if (!strictViolations.isEmpty()) {
-            logger.error("Not strictly consistent job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
+            logger.error("No strictly consistent job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
             errorCollector.strictlyInvalidJob(job.getId());
         }
 
@@ -398,7 +398,7 @@ public class JobReconciliationFrameworkFactory {
         // Perform strict validation for reporting purposes
         Set<ConstraintViolation<Task>> strictViolations = strictEntitySanitizer.validate(task);
         if (!strictViolations.isEmpty()) {
-            logger.error("Not strictly consistent task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
+            logger.error("No strictly consistent task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
             errorCollector.strictlyInvalidTask(task.getId());
         }
 
