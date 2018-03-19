@@ -152,6 +152,7 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
             leader = true;
             electionTimestamp = clock.wallTime();
             activate();
+            return;
         }
         logger.warn("Unexpected to be told to enter leader mode more than once, ignoring.");
     }
@@ -159,13 +160,14 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
     @Override
     public void stopBeingLeader() {
         logger.info("Asked to stop being leader now");
-        leader = false;
-        activated = false;
 
-        if (!isLeader()) {
+        if (!leader) {
             logger.warn("Unexpected to be told to stop being leader when we haven't entered leader mode before, ignoring.");
             return;
         }
+
+        leader = false;
+        activated = false;
 
         // Various services may have built in-memory state that is currently not easy to revert to initialization state.
         // Until we create such a lifecycle feature for each service and all of their references, best thing to do is to
@@ -182,6 +184,7 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
         }
         if (stateRef.compareAndSet(State.Leader, State.StartedLeader)) {
             activate();
+            return;
         }
         logger.warn("ContainerStartedEvent received while in state {}; ignoring", stateRef.get());
     }
