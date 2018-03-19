@@ -24,19 +24,30 @@ import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 
 /**
  */
 public class JobSanitizerBuilder {
 
-    public static final String JOB_SANITIZER = "job";
+    public static final String JOB_STRICT_SANITIZER = "jobStrictSanitizer";
+
+    public static final String JOB_PERMISSIVE_SANITIZER = "jobPermissiveSanitizer";
+
     public static final String DEFAULT_CAPACITY_GROUP = "DEFAULT";
+
     private static final String MODEL_ROOT_PACKAGE = Job.class.getPackage().getName();
 
     private final EntitySanitizerBuilder sanitizerBuilder = EntitySanitizerBuilder.stdBuilder();
 
     private JobConfiguration jobConfiguration;
     private Function<String, ResourceDimension> maxContainerSizeResolver;
+    private VerifierMode verifierMode = VerifierMode.Strict;
+
+    public JobSanitizerBuilder withVerifierMode(VerifierMode verifierMode) {
+        this.verifierMode = verifierMode;
+        return this;
+    }
 
     public JobSanitizerBuilder withJobConstrainstConfiguration(JobConfiguration jobConfiguration) {
         this.jobConfiguration = jobConfiguration;
@@ -53,6 +64,7 @@ public class JobSanitizerBuilder {
         Preconditions.checkNotNull(maxContainerSizeResolver, "Max container size resolver not set");
 
         sanitizerBuilder
+                .verifierMode(verifierMode)
                 .processEntities(type -> type.getPackage().getName().startsWith(MODEL_ROOT_PACKAGE))
                 .addTemplateResolver(path -> {
                     if (path.endsWith("capacityGroup")) {

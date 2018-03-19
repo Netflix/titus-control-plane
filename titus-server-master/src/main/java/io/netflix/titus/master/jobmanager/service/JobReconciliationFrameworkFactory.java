@@ -63,7 +63,8 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 
 /**
  * Helper class that encapsulates the creation process of job {@link ReconciliationFramework}.
@@ -96,7 +97,8 @@ public class JobReconciliationFrameworkFactory {
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
-    private final EntitySanitizer entitySanitizer;
+    private final EntitySanitizer permissiveEntitySanitizer;
+    private final EntitySanitizer strictEntitySanitizer;
     private final InitializationErrorCollector errorCollector; // Keep reference so it is not garbage collected (it holds metrics)
     private final Registry registry;
     private final Clock clock;
@@ -116,22 +118,25 @@ public class JobReconciliationFrameworkFactory {
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-                                             @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer,
+                                             @Named(JOB_PERMISSIVE_SANITIZER) EntitySanitizer permissiveEntitySanitizer,
+                                             @Named(JOB_STRICT_SANITIZER) EntitySanitizer strictEntitySanitizer,
                                              Registry registry) {
         this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService,
-                systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, entitySanitizer, registry, Clocks.system(), Schedulers.computation());
+                systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer,
+                registry, Clocks.system(), Schedulers.computation());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
-                                             @Named(BATCH_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
-                                             @Named(SERVICE_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
+                                             DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
+                                             DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
                                              SchedulingService schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
-                                             EntitySanitizer entitySanitizer,
+                                             EntitySanitizer permissiveEntitySanitizer,
+                                             EntitySanitizer strictEntitySanitizer,
                                              Registry registry,
                                              Clock clock,
                                              Scheduler scheduler) {
@@ -142,7 +147,8 @@ public class JobReconciliationFrameworkFactory {
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
-        this.entitySanitizer = entitySanitizer;
+        this.permissiveEntitySanitizer = permissiveEntitySanitizer;
+        this.strictEntitySanitizer = strictEntitySanitizer;
         this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, registry);
         this.registry = registry;
         this.clock = clock;
@@ -368,11 +374,19 @@ public class JobReconciliationFrameworkFactory {
     }
 
     private Optional<Job> validateJob(Job job) {
-        Set<ConstraintViolation<Job>> violations = entitySanitizer.validate(job);
+        // Perform strict validation for reporting purposes
+        Set<ConstraintViolation<Job>> strictViolations = strictEntitySanitizer.validate(job);
+        if (!strictViolations.isEmpty()) {
+            logger.error("No strictly consistent job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
+            errorCollector.strictlyInvalidJob(job.getId());
+        }
+
+        // Required checks
+        Set<ConstraintViolation<Job>> violations = permissiveEntitySanitizer.validate(job);
 
         if (!violations.isEmpty()) {
             logger.error("Bad job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
-            if(jobManagerConfiguration.isFailOnDataValidation()) {
+            if (jobManagerConfiguration.isFailOnDataValidation()) {
                 return Optional.empty();
             }
         }
@@ -381,11 +395,19 @@ public class JobReconciliationFrameworkFactory {
     }
 
     private Optional<Task> validateTask(Task task) {
-        Set<ConstraintViolation<Task>> violations = entitySanitizer.validate(task);
+        // Perform strict validation for reporting purposes
+        Set<ConstraintViolation<Task>> strictViolations = strictEntitySanitizer.validate(task);
+        if (!strictViolations.isEmpty()) {
+            logger.error("No strictly consistent task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
+            errorCollector.strictlyInvalidTask(task.getId());
+        }
+
+        // Required checks
+        Set<ConstraintViolation<Task>> violations = permissiveEntitySanitizer.validate(task);
 
         if (!violations.isEmpty()) {
             logger.error("Bad task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
-            if(jobManagerConfiguration.isFailOnDataValidation()) {
+            if (jobManagerConfiguration.isFailOnDataValidation()) {
                 return Optional.empty();
             }
         }

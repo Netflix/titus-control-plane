@@ -32,8 +32,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SpELClassValidatorTest {
 
     @Test
-    public void testSpELCondition() throws Exception {
-        Validator validator = TestValidator.testValidator();
+    public void testSpELCondition() {
+        Validator validator = TestValidator.testStrictValidator();
 
         Root root = new Root(
                 "root1",
@@ -47,7 +47,7 @@ public class SpELClassValidatorTest {
     }
 
     @Test
-    public void testSpELExpression() throws Exception {
+    public void testSpELExpression() {
         Validator validator = TestValidator.testValidator("myUtil", this);
 
         ExprCheckModel entity = new ExprCheckModel("abc");
@@ -58,9 +58,16 @@ public class SpELClassValidatorTest {
     }
 
     @Test
-    public void testRegisteredFunctions() throws Exception {
-        Validator validator = TestValidator.testValidator();
+    public void testRegisteredFunctions() {
+        assertThat(testRegisteredFunctions(TestValidator.testStrictValidator())).hasSize(1);
+    }
 
+    @Test
+    public void testPermissiveMode() {
+        assertThat(testRegisteredFunctions(TestValidator.testPermissiveValidator())).isEmpty();
+    }
+
+    private Set<ConstraintViolation<Root>> testRegisteredFunctions(Validator validator) {
         Root root = new Root(
                 "Root1",
                 new Child("Child1", 0, 2),
@@ -68,10 +75,11 @@ public class SpELClassValidatorTest {
         );
 
         TestModel.setFit(false);
+
         Set<ConstraintViolation<Root>> violations = validator.validate(root);
 
         System.out.println(violations);
-        assertThat(violations).hasSize(1);
+        return violations;
     }
 
     public Map<String, String> check(String name) {

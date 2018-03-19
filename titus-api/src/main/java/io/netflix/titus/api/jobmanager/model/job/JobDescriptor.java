@@ -27,12 +27,13 @@ import io.netflix.titus.common.model.sanitizer.ClassInvariant;
 import io.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import io.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import io.netflix.titus.common.model.sanitizer.Template;
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 import io.netflix.titus.common.util.CollectionsExt;
 
 /**
  */
 @ClassFieldsNotNull
-@ClassInvariant(expr = "@asserts.notExceedsComputeResources(capacityGroup, container)")
+@ClassInvariant(expr = "@asserts.notExceedsComputeResources(capacityGroup, container)", mode = VerifierMode.Strict)
 public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
 
     /**

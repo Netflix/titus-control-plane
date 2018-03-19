@@ -31,6 +31,7 @@ import javax.validation.Validation;
 import javax.validation.Validator;
 
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.spel.support.ReflectiveMethodResolver;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -43,7 +44,8 @@ public class DefaultEntitySanitizer implements EntitySanitizer {
 
     private final List<Function<Object, Optional<Object>>> sanitizers;
 
-    public DefaultEntitySanitizer(List<Function<Object, Optional<Object>>> sanitizers,
+    public DefaultEntitySanitizer(VerifierMode verifierMode,
+                                  List<Function<Object, Optional<Object>>> sanitizers,
                                   boolean annotationSanitizersEnabled,
                                   boolean stdValueSanitizersEnabled,
                                   Function<Class<?>, Boolean> includesPredicate,
@@ -62,7 +64,7 @@ public class DefaultEntitySanitizer implements EntitySanitizer {
 
         this.validator = Validation.buildDefaultValidatorFactory()
                 .usingContext()
-                .constraintValidatorFactory(new ConstraintValidatorFactoryWrapper(applicationValidatorFactory, spelContextFactory))
+                .constraintValidatorFactory(new ConstraintValidatorFactoryWrapper(verifierMode, applicationValidatorFactory, spelContextFactory))
                 .messageInterpolator(new SpELMessageInterpolator(spelContextFactory))
                 .getValidator();
 
