@@ -57,13 +57,13 @@ public class EfsValidatorTest {
 
     private TitusJobSpec newJobSpecWithEfs(EfsMountRepresentation efsMount) {
         return new TitusJobSpec.Builder(
-                new TitusV2ModelGenerator().newJobSpec(TitusJobType.batch, "testJob")
+                new TitusV2ModelGenerator(getClass().getSimpleName()).newJobSpec(TitusJobType.batch, "testJob")
         ).efs(efsMount).build();
     }
 
     private TitusJobSpec newJobSpecWithManyEfs(EfsMountRepresentation... efsMounts) {
         return new TitusJobSpec.Builder(
-                new TitusV2ModelGenerator().newJobSpec(TitusJobType.batch, "testJob")
+                new TitusV2ModelGenerator(getClass().getSimpleName()).newJobSpec(TitusJobType.batch, "testJob")
         ).efsMounts(asList(efsMounts)).build();
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.common;
+package io.netflix.titus.master.config;
 
 public interface CellInfoResolver {
     String getCellName();

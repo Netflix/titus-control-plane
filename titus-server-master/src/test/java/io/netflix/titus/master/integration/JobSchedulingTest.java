@@ -71,7 +71,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
 
     private EmbeddedTitusMaster titusMaster;
 
-    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator();
+    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator(getClass().getSimpleName());
 
     private TitusMasterClient client;
     private ExtTestSubscriber<TaskExecutorHolder> taskExecutorHolders;

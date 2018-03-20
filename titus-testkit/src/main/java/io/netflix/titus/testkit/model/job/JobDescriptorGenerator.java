@@ -16,9 +16,9 @@
 
 package io.netflix.titus.testkit.model.job;
 
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import io.netflix.titus.api.jobmanager.JobAttributes;
 import io.netflix.titus.api.jobmanager.model.job.Capacity;
 import io.netflix.titus.api.jobmanager.model.job.Image;
 import io.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -29,6 +29,7 @@ import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import io.netflix.titus.common.data.generator.DataGenerator;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.testkit.model.PrimitiveValueGenerators;
 
 import static io.netflix.titus.common.data.generator.DataGenerator.items;
@@ -37,6 +38,7 @@ import static io.netflix.titus.common.data.generator.DataGenerator.union;
 /**
  */
 public final class JobDescriptorGenerator {
+    public static final String TEST_CELL_NAME = "tests";
 
     private JobDescriptorGenerator() {
     }
@@ -101,7 +103,11 @@ public final class JobDescriptorGenerator {
                 batchJobExtensions(),
                 (builder, batchJobExt) -> builder.but().withExtensions(batchJobExt)
         );
-        return withExtensions.map(builder -> builder.withAttributes(Collections.singletonMap("labelA", "valueA")).build());
+        return withExtensions.map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
+                .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
+                .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_CELL_NAME)
+                .entry("labelA", "valueA")
+                .toMap()).build());
     }
 
     public static DataGenerator<JobDescriptor<ServiceJobExt>> serviceJobDescriptors() {
@@ -135,7 +141,11 @@ public final class JobDescriptorGenerator {
                 serviceJobExtensions(),
                 (builder, serviceJobExt) -> builder.but().withExtensions(serviceJobExt)
         );
-        return withExtensions.map(builder -> builder.withAttributes(Collections.singletonMap("labelA", "valueA")).build());
+        return withExtensions.map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
+                .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
+                .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_CELL_NAME)
+                .entry("labelA", "valueA")
+                .toMap()).build());
     }
 
     public static JobDescriptor<BatchJobExt> oneTaskBatchJobDescriptor() {

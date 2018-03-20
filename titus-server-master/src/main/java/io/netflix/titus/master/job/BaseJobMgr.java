@@ -65,6 +65,7 @@ import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.JobSchedulingInfo;
 import io.netflix.titus.master.Status;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.worker.WorkerNumberGenerator;
 import io.netflix.titus.master.job.worker.WorkerRequest;
@@ -99,6 +100,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
 
     private final AuditLogService auditLogService;
     private final MasterConfiguration config;
+    private final CellInfoResolver cellInfoResolver;
     private final JobConfiguration jobConfiguration;
     private final Logger logger;
     protected final String jobId;
@@ -138,6 +140,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                       NamedJob namedJob,
                       Observer<Observable<JobSchedulingInfo>> jobSchedulingObserver,
                       MasterConfiguration config,
+                      CellInfoResolver cellInfoResolver,
                       JobManagerConfiguration jobManagerConfiguration,
                       JobConfiguration jobConfiguration,
                       Logger logger,
@@ -151,6 +154,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         auditLogService = injector.getInstance(AuditLogService.class);
         this.config = config;
         this.jobConfiguration = jobConfiguration;
+        this.cellInfoResolver = cellInfoResolver;
         this.logger = logger;
         this.jobId = jobId;
         this.namedJob = namedJob;
@@ -658,6 +662,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         V2StageMetadata msmd = mjmd.getStageMetadata(mwmd.getStageNum());
         WorkerRequest request = new WorkerRequest(msmd.getMachineDefinition(),
                 jobId, mwmd.getWorkerIndex(), taskNumber, taskInstanceId,
+                cellInfoResolver.getCellName(),
                 mjmd.getJarUrl(),
                 mwmd.getStageNum(), mjmd.getNumStages(), msmd.getNumWorkers(),
                 mjmd.getName(), msmd.getMachineDefinition().getNumPorts(),
@@ -710,7 +715,8 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         V2StageMetadata stageMetadata = getJobMetadata().getStageMetadata(mwmdr.getStageNum());
         ScheduledRequest request = createRequest(this, mwmdr,
                 new WorkerRequest(schedulingInfo.getMachineDefinition(),
-                        jobId, mwmdr.getWorkerIndex(), mwmdr.getWorkerNumber(), mwmdr.getWorkerInstanceId(), null, 1, 1,
+                        jobId, mwmdr.getWorkerIndex(), mwmdr.getWorkerNumber(), mwmdr.getWorkerInstanceId(),
+                        cellInfoResolver.getCellName(), null, 1, 1,
                         schedulingInfo.getNumberOfInstances(),
                         jobDefinition.getName(), schedulingInfo.getMachineDefinition().getNumPorts(),
                         jobDefinition.getParameters(), jobDefinition.getJobSla(),
@@ -840,7 +846,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                 new WorkerRequest(
                         stageMetadata.getMachineDefinition(), jobId,
                         replaced.getWorkerIndex(), workerNumberGenerator.getNextWorkerNumber(),
-                        WorkerRequest.generateWorkerInstanceId(),
+                        WorkerRequest.generateWorkerInstanceId(), cellInfoResolver.getCellName(),
                         job.getJarUrl(), 1, 1, stageMetadata.getNumWorkers(), namedJob.getName(),
                         stageMetadata.getMachineDefinition().getNumPorts(),
                         job.getParameters(),
@@ -877,7 +883,8 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                             t.getState(), t.getWorkerNumber()));
                     final StageSchedulingInfo schedulingInfo = jobDefinition.getSchedulingInfo().forStage(1);
                     WorkerRequest workerRequest = new WorkerRequest(schedulingInfo.getMachineDefinition(),
-                            jobId, t.getWorkerIndex(), t.getWorkerNumber(), null, null, 1, 1,
+                            jobId, t.getWorkerIndex(), t.getWorkerNumber(), null,
+                            cellInfoResolver.getCellName(), null, 1, 1,
                             schedulingInfo.getNumberOfInstances(),
                             jobDefinition.getName(), schedulingInfo.getMachineDefinition().getNumPorts(),
                             jobDefinition.getParameters(), jobDefinition.getJobSla(),
@@ -914,6 +921,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                             V2WorkerMetadata worker = store.storeNewWorker(new WorkerRequest(
                                     stageMetadata.getMachineDefinition(), jobId,
                                     idx, newWorkerNumber, WorkerRequest.generateWorkerInstanceId(),
+                                    cellInfoResolver.getCellName(),
                                     job.getJarUrl(), 1, 1, numTasks, namedJob.getName(),
                                     stageMetadata.getMachineDefinition().getNumPorts(),
                                     job.getParameters(),
@@ -1004,7 +1012,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
             // during initialization worker number and index are identical
             WorkerRequest workerRequest = new WorkerRequest(stage.getMachineDefinition(),
                     jobMetadata.getJobId(), i, workerNumber, workerInstanceId,
-                    jobMetadata.getJarUrl(),
+                    cellInfoResolver.getCellName(), jobMetadata.getJarUrl(),
                     1, 1, numInstancesAtStage,
                     jobMetadata.getName(), numPorts,
                     jobDefinition.getParameters(),

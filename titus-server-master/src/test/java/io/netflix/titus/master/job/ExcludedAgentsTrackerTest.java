@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 
 public class ExcludedAgentsTrackerTest {
 
-    private final RuntimeModelGenerator generator = new RuntimeModelGenerator();
+    private final RuntimeModelGenerator generator = new RuntimeModelGenerator(getClass().getSimpleName());
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
     private final ExcludedAgentsTracker tracker = new ExcludedAgentsTracker("jobId#1", "myApp", configuration, new DefaultRegistry());

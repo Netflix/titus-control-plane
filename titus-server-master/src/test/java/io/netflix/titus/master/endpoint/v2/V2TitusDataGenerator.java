@@ -32,7 +32,11 @@ import static io.netflix.titus.api.model.v2.parameter.Parameters.JobType;
 
 public final class V2TitusDataGenerator implements TitusDataGenerator<String, TitusJobSpec, TitusJobType, TitusJobInfo, TitusTaskInfo, TitusTaskState> {
 
-    private final RuntimeModelGenerator runtimeModelGenerator = new RuntimeModelGenerator();
+    private final RuntimeModelGenerator runtimeModelGenerator;
+
+    public V2TitusDataGenerator(String cellName) {
+        this.runtimeModelGenerator = new RuntimeModelGenerator(cellName);
+    }
 
     @Override
     public String createUser(String userName) {

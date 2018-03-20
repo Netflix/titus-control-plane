@@ -31,6 +31,7 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.master.JobSchedulingInfo;
 import io.netflix.titus.master.MetricConstants;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.BaseJobMgr;
 import io.netflix.titus.master.job.JobManagerConfiguration;
@@ -59,6 +60,7 @@ public class BatchJobMgr extends BaseJobMgr {
                        NamedJob namedJob,
                        Observer<Observable<JobSchedulingInfo>> jobSchedulingObserver,
                        MasterConfiguration config,
+                       CellInfoResolver cellInfoResolver,
                        JobManagerConfiguration jobManagerConfiguration,
                        JobConfiguration jobConfiguration,
                        RxEventBus eventBus,
@@ -71,6 +73,7 @@ public class BatchJobMgr extends BaseJobMgr {
                 namedJob,
                 jobSchedulingObserver,
                 config,
+                cellInfoResolver,
                 jobManagerConfiguration,
                 jobConfiguration,
                 logger,
@@ -94,8 +97,8 @@ public class BatchJobMgr extends BaseJobMgr {
             final SchedulingService schedulingService = injector.getInstance(SchedulingService.class);
             V2JobMgrIntf jobMgr = new BatchJobMgr(injector, jobId, jobDefinition,
                     namedJobs.getJobByName(jobDefinition.getName()), jobSchedulingObserver,
-                    injector.getInstance(MasterConfiguration.class), injector.getInstance(JobManagerConfiguration.class),
-                    injector.getInstance(JobConfiguration.class),
+                    injector.getInstance(MasterConfiguration.class), injector.getInstance(CellInfoResolver.class),
+                    injector.getInstance(JobManagerConfiguration.class), injector.getInstance(JobConfiguration.class),
                     eventBus, schedulingService, registry);
             jobMgr.initializeNewJob(store);
             return jobMgr;

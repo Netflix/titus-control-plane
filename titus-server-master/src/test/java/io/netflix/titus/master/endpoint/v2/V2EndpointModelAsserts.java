@@ -16,6 +16,7 @@
 
 package io.netflix.titus.master.endpoint.v2;
 
+import java.util.List;
 import java.util.Set;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
@@ -50,6 +51,15 @@ class V2EndpointModelAsserts implements EndpointModelAsserts<
     public void assertCellInfo(TitusJobInfo titusJobInfo, String cellName) {
         assertThat(titusJobInfo.getLabels()).containsEntry("titus.cell", cellName);
         assertThat(titusJobInfo.getLabels()).containsEntry("titus.stack", cellName);
+        final List<TaskInfo> tasks = titusJobInfo.getTasks();
+        for (TaskInfo taskInfo : tasks) {
+            assertThat(taskInfo.getCell()).isEqualTo(cellName);
+        }
+    }
+
+    @Override
+    public void assertTaskCell(TitusTaskInfo task, String cellName) {
+        assertThat(task.getCell()).isEqualTo(cellName);
     }
 
     @Override

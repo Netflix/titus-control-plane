@@ -51,7 +51,7 @@ import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.common.CellDecorator;
-import io.netflix.titus.master.endpoint.common.CellInfoResolver;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
 import io.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;

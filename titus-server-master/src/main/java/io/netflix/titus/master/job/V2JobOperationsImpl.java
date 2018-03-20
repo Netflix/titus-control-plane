@@ -51,6 +51,7 @@ import io.netflix.titus.master.ApiOperations;
 import io.netflix.titus.master.JobSchedulingInfo;
 import io.netflix.titus.master.MetricConstants;
 import io.netflix.titus.master.VirtualMachineMasterService;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.batch.BatchJobMgr;
 import io.netflix.titus.master.job.service.ServiceJobMgr;
@@ -101,6 +102,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
     final AuditLogService auditLogService;
     private final MasterConfiguration masterConfiguration;
     private final JobManagerConfiguration jobManagerConfiguration;
+    private final CellInfoResolver cellInfoResolver;
 
     /**
      * WARNING: we depend here on {@link ManagementSubsystemInitializer} to enforce proper initialization order.
@@ -113,6 +115,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
                                ApiOperations apiOps,
                                TriggerOperator triggerOperator,
                                MasterConfiguration config,
+                               CellInfoResolver cellInfoResolver,
                                RxEventBus eventBus,
                                ManagementSubsystemInitializer managementSubsystemInitializer,
                                Registry registry) {
@@ -120,6 +123,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
         auditLogService = injector.getInstance(AuditLogService.class);
         this.masterConfiguration = masterConfiguration;
         this.jobManagerConfiguration = jobManagerConfiguration;
+        this.cellInfoResolver = cellInfoResolver;
         this.eventBus = eventBus;
         this.registry = registry;
         this.namedJobReplaySubject = ReplaySubject.create();
@@ -273,7 +277,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
                         jobSchedulingObserver, eventBus, registry);
             case Batch:
                 return new BatchJobMgr(injector, jobId, jobDefinition, namedJob,
-                        jobSchedulingObserver, injector.getInstance(MasterConfiguration.class),
+                        jobSchedulingObserver, masterConfiguration, cellInfoResolver,
                         jobManagerConfiguration, injector.getInstance(JobConfiguration.class),
                         eventBus, injector.getInstance(SchedulingService.class), registry);
             default:

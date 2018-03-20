@@ -18,14 +18,19 @@ package io.netflix.titus.master.integration;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.JobAttributes;
+import io.netflix.titus.api.model.v2.parameter.Parameter;
+import io.netflix.titus.api.model.v2.parameter.Parameters;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
+import io.netflix.titus.master.store.V2JobMetadataWritable;
 import io.netflix.titus.testkit.client.TitusMasterClient;
 import io.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import io.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
@@ -66,7 +71,6 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
 
     private EmbeddedTitusMaster titusMaster;
 
-    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator();
 
     private TitusMasterClient client;
     private ExtTestSubscriber<TaskExecutorHolder> taskExecutorHolders;
@@ -86,6 +90,8 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
      */
     @Test(timeout = 30_000)
     public void checkIpPerEniLimitIsPreserved() throws Exception {
+        String cellName = UUID.randomUUID().toString();
+        TitusV2ModelGenerator generator = new TitusV2ModelGenerator(cellName);
         TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
                 .instancesMin(1).instancesDesired(3).instancesMax(10)
                 .allocateIpAddress(true)
@@ -95,11 +101,14 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
 
         String jobId = runServiceJob(jobSpec);
 
-        // We need to examine internal data structure to check ENI assignments
-        Collection<V2WorkerMetadata> tasksMetadata = ((EmbeddedStorageProvider) titusMaster.getStorageProvider()).getJob(jobId)
-                .getStageMetadata(1)
-                .getAllWorkers();
+        final V2JobMetadataWritable job = ((EmbeddedStorageProvider) titusMaster.getStorageProvider()).getJob(jobId);
+        List<Parameter> parameters = job.getParameters();
+        assertThat(Parameters.getLabels(parameters)).containsEntry(JobAttributes.JOB_ATTRIBUTES_CELL, "dev");
+        assertThat(Parameters.getLabels(parameters)).containsEntry(JobAttributes.JOB_ATTRIBUTES_STACK, "dev");
 
+        // We need to examine internal data structure to check ENI assignments
+        Collection<V2WorkerMetadata> tasksMetadata = job.getStageMetadata(1).getAllWorkers();
+        tasksMetadata.forEach(workerMetadata -> assertThat(workerMetadata.getCell()).isEqualTo("dev"));
         List<String> eniIDs = tasksMetadata.stream().map(t -> t.getTwoLevelResources().get(0).getLabel()).collect(Collectors.toList());
         assertThat(eniIDs).contains("0", "1");
     }

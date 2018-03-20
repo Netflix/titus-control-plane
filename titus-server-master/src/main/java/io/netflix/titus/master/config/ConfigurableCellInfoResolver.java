@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.endpoint.common;
+package io.netflix.titus.master.config;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import io.netflix.titus.master.config.MasterConfiguration;
 
 @Singleton
 public class ConfigurableCellInfoResolver implements CellInfoResolver {

@@ -61,7 +61,7 @@ public class ResourceConsumptionEvaluatorTest {
     private final V2JobOperations v2JobOperations = mock(V2JobOperations.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
-    private final RuntimeModelGenerator runtimeModelGenerator = new RuntimeModelGenerator();
+    private final RuntimeModelGenerator runtimeModelGenerator = new RuntimeModelGenerator(getClass().getSimpleName());
 
     @Test
     public void testEvaluation() throws Exception {

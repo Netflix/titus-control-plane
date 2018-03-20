@@ -62,10 +62,10 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.DateTimeExt;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.ApiOperations;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.TitusServiceGateway;
 import io.netflix.titus.master.endpoint.common.CellDecorator;
-import io.netflix.titus.master.endpoint.common.CellInfoResolver;
 import io.netflix.titus.master.endpoint.common.ContextResolver;
 import io.netflix.titus.master.endpoint.common.SchedulerUtil;
 import io.netflix.titus.master.endpoint.common.TaskSummary;
@@ -283,6 +283,7 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
                     WorkerNaming.getWorkerName(jobMetadata.getJobId(), mwmd.getWorkerIndex(), mwmd.getWorkerNumber()),
                     mwmd.getWorkerInstanceId(),
                     jobMetadata.getJobId(),
+                    mwmd.getCell(),
                     titusState,
                     jobSpec.getApplicationName(), jobSpec.getCpu(), jobSpec.getMemory(), jobSpec.getNetworkMbps(), jobSpec.getDisk(),
                     portMapping, jobSpec.getGpu(), jobSpec.getEnv(), jobSpec.getVersion(), jobSpec.getEntryPoint(), slaveHost,
@@ -420,6 +421,7 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
                 tasks.add(new TaskInfo(
                         id,
                         mwmd.getWorkerInstanceId(),
+                        mwmd.getCell(),
                         state,
                         host,
                         hostInstanceId,

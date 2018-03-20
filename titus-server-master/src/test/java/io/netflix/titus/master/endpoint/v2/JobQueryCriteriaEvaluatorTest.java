@@ -21,17 +21,20 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import io.netflix.titus.api.model.v2.parameter.Parameters;
 import io.netflix.titus.api.model.v2.parameter.Parameters.JobType;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.master.store.V2JobMetadataWritable;
 import io.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import io.netflix.titus.testkit.model.runtime.RuntimeModelGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
 import static io.netflix.titus.api.model.v2.parameter.Parameters.mergeParameters;
 import static io.netflix.titus.api.model.v2.parameter.Parameters.updateParameter;
 import static io.netflix.titus.common.util.CollectionsExt.asMap;
@@ -40,7 +43,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobQueryCriteriaEvaluatorTest {
 
-    private final RuntimeModelGenerator runtimeModel = new RuntimeModelGenerator();
+    private final String cellName = UUID.randomUUID().toString();
+    private final RuntimeModelGenerator runtimeModel = new RuntimeModelGenerator(cellName);
 
     private final V2JobMetadataWritable job = (V2JobMetadataWritable) runtimeModel.newJobMetadata(JobType.Batch, "myJob");
 
@@ -48,7 +52,10 @@ public class JobQueryCriteriaEvaluatorTest {
 
     @Before
     public void setUp() throws Exception {
-        Map<String, String> myLabels = asMap("labelA", "valueA", "labelB", "valueB");
+        Map<String, String> myLabels = CollectionsExt.merge(
+                Parameters.getLabels(job.getParameters()),
+                asMap("labelA", "valueA", "labelB", "valueB")
+        );
         job.setParameters(mergeParameters(
                 job.getParameters(),
                 asList(
@@ -111,6 +118,16 @@ public class JobQueryCriteriaEvaluatorTest {
         // Not matching value
         JobQueryCriteria<TitusTaskState, TitusJobType> query4 = queryBuilder.withLabels(expectedLabels().with("labelA", "wrong_value").build()).build();
         assertThat(JobQueryCriteriaEvaluator.matches(job, query4)).isFalse();
+
+        // Cell name
+        JobQueryCriteria<TitusTaskState, TitusJobType> query5 = queryBuilder.withLabels(expectedLabels()
+                .with(JOB_ATTRIBUTES_CELL).build())
+                .build();
+        assertThat(JobQueryCriteriaEvaluator.matches(job, query5)).isTrue();
+        JobQueryCriteria<TitusTaskState, TitusJobType> query6 = queryBuilder.withLabels(expectedLabels()
+                .with(JOB_ATTRIBUTES_CELL, cellName).build())
+                .build();
+        assertThat(JobQueryCriteriaEvaluator.matches(job, query6)).isTrue();
     }
 
     @Test
