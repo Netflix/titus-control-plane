@@ -42,6 +42,7 @@ import io.netflix.titus.common.util.tuple.Triple;
 import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
+import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
@@ -114,7 +115,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         JobQueryResult jobQueryResult = client.findJobs(JobQuery.newBuilder().putFilteringCriteria("jobIds", job0 + ',' + job2).setPage(PAGE).build());
         final List<Job> itemsList = jobQueryResult.getItemsList();
         assertThat(itemsList).hasSize(2);
-        assertCellInfo(itemsList.get(0).getJobDescriptor());
+        assertCellInfo(itemsList.get(0).getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
         // Tasks
         TaskQueryResult taskQueryResult = client.findTasks(TaskQuery.newBuilder().putFilteringCriteria("jobIds", job0 + ',' + job2).setPage(PAGE).build());
@@ -143,7 +144,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         JobQueryResult jobQueryResult = client.findJobs(JobQuery.newBuilder().putFilteringCriteria("taskIds", task0 + ',' + task2).setPage(PAGE).build());
         final List<Job> itemsList = jobQueryResult.getItemsList();
         assertThat(itemsList).hasSize(2);
-        assertCellInfo(itemsList.get(0).getJobDescriptor());
+        assertCellInfo(itemsList.get(0).getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
         // Tasks
         TaskQueryResult taskQueryResult = client.findTasks(TaskQuery.newBuilder().putFilteringCriteria("taskIds", task0 + ',' + task2).setPage(PAGE).build());
@@ -204,7 +205,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(batchQueryJobs.getItemsList()).hasSize(1);
         Job batchQueryJobsItem = batchQueryJobs.getItems(0);
         assertThat(batchQueryJobsItem.getId()).isEqualTo(batchJobId);
-        assertCellInfo(batchQueryJobsItem.getJobDescriptor());
+        assertCellInfo(batchQueryJobsItem.getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
         // Batch only (tasks)
         TaskQueryResult batchQueryTasks = client.findTasks(TaskQuery.newBuilder().putFilteringCriteria("jobType", "batch").setPage(PAGE).build());
@@ -216,7 +217,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(serviceQueryJobs.getItemsList()).hasSize(1);
         Job serviceQueryJobsItem = serviceQueryJobs.getItems(0);
         assertThat(serviceQueryJobsItem.getId()).isEqualTo(serviceJobId);
-        assertCellInfo(serviceQueryJobsItem.getJobDescriptor());
+        assertCellInfo(serviceQueryJobsItem.getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
         // Service only (tasks)
         TaskQueryResult serviceQueryTasks = client.findTasks(TaskQuery.newBuilder().putFilteringCriteria("jobType", "service").setPage(PAGE).build());
@@ -257,14 +258,14 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(acceptedJobQueryResult.getItemsList()).hasSize(1);
         Job acceptedJobQueryResultItem = acceptedJobQueryResult.getItems(0);
         assertThat(acceptedJobQueryResultItem.getId()).isEqualTo(acceptedJobId);
-        assertCellInfo(acceptedJobQueryResultItem.getJobDescriptor());
+        assertCellInfo(acceptedJobQueryResultItem.getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
         // Jobs (KillInitiated)
         JobQueryResult killInitJobQueryResult = client.findJobs(JobQuery.newBuilder().putFilteringCriteria("jobState", "KillInitiated").setPage(PAGE).build());
         assertThat(killInitJobQueryResult.getItemsList()).hasSize(1);
         Job killInitJobQueryResultItem = killInitJobQueryResult.getItems(0);
         assertThat(killInitJobQueryResultItem.getId()).isEqualTo(killInitiatedJobId);
-        assertCellInfo(killInitJobQueryResultItem.getJobDescriptor());
+        assertCellInfo(killInitJobQueryResultItem.getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
         // Tasks (Accepted)
         TaskQueryResult acceptedTaskQueryResult = client.findTasks(TaskQuery.newBuilder().putFilteringCriteria("jobState", "Accepted").setPage(PAGE).build());
@@ -311,7 +312,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(jobQueryResult.getItemsList()).hasSize(1);
         Job jobQueryResultItem = jobQueryResult.getItems(0);
         assertThat(jobQueryResultItem.getId()).isEqualTo(expectedJobId);
-        assertCellInfo(jobQueryResultItem.getJobDescriptor());
+        assertCellInfo(jobQueryResultItem.getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
         // Task
         TaskQueryResult taskQueryResult = client.findTasks(TaskQuery.newBuilder().putFilteringCriteria("taskStates", taskState).setPage(PAGE).build());
@@ -549,13 +550,13 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
             assertThat(jobQueryResult1.getItemsList()).hasSize(1);
             final Job jobQueryResult1Item = jobQueryResult1.getItems(0);
             assertThat(jobQueryResult1Item.getId()).isEqualTo(job0);
-            assertCellInfo(jobQueryResult1Item.getJobDescriptor());
+            assertCellInfo(jobQueryResult1Item.getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
             JobQueryResult jobQueryResult2 = client.findJobs(JobQuery.newBuilder().putFilteringCriteria(attributeName, job2Value).setPage(PAGE).build());
             assertThat(jobQueryResult2.getItemsList()).hasSize(1);
             final Job jobQueryResult2Item = jobQueryResult2.getItems(0);
             assertThat(jobQueryResult2Item.getId()).isEqualTo(job1);
-            assertCellInfo(jobQueryResult2Item.getJobDescriptor());
+            assertCellInfo(jobQueryResult2Item.getJobDescriptor(), EmbeddedTitusMaster.CELL_NAME);
 
             // Tasks
             TaskQueryResult taskQueryResult1 = client.findTasks(TaskQuery.newBuilder().putFilteringCriteria(attributeName, job1Value).setPage(PAGE).build());

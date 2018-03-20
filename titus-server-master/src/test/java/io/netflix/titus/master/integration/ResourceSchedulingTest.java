@@ -18,6 +18,7 @@ package io.netflix.titus.master.integration;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -103,12 +104,15 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
 
         final V2JobMetadataWritable job = ((EmbeddedStorageProvider) titusMaster.getStorageProvider()).getJob(jobId);
         List<Parameter> parameters = job.getParameters();
-        assertThat(Parameters.getLabels(parameters)).containsEntry(JobAttributes.JOB_ATTRIBUTES_CELL, "dev");
-        assertThat(Parameters.getLabels(parameters)).containsEntry(JobAttributes.JOB_ATTRIBUTES_STACK, "dev");
+        final Map<String, String> labels = Parameters.getLabels(parameters);
+        assertThat(labels).containsEntry(JobAttributes.JOB_ATTRIBUTES_CELL, EmbeddedTitusMaster.CELL_NAME);
+        assertThat(labels).containsEntry(JobAttributes.JOB_ATTRIBUTES_STACK, EmbeddedTitusMaster.CELL_NAME);
 
         // We need to examine internal data structure to check ENI assignments
         Collection<V2WorkerMetadata> tasksMetadata = job.getStageMetadata(1).getAllWorkers();
-        tasksMetadata.forEach(workerMetadata -> assertThat(workerMetadata.getCell()).isEqualTo("dev"));
+        tasksMetadata.forEach(workerMetadata ->
+                assertThat(workerMetadata.getCell()).isEqualTo(EmbeddedTitusMaster.CELL_NAME)
+        );
         List<String> eniIDs = tasksMetadata.stream().map(t -> t.getTwoLevelResources().get(0).getLabel()).collect(Collectors.toList());
         assertThat(eniIDs).contains("0", "1");
     }
