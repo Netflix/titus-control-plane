@@ -30,7 +30,6 @@ import io.netflix.titus.api.model.v2.JobConstraints;
 import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
-import rx.functions.Action1;
 
 /**
  */
@@ -47,7 +46,7 @@ public interface SchedulingService {
 
     List<VirtualMachineCurrentState> getVmCurrentStates();
 
-    Action1<QueuableTask> getTaskQueueAction();
+    void addTask(QueuableTask queuableTask);
 
     void removeTask(String taskid, QAttributes qAttributes, String hostname);
 

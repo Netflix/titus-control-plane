@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -668,32 +667,31 @@ public class DefaultSchedulingService implements SchedulingService {
                                     task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
                                     consumeResult);
 
-                            // FIXME This is obvious shortcoming. Failed model updates must be propagated into change action result.
                             fitInjection.ifPresent(i -> i.beforeImmediate("storeLaunchConfiguration"));
 
-                            AtomicReference<Throwable> errorRef = new AtomicReference<>();
-                            boolean updated = v3JobOperations.recordTaskPlacement(
-                                    task.getId(),
-                                    oldTask -> {
-                                        try {
-                                            return JobManagerUtil.newTaskLaunchConfigurationUpdater(config.getHostZoneAttributeName(), lease, consumeResult, attributesMap).apply(oldTask);
-                                        } catch (Exception e) {
-                                            errorRef.set(e);
-                                            return oldTask;
-                                        }
-                                    }
-                            ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                            boolean completedInTime = false;
+                            Throwable recordTaskError = null;
+                            try {
+                                completedInTime = v3JobOperations.recordTaskPlacement(
+                                        task.getId(),
+                                        oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
+                                                config.getHostZoneAttributeName(), lease, consumeResult, attributesMap
+                                        ).apply(oldTask)
+                                ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                            } catch (Exception e) {
+                                recordTaskError = ExceptionExt.unpackRuntimeException(e);
+                            }
 
                             fitInjection.ifPresent(i -> i.afterImmediate("storeLaunchConfiguration"));
 
-                            if (errorRef.get() != null) {
-                                if (JobManagerException.hasErrorCode(errorRef.get(), JobManagerException.ErrorCode.UnexpectedTaskState)) {
-                                    logger.info("Not launching task, as it is no longer in Accepted state (probably killed)", v3Task.getId());
+                            if (recordTaskError != null) {
+                                if (JobManagerException.hasErrorCode(recordTaskError, JobManagerException.ErrorCode.UnexpectedTaskState)) {
+                                    logger.info("Not launching task, as it is no longer in Accepted state (probably killed): {}", v3Task.getId());
                                 } else {
-                                    logger.info("Not launching task {} due to model update failure", v3Task.getId(), errorRef.get());
-                                    killBrokenTask(task, "model update error: " + errorRef.get().getMessage());
+                                    logger.info("Not launching task due to model update failure: {}", v3Task.getId(), recordTaskError);
+                                    killBrokenTask(task, "model update error: " + recordTaskError.getMessage());
                                 }
-                            } else if (updated) {
+                            } else if (completedInTime) {
                                 taskInfoList.add(taskInfo);
                             } else {
                                 killBrokenTask(task, "store update timeout");
@@ -701,13 +699,13 @@ public class DefaultSchedulingService implements SchedulingService {
                             }
                         } catch (Exception e) {
                             killBrokenTask(task, e.toString());
-                            logger.error("Fatal error when creating TaskInfo for {}", task.getId(), e);
+                            logger.error("Fatal error when creating TaskInfo for task: {}", task.getId(), e);
                         }
                     }
                 }
                 if (!taskFound) {
                     // job must have been terminated, remove task from Fenzo
-                    logger.warn("Rejecting assignment and removing task after not finding jobMgr for " + task.getId());
+                    logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: " + task.getId());
                     schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
                 }
             }
@@ -764,13 +762,15 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public Action1<QueuableTask> getTaskQueueAction() {
-        return taskQueueAction;
+    public void addTask(QueuableTask queuableTask) {
+        logger.info("Adding task to Fenzo: taskId={}, qAttributes={}, hostname={}", queuableTask.getId(), queuableTask.getQAttributes());
+        taskQueue.queueTask(queuableTask);
     }
 
     @Override
-    public void removeTask(String taskid, QAttributes qAttributes, String hostname) {
-        schedulingService.removeTask(taskid, qAttributes, hostname);
+    public void removeTask(String taskId, QAttributes qAttributes, String hostname) {
+        logger.info("Removing task from Fenzo: taskId={}, qAttributes={}, hostname={}", taskId, qAttributes, hostname);
+        schedulingService.removeTask(taskId, qAttributes, hostname);
     }
 
     @Override

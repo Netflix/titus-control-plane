@@ -122,7 +122,6 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
     private final JobAssignmentsPublisher assignmentsPublisher;
     protected final int workerWritesBatchSize;
     protected final RxEventBus eventBus;
-    protected Action1<QueuableTask> taskQueueAction;
     private final SchedulingService schedulingService;
     protected final Injector injector;
     private final ApplicationSlaManagementService applicationSlaManagementService;
@@ -158,7 +157,6 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         this.workerWritesBatchSize = config.getWorkerWriteBatchSize();
         this.eventBus = eventBus;
         this.schedulingService = schedulingService;
-        taskQueueAction = schedulingService.getTaskQueueAction();
 
         String appName = Parameters.getAppName(jobDefinition.getParameters());
         if (Strings.isNullOrEmpty(appName)) {
@@ -721,7 +719,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         if (pendingInitialization) {
             taskQueueRequests.add(request);
         } else {
-            taskQueueAction.call(request);
+            schedulingService.addTask(request);
         }
     }
 
@@ -978,7 +976,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
     public void postInitializeNewJob() {
         pendingInitialization = false;
         for (ScheduledRequest request = taskQueueRequests.poll(); request != null; request = taskQueueRequests.poll()) {
-            taskQueueAction.call(request);
+            schedulingService.addTask(request);
         }
     }
 

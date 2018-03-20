@@ -261,7 +261,7 @@ public class JobReconciliationFrameworkFactory {
                         systemSoftConstraint,
                         systemHardConstraint
                 );
-                schedulingService.getTaskQueueAction().call(queueableTask);
+                schedulingService.addTask(queueableTask);
             } catch (Exception e) {
                 logger.error("Failed to add Accepted task to Fenzo queue: {} with error:", task.getId(), e);
                 return TaskFenzoCheck.FenzoAddError;
