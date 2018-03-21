@@ -27,6 +27,8 @@ public interface EndpointModelAsserts<USER, JOB_SPEC, JOB_TYPE extends Enum<JOB_
 
     void assertCellInfo(JOB job, String cellName);
 
+    void assertTaskCell(TASK task, String cellName);
+
     void assertJobKilled(JOB job);
 
     void assertServiceJobSize(JOB job, int desired, int min, int max);

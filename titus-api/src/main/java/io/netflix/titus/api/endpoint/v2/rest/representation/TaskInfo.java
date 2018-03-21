@@ -18,14 +18,16 @@ package io.netflix.titus.api.endpoint.v2.rest.representation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- */
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 public class TaskInfo {
 
     private final String id;
     private final String instanceId;
+    private final String cell;
     private final TitusTaskState state;
     private final String host;
     private final String hostInstanceId;
@@ -47,6 +49,7 @@ public class TaskInfo {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public TaskInfo(@JsonProperty("id") String id,
                     @JsonProperty("instanceId") String instanceId,
+                    @JsonProperty("cell") @JsonInclude(NON_NULL) String cell,
                     @JsonProperty("state") TitusTaskState state,
                     @JsonProperty("host") String host,
                     @JsonProperty("hostInstanceId") String hostInstanceId,
@@ -67,6 +70,7 @@ public class TaskInfo {
     ) {
         this.id = id;
         this.instanceId = instanceId;
+        this.cell = cell;
         this.state = state;
         this.host = host;
         this.hostInstanceId = hostInstanceId;
@@ -91,6 +95,10 @@ public class TaskInfo {
 
     public String getInstanceId() {
         return instanceId;
+    }
+
+    public String getCell() {
+        return cell;
     }
 
     public TitusTaskState getState() {

@@ -108,6 +108,8 @@ public class EmbeddedTitusMaster {
 
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedTitusMaster.class);
 
+    public static final String CELL_NAME = "embeddedCell";
+
     private final Properties properties;
     private final DefaultSettableConfig config;
     private final int apiPort;
@@ -150,6 +152,7 @@ public class EmbeddedTitusMaster {
         Properties embeddedProperties = new Properties();
         embeddedProperties.put("governator.jetty.embedded.port", apiPort);
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
+        embeddedProperties.put("titus.master.cellName", CELL_NAME);
         embeddedProperties.put("titusMaster.v2Enabled", Boolean.toString(builder.v2Enabled));
         config.setProperties(embeddedProperties);
 

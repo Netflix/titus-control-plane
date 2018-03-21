@@ -51,8 +51,8 @@ public class TitusV2ModelGenerator {
 
     private final RuntimeModelGenerator runtimeGenerator;
 
-    public TitusV2ModelGenerator() {
-        this.runtimeGenerator = new RuntimeModelGenerator();
+    public TitusV2ModelGenerator(String cell) {
+        this.runtimeGenerator = new RuntimeModelGenerator(cell);
     }
 
     public TitusJobSpec newJobSpec(TitusJobType type, String name) {
@@ -150,6 +150,7 @@ public class TitusV2ModelGenerator {
                     WorkerNaming.getWorkerName(jobId, mwmd.getWorkerIndex(), mwmd.getWorkerNumber()),
                     mwmd.getWorkerInstanceId(),
                     jobId,
+                    mwmd.getCell(),
                     titusState,
                     jobSpec.getApplicationName(), jobSpec.getCpu(), jobSpec.getMemory(), jobSpec.getNetworkMbps(), jobSpec.getDisk(),
                     portMapping, jobSpec.getGpu(), jobSpec.getEnv(), jobSpec.getVersion(), jobSpec.getEntryPoint(), mwmd.getSlave(),
@@ -182,6 +183,7 @@ public class TitusV2ModelGenerator {
         return new TaskInfo(
                 id,
                 mwmd.getWorkerInstanceId(),
+                mwmd.getCell(),
                 state,
                 host,
                 hostInstanceId,

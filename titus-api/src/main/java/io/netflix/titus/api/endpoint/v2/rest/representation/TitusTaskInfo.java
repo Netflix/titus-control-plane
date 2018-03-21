@@ -20,12 +20,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 public class TitusTaskInfo {
     private final String id;
     private final String instanceId;
     private final String jobId;
+    private final String cell;
     private final TitusTaskState state;
     private final String applicationName;
     private final double cpu;
@@ -56,6 +60,7 @@ public class TitusTaskInfo {
     public TitusTaskInfo(@JsonProperty("id") String id,
                          @JsonProperty("instanceId") String instanceId,
                          @JsonProperty("jobId") String jobId,
+                         @JsonProperty("cell") @JsonInclude(NON_NULL) String cell,
                          @JsonProperty("state") TitusTaskState state,
                          @JsonProperty("applicationName") String applicationName,
                          @JsonProperty("cpu") double cpu,
@@ -84,6 +89,7 @@ public class TitusTaskInfo {
         this.id = id;
         this.instanceId = instanceId;
         this.jobId = jobId;
+        this.cell = cell;
         this.state = state;
         this.applicationName = applicationName;
         this.cpu = cpu;
@@ -120,6 +126,10 @@ public class TitusTaskInfo {
 
     public String getJobId() {
         return jobId;
+    }
+
+    public String getCell() {
+        return cell;
     }
 
     public TitusTaskState getState() {

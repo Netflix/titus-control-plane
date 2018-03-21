@@ -51,6 +51,8 @@ import io.netflix.titus.master.store.V2StageMetadataWritable;
 import io.netflix.titus.master.store.V2WorkerMetadataWritable;
 import io.netflix.titus.testkit.util.TitusTaskIdParser;
 
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static io.netflix.titus.common.util.CollectionsExt.asMap;
 import static java.util.Arrays.asList;
 
@@ -80,9 +82,14 @@ public class RuntimeModelGenerator {
 
     private int jobIdx;
 
+    private final String cell;
     private final Map<String, V2JobDefinition> jobDefinitions = new HashMap<>();
     private final Map<String, V2JobMetadata> jobsMetadata = new HashMap<>();
     private final Map<String, V2JobMetadata> archivedJobsMetadata = new HashMap<>();
+
+    public RuntimeModelGenerator(String cell) {
+        this.cell = cell;
+    }
 
     public V2JobDefinition newJobDefinition(JobType jobType, String name) {
         return newJobDefinition(jobType, name, null, null, 0.0);
@@ -101,7 +108,11 @@ public class RuntimeModelGenerator {
         }
         parameters.add(Parameters.newImageNameParameter("testImage"));
         parameters.add(Parameters.newRestartOnSuccessParameter(false));
-        parameters.add(Parameters.newLabelsParameter(asMap("labelA", "valueA")));
+        parameters.add(Parameters.newLabelsParameter(asMap(
+                JOB_ATTRIBUTES_CELL, cell,
+                JOB_ATTRIBUTES_STACK, cell,
+                "labelA", "valueA"
+        )));
         parameters.add(Parameters.newEntryPointParameter("./testApp.sh"));
         parameters.add(Parameters.newEnvParameter(asMap("EVN_PARAM_A", "envValueA")));
         parameters.add(Parameters.newIamProfileParameter("testIamProfile"));
@@ -250,7 +261,8 @@ public class RuntimeModelGenerator {
                     jobId,
                     "tid:uuid-" + i,
                     1,
-                    jobStage.getMachineDefinition().getNumPorts()
+                    jobStage.getMachineDefinition().getNumPorts(),
+                    cell
             );
             try {
                 jobStage.replaceWorkerIndex(worker, null);
@@ -339,7 +351,8 @@ public class RuntimeModelGenerator {
                 jobId,
                 "tid:uuid-" + job.getNextWorkerNumberToUse(),
                 1,
-                jobStage.getMachineDefinition().getNumPorts()
+                jobStage.getMachineDefinition().getNumPorts(),
+                replacedTask.getCell()
         );
         try {
             jobStage.replaceWorkerIndex(worker, replacedTask);

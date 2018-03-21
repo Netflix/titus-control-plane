@@ -105,6 +105,8 @@ public interface V2WorkerMetadata {
 
     V2JobState getState();
 
+    String getCell();
+
     String getSlave();
 
     String getSlaveID();

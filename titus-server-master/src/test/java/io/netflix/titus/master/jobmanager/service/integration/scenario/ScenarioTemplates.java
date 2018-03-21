@@ -28,6 +28,7 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,7 +49,13 @@ public class ScenarioTemplates {
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> acceptTask(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
-                .expectTaskAddedToStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Accepted))
+                .expectTaskAddedToStore(taskIdx, resubmit, task -> {
+                    assertThat(task.getStatus().getState()).isEqualTo(TaskState.Accepted);
+                    assertThat(task.getTaskContext())
+                            .containsEntry(TaskAttributes.TASK_ATTRIBUTES_CELL, JobDescriptorGenerator.TEST_CELL_NAME);
+                    assertThat(task.getTaskContext())
+                            .containsEntry(TaskAttributes.TASK_ATTRIBUTES_STACK, JobDescriptorGenerator.TEST_CELL_NAME);
+                })
                 .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Accepted)
                 .expectScheduleRequest(taskIdx, resubmit);
     }

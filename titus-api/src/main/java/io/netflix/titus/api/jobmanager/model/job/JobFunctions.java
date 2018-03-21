@@ -167,7 +167,7 @@ public final class JobFunctions {
     public static Task addAllocatedResourcesToTask(Task task, TaskStatus status, TwoLevelResource twoLevelResource, Map<String, String> taskContext) {
         return taskStatusChangeBuilder(task, status)
                 .withTwoLevelResources(twoLevelResource)
-                .withTaskContext(taskContext)
+                .addAllToTaskContext(taskContext)
                 .build();
     }
 

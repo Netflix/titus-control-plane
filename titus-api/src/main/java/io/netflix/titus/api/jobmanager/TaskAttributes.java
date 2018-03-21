@@ -16,7 +16,7 @@
 
 package io.netflix.titus.api.jobmanager;
 
-public class TaskAttributes {
+public final class TaskAttributes {
     /*
      * Agent attributes.
      */
@@ -39,4 +39,13 @@ public class TaskAttributes {
     public static final String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_ID = "task.networkInterfaceId";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX = "task.networkInterfaceIndex";
+
+    /*
+     * Cell info.
+     */
+    public static final String TASK_ATTRIBUTES_CELL = JobAttributes.JOB_ATTRIBUTES_CELL;
+    public static final String TASK_ATTRIBUTES_STACK = JobAttributes.JOB_ATTRIBUTES_STACK;
+
+    private TaskAttributes() {
+    }
 }

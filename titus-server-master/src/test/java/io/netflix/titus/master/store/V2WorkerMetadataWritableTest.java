@@ -58,6 +58,7 @@ public class V2WorkerMetadataWritableTest {
         Assert.assertEquals("92b04137-4dc0-4e6b-8f7e-72a7bbeac932", mwmd.getJobId());
         Assert.assertEquals(1, mwmd.getNumberOfPorts());
         Assert.assertEquals(complMsg, mwmd.getCompletionMessage());
+        Assert.assertEquals(null, mwmd.getCell());
     }
 
     @Test
@@ -89,6 +90,7 @@ public class V2WorkerMetadataWritableTest {
         System.out.println(mapper.writeValueAsString(mwmd));
 
         TaskInfo taskInfo = new TaskInfo(mwmd.getJobId(), mwmd.getWorkerInstanceId(),
+                "test-cell",
                 TitusTaskState.FAILED,
                 "host", "hostInstanceId", "itype", "region", "zone", "now", "now", "now", "now", "now", "noMsg", mwmd.getStatusData(),
                 "http://stdout.live",
@@ -100,7 +102,7 @@ public class V2WorkerMetadataWritableTest {
                 null, null, singletonMap("stack", "testStack"), 0, 0L, false, null, null, null, null, "now", null, null,
                 Collections.singletonList(taskInfo), new ArrayList<>(), null);
 
-        final String expect = "{\"id\":\"1234\",\"name\":\"name\",\"type\":\"batch\",\"labels\":null,\"applicationName\":\"app\",\"appName\":\"app\",\"user\":\"me\",\"version\":\"ver\",\"entryPoint\":null,\"inService\":false,\"state\":\"QUEUED\",\"instances\":1,\"instancesMin\":1,\"instancesMax\":1,\"instancesDesired\":1,\"cpu\":1.0,\"memory\":100.0,\"networkMbps\":128.0,\"disk\":100.0,\"ports\":null,\"gpu\":0,\"jobGroupStack\":null,\"jobGroupDetail\":null,\"jobGroupSequence\":null,\"capacityGroup\":\"app\",\"migrationPolicy\":null,\"environment\":null,\"titusContext\":{\"stack\":\"testStack\"},\"retries\":0,\"runtimeLimitSecs\":0,\"allocateIpAddress\":false,\"iamProfile\":null,\"securityGroups\":null,\"efs\":null,\"efsMounts\":null,\"submittedAt\":\"now\",\"softConstraints\":null,\"hardConstraints\":null,\"tasks\":[{\"id\":\"1234\",\"instanceId\":\"92b04137-4dc0-4e6b-8f7e-72a7bbeac932\",\"state\":\"FAILED\",\"host\":\"host\",\"hostInstanceId\":\"hostInstanceId\",\"itype\":\"itype\",\"region\":\"region\",\"zone\":\"zone\",\"submittedAt\":\"now\",\"launchedAt\":\"now\",\"startedAt\":\"now\",\"finishedAt\":\"now\",\"migrationDeadline\":\"now\",\"message\":\"noMsg\",\"data\":{\"ipAddresses\":{\"nfvpc\":\"100.66.26.69\"}},\"stdoutLive\":\"http://stdout.live\",\"logs\":\"http://logs\",\"snapshots\":\"http://snapshots\"}],\"auditLogs\":[],\"jobProcesses\":null}";
+        final String expect = "{\"id\":\"1234\",\"name\":\"name\",\"type\":\"batch\",\"labels\":null,\"applicationName\":\"app\",\"appName\":\"app\",\"user\":\"me\",\"version\":\"ver\",\"entryPoint\":null,\"inService\":false,\"state\":\"QUEUED\",\"instances\":1,\"instancesMin\":1,\"instancesMax\":1,\"instancesDesired\":1,\"cpu\":1.0,\"memory\":100.0,\"networkMbps\":128.0,\"disk\":100.0,\"ports\":null,\"gpu\":0,\"jobGroupStack\":null,\"jobGroupDetail\":null,\"jobGroupSequence\":null,\"capacityGroup\":\"app\",\"migrationPolicy\":null,\"environment\":null,\"titusContext\":{\"stack\":\"testStack\"},\"retries\":0,\"runtimeLimitSecs\":0,\"allocateIpAddress\":false,\"iamProfile\":null,\"securityGroups\":null,\"efs\":null,\"efsMounts\":null,\"submittedAt\":\"now\",\"softConstraints\":null,\"hardConstraints\":null,\"tasks\":[{\"id\":\"1234\",\"instanceId\":\"92b04137-4dc0-4e6b-8f7e-72a7bbeac932\",\"cell\":\"test-cell\",\"state\":\"FAILED\",\"host\":\"host\",\"hostInstanceId\":\"hostInstanceId\",\"itype\":\"itype\",\"region\":\"region\",\"zone\":\"zone\",\"submittedAt\":\"now\",\"launchedAt\":\"now\",\"startedAt\":\"now\",\"finishedAt\":\"now\",\"migrationDeadline\":\"now\",\"message\":\"noMsg\",\"data\":{\"ipAddresses\":{\"nfvpc\":\"100.66.26.69\"}},\"stdoutLive\":\"http://stdout.live\",\"logs\":\"http://logs\",\"snapshots\":\"http://snapshots\"}],\"auditLogs\":[],\"jobProcesses\":null}";
         String actual = mapper.writeValueAsString(jobInfo);
         Assert.assertEquals(expect, actual);
     }

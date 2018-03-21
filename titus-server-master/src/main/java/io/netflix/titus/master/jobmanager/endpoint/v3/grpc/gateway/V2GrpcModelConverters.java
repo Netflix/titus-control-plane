@@ -79,6 +79,19 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CELL;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_ID;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID;
 import static io.netflix.titus.api.jobmanager.model.job.Container.RESOURCE_GPU;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static io.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
@@ -93,17 +106,6 @@ import static io.netflix.titus.master.job.worker.WorkerRequest.V2_NETFLIX_APP_ME
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.LABEL_LEGACY_NAME;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.SPACE_SPLIT_RE;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.TASK_CONTEXT_AGENT_ATTRIBUTES;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_ID;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID;
 import static java.util.Arrays.asList;
 
 public final class V2GrpcModelConverters {
@@ -260,6 +262,10 @@ public final class V2GrpcModelConverters {
             taskBuilder.putTaskContext(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, worker.getJobId() + "-worker-" + worker.getWorkerIndex() + "-" + worker.getResubmitOf());
         }
         taskBuilder.putTaskContext(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(worker.getTotalResubmitCount()));
+        if (worker.getCell() != null && !worker.getCell().isEmpty()) {
+            taskBuilder.putTaskContext(TASK_ATTRIBUTES_CELL, worker.getCell());
+            taskBuilder.putTaskContext(TASK_ATTRIBUTES_STACK, worker.getCell());
+        }
 
         parseTitusExecutorDetails(worker.getStatusData()).ifPresent(details -> {
             if (details.getNetworkConfiguration() != null && !StringExt.isEmpty(details.getNetworkConfiguration().getIpAddress())) {

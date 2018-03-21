@@ -47,6 +47,7 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.master.JobSchedulingInfo;
 import io.netflix.titus.master.MetricConstants;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.BaseJobMgr;
 import io.netflix.titus.master.job.JobManagerConfiguration;
@@ -85,8 +86,8 @@ public class ServiceJobMgr extends BaseJobMgr {
                          RxEventBus eventBus,
                          Registry registry) {
         super(injector, jobId, true, jobDefinition, namedJob, jobSchedulingObserver,
-                injector.getInstance(MasterConfiguration.class), injector.getInstance(JobManagerConfiguration.class),
-                injector.getInstance(JobConfiguration.class),
+                injector.getInstance(MasterConfiguration.class), injector.getInstance(CellInfoResolver.class),
+                injector.getInstance(JobManagerConfiguration.class), injector.getInstance(JobConfiguration.class),
                 logger, ROOT_METRICS_NAME, eventBus, injector.getInstance(SchedulingService.class), registry);
         this.auditLogService = injector.getInstance(AuditLogService.class);
     }

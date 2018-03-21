@@ -25,10 +25,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 public class V2WorkerMetadataWritable implements V2WorkerMetadata {
 
@@ -38,6 +41,7 @@ public class V2WorkerMetadataWritable implements V2WorkerMetadata {
     private int stageNum;
     private String workerInstanceId;
     private int numberOfPorts;
+    private String cell;
     private int metricsPort;
     private int debugPort = -1;
     private List<Integer> ports;
@@ -68,13 +72,15 @@ public class V2WorkerMetadataWritable implements V2WorkerMetadata {
                                     @JsonProperty("jobId") String jobId,
                                     @JsonProperty("workerInstanceId") String workerIndexId,
                                     @JsonProperty("stageNum") int stageNum,
-                                    @JsonProperty("numberOfPorts") int numberOfPorts) {
+                                    @JsonProperty("numberOfPorts") int numberOfPorts,
+                                    @JsonProperty("cell") @JsonInclude(NON_NULL) String cell) {
         this.workerIndex = workerIndex;
         this.workerNumber = workerNumber;
         this.jobId = jobId;
         this.workerInstanceId = workerIndexId;
         this.stageNum = stageNum;
         this.numberOfPorts = numberOfPorts;
+        this.cell = cell;
         this.state = V2JobState.Accepted;
         this.acceptedAt = System.currentTimeMillis();
         this.ports = new ArrayList<>();
@@ -109,6 +115,11 @@ public class V2WorkerMetadataWritable implements V2WorkerMetadata {
     @Override
     public int getNumberOfPorts() {
         return numberOfPorts;
+    }
+
+    @Override
+    public String getCell() {
+        return cell;
     }
 
     @Override

@@ -31,12 +31,12 @@ import io.netflix.titus.api.store.v2.InvalidJobException;
 import io.netflix.titus.api.store.v2.V2JobMetadata;
 import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.master.ApiOperations;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.EndpointModelAsserts;
 import io.netflix.titus.master.endpoint.TitusDataGenerator;
 import io.netflix.titus.master.endpoint.TitusServiceGateway;
 import io.netflix.titus.master.endpoint.TitusServiceGatewayTestCompatibilityTestSuite;
-import io.netflix.titus.master.endpoint.common.CellInfoResolver;
 import io.netflix.titus.master.endpoint.common.ContextResolver;
 import io.netflix.titus.master.endpoint.common.EmptyContextResolver;
 import io.netflix.titus.master.endpoint.v2.rest.RestConfig;
@@ -62,7 +62,9 @@ import static org.mockito.Mockito.when;
 public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestCompatibilityTestSuite<
         String, TitusJobSpec, TitusJobType, TitusJobInfo, TitusTaskInfo, TitusTaskState> {
 
-    private final V2TitusDataGenerator dataGenerator = new V2TitusDataGenerator();
+    private String cellName;
+    private V2TitusDataGenerator dataGenerator;
+
     private final V2EndpointModelAsserts modelAsserts = new V2EndpointModelAsserts();
 
     private final MasterConfiguration config = mock(MasterConfiguration.class);
@@ -85,7 +87,6 @@ public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestComp
     private final ContextResolver contextResolver = EmptyContextResolver.INSTANCE;
 
     private V2LegacyTitusServiceGateway gateway;
-    private String cellName;
 
     @Before
     public void setUp() throws Exception {
@@ -93,6 +94,7 @@ public class V2LegacyTitusServiceGatewayTest extends TitusServiceGatewayTestComp
                 applicationSlaManagementService, schedulingService, contextResolver, cellInfoResolver, logStorageInfo);
 
         cellName = UUID.randomUUID().toString();
+        dataGenerator = new V2TitusDataGenerator(cellName);
         when(cellInfoResolver.getCellName()).thenReturn(cellName);
 
         when(v2JobOperations.submit(any())).then(c -> {

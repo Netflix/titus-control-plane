@@ -117,6 +117,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .withJobId(job.getId())
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(timestamp).build())
                 .withOriginalId(taskId)
+                .withCellInfo(job)
                 .build();
     }
 
@@ -127,6 +128,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .withJobId(oldTask.getJobId())
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(timestamp).build())
                 .withOriginalId(oldTask.getOriginalId())
+                .withCellInfo(oldTask)
                 .withResubmitOf(oldTask.getId())
                 .withResubmitNumber(oldTask.getResubmitNumber() + 1)
                 .withSystemResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())

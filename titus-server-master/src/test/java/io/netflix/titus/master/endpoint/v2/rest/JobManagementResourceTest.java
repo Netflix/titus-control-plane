@@ -94,7 +94,7 @@ public class JobManagementResourceTest {
 
     private static HttpTestClient client;
 
-    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator();
+    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator(getClass().getSimpleName());
 
     @BeforeClass
     public static void setUpClass() throws Exception {

@@ -38,7 +38,7 @@ import io.netflix.titus.master.cluster.LeaderActivator;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.TitusServiceGateway;
 import io.netflix.titus.master.endpoint.adapter.LegacyTitusServiceGatewayGuard;
-import io.netflix.titus.master.endpoint.common.CellInfoResolver;
+import io.netflix.titus.master.config.CellInfoResolver;
 import io.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
 import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusServiceGateway;

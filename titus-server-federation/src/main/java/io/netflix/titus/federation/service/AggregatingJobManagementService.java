@@ -25,6 +25,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobChangeNotification.TaskUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
@@ -49,6 +50,7 @@ import rx.Emitter;
 import rx.Observable;
 
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
@@ -146,8 +148,10 @@ public class AggregatingJobManagementService implements JobManagementService {
                 JobChangeNotification.JobUpdate jobUpdate = notification.getJobUpdate().toBuilder().setJob(job).build();
                 return notification.toBuilder().setJobUpdate(jobUpdate).build();
             case TASKUPDATE:
-                // TODO(fabio): decorate tasks
-                return notification;
+                final Task.Builder taskBuilder = notification.getTaskUpdate().getTask().toBuilder()
+                        .putTaskContext(TASK_ATTRIBUTES_STACK, configuration.getStack());
+                final TaskUpdate.Builder taskUpdate = notification.getTaskUpdate().toBuilder().setTask(taskBuilder);
+                return notification.toBuilder().setTaskUpdate(taskUpdate).build();
             default:
                 return notification;
         }
