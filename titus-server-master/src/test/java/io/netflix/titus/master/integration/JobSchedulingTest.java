@@ -16,17 +16,27 @@
 
 package io.netflix.titus.master.integration;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import io.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
+import io.netflix.titus.api.jobmanager.JobAttributes;
 import io.netflix.titus.api.model.v2.JobCompletedReason;
 import io.netflix.titus.api.model.v2.V2JobState;
+import io.netflix.titus.api.model.v2.parameter.Parameter;
+import io.netflix.titus.api.model.v2.parameter.Parameters;
+import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.aws.AwsInstanceType;
 import io.netflix.titus.master.Status;
 import io.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
+import io.netflix.titus.master.store.V2JobMetadataWritable;
 import io.netflix.titus.master.store.V2StageMetadataWritable;
 import io.netflix.titus.master.store.V2WorkerMetadataWritable;
 import io.netflix.titus.testkit.client.TitusMasterClient;
@@ -259,6 +269,30 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         secondTaskHolder.transitionTo(Protos.TaskState.TASK_RUNNING);
 
         jobObserver.awaitTasksInState(TitusTaskState.RUNNING, secondTaskHolder.getTaskId());
+    }
+
+    @Test(timeout = 30_000)
+    public void jobsAndTasksContainCellInfo() throws Exception {
+        String cellName = UUID.randomUUID().toString();
+        TitusV2ModelGenerator generator = new TitusV2ModelGenerator(cellName);
+        TitusJobSpec jobSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
+                .instancesMin(1).instancesDesired(1).instancesMax(1)
+                .restartOnSuccess(true)
+                .retries(2)
+                .build();
+
+        String jobId = runServiceJob(jobSpec).getJobId();
+
+        final V2JobMetadataWritable job = ((EmbeddedStorageProvider) titusMaster.getStorageProvider()).getJob(jobId);
+        List<Parameter> parameters = job.getParameters();
+        final Map<String, String> labels = Parameters.getLabels(parameters);
+        assertThat(labels).containsEntry(JobAttributes.JOB_ATTRIBUTES_CELL, EmbeddedTitusMaster.CELL_NAME);
+        assertThat(labels).containsEntry(JobAttributes.JOB_ATTRIBUTES_STACK, EmbeddedTitusMaster.CELL_NAME);
+
+        Collection<V2WorkerMetadata> tasksMetadata = job.getStageMetadata(1).getAllWorkers();
+        tasksMetadata.forEach(workerMetadata ->
+                assertThat(workerMetadata.getCell()).isEqualTo(EmbeddedTitusMaster.CELL_NAME)
+        );
     }
 
     private TaskExecutorHolder runServiceJob(TitusJobSpec jobSpec) throws InterruptedException {

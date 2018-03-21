@@ -25,6 +25,7 @@ import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
+import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;
@@ -131,7 +132,7 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
     private void testFindBatchJob(String jobId) {
         Job job = client.findJob(JobId.newBuilder().setId(jobId).build());
         assertThat(job.getId()).isEqualTo(jobId);
-        assertCellInfo(job.getJobDescriptor());
+        assertCellInfo(job, EmbeddedTitusMaster.CELL_NAME);
     }
 
     @Test(timeout = 30_000)
@@ -148,7 +149,7 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
         Job job = client.findJob(JobId.newBuilder().setId(jobId).build());
         assertThat(job.getId()).isEqualTo(jobId);
         assertThat(job.getJobDescriptor().getContainer().getResources().getAllocateIP()).isTrue();
-        assertCellInfo(job.getJobDescriptor());
+        assertCellInfo(job, EmbeddedTitusMaster.CELL_NAME);
     }
 
     @Test(timeout = 30_000)
