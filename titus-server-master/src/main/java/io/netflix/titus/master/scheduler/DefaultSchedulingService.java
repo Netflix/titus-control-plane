@@ -763,7 +763,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     @Override
     public void addTask(QueuableTask queuableTask) {
-        logger.info("Adding task to Fenzo: taskId={}, qAttributes={}, hostname={}", queuableTask.getId(), queuableTask.getQAttributes());
+        logger.info("Adding task to Fenzo: taskId={}, qAttributes={}", queuableTask.getId(), queuableTask.getQAttributes());
         taskQueue.queueTask(queuableTask);
     }
 
