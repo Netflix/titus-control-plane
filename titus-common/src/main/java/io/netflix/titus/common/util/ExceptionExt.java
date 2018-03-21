@@ -105,6 +105,14 @@ public class ExceptionExt {
         return sb.toString();
     }
 
+    public static Throwable unpackRuntimeException(Throwable exception) {
+        Throwable current = exception;
+        while (current instanceof RuntimeException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
+    }
+
     public static class UncheckedExceptionWrapper extends RuntimeException {
         private UncheckedExceptionWrapper(Throwable cause) {
             super(cause);
