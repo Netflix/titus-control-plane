@@ -30,6 +30,8 @@ import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import io.netflix.titus.common.data.generator.DataGenerator;
+import io.netflix.titus.common.util.time.Clock;
+import io.netflix.titus.common.util.time.Clocks;
 
 import static io.netflix.titus.common.data.generator.DataGenerator.range;
 import static io.netflix.titus.common.data.generator.DataGenerator.zip;
@@ -63,9 +65,18 @@ public class JobGenerator {
      * Generates a sequence of batch jobs for the given job descriptor.
      */
     public static DataGenerator<Job<BatchJobExt>> batchJobs(JobDescriptor<BatchJobExt> jobDescriptor) {
+        return batchJobs(jobDescriptor, Clocks.system());
+    }
+
+    /**
+     * Generates a sequence of batch jobs for the given job descriptor.
+     */
+    public static DataGenerator<Job<BatchJobExt>> batchJobs(JobDescriptor<BatchJobExt> jobDescriptor, Clock clock) {
         return jobIds().map(jobId -> JobModel.<BatchJobExt>newJob()
                 .withId(jobId)
-                .withStatus(JobStatus.newBuilder().withState(JobState.Accepted).build())
+                .withStatus(JobStatus.newBuilder()
+                        .withTimestamp(clock.wallTime())
+                        .withState(JobState.Accepted).build())
                 .withJobDescriptor(jobDescriptor)
                 .build());
     }
@@ -74,9 +85,18 @@ public class JobGenerator {
      * Generates a sequence of service jobs for the given job descriptor.
      */
     public static DataGenerator<Job<ServiceJobExt>> serviceJobs(JobDescriptor<ServiceJobExt> jobDescriptor) {
+        return serviceJobs(jobDescriptor, Clocks.system());
+    }
+
+    /**
+     * Generates a sequence of service jobs for the given job descriptor.
+     */
+    public static DataGenerator<Job<ServiceJobExt>> serviceJobs(JobDescriptor<ServiceJobExt> jobDescriptor, Clock clock) {
         return jobIds().map(jobId -> JobModel.<ServiceJobExt>newJob()
                 .withId(jobId)
-                .withStatus(JobStatus.newBuilder().withState(JobState.Accepted).build())
+                .withStatus(JobStatus.newBuilder()
+                        .withTimestamp(clock.wallTime())
+                        .withState(JobState.Accepted).build())
                 .withJobDescriptor(jobDescriptor)
                 .build());
     }

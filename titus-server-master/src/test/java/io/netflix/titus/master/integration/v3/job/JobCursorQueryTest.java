@@ -83,19 +83,27 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
                 .setPage(Page.newBuilder().setPageSize(2)).build()
         );
         assertThat(result0.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(0, 2));
+        assertThat(result0.getPagination().getCursor()).isNotEmpty();
+        assertThat(result0.getPagination().getHasMore()).isTrue();
+        assertThat(result0.getPagination().getCurrentPage().getPageNumber()).isEqualTo(0);
 
         // Page 1
         JobQueryResult result1 = client.findJobs(JobQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(2).setCursor(result0.getPagination().getCursor())).build()
         );
         assertThat(result1.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(2, 4));
+        assertThat(result1.getPagination().getCursor()).isNotEmpty();
+        assertThat(result1.getPagination().getHasMore()).isTrue();
+        assertThat(result1.getPagination().getCurrentPage().getPageNumber()).isEqualTo(1);
 
         // Page 2
         JobQueryResult result2 = client.findJobs(JobQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(2).setCursor(result1.getPagination().getCursor())).build()
         );
         assertThat(result2.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(4, 6));
+        assertThat(result2.getPagination().getCursor()).isNotEmpty();
         assertThat(result2.getPagination().getHasMore()).isFalse();
+        assertThat(result2.getPagination().getCurrentPage().getPageNumber()).isEqualTo(2);
 
         // Check cursor points to the latest returned element
         JobQueryResult result3 = client.findJobs(JobQuery.newBuilder()
@@ -103,6 +111,9 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result3.getItemsList()).isEmpty();
         assertThat(result3.getPagination().getCursor()).isEmpty();
+        assertThat(result3.getPagination().getHasMore()).isFalse();
+        assertThat(result3.getPagination().getCurrentPage().getPageNumber())
+                .isEqualTo(result3.getPagination().getTotalPages());
     }
 
     @Test(expected = StatusRuntimeException.class)
@@ -119,6 +130,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result.getItemsList()).isEmpty();
         assertThat(result.getPagination().getCursor()).isEmpty();
+        assertThat(result.getPagination().getHasMore()).isFalse();
     }
 
     @Test
@@ -128,12 +140,18 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
                 .setPage(Page.newBuilder().setPageSize(4)).build()
         );
         assertThat(result0.getItemsList()).containsExactlyElementsOf(allTasksInOrder.subList(0, 4));
+        assertThat(result0.getPagination().getCursor()).isNotEmpty();
+        assertThat(result0.getPagination().getHasMore()).isTrue();
+        assertThat(result0.getPagination().getCurrentPage().getPageNumber()).isEqualTo(0);
 
         // Page 1
         TaskQueryResult result1 = client.findTasks(TaskQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(4).setCursor(result0.getPagination().getCursor())).build()
         );
         assertThat(result1.getItemsList()).containsExactlyElementsOf(allTasksInOrder.subList(4, 8));
+        assertThat(result1.getPagination().getCursor()).isNotEmpty();
+        assertThat(result1.getPagination().getHasMore()).isTrue();
+        assertThat(result1.getPagination().getCurrentPage().getPageNumber()).isEqualTo(1);
 
         // Page 2
         TaskQueryResult result2 = client.findTasks(TaskQuery.newBuilder()
@@ -141,6 +159,8 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result2.getItemsList()).containsExactlyElementsOf(allTasksInOrder.subList(8, 12));
         assertThat(result2.getPagination().getHasMore()).isFalse();
+        assertThat(result2.getPagination().getCursor()).isNotEmpty();
+        assertThat(result2.getPagination().getCurrentPage().getPageNumber()).isEqualTo(2);
 
         // Check cursor points to the latest returned element
         TaskQueryResult result3 = client.findTasks(TaskQuery.newBuilder()
@@ -148,6 +168,9 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result3.getItemsList()).isEmpty();
         assertThat(result3.getPagination().getCursor()).isEmpty();
+        assertThat(result3.getPagination().getHasMore()).isFalse();
+        assertThat(result3.getPagination().getCurrentPage().getPageNumber())
+                .isEqualTo(result3.getPagination().getTotalPages());
     }
 
     @Test(expected = StatusRuntimeException.class)
@@ -164,5 +187,6 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result.getItemsList()).isEmpty();
         assertThat(result.getPagination().getCursor()).isEmpty();
+        assertThat(result.getPagination().getHasMore()).isFalse();
     }
 }

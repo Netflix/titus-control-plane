@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +38,7 @@ import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import io.netflix.titus.api.federation.model.Cell;
@@ -47,6 +49,8 @@ import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.time.Clocks;
+import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.federation.startup.GrpcConfiguration;
 import io.netflix.titus.federation.startup.TitusFederationConfiguration;
@@ -55,7 +59,6 @@ import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import io.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -85,6 +88,9 @@ public class AggregatingJobManagementServiceTest {
 
     private String stackName;
     private AggregatingJobManagementService service;
+    private DataGenerator<Job> batchJobs;
+    private DataGenerator<Job> serviceJobs;
+    private TestClock clock;
 
     @Before
     public void setUp() throws Exception {
@@ -102,6 +108,11 @@ public class AggregatingJobManagementServiceTest {
         service = new AggregatingJobManagementService(
                 configuration, grpcConfiguration, connector, new AnonymousSessionContext()
         );
+        clock = Clocks.test();
+        batchJobs = JobGenerator.batchJobs(JobDescriptorGenerator.batchJobDescriptors().getValue(), clock)
+                .map(V3GrpcModelConverters::toGrpcJob);
+        serviceJobs = JobGenerator.serviceJobs(JobDescriptorGenerator.serviceJobDescriptors().getValue(), clock)
+                .map(V3GrpcModelConverters::toGrpcJob);
     }
 
     @After
@@ -112,11 +123,6 @@ public class AggregatingJobManagementServiceTest {
 
     @Test
     public void findJobsMergesAllCellsIntoSingleResult() {
-        DataGenerator<Job> batchJobs = JobGenerator.batchJobs(JobDescriptorGenerator.batchJobDescriptors().getValue())
-                .map(V3GrpcModelConverters::toGrpcJob);
-        DataGenerator<Job> serviceJobs = JobGenerator.serviceJobs(JobDescriptorGenerator.serviceJobDescriptors().getValue())
-                .map(V3GrpcModelConverters::toGrpcJob);
-
         Random random = new Random();
         final List<Job> cellOneSnapshot = new ArrayList<>();
         final List<Job> cellTwoSnapshot = new ArrayList<>();
@@ -144,8 +150,117 @@ public class AggregatingJobManagementServiceTest {
     }
 
     @Test
-    public void findJobsPagination() {
-        Assert.fail("TODO");
+    public void findJobsEmptyPage() {
+        Random random = new Random();
+        final List<Job> cellOneSnapshot = new ArrayList<>();
+        final List<Job> cellTwoSnapshot = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            batchJobs = batchJobs.apply(cellOneSnapshot::add, random.nextInt(10));
+            batchJobs = batchJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
+            serviceJobs = serviceJobs.apply(cellOneSnapshot::add, random.nextInt(10));
+            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
+        }
+        cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
+
+        JobQuery query = JobQuery.newBuilder()
+                .setPage(toGrpcPage(Page.empty()))
+                .build();
+
+        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors().assertCompleted();
+        testSubscriber.assertValueCount(1);
+        final List<JobQueryResult> results = testSubscriber.getOnNextEvents();
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getItemsList()).isEmpty();
+        assertThat(results.get(0).getPagination().getHasMore()).isFalse();
+    }
+
+    @Test
+    public void findJobsWithCursorPagination() {
+        final List<Job> cellOneSnapshot = new ArrayList<>();
+        final List<Job> cellTwoSnapshot = new ArrayList<>();
+        // generate 5 groups of size 20 (10 service, 10 batch)
+        for (int i = 0; i < 5; i++) {
+            batchJobs = batchJobs.apply(cellOneSnapshot::add, 5);
+            batchJobs = batchJobs.apply(cellTwoSnapshot::add, 5);
+            serviceJobs = serviceJobs.apply(cellOneSnapshot::add, 5);
+            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, 5);
+            clock.advanceTime(1, TimeUnit.MINUTES);
+        }
+        cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
+
+        List<Job> allJobs = walkAllFindJobsPages(10);
+        assertThat(allJobs).hasSize(cellOneSnapshot.size() + cellTwoSnapshot.size());
+        assertThat(allJobs).containsAll(cellOneSnapshot);
+        assertThat(allJobs).containsAll(cellTwoSnapshot);
+    }
+
+    @Test
+    public void findJobsWithEmptyCell() {
+        final List<Job> cellTwoSnapshot = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            batchJobs = batchJobs.apply(cellTwoSnapshot::add, 5);
+            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, 5);
+            clock.advanceTime(1, TimeUnit.MINUTES);
+        }
+        cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
+
+        List<Job> allJobs = walkAllFindJobsPages(5);
+        assertThat(allJobs).hasSize(cellTwoSnapshot.size());
+        assertThat(allJobs).containsAll(cellTwoSnapshot);
+    }
+
+    @Test
+    public void findJobsWithFailingCell() {
+        final List<Job> cellTwoSnapshot = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            batchJobs = batchJobs.apply(cellTwoSnapshot::add, 5);
+            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, 5);
+            clock.advanceTime(1, TimeUnit.MINUTES);
+        }
+        cellOne.getServiceRegistry().addService(new FailingCell());
+        cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
+
+        JobQuery query = JobQuery.newBuilder()
+                .setPage(toGrpcPage(Page.unlimited()))
+                .build();
+
+        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertError(Status.INTERNAL.asRuntimeException().getClass());
+        testSubscriber.assertNoValues();
+    }
+
+    private List<Job> walkAllFindJobsPages(int pageWalkSize) {
+        List<Job> allJobs = new ArrayList<>();
+        Optional<JobQueryResult> lastResult = Optional.empty();
+        while (lastResult.map(r -> r.getPagination().getHasMore()).orElse(true)) {
+            final Page.Builder builder = Page.newBuilder().withPageSize(pageWalkSize);
+            if (lastResult.isPresent()) {
+                builder.withCursor(lastResult.get().getPagination().getCursor());
+            } else {
+                builder.withPageNumber(0);
+            }
+            final JobQuery query = JobQuery.newBuilder()
+                    .setPage(toGrpcPage(builder.build()))
+                    .build();
+            final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+            testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+            testSubscriber.assertNoErrors().assertCompleted();
+            testSubscriber.assertValueCount(1);
+            final List<JobQueryResult> results = testSubscriber.getOnNextEvents();
+            assertThat(results).hasSize(1);
+            JobQueryResult jobQueryResult = results.get(0);
+            assertThat(jobQueryResult.getItemsList()).hasSize(pageWalkSize);
+            allJobs.addAll(jobQueryResult.getItemsList());
+            lastResult = Optional.of(jobQueryResult);
+            testSubscriber.unsubscribe();
+        }
+        return allJobs;
     }
 
     @Test
@@ -275,15 +390,18 @@ public class AggregatingJobManagementServiceTest {
 
         @Override
         public void findJobs(JobQuery request, StreamObserver<JobQueryResult> responseObserver) {
-            final JobQueryResult.Builder builder = JobQueryResult.newBuilder();
-            final Pair<List<Job>, Pagination> page = PaginationUtil.takePage(
-                    toPage(request.getPage()), snapshot, JobManagerCursors::newCursorFrom
+            Pair<List<Job>, Pagination> page = PaginationUtil.takePageWithCursor(
+                    toPage(request.getPage()),
+                    snapshot,
+                    JobManagerCursors.jobCursorOrderComparator(),
+                    JobManagerCursors::jobIndexOf,
+                    JobManagerCursors::newCursorFrom
             );
-            for (Job job : page.getLeft()) {
-                builder.addItems(job);
-            }
-            builder.setPagination(toGrpcPagination(page.getRight()));
-            responseObserver.onNext(builder.build());
+            JobQueryResult result = JobQueryResult.newBuilder()
+                    .addAllItems(page.getLeft())
+                    .setPagination(toGrpcPagination(page.getRight()))
+                    .build();
+            responseObserver.onNext(result);
             responseObserver.onCompleted();
         }
 
@@ -304,6 +422,13 @@ public class AggregatingJobManagementServiceTest {
                     responseObserver::onCompleted
             );
             GrpcUtil.attachCancellingCallback(responseObserver, subscription);
+        }
+    }
+
+    private static class FailingCell extends JobManagementServiceGrpc.JobManagementServiceImplBase {
+        @Override
+        public void findJobs(JobQuery request, StreamObserver<JobQueryResult> responseObserver) {
+            responseObserver.onError(Status.INTERNAL.asRuntimeException());
         }
     }
 }
