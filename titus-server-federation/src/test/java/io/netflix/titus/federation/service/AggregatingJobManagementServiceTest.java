@@ -16,9 +16,11 @@
 
 package io.netflix.titus.federation.service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -31,16 +33,29 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.SnapshotEnd;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobQuery;
+import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import io.netflix.titus.api.federation.model.Cell;
+import io.netflix.titus.api.model.Page;
+import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.api.model.PaginationUtil;
+import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.util.CollectionsExt;
+import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.federation.startup.GrpcConfiguration;
 import io.netflix.titus.federation.startup.TitusFederationConfiguration;
+import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
+import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
+import io.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +64,9 @@ import rx.Subscription;
 import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
+import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPage;
+import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
+import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -73,19 +91,61 @@ public class AggregatingJobManagementServiceTest {
         stackName = UUID.randomUUID().toString();
         TitusFederationConfiguration configuration = mock(TitusFederationConfiguration.class);
         when(configuration.getStack()).thenReturn(stackName);
+        GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
+        when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
         CellConnector connector = mock(CellConnector.class);
         when(connector.getChannels()).thenReturn(CollectionsExt.<Cell, ManagedChannel>newHashMap()
                 .entry(new Cell("one", "1"), cellOne.getChannel())
                 .entry(new Cell("two", "2"), cellTwo.getChannel())
                 .toMap()
         );
-        service = new AggregatingJobManagementService(configuration, connector, new AnonymousSessionContext());
+        service = new AggregatingJobManagementService(
+                configuration, grpcConfiguration, connector, new AnonymousSessionContext()
+        );
     }
 
     @After
     public void tearDown() throws Exception {
         cellOneUpdates.onCompleted();
         cellTwoUpdates.onCompleted();
+    }
+
+    @Test
+    public void findJobsMergesAllCellsIntoSingleResult() {
+        DataGenerator<Job> batchJobs = JobGenerator.batchJobs(JobDescriptorGenerator.batchJobDescriptors().getValue())
+                .map(V3GrpcModelConverters::toGrpcJob);
+        DataGenerator<Job> serviceJobs = JobGenerator.serviceJobs(JobDescriptorGenerator.serviceJobDescriptors().getValue())
+                .map(V3GrpcModelConverters::toGrpcJob);
+
+        Random random = new Random();
+        final List<Job> cellOneSnapshot = new ArrayList<>();
+        final List<Job> cellTwoSnapshot = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            batchJobs = batchJobs.apply(cellOneSnapshot::add, random.nextInt(10));
+            batchJobs = batchJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
+            serviceJobs = serviceJobs.apply(cellOneSnapshot::add, random.nextInt(10));
+            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
+        }
+
+        cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
+
+        JobQuery query = JobQuery.newBuilder()
+                .setPage(toGrpcPage(Page.unlimited()))
+                .build();
+
+        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors().assertCompleted();
+        testSubscriber.assertValueCount(1);
+        final List<JobQueryResult> results = testSubscriber.getOnNextEvents();
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getItemsList()).hasSize(cellOneSnapshot.size() + cellTwoSnapshot.size());
+    }
+
+    @Test
+    public void findJobsPagination() {
+        Assert.fail("TODO");
     }
 
     @Test
@@ -211,6 +271,20 @@ public class AggregatingJobManagementServiceTest {
         private CellWithFixedJobsService(List<Job> snapshot, Observable<JobChangeNotification> updates) {
             this.snapshot = snapshot;
             this.updates = updates;
+        }
+
+        @Override
+        public void findJobs(JobQuery request, StreamObserver<JobQueryResult> responseObserver) {
+            final JobQueryResult.Builder builder = JobQueryResult.newBuilder();
+            final Pair<List<Job>, Pagination> page = PaginationUtil.takePage(
+                    toPage(request.getPage()), snapshot, JobManagerCursors::newCursorFrom
+            );
+            for (Job job : page.getLeft()) {
+                builder.addItems(job);
+            }
+            builder.setPagination(toGrpcPagination(page.getRight()));
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
         }
 
         @Override

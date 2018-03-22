@@ -16,8 +16,11 @@
 
 package io.netflix.titus.federation.service;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -41,10 +44,16 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.federation.model.Cell;
+import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.common.grpc.EmitterWithMultipleSubscriptions;
+import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.grpc.SessionContext;
 import io.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
+import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.federation.startup.GrpcConfiguration;
 import io.netflix.titus.federation.startup.TitusFederationConfiguration;
+import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
@@ -52,17 +61,26 @@ import rx.Observable;
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
+import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 
 @Singleton
 public class AggregatingJobManagementService implements JobManagementService {
     private final TitusFederationConfiguration configuration;
+    private final GrpcConfiguration grpcConfiguration;
     private final CellConnector connector;
     private final SessionContext sessionContext;
 
     @Inject
-    public AggregatingJobManagementService(TitusFederationConfiguration configuration, CellConnector connector, SessionContext sessionContext) {
+    public AggregatingJobManagementService(
+            TitusFederationConfiguration configuration,
+            GrpcConfiguration grpcConfiguration,
+            CellConnector connector,
+            SessionContext sessionContext) {
         this.configuration = configuration;
+        this.grpcConfiguration = grpcConfiguration;
         this.connector = connector;
         this.sessionContext = sessionContext;
     }
@@ -93,8 +111,33 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     @Override
-    public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
-        return Observable.error(notImplemented("findJobs"));
+    public Observable<JobQueryResult> findJobs(JobQuery request) {
+        // TODO: cursor pagination
+        // TODO: page number pagination
+        Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(connector, JobManagementServiceGrpc::newStub);
+        List<Observable<JobQueryResult>> requests = clients.values().stream()
+                .map(client -> findJobsInCell(client, request))
+                .collect(Collectors.toList());
+
+        return Observable.combineLatest(requests, (results) -> {
+            final JobQueryResult.Builder builder = JobQueryResult.newBuilder();
+            final List<Job> allJobs = Arrays.stream(results)
+                    .map(JobQueryResult.class::cast)
+                    .flatMap(result -> result.getItemsList().stream())
+                    .sorted(JobManagerCursors.jobCursorOrderComparator())
+                    .collect(Collectors.toList());
+            final Pair<List<Job>, Pagination> page = PaginationUtil.takePage(toPage(request.getPage()), allJobs, JobManagerCursors::newCursorFrom);
+            builder.addAllItems(page.getLeft());
+            builder.setPagination(toGrpcPagination(page.getRight()));
+            return builder.build();
+        });
+    }
+
+    private Observable<JobQueryResult> findJobsInCell(JobManagementServiceStub client, JobQuery request) {
+        return GrpcUtil.<JobQueryResult>createRequestObservable(emitter -> {
+            final StreamObserver<JobQueryResult> streamObserver = createSimpleStreamObserver(emitter);
+            createWrappedStub(client, sessionContext, grpcConfiguration.getRequestTimeoutMs()).findJobs(request, streamObserver);
+        });
     }
 
     @Override
