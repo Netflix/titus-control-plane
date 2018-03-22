@@ -60,33 +60,6 @@ public class GrpcUtil {
         }
     }
 
-    public static <T> StreamObserver<T> createSimpleStreamObserver(Emitter<T> emitter) {
-        return createStreamObserver(
-                emitter::onNext,
-                emitter::onError,
-                emitter::onCompleted
-        );
-    }
-
-    public static <T> StreamObserver<T> createStreamObserver(final Action1<? super T> onNext, final Action1<Throwable> onError, final Action0 onCompleted) {
-        return new StreamObserver<T>() {
-            @Override
-            public void onNext(T value) {
-                onNext.call(value);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                onError.call(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                onCompleted.call();
-            }
-        };
-    }
-
     public static <REQ, RESP> ClientResponseObserver<REQ, RESP> createSimpleClientResponseObserver(Emitter<RESP> emitter) {
         return createClientResponseObserver(
                 emitter,

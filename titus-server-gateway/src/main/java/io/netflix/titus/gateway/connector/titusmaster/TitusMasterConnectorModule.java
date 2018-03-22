@@ -24,7 +24,10 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
@@ -62,8 +65,6 @@ public class TitusMasterConnectorModule extends AbstractModule {
         bind(LeaderResolver.class).to(ConfigurationLeaderResolver.class);
         bind(LoadBalancerResourceValidator.class).to(DefaultLoadBalancerResourceValidator.class);
         bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
-
-        install(new AutoScalingClientModule());
     }
 
     @Named(TITUS_MASTER_CLIENT)
@@ -111,7 +112,7 @@ public class TitusMasterConnectorModule extends AbstractModule {
 
     @Provides
     @Singleton
-    JobManagementServiceGrpc.JobManagementServiceStub jobManagementClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+    JobManagementServiceStub jobManagementClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return JobManagementServiceGrpc.newStub(channel);
     }
 
@@ -125,5 +126,11 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     LoadBalancerServiceStub loadBalancerClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return LoadBalancerServiceGrpc.newStub(channel);
+    }
+
+    @Provides
+    @Singleton
+    AutoScalingServiceStub autoScalingClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return AutoScalingServiceGrpc.newStub(channel);
     }
 }
