@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import com.netflix.spectator.api.BasicTag;
+import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
@@ -36,6 +37,7 @@ class ReconciliationEngineMetrics<EVENT> {
     private final Id emittedEventId;
 
     private final AtomicLong pendingChangeActions = new AtomicLong();
+    private final Counter abandonedIteration;
 
     ReconciliationEngineMetrics(String rootHolderId,
                                 Function<ChangeAction, List<Tag>> extraChangeActionTags,
@@ -53,6 +55,7 @@ class ReconciliationEngineMetrics<EVENT> {
         this.startedChangeActionsId = registry.createId(STARTED_CHANGE_ACTIONS, commonTags);
         this.finishedChangeActionId = registry.createId(FINISHED_CHANGE_ACTIONS, commonTags);
         this.emittedEventId = registry.createId(EMITTED_EVENTS, commonTags);
+        this.abandonedIteration = registry.counter(ROOT_NAME + "abandonedIteration");
 
         PolledMeter.using(registry).withName(PENDING_CHANGE_ACTIONS).withTags(commonTags).monitorValue(pendingChangeActions);
     }
@@ -122,6 +125,10 @@ class ReconciliationEngineMetrics<EVENT> {
                 .withTag("error", error.getClass().getSimpleName())
                 .withTag("status", "error")
         ).record(latencyNs, TimeUnit.NANOSECONDS);
+    }
+
+    void abandonedIteration() {
+        abandonedIteration.increment();
     }
 
     private void changeActionStarted(ChangeActionHolder actionHolder, String actionType) {

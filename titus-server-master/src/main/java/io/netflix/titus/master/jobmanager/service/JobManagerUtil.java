@@ -106,7 +106,7 @@ public final class JobManagerUtil {
             }
             // Sanity check. If we got earlier task state, it is state model invariant violation.
             if (TaskState.isBefore(newState, oldState)) {
-                codeInvariants().inconsistent("Received task state update to a previous state: current=", oldState, newState);
+                codeInvariants().inconsistent("Received task state update to a previous state: taskId=%s, previous=%s, current=%s", oldTask.getId(), oldState, newState);
                 return Optional.empty();
             }
 

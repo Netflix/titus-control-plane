@@ -133,7 +133,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                 changeActionEventQueue.drainTo(drainQueue);
 
                 // Due to concurrent updates, we have to drain the queue first, and only after check if there are any
-                // new model updates. If they are we have to step back.
+                // new model updates. If there are we have to abandon this iteration, and start from the beginning later.
                 if (!isOkToProcessNextChangeAction()) {
                     changeActionEventQueue.addAll(drainQueue);
                     return false;
@@ -185,8 +185,10 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
         if (modelActionHolders.isEmpty()) {
             return true;
         }
-        // Ideally we do not want this to happen. For now, we will just log these occurrences. If it becomes a problem we may have to better optimize the code.
-        logger.info("Not all model updates applied for: id={}, pendingModelUpdates={}", modelHolder.getReference().getId(), modelActionHolders.size());
+        // Ideally we do not want this to happen. For now, we will just report these occurrences.
+        // If it becomes a performance problem we may have to better optimize the code.
+        metrics.abandonedIteration();
+        logger.debug("Not all model updates applied for: id={}, pendingModelUpdates={}", modelHolder.getReference().getId(), modelActionHolders.size());
         return false;
     }
 
