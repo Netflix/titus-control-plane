@@ -17,10 +17,13 @@ package io.netflix.titus.federation.service;
 
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.federation.model.Cell;
+
 
 public class CellInfoUtil {
 
@@ -38,4 +41,30 @@ public class CellInfoUtil {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Extract cell routing configurations that take the following form
+     * cell1=someRuleString;cell2=someOtherRuleString
+     */
+    public static Map<Cell, String> extractCellRoutingFromCellSpecificiation(List<Cell> cells, String cellRoutingSpecification) {
+        Map<Cell, String> cellRoutingSpecMap = new HashMap<>();
+
+        List<String> cellRoutingSpecs = Arrays.stream(cellRoutingSpecification.split(";"))
+                .filter(cellRoutingSpec -> cellRoutingSpec.contains("="))
+                .collect(Collectors.toList());
+
+        for (Cell cell : cells) {
+            for (String cellRoutingSpec : cellRoutingSpecs) {
+                String[] routingParts = cellRoutingSpec.split("=");
+                String cellName = routingParts[0];
+                String routingRule = routingParts[1];
+                if (cellName.equals(cell.getName())) {
+                    cellRoutingSpecMap.putIfAbsent(cell, routingRule);
+                }
+            }
+        }
+        if (cellRoutingSpecMap.keySet().size() != cells.size()) {
+            throw CellFederationException.invalidCellConfig(String.format("Cell count of %d does not match routing rule count %d", cells.size(), cellRoutingSpecMap.keySet().size()));
+        }
+        return cellRoutingSpecMap;
+    }
 }
