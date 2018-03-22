@@ -11,4 +11,7 @@ public interface TitusFederationConfiguration {
 
     @DefaultValue("dev")
     String getStack();
+
+    @DefaultValue("10000")
+    long getClientRequestTimeoutMs();
 }
