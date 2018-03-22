@@ -24,7 +24,10 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import io.grpc.Channel;
@@ -56,7 +59,6 @@ public class TitusMasterConnectorModule extends AbstractModule {
 
         bind(LeaderResolver.class).to(ConfigurationLeaderResolver.class);
 
-        install(new AutoScalingClientModule());
         install(new LoadBalancerClientModule());
     }
 
@@ -105,7 +107,7 @@ public class TitusMasterConnectorModule extends AbstractModule {
 
     @Provides
     @Singleton
-    JobManagementServiceGrpc.JobManagementServiceStub jobManagementClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+    JobManagementServiceStub jobManagementClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return JobManagementServiceGrpc.newStub(channel);
     }
 
@@ -113,5 +115,11 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     SchedulerServiceStub schedulerClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return SchedulerServiceGrpc.newStub(channel);
+    }
+
+    @Provides
+    @Singleton
+    AutoScalingServiceStub autoscalingClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return AutoScalingServiceGrpc.newStub(channel);
     }
 }
