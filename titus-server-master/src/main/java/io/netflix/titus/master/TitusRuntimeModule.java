@@ -39,6 +39,10 @@ import io.netflix.titus.common.framework.fit.FitUtil;
 import io.netflix.titus.common.jhiccup.JHiccupModule;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import io.netflix.titus.common.util.code.CodeInvariants;
+import io.netflix.titus.common.util.code.CompositeCodeInvariants;
+import io.netflix.titus.common.util.code.LoggingCodeInvariants;
+import io.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import io.netflix.titus.common.util.guice.ContainerEventBusModule;
 import io.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import io.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
@@ -79,7 +83,11 @@ public class TitusRuntimeModule extends AbstractModule {
     @Provides
     @Singleton
     public TitusRuntime getTitusRuntime(Registry registry) {
-        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(registry);
+        CodeInvariants codeInvariants = new CompositeCodeInvariants(
+                LoggingCodeInvariants.INSTANCE,
+                new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
+        );
+        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, registry);
 
         // Setup FIT component hierarchy
         FitFramework fitFramework = titusRuntime.getFitFramework();

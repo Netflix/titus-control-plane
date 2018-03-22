@@ -18,6 +18,7 @@ package io.netflix.titus.common.runtime;
 
 import com.netflix.spectator.api.Registry;
 import io.netflix.titus.common.framework.fit.FitFramework;
+import io.netflix.titus.common.util.code.CodeInvariants;
 import io.netflix.titus.common.util.code.CodePointTracker;
 import io.netflix.titus.common.util.time.Clock;
 import rx.Observable;
@@ -30,6 +31,11 @@ public interface TitusRuntime {
      * Returns the configured {@link CodePointTracker} instance.
      */
     CodePointTracker getCodePointTracker();
+
+    /**
+     * Returns the configured {@link CodeInvariants} instance.
+     */
+    CodeInvariants getCodeInvariants();
 
     /**
      * Returns the configured Spectator registry.

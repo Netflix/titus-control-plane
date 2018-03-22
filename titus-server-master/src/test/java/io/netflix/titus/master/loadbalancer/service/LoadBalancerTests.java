@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.google.protobuf.Empty;
-import com.netflix.spectator.api.NoopRegistry;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
@@ -39,6 +38,7 @@ import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.api.jobmanager.model.job.Container;
 import io.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import io.netflix.titus.api.jobmanager.model.job.Image;
@@ -58,9 +58,8 @@ import io.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobVali
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.runtime.TitusRuntime;
-import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import io.netflix.titus.common.runtime.TitusRuntimes;
 import io.netflix.titus.common.util.CollectionsExt;
-import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -79,7 +78,7 @@ public class LoadBalancerTests {
     private static final long TIMEOUT_MS = 30_000;
 
     static public LoadBalancerService getMockLoadBalancerService() {
-        final TitusRuntime runtime = new DefaultTitusRuntime(new NoopRegistry());
+        final TitusRuntime runtime = TitusRuntimes.internal();
         final LoadBalancerConfiguration loadBalancerConfig = mockConfiguration(5_000);
         final LoadBalancerConnector connector = mock(LoadBalancerConnector.class);
         final V3JobOperations v3JobOperations = mock(V3JobOperations.class);

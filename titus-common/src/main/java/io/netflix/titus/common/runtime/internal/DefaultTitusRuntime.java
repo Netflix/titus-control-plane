@@ -29,6 +29,7 @@ import com.netflix.spectator.api.Tag;
 import io.netflix.titus.common.framework.fit.FitFramework;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.util.ReflectionExt;
+import io.netflix.titus.common.util.code.CodeInvariants;
 import io.netflix.titus.common.util.code.CodePointTracker;
 import io.netflix.titus.common.util.code.SpectatorCodePointTracker;
 import io.netflix.titus.common.util.rx.RetryHandlerBuilder;
@@ -51,22 +52,25 @@ public class DefaultTitusRuntime implements TitusRuntime {
     private static final long MAX_RETRY_DELAY_MS = 10_000;
 
     private final CodePointTracker codePointTracker;
+    private final CodeInvariants codeInvariants;
     private final Registry registry;
     private final Clock clock;
     private final FitFramework fitFramework;
 
     @Inject
-    public DefaultTitusRuntime(Registry registry) {
+    public DefaultTitusRuntime(CodeInvariants codeInvariants, Registry registry) {
         this(
                 new SpectatorCodePointTracker(registry),
+                codeInvariants,
                 registry,
                 Clocks.system(),
                 "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false"))
         );
     }
 
-    public DefaultTitusRuntime(CodePointTracker codePointTracker, Registry registry, Clock clock, boolean isFitEnabled) {
+    public DefaultTitusRuntime(CodePointTracker codePointTracker, CodeInvariants codeInvariants, Registry registry, Clock clock, boolean isFitEnabled) {
         this.codePointTracker = codePointTracker;
+        this.codeInvariants = codeInvariants;
         this.registry = registry;
         this.clock = clock;
         this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
@@ -112,6 +116,11 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Override
     public CodePointTracker getCodePointTracker() {
         return codePointTracker;
+    }
+
+    @Override
+    public CodeInvariants getCodeInvariants() {
+        return codeInvariants;
     }
 
     @Override

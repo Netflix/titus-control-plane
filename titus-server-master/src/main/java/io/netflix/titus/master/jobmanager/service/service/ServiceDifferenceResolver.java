@@ -38,9 +38,10 @@ import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.util.code.CodeInvariants;
 import io.netflix.titus.common.util.retry.Retryers;
 import io.netflix.titus.common.util.time.Clock;
-import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -83,6 +84,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
+    private final CodeInvariants codeInvariants;
     private final Clock clock;
 
     @Inject
@@ -94,9 +96,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
-            SystemHardConstraint systemHardConstraint) {
+            SystemHardConstraint systemHardConstraint,
+            TitusRuntime titusRuntime) {
         this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer,
-                systemSoftConstraint, systemHardConstraint, Clocks.system(), Schedulers.computation());
+                systemSoftConstraint, systemHardConstraint, titusRuntime, Schedulers.computation());
     }
 
     public ServiceDifferenceResolver(
@@ -108,7 +111,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
-            Clock clock,
+            TitusRuntime titusRuntime,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
@@ -118,7 +121,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
-        this.clock = clock;
+        this.clock = titusRuntime.getClock();
+        this.codeInvariants = titusRuntime.getCodeInvariants();
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
@@ -183,7 +187,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             List<ChangeAction> missingTasks = new ArrayList<>();
             for (int i = 0; i < missing && allowedNewTasks.get() > 0; i++) {
                 allowedNewTasks.decrementAndGet();
-                missingTasks.add(createNewTaskAction(refJobView, Optional.empty()));
+                createNewTaskAction(refJobView, Optional.empty()).ifPresent(missingTasks::add);
             }
             return missingTasks;
         } else if (missing < 0) {
@@ -201,8 +205,24 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         return Collections.emptyList();
     }
 
-    private TitusChangeAction createNewTaskAction(ServiceJobView refJobView, Optional<EntityHolder> previousTask) {
-        return storeWriteRetryInterceptor.apply(createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), previousTask, clock));
+    private Optional<TitusChangeAction> createNewTaskAction(ServiceJobView refJobView, Optional<EntityHolder> previousTask) {
+        // Safety check
+        long numberOfNotFinishedTasks = refJobView.getJobHolder().getChildren().stream()
+                .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
+                .count();
+        if (numberOfNotFinishedTasks >= refJobView.getRequiredSize()) {
+            codeInvariants.inconsistent(
+                    "Service job reconciler attempts to create too many tasks: jobId=%s, requiredSize=%s, current=%s",
+                    refJobView.getJob().getId(), refJobView.getRequiredSize(), numberOfNotFinishedTasks
+            );
+            return Optional.empty();
+        }
+
+
+        TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
+                createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), previousTask, clock)
+        );
+        return Optional.of(storeAction);
     }
 
     /**
@@ -260,7 +280,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                     if (isJobTerminating || isScaledDown(storeTask)) {
                         actions.add(removeFinishedServiceTaskAction(jobStore, storeTask));
                     } else if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTaskHolder, clock)) {
-                        actions.add(createNewTaskAction(refJobView, Optional.of(referenceTaskHolder)));
+                        createNewTaskAction(refJobView, Optional.of(referenceTaskHolder)).ifPresent(actions::add);
                     }
                 }
             } else {
