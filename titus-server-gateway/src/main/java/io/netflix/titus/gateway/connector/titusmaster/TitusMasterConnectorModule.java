@@ -25,10 +25,16 @@ import com.google.inject.Provides;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerResourceValidator;
+import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceValidator;
 import io.netflix.titus.common.network.http.HttpClient;
 import io.netflix.titus.common.network.http.RxHttpClient;
 import io.netflix.titus.common.network.http.internal.okhttp.CompositeRetryInterceptor;
@@ -53,11 +59,11 @@ public class TitusMasterConnectorModule extends AbstractModule {
 
     @Override
     protected void configure() {
-
         bind(LeaderResolver.class).to(ConfigurationLeaderResolver.class);
+        bind(LoadBalancerResourceValidator.class).to(DefaultLoadBalancerResourceValidator.class);
+        bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
 
         install(new AutoScalingClientModule());
-        install(new LoadBalancerClientModule());
     }
 
     @Named(TITUS_MASTER_CLIENT)
@@ -113,5 +119,11 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     SchedulerServiceStub schedulerClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return SchedulerServiceGrpc.newStub(channel);
+    }
+
+    @Provides
+    @Singleton
+    LoadBalancerServiceStub loadBalancerClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return LoadBalancerServiceGrpc.newStub(channel);
     }
 }
