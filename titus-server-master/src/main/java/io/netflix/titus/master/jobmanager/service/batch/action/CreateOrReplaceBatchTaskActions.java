@@ -106,7 +106,7 @@ public class CreateOrReplaceBatchTaskActions {
         List<ModelActionHolder> actions = new ArrayList<>();
 
         TitusModelAction removeTaskAction = TitusModelAction.newModelUpdate(changeActionBuilder)
-                .summary("Removing replaced task")
+                .summary("Removing replaced task: " + oldTask.getId())
                 .removeTask(oldTask);
         actions.addAll(ModelActionHolder.allModels(removeTaskAction));
 

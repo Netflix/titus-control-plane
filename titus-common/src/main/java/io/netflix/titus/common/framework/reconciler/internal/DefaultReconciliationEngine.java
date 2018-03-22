@@ -131,12 +131,25 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             if (!changeActionEventQueue.isEmpty()) {
                 List<EVENT> drainQueue = new ArrayList<>();
                 changeActionEventQueue.drainTo(drainQueue);
+
+                // Due to concurrent updates, we have to drain the queue first, and only after check if there are any
+                // new model updates. If they are we have to step back.
+                if (!isOkToProcessNextChangeAction()) {
+                    changeActionEventQueue.addAll(drainQueue);
+                    return false;
+                }
+
                 drainQueue.forEach(this::emitEvent);
             }
 
             // If there are pending changes (user triggered or reconciliation) do nothing.
             if (hasRunningReferenceStateUpdate() || hasRunningReconciliationActions()) {
                 return true;
+            }
+
+            // In this place we know that all pending actions are done. We do the last check in case any new model updates arrived.
+            if (!isOkToProcessNextChangeAction() || !changeActionEventQueue.isEmpty()) {
+                return false;
             }
 
             // Start next reference change action, if present and exit.
@@ -159,6 +172,22 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
         } finally {
             metrics.evaluated(clock.nanoTime() - startTimeNs);
         }
+    }
+
+    /**
+     * We expect all model actions to be executed before a new event is triggered. It is however possible that
+     * after {@link #applyModelUpdates} is executed, and before this method is called, another action completes, and
+     * adds new model updates to the queue. We cannot proceed in this case, as we would reconcile from the outdated
+     * model view. By exiting here, we will process the model updates in the next iteration, and move on with the consistent
+     * view.
+     */
+    private boolean isOkToProcessNextChangeAction() {
+        if (modelActionHolders.isEmpty()) {
+            return true;
+        }
+        // Ideally we do not want this to happen. For now, we will just log these occurrences. If it becomes a problem we may have to better optimize the code.
+        logger.info("Not all model updates applied for: id={}, pendingModelUpdates={}", modelHolder.getReference().getId(), modelActionHolders.size());
+        return false;
     }
 
     @Override

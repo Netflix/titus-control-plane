@@ -24,8 +24,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.spectator.api.NoopRegistry;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -42,10 +42,9 @@ import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidato
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.common.runtime.TitusRuntime;
-import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import io.netflix.titus.common.runtime.TitusRuntimes;
 import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.rx.batch.Batch;
-import io.netflix.titus.api.jobmanager.TaskAttributes;
 import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -99,7 +98,7 @@ public class DefaultLoadBalancerServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        runtime = new DefaultTitusRuntime(new NoopRegistry());
+        runtime = TitusRuntimes.internal();
         client = mock(LoadBalancerConnector.class);
         loadBalancerStore = new InMemoryLoadBalancerStore();
         reconciler = mock(LoadBalancerReconciler.class);

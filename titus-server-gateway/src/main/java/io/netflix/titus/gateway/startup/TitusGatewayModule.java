@@ -29,6 +29,10 @@ import io.netflix.titus.api.jobmanager.model.job.Task;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import io.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
+import io.netflix.titus.common.util.code.CodeInvariants;
+import io.netflix.titus.common.util.code.CompositeCodeInvariants;
+import io.netflix.titus.common.util.code.LoggingCodeInvariants;
+import io.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import io.netflix.titus.common.util.guice.ContainerEventBusModule;
 import io.netflix.titus.gateway.connector.titusmaster.TitusMasterConnectorModule;
 import io.netflix.titus.gateway.endpoint.GrpcModule;
@@ -61,7 +65,6 @@ public final class TitusGatewayModule extends AbstractModule {
 
         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
         bind(Registry.class).toInstance(new DefaultRegistry());
-        bind(TitusRuntime.class).to(DefaultTitusRuntime.class);
 
         install(new ContainerEventBusModule());
 
@@ -86,5 +89,15 @@ public final class TitusGatewayModule extends AbstractModule {
     @Singleton
     TitusGatewayConfiguration getConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(TitusGatewayConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public TitusRuntime getTitusRuntime(Registry registry) {
+        CodeInvariants codeInvariants = new CompositeCodeInvariants(
+                LoggingCodeInvariants.INSTANCE,
+                new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
+        );
+        return new DefaultTitusRuntime(codeInvariants, registry);
     }
 }
