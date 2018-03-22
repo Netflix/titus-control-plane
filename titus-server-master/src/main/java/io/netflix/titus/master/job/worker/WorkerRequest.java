@@ -36,34 +36,35 @@ public class WorkerRequest {
     public static final String V2_NETFLIX_APP_METADATA = "NETFLIX_APP_METADATA";
     public static final String V2_NETFLIX_APP_METADATA_SIG = "NETFLIX_APP_METADATA_SIG";
 
-    private String jobName;
-    private String jobId;
-    private int workerIndex;
-    private int workerNumber;
+    private final String jobName;
+    private final String jobId;
+    private final int workerIndex;
+    private final int workerNumber;
     private final String workerInstanceId;
-    private URL jobJarUrl;
-    private int workerStage;
-    private int totalStages;
-    private MachineDefinition definition;
-    private int numInstancesAtStage;
-    private int numPortsPerInstance;
+    private final String cell;
+    private final URL jobJarUrl;
+    private final int workerStage;
+    private final int totalStages;
+    private final MachineDefinition definition;
+    private final int numInstancesAtStage;
+    private final int numPortsPerInstance;
     private int metricsPort = -1;
     private int debugPort = -1;
-    private List<Integer> ports;
-    private List<Parameter> parameters;
-    private JobSla jobSla;
-    private List<JobConstraints> hardConstraints;
-    private List<JobConstraints> softConstraints;
-    private List<String> securityGroups;
+    private final List<Integer> ports;
+    private final List<Parameter> parameters;
+    private final JobSla jobSla;
+    private final List<JobConstraints> hardConstraints;
+    private final List<JobConstraints> softConstraints;
+    private final List<String> securityGroups;
     private List<V2WorkerMetadata.TwoLevelResource> twoLevelResources = Collections.emptyList();
-    private boolean allocateIP;
-    private SchedulingInfo schedulingInfo;
+    private final boolean allocateIP;
+    private final SchedulingInfo schedulingInfo;
     private final boolean isStreamJob;
-    private String metatronAppMetadata;
-    private String metatronAppSignature;
+    private final String metatronAppMetadata;
+    private final String metatronAppSignature;
 
     public WorkerRequest(MachineDefinition definition, String jobId,
-                         int workerIndex, int workerNumber, String workerInstanceId,
+                         int workerIndex, int workerNumber, String workerInstanceId, String cell,
                          URL jobJarUrl, int workerStage, int totalStages,
                          int numInstancesAtStage,
                          String jobName, int numPortsPerInstance,
@@ -75,6 +76,7 @@ public class WorkerRequest {
         this.workerIndex = workerIndex;
         this.workerNumber = workerNumber;
         this.workerInstanceId = workerInstanceId;
+        this.cell = cell;
         this.jobJarUrl = jobJarUrl;
         this.workerStage = workerStage;
         this.totalStages = totalStages;
@@ -228,5 +230,9 @@ public class WorkerRequest {
 
     public String getMetatronAppSignature() {
         return metatronAppSignature;
+    }
+
+    public String getCell() {
+        return cell;
     }
 }

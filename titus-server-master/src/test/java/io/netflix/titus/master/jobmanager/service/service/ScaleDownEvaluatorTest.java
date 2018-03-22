@@ -127,7 +127,7 @@ public class ScaleDownEvaluatorTest {
     private ServiceJobTask nextTask(String zoneId, String agentId, TaskState taskState) {
         ServiceJobTask task = taskDataGenerator.getValue().toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(taskState).build())
-                .withTaskContext(ImmutableMap.of(
+                .addAllToTaskContext(ImmutableMap.of(
                         TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE, zoneId,
                         TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, agentId
                 ))

@@ -270,7 +270,14 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.expectTask(engine, taskId)
                                 .map(task -> {
-                                    Task newTask = changeFunction.apply(task);
+
+                                    Task newTask;
+                                    try {
+                                        newTask = changeFunction.apply(task);
+                                    } catch (Exception e) {
+                                        return Observable.<List<ModelActionHolder>>error(e);
+                                    }
+
                                     TitusModelAction modelUpdate = newModelUpdate(self).taskUpdate(newTask);
                                     return store.updateTask(newTask).andThen(Observable.just(ModelActionHolder.allModels(modelUpdate)));
                                 })

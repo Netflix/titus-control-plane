@@ -72,7 +72,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static io.netflix.titus.common.util.CollectionsExt.first;
 import static io.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil.newObservable;
 
@@ -106,7 +106,7 @@ public class V2GrpcTitusServiceGateway
                                      ApiOperations apiOperations,
                                      RxEventBus eventBus,
                                      LogStorageInfo<V2WorkerMetadata> logStorageInfo,
-                                     @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer) {
+                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
         super(apiOperations);
         this.configuration = configuration;
         this.v2JobOperations = v2JobOperations;

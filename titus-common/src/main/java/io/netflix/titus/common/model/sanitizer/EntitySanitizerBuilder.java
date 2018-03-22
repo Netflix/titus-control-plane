@@ -37,6 +37,7 @@ public class EntitySanitizerBuilder {
 
     private Function<Class<?>, Optional<ConstraintValidator<?, ?>>> applicationValidatorFactory = type -> Optional.empty();
 
+    private VerifierMode verifierMode = VerifierMode.Permissive;
     private final List<Function<Object, Optional<Object>>> sanitizers = new ArrayList<>();
     private Function<String, Optional<Object>> templateResolver = path -> Optional.empty();
     private boolean annotationSanitizersEnabled;
@@ -48,6 +49,11 @@ public class EntitySanitizerBuilder {
     private final Map<String, Object> registeredBeans = new HashMap<>();
 
     private EntitySanitizerBuilder() {
+    }
+
+    public EntitySanitizerBuilder verifierMode(VerifierMode verifierMode) {
+        this.verifierMode = verifierMode;
+        return this;
     }
 
     /**
@@ -140,7 +146,7 @@ public class EntitySanitizerBuilder {
     }
 
     public EntitySanitizer build() {
-        return new DefaultEntitySanitizer(sanitizers, annotationSanitizersEnabled, stdValueSanitizersEnabled,
+        return new DefaultEntitySanitizer(verifierMode, sanitizers, annotationSanitizersEnabled, stdValueSanitizersEnabled,
                 includesPredicate, templateResolver, registeredFunctions, registeredBeans, applicationValidatorFactory);
     }
 

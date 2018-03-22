@@ -30,6 +30,8 @@ import io.netflix.titus.master.cluster.DefaultLeaderActivator;
 import io.netflix.titus.master.cluster.DefaultLeaderElector;
 import io.netflix.titus.master.cluster.LeaderActivator;
 import io.netflix.titus.master.cluster.LeaderElector;
+import io.netflix.titus.master.config.CellInfoResolver;
+import io.netflix.titus.master.config.ConfigurableCellInfoResolver;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.endpoint.EndpointModule;
 import io.netflix.titus.master.endpoint.common.ContextResolver;
@@ -65,6 +67,7 @@ public class TitusMasterModule extends AbstractModule {
     protected void configure() {
         // Configuration
         bind(CoreConfiguration.class).to(MasterConfiguration.class);
+        bind(CellInfoResolver.class).to(ConfigurableCellInfoResolver.class);
 
         install(new TitusEntitySanitizerModule());
 

@@ -21,6 +21,7 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
 import io.netflix.titus.common.model.sanitizer.FieldInvariant;
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -29,23 +30,32 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 public class SpELFieldValidator implements ConstraintValidator<FieldInvariant, Object> {
 
     private final ExpressionParser parser = new SpelExpressionParser();
+    private final VerifierMode verifierMode;
     private final Supplier<EvaluationContext> spelContextFactory;
 
+    private boolean enabled;
     private Expression expression;
     private EvaluationContext spelContext;
 
-    public SpELFieldValidator(Supplier<EvaluationContext> spelContextFactory) {
+    public SpELFieldValidator(VerifierMode verifierMode, Supplier<EvaluationContext> spelContextFactory) {
+        this.verifierMode = verifierMode;
         this.spelContextFactory = spelContextFactory;
     }
 
     @Override
     public void initialize(FieldInvariant constraintAnnotation) {
-        this.expression = parser.parseExpression(constraintAnnotation.value());
-        this.spelContext = spelContextFactory.get();
+        this.enabled = verifierMode.includes(constraintAnnotation.mode());
+        if (enabled) {
+            this.expression = parser.parseExpression(constraintAnnotation.value());
+            this.spelContext = spelContextFactory.get();
+        }
     }
 
     @Override
     public boolean isValid(Object value, ConstraintValidatorContext context) {
+        if (!enabled) {
+            return true;
+        }
         return (boolean) expression.getValue(spelContext, new Root(value));
     }
 

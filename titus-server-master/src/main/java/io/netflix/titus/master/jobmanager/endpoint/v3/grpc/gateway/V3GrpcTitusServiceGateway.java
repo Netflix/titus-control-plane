@@ -53,7 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 
 /**
  */
@@ -75,7 +75,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     public V3GrpcTitusServiceGateway(V3JobOperations jobOperations,
                                      JobSubmitLimiter jobSubmitLimiter,
                                      LogStorageInfo<Task> logStorageInfo,
-                                     @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer) {
+                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
         this.jobOperations = jobOperations;
         this.jobSubmitLimiter = jobSubmitLimiter;
         this.logStorageInfo = logStorageInfo;

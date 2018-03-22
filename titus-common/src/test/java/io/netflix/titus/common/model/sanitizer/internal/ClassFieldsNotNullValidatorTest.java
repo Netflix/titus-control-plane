@@ -35,7 +35,7 @@ public class ClassFieldsNotNullValidatorTest {
 
     @Before
     public void setUp() throws Exception {
-        validator = TestValidator.testValidator();
+        validator = TestValidator.testStrictValidator();
     }
 
     @Test

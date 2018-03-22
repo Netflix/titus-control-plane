@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_SANITIZER;
+import static io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
@@ -107,7 +107,7 @@ public class DefaultJobManagementService implements JobManagementService {
                                        SessionContext sessionContext,
                                        JobStore store,
                                        LogStorageInfo<io.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
-                                       @Named(JOB_SANITIZER) EntitySanitizer entitySanitizer) {
+                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
         this.configuration = configuration;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.client = client;

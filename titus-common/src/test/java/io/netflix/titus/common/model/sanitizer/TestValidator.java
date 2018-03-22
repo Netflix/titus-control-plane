@@ -36,7 +36,15 @@ import static java.util.Collections.singletonMap;
  */
 public final class TestValidator {
 
-    public static Validator testValidator() {
+    public static Validator testStrictValidator() {
+        return testValidator(VerifierMode.Strict);
+    }
+
+    public static Validator testPermissiveValidator() {
+        return testValidator(VerifierMode.Permissive);
+    }
+
+    public static Validator testValidator(VerifierMode verifierMode) {
         TestModel.setFit(true);
 
         Map<String, Object> registeredObjects = singletonMap("env", System.getProperties());
@@ -50,7 +58,7 @@ public final class TestValidator {
 
         return Validation.buildDefaultValidatorFactory()
                 .usingContext()
-                .constraintValidatorFactory(new ConstraintValidatorFactoryWrapper(type -> Optional.empty(), spelContextFactory))
+                .constraintValidatorFactory(new ConstraintValidatorFactoryWrapper(verifierMode, type -> Optional.empty(), spelContextFactory))
                 .messageInterpolator(new SpELMessageInterpolator(spelContextFactory))
                 .getValidator();
     }
@@ -65,7 +73,7 @@ public final class TestValidator {
 
         return Validation.buildDefaultValidatorFactory()
                 .usingContext()
-                .constraintValidatorFactory(new ConstraintValidatorFactoryWrapper(type -> Optional.empty(), spelContextFactory))
+                .constraintValidatorFactory(new ConstraintValidatorFactoryWrapper(VerifierMode.Strict, type -> Optional.empty(), spelContextFactory))
                 .messageInterpolator(new SpELMessageInterpolator(spelContextFactory))
                 .getValidator();
     }

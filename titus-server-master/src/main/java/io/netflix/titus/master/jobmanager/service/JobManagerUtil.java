@@ -121,7 +121,7 @@ public final class JobManagerUtil {
                     contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, details.getNetworkConfiguration().getEniID());
                     parseEniResourceId(details.getNetworkConfiguration().getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
 
-                    return newTask.toBuilder().withTaskContext(newContext).build();
+                    return newTask.toBuilder().addAllToTaskContext(newContext).build();
                 }
                 return newTask;
             }).orElse(newTask);

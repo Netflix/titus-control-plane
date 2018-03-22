@@ -311,7 +311,7 @@ public final class V2JobStore {
             }
             V2WorkerMetadataWritable mwmd = new V2WorkerMetadataWritable(workerRequest.getWorkerIndex(),
                     workerRequest.getWorkerNumber(), workerRequest.getJobId(), workerRequest.getWorkerInstanceId(),
-                    workerRequest.getWorkerStage(), workerRequest.getNumPortsPerInstance());
+                    workerRequest.getWorkerStage(), workerRequest.getNumPortsPerInstance(), workerRequest.getCell());
             if (!job.addWorkerMedata(workerRequest.getWorkerStage(), mwmd, null)) {
                 V2WorkerMetadata tmp = job.getWorkerByIndex(workerRequest.getWorkerStage(), workerRequest.getWorkerIndex());
                 throw new InvalidJobException(job.getJobId(), workerRequest.getWorkerStage(), workerRequest.getWorkerIndex(),
@@ -348,7 +348,7 @@ public final class V2JobStore {
         }
         V2WorkerMetadataWritable mwmd = new V2WorkerMetadataWritable(workerRequest.getWorkerIndex(),
                 workerRequest.getWorkerNumber(), workerRequest.getJobId(), workerRequest.getWorkerInstanceId(),
-                workerRequest.getWorkerStage(), workerRequest.getNumPortsPerInstance());
+                workerRequest.getWorkerStage(), workerRequest.getNumPortsPerInstance(), workerRequest.getCell());
         if (!job.addWorkerMedata(workerRequest.getWorkerStage(), mwmd, null)) {
             V2WorkerMetadata tmp = job.getWorkerByIndex(workerRequest.getWorkerStage(), workerRequest.getWorkerIndex());
             throw new InvalidJobException(job.getJobId(), workerRequest.getWorkerStage(), workerRequest.getWorkerIndex(),
@@ -414,7 +414,7 @@ public final class V2JobStore {
         }
         V2WorkerMetadataWritable mwmd = new V2WorkerMetadataWritable(workerRequest.getWorkerIndex(),
                 workerRequest.getWorkerNumber(), workerRequest.getJobId(), workerRequest.getWorkerInstanceId(),
-                workerRequest.getWorkerStage(), workerRequest.getNumPortsPerInstance());
+                workerRequest.getWorkerStage(), workerRequest.getNumPortsPerInstance(), workerRequest.getCell());
         mwmd.setResubmitInfo(replacedWorker.getWorkerNumber(), replacedWorker.getTotalResubmitCount() + 1);
         if (!job.addWorkerMedata(replacedWorker.getStageNum(), mwmd, replacedWorker)) {
             throw new InvalidJobStateChangeException(replacedWorker.getJobId(), replacedWorker.getState(), V2JobState.Failed);

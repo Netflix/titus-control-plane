@@ -186,7 +186,7 @@ public class BasicTaskActions {
                 .summary("Adding task to scheduler")
                 .applyModelUpdate(self -> {
                     Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
-                    schedulingService.getTaskQueueAction().call(new V3QueueableTask(
+                    schedulingService.addTask(new V3QueueableTask(
                             tierAssignment.getLeft(),
                             tierAssignment.getRight(),
                             job,

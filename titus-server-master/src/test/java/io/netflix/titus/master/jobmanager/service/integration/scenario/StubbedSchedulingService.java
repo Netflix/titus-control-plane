@@ -32,7 +32,6 @@ import io.netflix.titus.master.scheduler.SchedulingService;
 import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import io.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import io.netflix.titus.master.scheduler.constraint.V2ConstraintEvaluatorTransformer;
-import rx.functions.Action1;
 
 class StubbedSchedulingService implements SchedulingService {
 
@@ -52,17 +51,13 @@ class StubbedSchedulingService implements SchedulingService {
         throw new IllegalStateException("not implemented");
     }
 
-    public void addQueuableTask(QueuableTask queuableTask) {
-        queuableTasks.put(queuableTask.getId(), queuableTask);
-    }
-
     public HashMap<String, QueuableTask> getQueuableTasks() {
         return new HashMap<>(queuableTasks);
     }
 
     @Override
-    public Action1<QueuableTask> getTaskQueueAction() {
-        return this::addQueuableTask;
+    public void addTask(QueuableTask queuableTask) {
+        queuableTasks.put(queuableTask.getId(), queuableTask);
     }
 
     @Override

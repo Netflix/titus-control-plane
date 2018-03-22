@@ -19,6 +19,7 @@ package io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
@@ -46,6 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 import rx.subjects.PublishSubject;
 
+import static io.netflix.titus.master.integration.v3.job.CellAssertions.assertCellInfo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -70,7 +72,8 @@ public class V2GrpcTitusServiceGatewayTest {
 
     private final V2GrpcTitusServiceGateway gateway = new V2GrpcTitusServiceGateway(configuration, jobOperations, jobSubmitLimiter, apiOperations, eventBus, logStorageInfo, entitySanitizer);
 
-    private final RuntimeModelGenerator generator = new RuntimeModelGenerator();
+    private final String cellName = UUID.randomUUID().toString();
+    private final RuntimeModelGenerator generator = new RuntimeModelGenerator(cellName);
 
     private final PublishSubject<Object> eventSubject = PublishSubject.create();
 
@@ -90,7 +93,9 @@ public class V2GrpcTitusServiceGatewayTest {
         gateway.observeJob(jobMetadata.getJobId()).subscribe(testSubscriber);
 
         // First is always snapshot
-        assertThat(testSubscriber.takeNext().getNotificationCase()).isEqualByComparingTo(NotificationCase.JOBUPDATE);
+        JobChangeNotification firstNotification = testSubscriber.takeNext();
+        assertThat(firstNotification.getNotificationCase()).isEqualByComparingTo(NotificationCase.JOBUPDATE);
+        assertCellInfo(firstNotification.getJobUpdate().getJob().getJobDescriptor(), cellName);
         assertThat(testSubscriber.takeNext().getNotificationCase()).isEqualByComparingTo(NotificationCase.SNAPSHOTEND);
 
         // Job size change
@@ -101,7 +106,9 @@ public class V2GrpcTitusServiceGatewayTest {
         V2WorkerMetadata task = createTask(jobMetadata);
         String taskId = WorkerNaming.getWorkerName(jobMetadata.getJobId(), task.getWorkerIndex(), task.getWorkerNumber());
         eventSubject.onNext(new TaskStateChangeEvent<>(jobMetadata.getJobId(), taskId, task.getState(), System.currentTimeMillis(), Pair.of(jobMetadata, task)));
-        assertThat(testSubscriber.takeNext().getNotificationCase()).isEqualByComparingTo(NotificationCase.TASKUPDATE);
+        JobChangeNotification taskNotification = testSubscriber.takeNext();
+        assertThat(taskNotification.getNotificationCase()).isEqualByComparingTo(NotificationCase.TASKUPDATE);
+        assertCellInfo(taskNotification.getTaskUpdate().getTask(), cellName);
 
         // Terminate job
         jobMetadata.setJobState(V2JobState.Completed);
@@ -121,8 +128,12 @@ public class V2GrpcTitusServiceGatewayTest {
         gateway.observeJobs().subscribe(testSubscriber);
 
         // First are snapshots
-        assertThat(testSubscriber.takeNext().getNotificationCase()).isEqualByComparingTo(NotificationCase.JOBUPDATE);
-        assertThat(testSubscriber.takeNext().getNotificationCase()).isEqualByComparingTo(NotificationCase.JOBUPDATE);
+        JobChangeNotification firstNotification = testSubscriber.takeNext();
+        assertThat(firstNotification.getNotificationCase()).isEqualByComparingTo(NotificationCase.JOBUPDATE);
+        assertCellInfo(firstNotification.getJobUpdate().getJob().getJobDescriptor(), cellName);
+        JobChangeNotification secondNotification = testSubscriber.takeNext();
+        assertThat(secondNotification.getNotificationCase()).isEqualByComparingTo(NotificationCase.JOBUPDATE);
+        assertCellInfo(secondNotification.getJobUpdate().getJob().getJobDescriptor(), cellName);
         assertThat(testSubscriber.takeNext().getNotificationCase()).isEqualByComparingTo(NotificationCase.SNAPSHOTEND);
 
         // Job 1 size change

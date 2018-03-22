@@ -110,6 +110,7 @@ public abstract class TitusServiceGatewayTestCompatibilityTestSuite<USER, JOB_SP
         String jobId = gateway.createJob(dataGenerator.createBatchJob(OK_JOB)).toBlocking().first();
         JOB job = gateway.findJobById(jobId, false, Collections.emptySet()).toBlocking().first();
         modelAsserts.assertJobId(job, jobId);
+        modelAsserts.assertCellInfo(job, getCellName());
     }
 
     @Test
@@ -156,6 +157,7 @@ public abstract class TitusServiceGatewayTestCompatibilityTestSuite<USER, JOB_SP
 
         TASK task = gateway.findTaskById(firstTask).toBlocking().first();
         assertThat(task).isNotNull();
+        modelAsserts.assertTaskCell(task, getCellName());
     }
 
     @Test

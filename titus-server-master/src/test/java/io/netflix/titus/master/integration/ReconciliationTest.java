@@ -79,7 +79,7 @@ public class ReconciliationTest extends BaseIntegrationTest {
     public void testReconciliationAfterEniDuplicateError() throws Exception {
         ExtTestSubscriber<TaskExecutorHolder> taskExecutorHolders = new ExtTestSubscriber<>();
         titusMaster.observeLaunchedTasks().subscribe(taskExecutorHolders);
-        TitusV2ModelGenerator generator = new TitusV2ModelGenerator();
+        TitusV2ModelGenerator generator = new TitusV2ModelGenerator(getClass().getSimpleName());
         TitusMasterClient client = titusMaster.getClient();
         TitusJobSpec firstJob = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "firstJob"))
                 .instancesMin(1).instancesDesired(1).instancesMax(1)

@@ -24,6 +24,10 @@ import java.util.Optional;
 
 import io.netflix.titus.common.util.CollectionsExt;
 
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CELL;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static java.util.Arrays.asList;
 
 /**
@@ -232,8 +236,34 @@ public abstract class Task {
             return withTaskContext(CollectionsExt.copyAndAdd(taskContext, key, value));
         }
 
+        public B addAllToTaskContext(Map<String, String> toAdd) {
+            return withTaskContext(CollectionsExt.merge(taskContext, toAdd));
+        }
+
         public B withTaskContext(Map<String, String> taskContext) {
             this.taskContext = taskContext;
+            return self();
+        }
+
+        public B withCellInfo(Job<?> job) {
+            final Map<String, String> jobAttributes = job.getJobDescriptor().getAttributes();
+            if (CollectionsExt.containsKeys(jobAttributes, JOB_ATTRIBUTES_CELL)) {
+                addToTaskContext(TASK_ATTRIBUTES_CELL, jobAttributes.get(JOB_ATTRIBUTES_CELL));
+            }
+            if (CollectionsExt.containsKeys(jobAttributes, JOB_ATTRIBUTES_STACK)) {
+                addToTaskContext(TASK_ATTRIBUTES_STACK, jobAttributes.get(JOB_ATTRIBUTES_STACK));
+            }
+            return self();
+        }
+
+        public B withCellInfo(Task task) {
+            final Map<String, String> oldTaskContext = task.getTaskContext();
+            if (CollectionsExt.containsKeys(oldTaskContext, TASK_ATTRIBUTES_CELL)) {
+                addToTaskContext(TASK_ATTRIBUTES_CELL, oldTaskContext.get(TASK_ATTRIBUTES_CELL));
+            }
+            if (CollectionsExt.containsKeys(oldTaskContext, TASK_ATTRIBUTES_STACK)) {
+                addToTaskContext(TASK_ATTRIBUTES_STACK, oldTaskContext.get(TASK_ATTRIBUTES_STACK));
+            }
             return self();
         }
 

@@ -18,6 +18,7 @@ package io.netflix.titus.master.integration;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
@@ -66,7 +67,7 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
 
     private EmbeddedTitusMaster titusMaster;
 
-    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator();
+    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator(UUID.randomUUID().toString());
 
     private TitusMasterClient client;
     private ExtTestSubscriber<TaskExecutorHolder> taskExecutorHolders;

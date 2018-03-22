@@ -177,4 +177,15 @@ public class V2TaskMigrationDetails implements TaskMigrationDetails {
     public void setMigrationDeadline(long migrationDeadline) {
         jobManager.setMigrationDeadline(getId(), migrationDeadline);
     }
+
+    @Override
+    public String getHostInstanceId() {
+        V2WorkerMetadata workerMetadata = getWorkerMetadata();
+        String hostInstanceId = "";
+        if (workerMetadata != null) {
+            hostInstanceId = workerMetadata.getSlaveAttributes().getOrDefault("id", "");
+        }
+
+        return hostInstanceId;
+    }
 }

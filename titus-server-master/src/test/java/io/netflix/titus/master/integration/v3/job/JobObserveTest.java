@@ -31,6 +31,7 @@ import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import io.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
+import io.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import io.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -100,7 +101,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         assertThat(emittedItems).hasSize(16);
         emittedItems.stream()
                 .filter(n -> n.getNotificationCase() == NotificationCase.JOBUPDATE)
-                .forEach(n -> assertCellInfo(n.getJobUpdate().getJob().getJobDescriptor()));
+                .forEach(n -> assertCellInfo(n.getJobUpdate().getJob(), EmbeddedTitusMaster.CELL_NAME));
     }
 
     @Test(timeout = 30_000)

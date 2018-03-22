@@ -15,6 +15,8 @@ import io.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import io.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import io.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
+import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import io.netflix.titus.common.model.sanitizer.VerifierMode;
 import io.netflix.titus.common.runtime.TitusRuntime;
 import io.netflix.titus.common.runtime.TitusRuntimes;
 import io.netflix.titus.common.util.time.Clocks;
@@ -135,10 +137,8 @@ public class JobsScenarioBuilder {
                         systemSoftConstraint,
                         systemHardConstraint,
                         constraintEvaluatorTransformer,
-                        new JobSanitizerBuilder()
-                                .withJobConstrainstConfiguration(jobSanitizerConfiguration)
-                                .withMaxContainerSizeResolver(instanceType -> null)
-                                .build(),
+                        newJobSanitizer(VerifierMode.Permissive),
+                        newJobSanitizer(VerifierMode.Strict),
                         titusRuntime.getRegistry(),
                         clock,
                         testScheduler
@@ -183,5 +183,13 @@ public class JobsScenarioBuilder {
         jobScenarioBuilders.add(jobScenarioBuilder);
         jobScenario.apply(jobScenarioBuilder);
         return this;
+    }
+
+    private EntitySanitizer newJobSanitizer(VerifierMode verifierMode) {
+        return new JobSanitizerBuilder()
+                .withVerifierMode(verifierMode)
+                .withJobConstrainstConfiguration(jobSanitizerConfiguration)
+                .withMaxContainerSizeResolver(instanceType -> null)
+                .build();
     }
 }

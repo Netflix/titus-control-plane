@@ -29,7 +29,7 @@ import com.google.common.base.Preconditions;
 public class TestModel {
 
     @ClassFieldsNotNull
-    @ClassInvariant(condition = "#fit()", message = "Simulated failure (OS=#{@env['os.name']})")
+    @ClassInvariant(condition = "#fit()", message = "Simulated failure (OS=#{@env['os.name']})", mode = VerifierMode.Strict)
     public static class Root {
 
         @FieldInvariant(value = "value == null || T(java.lang.Character).isUpperCase(value.charAt(0))", message = "Name '#{value}' must start with a capital letter")

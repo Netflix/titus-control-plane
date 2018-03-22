@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Constraints;
@@ -55,14 +56,18 @@ import io.netflix.titus.testkit.model.runtime.RuntimeModelGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CELL;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
 import static io.netflix.titus.common.util.CollectionsExt.asSet;
 import static io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters.toGrpcJobConstraintList;
 import static io.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters.toMachineDefinition;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.ALL_TASK_STATES;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.LABEL_LEGACY_NAME;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
-import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -86,14 +91,17 @@ public class V2GrpcModelConvertersTest {
 
     private static final String REGION = "us-east-1";
 
-    private final RuntimeModelGenerator generator = new RuntimeModelGenerator();
-
     private final MasterConfiguration configuration = mock(MasterConfiguration.class);
 
     private final LogStorageInfo<V2WorkerMetadata> logStorageInfo = mock(LogStorageInfo.class);
 
+    private String cellName;
+    private RuntimeModelGenerator generator;
+
     @Before
     public void setUp() throws Exception {
+        cellName = UUID.randomUUID().toString();
+        generator = new RuntimeModelGenerator(cellName);
         when(configuration.getRegion()).thenReturn(REGION);
         when(logStorageInfo.getLinks(any())).thenReturn(new LogStorageInfo.LogLinks(Optional.empty(), Optional.empty(), Optional.empty()));
     }
@@ -265,6 +273,8 @@ public class V2GrpcModelConvertersTest {
 
         Map<String, String> v3Labels = v3JobDescriptor.getAttributesMap();
         assertThat(v3Labels).containsEntry(LABEL_LEGACY_NAME, v2Job.getName());
+        assertThat(v3Labels).containsEntry(JOB_ATTRIBUTES_CELL, cellName);
+        assertThat(v3Labels).containsEntry(JOB_ATTRIBUTES_STACK, cellName);
 
         assertThat(v3JobDescriptor.getContainer()).isNotNull();
         Container container = v3JobDescriptor.getContainer();
@@ -296,7 +306,9 @@ public class V2GrpcModelConvertersTest {
         assertThat(v3Task.getStatusHistoryList()).isEqualTo(V2GrpcModelConverters.toGrpcTaskStatusHistory(v2Task));
 
         Map<String, String> context = v3Task.getTaskContextMap();
-        assertThat(context.get(TASK_ATTRIBUTES_AGENT_REGION)).isEqualTo(configuration.getRegion());
-        assertThat(context.get(TASK_ATTRIBUTES_TASK_INDEX)).isEqualTo(Integer.toString(v2Task.getWorkerIndex()));
+        assertThat(context).containsEntry(TASK_ATTRIBUTES_AGENT_REGION, configuration.getRegion());
+        assertThat(context).containsEntry(TASK_ATTRIBUTES_TASK_INDEX, Integer.toString(v2Task.getWorkerIndex()));
+        assertThat(context).containsEntry(TASK_ATTRIBUTES_CELL, cellName);
+        assertThat(context).containsEntry(TASK_ATTRIBUTES_STACK, cellName);
     }
 }

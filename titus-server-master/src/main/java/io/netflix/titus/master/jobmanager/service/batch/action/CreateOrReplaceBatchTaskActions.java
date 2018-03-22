@@ -125,6 +125,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .withIndex(index)
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(timestamp).build())
                 .withOriginalId(taskId)
+                .withCellInfo(job)
                 .build();
     }
 
@@ -136,6 +137,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .withIndex(oldTask.getIndex())
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(clock.wallTime()).build())
                 .withOriginalId(oldTask.getOriginalId())
+                .withCellInfo(oldTask)
                 .withResubmitOf(oldTask.getId())
                 .withResubmitNumber(oldTask.getResubmitNumber() + 1)
                 .withSystemResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())

@@ -48,6 +48,8 @@ public @interface ClassInvariant {
      */
     String expr() default "";
 
+    VerifierMode mode() default VerifierMode.Permissive;
+
     String message() default "{ClassInvariant.message}";
 
     Class<?>[] groups() default {};

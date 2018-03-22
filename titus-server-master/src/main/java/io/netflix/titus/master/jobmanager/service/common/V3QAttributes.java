@@ -16,6 +16,8 @@
 
 package io.netflix.titus.master.jobmanager.service.common;
 
+import java.util.Objects;
+
 import com.netflix.fenzo.queues.QAttributes;
 
 public class V3QAttributes implements QAttributes {
@@ -36,5 +38,31 @@ public class V3QAttributes implements QAttributes {
     @Override
     public int getTierNumber() {
         return tierNumber;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        V3QAttributes that = (V3QAttributes) o;
+        return tierNumber == that.tierNumber &&
+                Objects.equals(bucketName, that.bucketName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tierNumber, bucketName);
+    }
+
+    @Override
+    public String toString() {
+        return "V3QAttributes{" +
+                "tierNumber=" + tierNumber +
+                ", bucketName='" + bucketName + '\'' +
+                '}';
     }
 }

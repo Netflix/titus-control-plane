@@ -74,7 +74,7 @@ public class TerminateAndShrinkTest extends BaseIntegrationTest {
 
     private EmbeddedTitusMaster titusMaster;
 
-    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator();
+    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator(getClass().getSimpleName());
 
     private TitusJobSpec oneTaskServiceSpec = new TitusJobSpec.Builder(generator.newJobSpec(TitusJobType.service, "myjob"))
             .instancesMin(0).instancesDesired(1).instancesMax(3)

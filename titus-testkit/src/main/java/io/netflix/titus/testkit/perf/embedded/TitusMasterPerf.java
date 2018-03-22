@@ -46,7 +46,7 @@ public class TitusMasterPerf {
     private final int loadLevel;
 
     private EmbeddedTitusMaster titusMaster;
-    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator();
+    private final TitusV2ModelGenerator generator = new TitusV2ModelGenerator("perfTests");
 
     public TitusMasterPerf(String[] args) throws Exception {
         CommandLine cli = parseOptions(args);

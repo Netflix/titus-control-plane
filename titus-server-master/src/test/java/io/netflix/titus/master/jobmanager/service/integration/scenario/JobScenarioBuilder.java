@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -409,11 +410,6 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> triggerSchedulerLaunchEvent(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
-        TaskState taskState = task.getStatus().getState();
-
-        assertThat(taskState)
-                .describedAs("Scheduler launch attempt for task in state: %s", taskState)
-                .isEqualTo(TaskState.Accepted);
 
         Function<Task, Task> changeFunction = JobManagerUtil.newTaskLaunchConfigurationUpdater(
                 "zone",
@@ -423,9 +419,36 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         );
 
         AtomicBoolean done = new AtomicBoolean();
-        jobOperations.recordTaskPlacement(task.getId(), changeFunction).subscribe(() -> done.set(true));
+        AtomicReference<Throwable> failed = new AtomicReference<>();
+        jobOperations.recordTaskPlacement(task.getId(), changeFunction).subscribe(() -> done.set(true), failed::set);
         advance();
+        if (failed.get() != null) {
+            ExceptionExt.rethrow(failed.get());
+        }
         assertThat(done.get()).isTrue();
+
+        return this;
+    }
+
+    public JobScenarioBuilder<E> triggerFailingSchedulerLaunchEvent(int taskIdx, int resubmit, Consumer<Throwable> assertFun) {
+        Task task = findTaskInActiveState(taskIdx, resubmit);
+
+        Function<Task, Task> changeFunction = JobManagerUtil.newTaskLaunchConfigurationUpdater(
+                "zone",
+                vmService.buildLease(task.getId()),
+                vmService.buildConsumeResult(task.getId()),
+                vmService.buildAttributesMap(task.getId())
+        );
+
+        AtomicReference<Throwable> failed = new AtomicReference<>();
+        jobOperations.recordTaskPlacement(task.getId(), changeFunction).subscribe(
+                () -> {
+                },
+                failed::set
+        );
+        advance();
+        assertThat(failed.get()).isNotNull();
+        assertFun.accept(failed.get());
 
         return this;
     }
