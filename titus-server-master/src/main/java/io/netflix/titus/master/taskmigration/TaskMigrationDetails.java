@@ -46,4 +46,6 @@ public interface TaskMigrationDetails {
     long getMigrationDeadline();
 
     void setMigrationDeadline(long migrationDeadline);
+
+    String getHostInstanceId();
 }

@@ -32,6 +32,8 @@ import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import io.netflix.titus.common.util.tuple.Pair;
 
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
+
 public class V3TaskMigrationDetails implements TaskMigrationDetails {
 
     private final String jobId;
@@ -143,6 +145,11 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                 }, Trigger.TaskMigration, "Updating migration details").await(30_000, TimeUnit.MILLISECONDS);
             }
         }
+    }
+
+    @Override
+    public String getHostInstanceId() {
+        return getTask().getTaskContext().getOrDefault(TASK_ATTRIBUTES_AGENT_INSTANCE_ID, "");
     }
 
     public Job<?> getJob() {
