@@ -31,15 +31,17 @@ import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import io.netflix.titus.api.jobmanager.model.job.Job;
 import io.netflix.titus.api.jobmanager.model.job.JobState;
 import io.netflix.titus.api.jobmanager.model.job.Task;
+import io.netflix.titus.api.jobmanager.model.job.TaskState;
 import io.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import io.netflix.titus.api.jobmanager.store.JobStore;
 import io.netflix.titus.common.framework.reconciler.ChangeAction;
 import io.netflix.titus.common.framework.reconciler.EntityHolder;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.util.code.CodeInvariants;
 import io.netflix.titus.common.util.retry.Retryers;
 import io.netflix.titus.common.util.time.Clock;
-import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.tuple.Pair;
 import io.netflix.titus.master.VirtualMachineMasterService;
 import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -85,6 +87,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
+    private final CodeInvariants codeInvariants;
     private final Clock clock;
 
     @Inject
@@ -96,9 +99,10 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
-            SystemHardConstraint systemHardConstraint) {
+            SystemHardConstraint systemHardConstraint,
+            TitusRuntime titusRuntime) {
         this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer,
-                systemSoftConstraint, systemHardConstraint, Clocks.system(), Schedulers.computation());
+                systemSoftConstraint, systemHardConstraint, titusRuntime, Schedulers.computation());
     }
 
     public BatchDifferenceResolver(
@@ -110,7 +114,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
-            Clock clock,
+            TitusRuntime titusRuntime,
             Scheduler scheduler) {
         this.configuration = configuration;
         this.capacityGroupService = capacityGroupService;
@@ -120,7 +124,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
-        this.clock = clock;
+        this.clock = titusRuntime.getClock();
+        this.codeInvariants = titusRuntime.getCodeInvariants();
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
@@ -184,7 +189,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 if (!refJobView.getIndexes().contains(i)) {
                     allowedNewTasks.decrementAndGet();
                     logger.info("Adding missing task: jobId={}, index={}, requiredSize={}, currentSize={}", refJobView.getJob().getId(), i, refJobView.getRequiredSize(), refJobView.getTasks().size());
-                    missingTasks.add(createNewTaskAction(refJobView, i));
+                    createNewTaskAction(refJobView, i).ifPresent(missingTasks::add);
                 }
             }
             return missingTasks;
@@ -192,10 +197,23 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         return Collections.emptyList();
     }
 
-    private TitusChangeAction createNewTaskAction(BatchJobView refJobView, int taskIndex) {
-        return storeWriteRetryInterceptor.apply(
+    private Optional<TitusChangeAction> createNewTaskAction(BatchJobView refJobView, int taskIndex) {
+        // Safety check
+        long numberOfNotFinishedTasks = refJobView.getJobHolder().getChildren().stream()
+                .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
+                .count();
+        if (numberOfNotFinishedTasks >= refJobView.getRequiredSize()) {
+            codeInvariants.inconsistent(
+                    "Batch job reconciler attempts to create too many tasks: jobId=%s, requiredSize=%s, current=%s",
+                    refJobView.getJob().getId(), refJobView.getRequiredSize(), numberOfNotFinishedTasks
+            );
+            return Optional.empty();
+        }
+
+        TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
                 createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), taskIndex, clock)
         );
+        return Optional.of(storeAction);
     }
 
     /**
@@ -246,7 +264,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             if (refAndStoreInSync) {
                 if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTask, clock)) {
                     logger.info("Retrying task: oldTaskId={}, index={}", referenceTask.getId(), storeTask.getIndex());
-                    actions.add(createNewTaskAction(refJobView, storeTask.getIndex()));
+                    createNewTaskAction(refJobView, storeTask.getIndex()).ifPresent(actions::add);
                 }
             } else {
                 Task task = referenceTask.getEntity();

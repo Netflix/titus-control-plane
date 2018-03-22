@@ -108,7 +108,7 @@ public class JobsScenarioBuilder {
                 constraintEvaluatorTransformer,
                 systemSoftConstraint,
                 systemHardConstraint,
-                clock,
+                titusRuntime,
                 testScheduler
         );
         ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(
@@ -120,7 +120,7 @@ public class JobsScenarioBuilder {
                 constraintEvaluatorTransformer,
                 systemSoftConstraint,
                 systemHardConstraint,
-                clock,
+                titusRuntime,
                 testScheduler
         );
         this.jobOperations = new DefaultV3JobOperations(
