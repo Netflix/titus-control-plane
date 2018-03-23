@@ -37,7 +37,7 @@ public class DefaultCellRouter implements CellRouter {
     @Inject
     public DefaultCellRouter(CellInfoResolver cellInfoResolver, TitusFederationConfiguration federationConfiguration) {
         List<Cell> cells = cellInfoResolver.resolve();
-        Map<Cell, String> cellRoutingRules = CellInfoUtil.extractCellRoutingFromCellSpecificiation(cells, federationConfiguration.getRoutingRules());
+        Map<Cell, String> cellRoutingRules = CellInfoUtil.extractCellRoutingFromCellSpecification(cells, federationConfiguration.getRoutingRules());
         SortedMap<Cell, Pattern> sortedPatternMap = new TreeMap<>();
         cellRoutingRules.forEach((cell, routingRule) -> sortedPatternMap.putIfAbsent(cell, Pattern.compile(routingRule)));
         cellRoutingPatterns = sortedPatternMap;
