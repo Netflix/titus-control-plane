@@ -45,7 +45,6 @@ import static io.netflix.titus.common.grpc.GrpcUtil.createEmptyClientResponseObs
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleStreamObserver;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
