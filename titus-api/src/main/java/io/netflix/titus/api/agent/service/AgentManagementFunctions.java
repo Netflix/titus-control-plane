@@ -78,8 +78,13 @@ public final class AgentManagementFunctions {
     private static SortedSet<AgentInstanceGroup> findActiveInstanceGroups(AgentManagementService agentManagementService) {
         SortedSet<AgentInstanceGroup> activeInstanceGroups = new TreeSet<>(Comparator.comparing(AgentInstanceGroup::getId));
         agentManagementService.getInstanceGroups().stream()
-                .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active)
+                .filter(AgentManagementFunctions::isActiveOrPhasedOut)
                 .forEach(activeInstanceGroups::add);
         return activeInstanceGroups;
+    }
+
+    public static boolean isActiveOrPhasedOut(AgentInstanceGroup instanceGroup) {
+        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active ||
+                instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut;
     }
 }
