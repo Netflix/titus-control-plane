@@ -49,7 +49,7 @@ import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class AggregatingAutoScalingService implements AutoScalingService {
-    private static Logger logger = LoggerFactory.getLogger(AggregatingAutoScalingService.class);
+    private static final Logger logger = LoggerFactory.getLogger(AggregatingAutoScalingService.class);
     private CellConnector connector;
     private SessionContext sessionContext;
 

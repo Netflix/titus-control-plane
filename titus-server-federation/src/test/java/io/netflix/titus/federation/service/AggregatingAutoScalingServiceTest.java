@@ -45,8 +45,6 @@ import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.observers.AssertableSubscriber;
 
 import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
@@ -61,7 +59,6 @@ public class AggregatingAutoScalingServiceTest {
     static final String POLICY_2 = "policy2";
     static final String JOB_1 = "job1";
     static final String JOB_2 = "job2";
-    private static Logger logger = LoggerFactory.getLogger(AggregatingAutoScalingServiceTest.class);
 
     @Rule
     public final GrpcServerRule cellOne = new GrpcServerRule().directExecutor();
