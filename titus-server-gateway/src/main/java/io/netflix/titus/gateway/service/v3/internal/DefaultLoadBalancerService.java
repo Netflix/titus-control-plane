@@ -16,7 +16,6 @@
 
 package io.netflix.titus.gateway.service.v3.internal;
 
-import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -26,10 +25,8 @@ import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
-import io.grpc.ClientCall;
-import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceValidator;
 import io.netflix.titus.api.service.TitusServiceException;
@@ -40,28 +37,26 @@ import io.netflix.titus.gateway.service.v3.LoadBalancerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
-import rx.Emitter;
 import rx.Observable;
-import rx.functions.Action1;
 
-import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_ADD_LOAD_BALANCER;
-import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_GET_ALL_LOAD_BALANCERS;
-import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_GET_JOB_LOAD_BALANCERS;
-import static com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.METHOD_REMOVE_LOAD_BALANCER;
+import static io.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
+import static io.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultLoadBalancerService implements LoadBalancerService {
     private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerService.class);
 
     private final GrpcClientConfiguration configuration;
-    private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
+    private LoadBalancerServiceStub client;
     private final SessionContext sessionContext;
     private final LoadBalancerResourceValidator validator;
 
     @Inject
     public DefaultLoadBalancerService(GrpcClientConfiguration configuration,
                                       LoadBalancerResourceValidator validator,
-                                      LoadBalancerServiceGrpc.LoadBalancerServiceStub client,
+                                      LoadBalancerServiceStub client,
                                       SessionContext sessionContext) {
         this.configuration = configuration;
         this.client = client;
@@ -71,54 +66,35 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Override
     public Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId) {
-        return toObservable(emitter -> {
-            StreamObserver<GetJobLoadBalancersResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_GET_JOB_LOAD_BALANCERS, jobId, simpleStreamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestObservable(emitter -> {
+            StreamObserver<GetJobLoadBalancersResult> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getJobLoadBalancers(jobId, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request) {
-        return toObservable(emitter -> {
-            StreamObserver<GetAllLoadBalancersResult> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-            ClientCall clientCall = call(METHOD_GET_ALL_LOAD_BALANCERS, request, simpleStreamObserver);
-            GrpcUtil.attachCancellingCallback(emitter, clientCall);
-        });
+        return createRequestObservable(emitter -> {
+            StreamObserver<GetAllLoadBalancersResult> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getAllLoadBalancers(request, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable addLoadBalancer(AddLoadBalancerRequest addLoadBalancerRequest) {
         return validator.validateLoadBalancer(addLoadBalancerRequest.getLoadBalancerId().getId())
                 .onErrorResumeNext(e -> Completable.error(TitusServiceException.invalidArgument(e.getMessage())))
-                .andThen(toCompletable(emitter -> {
-                    StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emitter);
-                    ClientCall clientCall = call(METHOD_ADD_LOAD_BALANCER, addLoadBalancerRequest, simpleStreamObserver);
-                    GrpcUtil.attachCancellingCallback(emitter, clientCall);
-                }));
+                .andThen(createRequestCompletable(emitter -> {
+                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+                    createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).addLoadBalancer(addLoadBalancerRequest, streamObserver);
+                }, configuration.getRequestTimeout()));
     }
 
     @Override
     public Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest) {
-        return toCompletable(emptyEmitter -> {
-            StreamObserver<Empty> simpleStreamObserver = GrpcUtil.createSimpleStreamObserver(emptyEmitter);
-            ClientCall clientCall = call(METHOD_REMOVE_LOAD_BALANCER, removeLoadBalancerRequest, simpleStreamObserver);
-            GrpcUtil.attachCancellingCallback(emptyEmitter, clientCall);
-        });
-    }
-
-    private Completable toCompletable(Action1<Emitter<Empty>> emitter) {
-        return toObservable(emitter).toCompletable();
-    }
-
-    private <ReqT, RespT> ClientCall call(MethodDescriptor<ReqT, RespT> methodDescriptor, ReqT request, StreamObserver<RespT> responseObserver) {
-        return GrpcUtil.call(sessionContext, client, methodDescriptor, request, configuration.getRequestTimeout(), responseObserver);
-    }
-
-    private <T> Observable<T> toObservable(Action1<Emitter<T>> emitter) {
-        return Observable.create(
-                emitter,
-                Emitter.BackpressureMode.NONE
-        ).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).removeLoadBalancer(removeLoadBalancerRequest, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 }

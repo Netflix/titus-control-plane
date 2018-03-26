@@ -18,7 +18,7 @@ package io.netflix.titus.api.federation.model;
 
 import java.util.Objects;
 
-public final class Cell {
+public final class Cell implements Comparable<Cell> {
     private final String name;
     private final String address;
 
@@ -59,5 +59,10 @@ public final class Cell {
                 "name='" + name + '\'' +
                 ", address='" + address + '\'' +
                 '}';
+    }
+
+    @Override
+    public int compareTo(Cell cell) {
+        return name.compareTo(cell.getName());
     }
 }

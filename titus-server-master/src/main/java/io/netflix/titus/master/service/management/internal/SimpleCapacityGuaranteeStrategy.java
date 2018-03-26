@@ -26,7 +26,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
-import io.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.ResourceDimension;
 import io.netflix.titus.api.model.Tier;
@@ -37,6 +36,8 @@ import io.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 import io.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.netflix.titus.api.agent.service.AgentManagementFunctions.isActiveOrPhasedOut;
 
 /**
  * A simple strategy, where all resources required for a tier are first summed up, and next allocated on a first
@@ -86,7 +87,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
         List<AgentInstanceGroup> instanceGroups = agentManagementService.getInstanceGroups().stream()
                 .filter(instanceGroup -> instanceGroup.getTier() == tier &&
                         instanceGroup.getResourceDimension().getGpu() == 0 &&
-                        instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active)
+                        isActiveOrPhasedOut(instanceGroup))
                 .sorted(Comparator.comparing(AgentInstanceGroup::getId))
                 .collect(Collectors.toList());
 

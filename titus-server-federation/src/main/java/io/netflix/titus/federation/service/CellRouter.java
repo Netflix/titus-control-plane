@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.federation.startup;
+package io.netflix.titus.federation.service;
 
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
+import io.netflix.titus.api.federation.model.Cell;
 
-@Configuration(prefix = "titus.federation")
-public interface TitusFederationConfiguration {
-
-    @DefaultValue("cell1=hostName1:7001;cell2=hostName2:7002")
-    String getCells();
-
-    @DefaultValue("dev")
-    String getStack();
-
-    @DefaultValue("10000")
-    long getClientRequestTimeoutMs();
-
-    @DefaultValue("cell1=(app1.*|app2.*);cell2=(.*)")
-    String getRoutingRules();
+/**
+ * CellRouter determines which cell to route a request to amongst a set of Cells.
+ */
+public interface CellRouter {
+    /**
+     * routeKey is a blocking call that returns the Cell to use based on the provided key.
+     * The key should correspond to what the routing implementation expects, e.g., Job IDs
+     * or Capacity Group names.
+     * @param key
+     * @return Cell
+     */
+    Cell routeKey(String key);
 }

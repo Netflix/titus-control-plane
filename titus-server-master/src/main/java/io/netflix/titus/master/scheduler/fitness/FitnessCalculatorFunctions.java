@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QueuableTask;
@@ -38,6 +39,7 @@ import io.netflix.titus.api.store.v2.V2WorkerMetadata;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import io.netflix.titus.master.scheduler.ScheduledRequest;
+import org.apache.mesos.Protos;
 
 import static io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.EMPTY_JOINED_SECURITY_GROUP_IDS;
 import static io.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER;
@@ -120,5 +122,10 @@ public class FitnessCalculatorFunctions {
 
     public static long countMatchingTasks(List<TaskRequest> tasksOnAgent, Predicate<TaskRequest> predicate) {
         return tasksOnAgent.stream().filter(predicate).count();
+    }
+
+    public static String getAgentAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
+        Protos.Attribute attribute = targetVM.getCurrAvailableResources().getAttributeMap().get(attributeName);
+        return Strings.nullToEmpty(attribute.getText().getValue());
     }
 }

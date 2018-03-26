@@ -35,6 +35,7 @@ import com.netflix.spectator.api.Registry;
 import io.netflix.titus.api.agent.model.AgentInstance;
 import io.netflix.titus.api.agent.model.AgentInstanceGroup;
 import io.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import io.netflix.titus.api.agent.service.AgentManagementFunctions;
 import io.netflix.titus.api.agent.service.AgentManagementService;
 import io.netflix.titus.api.model.event.AutoScaleEvent;
 import io.netflix.titus.api.model.event.FailedScaleDownEvent;
@@ -200,9 +201,9 @@ public class DefaultAutoScaleController implements AutoScaleController {
             return false;
         }
 
-        InstanceGroupLifecycleState currentState = instanceGroup.getLifecycleStatus().getState();
-        if (currentState != InstanceGroupLifecycleState.Active) {
-            logger.warn("Instance group {} is not active (current state={}), but scale up requested", instanceGroupName, currentState);
+        if (!AgentManagementFunctions.isActiveOrPhasedOut(instanceGroup)) {
+            logger.warn("Instance group {} is not active or phased out (current state={}), but scale up requested",
+                    instanceGroupName, instanceGroup.getLifecycleStatus().getState());
             return false;
         }
         return true;
