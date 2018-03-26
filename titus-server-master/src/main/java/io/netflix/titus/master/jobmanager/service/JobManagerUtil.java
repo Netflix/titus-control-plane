@@ -195,22 +195,22 @@ public final class JobManagerUtil {
 
     public static Optional<String> getExecutorUriOverride(Config config,
                                                           Map<String, String> attributesMap) {
-        String ami = attributesMap.getOrDefault("ami", "");
+        String ami = attributesMap.getOrDefault("ami", "defaultAmi");
         String amiExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".amiExecutorUriOverride." + ami, "");
         if (!Strings.isNullOrEmpty(amiExecutorUriOverride)) {
             return Optional.of(amiExecutorUriOverride);
         }
 
-        String asg = attributesMap.getOrDefault("asg", "");
+        String asg = attributesMap.getOrDefault("asg", "defaultAsg");
         String asgExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".asgExecutorUriOverride." + asg, "");
         if (!Strings.isNullOrEmpty(asgExecutorUriOverride)) {
             return Optional.of(asgExecutorUriOverride);
         }
 
-        String host = attributesMap.getOrDefault("id", "");
-        String hostExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".hostExecutorUriOverride." + host, "");
-        if (!Strings.isNullOrEmpty(hostExecutorUriOverride)) {
-            return Optional.of(hostExecutorUriOverride);
+        String instance = attributesMap.getOrDefault("id", "defaultInstance");
+        String instanceExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".instanceExecutorUriOverride." + instance, "");
+        if (!Strings.isNullOrEmpty(instanceExecutorUriOverride)) {
+            return Optional.of(instanceExecutorUriOverride);
         }
 
         return Optional.empty();
