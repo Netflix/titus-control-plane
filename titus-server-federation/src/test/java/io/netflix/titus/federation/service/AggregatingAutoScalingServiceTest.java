@@ -26,12 +26,10 @@ import java.util.stream.Collectors;
 
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Empty;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicy;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
@@ -51,8 +49,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.observers.AssertableSubscriber;
 
-import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.*;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.*;
+import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
+import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -302,7 +300,6 @@ public class AggregatingAutoScalingServiceTest {
         assertThat(onNextEvents.get(0).getItems(0).getId().getId()).isEqualTo(POLICY_2);
         assertThat(onNextEvents.get(1).getItemsCount()).isEqualTo(0);
     }
-
 
 
     private static class CellWithJobs extends JobManagementServiceImplBase {
