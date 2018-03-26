@@ -27,7 +27,9 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
+import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
@@ -61,18 +63,18 @@ public class AggregatingAutoScalingService implements AutoScalingService {
     public Observable<GetPolicyResult> getJobScalingPolicies(JobId jobId) {
         Observable<Pair<Cell, GetPolicyResult>> allCellsResult = callToAllCells(AutoScalingServiceGrpc::newStub,
                 (AutoScalingServiceGrpc.AutoScalingServiceStub client, StreamObserver<GetPolicyResult> responseObserver) ->
-                        client.getJobScalingPolicies(jobId, responseObserver));
+                        client.getJobScalingPolicies(jobId, responseObserver), false);
         return allCellsResult.map(Pair::getRight);
     }
 
     @Override
     public Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request) {
         JobId jobId = JobId.newBuilder().setId(request.getJobId()).build();
-        Observable<Pair<Cell, GetPolicyResult>> allCellsResult = callToAllCells(AutoScalingServiceGrpc::newStub,
-                (AutoScalingServiceGrpc.AutoScalingServiceStub client, StreamObserver<GetPolicyResult> responseObserver) ->
-                        client.getJobScalingPolicies(jobId, responseObserver));
+        Observable<Pair<Cell, Job>> allCellsResult = callToAllCells(JobManagementServiceGrpc::newStub,
+                (JobManagementServiceGrpc.JobManagementServiceStub client, StreamObserver<Job> responseObserver) ->
+                        client.findJob(jobId, responseObserver), true);
 
-        return allCellsResult.filter(result -> result.getRight().getItemsCount() > 0)
+        return allCellsResult
                 .flatMap(p -> callCellWithWrappedStub(
                         p.getLeft(),
                         AutoScalingServiceGrpc::newStub,
@@ -85,7 +87,7 @@ public class AggregatingAutoScalingService implements AutoScalingService {
     public Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request) {
         Observable<Pair<Cell, GetPolicyResult>> allCellsResult = callToAllCells(AutoScalingServiceGrpc::newStub,
                 (AutoScalingServiceGrpc.AutoScalingServiceStub client, StreamObserver<GetPolicyResult> responseObserver) ->
-                        client.getScalingPolicy(request, responseObserver));
+                        client.getScalingPolicy(request, responseObserver), false);
         return allCellsResult.map(Pair::getRight);
     }
 
@@ -93,16 +95,17 @@ public class AggregatingAutoScalingService implements AutoScalingService {
     public Observable<GetPolicyResult> getAllScalingPolicies() {
         Observable<Pair<Cell, GetPolicyResult>> allCellsResult = callToAllCells(AutoScalingServiceGrpc::newStub,
                 (AutoScalingServiceGrpc.AutoScalingServiceStub client, StreamObserver<GetPolicyResult> responseObserver) ->
-                        client.getAllScalingPolicies(Empty.getDefaultInstance(), responseObserver));
+                        client.getAllScalingPolicies(Empty.getDefaultInstance(), responseObserver), false);
         return allCellsResult.map(Pair::getRight);
     }
 
     @Override
     public Completable deleteAutoScalingPolicy(DeletePolicyRequest request) {
         ScalingPolicyID policyId = request.getId();
+
         Observable<Pair<Cell, GetPolicyResult>> allCellsResult = callToAllCells(AutoScalingServiceGrpc::newStub,
                 (AutoScalingServiceGrpc.AutoScalingServiceStub client, StreamObserver<GetPolicyResult> responseObserver) ->
-                        client.getScalingPolicy(policyId, responseObserver));
+                        client.getScalingPolicy(policyId, responseObserver), true);
 
         return allCellsResult.filter(result -> result.getRight().getItemsCount() > 0)
                 .flatMap(p -> callCellWithWrappedStub(
@@ -118,7 +121,7 @@ public class AggregatingAutoScalingService implements AutoScalingService {
         ScalingPolicyID policyId = request.getPolicyId();
         Observable<Pair<Cell, GetPolicyResult>> allCellsResult = callToAllCells(AutoScalingServiceGrpc::newStub,
                 (AutoScalingServiceGrpc.AutoScalingServiceStub client, StreamObserver<GetPolicyResult> responseObserver) ->
-                        client.getScalingPolicy(policyId, responseObserver));
+                        client.getScalingPolicy(policyId, responseObserver), true);
 
         return allCellsResult.filter(result -> result.getRight().getItemsCount() > 0)
                 .flatMap(p -> callCellWithWrappedStub(
@@ -131,11 +134,16 @@ public class AggregatingAutoScalingService implements AutoScalingService {
 
     private <STUB extends AbstractStub<STUB>, RespT> Observable<Pair<Cell, RespT>> callToAllCells(
             Function<ManagedChannel, STUB> stubFactory,
-            BiConsumer<STUB, StreamObserver<RespT>> fnCall) {
+            BiConsumer<STUB, StreamObserver<RespT>> fnCall, boolean swallowErrors) {
         Map<Cell, STUB> clients = CellConnectorUtil.stubs(connector, stubFactory);
 
         List<Observable<Pair<Cell, RespT>>> observables = clients.keySet().stream().map(cell -> {
             STUB client = clients.get(cell);
+            if (swallowErrors) {
+                return callWithWrappedStub(client, fnCall)
+                        .map(policyResult -> new Pair<>(cell, policyResult))
+                        .onErrorResumeNext(pair -> Observable.empty());
+            }
             return callWithWrappedStub(client, fnCall)
                     .map(policyResult -> new Pair<>(cell, policyResult));
         }).collect(Collectors.toList());

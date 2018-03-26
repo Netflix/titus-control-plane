@@ -29,7 +29,9 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
+import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicy;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
@@ -37,6 +39,7 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import io.netflix.titus.api.federation.model.Cell;
@@ -48,16 +51,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.observers.AssertableSubscriber;
 
+import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.*;
+import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.*;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
 public class AggregatingAutoScalingServiceTest {
-    public static final String POLICY_1 = "policy1";
-    public static final String POLICY_2 = "policy2";
-    public static final String JOB_1 = "job1";
-    public static final String JOB_2 = "job2";
+    static final String POLICY_1 = "policy1";
+    static final String POLICY_2 = "policy2";
+    static final String JOB_1 = "job1";
+    static final String JOB_2 = "job2";
     private static Logger logger = LoggerFactory.getLogger(AggregatingAutoScalingServiceTest.class);
 
     @Rule
@@ -162,11 +167,16 @@ public class AggregatingAutoScalingServiceTest {
         CellWithPolicies cellOneService = new CellWithPolicies(Collections.singletonList(policyOneResult));
         CellWithPolicies cellTwoService = new CellWithPolicies(Collections.singletonList(policyTwoResult));
 
+        CellWithJobs cellOneJobsService = new CellWithJobs(Collections.singletonList(JOB_1));
+        CellWithJobs cellTwoJobsService = new CellWithJobs(Collections.singletonList(JOB_2));
         cellOne.getServiceRegistry().addService(cellOneService);
+        cellOne.getServiceRegistry().addService(cellOneJobsService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
+        cellTwo.getServiceRegistry().addService(cellTwoJobsService);
 
         AssertableSubscriber<ScalingPolicyID> testSubscriber = service.setAutoScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build()).test();
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
+        assertThat(testSubscriber.getOnErrorEvents().isEmpty()).isTrue();
 
         List<ScalingPolicyID> onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();
@@ -219,12 +229,17 @@ public class AggregatingAutoScalingServiceTest {
 
         CellWithPolicies cellOneService = new CellWithPolicies(Collections.singletonList(policyOneResult));
         CellWithPolicies cellTwoService = new CellWithPolicies(Collections.singletonList(policyTwoResult));
+        CellWithJobs cellOneJobsService = new CellWithJobs(Collections.singletonList(JOB_1));
+        CellWithJobs cellTwoJobsService = new CellWithJobs(Collections.singletonList(JOB_2));
 
         cellOne.getServiceRegistry().addService(cellOneService);
+        cellTwo.getServiceRegistry().addService(cellOneJobsService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
+        cellTwo.getServiceRegistry().addService(cellTwoJobsService);
 
         AssertableSubscriber<ScalingPolicyID> testSubscriber = service.setAutoScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build()).test();
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
+        assertThat(testSubscriber.getOnErrorEvents().isEmpty()).isTrue();
 
         List<ScalingPolicyID> onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();
@@ -289,7 +304,26 @@ public class AggregatingAutoScalingServiceTest {
     }
 
 
-    private static class CellWithPolicies extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
+
+    private static class CellWithJobs extends JobManagementServiceImplBase {
+        private List<String> jobIds;
+
+        CellWithJobs(List<String> jobIds) {
+            this.jobIds = jobIds;
+        }
+
+        @Override
+        public void findJob(JobId request, StreamObserver<Job> responseObserver) {
+            if (jobIds.contains(request.getId())) {
+                responseObserver.onNext(Job.newBuilder().setId(request.getId()).build());
+                responseObserver.onCompleted();
+            } else {
+                responseObserver.onError(Status.NOT_FOUND.asException());
+            }
+        }
+    }
+
+    private static class CellWithPolicies extends AutoScalingServiceImplBase {
         private final Map<String, ScalingPolicyResult> policyMap;
 
         CellWithPolicies(List<ScalingPolicyResult> policyResults) {
@@ -360,7 +394,7 @@ public class AggregatingAutoScalingServiceTest {
         }
     }
 
-    private static class FailingCell extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
+    private static class FailingCell extends AutoScalingServiceImplBase {
         @Override
         public void getAllScalingPolicies(Empty request, StreamObserver<GetPolicyResult> responseObserver) {
             responseObserver.onError(new RuntimeException("Do not trust this cell"));
