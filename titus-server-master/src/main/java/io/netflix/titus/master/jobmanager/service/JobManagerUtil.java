@@ -27,6 +27,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
+import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.VirtualMachineLease;
 import io.netflix.titus.api.jobmanager.TaskAttributes;
@@ -50,6 +52,7 @@ import io.netflix.titus.master.mesos.TitusExecutorDetails;
 import io.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import org.apache.mesos.Protos;
 
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
 import static io.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
@@ -58,6 +61,7 @@ import static io.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
  */
 public final class JobManagerUtil {
     private static final ObjectMapper mapper = ObjectMappers.defaultMapper();
+    private static final String EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX = "titusMaster.jobManager";
 
     private JobManagerUtil() {
     }
@@ -139,10 +143,12 @@ public final class JobManagerUtil {
     public static Function<Task, Task> newTaskLaunchConfigurationUpdater(String zoneAttributeName,
                                                                          VirtualMachineLease lease,
                                                                          PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
+                                                                         Optional<String> executorUriOverrideOpt,
                                                                          Map<String, String> attributesMap) {
         return oldTask -> {
             Map<String, String> taskContext = new HashMap<>();
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, lease.hostname());
+            executorUriOverrideOpt.ifPresent(v -> taskContext.put(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE, v));
 
             Map<String, Protos.Attribute> attributes = lease.getAttributeMap();
             if (!isNullOrEmpty(attributes)) {
@@ -185,6 +191,29 @@ public final class JobManagerUtil {
         } catch (IOException e) {
             return Optional.empty();
         }
+    }
+
+    public static Optional<String> getExecutorUriOverride(Config config,
+                                                          Map<String, String> attributesMap) {
+        String ami = attributesMap.getOrDefault("ami", "");
+        String amiExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".amiExecutorUriOverride." + ami, "");
+        if (!Strings.isNullOrEmpty(amiExecutorUriOverride)) {
+            return Optional.of(amiExecutorUriOverride);
+        }
+
+        String asg = attributesMap.getOrDefault("asg", "");
+        String asgExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".asgExecutorUriOverride." + asg, "");
+        if (!Strings.isNullOrEmpty(asgExecutorUriOverride)) {
+            return Optional.of(asgExecutorUriOverride);
+        }
+
+        String host = attributesMap.getOrDefault("id", "");
+        String hostExecutorUriOverride = config.getString(EXECUTOR_URI_OVERRIDE_PROPERTY_PREFIX + ".hostExecutorUriOverride." + host, "");
+        if (!Strings.isNullOrEmpty(hostExecutorUriOverride)) {
+            return Optional.of(hostExecutorUriOverride);
+        }
+
+        return Optional.empty();
     }
 
     private static Optional<String> addAttributeToContext(Map<String, Protos.Attribute> attributes, String name) {

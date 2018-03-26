@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.master.jobmanager.service.common;
+package io.netflix.titus.master.mesos;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.primitives.Ints;
+import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
 import io.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -40,8 +42,6 @@ import io.netflix.titus.common.util.Evaluators;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.worker.WorkerRequest;
-import io.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import io.netflix.titus.master.jobmanager.service.TaskInfoFactory;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
 import io.titanframework.messages.TitanProtos;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
@@ -52,6 +52,7 @@ import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_BATCH;
 import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_KILL_WAIT_SECONDS;
+import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
 import static io.netflix.titus.common.util.Evaluators.applyNotNull;
 
 /**
@@ -68,15 +69,18 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private static final String ARN_SUFFIX = ":role/";
     private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
 
-    private final MasterConfiguration config;
-    private final JobManagerConfiguration jobManagerConfiguration;
+    private final MasterConfiguration masterConfiguration;
+    private final MesosConfiguration mesosConfiguration;
+    private final Config config;
     private final String iamArnPrefix;
 
     @Inject
-    public DefaultV3TaskInfoFactory(MasterConfiguration config,
-                                    JobManagerConfiguration jobManagerConfiguration) {
+    public DefaultV3TaskInfoFactory(MasterConfiguration masterConfiguration,
+                                    MesosConfiguration mesosConfiguration,
+                                    Config config) {
+        this.masterConfiguration = masterConfiguration;
+        this.mesosConfiguration = mesosConfiguration;
         this.config = config;
-        this.jobManagerConfiguration = jobManagerConfiguration;
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
         this.iamArnPrefix = ARN_PREFIX + accountId + ARN_SUFFIX;
@@ -92,9 +96,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                                        PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult) {
         String taskId = task.getId();
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
-
-        Protos.CommandInfo commandInfo = Protos.CommandInfo.newBuilder().setValue(config.pathToTitusExecutor()).build();
-        Protos.ExecutorInfo executorInfo = newExecutorInfo(taskId, attributesMap, commandInfo);
+        Protos.ExecutorInfo executorInfo = newExecutorInfo(task, attributesMap);
         Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID);
         taskInfoBuilder = setupPrimaryResources(taskInfoBuilder, fenzoTask);
 
@@ -142,13 +144,13 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         containerInfoBuilder.setAllowNetworkBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
         containerInfoBuilder.setBatch(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_BATCH)));
 
-        boolean allowNestedContainers = jobManagerConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
+        boolean allowNestedContainers = mesosConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
         containerInfoBuilder.setAllowNestedContainers(allowNestedContainers);
 
         final String attributeKillWaitSeconds = attributes.get(JOB_ATTRIBUTES_KILL_WAIT_SECONDS);
         Integer killWaitSeconds = attributeKillWaitSeconds == null ? null : Ints.tryParse(attributeKillWaitSeconds);
-        if (killWaitSeconds == null || killWaitSeconds < jobManagerConfiguration.getMinKillWaitSeconds() || killWaitSeconds > jobManagerConfiguration.getMaxKillWaitSeconds()) {
-            killWaitSeconds = jobManagerConfiguration.getDefaultKillWaitSeconds();
+        if (killWaitSeconds == null || killWaitSeconds < mesosConfiguration.getMinKillWaitSeconds() || killWaitSeconds > mesosConfiguration.getMaxKillWaitSeconds()) {
+            killWaitSeconds = mesosConfiguration.getDefaultKillWaitSeconds();
         }
         containerInfoBuilder.setKillWaitSeconds(killWaitSeconds);
 
@@ -168,7 +170,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         }
 
         // Set whether or not to ignore the launch guard
-        if (jobManagerConfiguration.isV3IgnoreLaunchGuardEnabled()) {
+        if (mesosConfiguration.isV3IgnoreLaunchGuardEnabled()) {
             containerInfoBuilder.setIgnoreLaunchGuard(true);
         }
 
@@ -230,23 +232,42 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getNetworkMbps())));
     }
 
-    private Protos.ExecutorInfo newExecutorInfo(String taskId,
-                                                Map<String, String> attributesMap,
-                                                Protos.CommandInfo commandInfo) {
+    private Protos.ExecutorInfo newExecutorInfo(Task task,
+                                                Map<String, String> attributesMap) {
 
         boolean executorPerTask = attributesMap.containsKey(EXECUTOR_PER_TASK_LABEL);
         String executorName = LEGACY_EXECUTOR_NAME;
         String executorId = LEGACY_EXECUTOR_NAME;
         if (executorPerTask) {
             executorName = EXECUTOR_PER_TASK_EXECUTOR_NAME;
-            executorId = EXECUTOR_PER_TASK_EXECUTOR_NAME + "-" + taskId;
+            executorId = EXECUTOR_PER_TASK_EXECUTOR_NAME + "-" + task.getId();
         }
 
+        Optional<String> executorUriOverrideOpt = Optional.ofNullable(task.getTaskContext().get(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE));
+        Protos.CommandInfo commandInfo = newCommandInfo(executorPerTask, executorUriOverrideOpt);
         return Protos.ExecutorInfo.newBuilder()
                 .setExecutorId(Protos.ExecutorID.newBuilder().setValue(executorId).build())
                 .setName(executorName)
                 .setCommand(commandInfo)
                 .build();
+    }
+
+    private Protos.CommandInfo newCommandInfo(boolean executorPerTask, Optional<String> executorUriOverrideOpt) {
+        Protos.CommandInfo.URI.Builder uriBuilder = Protos.CommandInfo.URI.newBuilder();
+        Protos.CommandInfo.Builder commandInfoBuilder = Protos.CommandInfo.newBuilder();
+
+        if (executorPerTask && mesosConfiguration.isExecutorUriOverrideEnabled() && executorUriOverrideOpt.isPresent()) {
+            commandInfoBuilder.setShell(false);
+            commandInfoBuilder.setValue(mesosConfiguration.getExecutorUriOverrideCommand());
+            uriBuilder.setValue(executorUriOverrideOpt.get());
+            uriBuilder.setExtract(true);
+            uriBuilder.setCache(true);
+            commandInfoBuilder.addUris(uriBuilder.build());
+        } else {
+            commandInfoBuilder.setValue(masterConfiguration.pathToTitusExecutor());
+        }
+
+        return commandInfoBuilder.build();
     }
 
     private List<EfsConfigInfo> setupEfsMounts(List<EfsMount> efsMounts) {
