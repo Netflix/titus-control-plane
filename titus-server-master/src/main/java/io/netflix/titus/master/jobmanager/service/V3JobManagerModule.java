@@ -27,11 +27,12 @@ import com.netflix.archaius.ConfigProxyFactory;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import io.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
-import io.netflix.titus.master.jobmanager.service.common.DefaultV3TaskInfoFactory;
+import io.netflix.titus.master.mesos.DefaultV3TaskInfoFactory;
 import io.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import io.netflix.titus.master.jobmanager.service.limiter.DefaultJobSubmitLimiter;
 import io.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import io.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
+import io.netflix.titus.master.mesos.TaskInfoFactory;
 import org.apache.mesos.Protos;
 
 import static io.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory.BATCH_RESOLVER;

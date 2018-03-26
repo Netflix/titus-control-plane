@@ -39,6 +39,7 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_ID = "task.networkInterfaceId";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX = "task.networkInterfaceIndex";
+    public static final String TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE = "task.executorUriOverride";
 
     /*
      * Cell info.

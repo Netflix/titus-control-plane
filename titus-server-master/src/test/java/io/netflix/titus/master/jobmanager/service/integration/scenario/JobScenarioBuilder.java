@@ -415,6 +415,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 "zone",
                 vmService.buildLease(task.getId()),
                 vmService.buildConsumeResult(task.getId()),
+                Optional.empty(),
                 vmService.buildAttributesMap(task.getId())
         );
 
@@ -437,6 +438,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 "zone",
                 vmService.buildLease(task.getId()),
                 vmService.buildConsumeResult(task.getId()),
+                Optional.empty(),
                 vmService.buildAttributesMap(task.getId())
         );
 
