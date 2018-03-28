@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import io.netflix.titus.api.federation.model.Cell;
@@ -119,12 +121,10 @@ public class AggregatingAutoScalingServiceTest {
 
         final AssertableSubscriber<GetPolicyResult> testSubscriber = service.getAllScalingPolicies().test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-
-        List<GetPolicyResult> onNextEvents = testSubscriber.getOnNextEvents();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertError(StatusRuntimeException.class);
         List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
         assertThat(onErrorEvents.size()).isEqualTo(1);
-        assertThat(onNextEvents).isNotNull();
-        assertThat(onNextEvents.size()).isEqualTo(0);
     }
 
 
@@ -197,8 +197,7 @@ public class AggregatingAutoScalingServiceTest {
                                 .setTargetValue(DoubleValue.newBuilder().setValue(100.0).build()).build()).build()).build();
 
         AssertableSubscriber<Void> testSubscriber3 = service.updateAutoScalingPolicy(updatePolicyRequest).test();
-        List<Throwable> onErrorEvents = testSubscriber3.getOnErrorEvents();
-        assertThat(onErrorEvents.size()).isEqualTo(0);
+        testSubscriber3.assertNoErrors();
 
         AssertableSubscriber<GetPolicyResult> testSubscriber4 = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId(POLICY_2).build()).test();
         testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
@@ -255,8 +254,7 @@ public class AggregatingAutoScalingServiceTest {
         DeletePolicyRequest deletePolicyRequest = DeletePolicyRequest.newBuilder().setId(ScalingPolicyID.newBuilder().setId(newPolicyId).build()).build();
 
         AssertableSubscriber<Void> testSubscriber3 = service.deleteAutoScalingPolicy(deletePolicyRequest).test();
-        List<Throwable> onErrorEvents = testSubscriber3.getOnErrorEvents();
-        assertThat(onErrorEvents.size()).isEqualTo(0);
+        testSubscriber3.assertNoErrors();
 
         AssertableSubscriber<GetPolicyResult> testSubscriber4 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build()).test();
         testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
