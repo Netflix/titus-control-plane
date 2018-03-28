@@ -46,9 +46,9 @@ import io.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
-import static io.netflix.titus.gateway.endpoint.v3.rest.RestUtil.createPage;
-import static io.netflix.titus.gateway.endpoint.v3.rest.RestUtil.getFieldsParameter;
-import static io.netflix.titus.gateway.endpoint.v3.rest.RestUtil.getFilteringCriteria;
+import static io.netflix.titus.runtime.endpoint.v3.rest.RestUtil.createPage;
+import static io.netflix.titus.runtime.endpoint.v3.rest.RestUtil.getFieldsParameter;
+import static io.netflix.titus.runtime.endpoint.v3.rest.RestUtil.getFilteringCriteria;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)

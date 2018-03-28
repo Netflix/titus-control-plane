@@ -64,4 +64,10 @@ public class TitusFederationModule extends AbstractModule {
         );
         return new DefaultTitusRuntime(codeInvariants, registry);
     }
+
+    @Provides
+    @Singleton
+    public GrpcConfiguration getGrpcConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(GrpcConfiguration.class);
+    }
 }

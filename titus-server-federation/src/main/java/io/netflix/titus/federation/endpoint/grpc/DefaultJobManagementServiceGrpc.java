@@ -21,6 +21,8 @@ import javax.inject.Inject;
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobQuery;
+import com.netflix.titus.grpc.protogen.JobQueryResult;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.federation.service.JobManagementService;
 import org.slf4j.Logger;
@@ -29,6 +31,7 @@ import rx.Subscription;
 
 import static io.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
 import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
+import static io.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 
 public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
     private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementServiceGrpc.class);
@@ -41,8 +44,22 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     }
 
     @Override
+    public void findJobs(JobQuery request, StreamObserver<JobQueryResult> responseObserver) {
+        if (!checkPageIsValid(request.getPage(), responseObserver)) {
+            return;
+        }
+
+        final Subscription subscription = jobManagementService.findJobs(request).subscribe(
+                responseObserver::onNext,
+                e -> safeOnError(logger, e, responseObserver),
+                responseObserver::onCompleted
+        );
+        attachCancellingCallback(responseObserver, subscription);
+    }
+
+    @Override
     public void observeJobs(Empty request, StreamObserver<JobChangeNotification> responseObserver) {
-        Subscription subscription = jobManagementService.observeJobs().subscribe(
+        final Subscription subscription = jobManagementService.observeJobs().subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
