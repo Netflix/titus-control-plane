@@ -26,6 +26,8 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import io.grpc.Server;
@@ -44,6 +46,7 @@ public class TitusFederationGrpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(TitusFederationGrpcServer.class);
 
     private final JobManagementServiceImplBase jobManagementService;
+    private AutoScalingServiceImplBase autoScalingService;
     private final EndpointConfiguration config;
 
     private final AtomicBoolean started = new AtomicBoolean();
@@ -52,8 +55,10 @@ public class TitusFederationGrpcServer {
     @Inject
     public TitusFederationGrpcServer(
             JobManagementServiceImplBase jobManagementService,
+            AutoScalingServiceImplBase autoScalingService,
             EndpointConfiguration config) {
         this.jobManagementService = jobManagementService;
+        this.autoScalingService = autoScalingService;
         this.config = config;
     }
 
@@ -65,6 +70,11 @@ public class TitusFederationGrpcServer {
                     jobManagementService,
                     createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
             ));
+            serverBuilder.addService(ServerInterceptors.intercept(
+                    autoScalingService,
+                    createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
+            ));
+
             this.server = serverBuilder.build();
 
             LOG.info("Starting gRPC server on port {}.", config.getGrpcPort());
