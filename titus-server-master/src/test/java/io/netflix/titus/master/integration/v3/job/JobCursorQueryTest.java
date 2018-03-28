@@ -84,6 +84,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result0.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(0, 2));
         assertThat(result0.getPagination().getCursor()).isNotEmpty();
+        assertThat(result0.getPagination().getCursorPosition()).isEqualTo(1);
         assertThat(result0.getPagination().getHasMore()).isTrue();
         assertThat(result0.getPagination().getCurrentPage().getPageNumber()).isEqualTo(0);
 
@@ -93,6 +94,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result1.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(2, 4));
         assertThat(result1.getPagination().getCursor()).isNotEmpty();
+        assertThat(result1.getPagination().getCursorPosition()).isEqualTo(3);
         assertThat(result1.getPagination().getHasMore()).isTrue();
         assertThat(result1.getPagination().getCurrentPage().getPageNumber()).isEqualTo(1);
 
@@ -102,6 +104,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result2.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(4, 6));
         assertThat(result2.getPagination().getCursor()).isNotEmpty();
+        assertThat(result2.getPagination().getCursorPosition()).isEqualTo(5);
         assertThat(result2.getPagination().getHasMore()).isFalse();
         assertThat(result2.getPagination().getCurrentPage().getPageNumber()).isEqualTo(2);
 
@@ -111,6 +114,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result3.getItemsList()).isEmpty();
         assertThat(result3.getPagination().getCursor()).isEmpty();
+        assertThat(result3.getPagination().getCursorPosition()).isZero();
         assertThat(result3.getPagination().getHasMore()).isFalse();
         assertThat(result3.getPagination().getCurrentPage().getPageNumber())
                 .isEqualTo(result3.getPagination().getTotalPages());
@@ -130,6 +134,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result.getItemsList()).isEmpty();
         assertThat(result.getPagination().getCursor()).isEmpty();
+        assertThat(result.getPagination().getCursorPosition()).isZero();
         assertThat(result.getPagination().getHasMore()).isFalse();
     }
 
@@ -141,6 +146,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result0.getItemsList()).containsExactlyElementsOf(allTasksInOrder.subList(0, 4));
         assertThat(result0.getPagination().getCursor()).isNotEmpty();
+        assertThat(result0.getPagination().getCursorPosition()).isEqualTo(3);
         assertThat(result0.getPagination().getHasMore()).isTrue();
         assertThat(result0.getPagination().getCurrentPage().getPageNumber()).isEqualTo(0);
 
@@ -150,6 +156,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result1.getItemsList()).containsExactlyElementsOf(allTasksInOrder.subList(4, 8));
         assertThat(result1.getPagination().getCursor()).isNotEmpty();
+        assertThat(result1.getPagination().getCursorPosition()).isEqualTo(7);
         assertThat(result1.getPagination().getHasMore()).isTrue();
         assertThat(result1.getPagination().getCurrentPage().getPageNumber()).isEqualTo(1);
 
@@ -160,6 +167,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         assertThat(result2.getItemsList()).containsExactlyElementsOf(allTasksInOrder.subList(8, 12));
         assertThat(result2.getPagination().getHasMore()).isFalse();
         assertThat(result2.getPagination().getCursor()).isNotEmpty();
+        assertThat(result2.getPagination().getCursorPosition()).isEqualTo(11);
         assertThat(result2.getPagination().getCurrentPage().getPageNumber()).isEqualTo(2);
 
         // Check cursor points to the latest returned element
@@ -168,6 +176,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result3.getItemsList()).isEmpty();
         assertThat(result3.getPagination().getCursor()).isEmpty();
+        assertThat(result3.getPagination().getCursorPosition()).isZero();
         assertThat(result3.getPagination().getHasMore()).isFalse();
         assertThat(result3.getPagination().getCurrentPage().getPageNumber())
                 .isEqualTo(result3.getPagination().getTotalPages());
@@ -187,6 +196,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         );
         assertThat(result.getItemsList()).isEmpty();
         assertThat(result.getPagination().getCursor()).isEmpty();
+        assertThat(result.getPagination().getCursorPosition()).isZero();
         assertThat(result.getPagination().getHasMore()).isFalse();
     }
 }

@@ -161,7 +161,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                     .collect(Collectors.toList());
 
             Pagination combinedPagination = combinePagination(request, results)
-                    .orElse(new Pagination(toPage(request.getPage()), false, 0, 0, ""));
+                    .orElse(Pagination.empty(toPage(request.getPage())));
 
             // TODO: refine the pageNumber estimation with more information from each Cell
             int lastItemOffset = Math.min(allJobs.size(), request.getPage().getPageSize());
@@ -195,7 +195,8 @@ public class AggregatingJobManagementService implements JobManagementService {
                             one.hasMore() || other.hasMore(),
                             one.getTotalPages() + other.getTotalPages(),
                             one.getTotalItems() + other.getTotalItems(),
-                            "" // compute a combined cursor later
+                            "", // compute a combined cursor later
+                            one.getCursorPosition() + other.getCursorPosition()
                     );
                 });
     }

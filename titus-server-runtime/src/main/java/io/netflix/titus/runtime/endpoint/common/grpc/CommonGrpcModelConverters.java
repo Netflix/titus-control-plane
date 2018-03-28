@@ -79,7 +79,8 @@ public class CommonGrpcModelConverters {
                 grpcPagination.getHasMore(),
                 grpcPagination.getTotalPages(),
                 grpcPagination.getTotalItems(),
-                grpcPagination.getCursor()
+                grpcPagination.getCursor(),
+                grpcPagination.getCursorPosition()
         );
     }
 
@@ -90,6 +91,7 @@ public class CommonGrpcModelConverters {
                 .setTotalPages(runtimePagination.getTotalPages())
                 .setHasMore(runtimePagination.hasMore())
                 .setCursor(runtimePagination.getCursor())
+                .setCursorPosition(runtimePagination.getCursorPosition())
                 .build();
     }
 

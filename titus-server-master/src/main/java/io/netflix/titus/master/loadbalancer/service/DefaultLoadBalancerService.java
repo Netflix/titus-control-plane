@@ -123,7 +123,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         jobLoadBalancerPageList = hasMore ? jobLoadBalancerPageList.subList(0, page.getPageSize()) : jobLoadBalancerPageList;
 
         // TODO Set the cursor value
-        return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), ""));
+        return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), "", 0));
     }
 
     @Override

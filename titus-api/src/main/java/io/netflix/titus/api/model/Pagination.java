@@ -43,12 +43,22 @@ public class Pagination {
 
     private final String cursor;
 
-    public Pagination(Page currentPage, boolean hasMore, int totalPages, int totalItems, String cursor) {
+    /**
+     * Position of the cursor relative to <tt>totalItems</tt>
+     */
+    private final int cursorPosition;
+
+    public static Pagination empty(Page page) {
+        return new Pagination(page, false, 0, 0, "", 0);
+    }
+
+    public Pagination(Page currentPage, boolean hasMore, int totalPages, int totalItems, String cursor, int cursorPosition) {
         this.currentPage = currentPage;
         this.hasMore = hasMore;
         this.totalPages = totalPages;
         this.totalItems = totalItems;
         this.cursor = cursor;
+        this.cursorPosition = cursorPosition;
     }
 
     public Page getCurrentPage() {
@@ -71,25 +81,30 @@ public class Pagination {
         return cursor;
     }
 
+    public int getCursorPosition() {
+        return cursorPosition;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof Pagination)) {
             return false;
         }
         Pagination that = (Pagination) o;
         return hasMore == that.hasMore &&
                 totalPages == that.totalPages &&
                 totalItems == that.totalItems &&
+                cursorPosition == that.cursorPosition &&
                 Objects.equals(currentPage, that.currentPage) &&
                 Objects.equals(cursor, that.cursor);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(currentPage, hasMore, totalPages, totalItems, cursor);
+        return Objects.hash(currentPage, hasMore, totalPages, totalItems, cursor, cursorPosition);
     }
 
     @Override
@@ -100,6 +115,7 @@ public class Pagination {
                 ", totalPages=" + totalPages +
                 ", totalItems=" + totalItems +
                 ", cursor='" + cursor + '\'' +
+                ", cursorPosition=" + cursorPosition +
                 '}';
     }
 }

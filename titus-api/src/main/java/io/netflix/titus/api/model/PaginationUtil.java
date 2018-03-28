@@ -67,17 +67,17 @@ public final class PaginationUtil {
         boolean isEmptyResult = offset >= totalItems;
         boolean hasMore = totalItems > (offset + page.getPageSize());
         int endOffset = Math.min(totalItems, offset + page.getPageSize());
+        int cursorPosition = endOffset - 1;
         int numberOfPages = numberOfPages(page, totalItems);
-        Page currentPage = page.toBuilder()
-                .withPageNumber(Math.min(numberOfPages, offset / page.getPageSize()))
-                .build();
+        int pageNumber = Math.min(numberOfPages, offset / page.getPageSize());
 
         Pagination pagination = new Pagination(
-                currentPage,
+                page.toBuilder().withPageNumber(pageNumber).build(),
                 hasMore,
                 numberOfPages,
                 totalItems,
-                isEmptyResult ? "" : cursorFactory.apply(itemsCopy.get(endOffset - 1))
+                isEmptyResult ? "" : cursorFactory.apply(itemsCopy.get(cursorPosition)),
+                isEmptyResult ? 0 : cursorPosition
         );
 
         List<T> pageItems = isEmptyResult ? Collections.emptyList() : itemsCopy.subList(offset, endOffset);
@@ -93,7 +93,7 @@ public final class PaginationUtil {
     public static <T> Pair<List<T>, Pagination> takePageWithoutCursor(Page page, List<T> items, Function<T, String> cursorFactory) {
         int totalItems = items.size();
         if (totalItems <= 0 || page.getPageSize() <= 0) {
-            return Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, ""));
+            return Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, "", 0));
         }
 
         int firstItem = page.getPageNumber() * page.getPageSize();
@@ -106,8 +106,9 @@ public final class PaginationUtil {
                 : Collections.emptyList();
 
         String cursor = pageItems.isEmpty() ? "" : cursorFactory.apply(pageItems.get(pageItems.size() - 1));
+        int cursorPosition = pageItems.isEmpty() ? 0 : lastItem - 1;
 
-        return Pair.of(pageItems, new Pagination(page, more, totalPages, totalItems, cursor));
+        return Pair.of(pageItems, new Pagination(page, more, totalPages, totalItems, cursor, cursorPosition));
     }
 
     public static int numberOfPages(Page page, int totalItems) {
