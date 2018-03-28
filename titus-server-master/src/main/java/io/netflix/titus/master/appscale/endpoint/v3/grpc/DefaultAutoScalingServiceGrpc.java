@@ -36,7 +36,7 @@ import static io.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 
 @Singleton
 public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
-    private static Logger logger = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
     private AppScaleManager appScaleManager;
 
 

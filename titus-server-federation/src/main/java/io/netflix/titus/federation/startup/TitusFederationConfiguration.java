@@ -28,9 +28,6 @@ public interface TitusFederationConfiguration {
     @DefaultValue("dev")
     String getStack();
 
-    @DefaultValue("10000")
-    long getClientRequestTimeoutMs();
-
     @DefaultValue("cell1=(app1.*|app2.*);cell2=(.*)")
     String getRoutingRules();
 }

@@ -42,6 +42,7 @@ import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import io.netflix.titus.api.federation.model.Cell;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
+import io.netflix.titus.federation.startup.GrpcConfiguration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,7 +77,10 @@ public class AggregatingAutoScalingServiceTest {
         cellMap.put(new Cell("one", "1"), cellOne.getChannel());
         cellMap.put(new Cell("two", "2"), cellTwo.getChannel());
         when(connector.getChannels()).thenReturn(cellMap);
-        service = new AggregatingAutoScalingService(connector, new AnonymousSessionContext());
+
+        GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
+        when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
+        service = new AggregatingAutoScalingService(connector, new AnonymousSessionContext(), grpcConfiguration);
     }
 
 
@@ -98,7 +102,8 @@ public class AggregatingAutoScalingServiceTest {
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
         List<GetPolicyResult> onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();
-        assertThat(onNextEvents.size()).isEqualTo(2);
+        assertThat(onNextEvents.size()).isEqualTo(1);
+        assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(2);
     }
 
     @Test
@@ -113,15 +118,13 @@ public class AggregatingAutoScalingServiceTest {
         cellTwo.getServiceRegistry().addService(badCell);
 
         final AssertableSubscriber<GetPolicyResult> testSubscriber = service.getAllScalingPolicies().test();
-        testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
 
         List<GetPolicyResult> onNextEvents = testSubscriber.getOnNextEvents();
         List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
         assertThat(onErrorEvents.size()).isEqualTo(1);
         assertThat(onNextEvents).isNotNull();
-        assertThat(onNextEvents.size()).isEqualTo(1);
-        assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(1);
-        assertThat(onNextEvents.get(0).getItems(0).getId().getId()).isEqualTo(POLICY_1);
+        assertThat(onNextEvents.size()).isEqualTo(0);
     }
 
 
@@ -145,10 +148,9 @@ public class AggregatingAutoScalingServiceTest {
 
         List<GetPolicyResult> onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();
-        assertThat(onNextEvents.size()).isEqualTo(2);
+        assertThat(onNextEvents.size()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
-        assertThat(onNextEvents.get(1).getItemsCount()).isEqualTo(0);
     }
 
     @Test
@@ -179,15 +181,14 @@ public class AggregatingAutoScalingServiceTest {
         assertThat(onNextEvents.get(0).getId()).isNotEmpty();
 
         AssertableSubscriber<GetPolicyResult> testSubscriber2 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build()).test();
-        testSubscriber2.awaitValueCount(2, 1, TimeUnit.SECONDS);
+        testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
         List<GetPolicyResult> onNextEvents1 = testSubscriber2.getOnNextEvents();
         assertThat(onNextEvents1).isNotNull();
-        assertThat(onNextEvents1.size()).isEqualTo(2);
+        assertThat(onNextEvents1.size()).isEqualTo(1);
         assertThat(onNextEvents1.get(0).getItemsCount()).isEqualTo(2);
         assertThat(onNextEvents1.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
         assertThat(onNextEvents1.get(0).getItems(1).getJobId()).isEqualTo(JOB_2);
-        assertThat(onNextEvents1.get(1).getItemsCount()).isEqualTo(0);
 
         UpdatePolicyRequest updatePolicyRequest = UpdatePolicyRequest.newBuilder()
                 .setPolicyId(ScalingPolicyID.newBuilder().setId(POLICY_2))
@@ -204,14 +205,13 @@ public class AggregatingAutoScalingServiceTest {
 
         List<GetPolicyResult> onNextEvents2 = testSubscriber4.getOnNextEvents();
         assertThat(onNextEvents2).isNotNull();
-        assertThat(onNextEvents2.size()).isEqualTo(2);
+        assertThat(onNextEvents2.size()).isEqualTo(1);
         assertThat(onNextEvents2.get(0).getItemsCount()).isEqualTo(1);
         assertThat(onNextEvents2.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
         assertThat(onNextEvents2.get(0).getItems(0).getId().getId()).isEqualTo(POLICY_2);
         ScalingPolicy scalingPolicy = onNextEvents2.get(0).getItems(0).getScalingPolicy();
         double updatedValue = scalingPolicy.getTargetPolicyDescriptor().getTargetValue().getValue();
         assertThat(updatedValue).isEqualTo(100);
-        assertThat(onNextEvents2.get(1).getItemsCount()).isEqualTo(0);
     }
 
     @Test
@@ -243,15 +243,14 @@ public class AggregatingAutoScalingServiceTest {
 
         String newPolicyId = onNextEvents.get(0).getId();
         AssertableSubscriber<GetPolicyResult> testSubscriber2 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build()).test();
-        testSubscriber2.awaitValueCount(2, 1, TimeUnit.SECONDS);
+        testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
         List<GetPolicyResult> onNextEvents1 = testSubscriber2.getOnNextEvents();
         assertThat(onNextEvents1).isNotNull();
-        assertThat(onNextEvents1.size()).isEqualTo(2);
+        assertThat(onNextEvents1.size()).isEqualTo(1);
         assertThat(onNextEvents1.get(0).getItemsCount()).isEqualTo(2);
         assertThat(onNextEvents1.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
         assertThat(onNextEvents1.get(0).getItems(1).getJobId()).isEqualTo(JOB_2);
-        assertThat(onNextEvents1.get(1).getItemsCount()).isEqualTo(0);
 
         DeletePolicyRequest deletePolicyRequest = DeletePolicyRequest.newBuilder().setId(ScalingPolicyID.newBuilder().setId(newPolicyId).build()).build();
 
@@ -264,11 +263,10 @@ public class AggregatingAutoScalingServiceTest {
 
         List<GetPolicyResult> onNextEvents2 = testSubscriber4.getOnNextEvents();
         assertThat(onNextEvents2).isNotNull();
-        assertThat(onNextEvents2.size()).isEqualTo(2);
+        assertThat(onNextEvents2.size()).isEqualTo(1);
         assertThat(onNextEvents2.get(0).getItemsCount()).isEqualTo(1);
         assertThat(onNextEvents2.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
         assertThat(onNextEvents2.get(0).getItems(0).getId().getId()).isEqualTo(POLICY_2);
-        assertThat(onNextEvents2.get(1).getItemsCount()).isEqualTo(0);
     }
 
     @Test
@@ -292,10 +290,17 @@ public class AggregatingAutoScalingServiceTest {
 
         List<GetPolicyResult> onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();
-        assertThat(onNextEvents.size()).isEqualTo(2);
+        assertThat(onNextEvents.size()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(1);
-        assertThat(onNextEvents.get(0).getItems(0).getId().getId()).isEqualTo(POLICY_2);
-        assertThat(onNextEvents.get(1).getItemsCount()).isEqualTo(0);
+
+        // Bad policy id
+        testSubscriber = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId("badID").build()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        onNextEvents = testSubscriber.getOnNextEvents();
+        assertThat(onNextEvents).isNotNull();
+        assertThat(onNextEvents.size()).isEqualTo(1);
+        assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(0);
+
     }
 
 
@@ -391,7 +396,7 @@ public class AggregatingAutoScalingServiceTest {
     private static class FailingCell extends AutoScalingServiceImplBase {
         @Override
         public void getAllScalingPolicies(Empty request, StreamObserver<GetPolicyResult> responseObserver) {
-            responseObserver.onError(new RuntimeException("Do not trust this cell"));
+            responseObserver.onError(Status.UNAVAILABLE.asRuntimeException());
         }
     }
 }
