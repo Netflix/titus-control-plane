@@ -16,10 +16,15 @@
 
 package io.netflix.titus.api.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.tuple.Pair;
 
 /**
@@ -30,10 +35,65 @@ public final class PaginationUtil {
     private PaginationUtil() {
     }
 
-    public static <T> Pair<List<T>, Pagination> takePage(Page page, List<T> items, Function<T, String> cursorFactory) {
+    /**
+     * Function that maps a cursor value to a position in a sorted list.
+     */
+    public interface CursorIndexOf<T> extends BiFunction<List<T>, String, Optional<Integer>> {
+    }
+
+    /**
+     * Cursor-based pagination. When a cursor is present, the requested {@link Page#getPageNumber()} pageNumber} is
+     * ignored, and will be replaced in the {@link Pagination#getCurrentPage()} response} by an estimated
+     * <tt>pageNumber</tt> that includes the first item after the cursor.
+     * <p>
+     * If the {@link Page#getCursor() requested cursor} is empty, fallback to classic (pageNumber-based) pagination.
+     */
+    public static <T> Pair<List<T>, Pagination> takePageWithCursor(Page page,
+                                                                   List<T> items,
+                                                                   Comparator<T> cursorComparator,
+                                                                   CursorIndexOf<T> cursorIndexOf,
+                                                                   Function<T, String> cursorFactory) {
+        List<T> itemsCopy = new ArrayList<>(items);
+        itemsCopy.sort(cursorComparator);
+
+        if (StringExt.isEmpty(page.getCursor())) {
+            return takePageWithoutCursor(page, itemsCopy, cursorFactory);
+        }
+
+        int offset = cursorIndexOf.apply(itemsCopy, page.getCursor())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid cursor: " + page.getCursor())) + 1;
+
+        int totalItems = itemsCopy.size();
+        boolean isEmptyResult = offset >= totalItems;
+        boolean hasMore = totalItems > (offset + page.getPageSize());
+        int endOffset = Math.min(totalItems, offset + page.getPageSize());
+        int numberOfPages = numberOfPages(page, totalItems);
+        Page currentPage = page.toBuilder()
+                .withPageNumber(Math.min(numberOfPages, offset / page.getPageSize()))
+                .build();
+
+        Pagination pagination = new Pagination(
+                currentPage,
+                hasMore,
+                numberOfPages,
+                totalItems,
+                isEmptyResult ? "" : cursorFactory.apply(itemsCopy.get(endOffset - 1))
+        );
+
+        List<T> pageItems = isEmptyResult ? Collections.emptyList() : itemsCopy.subList(offset, endOffset);
+        return Pair.of(pageItems, pagination);
+    }
+
+    /**
+     * {@link Page#getPageNumber() Number} (index) based pagination.
+     * <p>
+     * Please consider using {@link PaginationUtil#takePageWithCursor(Page, List, Comparator, CursorIndexOf, Function) cursor-based}
+     * pagination instead. This mode will be deprecated soon.
+     */
+    public static <T> Pair<List<T>, Pagination> takePageWithoutCursor(Page page, List<T> items, Function<T, String> cursorFactory) {
         int totalItems = items.size();
-        if (totalItems <= 0) {
-            Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, ""));
+        if (totalItems <= 0 || page.getPageSize() <= 0) {
+            return Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, ""));
         }
 
         int firstItem = page.getPageNumber() * page.getPageSize();

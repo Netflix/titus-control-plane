@@ -41,6 +41,7 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.ConsumeResult;
@@ -93,8 +94,8 @@ import io.netflix.titus.master.config.MasterConfiguration;
 import io.netflix.titus.master.job.JobMgr;
 import io.netflix.titus.master.job.V2JobOperations;
 import io.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import io.netflix.titus.master.jobmanager.service.TaskInfoFactory;
 import io.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import io.netflix.titus.master.mesos.TaskInfoFactory;
 import io.netflix.titus.master.model.job.TitusQueuableTask;
 import io.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import io.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -127,7 +128,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
 
     private final VirtualMachineMasterService virtualMachineService;
-    private final MasterConfiguration config;
+    private final MasterConfiguration masterConfiguration;
     private final SchedulerConfiguration schedulerConfiguration;
     private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
@@ -174,6 +175,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
+    private final Config config;
     private final Scheduler threadScheduler;
     private Action1<QueuableTask> taskQueueAction;
     private final TitusRuntime titusRuntime;
@@ -197,7 +199,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
-                                    MasterConfiguration config,
+                                    MasterConfiguration masterConfiguration,
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
@@ -210,14 +212,15 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     RxEventBus rxEventBus,
-                                    AgentResourceCache agentResourceCache) {
+                                    AgentResourceCache agentResourceCache,
+                                    Config config) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
-                virtualMachineService, config, schedulerConfiguration,
+                virtualMachineService, masterConfiguration, schedulerConfiguration,
                 systemSoftConstraint, systemHardConstraint, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
                 tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
                 preferentialNamedConsumableResourceEvaluator,
-                taskMigrator, titusRuntime, rxEventBus, agentResourceCache
+                taskMigrator, titusRuntime, rxEventBus, agentResourceCache, config
         );
     }
 
@@ -228,7 +231,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
-                                    MasterConfiguration config,
+                                    MasterConfiguration masterConfiguration,
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
@@ -242,7 +245,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     RxEventBus rxEventBus,
-                                    AgentResourceCache agentResourceCache) {
+                                    AgentResourceCache agentResourceCache,
+                                    Config config) {
         this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
@@ -250,7 +254,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.v3TaskInfoFactory = v3TaskInfoFactory;
         this.vmOps = vmOps;
         this.virtualMachineService = virtualMachineService;
-        this.config = config;
+        this.masterConfiguration = masterConfiguration;
         this.schedulerConfiguration = schedulerConfiguration;
         this.v2ConstraintEvaluatorTransformer = v2ConstraintEvaluatorTransformer;
         this.threadScheduler = threadScheduler;
@@ -261,6 +265,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.agentResourceCache = agentResourceCache;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
+        this.config = config;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
 
         FitFramework fit = titusRuntime.getFitFramework();
@@ -276,10 +281,10 @@ public class DefaultSchedulingService implements SchedulingService {
 
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
                 .withLeaseRejectAction(virtualMachineService::rejectLease)
-                .withLeaseOfferExpirySecs(config.getMesosLeaseOfferExpirySecs())
+                .withLeaseOfferExpirySecs(masterConfiguration.getMesosLeaseOfferExpirySecs())
                 .withFitnessCalculator(new TitusFitnessCalculator(schedulerConfiguration, agentResourceCache))
                 .withFitnessGoodEnoughFunction(TitusFitnessCalculator.fitnessGoodEnoughFunction)
-                .withAutoScaleByAttributeName(config.getAutoscaleByAttributeName())
+                .withAutoScaleByAttributeName(masterConfiguration.getAutoscaleByAttributeName())
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
                 .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
@@ -373,7 +378,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void setupVmOps(final String attrName) {
-        taskScheduler.setActiveVmGroupAttributeName(config.getActiveSlaveAttributeName());
+        taskScheduler.setActiveVmGroupAttributeName(masterConfiguration.getActiveSlaveAttributeName());
         vmOps.setJobsOnVMsGetter(() -> {
             List<VMOperations.JobsOnVMStatus> result = new ArrayList<>();
             final List<VirtualMachineCurrentState> vmCurrentStates = vmCurrentStatesMap.get(0);
@@ -663,24 +668,26 @@ public class DefaultSchedulingService implements SchedulingService {
                         final VirtualMachineLease lease = leases.get(0);
                         try {
                             Map<String, String> attributesMap = getAttributesMap(lease);
-                            Protos.TaskInfo taskInfo = v3TaskInfoFactory.newTaskInfo(
-                                    task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
-                                    consumeResult);
 
                             fitInjection.ifPresent(i -> i.beforeImmediate("storeLaunchConfiguration"));
-
                             boolean completedInTime = false;
                             Throwable recordTaskError = null;
                             try {
+                                Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
                                 completedInTime = v3JobOperations.recordTaskPlacement(
                                         task.getId(),
                                         oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
-                                                config.getHostZoneAttributeName(), lease, consumeResult, attributesMap
+                                                masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
+                                                executorUriOverrideOpt, attributesMap
                                         ).apply(oldTask)
                                 ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                             } catch (Exception e) {
                                 recordTaskError = ExceptionExt.unpackRuntimeException(e);
                             }
+
+                            Protos.TaskInfo taskInfo = v3TaskInfoFactory.newTaskInfo(
+                                    task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
+                                    consumeResult);
 
                             fitInjection.ifPresent(i -> i.afterImmediate("storeLaunchConfiguration"));
 
@@ -783,7 +790,7 @@ public class DefaultSchedulingService implements SchedulingService {
     public Observable<Void> enterActiveMode() {
         logger.info("Scheduling service starting now");
 
-        setupVmOps(config.getActiveSlaveAttributeName());
+        setupVmOps(masterConfiguration.getActiveSlaveAttributeName());
         setupAutoscaleRulesDynamicUpdater();
 
         this.slaUpdateSubscription = tierSlaUpdater.tieredQueueSlaUpdates()
@@ -929,7 +936,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void checkInactiveVMs(List<VirtualMachineCurrentState> vmCurrentStates) {
         logger.debug("Checking on any workers on VMs that are not active anymore");
-        List<VirtualMachineCurrentState> inactiveVmStates = VMStateMgr.getInactiveVMs(config.getActiveSlaveAttributeName(), agentManagementService, vmCurrentStates);
+        List<VirtualMachineCurrentState> inactiveVmStates = VMStateMgr.getInactiveVMs(masterConfiguration.getActiveSlaveAttributeName(), agentManagementService, vmCurrentStates);
 
         // get all running tasks on the inactive vms
         Collection<TaskRequest> tasksToBeMigrated = inactiveVmStates.stream()

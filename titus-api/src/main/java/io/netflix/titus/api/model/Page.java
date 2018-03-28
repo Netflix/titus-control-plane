@@ -90,6 +90,10 @@ public class Page {
                 '}';
     }
 
+    public Builder toBuilder() {
+        return newBuilder(this);
+    }
+
     public static Page empty() {
         return EMPTY;
     }
@@ -100,6 +104,13 @@ public class Page {
 
     public static Builder newBuilder() {
         return new Builder();
+    }
+
+    public static Builder newBuilder(Page source) {
+        return new Builder()
+                .withPageNumber(source.getPageNumber())
+                .withPageSize(source.getPageSize())
+                .withCursor(source.getCursor());
     }
 
     public static final class Builder {

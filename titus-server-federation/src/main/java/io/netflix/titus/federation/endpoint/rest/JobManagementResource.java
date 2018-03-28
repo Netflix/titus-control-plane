@@ -30,16 +30,21 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import io.netflix.titus.federation.service.JobManagementService;
+import io.netflix.titus.runtime.endpoint.common.rest.Responses;
+import io.netflix.titus.runtime.endpoint.v3.rest.RestUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -50,8 +55,11 @@ import io.swagger.annotations.ApiOperation;
 @Singleton
 public class JobManagementResource {
 
+    private final JobManagementService service;
+
     @Inject
-    public JobManagementResource() {
+    public JobManagementResource(JobManagementService service) {
+        this.service = service;
     }
 
     @POST
@@ -102,7 +110,12 @@ public class JobManagementResource {
     @ApiOperation("Find jobs")
     @Path("/jobs")
     public JobQueryResult findJobs(@Context UriInfo info) {
-        throw new IllegalStateException("Not implemented yet");
+        MultivaluedMap<String, String> queryParameters = info.getQueryParameters(true);
+        JobQuery.Builder queryBuilder = JobQuery.newBuilder();
+        queryBuilder.setPage(RestUtil.createPage(queryParameters));
+        queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
+        queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
+        return Responses.fromSingleValueObservable(service.findJobs(queryBuilder.build()));
     }
 
     @DELETE

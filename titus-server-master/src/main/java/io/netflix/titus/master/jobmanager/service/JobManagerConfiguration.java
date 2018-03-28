@@ -78,40 +78,8 @@ public interface JobManagerConfiguration {
     long getTaskLivenessPollerIntervalMs();
 
     /**
-     * @return whether or not the ignoreLaunchGuard flag should be sent to the agent on a v3 task.
-     */
-    @DefaultValue("false")
-    boolean isV3IgnoreLaunchGuardEnabled();
-
-    /**
      * Feature flag controlling job/task validation process.
      */
     @DefaultValue("false")
     boolean isFailOnDataValidation();
-
-    /**
-     * @return whether or not the nested containers should be allowed.
-     */
-    @DefaultValue("false")
-    boolean isNestedContainersEnabled();
-
-    /**
-     * @return the min that can be set on the killWaitSeconds field. The default value will be used instead if the value specified
-     * is lower than the min.
-     */
-    @DefaultValue("10")
-    int getMinKillWaitSeconds();
-
-    /**
-     * @return the max that can be set on the killWaitSeconds field. The default value will be used instead if the value specified
-     * is greater than the max.
-     */
-    @DefaultValue("300")
-    int getMaxKillWaitSeconds();
-
-    /**
-     * @return maximum amount of seconds to wait before forcefully terminating a container.
-     */
-    @DefaultValue("10")
-    int getDefaultKillWaitSeconds();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.netflix.titus.gateway.endpoint.v3.rest;
+package io.netflix.titus.runtime.endpoint.v3.rest;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,13 +31,13 @@ import io.netflix.titus.common.util.StringExt;
 
 import static io.netflix.titus.common.util.CollectionsExt.asSet;
 
-final class RestUtil {
+public final class RestUtil {
 
-    static final Set<String> IGNORED_QUERY_PARAMS = asSet(
+    private static final Set<String> IGNORED_QUERY_PARAMS = asSet(
             "debug", "fields", "page", "pagesize", "cursor", "accesstoken"
     );
 
-    static Page createPage(MultivaluedMap<String, String> map) {
+    public static Page createPage(MultivaluedMap<String, String> map) {
         Page.Builder pageBuilder = Page.newBuilder();
         pageBuilder.setPageNumber(Integer.parseInt(getFirstOrDefault(map, "page", "0")));
         pageBuilder.setPageSize(Integer.parseInt(getFirstOrDefault(map, "pageSize", "10")));
@@ -45,7 +45,7 @@ final class RestUtil {
         return pageBuilder.build();
     }
 
-    static String getFirstOrDefault(MultivaluedMap<String, String> map, String key, String defaultValue) {
+    private static String getFirstOrDefault(MultivaluedMap<String, String> map, String key, String defaultValue) {
         String first = map.getFirst(key);
         if (first == null) {
             return defaultValue;
@@ -53,11 +53,11 @@ final class RestUtil {
         return first;
     }
 
-    static Map<String, String> getFilteringCriteria(MultivaluedMap<String, String> map) {
+    public static Map<String, String> getFilteringCriteria(MultivaluedMap<String, String> map) {
         Map<String, String> filterCriteria = new HashMap<>();
         map.keySet()
                 .stream()
-                .filter(e -> !RestUtil.IGNORED_QUERY_PARAMS.contains(e.toLowerCase()))
+                .filter(e -> !IGNORED_QUERY_PARAMS.contains(e.toLowerCase()))
                 .forEach(e -> {
                     String first = map.getFirst(e);
                     if (first != null) {
@@ -67,7 +67,7 @@ final class RestUtil {
         return filterCriteria;
     }
 
-    static List<String> getFieldsParameter(MultivaluedMap<String, String> queryParameters) {
+    public static List<String> getFieldsParameter(MultivaluedMap<String, String> queryParameters) {
         List<String> fields = queryParameters.get("fields");
         if (CollectionsExt.isNullOrEmpty(fields)) {
             return Collections.emptyList();

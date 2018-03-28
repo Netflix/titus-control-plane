@@ -50,6 +50,7 @@ import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import io.netflix.titus.gateway.service.v3.JobManagementService;
 import io.netflix.titus.runtime.endpoint.common.rest.Responses;
+import io.netflix.titus.runtime.endpoint.v3.rest.RestUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 

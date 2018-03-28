@@ -73,6 +73,16 @@ public class CommonGrpcModelConverters {
                 .build();
     }
 
+    public static io.netflix.titus.api.model.Pagination toPagination(Pagination grpcPagination) {
+        return new io.netflix.titus.api.model.Pagination(
+                toPage(grpcPagination.getCurrentPage()),
+                grpcPagination.getHasMore(),
+                grpcPagination.getTotalPages(),
+                grpcPagination.getTotalItems(),
+                grpcPagination.getCursor()
+        );
+    }
+
     public static Pagination toGrpcPagination(io.netflix.titus.api.model.Pagination runtimePagination) {
         return Pagination.newBuilder()
                 .setCurrentPage(toGrpcPage(runtimePagination.getCurrentPage()))

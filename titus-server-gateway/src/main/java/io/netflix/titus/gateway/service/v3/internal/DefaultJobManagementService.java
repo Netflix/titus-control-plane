@@ -339,7 +339,7 @@ public class DefaultJobManagementService implements JobManagementService {
         Page page = new Page(taskQuery.getPage().getPageNumber(), taskQuery.getPage().getPageSize(), "");
 
         // Cursors not supported for point queries.
-        Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePage(page, tasks, task -> "");
+        Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePageWithoutCursor(page, tasks, task -> "");
 
         return TaskQueryResult.newBuilder()
                 .addAllItems(paginationPair.getLeft())
