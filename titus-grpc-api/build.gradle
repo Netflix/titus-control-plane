@@ -17,7 +17,7 @@ configurations {
 }
 
 dependencies {
-    protobuf "com.netflix:titus-api-definitions:${titusApiDefinitionsVersion}"
+    protobuf "com.netflix.titus:titus-api-definitions:${titusApiDefinitionsVersion}"
     compile "io.grpc:grpc-protobuf:${grpcVersion}"
     compile "io.grpc:grpc-stub:${grpcVersion}"
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
