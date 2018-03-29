@@ -76,8 +76,8 @@ public final class PaginationUtil {
                 hasMore,
                 numberOfPages,
                 totalItems,
-                isEmptyResult ? "" : cursorFactory.apply(itemsCopy.get(cursorPosition)),
-                isEmptyResult ? 0 : cursorPosition
+                totalItems == 0 ? "" : cursorFactory.apply(itemsCopy.get(cursorPosition)),
+                totalItems == 0 ? 0 : cursorPosition
         );
 
         List<T> pageItems = isEmptyResult ? Collections.emptyList() : itemsCopy.subList(offset, endOffset);

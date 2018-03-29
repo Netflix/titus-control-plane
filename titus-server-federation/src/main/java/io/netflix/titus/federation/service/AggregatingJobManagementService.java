@@ -17,6 +17,7 @@
 package io.netflix.titus.federation.service;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +39,8 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.Page;
+import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -46,8 +49,6 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.federation.model.Cell;
-import io.netflix.titus.api.model.Page;
-import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.EmitterWithMultipleSubscriptions;
 import io.netflix.titus.common.grpc.GrpcUtil;
@@ -56,7 +57,6 @@ import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
 import io.netflix.titus.federation.startup.GrpcConfiguration;
 import io.netflix.titus.federation.startup.TitusFederationConfiguration;
-import io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
 import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,8 +68,7 @@ import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK
 import static io.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static io.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
-import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
-import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.emptyGrpcPagination;
 
 @Singleton
 public class AggregatingJobManagementService implements JobManagementService {
@@ -138,6 +137,12 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<JobQueryResult> findJobs(JobQuery request) {
+        if (request.getPage().getPageSize() <= 0) {
+            Pagination pagination = emptyGrpcPagination(request.getPage());
+            return Observable.just(JobQueryResult.newBuilder()
+                    .setPagination(pagination)
+                    .build());
+        }
         if (StringExt.isNotEmpty(request.getPage().getCursor()) || request.getPage().getPageNumber() == 0) {
             return findJobsWithCursorPagination(request);
         }
@@ -151,54 +156,65 @@ public class AggregatingJobManagementService implements JobManagementService {
                 .map(client -> findJobsInCell(client, request))
                 .collect(Collectors.toList());
 
-        return Observable.combineLatest(requests, (results) -> {
-            final JobQueryResult.Builder builder = JobQueryResult.newBuilder();
+        return Observable.combineLatest(requests, (rawResults) -> {
+            JobQueryResult[] results = Arrays.copyOf(rawResults, rawResults.length, JobQueryResult[].class);
+            Optional<JobQueryResult> combinedResults = combineResults(request, results);
 
-            final List<Job> allJobs = Arrays.stream(results)
-                    .map(JobQueryResult.class::cast)
-                    .flatMap(result -> result.getItemsList().stream())
-                    .sorted(JobManagerCursors.jobCursorOrderComparator())
-                    .collect(Collectors.toList());
+            List<Job> allJobs = combinedResults.map(r -> r.getItemsList().stream()
+                    .sorted(JobManagerCursors.jobCursorOrderComparator()).collect(Collectors.toList()))
+                    .orElse(Collections.emptyList());
 
-            Pagination combinedPagination = combinePagination(request, results)
-                    .orElse(Pagination.empty(toPage(request.getPage())));
-
-            // TODO: refine the pageNumber estimation with more information from each Cell
             int lastItemOffset = Math.min(allJobs.size(), request.getPage().getPageSize());
             List<Job> pageItems = allJobs.subList(0, lastItemOffset);
             String cursor = allJobs.isEmpty() ? "" : JobManagerCursors.newCursorFrom(pageItems.get(pageItems.size() - 1));
-            boolean hasMore = combinedPagination.hasMore() || lastItemOffset < allJobs.size();
 
-            builder.addAllItems(pageItems);
-            builder.setPagination(toGrpcPagination(combinedPagination).toBuilder()
-                    .setCursor(cursor)
-                    .setHasMore(hasMore)
-            );
-            return builder.build();
+            Pagination combinedPagination = combinedResults.map(JobQueryResult::getPagination)
+                    .map(p -> addCombinedPage(p, request.getPage(), allJobs.size(), lastItemOffset, cursor))
+                    .orElse(emptyGrpcPagination(request.getPage()));
+
+            return JobQueryResult.newBuilder()
+                    .addAllItems(pageItems)
+                    .setPagination(combinedPagination)
+                    .build();
         });
     }
 
-    private Optional<Pagination> combinePagination(JobQuery request, Object[] results) {
-        return Arrays.stream(results)
-                .map(JobQueryResult.class::cast)
-                .map(JobQueryResult::getPagination)
-                .map(CommonGrpcModelConverters::toPagination)
-                .reduce((one, other) -> {
-                    // first estimation of pageNumber is based on how many pages exist before the cursor on each Cell
-                    int estimatedPageNumber = one.getCurrentPage().getPageNumber() + other.getCurrentPage().getPageNumber();
-                    return new Pagination(
-                            Page.newBuilder()
-                                    .withPageNumber(estimatedPageNumber)
-                                    .withPageSize(request.getPage().getPageSize())
-                                    .withCursor(request.getPage().getCursor())
-                                    .build(),
-                            one.hasMore() || other.hasMore(),
-                            one.getTotalPages() + other.getTotalPages(),
-                            one.getTotalItems() + other.getTotalItems(),
-                            "", // compute a combined cursor later
-                            one.getCursorPosition() + other.getCursorPosition()
-                    );
-                });
+    private static Optional<JobQueryResult> combineResults(JobQuery request, JobQueryResult[] results) {
+        return Arrays.stream(results).reduce((one, other) -> {
+            int cursorPosition = one.getPagination().getCursorPosition() + other.getPagination().getCursorPosition();
+            if (one.getPagination().getTotalItems() > 0 && other.getPagination().getTotalItems() > 0) {
+                // the cursorPosition on each cell always points to (totalItemsReturned - 1), when merging two cells
+                // with items, we need to compensate two deductions on the total number of items, so the final (merged)
+                // cursorPosition is still (totalItemsBeingReturned - 1).
+                // Note that when either one of the cells is empty, the cursorPosition from the empty cell will be 0 and
+                // there is nothing to compensate since there are no items in that cell.
+                cursorPosition++;
+            }
+            Pagination pagination = Pagination.newBuilder()
+                    // combined currentPage.pageNumber and cursor will be computed later
+                    .setHasMore(one.getPagination().getHasMore() || other.getPagination().getHasMore())
+                    .setTotalPages(one.getPagination().getTotalPages() + other.getPagination().getTotalPages())
+                    .setTotalItems(one.getPagination().getTotalItems() + other.getPagination().getTotalItems())
+                    .setCursorPosition(cursorPosition)
+                    .build();
+            return JobQueryResult.newBuilder()
+                    .setPagination(pagination)
+                    .addAllItems(one.getItemsList())
+                    .addAllItems(other.getItemsList())
+                    .build();
+        });
+    }
+
+    private static Pagination addCombinedPage(Pagination combinedPagination, Page requested, int allJobsSize, int lastItemOffset, String cursor) {
+        // first item position relative to totalItems from all Cells
+        int firstItemPosition = Math.max(0, combinedPagination.getCursorPosition() - (allJobsSize - 1));
+        int pageNumber = firstItemPosition / requested.getPageSize();
+        return Pagination.newBuilder(combinedPagination)
+                .setCurrentPage(Page.newBuilder(requested).setPageNumber(pageNumber))
+                .setCursor(cursor)
+                .setCursorPosition(firstItemPosition + lastItemOffset - 1)
+                .setHasMore(combinedPagination.getHasMore() || lastItemOffset < allJobsSize)
+                .build();
     }
 
     private Observable<JobQueryResult> findJobsInCell(JobManagementServiceStub client, JobQuery request) {

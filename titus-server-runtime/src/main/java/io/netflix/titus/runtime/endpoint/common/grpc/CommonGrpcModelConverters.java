@@ -95,6 +95,17 @@ public class CommonGrpcModelConverters {
                 .build();
     }
 
+    public static Pagination emptyGrpcPagination(com.netflix.titus.grpc.protogen.Page page) {
+        return Pagination.newBuilder()
+                .setCurrentPage(page)
+                .setTotalItems(0)
+                .setTotalPages(0)
+                .setHasMore(false)
+                .setCursor("")
+                .setCursorPosition(0)
+                .build();
+    }
+
     public static JobQueryCriteria<TaskStatus.TaskState, JobSpecCase> toJobQueryCriteria(JobQuery jobQuery) {
         if (jobQuery.getFilteringCriteriaCount() == 0) {
             return JobQueryCriteria.<TaskStatus.TaskState, JobSpecCase>newBuilder().build();

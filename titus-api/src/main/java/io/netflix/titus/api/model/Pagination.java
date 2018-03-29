@@ -48,10 +48,6 @@ public class Pagination {
      */
     private final int cursorPosition;
 
-    public static Pagination empty(Page page) {
-        return new Pagination(page, false, 0, 0, "", 0);
-    }
-
     public Pagination(Page currentPage, boolean hasMore, int totalPages, int totalItems, String cursor, int cursorPosition) {
         this.currentPage = currentPage;
         this.hasMore = hasMore;
@@ -117,5 +113,73 @@ public class Pagination {
                 ", cursor='" + cursor + '\'' +
                 ", cursorPosition=" + cursorPosition +
                 '}';
+    }
+
+    public static Pagination empty(Page page) {
+        return new Pagination(page, false, 0, 0, "", 0);
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static Builder newBuilder(Pagination other) {
+        return new Builder()
+                .withCurrentPage(other.currentPage)
+                .withHasMore(other.hasMore)
+                .withTotalPages(other.totalPages)
+                .withTotalItems(other.totalItems)
+                .withCursor(other.cursor)
+                .withCursorPosition(other.cursorPosition);
+    }
+
+    public static final class Builder {
+        private Page currentPage;
+        private boolean hasMore;
+        private int totalPages;
+        private int totalItems;
+        private String cursor;
+        private int cursorPosition;
+
+        private Builder() {
+        }
+
+        public Builder withCurrentPage(Page currentPage) {
+            this.currentPage = currentPage;
+            return this;
+        }
+
+        public Builder withHasMore(boolean hasMore) {
+            this.hasMore = hasMore;
+            return this;
+        }
+
+        public Builder withTotalPages(int totalPages) {
+            this.totalPages = totalPages;
+            return this;
+        }
+
+        public Builder withTotalItems(int totalItems) {
+            this.totalItems = totalItems;
+            return this;
+        }
+
+        public Builder withCursor(String cursor) {
+            this.cursor = cursor;
+            return this;
+        }
+
+        public Builder withCursorPosition(int cursorPosition) {
+            this.cursorPosition = cursorPosition;
+            return this;
+        }
+
+        public Builder but() {
+            return newBuilder().withCurrentPage(currentPage).withHasMore(hasMore).withTotalPages(totalPages).withTotalItems(totalItems).withCursor(cursor).withCursorPosition(cursorPosition);
+        }
+
+        public Pagination build() {
+            return new Pagination(currentPage, hasMore, totalPages, totalItems, cursor, cursorPosition);
+        }
     }
 }
