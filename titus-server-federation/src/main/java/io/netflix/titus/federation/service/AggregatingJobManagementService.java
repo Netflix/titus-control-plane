@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.TaskUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
@@ -47,6 +48,7 @@ import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.federation.model.Cell;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.grpc.EmitterWithMultipleSubscriptions;
 import io.netflix.titus.common.grpc.GrpcUtil;
 import io.netflix.titus.common.grpc.SessionContext;
@@ -56,6 +58,8 @@ import io.netflix.titus.federation.startup.GrpcConfiguration;
 import io.netflix.titus.federation.startup.TitusFederationConfiguration;
 import io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
 import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
@@ -69,26 +73,47 @@ import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConve
 
 @Singleton
 public class AggregatingJobManagementService implements JobManagementService {
-    private final TitusFederationConfiguration configuration;
+    private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementService.class);
     private final GrpcConfiguration grpcConfiguration;
+    private final TitusFederationConfiguration federationConfiguration;
     private final CellConnector connector;
+    private final CellRouter router;
     private final SessionContext sessionContext;
 
     @Inject
-    public AggregatingJobManagementService(
-            TitusFederationConfiguration configuration,
-            GrpcConfiguration grpcConfiguration,
-            CellConnector connector,
-            SessionContext sessionContext) {
-        this.configuration = configuration;
+    public AggregatingJobManagementService(GrpcConfiguration grpcConfiguration,
+                                           TitusFederationConfiguration federationConfiguration,
+                                           CellConnector connector,
+                                           CellRouter router,
+                                           SessionContext sessionContext) {
         this.grpcConfiguration = grpcConfiguration;
+        this.federationConfiguration = federationConfiguration;
         this.connector = connector;
+        this.router = router;
         this.sessionContext = sessionContext;
     }
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
-        return Observable.error(notImplemented("createJob"));
+        String routeKey = CellRouterUtil.getRouteKeyFromJob(jobDescriptor);
+        Cell cell = router.routeKey(routeKey);
+        logger.debug("Routing JobDescriptor {} to Cell {} with key {}", jobDescriptor, cell, routeKey);
+
+        Optional<JobManagementServiceStub> optionalClient = CellConnectorUtil.toStub(cell, connector, JobManagementServiceGrpc::newStub);
+        if (!optionalClient.isPresent()) {
+            return Observable.error(TitusServiceException.cellNotFound(routeKey));
+        }
+        JobManagementServiceStub client = optionalClient.get();
+
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                    emitter,
+                    jobId -> emitter.onNext(jobId.getId()),
+                    emitter::onError,
+                    emitter::onCompleted
+            );
+            createWrappedStub(client, sessionContext, grpcConfiguration.getRequestTimeoutMs()).createJob(jobDescriptor, streamObserver);
+        }, grpcConfiguration.getRequestTimeoutMs());
     }
 
     @Override
@@ -227,14 +252,14 @@ public class AggregatingJobManagementService implements JobManagementService {
         switch (notification.getNotificationCase()) {
             case JOBUPDATE:
                 JobDescriptor jobDescriptor = notification.getJobUpdate().getJob().getJobDescriptor().toBuilder()
-                        .putAttributes(JOB_ATTRIBUTES_STACK, configuration.getStack())
+                        .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
                         .build();
                 Job job = notification.getJobUpdate().getJob().toBuilder().setJobDescriptor(jobDescriptor).build();
                 JobChangeNotification.JobUpdate jobUpdate = notification.getJobUpdate().toBuilder().setJob(job).build();
                 return notification.toBuilder().setJobUpdate(jobUpdate).build();
             case TASKUPDATE:
                 final Task.Builder taskBuilder = notification.getTaskUpdate().getTask().toBuilder()
-                        .putTaskContext(TASK_ATTRIBUTES_STACK, configuration.getStack());
+                        .putTaskContext(TASK_ATTRIBUTES_STACK, federationConfiguration.getStack());
                 final TaskUpdate.Builder taskUpdate = notification.getTaskUpdate().toBuilder().setTask(taskBuilder);
                 return notification.toBuilder().setTaskUpdate(taskUpdate).build();
             default:
