@@ -16,7 +16,7 @@
 
 package io.netflix.titus.federation.service;
 
-import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -122,9 +122,13 @@ public class AggregatingJobManagementServiceTest {
         DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
         List<Cell> cells = cellInfoResolver.resolve();
         cellToChannelMap = Collections.unmodifiableMap(Stream.of(
-                new AbstractMap.SimpleImmutableEntry<>(cells.get(0), Pair.of(cellOne.getChannel(), cellOne)),
-                new AbstractMap.SimpleImmutableEntry<>(cells.get(1), Pair.of(cellTwo.getChannel(), cellTwo)))
-                .collect(Collectors.toMap(AbstractMap.SimpleImmutableEntry::getKey, AbstractMap.SimpleImmutableEntry::getValue, (v1, v2) -> v2, TreeMap::new)));
+                new SimpleImmutableEntry<>(cells.get(0), Pair.of(cellOne.getChannel(), cellOne)),
+                new SimpleImmutableEntry<>(cells.get(1), Pair.of(cellTwo.getChannel(), cellTwo)))
+                .collect(Collectors.toMap(
+                        SimpleImmutableEntry::getKey,
+                        SimpleImmutableEntry::getValue,
+                        (v1, v2) -> v2,
+                        TreeMap::new)));
 
         CellConnector connector = mock(CellConnector.class);
         when(connector.getChannels()).thenReturn(cellToChannelMap.entrySet()
@@ -401,11 +405,11 @@ public class AggregatingJobManagementServiceTest {
 
         // Expected assignments based on routing rules in setUp()
         Map<String, String> expectedAssignmentMap = Collections.unmodifiableMap(Stream.of(
-                new AbstractMap.SimpleImmutableEntry<>("app1", "one"),
-                new AbstractMap.SimpleImmutableEntry<>("app2", "one"),
-                new AbstractMap.SimpleImmutableEntry<>("app3", "two"),
-                new AbstractMap.SimpleImmutableEntry<>("app4", "one"))
-                .collect(Collectors.toMap(AbstractMap.SimpleImmutableEntry::getKey, AbstractMap.SimpleImmutableEntry::getValue)));
+                new SimpleImmutableEntry<>("app1", "one"),
+                new SimpleImmutableEntry<>("app2", "one"),
+                new SimpleImmutableEntry<>("app3", "two"),
+                new SimpleImmutableEntry<>("app4", "one"))
+                .collect(Collectors.toMap(SimpleImmutableEntry::getKey, SimpleImmutableEntry::getValue)));
 
         expectedAssignmentMap.forEach((appName, expectedCellName) -> {
             // Create the job and let it get routed

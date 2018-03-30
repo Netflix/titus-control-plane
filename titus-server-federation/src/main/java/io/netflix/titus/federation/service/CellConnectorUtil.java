@@ -40,7 +40,7 @@ final class CellConnectorUtil {
 
     static <T extends AbstractStub> Optional<T> toStub(Cell cell, CellConnector connector, Function<ManagedChannel, T> stubFactory) {
         Optional<ManagedChannel> optionalChannel = connector.getChannelForCell(cell);
-        return optionalChannel.flatMap(managedChannel -> Optional.of(stubFactory.apply(optionalChannel.get())));
+        return optionalChannel.map(stubFactory);
     }
 }
 
