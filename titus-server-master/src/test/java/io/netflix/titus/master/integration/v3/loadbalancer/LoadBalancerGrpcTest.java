@@ -153,7 +153,7 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
                         getJobLoadBalancersResult.getLoadBalancersList().forEach(
                                 loadBalancerId -> {
                                     // Mark the load balancer as checked
-                                    logger.info("AMIT checking lb {} exists for job {} - {}", loadBalancerId.getId(), jobId, verificationMap.get(jobId).contains(loadBalancerId));
+                                    logger.info("checking lb {} exists for job {} - {}", loadBalancerId.getId(), jobId, verificationMap.get(jobId).contains(loadBalancerId));
                                     assertThat(verificationMap.get(jobId).remove(loadBalancerId)).isTrue();
                                 }
                         );
