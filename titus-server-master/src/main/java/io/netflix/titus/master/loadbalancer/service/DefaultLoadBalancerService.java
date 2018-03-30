@@ -120,7 +120,16 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     @Override
     public Pair<List<JobLoadBalancer>, Pagination> getAllLoadBalancers(Page page) {
         if (StringExt.isNotEmpty(page.getCursor())) {
-            return loadBalancerStore.getAssociationsPage(page.getCursor(), page.getPageSize());
+            final List<JobLoadBalancer> allLoadBalancers = loadBalancerStore.getAssociations().stream()
+                    .map(jobLoadBalancerState -> jobLoadBalancerState.getJobLoadBalancer())
+                    .sorted(LoadBalancerCursors.loadBalancerComparator())
+                    .collect(Collectors.toList());
+
+            return PaginationUtil.takePageWithCursor(Page.newBuilder().withPageSize(page.getPageSize()).withCursor(page.getCursor()).build(),
+                allLoadBalancers,
+                LoadBalancerCursors.loadBalancerComparator(),
+                LoadBalancerCursors::loadBalancerIndexOf,
+                LoadBalancerCursors::newCursorFrom);
         } else {
             // no cursor provided
             int offset = page.getPageSize() * page.getPageNumber();

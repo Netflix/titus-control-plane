@@ -94,13 +94,4 @@ public interface LoadBalancerStore {
      * @return
      */
     List<JobLoadBalancer> getAssociationsPage(int offset, int limit);
-
-    /**
-     * Blocking call the returns the current snapshot page of the given cursor and page size
-     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
-     * @param cursor
-     * @param pageSize
-     * @return
-     */
-    Pair<List<JobLoadBalancer>, Pagination> getAssociationsPage(String cursor, int pageSize);
 }

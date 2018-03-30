@@ -104,16 +104,4 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
                 .limit(limit)
                 .collect(Collectors.toList());
     }
-
-    @Override
-    public Pair<List<JobLoadBalancer>, Pagination> getAssociationsPage(String cursor, int pageSize) {
-        final List<JobLoadBalancer> loadBalancers = associations.keySet().stream()
-                .sorted(LoadBalancerCursors.loadBalancerComparator())
-                .collect(Collectors.toList());
-        return PaginationUtil.takePageWithCursor(Page.newBuilder().withPageSize(pageSize).withCursor(cursor).build(),
-                loadBalancers,
-                LoadBalancerCursors.loadBalancerComparator(),
-                LoadBalancerCursors::loadBalancerIndexOf,
-                LoadBalancerCursors::newCursorFrom);
-    }
 }

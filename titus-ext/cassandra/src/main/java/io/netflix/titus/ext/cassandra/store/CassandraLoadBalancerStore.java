@@ -41,9 +41,6 @@ import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStoreException;
-import io.netflix.titus.api.model.Page;
-import io.netflix.titus.api.model.Pagination;
-import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -205,6 +202,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .collect(Collectors.toList());
     }
 
+
     @Override
     public List<JobLoadBalancer> getAssociationsPage(int offset, int limit) {
         // Create a sorted copy of the current keys to iterate. Keys added/removed after
@@ -219,24 +217,6 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .skip(offset)
                 .limit(limit)
                 .collect(Collectors.toList());
-    }
-
-
-    @Override
-    public Pair<List<JobLoadBalancer>, Pagination> getAssociationsPage(String cursor, int pageSize) {
-        final List<JobLoadBalancer> loadBalancers = jobToAssociatedLoadBalancersMap.keySet().stream()
-                .flatMap(jobId -> {
-                    SortedSet<JobLoadBalancer> jobLoadBalancerSortedSet = jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
-                    return jobLoadBalancerSortedSet.stream();
-                })
-                .sorted(LoadBalancerCursors.loadBalancerComparator())
-                .collect(Collectors.toList());
-
-        return PaginationUtil.takePageWithCursor(Page.newBuilder().withPageSize(pageSize).withCursor(cursor).build(),
-                loadBalancers,
-                LoadBalancerCursors.loadBalancerComparator(),
-                LoadBalancerCursors::loadBalancerIndexOf,
-                LoadBalancerCursors::newCursorFrom);
     }
 
 
