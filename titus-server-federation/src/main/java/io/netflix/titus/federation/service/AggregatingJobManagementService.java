@@ -30,6 +30,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.TaskUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -45,8 +46,6 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import io.grpc.Status;
-import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.federation.model.Cell;
 import io.netflix.titus.api.service.TitusServiceException;
@@ -117,22 +116,22 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
-        return Completable.error(notImplemented("updateJobCapacity"));
+        return Completable.error(TitusServiceException.unimplemented());
     }
 
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
-        return Completable.error(notImplemented("updateJobProcesses"));
+        return Completable.error(TitusServiceException.unimplemented());
     }
 
     @Override
     public Completable updateJobStatus(JobStatusUpdate statusUpdate) {
-        return Completable.error(notImplemented("updateJobStatus"));
+        return Completable.error(TitusServiceException.unimplemented());
     }
 
     @Override
     public Observable<Job> findJob(String jobId) {
-        return Observable.error(notImplemented("findJob"));
+        return Observable.error(TitusServiceException.unimplemented());
     }
 
     @Override
@@ -147,7 +146,7 @@ public class AggregatingJobManagementService implements JobManagementService {
             return findJobsWithCursorPagination(request);
         }
         // TODO: page number pagination
-        return Observable.error(notImplemented("findJobsWithLegacyPagination"));
+        return Observable.error(TitusServiceException.invalidArgument("pageNumbers are not supported, please use cursors"));
     }
 
     private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request) {
@@ -161,7 +160,9 @@ public class AggregatingJobManagementService implements JobManagementService {
             Optional<JobQueryResult> combinedResults = combineResults(request, results);
 
             List<Job> allJobs = combinedResults.map(r -> r.getItemsList().stream()
-                    .sorted(JobManagerCursors.jobCursorOrderComparator()).collect(Collectors.toList()))
+                    .sorted(JobManagerCursors.jobCursorOrderComparator())
+                    .map(this::addStackName)
+                    .collect(Collectors.toList()))
                     .orElse(Collections.emptyList());
 
             int lastItemOffset = Math.min(allJobs.size(), request.getPage().getPageSize());
@@ -226,7 +227,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
-        return Observable.error(notImplemented("observeJob"));
+        return Observable.error(TitusServiceException.unimplemented());
     }
 
     @Override
@@ -247,45 +248,50 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Completable killJob(String jobId) {
-        return Completable.error(notImplemented("killJob"));
+        return Completable.error(TitusServiceException.unimplemented());
     }
 
     @Override
     public Observable<Task> findTask(String taskId) {
-        return Observable.error(notImplemented("findTask"));
+        return Observable.error(TitusServiceException.unimplemented());
     }
 
     @Override
     public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
-        return Observable.error(notImplemented("findTasks"));
+        return Observable.error(TitusServiceException.unimplemented());
     }
 
     @Override
     public Completable killTask(TaskKillRequest taskKillRequest) {
-        return Completable.error(notImplemented("killTask"));
+        return Completable.error(TitusServiceException.unimplemented());
+    }
+
+    private Job addStackName(Job job) {
+        JobDescriptor jobDescriptor = job.getJobDescriptor().toBuilder()
+                .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
+                .build();
+        return job.toBuilder().setJobDescriptor(jobDescriptor).build();
+    }
+
+    private Task addStackName(Task task) {
+        return task.toBuilder()
+                .putTaskContext(TASK_ATTRIBUTES_STACK, federationConfiguration.getStack())
+                .build();
     }
 
     private JobChangeNotification addStackName(JobChangeNotification notification) {
         switch (notification.getNotificationCase()) {
             case JOBUPDATE:
-                JobDescriptor jobDescriptor = notification.getJobUpdate().getJob().getJobDescriptor().toBuilder()
-                        .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
-                        .build();
-                Job job = notification.getJobUpdate().getJob().toBuilder().setJobDescriptor(jobDescriptor).build();
-                JobChangeNotification.JobUpdate jobUpdate = notification.getJobUpdate().toBuilder().setJob(job).build();
+                Job job = addStackName(notification.getJobUpdate().getJob());
+                JobUpdate jobUpdate = notification.getJobUpdate().toBuilder().setJob(job).build();
                 return notification.toBuilder().setJobUpdate(jobUpdate).build();
             case TASKUPDATE:
-                final Task.Builder taskBuilder = notification.getTaskUpdate().getTask().toBuilder()
-                        .putTaskContext(TASK_ATTRIBUTES_STACK, federationConfiguration.getStack());
-                final TaskUpdate.Builder taskUpdate = notification.getTaskUpdate().toBuilder().setTask(taskBuilder);
+                Task task = addStackName(notification.getTaskUpdate().getTask());
+                TaskUpdate taskUpdate = notification.getTaskUpdate().toBuilder().setTask(task).build();
                 return notification.toBuilder().setTaskUpdate(taskUpdate).build();
             default:
                 return notification;
         }
-    }
-
-    private static StatusException notImplemented(String operation) {
-        return Status.UNIMPLEMENTED.withDescription(operation + " is not implemented").asException();
     }
 
     private static JobChangeNotification buildJobSnapshotEndMarker() {

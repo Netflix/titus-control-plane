@@ -53,6 +53,7 @@ import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import io.netflix.titus.common.grpc.GrpcUtil;
+import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -183,7 +184,13 @@ public class AggregatingJobManagementServiceTest {
         testSubscriber.assertValueCount(1);
         final List<JobQueryResult> results = testSubscriber.getOnNextEvents();
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).getItemsList()).hasSize(cellOneSnapshot.size() + cellTwoSnapshot.size());
+
+        // expect stackName to have changed
+        List<Job> expected = CollectionsExt.merge(cellOneSnapshot, cellTwoSnapshot).stream()
+                .sorted(JobManagerCursors.jobCursorOrderComparator())
+                .map(this::withStackName)
+                .collect(Collectors.toList());
+        assertThat(results.get(0).getItemsList()).containsExactlyElementsOf(expected);
     }
 
     @Test
@@ -240,8 +247,13 @@ public class AggregatingJobManagementServiceTest {
 
         List<Job> allJobs = walkAllFindJobsPages(10);
         assertThat(allJobs).hasSize(cellOneSnapshot.size() + cellTwoSnapshot.size());
-        assertThat(allJobs).containsAll(cellOneSnapshot);
-        assertThat(allJobs).containsAll(cellTwoSnapshot);
+
+        // expect stackName to have changed
+        List<Job> expected = CollectionsExt.merge(cellOneSnapshot, cellTwoSnapshot).stream()
+                .sorted(JobManagerCursors.jobCursorOrderComparator())
+                .map(this::withStackName)
+                .collect(Collectors.toList());
+        assertThat(allJobs).containsExactlyElementsOf(expected);
     }
 
     /**
@@ -267,8 +279,13 @@ public class AggregatingJobManagementServiceTest {
 
         List<Job> allJobs = walkAllFindJobsPages(1);
         assertThat(allJobs).hasSize(cellOneSnapshot.size() + cellTwoSnapshot.size());
-        assertThat(allJobs).containsAll(cellOneSnapshot);
-        assertThat(allJobs).containsAll(cellTwoSnapshot);
+
+        // expect stackName to have changed
+        List<Job> expected = CollectionsExt.merge(cellOneSnapshot, cellTwoSnapshot).stream()
+                .sorted(JobManagerCursors.jobCursorOrderComparator())
+                .map(this::withStackName)
+                .collect(Collectors.toList());
+        assertThat(allJobs).containsExactlyElementsOf(expected);
     }
 
     /**
@@ -289,7 +306,13 @@ public class AggregatingJobManagementServiceTest {
 
         List<Job> allJobs = walkAllFindJobsPages(5);
         assertThat(allJobs).hasSize(cellTwoSnapshot.size());
-        assertThat(allJobs).containsAll(cellTwoSnapshot);
+
+        // expect stackName to have changed
+        List<Job> expected = cellTwoSnapshot.stream()
+                .sorted(JobManagerCursors.jobCursorOrderComparator())
+                .map(this::withStackName)
+                .collect(Collectors.toList());
+        assertThat(allJobs).containsExactlyElementsOf(expected);
     }
 
     @Test
@@ -503,17 +526,18 @@ public class AggregatingJobManagementServiceTest {
         return JobChangeNotification.newBuilder().setJobUpdate(JobUpdate.newBuilder().setJob(job)).build();
     }
 
+    private Job withStackName(Job job) {
+        JobDescriptor jobDescriptor = job.getJobDescriptor().toBuilder()
+                .putAttributes("titus.stack", stackName)
+                .build();
+        return job.toBuilder().setJobDescriptor(jobDescriptor).build();
+    }
+
     private JobChangeNotification withStackName(JobChangeNotification jobChangeNotification) {
         switch (jobChangeNotification.getNotificationCase()) {
             case JOBUPDATE:
-                JobDescriptor jobDescriptor = jobChangeNotification.getJobUpdate().getJob().getJobDescriptor().toBuilder()
-                        .putAttributes("titus.stack", stackName)
-                        .build();
-                Job job = jobChangeNotification.getJobUpdate().getJob().toBuilder()
-                        .setJobDescriptor(jobDescriptor)
-                        .build();
                 JobUpdate jobUpdate = jobChangeNotification.getJobUpdate().toBuilder()
-                        .setJob(job)
+                        .setJob(withStackName(jobChangeNotification.getJobUpdate().getJob()))
                         .build();
                 return jobChangeNotification.toBuilder().setJobUpdate(jobUpdate).build();
             default:
