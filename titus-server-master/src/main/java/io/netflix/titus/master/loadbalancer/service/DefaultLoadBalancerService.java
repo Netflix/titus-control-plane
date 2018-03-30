@@ -121,28 +121,28 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Pair<List<JobLoadBalancer>, Pagination> getAllLoadBalancers(Page page) {
         if (StringExt.isNotEmpty(page.getCursor())) {
             final List<JobLoadBalancer> allLoadBalancers = loadBalancerStore.getAssociations().stream()
-                    .map(jobLoadBalancerState -> jobLoadBalancerState.getJobLoadBalancer())
+                    .map(JobLoadBalancerState::getJobLoadBalancer)
                     .sorted(LoadBalancerCursors.loadBalancerComparator())
                     .collect(Collectors.toList());
 
             return PaginationUtil.takePageWithCursor(Page.newBuilder().withPageSize(page.getPageSize()).withCursor(page.getCursor()).build(),
-                allLoadBalancers,
-                LoadBalancerCursors.loadBalancerComparator(),
-                LoadBalancerCursors::loadBalancerIndexOf,
-                LoadBalancerCursors::newCursorFrom);
-        } else {
-            // no cursor provided
-            int offset = page.getPageSize() * page.getPageNumber();
-            // Grab an extra item so we can tell if there's more to read after offset+limit.
-            int limit = page.getPageSize() + 1;
-            List<JobLoadBalancer> jobLoadBalancerPageList = loadBalancerStore.getAssociationsPage(offset, limit);
-
-            boolean hasMore = jobLoadBalancerPageList.size() > page.getPageSize();
-            jobLoadBalancerPageList = hasMore ? jobLoadBalancerPageList.subList(0, page.getPageSize()) : jobLoadBalancerPageList;
-
-            final String cursor = LoadBalancerCursors.newCursorFrom(jobLoadBalancerPageList.get(jobLoadBalancerPageList.size() - 1));
-            return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), cursor));
+                    allLoadBalancers,
+                    LoadBalancerCursors.loadBalancerComparator(),
+                    LoadBalancerCursors::loadBalancerIndexOf,
+                    LoadBalancerCursors::newCursorFrom);
         }
+
+        // no cursor provided
+        int offset = page.getPageSize() * page.getPageNumber();
+        // Grab an extra item so we can tell if there's more to read after offset+limit.
+        int limit = page.getPageSize() + 1;
+        List<JobLoadBalancer> jobLoadBalancerPageList = loadBalancerStore.getAssociationsPage(offset, limit);
+
+        boolean hasMore = jobLoadBalancerPageList.size() > page.getPageSize();
+        jobLoadBalancerPageList = hasMore ? jobLoadBalancerPageList.subList(0, page.getPageSize()) : jobLoadBalancerPageList;
+
+        final String cursor = LoadBalancerCursors.newCursorFrom(jobLoadBalancerPageList.get(jobLoadBalancerPageList.size() - 1));
+        return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), cursor));
     }
 
     @Override
