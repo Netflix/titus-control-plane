@@ -21,8 +21,6 @@ import java.util.Set;
 
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
-import io.netflix.titus.api.model.Pagination;
-import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
@@ -39,6 +37,7 @@ public interface LoadBalancerStore {
 
     /**
      * Returns an observable stream of load balancers in associated state for a Job.
+     *
      * @param jobId
      * @return
      */
@@ -89,6 +88,7 @@ public interface LoadBalancerStore {
      * Blocking call the returns the current snapshot page of the given offset/size of
      * all load balancers.
      * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
+     *
      * @param offset
      * @param limit
      * @return
