@@ -140,9 +140,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
         boolean hasMore = jobLoadBalancerPageList.size() > page.getPageSize();
         jobLoadBalancerPageList = hasMore ? jobLoadBalancerPageList.subList(0, page.getPageSize()) : jobLoadBalancerPageList;
-
         final String cursor = LoadBalancerCursors.newCursorFrom(jobLoadBalancerPageList.get(jobLoadBalancerPageList.size() - 1));
-        return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), cursor));
+        return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), cursor, 0));
     }
 
     @Override

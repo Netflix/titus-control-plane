@@ -142,7 +142,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
         List<Job> jobs = pageResult.stream().map(V3GrpcModelConverters::toGrpcJob).collect(Collectors.toList());
         //TODO the pagination model here is not semantically correct since the total is not even known
-        return Pair.of(jobs, new Pagination(page, false, 1, jobs.size(), ""));
+        return Pair.of(jobs, new Pagination(page, false, 1, jobs.size(), "", 0));
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -165,7 +165,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
                 V3GrpcModelConverters.toGrpcTask(jobTaskPair.getRight(), logStorageInfo)
         ).collect(Collectors.toList());
         //TODO the pagination model here is not semantically correct since the total is not even known
-        return Pair.of(tasks, new Pagination(page, false, 1, tasks.size(), ""));
+        return Pair.of(tasks, new Pagination(page, false, 1, tasks.size(), "", 0));
     }
 
     @Override
