@@ -44,7 +44,6 @@ import io.netflix.titus.api.loadbalancer.store.LoadBalancerStoreException;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.tuple.Pair;
-import io.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -213,7 +212,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     SortedSet<JobLoadBalancer> jobLoadBalancerSortedSet = jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
                     return jobLoadBalancerSortedSet.stream();
                 })
-                .sorted(LoadBalancerCursors.loadBalancerComparator())
+                .sorted()
                 .skip(offset)
                 .limit(limit)
                 .collect(Collectors.toList());
