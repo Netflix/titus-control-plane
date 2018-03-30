@@ -21,6 +21,8 @@ import java.util.Set;
 
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
+import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
@@ -92,4 +94,13 @@ public interface LoadBalancerStore {
      * @return
      */
     List<JobLoadBalancer> getAssociationsPage(int offset, int limit);
+
+    /**
+     * Blocking call the returns the current snapshot page of the given cursor and page size
+     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
+     * @param cursor
+     * @param pageSize
+     * @return
+     */
+    Pair<List<JobLoadBalancer>, Pagination> getAssociationsPage(String cursor, int pageSize);
 }

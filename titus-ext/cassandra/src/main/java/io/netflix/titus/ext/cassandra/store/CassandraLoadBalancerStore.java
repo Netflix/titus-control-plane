@@ -37,13 +37,18 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.sun.java.swing.plaf.windows.WindowsTreeUI;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStoreException;
+import io.netflix.titus.api.model.Page;
+import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -207,15 +212,34 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
         // the copy is created may lead to staleness in the data being iterated.
         // Use native string sorting to determine order.
         return jobToAssociatedLoadBalancersMap.keySet().stream()
-                .sorted()
                 .flatMap(jobId -> {
                     SortedSet<JobLoadBalancer> jobLoadBalancerSortedSet = jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
                     return jobLoadBalancerSortedSet.stream();
                 })
+                .sorted(LoadBalancerCursors.loadBalancerComparator())
                 .skip(offset)
                 .limit(limit)
                 .collect(Collectors.toList());
     }
+
+
+    @Override
+    public Pair<List<JobLoadBalancer>, Pagination> getAssociationsPage(String cursor, int pageSize) {
+        final List<JobLoadBalancer> loadBalancers = jobToAssociatedLoadBalancersMap.keySet().stream()
+                .flatMap(jobId -> {
+                    SortedSet<JobLoadBalancer> jobLoadBalancerSortedSet = jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
+                    return jobLoadBalancerSortedSet.stream();
+                })
+                .sorted(LoadBalancerCursors.loadBalancerComparator())
+                .collect(Collectors.toList());
+
+        return PaginationUtil.takePageWithCursor(Page.newBuilder().withPageSize(pageSize).withCursor(cursor).build(),
+                loadBalancers,
+                LoadBalancerCursors.loadBalancerComparator(),
+                LoadBalancerCursors::loadBalancerIndexOf,
+                LoadBalancerCursors::newCursorFrom);
+    }
+
 
     /**
      * Marks the persisted and in-memory state as Dissociated and removes from association in-memory map.

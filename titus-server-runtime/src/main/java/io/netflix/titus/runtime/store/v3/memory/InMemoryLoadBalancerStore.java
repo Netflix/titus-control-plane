@@ -16,9 +16,11 @@
 
 package io.netflix.titus.runtime.store.v3.memory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -26,6 +28,11 @@ import java.util.stream.Collectors;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.api.model.Page;
+import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.api.model.PaginationUtil;
+import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -92,9 +99,21 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     @Override
     public List<JobLoadBalancer> getAssociationsPage(int offset, int limit) {
         return associations.keySet().stream()
-                .sorted()
+                .sorted(LoadBalancerCursors.loadBalancerComparator())
                 .skip(offset)
                 .limit(limit)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Pair<List<JobLoadBalancer>, Pagination> getAssociationsPage(String cursor, int pageSize) {
+        final List<JobLoadBalancer> loadBalancers = associations.keySet().stream()
+                .sorted(LoadBalancerCursors.loadBalancerComparator())
+                .collect(Collectors.toList());
+        return PaginationUtil.takePageWithCursor(Page.newBuilder().withPageSize(pageSize).withCursor(cursor).build(),
+                loadBalancers,
+                LoadBalancerCursors.loadBalancerComparator(),
+                LoadBalancerCursors::loadBalancerIndexOf,
+                LoadBalancerCursors::newCursorFrom);
     }
 }

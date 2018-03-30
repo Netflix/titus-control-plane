@@ -1,6 +1,7 @@
 dependencies {
     compile project(':titus-common')
     compile project(':titus-api')
+    compile project(':titus-server-runtime')
 
     compile "commons-cli:commons-cli:${commonsCliVersion}"
     compile("com.datastax.cassandra:cassandra-driver-core:${cassandraDriverVersion}") {
