@@ -56,6 +56,8 @@ public final class JobManagerCursors {
 
     /**
      * Find an index of the element pointed to by the cursor, or if not found, the element immediately preceding it.
+     * <p>
+     * If the element pointed to by the cursor would be the first element in the list (index=0) this returns -1.
      */
     public static Optional<Integer> jobIndexOf(List<Job> jobs, String cursor) {
         return decode(cursor).map(cursorValues -> {
@@ -69,12 +71,14 @@ public final class JobManagerCursors {
             if (idx >= 0) {
                 return idx;
             }
-            return Math.max(0, -idx - 2);
+            return Math.max(-1, -idx - 2);
         });
     }
 
     /**
      * Find an index of the element pointed to by the cursor, or if not found, the element immediately preceding it.
+     * <p>
+     * If the element pointed to by the cursor would be the first element in the list (index=0) this returns -1.
      */
     public static Optional<Integer> taskIndexOf(List<Task> tasks, String cursor) {
         return decode(cursor).map(cursorValues -> {
@@ -88,7 +92,7 @@ public final class JobManagerCursors {
             if (idx >= 0) {
                 return idx;
             }
-            return Math.max(0, -idx - 2);
+            return Math.max(-1, -idx - 2);
         });
     }
 

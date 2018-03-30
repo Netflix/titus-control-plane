@@ -256,12 +256,12 @@ public class V2GrpcTitusServiceGateway
         if (queryCriteria.getJobState().isPresent()) {
             JobStatus.JobState jobState = ((JobStatus.JobState) queryCriteria.getJobState().get());
             if (jobState == JobStatus.JobState.KillInitiated) {
-                return Optional.of(Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, "")));
+                return Optional.of(Pair.of(Collections.emptyList(), Pagination.empty(page)));
             }
         }
         // If client asks only for tasks in 'KillInitiated' state, return empty reply as V2 does not support this state.
         if (queryCriteria.getTaskStates().size() == 1 && first(queryCriteria.getTaskStates()) == TaskStatus.TaskState.KillInitiated) {
-            return Optional.of(Pair.of(Collections.emptyList(), new Pagination(page, false, 0, 0, "")));
+            return Optional.of(Pair.of(Collections.emptyList(), Pagination.empty(page)));
         }
         return Optional.empty();
     }
