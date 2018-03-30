@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -64,6 +65,8 @@ import io.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.mockito.stubbing.OngoingStubbing;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
@@ -74,6 +77,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class LoadBalancerTests {
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancerTests.class);
 
     private static final long TIMEOUT_MS = 30_000;
 
@@ -151,6 +155,7 @@ public class LoadBalancerTests {
         try {
             result = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
+            logger.error("Exception in getLoadBalancersForJob {}", e);
             assert false;
         }
 
@@ -162,10 +167,10 @@ public class LoadBalancerTests {
      * Common testing helper that gets all load balancers for a given page range, ensures the gRPC
      * request was successful, and returns the page result.
      */
-    public static GetAllLoadBalancersResult getAllLoadBalancers(int offset, int limit,
+    public static GetAllLoadBalancersResult getAllLoadBalancers(Supplier<Page> pageSupplier,
                                                                 BiConsumer<GetAllLoadBalancersRequest, TestStreamObserver<GetAllLoadBalancersResult>> getAllLoadBalancers) {
         GetAllLoadBalancersRequest request = GetAllLoadBalancersRequest.newBuilder()
-                .setPage(Page.newBuilder().setPageNumber(offset).setPageSize(limit).build())
+                .setPage(pageSupplier.get())
                 .build();
 
         TestStreamObserver<GetAllLoadBalancersResult> getResponse = new TestStreamObserver<>();
@@ -175,12 +180,15 @@ public class LoadBalancerTests {
         try {
             result = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
+            logger.error("Exception in getAllLoadBalancers {}", e);
             assert false;
         }
 
         assertThat(getResponse.hasError()).isFalse();
         return result;
     }
+
+
 
     /**
      * Common testing helper that adds a specified number of random load balancer ids to

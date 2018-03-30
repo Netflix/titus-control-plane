@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import io.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -92,7 +93,7 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     @Override
     public List<JobLoadBalancer> getAssociationsPage(int offset, int limit) {
         return associations.keySet().stream()
-                .sorted()
+                .sorted(LoadBalancerCursors.loadBalancerComparator())
                 .skip(offset)
                 .limit(limit)
                 .collect(Collectors.toList());

@@ -19,6 +19,7 @@ package io.netflix.titus.master.integration.v3.loadbalancer;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
@@ -28,6 +29,7 @@ import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.netflix.titus.master.integration.BaseIntegrationTest;
 import io.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
@@ -108,7 +110,7 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
         int currentPageNum = 0;
         GetAllLoadBalancersResult result;
         do {
-            result = LoadBalancerTests.getAllLoadBalancers(currentPageNum, pageSize, getAllLoadBalancers);
+            result = LoadBalancerTests.getAllLoadBalancers(buildPageSupplier(currentPageNum, pageSize), getAllLoadBalancers);
 
             result.getJobLoadBalancersList().forEach(
                     getJobLoadBalancersResult -> {
@@ -132,6 +134,42 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
         );
     }
 
+    @Test
+    public void testGetAllLoadBalancerPagesWithCursor() throws Exception {
+        int numJobs = 75;
+        int numLbs = 7;
+        Map<String, Set<LoadBalancerId>> verificationMap = LoadBalancerTests.putLoadBalancersPerJob(numJobs, numLbs, putLoadBalancerWithJobId);
+
+        int pageSize = 3;
+        String cursor = "";
+        GetAllLoadBalancersResult result;
+        do {
+            result = LoadBalancerTests.getAllLoadBalancers(buildPageSupplier(cursor, pageSize), getAllLoadBalancers);
+
+            result.getJobLoadBalancersList().forEach(
+                    getJobLoadBalancersResult -> {
+                        String jobId = getJobLoadBalancersResult.getJobId();
+                        assertThat(verificationMap.containsKey(jobId)).isTrue();
+                        getJobLoadBalancersResult.getLoadBalancersList().forEach(
+                                loadBalancerId -> {
+                                    // Mark the load balancer as checked
+                                    logger.info("checking lb {} exists for job {} - {}", loadBalancerId.getId(), jobId, verificationMap.get(jobId).contains(loadBalancerId));
+                                    assertThat(verificationMap.get(jobId).remove(loadBalancerId)).isTrue();
+                                }
+                        );
+                    }
+            );
+            cursor = result.getPagination().getCursor();
+        } while (result.getPagination().getHasMore());
+        // Make sure that all of the data was checked
+        verificationMap.forEach(
+                (jobId, loadBalancerSet) -> {
+                    assertThat(loadBalancerSet.isEmpty()).isTrue();
+                }
+        );
+    }
+
+
     private BiConsumer<AddLoadBalancerRequest, TestStreamObserver<Empty>> putLoadBalancerWithJobId = (request, addResponse) -> {
         client.addLoadBalancer(request, addResponse);
     };
@@ -147,4 +185,13 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
     private BiConsumer<RemoveLoadBalancerRequest, TestStreamObserver<Empty>> removeLoadBalancers = (request, removeResponse) -> {
         client.removeLoadBalancer(request, removeResponse);
     };
+
+    private Supplier<Page> buildPageSupplier(int pageNumber, int pageSize) {
+        return () -> Page.newBuilder().setPageNumber(pageNumber).setPageSize(pageSize).build();
+    }
+
+    private Supplier<Page> buildPageSupplier(String cursor, int pageSize) {
+        return () -> Page.newBuilder().setCursor(cursor).setPageSize(pageSize).build();
+    }
+
 }

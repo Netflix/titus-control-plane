@@ -28,14 +28,17 @@ import com.google.common.annotations.VisibleForTesting;
 import io.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import io.netflix.titus.api.jobmanager.service.V3JobOperations;
 import io.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import io.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import io.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import io.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import io.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import io.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import io.netflix.titus.api.model.Page;
 import io.netflix.titus.api.model.Pagination;
+import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.runtime.TitusRuntime;
+import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.Deactivator;
 import io.netflix.titus.common.util.limiter.Limiters;
@@ -43,6 +46,7 @@ import io.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import io.netflix.titus.common.util.rx.ObservableExt;
 import io.netflix.titus.common.util.rx.batch.Batch;
 import io.netflix.titus.common.util.tuple.Pair;
+import io.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -114,6 +118,20 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     @Override
     public Pair<List<JobLoadBalancer>, Pagination> getAllLoadBalancers(Page page) {
+        if (StringExt.isNotEmpty(page.getCursor())) {
+            final List<JobLoadBalancer> allLoadBalancers = loadBalancerStore.getAssociations().stream()
+                    .map(JobLoadBalancerState::getJobLoadBalancer)
+                    .sorted(LoadBalancerCursors.loadBalancerComparator())
+                    .collect(Collectors.toList());
+
+            return PaginationUtil.takePageWithCursor(Page.newBuilder().withPageSize(page.getPageSize()).withCursor(page.getCursor()).build(),
+                    allLoadBalancers,
+                    LoadBalancerCursors.loadBalancerComparator(),
+                    LoadBalancerCursors::loadBalancerIndexOf,
+                    LoadBalancerCursors::newCursorFrom);
+        }
+
+        // no cursor provided
         int offset = page.getPageSize() * page.getPageNumber();
         // Grab an extra item so we can tell if there's more to read after offset+limit.
         int limit = page.getPageSize() + 1;
@@ -121,9 +139,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
         boolean hasMore = jobLoadBalancerPageList.size() > page.getPageSize();
         jobLoadBalancerPageList = hasMore ? jobLoadBalancerPageList.subList(0, page.getPageSize()) : jobLoadBalancerPageList;
-
-        // TODO Set the cursor value
-        return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), "", 0));
+        final String cursor = LoadBalancerCursors.newCursorFrom(jobLoadBalancerPageList.get(jobLoadBalancerPageList.size() - 1));
+        return Pair.of(jobLoadBalancerPageList, new Pagination(page, hasMore, 1, jobLoadBalancerPageList.size(), cursor, 0));
     }
 
     @Override

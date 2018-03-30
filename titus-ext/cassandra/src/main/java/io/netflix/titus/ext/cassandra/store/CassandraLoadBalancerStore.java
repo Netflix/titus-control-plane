@@ -201,21 +201,23 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .collect(Collectors.toList());
     }
 
+
     @Override
     public List<JobLoadBalancer> getAssociationsPage(int offset, int limit) {
         // Create a sorted copy of the current keys to iterate. Keys added/removed after
         // the copy is created may lead to staleness in the data being iterated.
         // Use native string sorting to determine order.
         return jobToAssociatedLoadBalancersMap.keySet().stream()
-                .sorted()
                 .flatMap(jobId -> {
                     SortedSet<JobLoadBalancer> jobLoadBalancerSortedSet = jobToAssociatedLoadBalancersMap.getOrDefault(jobId, Collections.emptySortedSet());
                     return jobLoadBalancerSortedSet.stream();
                 })
+                .sorted()
                 .skip(offset)
                 .limit(limit)
                 .collect(Collectors.toList());
     }
+
 
     /**
      * Marks the persisted and in-memory state as Dissociated and removes from association in-memory map.
