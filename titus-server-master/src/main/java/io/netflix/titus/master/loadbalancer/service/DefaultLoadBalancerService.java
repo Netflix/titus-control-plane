@@ -38,7 +38,6 @@ import io.netflix.titus.api.model.Pagination;
 import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.api.service.TitusServiceException;
 import io.netflix.titus.common.runtime.TitusRuntime;
-import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.StringExt;
 import io.netflix.titus.common.util.guice.annotation.Activator;
 import io.netflix.titus.common.util.guice.annotation.Deactivator;
