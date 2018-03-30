@@ -41,7 +41,8 @@ public class TitusServiceException extends RuntimeException {
         UNIMPLEMENTED,
         UNEXPECTED,
         INVALID_PAGE_OFFSET,
-        INVALID_ARGUMENT
+        INVALID_ARGUMENT,
+        CELL_NOT_FOUND
     }
 
     private final ErrorCode errorCode;
@@ -187,5 +188,9 @@ public class TitusServiceException extends RuntimeException {
 
     public static TitusServiceException noCallerId() {
         return TitusServiceException.newBuilder(ErrorCode.NO_CALLER_ID, "Caller's id not found").build();
+    }
+
+    public static TitusServiceException cellNotFound(String routeKey) {
+        return TitusServiceException.newBuilder(ErrorCode.CELL_NOT_FOUND, format("Could not find routable Titus Cell for route key %s", routeKey)).build();
     }
 }

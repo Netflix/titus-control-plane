@@ -17,6 +17,7 @@
 package io.netflix.titus.federation.service;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,11 @@ final class CellConnectorUtil {
                         Map.Entry::getKey,
                         entry -> stubFactory.apply(entry.getValue())
                 ));
+    }
+
+    static <T extends AbstractStub> Optional<T> toStub(Cell cell, CellConnector connector, Function<ManagedChannel, T> stubFactory) {
+        Optional<ManagedChannel> optionalChannel = connector.getChannelForCell(cell);
+        return optionalChannel.map(stubFactory);
     }
 }
 
