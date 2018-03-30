@@ -54,7 +54,7 @@ public class LoadBalancerCursorsTest {
         final String cursor = LoadBalancerCursors.newCursorFrom(new JobLoadBalancer("job30", "lb3"));
         final Optional<Integer> loadBalancerIndex = LoadBalancerCursors.loadBalancerIndexOf(loadBalancerList, cursor);
         assertThat(loadBalancerIndex.isPresent()).isTrue();
-        assertThat(loadBalancerIndex.get()).isEqualTo(2);
+        assertThat(loadBalancerIndex.get()).isEqualTo(1);
     }
 
 
