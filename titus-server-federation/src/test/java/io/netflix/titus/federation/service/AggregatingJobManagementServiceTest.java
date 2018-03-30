@@ -16,12 +16,16 @@
 
 package io.netflix.titus.federation.service;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -33,6 +37,7 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.SnapshotEnd;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
@@ -48,7 +53,6 @@ import io.netflix.titus.api.model.PaginationUtil;
 import io.netflix.titus.common.data.generator.DataGenerator;
 import io.netflix.titus.common.grpc.AnonymousSessionContext;
 import io.netflix.titus.common.grpc.GrpcUtil;
-import io.netflix.titus.common.util.CollectionsExt;
 import io.netflix.titus.common.util.time.Clocks;
 import io.netflix.titus.common.util.time.TestClock;
 import io.netflix.titus.common.util.tuple.Pair;
@@ -56,25 +60,34 @@ import io.netflix.titus.federation.startup.GrpcConfiguration;
 import io.netflix.titus.federation.startup.TitusFederationConfiguration;
 import io.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.netflix.titus.runtime.jobmanager.JobManagerCursors;
+import io.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import io.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
+import static io.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPage;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static io.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class AggregatingJobManagementServiceTest {
+    private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementServiceTest.class);
     private static final JobStatus.Builder ACCEPTED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Accepted);
 
     @Rule
@@ -88,6 +101,7 @@ public class AggregatingJobManagementServiceTest {
 
     private String stackName;
     private AggregatingJobManagementService service;
+    private Map<Cell, Pair<ManagedChannel, GrpcServerRule>> cellToChannelMap;
     private DataGenerator<Job> batchJobs;
     private DataGenerator<Job> serviceJobs;
     private TestClock clock;
@@ -95,19 +109,42 @@ public class AggregatingJobManagementServiceTest {
     @Before
     public void setUp() throws Exception {
         stackName = UUID.randomUUID().toString();
-        TitusFederationConfiguration configuration = mock(TitusFederationConfiguration.class);
-        when(configuration.getStack()).thenReturn(stackName);
-        GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
-        when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
+
+        GrpcConfiguration grpcClientConfiguration = mock(GrpcConfiguration.class);
+        when(grpcClientConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
+
+        TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
+        when(titusFederationConfiguration.getStack()).thenReturn(stackName);
+        when(titusFederationConfiguration.getCells()).thenReturn("one=1;two=2");
+        when(titusFederationConfiguration.getRoutingRules()).thenReturn("one=(app1.*|app2.*);two=(app3.*)");
+
+        CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
+        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        List<Cell> cells = cellInfoResolver.resolve();
+        cellToChannelMap = Collections.unmodifiableMap(Stream.of(
+                new SimpleImmutableEntry<>(cells.get(0), Pair.of(cellOne.getChannel(), cellOne)),
+                new SimpleImmutableEntry<>(cells.get(1), Pair.of(cellTwo.getChannel(), cellTwo)))
+                .collect(Collectors.toMap(
+                        SimpleImmutableEntry::getKey,
+                        SimpleImmutableEntry::getValue,
+                        (v1, v2) -> v2,
+                        TreeMap::new)));
+
         CellConnector connector = mock(CellConnector.class);
-        when(connector.getChannels()).thenReturn(CollectionsExt.<Cell, ManagedChannel>newHashMap()
-                .entry(new Cell("one", "1"), cellOne.getChannel())
-                .entry(new Cell("two", "2"), cellTwo.getChannel())
-                .toMap()
-        );
-        service = new AggregatingJobManagementService(
-                configuration, grpcConfiguration, connector, new AnonymousSessionContext()
-        );
+        when(connector.getChannels()).thenReturn(cellToChannelMap.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, cellPairEntry -> cellPairEntry.getValue().getLeft())));
+        Answer<Optional<ManagedChannel>> answer = (InvocationOnMock invocation) -> {
+            Cell cell = invocation.getArgument(0);
+            if (cellToChannelMap.containsKey(cell)) {
+                return Optional.of(cellToChannelMap.get(cell).getLeft());
+            }
+            return Optional.empty();
+        };
+        when(connector.getChannelForCell(any(Cell.class)))
+                .thenAnswer(answer);
+
+        service = new AggregatingJobManagementService(grpcClientConfiguration, titusFederationConfiguration, connector, cellRouter, new AnonymousSessionContext());
         clock = Clocks.test();
         batchJobs = JobGenerator.batchJobs(JobDescriptorGenerator.batchJobDescriptors().getValue(), clock)
                 .map(V3GrpcModelConverters::toGrpcJob);
@@ -357,6 +394,47 @@ public class AggregatingJobManagementServiceTest {
         assertThat(testSubscriber.getCompletions()).isEqualTo(0);
     }
 
+    @Test
+    public void createJobRouteToCorrectStack() throws InterruptedException {
+        // Build service handlers for each cell
+        cellToChannelMap.entrySet().forEach((cellPairEntry -> {
+            Cell cell = cellPairEntry.getKey();
+            GrpcServerRule grpcServerRule = cellPairEntry.getValue().getRight();
+            grpcServerRule.getServiceRegistry().addService(new CellWithCachedJobsService(cell.getName()));
+        }));
+
+        // Expected assignments based on routing rules in setUp()
+        Map<String, String> expectedAssignmentMap = Collections.unmodifiableMap(Stream.of(
+                new SimpleImmutableEntry<>("app1", "one"),
+                new SimpleImmutableEntry<>("app2", "one"),
+                new SimpleImmutableEntry<>("app3", "two"),
+                new SimpleImmutableEntry<>("app4", "one"))
+                .collect(Collectors.toMap(SimpleImmutableEntry::getKey, SimpleImmutableEntry::getValue)));
+
+        expectedAssignmentMap.forEach((appName, expectedCellName) -> {
+            // Create the job and let it get routed
+            JobDescriptor jobDescriptor = JobDescriptor.newBuilder()
+                    .setApplicationName(appName)
+                    .setCapacityGroup(appName + "CapGroup")
+                    .build();
+            String jobId = service.createJob(jobDescriptor).toBlocking().first();
+
+            // Get a client to the test gRPC service for the cell that we expect got it
+            // TODO(Andrew L): This can use findJob() instead once AggregatingService implements it
+            Cell expectedCell = getCellWithName(expectedCellName).get();
+            JobManagementServiceGrpc.JobManagementServiceStub expectedCellClient = JobManagementServiceGrpc.newStub(cellToChannelMap.get(expectedCell).getRight()
+                    .getChannel());
+
+            // Check that the cell has it with the correct attribute
+            TestStreamObserver<Job> findJobResponse = new TestStreamObserver<>();
+            expectedCellClient.findJob(JobId.newBuilder().setId(jobId).build(), findJobResponse);
+            assertThatCode(() -> {
+                Job job = findJobResponse.takeNext(1, TimeUnit.SECONDS);
+                assertThat(job.getJobDescriptor().getAttributesOrThrow(JOB_ATTRIBUTES_CELL).equals(expectedCellName));
+            }).doesNotThrowAnyException();
+        });
+    }
+
     private JobChangeNotification toNotification(Job job) {
         return JobChangeNotification.newBuilder().setJobUpdate(JobUpdate.newBuilder().setJob(job)).build();
     }
@@ -377,6 +455,10 @@ public class AggregatingJobManagementServiceTest {
             default:
                 return jobChangeNotification;
         }
+    }
+
+    private Optional<Cell> getCellWithName(String cellName) {
+        return cellToChannelMap.keySet().stream().filter(cell -> cell.getName().equals(cellName)).findFirst();
     }
 
     private static class CellWithFixedJobsService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
@@ -421,6 +503,43 @@ public class AggregatingJobManagementServiceTest {
                     responseObserver::onError,
                     responseObserver::onCompleted
             );
+            GrpcUtil.attachCancellingCallback(responseObserver, subscription);
+        }
+    }
+
+    private static class CellWithCachedJobsService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
+        private final String cellName;
+        private final Map<JobId, JobDescriptor> jobDescriptorMap = new HashMap<>();
+
+        private CellWithCachedJobsService(String name) {
+            this.cellName = name;
+        }
+
+        @Override
+        public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
+            JobId jobId = JobId.newBuilder().setId(UUID.randomUUID().toString()).build();
+            jobDescriptorMap.put(
+                    jobId,
+                    JobDescriptor.newBuilder(request)
+                            .putAttributes(JOB_ATTRIBUTES_CELL, cellName)
+                            .build());
+            final Subscription subscription = Observable.just(jobId)
+                    .subscribe(
+                            responseObserver::onNext,
+                            responseObserver::onError,
+                            responseObserver::onCompleted
+                    );
+            GrpcUtil.attachCancellingCallback(responseObserver, subscription);
+        }
+
+        @Override
+        public void findJob(JobId request, StreamObserver<Job> responseObserver) {
+            final Subscription subscription = Observable.just(Job.newBuilder().setJobDescriptor(jobDescriptorMap.get(request)).build())
+                    .subscribe(
+                            responseObserver::onNext,
+                            responseObserver::onError,
+                            responseObserver::onCompleted
+                    );
             GrpcUtil.attachCancellingCallback(responseObserver, subscription);
         }
     }
