@@ -374,8 +374,8 @@
         }
     },
     "protobuf": {
-        "com.netflix:titus-api-definitions": {
-            "locked": "0.0.1-rc20",
+        "com.netflix.titus:titus-api-definitions": {
+            "locked": "0.0.1-rc25",
             "requested": "0.0.1-rc+"
         }
     },
@@ -742,13 +742,13 @@
             "requested": "4.10"
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -773,7 +773,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -903,13 +903,13 @@
             "requested": "4.10"
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -934,7 +934,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1070,13 +1070,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1101,7 +1101,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1244,13 +1244,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1275,7 +1275,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
