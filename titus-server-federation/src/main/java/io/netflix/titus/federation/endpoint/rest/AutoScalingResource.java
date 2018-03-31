@@ -48,7 +48,7 @@ import rx.Observable;
 @Path("/v3/autoscaling")
 @Singleton
 public class AutoScalingResource {
-    private static Logger log = LoggerFactory.getLogger(AutoScalingResource.class);
+    private static final Logger logger = LoggerFactory.getLogger(AutoScalingResource.class);
     private AutoScalingService autoScalingService;
 
     @Inject
@@ -79,7 +79,7 @@ public class AutoScalingResource {
     public ScalingPolicyID setScalingPolicy(PutPolicyRequest putPolicyRequest) {
         Observable<ScalingPolicyID> putPolicyResult = autoScalingService.setAutoScalingPolicy(putPolicyRequest);
         ScalingPolicyID policyId = Responses.fromSingleValueObservable(putPolicyResult);
-        log.info("New policy created {}", policyId);
+        logger.info("New policy created {}", policyId);
         return policyId;
     }
 
