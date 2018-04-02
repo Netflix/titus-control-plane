@@ -35,7 +35,6 @@ import rx.observers.AssertableSubscriber;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
-
 public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTestBase {
 
     @Test
@@ -125,7 +124,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
 
         AssertableSubscriber<ScalingPolicyID> testSubscriber = service.setAutoScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build()).test();
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
-        assertThat(testSubscriber.getOnErrorEvents().isEmpty()).isTrue();
+        testSubscriber.assertNoErrors();
 
         List<ScalingPolicyID> onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();

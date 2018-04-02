@@ -16,14 +16,20 @@
 
 package io.netflix.titus.federation.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.grpc.ManagedChannel;
 import io.grpc.stub.AbstractStub;
+import io.grpc.stub.StreamObserver;
 import io.netflix.titus.api.federation.model.Cell;
+import io.netflix.titus.api.service.TitusServiceException;
+import io.netflix.titus.common.grpc.GrpcUtil;
+import rx.Observable;
 
 final class CellConnectorUtil {
     private CellConnectorUtil() {
@@ -42,5 +48,51 @@ final class CellConnectorUtil {
         Optional<ManagedChannel> optionalChannel = connector.getChannelForCell(cell);
         return optionalChannel.map(stubFactory);
     }
+
+    static <STUB extends AbstractStub<STUB>, RespT> List<Observable<CellResponse<STUB, RespT>>> callToAllCells(
+            CellConnector connector,
+            Function<ManagedChannel, STUB> stubFactory,
+            BiConsumer<STUB, StreamObserver<RespT>> fnCall) {
+        return callToAllCells(connector, stubFactory, false, fnCall);
+    }
+
+    static <STUB extends AbstractStub<STUB>, RespT> List<Observable<CellResponse<STUB, RespT>>> callToAllCells(
+            CellConnector connector,
+            Function<ManagedChannel, STUB> stubFactory,
+            boolean swallowErrors,
+            BiConsumer<STUB, StreamObserver<RespT>> fnCall) {
+        Map<Cell, STUB> clients = stubs(connector, stubFactory);
+
+        return clients.entrySet().stream().map(entry -> {
+            final Cell cell = entry.getKey();
+            STUB client = entry.getValue();
+            Observable<RespT> request = GrpcUtil.createRequestObservable(emitter -> {
+                StreamObserver<RespT> streamObserver = GrpcUtil.createSimpleClientResponseObserver(emitter);
+                fnCall.accept(client, streamObserver);
+            });
+            Observable<CellResponse<STUB, RespT>> enhanced = request.map(result -> new CellResponse<>(cell, client, result));
+            if (swallowErrors) {
+                enhanced = enhanced.onErrorResumeNext(ignored -> Observable.empty());
+            }
+            return enhanced;
+        }).collect(Collectors.toList());
+    }
+
+    static <STUB extends AbstractStub<STUB>, RespT> Observable<RespT> callToCell(
+            Cell cell,
+            CellConnector connector,
+            Function<ManagedChannel, STUB> stubFactory,
+            BiConsumer<STUB, StreamObserver<RespT>> fnCall) {
+        Optional<ManagedChannel> channel = connector.getChannelForCell(cell);
+        if (!channel.isPresent()) {
+            return Observable.error(TitusServiceException.invalidArgument("Invalid Cell " + cell));
+        }
+        STUB targetClient = stubFactory.apply(channel.get());
+        return GrpcUtil.createRequestObservable(emitter -> {
+            StreamObserver<RespT> streamObserver = GrpcUtil.createSimpleClientResponseObserver(emitter);
+            fnCall.accept(targetClient, streamObserver);
+        });
+    }
+
 }
 
