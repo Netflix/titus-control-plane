@@ -7,18 +7,18 @@ import java.util.stream.Collectors;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
-import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.common.runtime.TitusRuntime;
-import io.netflix.titus.common.runtime.TitusRuntimes;
-import io.netflix.titus.common.util.CollectionsExt;
-import io.netflix.titus.ext.cassandra.store.CassandraJobStore;
-import io.netflix.titus.ext.cassandra.store.CassandraStoreConfiguration;
-import io.netflix.titus.ext.cassandra.tool.snapshot.JobSnapshotLoader;
+import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.ext.cassandra.store.CassandraJobStore;
+import com.netflix.titus.ext.cassandra.store.CassandraStoreConfiguration;
+import com.netflix.titus.ext.cassandra.tool.snapshot.JobSnapshotLoader;
 import org.cassandraunit.CQLDataLoader;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 
-import static io.netflix.titus.ext.cassandra.tool.CassandraSchemas.JOB_ACTIVE_TABLES;
+import static com.netflix.titus.ext.cassandra.tool.CassandraSchemas.JOB_ACTIVE_TABLES;
 
 public class EmbeddedCassandraStoreFactory {
 

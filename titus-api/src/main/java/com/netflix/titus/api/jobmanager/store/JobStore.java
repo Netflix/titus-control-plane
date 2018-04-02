@@ -1,0 +1,143 @@
+/*
+ * Copyright 2018 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.netflix.titus.api.jobmanager.store;
+
+import java.util.List;
+
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.util.tuple.Pair;
+import rx.Completable;
+import rx.Observable;
+
+/**
+ * Provides an abstraction to the underlying datastore.
+ */
+public interface JobStore {
+
+    /**
+     * Initialize the store.
+     */
+    Completable init();
+
+    /**
+     * Retrieve all jobs. The result contains also number of records that could not be loaded from the database or
+     * which were corrupted and could not be mapped to {@link Job} instance.
+     *
+     * @return all the jobs.
+     */
+    Observable<Pair<List<Job<?>>, Integer>> retrieveJobs();
+
+    /**
+     * Retrieve the job with the specified jobId.
+     *
+     * @param jobId
+     * @return the job or an error if it does not exist.
+     */
+    Observable<Job<?>> retrieveJob(String jobId);
+
+    /**
+     * Store a new job.
+     *
+     * @param job
+     */
+    Completable storeJob(Job job);
+
+    /**
+     * Update an existing job.
+     *
+     * @param job
+     */
+    Completable updateJob(Job job);
+
+    /**
+     * Delete a job
+     *
+     * @param job
+     */
+    Completable deleteJob(Job job);
+
+    /**
+     * Retrieve all the tasks for a specific job.
+     *
+     * @param jobId
+     * @return the tasks for the job.
+     */
+    Observable<Pair<List<Task>, Integer>> retrieveTasksForJob(String jobId);
+
+    /**
+     * Retrieve a specific task.
+     *
+     * @param taskId
+     * @return the task or an error if it is not found.
+     */
+    Observable<Task> retrieveTask(String taskId);
+
+    /**
+     * Store a new task.
+     *
+     * @param task
+     */
+    Completable storeTask(Task task);
+
+    /**
+     * Update an existing task.
+     *
+     * @param task
+     */
+    Completable updateTask(Task task);
+
+    /**
+     * Replace an existing task.
+     *
+     * @param oldTask
+     * @param newTask
+     */
+    Completable replaceTask(Task oldTask, Task newTask);
+
+    /**
+     * Delete an existing task.
+     *
+     * @param task
+     */
+    Completable deleteTask(Task task);
+
+    /**
+     * Retrieve the archived job with the specified jobId.
+     *
+     * @param jobId
+     * @return the job or an error if it does not exist.
+     */
+    Observable<Job<?>> retrieveArchivedJob(String jobId);
+
+    /**
+     * Retrieve all the archived tasks for a specific job.
+     *
+     * @param jobId
+     * @return the archived tasks for the job.
+     */
+    Observable<Task> retrieveArchivedTasksForJob(String jobId);
+
+    /**
+     * Retrieve a specific archived task.
+     *
+     * @param taskId
+     * @return the task or an error if it is not found.
+     */
+    Observable<Task> retrieveArchivedTask(String taskId);
+}

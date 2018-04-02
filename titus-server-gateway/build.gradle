@@ -1,7 +1,7 @@
 apply plugin: 'application'
 apply plugin: 'nebula.ospackage-application'
 
-mainClassName = 'io.netflix.titus.gateway.startup.TitusGateway'
+mainClassName = 'com.netflix.titus.gateway.startup.TitusGateway'
 
 dependencies {
     compile project(':titus-server-runtime')
