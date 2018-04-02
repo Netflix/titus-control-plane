@@ -19,8 +19,6 @@ package com.netflix.titus.master.jobmanager.service.common.interceptor;
 import java.util.Collections;
 import java.util.List;
 
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;

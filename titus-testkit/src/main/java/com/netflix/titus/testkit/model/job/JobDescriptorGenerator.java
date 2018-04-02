@@ -18,7 +18,6 @@ package com.netflix.titus.testkit.model.job;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.model.PrimitiveValueGenerators;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Image;

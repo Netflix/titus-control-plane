@@ -24,24 +24,16 @@ import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
-import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.limiter.DefaultJobSubmitLimiter;
-import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
-import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
-import com.netflix.titus.master.mesos.DefaultV3TaskInfoFactory;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.DefaultJobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
+import com.netflix.titus.master.mesos.DefaultV3TaskInfoFactory;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import org.apache.mesos.Protos;
-
-import static com.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory.BATCH_RESOLVER;
-import static com.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory.SERVICE_RESOLVER;
 
 public class V3JobManagerModule extends AbstractModule {
 

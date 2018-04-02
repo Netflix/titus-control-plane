@@ -19,9 +19,6 @@ package com.netflix.titus.master.scheduler.fitness.networkinterface;
 import java.util.Optional;
 
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetworkInterface;
 import com.netflix.titus.common.util.MathExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;

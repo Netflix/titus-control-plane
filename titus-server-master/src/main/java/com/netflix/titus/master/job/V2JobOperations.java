@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import com.netflix.titus.master.store.NamedJob;
-import com.netflix.titus.master.store.V2JobStore;
 import com.netflix.titus.api.model.v2.V2JobDefinition;
 import com.netflix.titus.master.store.NamedJob;
 import com.netflix.titus.master.store.V2JobStore;

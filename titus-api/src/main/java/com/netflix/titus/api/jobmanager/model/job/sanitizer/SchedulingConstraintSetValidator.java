@@ -27,7 +27,6 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import javax.validation.Payload;
 
-
 import com.netflix.titus.api.jobmanager.model.job.Container;
 
 import static java.lang.annotation.ElementType.TYPE;

@@ -18,13 +18,9 @@ package com.netflix.titus.testkit.cli.command.job;
 
 import java.util.concurrent.CountDownLatch;
 
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.Page;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.command.ErrorReports;
-import com.netflix.titus.testkit.util.PrettyPrinters;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
 import com.netflix.titus.testkit.cli.command.ErrorReports;

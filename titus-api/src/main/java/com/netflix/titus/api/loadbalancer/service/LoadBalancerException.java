@@ -27,7 +27,9 @@ public class LoadBalancerException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
-    private LoadBalancerException(ErrorCode errorCode, String message) { this(errorCode, message, null); }
+    private LoadBalancerException(ErrorCode errorCode, String message) {
+        this(errorCode, message, null);
+    }
 
     private LoadBalancerException(ErrorCode errorCode, String message, Throwable cause) {
         super(message, cause);

@@ -25,11 +25,8 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetworkInterface;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetworkInterface;
 
-import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.*;
+import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getJoinedSecurityGroupIds;
 
 /**
  * A fitness calculator that will prefer placing tasks on agents that have previous launched the containers with

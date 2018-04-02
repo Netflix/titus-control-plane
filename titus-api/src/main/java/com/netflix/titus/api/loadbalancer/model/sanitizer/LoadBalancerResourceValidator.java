@@ -21,6 +21,7 @@ import rx.Completable;
 public interface LoadBalancerResourceValidator {
     /**
      * Validates that a load balancer can be associated with a Job.
+     *
      * @param loadBalancerId
      * @return
      */

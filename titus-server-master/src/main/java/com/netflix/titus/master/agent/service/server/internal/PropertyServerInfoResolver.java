@@ -23,8 +23,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
-import com.netflix.titus.master.agent.service.server.ServerInfoResolvers;
 import com.netflix.titus.common.util.PropertiesExt;
 import com.netflix.titus.master.agent.ServerInfo;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolver;

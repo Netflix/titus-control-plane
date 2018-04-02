@@ -16,11 +16,11 @@
 
 package com.netflix.titus.runtime.endpoint.fit;
 
-import com.netflix.titus.runtime.Fit;
 import com.netflix.titus.common.framework.fit.FitAction;
 import com.netflix.titus.common.framework.fit.FitActionDescriptor;
 import com.netflix.titus.common.framework.fit.FitComponent;
 import com.netflix.titus.common.framework.fit.FitInjection;
+import com.netflix.titus.runtime.Fit;
 
 public final class ProtobufFitConverters {
 

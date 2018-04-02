@@ -21,13 +21,12 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
@@ -47,7 +46,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.activate;
 import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.Assertions.assertThat;
 

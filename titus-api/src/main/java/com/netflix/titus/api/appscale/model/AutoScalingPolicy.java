@@ -131,7 +131,7 @@ public class AutoScalingPolicy {
         }
 
         public Builder withStatus(PolicyStatus policyStatus) {
-            this.status= policyStatus;
+            this.status = policyStatus;
             return this;
         }
 

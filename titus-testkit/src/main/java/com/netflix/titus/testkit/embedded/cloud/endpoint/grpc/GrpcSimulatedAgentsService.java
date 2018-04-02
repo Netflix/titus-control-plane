@@ -27,7 +27,6 @@ import com.netflix.titus.simulator.TitusCloudSimulator.CapacityUpdateRequest;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
 import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudGateway;
 import io.grpc.stub.StreamObserver;
-import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudGateway;
 
 @Singleton
 public class GrpcSimulatedAgentsService extends SimulatedAgentServiceImplBase {

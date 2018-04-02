@@ -18,11 +18,6 @@ package com.netflix.titus.master.jobmanager.service;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
-import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -32,13 +27,9 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
-import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobAfterChangeReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobBeforeChangeReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobChangeErrorReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateErrorReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;

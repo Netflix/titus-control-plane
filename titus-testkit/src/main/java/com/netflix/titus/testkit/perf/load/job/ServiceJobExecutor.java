@@ -19,7 +19,6 @@ package com.netflix.titus.testkit.perf.load.job;
 import java.io.IOException;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;

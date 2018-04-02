@@ -20,6 +20,7 @@ public class AwsLoadBalancerRateLimitException extends RuntimeException {
     /**
      * Constructs a new AwsLoadBalancerRateLimitException from the provided Throwable to
      * identify rate limiting errors, which AWS currently does not specifically identify.
+     *
      * @param error
      */
     public AwsLoadBalancerRateLimitException(Throwable error) {

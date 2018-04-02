@@ -17,7 +17,6 @@
 package com.netflix.titus.master.integration.v3;
 
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

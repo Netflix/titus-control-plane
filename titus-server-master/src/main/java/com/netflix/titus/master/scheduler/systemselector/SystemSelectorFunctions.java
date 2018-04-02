@@ -19,10 +19,8 @@ package com.netflix.titus.master.scheduler.systemselector;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
@@ -33,7 +31,6 @@ import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.ScheduledRequest;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-import org.apache.mesos.Protos;
 
 import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getAgentAttributeValue;
 

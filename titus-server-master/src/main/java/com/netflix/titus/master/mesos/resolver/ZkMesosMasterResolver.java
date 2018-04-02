@@ -23,8 +23,6 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.zookeeper.ZookeeperClusterResolver;
-import com.netflix.titus.master.zookeeper.ZookeeperPaths;
 import com.netflix.titus.master.mesos.MesosMasterResolver;
 import com.netflix.titus.master.zookeeper.ZookeeperClusterResolver;
 import com.netflix.titus.master.zookeeper.ZookeeperPaths;

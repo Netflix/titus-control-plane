@@ -65,7 +65,7 @@ public class JobProcessesRepresentation {
         }
 
         public JobProcessesRepresentation build() {
-           return new JobProcessesRepresentation(this.disableIncreaseDesired, this.disableDecreaseDesired);
+            return new JobProcessesRepresentation(this.disableIncreaseDesired, this.disableDecreaseDesired);
         }
     }
 

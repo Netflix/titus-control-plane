@@ -89,10 +89,10 @@ final class StoreUtils {
                                 try {
                                     T value = ObjectMappers.readValue(mapper, text, type);
                                     Set<ConstraintViolation<T>> violations = entitySanitizer.validate(value);
-                                    if(violations.isEmpty()) {
+                                    if (violations.isEmpty()) {
                                         converted.add(value);
                                     } else {
-                                        if(failOnError) {
+                                        if (failOnError) {
                                             throw AgentStoreException.badData(value, violations);
                                         }
                                         logger.warn("Ignoring bad record of type {} due to validation constraint violations: record={}, violations={}", type, value, violations);

@@ -16,17 +16,14 @@
 
 package com.netflix.titus.api.appscale.store.mixin;
 
+import java.util.List;
+import java.util.Optional;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.appscale.model.MetricAggregationType;
 import com.netflix.titus.api.appscale.model.StepAdjustment;
 import com.netflix.titus.api.appscale.model.StepAdjustmentType;
-import com.netflix.titus.api.appscale.model.MetricAggregationType;
-import com.netflix.titus.api.appscale.model.StepAdjustment;
-import com.netflix.titus.api.appscale.model.StepAdjustmentType;
-
-import java.util.List;
-import java.util.Optional;
 
 
 public abstract class StepScalingPolicyConfigurationMixIn {

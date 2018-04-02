@@ -29,9 +29,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
-import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

@@ -32,11 +32,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.service.ServiceJobMgr;
-import com.netflix.titus.master.store.MetadataUtils;
-import com.netflix.titus.master.store.NamedJob;
-import com.netflix.titus.master.store.V2JobStore;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.WorkerNaming;

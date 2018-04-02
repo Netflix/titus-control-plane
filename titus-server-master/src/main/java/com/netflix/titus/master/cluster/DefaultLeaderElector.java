@@ -24,8 +24,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.titus.master.zookeeper.CuratorService;
-import com.netflix.titus.master.zookeeper.ZookeeperPaths;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.master.master.MasterDescription;
 import com.netflix.titus.master.zookeeper.CuratorService;

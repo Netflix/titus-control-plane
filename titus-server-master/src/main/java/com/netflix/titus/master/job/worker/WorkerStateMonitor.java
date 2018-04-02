@@ -18,7 +18,6 @@ package com.netflix.titus.master.job.worker;
 
 import java.util.List;
 
-import com.netflix.titus.master.job.V2JobMgrIntf;
 import com.netflix.titus.master.Status;
 import com.netflix.titus.master.job.V2JobMgrIntf;
 import rx.Observable;

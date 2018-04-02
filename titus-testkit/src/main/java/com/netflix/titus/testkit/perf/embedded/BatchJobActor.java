@@ -18,10 +18,6 @@ package com.netflix.titus.testkit.perf.embedded;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.client.TitusMasterClient;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;

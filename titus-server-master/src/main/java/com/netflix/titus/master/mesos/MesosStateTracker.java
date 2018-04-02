@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentMap;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
-import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.MetricConstants;

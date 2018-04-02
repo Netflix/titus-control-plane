@@ -16,12 +16,11 @@
 
 package com.netflix.titus.api.connector.cloud;
 
-import com.netflix.titus.api.appscale.model.AlarmConfiguration;
+import java.util.List;
+
 import com.netflix.titus.api.appscale.model.AlarmConfiguration;
 import rx.Completable;
 import rx.Observable;
-
-import java.util.List;
 
 public interface CloudAlarmClient {
 

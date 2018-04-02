@@ -20,9 +20,6 @@ import java.io.PrintWriter;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.model.v2.TitusV2ModelGenerator;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;

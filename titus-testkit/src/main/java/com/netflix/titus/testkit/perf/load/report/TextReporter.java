@@ -19,8 +19,6 @@ package com.netflix.titus.testkit.perf.load.report;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.fenzo.queues.TaskQueue;
-import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import rx.Observable;
 import rx.Scheduler;

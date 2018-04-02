@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstance;
 
 /**
  * An immutable object representing an agent's status together with the source of the status value

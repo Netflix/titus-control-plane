@@ -20,8 +20,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
-import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
-import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,

@@ -18,7 +18,7 @@ package com.netflix.titus.api.jobmanager.model.job.retry;
 
 import java.util.concurrent.TimeUnit;
 
-public final class DelayedRetryPolicyBuilder extends RetryPolicy.RetryPolicyBuilder<DelayedRetryPolicy,DelayedRetryPolicyBuilder> {
+public final class DelayedRetryPolicyBuilder extends RetryPolicy.RetryPolicyBuilder<DelayedRetryPolicy, DelayedRetryPolicyBuilder> {
 
     private long delayMs;
 

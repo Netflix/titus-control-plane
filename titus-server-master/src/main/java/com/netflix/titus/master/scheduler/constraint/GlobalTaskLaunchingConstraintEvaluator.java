@@ -22,7 +22,6 @@ import javax.inject.Singleton;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;

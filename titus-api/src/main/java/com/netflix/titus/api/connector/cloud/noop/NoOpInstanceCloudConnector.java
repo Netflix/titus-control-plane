@@ -21,11 +21,6 @@ import java.util.Optional;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.connector.cloud.CloudConnectorException;
-import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
-import com.netflix.titus.api.connector.cloud.InstanceGroup;
-import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
-import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.connector.cloud.CloudConnectorException;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;

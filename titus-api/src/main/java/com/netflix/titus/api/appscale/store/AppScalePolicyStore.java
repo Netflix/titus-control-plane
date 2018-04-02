@@ -18,8 +18,6 @@ package com.netflix.titus.api.appscale.store;
 
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import com.netflix.titus.api.appscale.model.PolicyStatus;
-import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
-import com.netflix.titus.api.appscale.model.PolicyStatus;
 import rx.Completable;
 import rx.Observable;
 
@@ -49,6 +47,7 @@ public interface AppScalePolicyStore {
 
     /**
      * Retrieve auto scaling policies for a Titus Job
+     *
      * @param jobId identifies a Titus Job
      * @return Observable for AutoScalingPolicy
      */
@@ -57,6 +56,7 @@ public interface AppScalePolicyStore {
 
     /**
      * Updates policy configuration for auto scaling policy
+     *
      * @param autoScalingPolicy
      * @return
      */

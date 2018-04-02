@@ -51,7 +51,7 @@ public class SystemSelectorEvaluator {
     private final ScriptEngine validatorScriptEngine;
 
     @Inject
-    public SystemSelectorEvaluator(SchedulerConfiguration configuration,TitusRuntime titusRuntime) {
+    public SystemSelectorEvaluator(SchedulerConfiguration configuration, TitusRuntime titusRuntime) {
         scriptEngineEvaluators = Caches.instrumentedCacheWithMaxSize(
                 configuration.getSchedulerMaxConcurrent(), METRIC_SCHEDULING_SERVICE + METRIC_SCRIPT_ENGINE_EVALUATORS, titusRuntime.getRegistry()
         );

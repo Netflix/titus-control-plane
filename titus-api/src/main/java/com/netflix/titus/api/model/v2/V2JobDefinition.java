@@ -23,7 +23,6 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
 import com.netflix.titus.api.model.v2.descriptor.SchedulingInfo;
 import com.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
 import com.netflix.titus.api.model.v2.parameter.Parameter;

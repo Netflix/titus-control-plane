@@ -16,10 +16,10 @@
 
 package com.netflix.titus.master.endpoint.v2.rest.representation;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SetJobProcessesCmd {
     private static Logger logger = LoggerFactory.getLogger(SetJobProcessesCmd.class);

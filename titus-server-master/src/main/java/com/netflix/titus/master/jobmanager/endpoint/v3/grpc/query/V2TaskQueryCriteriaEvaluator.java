@@ -22,14 +22,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.job.JobMgrUtils;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 

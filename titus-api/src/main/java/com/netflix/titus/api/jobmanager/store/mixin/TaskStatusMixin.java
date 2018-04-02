@@ -19,7 +19,6 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.jobmanager.model.job.TaskState;
 
 public abstract class TaskStatusMixin {
     @JsonCreator

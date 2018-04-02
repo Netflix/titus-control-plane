@@ -30,12 +30,12 @@ import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetHealthR
 import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.ext.aws.AwsObservableExt;
 import com.netflix.titus.api.connector.cloud.CloudConnectorException;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
+import com.netflix.titus.ext.aws.AwsObservableExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;

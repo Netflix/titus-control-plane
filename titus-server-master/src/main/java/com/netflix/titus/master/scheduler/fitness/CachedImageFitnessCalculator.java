@@ -26,12 +26,6 @@ import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheImage;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheImage;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
-
-import static com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.createImage;
-import static com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.getImage;
 
 /**
  * A fitness calculator that will prefer placing tasks on agents that have previous launched the same image so that the

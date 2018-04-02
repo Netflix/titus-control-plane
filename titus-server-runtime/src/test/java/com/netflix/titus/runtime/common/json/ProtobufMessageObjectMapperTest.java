@@ -28,8 +28,8 @@ import com.fasterxml.jackson.databind.deser.Deserializers;
 import com.fasterxml.jackson.databind.module.SimpleDeserializers;
 import com.google.protobuf.Message;
 import com.google.protobuf.util.JsonFormat;
-import com.netflix.titus.grpc.protogen.Image;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.grpc.protogen.Image;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 

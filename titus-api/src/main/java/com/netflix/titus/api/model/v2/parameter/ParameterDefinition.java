@@ -17,7 +17,6 @@
 package com.netflix.titus.api.model.v2.parameter;
 
 import com.netflix.titus.api.model.v2.parameter.validator.Validator;
-import com.netflix.titus.api.model.v2.parameter.validator.Validator;
 
 public class ParameterDefinition<T> {
 

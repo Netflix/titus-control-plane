@@ -21,8 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import rx.Scheduler;
 

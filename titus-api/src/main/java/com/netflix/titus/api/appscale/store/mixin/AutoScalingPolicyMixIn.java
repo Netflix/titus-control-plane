@@ -20,8 +20,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.appscale.model.PolicyConfiguration;
 import com.netflix.titus.api.appscale.model.PolicyStatus;
-import com.netflix.titus.api.appscale.model.PolicyConfiguration;
-import com.netflix.titus.api.appscale.model.PolicyStatus;
 
 public class AutoScalingPolicyMixIn {
     @JsonCreator

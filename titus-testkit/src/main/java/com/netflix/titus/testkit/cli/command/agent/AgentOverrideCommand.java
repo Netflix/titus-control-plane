@@ -16,9 +16,9 @@
 
 package com.netflix.titus.testkit.cli.command.agent;
 
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.InstanceOverrideState;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
 import com.netflix.titus.testkit.rx.RxGrpcAgentManagementService;

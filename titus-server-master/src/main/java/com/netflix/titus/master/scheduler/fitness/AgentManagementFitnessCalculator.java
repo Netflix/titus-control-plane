@@ -30,8 +30,6 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getAgentAttributeValue;
-
 /**
  *
  */

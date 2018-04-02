@@ -22,12 +22,12 @@ import java.util.List;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
-import com.sun.jersey.api.model.AbstractResourceMethod;
-import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
-import com.sun.jersey.spi.dispatch.RequestDispatcher;
 import com.netflix.titus.runtime.endpoint.common.ClientInvocationMetrics;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
+import com.sun.jersey.api.model.AbstractResourceMethod;
+import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
+import com.sun.jersey.spi.dispatch.RequestDispatcher;
 
 public class InstrumentedResourceMethodDispatchProvider implements ResourceMethodDispatchProvider {
 

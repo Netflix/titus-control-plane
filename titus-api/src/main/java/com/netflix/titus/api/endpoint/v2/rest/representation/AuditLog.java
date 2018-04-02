@@ -24,7 +24,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.audit.model.AuditLogEvent;
-import com.netflix.titus.api.audit.model.AuditLogEvent;
 import com.netflix.titus.common.util.DateTimeExt;
 
 /**

@@ -20,10 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;

@@ -41,7 +41,9 @@ public class StepScalingPolicyConfiguration {
     }
 
 
-    public Optional<Integer> getCoolDownSec() { return coolDownSec; }
+    public Optional<Integer> getCoolDownSec() {
+        return coolDownSec;
+    }
 
     public Optional<MetricAggregationType> getMetricAggregationType() {
         return metricAggregationType;

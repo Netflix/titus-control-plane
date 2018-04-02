@@ -20,9 +20,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
-import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
-import com.netflix.titus.api.jobmanager.model.job.Capacity;
-import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 

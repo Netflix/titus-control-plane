@@ -20,8 +20,6 @@ import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
 
 public class TaskUpdateEvent extends JobManagerEvent<Task> {
 

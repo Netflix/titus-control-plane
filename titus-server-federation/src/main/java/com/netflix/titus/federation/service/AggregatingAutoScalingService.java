@@ -20,6 +20,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
@@ -31,18 +33,16 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
-import com.netflix.titus.common.grpc.SessionContext;
-import com.netflix.titus.federation.startup.GrpcConfiguration;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToAllCells;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
+import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
+import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 
 @Singleton
 public class AggregatingAutoScalingService implements AutoScalingService {

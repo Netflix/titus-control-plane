@@ -16,16 +16,14 @@
 
 package com.netflix.titus.api.connector.cloud.noop;
 
-import com.netflix.titus.api.appscale.model.AlarmConfiguration;
-import com.netflix.titus.api.connector.cloud.CloudAlarmClient;
+import java.util.List;
+
 import com.netflix.titus.api.appscale.model.AlarmConfiguration;
 import com.netflix.titus.api.connector.cloud.CloudAlarmClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
-
-import java.util.List;
 
 public class NoOpCloudAlarmClient implements CloudAlarmClient {
     private static Logger log = LoggerFactory.getLogger(NoOpCloudAlarmClient.class);

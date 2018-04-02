@@ -18,9 +18,9 @@ package com.netflix.titus.gateway.connector.titusmaster;
 
 import java.net.URI;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import io.grpc.Attributes;
 import io.grpc.NameResolver;
-import com.netflix.titus.common.runtime.TitusRuntime;
 
 public final class LeaderNameResolverFactory extends NameResolver.Factory {
 

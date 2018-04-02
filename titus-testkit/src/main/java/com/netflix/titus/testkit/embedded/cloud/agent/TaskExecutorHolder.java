@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import com.google.protobuf.ByteString;
-import com.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.aws.AwsInstanceType;

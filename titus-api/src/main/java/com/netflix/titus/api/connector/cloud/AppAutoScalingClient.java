@@ -18,8 +18,6 @@ package com.netflix.titus.api.connector.cloud;
 
 import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.PolicyConfiguration;
-import com.netflix.titus.api.appscale.model.PolicyConfiguration;
-import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import rx.Completable;
 import rx.Observable;
 

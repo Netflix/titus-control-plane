@@ -25,8 +25,8 @@ import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import com.netflix.titus.api.model.v2.parameter.Parameter;
 import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.runtime.endpoint.common.QueryUtils;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import com.netflix.titus.runtime.endpoint.common.QueryUtils;
 
 class JobQueryCriteriaEvaluator {
     static boolean matches(V2JobMetadata job, JobQueryCriteria<TitusTaskState, TitusJobType> criteria) {

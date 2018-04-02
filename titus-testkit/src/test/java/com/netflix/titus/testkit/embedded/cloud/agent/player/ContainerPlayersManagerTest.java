@@ -23,11 +23,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import com.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
-import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;

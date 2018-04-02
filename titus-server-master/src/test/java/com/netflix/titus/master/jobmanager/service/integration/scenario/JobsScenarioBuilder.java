@@ -42,7 +42,6 @@ import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
-import com.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder.EventHolder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;

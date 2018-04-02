@@ -208,7 +208,7 @@ public class TaskLivenessMetrics {
     /**
      * Traverse all active tasks and collect their state and the time they stayed in this state (the latter in form of histogram).
      *
-     * @return mapOf(capacityGroupName -> mapOf(taskState, histogram))
+     * @return mapOf(capacityGroupName - > mapOf ( taskState, histogram))
      */
     private Map<String, Map<String, Histogram.Builder>> buildCapacityGroupsHistograms(Set<String> capacityGroups) {
         Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms = newCapacityHistograms(capacityGroups);

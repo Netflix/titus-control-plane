@@ -35,7 +35,6 @@ import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.tuple.Either;
-import com.netflix.titus.master.scheduler.VMOperations.AgentInfo;
 import rx.Completable;
 import rx.Observable;
 

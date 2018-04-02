@@ -20,10 +20,9 @@ import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
-import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 
 /**
  */

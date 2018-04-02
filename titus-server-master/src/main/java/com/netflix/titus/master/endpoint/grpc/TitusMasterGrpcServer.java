@@ -37,13 +37,12 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServi
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
 import com.netflix.titus.master.endpoint.common.grpc.interceptor.LeaderServerInterceptor;
+import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerInterceptors;
 import io.grpc.ServiceDescriptor;
-import com.netflix.titus.master.endpoint.common.grpc.interceptor.LeaderServerInterceptor;
-import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

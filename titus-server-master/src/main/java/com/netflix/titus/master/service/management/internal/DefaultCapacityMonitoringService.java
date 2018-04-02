@@ -28,7 +28,6 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
@@ -38,8 +37,6 @@ import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ComputationTaskInvoker;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
-import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityAllocations;
-import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityRequirements;
 import com.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.master.store.ApplicationSlaStore;

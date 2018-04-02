@@ -21,9 +21,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
-import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
-import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
-import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,

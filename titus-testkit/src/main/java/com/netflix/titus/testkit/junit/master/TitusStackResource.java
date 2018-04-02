@@ -20,10 +20,6 @@ import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
-import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import org.junit.rules.ExternalResource;
 
 public class TitusStackResource extends ExternalResource {

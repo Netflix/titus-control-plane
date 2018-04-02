@@ -19,7 +19,6 @@ package com.netflix.titus.api.scheduler.store.mixin;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.scheduler.model.Operator;
-import com.netflix.titus.api.scheduler.model.Operator;
 
 public abstract class ShouldMixin {
 

@@ -24,8 +24,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
-import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 
 public abstract class BatchJobTaskMixin {
     @JsonCreator

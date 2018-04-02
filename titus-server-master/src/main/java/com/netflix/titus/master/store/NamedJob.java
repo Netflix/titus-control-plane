@@ -38,7 +38,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.fenzo.triggers.CronTrigger;
 import com.netflix.fenzo.triggers.TriggerOperator;
-import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.api.model.v2.JobOwner;
 import com.netflix.titus.api.model.v2.NamedJobDefinition;
 import com.netflix.titus.api.model.v2.V2JobDefinition;

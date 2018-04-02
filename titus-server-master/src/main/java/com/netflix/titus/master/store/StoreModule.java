@@ -21,11 +21,6 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.netflix.titus.master.scheduler.store.InMemorySchedulerStore;
-import com.netflix.titus.master.store.cache.ApplicationSlaStoreCache;
-import com.netflix.titus.master.store.file.SimpleCachedFileStorageProvider;
-import com.netflix.titus.master.store.memory.InMemoryApplicationSlaStore;
-import com.netflix.titus.master.store.sanitizer.ApplicationSlaStoreSanitizer;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;

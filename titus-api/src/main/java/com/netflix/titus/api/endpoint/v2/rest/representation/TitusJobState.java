@@ -17,7 +17,6 @@
 package com.netflix.titus.api.endpoint.v2.rest.representation;
 
 import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.V2JobState;
 
 public enum TitusJobState {
     QUEUED, DISPATCHED, FINISHED, FAILED, UNKNOWN;

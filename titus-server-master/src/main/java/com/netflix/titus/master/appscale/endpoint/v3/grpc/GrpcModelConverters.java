@@ -23,7 +23,6 @@ import com.google.protobuf.BoolValue;
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
-import com.netflix.titus.grpc.protogen.*;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import com.netflix.titus.api.appscale.model.ComparisonOperator;
 import com.netflix.titus.api.appscale.model.MetricAggregationType;
@@ -33,6 +32,18 @@ import com.netflix.titus.api.appscale.model.StepAdjustment;
 import com.netflix.titus.api.appscale.model.StepAdjustmentType;
 import com.netflix.titus.api.appscale.model.StepScalingPolicyConfiguration;
 import com.netflix.titus.api.appscale.model.TargetTrackingPolicy;
+import com.netflix.titus.grpc.protogen.AlarmConfiguration;
+import com.netflix.titus.grpc.protogen.CustomizedMetricSpecification;
+import com.netflix.titus.grpc.protogen.MetricDimension;
+import com.netflix.titus.grpc.protogen.PredefinedMetricSpecification;
+import com.netflix.titus.grpc.protogen.ScalingPolicy;
+import com.netflix.titus.grpc.protogen.ScalingPolicyID;
+import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
+import com.netflix.titus.grpc.protogen.ScalingPolicyStatus;
+import com.netflix.titus.grpc.protogen.StepAdjustments;
+import com.netflix.titus.grpc.protogen.StepScalingPolicy;
+import com.netflix.titus.grpc.protogen.StepScalingPolicyDescriptor;
+import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +139,7 @@ public final class GrpcModelConverters {
 
         stepScalingPolicyConfiguration.getCoolDownSec().ifPresent(
                 coolDown ->
-                    stepScalingPolicyBuilder.setCooldownSec(Int32Value.newBuilder().setValue(coolDown).build())
+                        stepScalingPolicyBuilder.setCooldownSec(Int32Value.newBuilder().setValue(coolDown).build())
         );
         stepScalingPolicyConfiguration.getMetricAggregationType().ifPresent(
                 metricAggregationType ->
@@ -268,7 +279,7 @@ public final class GrpcModelConverters {
                 adjustmentType = StepScalingPolicy.AdjustmentType.ExactCapacity;
                 break;
             default:
-                  throw new IllegalArgumentException("Invalid StepAdjustmentType value " + stepAdjustmentType);
+                throw new IllegalArgumentException("Invalid StepAdjustmentType value " + stepAdjustmentType);
         }
         return adjustmentType;
     }

@@ -25,8 +25,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.MachineDefinition;
-import com.netflix.titus.api.model.v2.JobConstraints;
-import com.netflix.titus.api.model.v2.MachineDefinition;
 
 public class StageSchedulingInfo {
 

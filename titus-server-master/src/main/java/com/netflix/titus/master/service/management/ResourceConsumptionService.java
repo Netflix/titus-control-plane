@@ -18,7 +18,6 @@ package com.netflix.titus.master.service.management;
 
 import java.util.Optional;
 
-import com.netflix.titus.master.service.management.ResourceConsumptionEvents.ResourceConsumptionEvent;
 import rx.Observable;
 
 /**

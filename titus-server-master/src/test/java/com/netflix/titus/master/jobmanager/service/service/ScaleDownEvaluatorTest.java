@@ -21,12 +21,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.data.generator.DataGenerator;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeServiceJobCapacity;

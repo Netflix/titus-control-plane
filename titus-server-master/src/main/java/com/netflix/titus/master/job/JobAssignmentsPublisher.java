@@ -22,8 +22,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.netflix.titus.master.store.V2JobMetadataWritable;
-import com.netflix.titus.master.store.V2JobStore;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.WorkerAssignments;
 import com.netflix.titus.api.model.v2.WorkerHost;

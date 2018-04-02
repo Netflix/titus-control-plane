@@ -28,9 +28,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.parameter.Parameters;
@@ -38,6 +35,8 @@ import com.netflix.titus.api.model.v2.parameter.Parameters.JobType;
 import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.common.QueryUtils;

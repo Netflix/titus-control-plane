@@ -26,6 +26,7 @@ public interface CellRouter {
      * routeKey is a blocking call that returns the Cell to use based on the provided key.
      * The key should correspond to what the routing implementation expects, e.g., Job IDs
      * or Capacity Group names.
+     *
      * @param key
      * @return Cell
      */

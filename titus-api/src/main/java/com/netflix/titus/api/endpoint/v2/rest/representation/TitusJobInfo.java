@@ -25,9 +25,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.model.MigrationPolicy;
 import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.ServiceJobProcesses;
-import com.netflix.titus.api.model.MigrationPolicy;
-import com.netflix.titus.api.model.v2.JobConstraints;
-import com.netflix.titus.api.model.v2.ServiceJobProcesses;
 
 public class TitusJobInfo {
 

@@ -23,16 +23,16 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.scheduler.service.SchedulerService;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
-import io.grpc.stub.StreamObserver;
-import com.netflix.titus.api.scheduler.service.SchedulerService;
-import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcSchedulerModelConverters;
+import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

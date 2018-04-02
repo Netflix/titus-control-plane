@@ -23,14 +23,14 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
+import com.netflix.titus.runtime.endpoint.common.ClientInvocationMetrics;
+import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
+import com.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter;
 import com.sun.jersey.api.core.HttpContext;
 import com.sun.jersey.api.core.HttpRequestContext;
 import com.sun.jersey.api.core.HttpResponseContext;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.dispatch.RequestDispatcher;
-import com.netflix.titus.runtime.endpoint.common.ClientInvocationMetrics;
-import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
-import com.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

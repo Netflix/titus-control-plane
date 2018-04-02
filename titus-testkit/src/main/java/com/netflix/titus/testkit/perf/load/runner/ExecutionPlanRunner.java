@@ -21,18 +21,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.testkit.perf.load.job.JobExecutor;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep.AwaitCompletionStep;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep.DelayStep;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep.KillRandomTaskStep;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep.ScaleDownStep;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep.ScaleUpStep;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep.TerminateAndShrinkRandomTaskStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;

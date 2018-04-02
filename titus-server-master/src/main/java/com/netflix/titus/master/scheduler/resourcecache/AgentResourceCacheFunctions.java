@@ -26,7 +26,6 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.ConsumeResult;
 import com.netflix.fenzo.TaskRequest;
-import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Image;

@@ -34,16 +34,16 @@ public class BatchJobTask extends Task {
     private final int index;
 
     public BatchJobTask(String id,
-                         int index,
-                         String originalId,
-                         Optional<String> resubmitOf,
-                         String jobId,
-                         int resubmitNumber,
-                         int systemResubmitNumber,
-                         TaskStatus status,
-                         List<TaskStatus> statusHistory,
-                         List<TwoLevelResource> twoLevelResources,
-                         Map<String, String> taskContext) {
+                        int index,
+                        String originalId,
+                        Optional<String> resubmitOf,
+                        String jobId,
+                        int resubmitNumber,
+                        int systemResubmitNumber,
+                        TaskStatus status,
+                        List<TaskStatus> statusHistory,
+                        List<TwoLevelResource> twoLevelResources,
+                        Map<String, String> taskContext) {
         super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext);
         this.index = index;
     }

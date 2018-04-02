@@ -26,8 +26,6 @@ import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QueuableTask;
-import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -41,10 +39,8 @@ import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.ScheduledRequest;
+import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions;
 import org.apache.mesos.Protos;
-
-import static com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.EMPTY_JOINED_SECURITY_GROUP_IDS;
-import static com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER;
 
 public class FitnessCalculatorFunctions {
 

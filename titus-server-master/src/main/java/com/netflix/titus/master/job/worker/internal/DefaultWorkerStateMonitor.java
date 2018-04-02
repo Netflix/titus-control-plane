@@ -25,12 +25,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.job.JobManagerConfiguration;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.worker.WorkerStateMonitor;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.mesos.ContainerEvent;
-import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;

@@ -29,8 +29,6 @@ import com.google.common.primitives.Ints;
 import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
-import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;

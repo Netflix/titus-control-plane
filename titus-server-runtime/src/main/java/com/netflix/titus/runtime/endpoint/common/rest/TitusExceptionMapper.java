@@ -28,13 +28,13 @@ import javax.ws.rs.ext.Provider;
 
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.sun.jersey.api.NotFoundException;
-import com.sun.jersey.api.ParamException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.sun.jersey.api.NotFoundException;
+import com.sun.jersey.api.ParamException;
 
 @Provider
 public class TitusExceptionMapper implements ExceptionMapper<Throwable> {

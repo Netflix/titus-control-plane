@@ -19,7 +19,6 @@ package com.netflix.titus.api.jobmanager.store;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;

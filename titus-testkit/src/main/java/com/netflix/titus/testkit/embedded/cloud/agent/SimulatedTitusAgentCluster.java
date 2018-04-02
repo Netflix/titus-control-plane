@@ -27,8 +27,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
-import com.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;

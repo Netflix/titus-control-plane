@@ -24,15 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.grpc.protogen.BatchJobSpec;
-import com.netflix.titus.grpc.protogen.Capacity;
-import com.netflix.titus.grpc.protogen.Constraints;
-import com.netflix.titus.grpc.protogen.JobChangeNotification;
-import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
-import com.netflix.titus.grpc.protogen.LogLocation;
-import com.netflix.titus.grpc.protogen.MountPerm;
-import com.netflix.titus.grpc.protogen.SecurityProfile;
-import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
@@ -63,17 +54,26 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryP
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.grpc.protogen.BatchJobSpec;
+import com.netflix.titus.grpc.protogen.Capacity;
+import com.netflix.titus.grpc.protogen.Constraints;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
+import com.netflix.titus.grpc.protogen.LogLocation;
+import com.netflix.titus.grpc.protogen.MountPerm;
+import com.netflix.titus.grpc.protogen.SecurityProfile;
+import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
-import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
-import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
-import static com.netflix.titus.common.util.Evaluators.applyNotNull;
-import static com.netflix.titus.common.util.StringExt.nonNull;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
+import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
+import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
+import static com.netflix.titus.common.util.Evaluators.applyNotNull;
+import static com.netflix.titus.common.util.StringExt.nonNull;
 
 public final class V3GrpcModelConverters {
 

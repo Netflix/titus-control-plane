@@ -20,7 +20,6 @@ package com.netflix.titus.master.endpoint.v2.validator;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.master.RuntimeLimitValidator;
 import com.netflix.titus.master.config.MasterConfiguration;

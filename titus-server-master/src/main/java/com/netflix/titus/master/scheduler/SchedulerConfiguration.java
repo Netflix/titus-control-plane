@@ -19,7 +19,6 @@ package com.netflix.titus.master.scheduler;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.titus.master.scheduler.fitness.networkinterface.TitusNetworkInterfaceFitnessEvaluator;
-import com.netflix.titus.master.scheduler.fitness.networkinterface.TitusNetworkInterfaceFitnessEvaluator;
 
 @Configuration(prefix = "titus.scheduler")
 public interface SchedulerConfiguration {

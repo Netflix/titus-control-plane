@@ -20,12 +20,11 @@ import javax.inject.Inject;
 import javax.ws.rs.ext.Provider;
 
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.runtime.endpoint.common.rest.metric.InstrumentedResourceMethodDispatchProvider;
-import com.sun.jersey.spi.container.ResourceMethodDispatchAdapter;
-import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.metric.InstrumentedResourceMethodDispatchProvider;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
+import com.sun.jersey.spi.container.ResourceMethodDispatchAdapter;
+import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
 
 @Provider
 public class InstrumentedResourceMethodDispatchAdapter implements ResourceMethodDispatchAdapter {

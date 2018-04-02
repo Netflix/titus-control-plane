@@ -17,7 +17,6 @@
 package com.netflix.titus.api.scheduler.service;
 
 import com.netflix.titus.api.scheduler.model.SystemSelector;
-import com.netflix.titus.api.scheduler.model.SystemSelector;
 
 public class SchedulerException extends RuntimeException {
 

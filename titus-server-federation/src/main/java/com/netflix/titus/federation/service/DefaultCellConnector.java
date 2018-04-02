@@ -25,10 +25,10 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.federation.model.Cell;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
-import com.netflix.titus.api.federation.model.Cell;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

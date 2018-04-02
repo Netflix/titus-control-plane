@@ -16,7 +16,6 @@
 
 package com.netflix.titus.testkit.perf.load.job;
 
-import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;

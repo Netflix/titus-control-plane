@@ -23,12 +23,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.grpc.ManagedChannel;
-import io.grpc.stub.AbstractStub;
-import io.grpc.stub.StreamObserver;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.grpc.GrpcUtil;
+import io.grpc.ManagedChannel;
+import io.grpc.stub.AbstractStub;
+import io.grpc.stub.StreamObserver;
 import rx.Observable;
 
 final class CellConnectorUtil {

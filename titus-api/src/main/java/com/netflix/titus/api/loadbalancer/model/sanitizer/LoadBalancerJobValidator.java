@@ -23,6 +23,7 @@ public interface LoadBalancerJobValidator {
 
     /**
      * Validates that a Job ID is capable of having a load balancer associated with it.
+     *
      * @param jobId
      * @throws Exception
      */

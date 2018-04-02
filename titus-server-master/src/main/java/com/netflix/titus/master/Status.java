@@ -25,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.master.mesos.ContainerEvent;

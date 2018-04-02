@@ -20,13 +20,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
 import io.grpc.stub.StreamObserver;
-import com.netflix.titus.gateway.service.v3.SchedulerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Subscription;

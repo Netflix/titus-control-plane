@@ -18,8 +18,6 @@ package com.netflix.titus.api.appscale.model;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class PredefinedMetricSpecification {
 
     private final String predefinedMetricType;
@@ -39,7 +37,9 @@ public class PredefinedMetricSpecification {
         return resourceLabel;
     }
 
-    public static Builder newBuilder() { return new Builder(); }
+    public static Builder newBuilder() {
+        return new Builder();
+    }
 
     public static final class Builder {
         private String predefinedMetricType;

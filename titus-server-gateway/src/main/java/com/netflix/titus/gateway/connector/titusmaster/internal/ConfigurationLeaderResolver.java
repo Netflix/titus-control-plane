@@ -29,8 +29,6 @@ import javax.inject.Singleton;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.titus.gateway.connector.titusmaster.Address;
 import com.netflix.titus.gateway.connector.titusmaster.LeaderResolver;
-import com.netflix.titus.gateway.connector.titusmaster.Address;
-import com.netflix.titus.gateway.connector.titusmaster.LeaderResolver;
 import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

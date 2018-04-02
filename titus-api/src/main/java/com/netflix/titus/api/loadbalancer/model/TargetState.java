@@ -43,12 +43,18 @@ public class TargetState {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         TargetState that = (TargetState) o;
 
-        if (!loadBalancerTarget.equals(that.loadBalancerTarget)) return false;
+        if (!loadBalancerTarget.equals(that.loadBalancerTarget)) {
+            return false;
+        }
         return state == that.state;
     }
 

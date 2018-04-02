@@ -18,8 +18,6 @@ package com.netflix.titus.master.jobmanager.service.common.action.task;
 
 import java.util.Optional;
 
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;

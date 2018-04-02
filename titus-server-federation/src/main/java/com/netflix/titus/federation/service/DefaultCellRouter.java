@@ -24,8 +24,8 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +46,7 @@ public class DefaultCellRouter implements CellRouter {
     /**
      * routeKey iterates each of the regular expressions in cell order to and returns
      * the first match it encounters. If no match, default to first cell.
+     *
      * @param key
      * @return
      */

@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 import javax.validation.constraints.Size;
 
+import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
-import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.util.CollectionsExt;
 
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;

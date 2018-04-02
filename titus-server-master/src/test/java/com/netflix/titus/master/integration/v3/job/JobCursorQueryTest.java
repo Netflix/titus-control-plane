@@ -18,6 +18,9 @@ package com.netflix.titus.master.integration.v3.job;
 
 import java.util.List;
 
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobQuery;
@@ -26,28 +29,21 @@ import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
-import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
-import io.grpc.StatusRuntimeException;
-import com.netflix.titus.api.jobmanager.model.job.Capacity;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
+import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
+import io.grpc.StatusRuntimeException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static org.assertj.core.api.Assertions.assertThat;
 

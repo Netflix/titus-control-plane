@@ -88,6 +88,7 @@ public class V2StageMetadataWritable implements V2StageMetadata {
         workerByIndexMetadataSet = new ConcurrentHashMap<>();
         workerByNumberMetadataSet = new ConcurrentHashMap<>();
     }
+
     @Override
     public String getJobId() {
         return jobId;

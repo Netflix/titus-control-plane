@@ -24,6 +24,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.common.grpc.AnonymousSessionContext;
+import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.Job;
@@ -36,9 +39,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
-import com.netflix.titus.api.federation.model.Cell;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
-import com.netflix.titus.federation.startup.GrpcConfiguration;
 import org.junit.Before;
 import org.junit.Rule;
 

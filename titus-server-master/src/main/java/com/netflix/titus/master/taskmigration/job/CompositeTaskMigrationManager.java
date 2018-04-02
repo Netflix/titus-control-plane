@@ -24,8 +24,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
-import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
-import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

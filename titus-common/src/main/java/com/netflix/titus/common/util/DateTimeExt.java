@@ -52,7 +52,7 @@ public final class DateTimeExt {
         long hour = min / 60;
         long day = hour / 24;
 
-        if(day > 0) {
+        if (day > 0) {
             sb.append(' ').append(day).append("d");
         }
         if (hour % 24 > 0) {

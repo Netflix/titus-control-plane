@@ -20,8 +20,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.testkit.client.TitusMasterClient;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;

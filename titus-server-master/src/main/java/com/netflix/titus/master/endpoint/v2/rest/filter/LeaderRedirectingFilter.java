@@ -31,7 +31,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.netflix.titus.master.endpoint.v2.rest.Util;
 import com.netflix.titus.master.cluster.LeaderActivator;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.v2.rest.Util;

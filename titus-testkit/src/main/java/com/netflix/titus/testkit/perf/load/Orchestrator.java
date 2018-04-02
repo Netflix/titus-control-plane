@@ -22,12 +22,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.testkit.perf.load.catalog.ExecutionScenarioCatalog;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
-import com.netflix.titus.testkit.perf.load.report.MetricsCollector;
-import com.netflix.titus.testkit.perf.load.report.TextReporter;
-import com.netflix.titus.testkit.perf.load.runner.ExecutionPlanRunner;
-import com.netflix.titus.testkit.perf.load.runner.Terminator;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;

@@ -23,8 +23,6 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.master.taskmigration.job.DefaultTaskMigrationManagerFactory;
 import com.netflix.titus.master.taskmigration.job.ServiceJobTaskMigrator;
-import com.netflix.titus.master.taskmigration.job.DefaultTaskMigrationManagerFactory;
-import com.netflix.titus.master.taskmigration.job.ServiceJobTaskMigrator;
 import com.netflix.titus.master.taskmigration.job.ServiceJobTaskMigratorConfig;
 
 public class TaskMigratorModule extends AbstractModule {

@@ -20,8 +20,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
-import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
-import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,

@@ -33,8 +33,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
-import com.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.v2.WorkerNaming;

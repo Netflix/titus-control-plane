@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class CustomizedMetricSpecification {
     private final List<MetricDimension> metricDimensionList;
     private final String metricName;
@@ -57,7 +55,9 @@ public class CustomizedMetricSpecification {
         return unit;
     }
 
-    public static Builder newBuilder() { return new Builder(); }
+    public static Builder newBuilder() {
+        return new Builder();
+    }
 
     public static final class Builder {
         private List<MetricDimension> metricDimensionList = new ArrayList<>();

@@ -17,7 +17,6 @@
 package com.netflix.titus.api.agent.model.event;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstance;
 
 public class AgentInstanceUpdateEvent extends AgentEvent {
 

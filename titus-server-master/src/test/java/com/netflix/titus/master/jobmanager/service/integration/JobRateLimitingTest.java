@@ -20,9 +20,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder;
-import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
-import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
@@ -39,7 +36,6 @@ import org.junit.Test;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeBatchJobSize;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeRetryPolicy;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeServiceJobCapacity;
-import static com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder.ACTIVE_NOT_STARTED_TASKS_LIMIT;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;

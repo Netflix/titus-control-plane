@@ -20,11 +20,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
-import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import com.netflix.titus.api.model.Pagination;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

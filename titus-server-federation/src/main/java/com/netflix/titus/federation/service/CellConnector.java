@@ -19,8 +19,8 @@ package com.netflix.titus.federation.service;
 import java.util.Map;
 import java.util.Optional;
 
-import io.grpc.ManagedChannel;
 import com.netflix.titus.api.federation.model.Cell;
+import io.grpc.ManagedChannel;
 
 public interface CellConnector {
     Map<Cell, ManagedChannel> getChannels();

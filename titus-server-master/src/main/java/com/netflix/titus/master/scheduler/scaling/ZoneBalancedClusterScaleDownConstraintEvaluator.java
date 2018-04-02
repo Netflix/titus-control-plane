@@ -24,7 +24,6 @@ import javax.inject.Singleton;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.plugins.BalancedScaleDownConstraintEvaluator;
-import com.netflix.titus.master.scheduler.constraint.LeaseAttributes;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.scheduler.constraint.LeaseAttributes;
 import org.slf4j.Logger;

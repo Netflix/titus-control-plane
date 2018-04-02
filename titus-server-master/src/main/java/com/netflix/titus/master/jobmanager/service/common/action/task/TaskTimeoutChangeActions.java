@@ -20,8 +20,6 @@ import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;

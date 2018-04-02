@@ -22,12 +22,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
+import com.netflix.titus.api.appscale.service.AppScaleManager;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
-import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
-import com.netflix.titus.api.appscale.service.AppScaleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;

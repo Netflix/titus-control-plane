@@ -22,10 +22,10 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

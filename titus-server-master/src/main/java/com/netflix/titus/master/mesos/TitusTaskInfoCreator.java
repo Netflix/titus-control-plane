@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
-import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.model.EfsMount;

@@ -20,9 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 
 public class CellDecorator {

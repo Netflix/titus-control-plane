@@ -38,8 +38,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.master.ConfigurationMockSamples.withExecutionEnvironment;
-import static com.netflix.titus.master.ConfigurationMockSamples.withJobSpec;
 import static com.netflix.titus.master.ConfigurationMockSamples.withJobConfiguration;
+import static com.netflix.titus.master.ConfigurationMockSamples.withJobSpec;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.TestCase.assertTrue;

@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 
 import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.tuple.Either;
 import rx.Completable;
 import rx.Observable;

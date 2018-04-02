@@ -19,7 +19,6 @@ package com.netflix.titus.gateway.service.v3.internal;
 import javax.inject.Singleton;
 
 import com.netflix.titus.gateway.service.v3.TitusManagementService;
-import com.netflix.titus.gateway.service.v3.TitusManagementService;
 
 @Singleton
 public class DefaultTitusManagementService implements TitusManagementService {

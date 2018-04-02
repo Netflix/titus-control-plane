@@ -32,8 +32,6 @@ import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-import com.netflix.titus.master.scheduler.SchedulerUtils;
-import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -17,10 +17,10 @@
 package com.netflix.titus.federation.endpoint.grpc;
 
 import com.google.inject.AbstractModule;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.common.grpc.AnonymousSessionContext;
 import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 
 public class GrpcModule extends AbstractModule {
 

@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.netflix.titus.gateway.service.v2.LogUrlService;
-import com.netflix.titus.gateway.service.v2.LogUrlService;
 
 public class NoOpLogUrlService implements LogUrlService {
     @Override

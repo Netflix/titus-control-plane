@@ -19,7 +19,6 @@ package com.netflix.titus.testkit.perf.load.catalog;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
 
 public final class ExecutionScenarioCatalog {
 

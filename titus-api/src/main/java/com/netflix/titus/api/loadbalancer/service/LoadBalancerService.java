@@ -19,7 +19,6 @@ package com.netflix.titus.api.loadbalancer.service;
 import java.util.List;
 
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -29,6 +28,7 @@ import rx.Observable;
 public interface LoadBalancerService {
     /**
      * Returns all load balancers associated to a specific job.
+     *
      * @param jobId
      * @return
      */
@@ -37,12 +37,14 @@ public interface LoadBalancerService {
     /**
      * Blocking call that returns all job/load balancer associations.
      * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
+     *
      * @return
      */
     Pair<List<JobLoadBalancer>, Pagination> getAllLoadBalancers(Page page);
 
     /**
      * Adds a load balancer to an existing job.
+     *
      * @param jobId
      * @param loadBalancerId
      * @return
@@ -51,6 +53,7 @@ public interface LoadBalancerService {
 
     /**
      * Removes a load balancer from an existing job.
+     *
      * @param jobId
      * @param loadBalancerId
      * @return

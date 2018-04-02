@@ -16,19 +16,17 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
+import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioUtil;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -38,12 +36,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.master.integration.v3.job.CellAssertions.assertCellInfo;
-import static com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.completeTask;
-import static com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
-import static com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startV2TasksInNewJob;
-import static com.netflix.titus.master.integration.v3.scenario.ScenarioUtil.baseBatchJobDescriptor;
-import static com.netflix.titus.master.integration.v3.scenario.ScenarioUtil.baseServiceJobDescriptor;
 import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
 import static org.assertj.core.api.Assertions.assertThat;
 

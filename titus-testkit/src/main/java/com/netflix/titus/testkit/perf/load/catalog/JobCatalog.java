@@ -18,7 +18,6 @@ package com.netflix.titus.testkit.perf.load.catalog;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;

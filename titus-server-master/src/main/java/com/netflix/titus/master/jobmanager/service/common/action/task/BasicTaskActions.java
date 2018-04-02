@@ -25,10 +25,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.netflix.fenzo.queues.QAttributes;
-import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
-import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -57,11 +54,9 @@ import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransfor
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import rx.Observable;
 
 import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
-import static com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction.newModelUpdate;
 
 public class BasicTaskActions {
 
@@ -115,7 +110,7 @@ public class BasicTaskActions {
                     return titusStore.updateTask(referenceTask)
                             .andThen(Observable.fromCallable(() -> {
                                 if (referenceTask.getStatus().getState() == TaskState.Finished) {
-                                    Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment((Job)engine.getReferenceView().getEntity(), capacityGroupService);
+                                    Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment((Job) engine.getReferenceView().getEntity(), capacityGroupService);
                                     QAttributes qAttributes = new V3QAttributes(tierAssignment.getLeft().ordinal(), tierAssignment.getRight());
                                     String hostName = referenceTask.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "hostUnknown");
                                     schedulingService.removeTask(referenceTask.getId(), qAttributes, hostName);

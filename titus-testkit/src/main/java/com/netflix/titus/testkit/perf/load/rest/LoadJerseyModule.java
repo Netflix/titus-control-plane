@@ -22,9 +22,9 @@ import javax.inject.Singleton;
 
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
+import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
-import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 
 public class LoadJerseyModule extends JerseyServletModule {
     @Override

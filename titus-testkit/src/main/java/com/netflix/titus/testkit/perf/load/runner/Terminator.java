@@ -25,13 +25,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobStatus;
+import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;

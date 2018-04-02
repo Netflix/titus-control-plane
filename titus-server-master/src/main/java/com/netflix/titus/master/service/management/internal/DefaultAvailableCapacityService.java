@@ -28,7 +28,6 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;

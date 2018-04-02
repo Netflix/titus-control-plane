@@ -19,13 +19,13 @@ package com.netflix.titus.master.endpoint.common.grpc.interceptor;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.master.cluster.LeaderActivator;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
-import com.netflix.titus.master.cluster.LeaderActivator;
 
 /**
  * Interceptor that that blocks all grpc calls until the system is ready.

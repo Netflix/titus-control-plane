@@ -16,8 +16,8 @@
 
 package com.netflix.titus.federation.service;
 
-import io.grpc.stub.AbstractStub;
 import com.netflix.titus.api.federation.model.Cell;
+import io.grpc.stub.AbstractStub;
 
 class CellResponse<STUB extends AbstractStub<STUB>, T> {
     private final Cell cell;

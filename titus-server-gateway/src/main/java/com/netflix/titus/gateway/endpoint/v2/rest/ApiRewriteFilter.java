@@ -30,7 +30,6 @@ import javax.servlet.http.HttpServletRequest;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.gateway.MetricConstants;
-import com.netflix.titus.gateway.MetricConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

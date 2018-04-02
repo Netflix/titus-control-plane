@@ -56,10 +56,6 @@ import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 
-import static com.netflix.titus.master.loadbalancer.service.LoadBalancerTests.applyValidGetJobMock;
-import static com.netflix.titus.master.loadbalancer.service.LoadBalancerTests.ipAddresses;
-import static com.netflix.titus.master.loadbalancer.service.LoadBalancerTests.mockConfiguration;
-import static com.netflix.titus.master.loadbalancer.service.LoadBalancerTests.mockValidationConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

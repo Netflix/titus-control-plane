@@ -31,7 +31,6 @@ import com.netflix.titus.testkit.perf.load.rest.LoadJerseyModule;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
-import com.netflix.titus.testkit.perf.load.rest.LoadJerseyModule;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;

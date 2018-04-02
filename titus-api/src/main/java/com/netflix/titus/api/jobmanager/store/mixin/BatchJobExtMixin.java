@@ -19,7 +19,6 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
-import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 
 public abstract class BatchJobExtMixin {
     @JsonCreator

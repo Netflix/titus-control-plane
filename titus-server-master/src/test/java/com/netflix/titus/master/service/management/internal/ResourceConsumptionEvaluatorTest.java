@@ -37,11 +37,6 @@ import com.netflix.titus.testkit.model.runtime.RuntimeModelGenerator;
 import org.junit.Test;
 
 import static com.netflix.titus.master.service.management.ResourceConsumptions.findConsumption;
-import static com.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.CRITICAL_SLA_1;
-import static com.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.DEFAULT_SLA;
-import static com.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.NOT_USED_SLA;
-import static com.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.capacityGroupLimit;
-import static com.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.singleWorkerConsumptionOf;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;

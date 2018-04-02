@@ -31,12 +31,6 @@ import com.netflix.titus.master.job.worker.internal.DefaultWorkerResubmitRateLim
 import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
 import com.netflix.titus.master.store.WorkerStateObserver;
 import com.netflix.titus.master.store.WorkerStateObserverImpl;
-import com.netflix.titus.master.job.worker.WorkerResubmitRateLimiter;
-import com.netflix.titus.master.job.worker.WorkerStateMonitor;
-import com.netflix.titus.master.job.worker.internal.DefaultWorkerResubmitRateLimiter;
-import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
-import com.netflix.titus.master.store.WorkerStateObserver;
-import com.netflix.titus.master.store.WorkerStateObserverImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

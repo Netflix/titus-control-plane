@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.master.agent.ServerInfo;

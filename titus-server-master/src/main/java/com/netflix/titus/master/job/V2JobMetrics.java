@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.jobmanager.service.TaskStateReport;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.WorkerNaming;

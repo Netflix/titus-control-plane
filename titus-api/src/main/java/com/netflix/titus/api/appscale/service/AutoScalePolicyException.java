@@ -17,7 +17,6 @@
 package com.netflix.titus.api.appscale.service;
 
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
-import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +82,6 @@ public class AutoScalePolicyException extends RuntimeException {
     public String getPolicyRefId() {
         return policyRefId;
     }
-
 
 
     public static AutoScalePolicyException errorCreatingPolicy(String policyRefId, String message) {

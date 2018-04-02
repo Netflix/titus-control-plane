@@ -16,8 +16,6 @@
 
 package com.netflix.titus.testkit.embedded.stack;
 
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
 import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;

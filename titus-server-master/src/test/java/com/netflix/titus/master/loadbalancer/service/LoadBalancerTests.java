@@ -30,14 +30,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
-import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
-import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
-import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
-import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.grpc.protogen.LoadBalancerId;
-import com.netflix.titus.grpc.protogen.Page;
-import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -61,6 +53,14 @@ import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
+import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
+import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.LoadBalancerId;
+import com.netflix.titus.grpc.protogen.Page;
+import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -187,7 +187,6 @@ public class LoadBalancerTests {
         assertThat(getResponse.hasError()).isFalse();
         return result;
     }
-
 
 
     /**

@@ -24,10 +24,6 @@ import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
-import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.model.Tier;
 
 public abstract class AgentInstanceGroupMixin {
     @JsonCreator

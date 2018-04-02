@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.grpc.protogen.AgentChangeEvent;
-import com.netflix.titus.grpc.protogen.HealthStatus;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.AutoScaleRule;
@@ -41,6 +39,8 @@ import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.grpc.protogen.AgentChangeEvent;
+import com.netflix.titus.grpc.protogen.HealthStatus;
 
 public class GrpcAgentModelConverters {
 

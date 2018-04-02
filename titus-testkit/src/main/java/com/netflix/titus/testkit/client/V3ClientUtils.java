@@ -19,7 +19,6 @@ package com.netflix.titus.testkit.client;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -27,6 +26,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import rx.Observable;
 

@@ -24,7 +24,6 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.mesos.MesosMasterResolver;

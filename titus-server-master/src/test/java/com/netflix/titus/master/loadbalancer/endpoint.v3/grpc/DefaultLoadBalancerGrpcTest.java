@@ -21,13 +21,12 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
-import com.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
-import com.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import com.netflix.titus.master.loadbalancer.endpoint.grpc.DefaultLoadBalancerServiceGrpc;
 import com.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
@@ -37,7 +36,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.master.loadbalancer.service.LoadBalancerTests.getMockLoadBalancerService;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class DefaultLoadBalancerGrpcTest {

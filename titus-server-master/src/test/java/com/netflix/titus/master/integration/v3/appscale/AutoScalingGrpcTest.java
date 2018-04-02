@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
@@ -29,7 +30,6 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.ScalingPolicyStatus;
-import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.master.appscale.endpoint.v3.grpc.AutoScalingTestUtils;
 import com.netflix.titus.master.appscale.service.AutoScalingPolicyTests;
 import com.netflix.titus.master.integration.BaseIntegrationTest;

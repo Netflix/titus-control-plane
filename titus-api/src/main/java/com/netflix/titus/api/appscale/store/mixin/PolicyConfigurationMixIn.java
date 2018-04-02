@@ -22,10 +22,6 @@ import com.netflix.titus.api.appscale.model.AlarmConfiguration;
 import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.api.appscale.model.StepScalingPolicyConfiguration;
 import com.netflix.titus.api.appscale.model.TargetTrackingPolicy;
-import com.netflix.titus.api.appscale.model.AlarmConfiguration;
-import com.netflix.titus.api.appscale.model.PolicyType;
-import com.netflix.titus.api.appscale.model.StepScalingPolicyConfiguration;
-import com.netflix.titus.api.appscale.model.TargetTrackingPolicy;
 
 public class PolicyConfigurationMixIn {
     @JsonCreator

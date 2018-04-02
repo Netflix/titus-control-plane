@@ -23,7 +23,6 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import com.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
 
 /**
  */

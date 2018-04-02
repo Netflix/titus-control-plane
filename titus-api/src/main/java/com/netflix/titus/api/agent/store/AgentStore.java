@@ -20,8 +20,6 @@ import java.util.List;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import rx.Completable;
 import rx.Observable;
 

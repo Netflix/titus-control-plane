@@ -23,9 +23,6 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 
-import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.countMatchingTasks;
-import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getAllTasksOnAgent;
-
 /**
  * A fitness calculator that will prefer placing tasks on agents that do not have a task with the same security groups.
  */

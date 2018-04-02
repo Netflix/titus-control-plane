@@ -29,10 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.PropertyBindingException;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
-import com.netflix.titus.runtime.endpoint.common.rest.ErrorResponses.StackTraceRepresentation;
 import org.junit.Test;
 
-import static com.netflix.titus.runtime.endpoint.common.rest.ErrorResponse.newError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;

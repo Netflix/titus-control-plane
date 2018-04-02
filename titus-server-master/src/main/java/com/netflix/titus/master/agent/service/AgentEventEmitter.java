@@ -24,16 +24,13 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.master.agent.service.cache.AgentCache;
-import com.netflix.titus.master.agent.service.cache.CacheUpdateEvent;
-import com.netflix.titus.master.agent.service.cache.CacheUpdateType;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
+import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
-import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentSnapshotEndEvent;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;

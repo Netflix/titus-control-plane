@@ -16,9 +16,9 @@
 
 package com.netflix.titus.gateway.service.v3;
 
+import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
-import com.netflix.titus.api.scheduler.service.SchedulerException;
 import rx.Completable;
 import rx.Observable;
 

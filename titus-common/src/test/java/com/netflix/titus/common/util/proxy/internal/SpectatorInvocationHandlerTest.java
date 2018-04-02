@@ -19,7 +19,6 @@ package com.netflix.titus.common.util.proxy.internal;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.util.proxy.MyApi;
-import com.netflix.titus.common.util.proxy.MyApi;
 import com.netflix.titus.common.util.proxy.ProxyCatalog;
 import org.junit.Test;
 

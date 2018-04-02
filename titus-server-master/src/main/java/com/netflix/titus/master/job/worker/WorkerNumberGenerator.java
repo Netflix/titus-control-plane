@@ -18,8 +18,6 @@ package com.netflix.titus.master.job.worker;
 
 import java.io.IOException;
 
-import com.netflix.titus.master.store.V2JobMetadataWritable;
-import com.netflix.titus.master.store.V2JobStore;
 import com.netflix.titus.api.store.v2.InvalidJobException;
 import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.master.store.V2JobMetadataWritable;

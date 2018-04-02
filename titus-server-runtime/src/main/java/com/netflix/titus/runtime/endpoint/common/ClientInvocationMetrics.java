@@ -26,7 +26,6 @@ import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import com.netflix.spectator.api.Timer;
-import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import org.slf4j.Logger;

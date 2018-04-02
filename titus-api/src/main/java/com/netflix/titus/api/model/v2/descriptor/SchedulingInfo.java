@@ -26,8 +26,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.MachineDefinition;
-import com.netflix.titus.api.model.v2.JobConstraints;
-import com.netflix.titus.api.model.v2.MachineDefinition;
 
 
 public class SchedulingInfo {

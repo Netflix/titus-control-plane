@@ -24,7 +24,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.netflix.titus.master.endpoint.v2.V2LegacyTitusServiceGateway;
 import com.netflix.titus.api.endpoint.v2.rest.representation.LogLinksRepresentation;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import com.netflix.titus.master.endpoint.v2.V2LegacyTitusServiceGateway;

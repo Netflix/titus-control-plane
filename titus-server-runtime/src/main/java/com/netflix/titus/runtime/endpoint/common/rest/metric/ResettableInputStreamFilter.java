@@ -36,7 +36,6 @@ import javax.servlet.http.HttpServletRequestWrapper;
 
 import com.google.common.io.ByteStreams;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
-import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 
 @Singleton
 public class ResettableInputStreamFilter implements Filter {

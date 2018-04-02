@@ -19,7 +19,6 @@ package com.netflix.titus.master.endpoint.v2;
 import java.util.List;
 import java.util.Set;
 
-import com.netflix.titus.master.endpoint.EndpointModelAsserts;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;

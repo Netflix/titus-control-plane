@@ -26,7 +26,6 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.plugins.BinPackingFitnessCalculators;
 import com.netflix.fenzo.plugins.WeightedAverageFitnessCalculator;
 import com.netflix.fenzo.plugins.WeightedAverageFitnessCalculator.WeightedFitnessCalculator;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 

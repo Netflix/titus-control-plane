@@ -19,8 +19,8 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 
 
 @Singleton

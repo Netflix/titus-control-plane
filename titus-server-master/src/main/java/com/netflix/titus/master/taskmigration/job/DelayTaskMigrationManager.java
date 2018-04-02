@@ -20,12 +20,6 @@ import java.util.Collection;
 
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
-import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
-import com.netflix.titus.master.taskmigration.TaskMigrationManager;
-
-import static com.netflix.titus.master.taskmigration.TaskMigrationManager.State.Pending;
-import static com.netflix.titus.master.taskmigration.TaskMigrationManager.State.Running;
-import static com.netflix.titus.master.taskmigration.TaskMigrationManager.State.Skipped;
 
 public class DelayTaskMigrationManager implements TaskMigrationManager {
 

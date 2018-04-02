@@ -21,8 +21,6 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import org.junit.rules.ExternalResource;
 
 /**

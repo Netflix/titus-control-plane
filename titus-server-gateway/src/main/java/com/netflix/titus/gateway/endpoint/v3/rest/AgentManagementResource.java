@@ -30,6 +30,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
+import com.netflix.titus.gateway.service.v3.AgentManagementService;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
@@ -39,8 +41,6 @@ import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
-import com.netflix.titus.gateway.service.v3.AgentManagementService;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import io.swagger.annotations.Api;

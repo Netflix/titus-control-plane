@@ -21,13 +21,10 @@ import javax.validation.Valid;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
-import com.netflix.titus.api.jobmanager.model.job.Capacity;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
-import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 
 /**
  */
@@ -73,15 +70,22 @@ public class ServiceJobExt implements JobDescriptor.JobDescriptorExt {
         return retryPolicy;
     }
 
-    public ServiceJobProcesses getServiceJobProcesses() { return serviceJobProcesses; }
+    public ServiceJobProcesses getServiceJobProcesses() {
+        return serviceJobProcesses;
+    }
+
     public MigrationPolicy getMigrationPolicy() {
         return migrationPolicy;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ServiceJobExt that = (ServiceJobExt) o;
 

@@ -27,12 +27,6 @@ import com.netflix.titus.master.service.management.internal.DefaultCapacityMonit
 import com.netflix.titus.master.service.management.internal.DefaultResourceConsumptionService;
 import com.netflix.titus.master.service.management.internal.ResourceConsumptionLog;
 import com.netflix.titus.master.service.management.internal.SimpleCapacityGuaranteeStrategy;
-import com.netflix.titus.master.service.management.internal.DefaultApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.internal.DefaultAvailableCapacityService;
-import com.netflix.titus.master.service.management.internal.DefaultCapacityMonitoringService;
-import com.netflix.titus.master.service.management.internal.DefaultResourceConsumptionService;
-import com.netflix.titus.master.service.management.internal.ResourceConsumptionLog;
-import com.netflix.titus.master.service.management.internal.SimpleCapacityGuaranteeStrategy;
 
 public class ManagementModule extends AbstractModule {
 

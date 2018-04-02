@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
-import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
@@ -59,7 +58,7 @@ public class JobAssertions {
 
     public Map<String, String> validateImage(Image image) {
         // As class-level constraints are evaluated after field-level constraints we have to check for null value here.
-        if(image == null) {
+        if (image == null) {
             return Collections.emptyMap();
         }
 
@@ -84,7 +83,7 @@ public class JobAssertions {
 
     public Map<String, String> notExceedsComputeResources(String capacityGroup, Container container) {
         // As class-level constraints are evaluated after field-level constraints we have to check for null value here.
-        if(container == null) {
+        if (container == null) {
             return Collections.emptyMap();
         }
         ResourceDimension maxContainerSize = maxContainerSizeResolver.apply(capacityGroup);

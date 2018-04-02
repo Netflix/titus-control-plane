@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
@@ -31,6 +29,7 @@ import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.api.store.v2.V2StageMetadata;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.store.V2JobMetadataWritable;
 import com.netflix.titus.master.store.V2WorkerMetadataWritable;
@@ -50,7 +49,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static com.netflix.titus.testkit.embedded.cloud.SimulatedClouds.basicCloud;
 import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.Assertions.assertThat;

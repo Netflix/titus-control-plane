@@ -24,7 +24,6 @@ import javax.inject.Singleton;
 import com.google.inject.Injector;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;

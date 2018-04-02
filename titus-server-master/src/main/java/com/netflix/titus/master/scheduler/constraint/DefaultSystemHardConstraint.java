@@ -23,7 +23,6 @@ import com.google.common.base.Preconditions;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import com.netflix.titus.master.scheduler.systemselector.SystemSelectorConstraintEvaluator;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.common.runtime.TitusRuntime;

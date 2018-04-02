@@ -21,11 +21,6 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
-import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.common.grpc.AnonymousSessionContext;
 import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultAgentManagementServiceGrpc;
@@ -35,6 +30,11 @@ import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultSchedulerServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 
 public class GrpcModule extends AbstractModule {
 

@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.endpoint.common.grpc.interceptor;
 
+import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses;
 import io.grpc.ForwardingServerCall;
 import io.grpc.ForwardingServerCallListener;
 import io.grpc.Metadata;
@@ -24,8 +26,6 @@ import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
-import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +61,7 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                 public void close(Status status, Metadata trailers) {
                     if (status.getCode() != Status.Code.OK) {
                         Pair<Status, Metadata> pair = ErrorResponses.of(status, trailers, debug);
-                        if(isCriticalError(status)) {
+                        if (isCriticalError(status)) {
                             logger.warn("Returning exception to the client: {}", formatStatus(pair.getLeft()));
                         } else {
                             logger.debug("Returning exception to the client: {}", formatStatus(pair.getLeft()));

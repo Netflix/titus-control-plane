@@ -20,10 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 import javax.validation.ConstraintViolation;
 
-import com.netflix.titus.common.model.sanitizer.TestModel.Child;
-import com.netflix.titus.common.model.sanitizer.TestModel.NullableChild;
-import com.netflix.titus.common.model.sanitizer.TestModel.Root;
-import com.netflix.titus.common.model.sanitizer.TestModel.StringWithPrefixCheck;
 import org.junit.Test;
 
 import static com.netflix.titus.common.util.ReflectionExt.isStandardDataType;

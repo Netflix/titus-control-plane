@@ -19,7 +19,6 @@ package com.netflix.titus.api.scheduler.service;
 import java.util.List;
 
 import com.netflix.titus.api.scheduler.model.SystemSelector;
-import com.netflix.titus.api.scheduler.model.SystemSelector;
 import rx.Completable;
 
 /**

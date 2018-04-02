@@ -35,8 +35,6 @@ import org.junit.Test;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
-import static com.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.CRITICAL_SLA_1;
-import static com.netflix.titus.master.service.management.internal.ConsumptionModelGenerator.findEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DefaultResourceConsumptionServiceTest {

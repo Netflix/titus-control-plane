@@ -28,29 +28,29 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.simulator.SimulatedMesosServiceGrpc.SimulatedMesosServiceImplBase;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedComputeResources;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedOfferEvent;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedNetworkConfiguration;
-import io.grpc.stub.StreamObserver;
-import com.netflix.titus.common.grpc.GrpcUtil;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
+import io.grpc.stub.StreamObserver;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Subscription;
 
+import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 import static com.netflix.titus.simulator.TitusCloudSimulator.Id;
 import static com.netflix.titus.simulator.TitusCloudSimulator.Ids;
 import static com.netflix.titus.simulator.TitusCloudSimulator.SimulatedOffer;
 import static com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus;
 import static com.netflix.titus.simulator.TitusCloudSimulator.TasksLaunchRequest;
-import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 
 @Singleton
 public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {

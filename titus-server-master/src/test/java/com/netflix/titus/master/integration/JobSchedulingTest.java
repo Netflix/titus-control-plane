@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;

@@ -18,7 +18,6 @@ package com.netflix.titus.testkit.cli.command.agent;
 
 import java.util.concurrent.CountDownLatch;
 
-import com.netflix.titus.testkit.util.PrettyPrinters;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
 import com.netflix.titus.testkit.rx.RxGrpcAgentManagementService;

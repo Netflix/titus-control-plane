@@ -16,10 +16,8 @@
 
 package com.netflix.titus.testkit.embedded.cloud;
 
-import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
-
-import static com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor.awsInstanceGroup;
+import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 
 /**
  * A collection of pre-configured cloud setups.

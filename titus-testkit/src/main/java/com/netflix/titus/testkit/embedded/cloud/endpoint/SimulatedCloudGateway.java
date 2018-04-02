@@ -22,20 +22,18 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedComputeResources;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup.Capacity;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
-import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
-import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import org.apache.mesos.Protos;
-
-import static com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor.awsInstanceGroup;
 
 @Singleton
 public class SimulatedCloudGateway {

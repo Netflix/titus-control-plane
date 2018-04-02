@@ -18,8 +18,6 @@ package com.netflix.titus.testkit.embedded.stack;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;

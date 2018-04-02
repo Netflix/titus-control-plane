@@ -37,8 +37,7 @@ import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -58,7 +57,6 @@ import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.job.V2JobMgrIntf;
 import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.ExecutorID;
 import org.apache.mesos.Protos.FrameworkID;
@@ -401,7 +399,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
         if (isReconcilerUpdateForUnknownTask(effectiveTaskStatus)) {
             mesosStateTracker.unknownTaskStatusUpdate(taskStatus);
-            if(!mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
+            if (!mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
                 logger.info("Ignoring reconciler triggered task status update: {}", taskId);
                 return;
             }

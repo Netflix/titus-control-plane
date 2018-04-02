@@ -21,7 +21,6 @@ import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
-import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import rx.Completable;
 import rx.Observable;
@@ -29,9 +28,14 @@ import rx.Observable;
 public interface AutoScalingService {
 
     Observable<GetPolicyResult> getJobScalingPolicies(JobId jobId);
+
     Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request);
+
     Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request);
+
     Observable<GetPolicyResult> getAllScalingPolicies();
+
     Completable deleteAutoScalingPolicy(DeletePolicyRequest request);
+
     Completable updateAutoScalingPolicy(UpdatePolicyRequest request);
 }

@@ -25,9 +25,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.netflix.titus.master.store.V2JobStore;
-import com.netflix.titus.master.store.V2StageMetadataWritable;
-import com.netflix.titus.master.store.V2WorkerMetadataWritable;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;

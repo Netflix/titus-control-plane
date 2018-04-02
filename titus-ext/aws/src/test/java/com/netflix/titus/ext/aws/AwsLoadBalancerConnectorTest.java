@@ -103,7 +103,7 @@ public class AwsLoadBalancerConnectorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertCompleted();
         testSubscriber.assertNoErrors();
-        Set<String> targetSet = ((List<Set<String>>)testSubscriber.getOnNextEvents()).get(0);
+        Set<String> targetSet = ((List<Set<String>>) testSubscriber.getOnNextEvents()).get(0);
         assertThat(targetSet.size()).isGreaterThan(0);
     }
 }

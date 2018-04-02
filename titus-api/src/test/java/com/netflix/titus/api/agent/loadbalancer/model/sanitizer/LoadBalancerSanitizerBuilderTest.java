@@ -18,8 +18,6 @@ package com.netflix.titus.api.agent.loadbalancer.model.sanitizer;
 
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
-import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import org.junit.Test;
 

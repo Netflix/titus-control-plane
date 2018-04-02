@@ -21,8 +21,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;

@@ -33,7 +33,9 @@ public class StepAdjustment {
         return scalingAdjustment;
     }
 
-    public Optional<Double> getMetricIntervalLowerBound() { return metricIntervalLowerBound; }
+    public Optional<Double> getMetricIntervalLowerBound() {
+        return metricIntervalLowerBound;
+    }
 
     public Optional<Double> getMetricIntervalUpperBound() {
         return metricIntervalUpperBound;

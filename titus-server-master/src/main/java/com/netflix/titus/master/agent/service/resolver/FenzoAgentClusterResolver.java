@@ -24,7 +24,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.agent.TitusAgent;
 import com.netflix.titus.master.agent.TitusAgentServerGroup;

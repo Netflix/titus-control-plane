@@ -22,13 +22,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.spectator.ExecutionMetrics;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityAllocations;
+import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 

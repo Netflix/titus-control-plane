@@ -22,10 +22,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
-import com.netflix.titus.master.taskmigration.TaskMigrationManager;
-import com.netflix.titus.master.taskmigration.V2TaskMigrationDetails;
-import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;

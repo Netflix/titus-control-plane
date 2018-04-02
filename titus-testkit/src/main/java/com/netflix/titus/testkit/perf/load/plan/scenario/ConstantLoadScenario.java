@@ -17,8 +17,6 @@
 package com.netflix.titus.testkit.perf.load.plan.scenario;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;

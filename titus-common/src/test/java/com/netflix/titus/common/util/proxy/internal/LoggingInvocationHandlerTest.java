@@ -16,7 +16,6 @@
 
 package com.netflix.titus.common.util.proxy.internal;
 
-import com.netflix.titus.common.util.proxy.MyApi;
 import com.netflix.titus.common.util.proxy.LoggingProxyBuilder;
 import com.netflix.titus.common.util.proxy.MyApi;
 import com.netflix.titus.common.util.proxy.ProxyCatalog;

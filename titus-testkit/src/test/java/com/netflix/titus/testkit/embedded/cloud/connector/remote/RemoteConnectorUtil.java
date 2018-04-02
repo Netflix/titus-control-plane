@@ -19,8 +19,6 @@ package com.netflix.titus.testkit.embedded.cloud.connector.remote;
 import com.google.inject.AbstractModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloudConfiguration;
-import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudEndpointModule;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloudConfiguration;

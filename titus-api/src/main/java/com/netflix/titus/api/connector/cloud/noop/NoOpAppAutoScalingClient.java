@@ -18,8 +18,6 @@ package com.netflix.titus.api.connector.cloud.noop;
 
 import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.PolicyConfiguration;
-import com.netflix.titus.api.appscale.model.AutoScalableTarget;
-import com.netflix.titus.api.appscale.model.PolicyConfiguration;
 import com.netflix.titus.api.connector.cloud.AppAutoScalingClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

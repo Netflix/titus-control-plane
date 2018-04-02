@@ -22,8 +22,6 @@ import java.util.Set;
 
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.JobCompletedReason;
-import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.common.util.CollectionsExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

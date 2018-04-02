@@ -24,12 +24,12 @@ import java.util.Optional;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.rx.ObservableExt;
 import io.grpc.Attributes;
 import io.grpc.EquivalentAddressGroup;
 import io.grpc.NameResolver;
 import io.grpc.Status;
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ObservableExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Subscription;

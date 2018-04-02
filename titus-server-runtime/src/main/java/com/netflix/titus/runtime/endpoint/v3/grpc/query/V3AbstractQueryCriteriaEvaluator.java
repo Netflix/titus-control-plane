@@ -24,17 +24,16 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.grpc.protogen.JobStatus;
-import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.endpoint.common.QueryUtils;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobStatus;
+import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import com.netflix.titus.runtime.endpoint.common.QueryUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 
 public abstract class V3AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements Predicate<Pair<Job<?>, TASK_OR_SET>> {

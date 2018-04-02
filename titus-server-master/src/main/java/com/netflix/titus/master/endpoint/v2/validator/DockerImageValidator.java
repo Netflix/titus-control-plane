@@ -19,7 +19,6 @@ package com.netflix.titus.master.endpoint.v2.validator;
 import java.util.regex.Pattern;
 
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 
 public class DockerImageValidator implements TitusJobSpecValidators.Validator {
     private static Pattern imagePattern = Pattern.compile("[a-zA-Z0-9\\.\\\\/_-]+");

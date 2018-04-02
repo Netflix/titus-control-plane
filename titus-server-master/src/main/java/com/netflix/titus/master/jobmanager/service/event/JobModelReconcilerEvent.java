@@ -18,7 +18,6 @@ package com.netflix.titus.master.jobmanager.service.event;
 
 import java.util.Optional;
 
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;

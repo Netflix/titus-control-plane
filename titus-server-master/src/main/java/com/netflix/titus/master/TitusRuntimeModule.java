@@ -27,10 +27,6 @@ import com.google.inject.Provides;
 import com.google.protobuf.util.JsonFormat;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.cluster.LeaderActivator;
-import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
-import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.runtime.Fit;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStoreFitAction;
 import com.netflix.titus.common.framework.fit.FitAction;
@@ -52,6 +48,7 @@ import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
 import com.netflix.titus.master.cluster.LeaderActivator;
 import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
 import com.netflix.titus.master.scheduler.SchedulingService;
+import com.netflix.titus.runtime.Fit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

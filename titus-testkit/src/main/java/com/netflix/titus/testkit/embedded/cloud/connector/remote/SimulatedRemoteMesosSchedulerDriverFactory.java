@@ -20,10 +20,10 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;

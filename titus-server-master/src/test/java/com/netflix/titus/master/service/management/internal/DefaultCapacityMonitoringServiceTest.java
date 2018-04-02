@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.master.service.management.BeanCapacityManagementConfiguration;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.ApplicationSLA;

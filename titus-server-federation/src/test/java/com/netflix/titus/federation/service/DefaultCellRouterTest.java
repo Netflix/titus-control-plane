@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 public class DefaultCellRouterTest {
     private static Logger logger = LoggerFactory.getLogger(DefaultCellRouterTest.class);
+
     /**
      * Tests loading cell and routing info from config and that we route to expected cells.
      */

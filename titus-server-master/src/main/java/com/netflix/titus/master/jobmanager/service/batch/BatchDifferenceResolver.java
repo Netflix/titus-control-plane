@@ -27,14 +27,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
-import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
-import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
-import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
-import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
@@ -73,10 +65,6 @@ import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskActions.createOrReplaceTaskAction;
-import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.areEquivalent;
-import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.findTaskStateTimeouts;
-import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.hasJobState;
-import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.shouldRetry;
 
 @Singleton
 public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobManagerReconcilerEvent> {

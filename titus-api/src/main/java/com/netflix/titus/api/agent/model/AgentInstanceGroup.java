@@ -22,11 +22,9 @@ import javax.validation.constraints.Min;
 
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.model.ResourceDimension;
-import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
-import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 @ClassInvariant.List({
         @ClassInvariant(condition = "min <= desired", message = "'min'(#{min}) must be <= 'desired'(#{desired})"),

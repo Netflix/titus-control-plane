@@ -18,13 +18,12 @@ package com.netflix.titus.testkit.stub.connector.cloud;
 
 import java.util.Collections;
 
-import com.netflix.titus.testkit.model.PrimitiveValueGenerators;
-import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.Instance;
+import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.testkit.model.PrimitiveValueGenerators;
 
 import static com.netflix.titus.common.data.generator.DataGenerator.range;
-import static com.netflix.titus.testkit.model.PrimitiveValueGenerators.ipv4CIDRs;
 
 /**
  * Test data generator.

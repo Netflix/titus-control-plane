@@ -36,8 +36,6 @@ import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.cli.CliCommand;
-import com.netflix.titus.testkit.cli.CommandContext;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;

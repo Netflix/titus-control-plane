@@ -16,24 +16,21 @@
 
 package com.netflix.titus.ext.cassandra.store;
 
-import com.netflix.titus.api.jobmanager.store.JobStoreException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Supplier;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.store.JobStoreException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Emitter;
 import rx.Observable;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.function.Supplier;
 
 
 public class CassStoreHelper {

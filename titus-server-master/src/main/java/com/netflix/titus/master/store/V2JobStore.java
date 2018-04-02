@@ -37,7 +37,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.api.audit.model.AuditLogEvent;
 import com.netflix.titus.api.audit.service.AuditLogService;
 import com.netflix.titus.api.model.event.TaskStateChangeEvent;

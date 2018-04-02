@@ -20,6 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.gateway.service.v3.LoadBalancerService;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
@@ -27,7 +28,6 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import io.grpc.stub.StreamObserver;
-import com.netflix.titus.gateway.service.v3.LoadBalancerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Subscription;

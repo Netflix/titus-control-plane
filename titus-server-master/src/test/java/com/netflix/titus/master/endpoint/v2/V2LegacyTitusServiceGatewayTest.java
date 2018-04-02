@@ -19,7 +19,6 @@ package com.netflix.titus.master.endpoint.v2;
 import java.util.UUID;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.master.endpoint.EndpointModelAsserts;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;

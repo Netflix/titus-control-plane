@@ -16,9 +16,9 @@
 
 package com.netflix.titus.runtime.endpoint.v3.grpc;
 
-import io.grpc.stub.StreamObserver;
-import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.grpc.protogen.Page;
+import io.grpc.stub.StreamObserver;
 
 /**
  * Helper method for APIs using pagination.

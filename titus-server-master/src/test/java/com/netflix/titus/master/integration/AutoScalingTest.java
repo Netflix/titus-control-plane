@@ -16,10 +16,9 @@
 
 package com.netflix.titus.master.integration;
 
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.common.aws.AwsInstanceType;
+import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -30,7 +29,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.activate;
 import static com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor.awsInstanceGroup;
 import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
 import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack.aTitusStack;

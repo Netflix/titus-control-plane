@@ -19,7 +19,6 @@ package com.netflix.titus.master.audit.service;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.audit.model.AuditLogEvent;
-import com.netflix.titus.master.audit.service.DefaultAuditLogService;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;
 

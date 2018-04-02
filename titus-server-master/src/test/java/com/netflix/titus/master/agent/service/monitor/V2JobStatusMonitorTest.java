@@ -50,7 +50,7 @@ public class V2JobStatusMonitorTest {
     private static final AgentStatus JOB_STATUS_BAD = AgentStatus.unhealthy(
             V2JobStatusMonitor.SOURCE_ID, StatusSamples.SAMPLE_AGENT_1, V2JobStatusMonitor.UNHEALTHY_MESSAGE, 0
     );
-    private static final AgentStatus JOB_STATUS_TERMINATED = AgentStatus.terminated(V2JobStatusMonitor.SOURCE_ID, StatusSamples.SAMPLE_AGENT_1,V2JobStatusMonitor.TERMINATED_MESSAGE,  0);
+    private static final AgentStatus JOB_STATUS_TERMINATED = AgentStatus.terminated(V2JobStatusMonitor.SOURCE_ID, StatusSamples.SAMPLE_AGENT_1, V2JobStatusMonitor.TERMINATED_MESSAGE, 0);
 
     private final TestScheduler testScheduler = Schedulers.test();
     private final MonitorTestSubscriber monitorSubscriber = new MonitorTestSubscriber();

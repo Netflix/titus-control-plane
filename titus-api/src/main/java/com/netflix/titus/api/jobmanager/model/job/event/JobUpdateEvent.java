@@ -19,7 +19,6 @@ package com.netflix.titus.api.jobmanager.model.job.event;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Job;
 
 public class JobUpdateEvent extends JobManagerEvent<Job> {
     private JobUpdateEvent(Job current, Optional<Job> previous) {

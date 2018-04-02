@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.HealthState;
@@ -32,6 +31,7 @@ import com.netflix.titus.api.agent.model.InstanceLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.AgentQuery;
 
 import static com.netflix.titus.common.util.StringExt.parseEnumIgnoreCase;
 import static com.netflix.titus.common.util.StringExt.splitByComma;

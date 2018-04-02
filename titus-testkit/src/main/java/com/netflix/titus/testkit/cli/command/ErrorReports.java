@@ -18,7 +18,6 @@ package com.netflix.titus.testkit.cli.command;
 
 import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import io.grpc.StatusRuntimeException;
-import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

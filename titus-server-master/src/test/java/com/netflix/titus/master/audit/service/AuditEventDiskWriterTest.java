@@ -26,8 +26,6 @@ import com.netflix.titus.api.audit.service.AuditLogService;
 import com.netflix.titus.api.model.event.UserRequestEvent;
 import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
-import com.netflix.titus.master.audit.service.AuditEventDiskWriter;
-import com.netflix.titus.master.audit.service.AuditLogConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

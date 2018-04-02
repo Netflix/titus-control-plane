@@ -22,8 +22,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
@@ -31,6 +29,7 @@ import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import com.netflix.titus.common.network.client.RxRestClientException;
 import com.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
@@ -53,7 +52,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.jayway.awaitility.Awaitility.await;
-import static com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates.basicSetupActivation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.Matchers.hasSize;

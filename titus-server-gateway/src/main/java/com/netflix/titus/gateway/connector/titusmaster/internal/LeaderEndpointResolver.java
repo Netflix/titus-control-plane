@@ -18,8 +18,6 @@ package com.netflix.titus.gateway.connector.titusmaster.internal;
 
 import java.util.Optional;
 
-import com.netflix.titus.gateway.connector.titusmaster.Address;
-import com.netflix.titus.gateway.connector.titusmaster.LeaderResolver;
 import com.netflix.titus.common.network.http.EndpointResolver;
 import com.netflix.titus.gateway.connector.titusmaster.Address;
 import com.netflix.titus.gateway.connector.titusmaster.LeaderResolver;

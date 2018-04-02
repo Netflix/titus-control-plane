@@ -21,6 +21,7 @@ import java.util.List;
 import javax.ws.rs.core.Response;
 
 import com.google.protobuf.DoubleValue;
+import com.netflix.titus.federation.endpoint.rest.AutoScalingResource;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicy;
@@ -28,7 +29,6 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
-import com.netflix.titus.federation.endpoint.rest.AutoScalingResource;
 import com.netflix.titus.runtime.endpoint.common.rest.RestException;
 import org.junit.Test;
 

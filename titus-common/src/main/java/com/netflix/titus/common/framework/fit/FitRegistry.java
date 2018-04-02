@@ -43,7 +43,7 @@ public interface FitRegistry {
      * Add new FIT action kind to the registry.
      *
      * @param descriptor action descriptor
-     * @param factory action creator
+     * @param factory    action creator
      */
     void registerActionKind(FitActionDescriptor descriptor, BiFunction<String, Map<String, String>, Function<FitInjection, FitAction>> factory);
 }

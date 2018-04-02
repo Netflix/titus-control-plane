@@ -19,7 +19,6 @@ package com.netflix.titus.master.agent.service.monitor;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.titus.master.config.ConfigurationConstants;
-import com.netflix.titus.master.config.ConfigurationConstants;
 
 /**
  * Agent monitor configuration.

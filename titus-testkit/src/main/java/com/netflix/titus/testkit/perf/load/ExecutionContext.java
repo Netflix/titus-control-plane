@@ -22,8 +22,8 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
-import io.grpc.ManagedChannel;
 import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
+import io.grpc.ManagedChannel;
 
 @Singleton
 public class ExecutionContext {

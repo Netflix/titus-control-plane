@@ -28,9 +28,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.cassandra.tool.CassandraSchemas;
 import com.netflix.titus.ext.cassandra.tool.CassandraUtils;
-import com.netflix.titus.common.util.tuple.Pair;
 import rx.Observable;
 
 /**

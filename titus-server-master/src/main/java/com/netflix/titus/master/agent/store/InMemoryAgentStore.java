@@ -19,7 +19,6 @@ package com.netflix.titus.master.agent.store;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.model.AgentInstance;

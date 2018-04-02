@@ -37,6 +37,6 @@ public class ComputeResources {
     }
 
     public static String asHostname(String ipAddress, String instanceGroupName) {
-        return ipAddress.replace('.', '_') + '.' + instanceGroupName +  ".titus.dev";
+        return ipAddress.replace('.', '_') + '.' + instanceGroupName + ".titus.dev";
     }
 }

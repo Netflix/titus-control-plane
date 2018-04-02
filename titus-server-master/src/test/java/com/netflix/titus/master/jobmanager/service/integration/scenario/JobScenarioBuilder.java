@@ -52,7 +52,6 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
-import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedVirtualMachineMasterService.MesosEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.Subscriber;

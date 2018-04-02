@@ -26,8 +26,6 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.testkit.embedded.cloud.endpoint.EmbeddedJerseyModule;
 import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudEndpointModule;
-import com.netflix.titus.testkit.embedded.cloud.endpoint.EmbeddedJerseyModule;
-import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudEndpointModule;
 
 public class EmbeddedCloudModule extends AbstractModule {
     @Override

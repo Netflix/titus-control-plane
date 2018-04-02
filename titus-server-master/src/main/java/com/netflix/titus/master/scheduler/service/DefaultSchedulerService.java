@@ -20,7 +20,6 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.scheduler.systemselector.SystemSelectorService;
 import com.netflix.titus.api.scheduler.model.SystemSelector;
 import com.netflix.titus.api.scheduler.service.SchedulerService;
 import com.netflix.titus.common.util.guice.annotation.Activator;

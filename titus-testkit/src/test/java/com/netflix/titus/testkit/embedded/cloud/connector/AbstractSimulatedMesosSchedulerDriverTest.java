@@ -24,13 +24,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
-import com.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;

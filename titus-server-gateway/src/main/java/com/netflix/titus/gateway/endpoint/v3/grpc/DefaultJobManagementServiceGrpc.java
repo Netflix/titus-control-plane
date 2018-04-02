@@ -20,6 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.gateway.service.v3.JobManagementService;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -36,7 +37,6 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import io.grpc.stub.StreamObserver;
-import com.netflix.titus.gateway.service.v3.JobManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;

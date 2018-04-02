@@ -21,9 +21,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Pagination;
-import com.netflix.titus.common.util.tuple.Pair;
 
 final class PageAggregationUtil {
     private PageAggregationUtil() {

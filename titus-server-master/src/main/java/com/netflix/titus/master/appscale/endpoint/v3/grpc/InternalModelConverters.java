@@ -20,13 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.grpc.protogen.PutPolicyRequest;
-import com.netflix.titus.grpc.protogen.ScalingPolicy;
-import com.netflix.titus.grpc.protogen.StepAdjustments;
-import com.netflix.titus.grpc.protogen.StepScalingPolicy;
-import com.netflix.titus.grpc.protogen.StepScalingPolicyDescriptor;
-import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
-import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import com.netflix.titus.api.appscale.model.AlarmConfiguration;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import com.netflix.titus.api.appscale.model.ComparisonOperator;
@@ -41,6 +34,13 @@ import com.netflix.titus.api.appscale.model.StepAdjustment;
 import com.netflix.titus.api.appscale.model.StepAdjustmentType;
 import com.netflix.titus.api.appscale.model.StepScalingPolicyConfiguration;
 import com.netflix.titus.api.appscale.model.TargetTrackingPolicy;
+import com.netflix.titus.grpc.protogen.PutPolicyRequest;
+import com.netflix.titus.grpc.protogen.ScalingPolicy;
+import com.netflix.titus.grpc.protogen.StepAdjustments;
+import com.netflix.titus.grpc.protogen.StepScalingPolicy;
+import com.netflix.titus.grpc.protogen.StepScalingPolicyDescriptor;
+import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
+import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -236,7 +236,7 @@ public class InternalModelConverters {
         List<StepAdjustment> stepAdjustmentList = new ArrayList<>();
         stepAdjustmentsGrpcList.forEach((stepAdjustments) -> {
             stepAdjustmentList.add(toStepAdjustment(stepAdjustments));
-                });
+        });
         return stepAdjustmentList;
     }
 

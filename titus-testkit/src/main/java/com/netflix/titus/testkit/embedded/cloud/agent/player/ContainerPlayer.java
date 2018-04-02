@@ -18,8 +18,8 @@ package com.netflix.titus.testkit.embedded.cloud.agent.player;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedTaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedTaskState;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;

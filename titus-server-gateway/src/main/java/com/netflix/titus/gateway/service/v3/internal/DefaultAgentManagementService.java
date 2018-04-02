@@ -23,6 +23,11 @@ import javax.inject.Singleton;
 import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.agent.model.AutoScaleRule;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.gateway.service.v3.AgentManagementService;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
@@ -37,15 +42,8 @@ import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import io.grpc.stub.StreamObserver;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
-import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.GrpcUtil;
-import com.netflix.titus.common.grpc.SessionContext;
-import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.gateway.service.v3.AgentManagementService;
-import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
+import io.grpc.stub.StreamObserver;
 import rx.Completable;
 import rx.Observable;
 

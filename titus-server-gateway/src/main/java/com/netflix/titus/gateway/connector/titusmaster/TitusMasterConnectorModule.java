@@ -22,18 +22,6 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
-import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
-import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
-import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
-import io.grpc.Channel;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerResourceValidator;
@@ -49,6 +37,18 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.gateway.connector.titusmaster.internal.ConfigurationLeaderResolver;
 import com.netflix.titus.gateway.connector.titusmaster.internal.LeaderEndpointResolver;
 import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
+import io.grpc.Channel;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import okhttp3.Interceptor;
 
 public class TitusMasterConnectorModule extends AbstractModule {

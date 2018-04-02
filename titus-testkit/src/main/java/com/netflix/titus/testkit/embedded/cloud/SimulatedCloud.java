@@ -28,14 +28,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.testkit.embedded.cloud.agent.AgentChangeEvent;
-import com.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
-import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import com.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
-import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
-import com.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -53,8 +45,6 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
-
-import static com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
 
 public class SimulatedCloud {
 

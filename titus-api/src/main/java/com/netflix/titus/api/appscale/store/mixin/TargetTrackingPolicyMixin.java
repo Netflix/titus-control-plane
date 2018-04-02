@@ -22,8 +22,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.appscale.model.CustomizedMetricSpecification;
 import com.netflix.titus.api.appscale.model.PredefinedMetricSpecification;
-import com.netflix.titus.api.appscale.model.CustomizedMetricSpecification;
-import com.netflix.titus.api.appscale.model.PredefinedMetricSpecification;
 
 public class TargetTrackingPolicyMixin {
     @JsonCreator

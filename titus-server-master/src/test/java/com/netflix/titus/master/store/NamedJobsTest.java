@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.netflix.titus.api.audit.service.AuditLogService;
 import com.netflix.titus.api.model.v2.JobOwner;
 import com.netflix.titus.api.model.v2.MachineDefinition;
 import com.netflix.titus.api.model.v2.NamedJobDefinition;
@@ -31,7 +32,6 @@ import com.netflix.titus.api.model.v2.V2JobDefinition;
 import com.netflix.titus.api.model.v2.descriptor.SchedulingInfo;
 import com.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
 import com.netflix.titus.api.model.v2.parameter.Parameter;
-import com.netflix.titus.api.audit.service.AuditLogService;
 import com.netflix.titus.master.config.MasterConfiguration;
 import junit.framework.Assert;
 import junit.framework.TestCase;

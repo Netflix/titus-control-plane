@@ -24,10 +24,6 @@ import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
-import com.netflix.titus.api.jobmanager.model.job.Container;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
-import com.netflix.titus.api.jobmanager.model.job.Owner;
 
 public abstract class JobDescriptorMixin {
     @JsonCreator

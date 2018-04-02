@@ -20,16 +20,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-
-import com.netflix.titus.common.util.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import com.netflix.titus.common.util.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LoadBalancerCursors {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerCursors.class);

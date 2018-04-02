@@ -29,7 +29,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.netflix.fenzo.queues.TaskQueue;
 import com.netflix.titus.master.endpoint.common.QueueSummary;
-import com.netflix.titus.master.endpoint.common.QueueSummary;
 
 /**
  * REST API for internal usage.

@@ -22,8 +22,6 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.zookeeper.CuratorService;
-import com.netflix.titus.master.zookeeper.ZookeeperPaths;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.master.zookeeper.CuratorService;
 import com.netflix.titus.master.zookeeper.ZookeeperPaths;

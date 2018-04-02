@@ -18,8 +18,6 @@ package com.netflix.titus.testkit.embedded.stack;
 
 import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.perf.load.LoadGenerator;
 import org.apache.log4j.PropertyConfigurator;
 

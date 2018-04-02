@@ -19,11 +19,11 @@ package com.netflix.titus.federation.service;
 import java.util.concurrent.CountDownLatch;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.grpc.GrpcUtil;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
-import com.netflix.titus.common.grpc.GrpcUtil;
 import rx.Emitter;
 
 /**

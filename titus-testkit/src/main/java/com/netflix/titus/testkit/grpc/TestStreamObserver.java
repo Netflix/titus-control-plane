@@ -27,10 +27,10 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 import com.google.rpc.BadRequest;
-import io.grpc.StatusRuntimeException;
-import io.grpc.stub.ServerCallStreamObserver;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.ServerCallStreamObserver;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 
@@ -148,7 +148,7 @@ public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
 
     public void awaitDone() throws InterruptedException {
         terminatedLatch.await();
-        if(hasError()) {
+        if (hasError()) {
             throw new IllegalStateException("GRPC stream terminated with an error", error);
         }
     }

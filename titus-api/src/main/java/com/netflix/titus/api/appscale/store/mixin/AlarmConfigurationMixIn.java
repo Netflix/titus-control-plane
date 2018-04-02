@@ -23,8 +23,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.appscale.model.ComparisonOperator;
 import com.netflix.titus.api.appscale.model.Statistic;
-import com.netflix.titus.api.appscale.model.ComparisonOperator;
-import com.netflix.titus.api.appscale.model.Statistic;
 
 public abstract class AlarmConfigurationMixIn {
     @JsonCreator

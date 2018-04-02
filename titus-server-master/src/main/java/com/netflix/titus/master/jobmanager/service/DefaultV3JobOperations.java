@@ -27,15 +27,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
-import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobActions;
-import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
-import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
-import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -73,16 +64,13 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobAc
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
-
-import static com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction.newModelUpdate;
 
 @Singleton
 @ProxyConfiguration(types = ProxyType.ActiveGuard)

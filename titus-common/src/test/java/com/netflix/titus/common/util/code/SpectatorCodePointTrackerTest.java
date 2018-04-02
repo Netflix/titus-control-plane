@@ -19,7 +19,6 @@ package com.netflix.titus.common.util.code;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.util.code.CodePointTracker.CodePoint;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 

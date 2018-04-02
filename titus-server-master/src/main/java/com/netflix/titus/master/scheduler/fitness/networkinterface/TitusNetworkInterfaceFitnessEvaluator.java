@@ -21,7 +21,6 @@ import javax.inject.Singleton;
 
 import com.netflix.fenzo.DefaultPreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;

@@ -17,7 +17,6 @@
 package com.netflix.titus.api.agent.service;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstance;
 
 public class AgentManagementException extends RuntimeException {
 

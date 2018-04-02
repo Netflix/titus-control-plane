@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.endpoint.v2;
 
-import com.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil;
 import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.api.service.TitusServiceException.ErrorCode;
@@ -25,10 +24,9 @@ import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.ApiOperations;
 import com.netflix.titus.master.endpoint.TitusServiceGateway;
+import com.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil;
 import com.netflix.titus.master.job.JobUpdateException;
 import rx.Observable;
-
-import static com.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil.newObservable;
 
 /**
  *

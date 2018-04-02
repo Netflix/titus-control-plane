@@ -30,7 +30,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.service.management.ResourceConsumptions;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -48,6 +47,7 @@ import com.netflix.titus.master.service.management.ResourceConsumptionEvents.Cap
 import com.netflix.titus.master.service.management.ResourceConsumptionEvents.CapacityGroupUndefinedEvent;
 import com.netflix.titus.master.service.management.ResourceConsumptionEvents.ResourceConsumptionEvent;
 import com.netflix.titus.master.service.management.ResourceConsumptionService;
+import com.netflix.titus.master.service.management.ResourceConsumptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -57,7 +57,6 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
-import static com.netflix.titus.master.service.management.ResourceConsumptions.groupBy;
 
 /**
  * Periodically checks for SLA violations, and a pre-configured interval.

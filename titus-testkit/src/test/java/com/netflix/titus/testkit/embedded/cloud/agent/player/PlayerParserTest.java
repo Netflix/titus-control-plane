@@ -20,10 +20,10 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedTaskState;
 import com.netflix.titus.common.util.NumberSequence;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedTaskState;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

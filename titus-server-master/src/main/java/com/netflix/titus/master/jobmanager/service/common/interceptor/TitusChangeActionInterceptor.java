@@ -18,9 +18,8 @@ package com.netflix.titus.master.jobmanager.service.common.interceptor;
 
 import java.util.function.Function;
 
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
-import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
+import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 
 /**
  */

@@ -19,9 +19,9 @@ package com.netflix.titus.master.integration.v3.scenario;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
-import com.netflix.titus.api.jobmanager.model.job.JobState;
 
 /**
  */

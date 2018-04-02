@@ -16,8 +16,6 @@
 
 package com.netflix.titus.master;
 
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
-import com.netflix.titus.master.endpoint.v2.validator.TitusJobSpecValidators;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;

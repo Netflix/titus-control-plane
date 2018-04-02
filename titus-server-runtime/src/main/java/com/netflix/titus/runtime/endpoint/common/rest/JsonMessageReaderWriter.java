@@ -75,7 +75,7 @@ public class JsonMessageReaderWriter implements MessageBodyReader<Object>, Messa
     private static final Validator VALIDATION = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Context
-    /* Visible for testing */ HttpServletRequest httpServletRequest;
+            /* Visible for testing */ HttpServletRequest httpServletRequest;
 
     private static ObjectMapper createObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();

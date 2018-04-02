@@ -18,12 +18,10 @@ package com.netflix.titus.testkit.embedded.cloud;
 
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
-import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
+import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import com.netflix.titus.testkit.perf.load.LoadGenerator;
 import org.apache.log4j.PropertyConfigurator;
-
-import static com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor.awsInstanceGroup;
 
 public class SimulatedCloudRunner {
 

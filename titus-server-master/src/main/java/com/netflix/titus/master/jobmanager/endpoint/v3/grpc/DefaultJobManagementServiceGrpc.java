@@ -27,6 +27,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.model.Pagination;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.common.util.ProtobufCopy;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -46,28 +51,23 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import com.netflix.titus.master.endpoint.TitusServiceGateway;
+import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-import com.netflix.titus.api.model.Pagination;
-import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.SessionContext;
-import com.netflix.titus.common.util.ProtobufCopy;
-import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.endpoint.TitusServiceGateway;
-import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 import static com.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 
 @Singleton
 public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {

@@ -21,14 +21,13 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

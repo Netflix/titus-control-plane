@@ -23,15 +23,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.netflix.titus.api.model.Page;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.api.model.Page;
-import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;

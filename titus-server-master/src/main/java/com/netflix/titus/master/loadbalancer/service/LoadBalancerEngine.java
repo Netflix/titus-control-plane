@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
@@ -39,7 +40,6 @@ import com.netflix.titus.common.util.rx.batch.LargestPerTimeBucket;
 import com.netflix.titus.common.util.rx.batch.Priority;
 import com.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;

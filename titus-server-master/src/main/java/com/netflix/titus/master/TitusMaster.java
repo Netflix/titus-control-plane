@@ -30,12 +30,11 @@ import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.zookeeper.ZookeeperModule;
-import com.sampullara.cli.Args;
-import com.sampullara.cli.Argument;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.guice.ContainerEventBus;
 import com.netflix.titus.master.zookeeper.ZookeeperModule;
+import com.sampullara.cli.Args;
+import com.sampullara.cli.Argument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,12 +19,12 @@ package com.netflix.titus.federation.endpoint.grpc;
 import javax.inject.Inject;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.federation.service.JobManagementService;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import io.grpc.stub.StreamObserver;
-import com.netflix.titus.federation.service.JobManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Subscription;

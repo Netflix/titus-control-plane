@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.netflix.titus.testkit.model.runtime.RuntimeModelGenerator;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobState;

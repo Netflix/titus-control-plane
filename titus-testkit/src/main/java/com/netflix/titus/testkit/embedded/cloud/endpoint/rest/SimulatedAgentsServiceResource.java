@@ -33,15 +33,13 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudGateway;
 import com.netflix.titus.testkit.embedded.cloud.endpoint.rest.representation.AddSimulatedInstanceGroup;
 import com.sun.jersey.spi.resource.Singleton;
-import com.netflix.titus.common.aws.AwsInstanceType;
-import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudGateway;
-import com.netflix.titus.testkit.embedded.cloud.endpoint.rest.representation.AddSimulatedInstanceGroup;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)

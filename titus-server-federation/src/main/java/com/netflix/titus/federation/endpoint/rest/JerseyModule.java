@@ -24,13 +24,13 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
-import com.sun.jersey.api.core.DefaultResourceConfig;
-import com.sun.jersey.guice.JerseyServletModule;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter;
 import com.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
+import com.sun.jersey.api.core.DefaultResourceConfig;
+import com.sun.jersey.guice.JerseyServletModule;
 
 /**
  * We use this module to wire up our endpoints.

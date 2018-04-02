@@ -20,9 +20,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.store.NamedJob;
-import com.netflix.titus.master.store.V2JobStore;
 import com.netflix.titus.api.store.v2.InvalidJobException;
 import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;

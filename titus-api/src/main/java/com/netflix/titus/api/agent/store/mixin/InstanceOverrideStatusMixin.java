@@ -19,7 +19,6 @@ package com.netflix.titus.api.agent.store.mixin;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.agent.model.InstanceOverrideState;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
 
 public abstract class InstanceOverrideStatusMixin {
     @JsonCreator

@@ -22,6 +22,7 @@ import com.google.protobuf.BoolValue;
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
+import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.grpc.protogen.AlarmConfiguration;
 import com.netflix.titus.grpc.protogen.CustomizedMetricSpecification;
 import com.netflix.titus.grpc.protogen.MetricDimension;
@@ -33,7 +34,6 @@ import com.netflix.titus.grpc.protogen.StepScalingPolicy;
 import com.netflix.titus.grpc.protogen.StepScalingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
-import com.netflix.titus.api.appscale.model.PolicyType;
 
 public class AutoScalingTestUtils {
 

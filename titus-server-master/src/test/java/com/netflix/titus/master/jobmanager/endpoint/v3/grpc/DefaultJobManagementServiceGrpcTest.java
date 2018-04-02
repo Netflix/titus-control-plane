@@ -19,6 +19,8 @@ package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 import java.util.Optional;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -31,8 +33,6 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
-import com.netflix.titus.common.grpc.SessionContext;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusServiceGateway;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;

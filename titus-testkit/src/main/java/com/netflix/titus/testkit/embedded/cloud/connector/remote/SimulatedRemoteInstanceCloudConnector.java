@@ -27,13 +27,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
-import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceStub;
-import com.netflix.titus.simulator.TitusCloudSimulator;
-import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
-import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
@@ -46,6 +39,13 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
+import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
+import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceStub;
+import com.netflix.titus.simulator.TitusCloudSimulator;
+import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
+import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import rx.Completable;
 import rx.Observable;
 

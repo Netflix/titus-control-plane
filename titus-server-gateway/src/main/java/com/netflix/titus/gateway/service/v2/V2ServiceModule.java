@@ -18,7 +18,6 @@ package com.netflix.titus.gateway.service.v2;
 
 import com.google.inject.AbstractModule;
 import com.netflix.titus.gateway.service.v2.internal.NoOpLogUrlService;
-import com.netflix.titus.gateway.service.v2.internal.NoOpLogUrlService;
 
 public class V2ServiceModule extends AbstractModule {
     @Override

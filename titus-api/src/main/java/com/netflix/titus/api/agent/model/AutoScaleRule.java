@@ -18,8 +18,8 @@ package com.netflix.titus.api.agent.model;
 
 import javax.validation.constraints.Min;
 
-import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 
 @ClassInvariant.List({
         @ClassInvariant(condition = "min <= max", message = "'min'(#{min}) must be <= 'max'(#{max})"),

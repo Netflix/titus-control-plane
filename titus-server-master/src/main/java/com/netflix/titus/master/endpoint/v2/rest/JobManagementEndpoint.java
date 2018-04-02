@@ -27,12 +27,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.netflix.titus.master.endpoint.common.TaskSummary;
-import com.netflix.titus.master.endpoint.v2.rest.representation.JobKillCmd;
-import com.netflix.titus.master.endpoint.v2.rest.representation.JobSetInServiceCmd;
-import com.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TaskKillCmd;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
 import com.netflix.titus.master.endpoint.common.TaskSummary;

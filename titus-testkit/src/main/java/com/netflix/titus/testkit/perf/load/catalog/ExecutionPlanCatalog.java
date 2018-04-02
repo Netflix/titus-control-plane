@@ -19,7 +19,6 @@ package com.netflix.titus.testkit.perf.load.catalog;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 
 public final class ExecutionPlanCatalog {
 
@@ -31,7 +30,7 @@ public final class ExecutionPlanCatalog {
                 .awaitCompletion()
                 .build();
     }
-    
+
     public static ExecutionPlan serviceWithKilledTasks() {
         return ExecutionPlan.newBuilder()
                 .label("start")

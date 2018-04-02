@@ -21,12 +21,12 @@ import java.util.stream.Collectors;
 import com.google.protobuf.Any;
 import com.google.rpc.BadRequest;
 import com.google.rpc.DebugInfo;
-import io.grpc.Metadata;
-import io.grpc.Status;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.tuple.Pair;
+import io.grpc.Metadata;
+import io.grpc.Status;
 
 import static java.util.Arrays.stream;
 

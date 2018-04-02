@@ -16,8 +16,6 @@
 
 package com.netflix.titus.master.jobmanager.service.integration;
 
-import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
-import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;

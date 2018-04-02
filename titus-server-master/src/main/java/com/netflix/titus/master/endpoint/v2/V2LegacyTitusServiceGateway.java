@@ -36,15 +36,6 @@ import javax.ws.rs.core.Response;
 import com.google.common.base.Preconditions;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
-import com.netflix.titus.master.endpoint.common.CellDecorator;
-import com.netflix.titus.master.endpoint.common.ContextResolver;
-import com.netflix.titus.master.endpoint.common.SchedulerUtil;
-import com.netflix.titus.master.endpoint.common.TaskSummary;
-import com.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil;
-import com.netflix.titus.master.endpoint.v2.rest.RestConfig;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
-import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.api.endpoint.v2.rest.representation.AuditLog;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
@@ -78,6 +69,7 @@ import com.netflix.titus.master.endpoint.common.CellDecorator;
 import com.netflix.titus.master.endpoint.common.ContextResolver;
 import com.netflix.titus.master.endpoint.common.SchedulerUtil;
 import com.netflix.titus.master.endpoint.common.TaskSummary;
+import com.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil;
 import com.netflix.titus.master.endpoint.v2.rest.RestConfig;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.master.job.JobMgrUtils;
@@ -90,8 +82,6 @@ import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo.LogLinks;
 import rx.Observable;
-
-import static com.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil.newObservable;
 
 /**
  * {@link TitusServiceGateway} implementation that interacts with the legacy runtime layer, and supports data

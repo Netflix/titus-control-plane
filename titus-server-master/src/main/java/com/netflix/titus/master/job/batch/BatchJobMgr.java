@@ -21,16 +21,6 @@ import java.util.List;
 
 import com.google.inject.Injector;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.master.config.CellInfoResolver;
-import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.job.BaseJobMgr;
-import com.netflix.titus.master.job.JobManagerConfiguration;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.master.store.InvalidNamedJobException;
-import com.netflix.titus.master.store.NamedJob;
-import com.netflix.titus.master.store.NamedJobs;
-import com.netflix.titus.master.store.V2JobStore;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.model.v2.V2JobDefinition;
 import com.netflix.titus.api.model.v2.V2JobState;

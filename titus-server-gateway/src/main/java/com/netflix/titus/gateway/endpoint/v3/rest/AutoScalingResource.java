@@ -29,14 +29,13 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.netflix.titus.gateway.service.v3.AutoScalingService;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
-import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
-import com.netflix.titus.gateway.service.v3.AutoScalingService;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

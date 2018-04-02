@@ -18,8 +18,6 @@ package com.netflix.titus.master.jobmanager.service.integration;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
-import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;

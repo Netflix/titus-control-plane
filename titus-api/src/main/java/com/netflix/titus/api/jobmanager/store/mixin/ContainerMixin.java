@@ -24,9 +24,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
-import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
-import com.netflix.titus.api.jobmanager.model.job.Image;
-import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 
 public abstract class ContainerMixin {
     @JsonCreator

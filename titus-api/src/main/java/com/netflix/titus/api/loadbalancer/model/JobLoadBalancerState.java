@@ -19,7 +19,6 @@ package com.netflix.titus.api.loadbalancer.model;
 import java.util.Map;
 import java.util.Objects;
 
-import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer.State;
 import com.netflix.titus.common.util.tuple.Pair;
 
 public class JobLoadBalancerState {

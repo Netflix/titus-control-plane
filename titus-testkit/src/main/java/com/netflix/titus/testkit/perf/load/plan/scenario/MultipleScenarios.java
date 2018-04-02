@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
 import rx.Observable;
 
 public class MultipleScenarios extends ExecutionScenario {
