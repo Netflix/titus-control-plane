@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,7 @@ import org.junit.Rule;
 
 import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -56,7 +58,6 @@ public class AggregatingAutoScalingTestBase {
     @Rule
     public final GrpcServerRule cellOne = new GrpcServerRule().directExecutor();
 
-
     @Rule
     public final GrpcServerRule cellTwo = new GrpcServerRule().directExecutor();
 
@@ -69,6 +70,9 @@ public class AggregatingAutoScalingTestBase {
         cellMap.put(new Cell("one", "1"), cellOne.getChannel());
         cellMap.put(new Cell("two", "2"), cellTwo.getChannel());
         when(connector.getChannels()).thenReturn(cellMap);
+        when(connector.getChannelForCell(any())).then(invocation ->
+                Optional.ofNullable(cellMap.get(invocation.getArgument(0)))
+        );
 
         GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
         when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);

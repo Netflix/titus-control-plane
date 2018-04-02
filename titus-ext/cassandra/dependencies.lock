@@ -321,7 +321,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -787,7 +787,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1253,7 +1253,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1756,7 +1756,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -2223,7 +2223,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "io.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -3063,7 +3063,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -3187,13 +3187,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -3469,7 +3469,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -4318,7 +4318,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -4442,13 +4442,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -4724,7 +4724,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -5573,7 +5573,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -5697,13 +5697,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -5979,7 +5979,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
@@ -6829,7 +6829,7 @@
             ]
         },
         "io.reactivex:rxjava": {
-            "locked": "1.3.6",
+            "locked": "1.3.8",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.netflix.titus:titus-common",
@@ -6953,13 +6953,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.7.9",
+            "locked": "1.8.0",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -7235,7 +7235,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.16.0",
+            "locked": "2.17.0",
             "requested": "2.+",
             "transitive": [
                 "io.netflix.titus:titus-testkit"
