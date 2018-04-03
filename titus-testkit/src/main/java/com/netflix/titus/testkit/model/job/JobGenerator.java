@@ -106,7 +106,7 @@ public class JobGenerator {
      */
     public static DataGenerator<BatchJobTask> batchTasks(Job<BatchJobExt> batchJob) {
         int size = batchJob.getJobDescriptor().getExtensions().getSize();
-        return zip(taskIds(batchJob.getId(), range(1)), range(0, size)).map(p -> {
+        return zip(taskIds(batchJob.getId(), range(1, size + 1)), range(0, size)).map(p -> {
             String taskId = p.getLeft();
             int taskIndex = p.getRight().intValue();
             return BatchJobTask.newBuilder()
@@ -124,14 +124,13 @@ public class JobGenerator {
      */
     public static DataGenerator<ServiceJobTask> serviceTasks(Job<ServiceJobExt> serviceJob) {
         int size = serviceJob.getJobDescriptor().getExtensions().getCapacity().getDesired();
-        return zip(taskIds(serviceJob.getId(), range(1)), range(0, size)).map(p -> {
-            String taskId = p.getLeft();
-            return ServiceJobTask.newBuilder()
-                    .withId(taskId)
-                    .withOriginalId(taskId)
-                    .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
-                    .withJobId(serviceJob.getId())
-                    .build();
-        });
+        return taskIds(serviceJob.getId(), range(1, size + 1)).map(taskId ->
+                ServiceJobTask.newBuilder()
+                        .withId(taskId)
+                        .withOriginalId(taskId)
+                        .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
+                        .withJobId(serviceJob.getId())
+                        .build()
+        );
     }
 }
