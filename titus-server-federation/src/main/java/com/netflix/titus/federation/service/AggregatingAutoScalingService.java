@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
+import com.netflix.titus.runtime.service.AutoScalingService;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
 import rx.Completable;

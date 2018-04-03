@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.service.v3;
+package com.netflix.titus.runtime.service;
 
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;

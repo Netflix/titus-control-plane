@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.federation.endpoint.rest;
+
+package com.netflix.titus.runtime.endpoint.v3.rest;
+
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -27,7 +29,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.netflix.titus.federation.service.AutoScalingService;
+import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -48,7 +50,7 @@ import rx.Observable;
 @Path("/v3/autoscaling")
 @Singleton
 public class AutoScalingResource {
-    private static final Logger logger = LoggerFactory.getLogger(AutoScalingResource.class);
+    private static Logger log = LoggerFactory.getLogger(AutoScalingResource.class);
     private AutoScalingService autoScalingService;
 
     @Inject
@@ -79,7 +81,7 @@ public class AutoScalingResource {
     public ScalingPolicyID setScalingPolicy(PutPolicyRequest putPolicyRequest) {
         Observable<ScalingPolicyID> putPolicyResult = autoScalingService.setAutoScalingPolicy(putPolicyRequest);
         ScalingPolicyID policyId = Responses.fromSingleValueObservable(putPolicyResult);
-        logger.info("New policy created {}", policyId);
+        log.info("New policy created {}", policyId);
         return policyId;
     }
 

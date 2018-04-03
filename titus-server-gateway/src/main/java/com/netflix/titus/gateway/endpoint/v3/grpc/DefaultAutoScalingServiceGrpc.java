@@ -21,7 +21,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.gateway.service.v3.AutoScalingService;
+import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;

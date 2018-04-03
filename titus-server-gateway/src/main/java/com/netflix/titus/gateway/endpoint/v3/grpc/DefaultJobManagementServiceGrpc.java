@@ -20,7 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.gateway.service.v3.JobManagementService;
+import com.netflix.titus.runtime.service.JobManagementService;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -99,7 +99,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobManagementService.changeJobInServiceStatus(request), responseObserver);
+        streamCompletableResponse(jobManagementService.updateJobStatus(request), responseObserver);
     }
 
     @Override
