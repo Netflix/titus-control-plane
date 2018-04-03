@@ -103,7 +103,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         if (!optionalClient.isPresent()) {
             return Observable.error(TitusServiceException.cellNotFound(routeKey));
         }
-        JobManagementServiceStub client = optionalClient.get();
+        JobManagementServiceStub client = wrap(optionalClient.get());
 
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
@@ -112,7 +112,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                     emitter::onError,
                     emitter::onCompleted
             );
-            createWrappedStub(client, sessionContext, grpcConfiguration.getRequestTimeoutMs()).createJob(jobDescriptor, streamObserver);
+            client.createJob(jobDescriptor, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 
@@ -204,7 +204,7 @@ public class AggregatingJobManagementService implements JobManagementService {
             );
             clients.forEach((cell, client) -> {
                 StreamObserver<JobChangeNotification> streamObserver = new FilterOutFirstMarker(emitter, markersEmitted);
-                createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
+                wrap(client).observeJobs(Empty.getDefaultInstance(), streamObserver);
             });
         });
         return observable.map(this::addStackName);

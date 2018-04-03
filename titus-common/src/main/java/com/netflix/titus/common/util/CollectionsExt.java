@@ -328,12 +328,16 @@ public final class CollectionsExt {
         return result;
     }
 
+    public static <K, V> MapBuilder<K, V> newMap(Supplier<Map<K, V>> mapTypeBuilder) {
+        return new MapBuilder<>(mapTypeBuilder.get());
+    }
+
     public static <K, V> MapBuilder<K, V> newHashMap() {
-        return new MapBuilder<>(new HashMap<>());
+        return newMap(HashMap::new);
     }
 
     public static <K, V> MapBuilder<K, V> newHashMap(Map<K, V> original) {
-        return new MapBuilder<>(new HashMap<>(original));
+        return newMap(() -> new HashMap<>(original));
     }
 
     public static int[] toPrimitiveArray(Collection<Integer> collection) {
@@ -423,6 +427,10 @@ public final class CollectionsExt {
 
         public Map<K, V> toMap() {
             return out;
+        }
+
+        public Map<K, V> build() {
+            return toMap();
         }
     }
 }
