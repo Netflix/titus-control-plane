@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.netflix.titus.ext.cassandra.testkit.store;
 
 import java.io.File;
@@ -7,18 +23,18 @@ import java.util.stream.Collectors;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
-import io.netflix.titus.api.jobmanager.store.JobStore;
-import io.netflix.titus.common.runtime.TitusRuntime;
-import io.netflix.titus.common.runtime.TitusRuntimes;
-import io.netflix.titus.common.util.CollectionsExt;
-import io.netflix.titus.ext.cassandra.store.CassandraJobStore;
-import io.netflix.titus.ext.cassandra.store.CassandraStoreConfiguration;
-import io.netflix.titus.ext.cassandra.tool.snapshot.JobSnapshotLoader;
+import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.ext.cassandra.store.CassandraJobStore;
+import com.netflix.titus.ext.cassandra.store.CassandraStoreConfiguration;
+import com.netflix.titus.ext.cassandra.tool.snapshot.JobSnapshotLoader;
 import org.cassandraunit.CQLDataLoader;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 
-import static io.netflix.titus.ext.cassandra.tool.CassandraSchemas.JOB_ACTIVE_TABLES;
+import static com.netflix.titus.ext.cassandra.tool.CassandraSchemas.JOB_ACTIVE_TABLES;
 
 public class EmbeddedCassandraStoreFactory {
 
