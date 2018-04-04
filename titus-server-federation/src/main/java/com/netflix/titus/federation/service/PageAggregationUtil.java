@@ -32,11 +32,9 @@ final class PageAggregationUtil {
     static <T> Pair<List<T>, Pagination> takeCombinedPage(Page requested,
                                                           List<T> combinedItems,
                                                           Pagination combinedPagination,
-                                                          Function<T, T> stackNameDecorator,
                                                           Comparator<T> cursorComparator,
                                                           Function<T, String> cursorFactory) {
         List<T> sorted = combinedItems.stream()
-                .map(stackNameDecorator)
                 .sorted(cursorComparator)
                 .collect(Collectors.toList());
 

@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -181,13 +182,12 @@ public class AggregatingJobManagementService implements JobManagementService {
     private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request) {
         return allCells.call(JobManagementServiceGrpc::newStub, findJobsInCell(request))
                 .map(CellResponse::getResult)
-                .reduce(AggregatingJobManagementService::combineJobResults)
+                .reduce(this::combineJobResults)
                 .map(combinedResults -> {
                     Pair<List<Job>, Pagination> combinedPage = takeCombinedPage(
                             request.getPage(),
                             combinedResults.getItemsList(),
                             combinedResults.getPagination(),
-                            this::addStackName,
                             JobManagerCursors.jobCursorOrderComparator(),
                             JobManagerCursors::newCursorFrom
                     );
@@ -203,12 +203,18 @@ public class AggregatingJobManagementService implements JobManagementService {
         return (client, streamObserver) -> wrap(client).findJobs(request, streamObserver);
     }
 
-    private static JobQueryResult combineJobResults(JobQueryResult one, JobQueryResult other) {
+    private JobQueryResult combineJobResults(JobQueryResult one, JobQueryResult other) {
         Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
+        List<Job> oneDecoratedList = one.getItemsList().stream()
+                .map(this::addStackName)
+                .collect(Collectors.toList());
+        List<Job> otherDecoratedList = other.getItemsList().stream()
+                .map(this::addStackName)
+                .collect(Collectors.toList());
         return JobQueryResult.newBuilder()
                 .setPagination(pagination)
-                .addAllItems(one.getItemsList())
-                .addAllItems(other.getItemsList())
+                .addAllItems(oneDecoratedList)
+                .addAllItems(otherDecoratedList)
                 .build();
     }
 
@@ -279,13 +285,12 @@ public class AggregatingJobManagementService implements JobManagementService {
     private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request) {
         return allCells.call(JobManagementServiceGrpc::newStub, findTasksInCell(request))
                 .map(CellResponse::getResult)
-                .reduce(AggregatingJobManagementService::combineTaskResults)
+                .reduce(this::combineTaskResults)
                 .map(combinedResults -> {
                     Pair<List<Task>, Pagination> combinedPage = takeCombinedPage(
                             request.getPage(),
                             combinedResults.getItemsList(),
                             combinedResults.getPagination(),
-                            this::addStackName,
                             JobManagerCursors.taskCursorOrderComparator(),
                             JobManagerCursors::newCursorFrom
                     );
@@ -300,12 +305,18 @@ public class AggregatingJobManagementService implements JobManagementService {
         return (client, streamObserver) -> wrap(client).findTasks(request, streamObserver);
     }
 
-    private static TaskQueryResult combineTaskResults(TaskQueryResult one, TaskQueryResult other) {
+    private TaskQueryResult combineTaskResults(TaskQueryResult one, TaskQueryResult other) {
         Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
+        List<Task> oneDecoratedList = one.getItemsList().stream()
+                .map(this::addStackName)
+                .collect(Collectors.toList());
+        List<Task> otherDecoratedList = other.getItemsList().stream()
+                .map(this::addStackName)
+                .collect(Collectors.toList());
         return TaskQueryResult.newBuilder()
                 .setPagination(pagination)
-                .addAllItems(one.getItemsList())
-                .addAllItems(other.getItemsList())
+                .addAllItems(oneDecoratedList)
+                .addAllItems(otherDecoratedList)
                 .build();
     }
 
