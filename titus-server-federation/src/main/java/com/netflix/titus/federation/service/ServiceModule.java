@@ -25,5 +25,6 @@ public class ServiceModule extends AbstractModule {
     protected void configure() {
         bind(JobManagementService.class).to(AggregatingJobManagementService.class);
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
+        bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
     }
 }

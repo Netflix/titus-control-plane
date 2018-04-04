@@ -31,6 +31,8 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceImplBase;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -47,6 +49,7 @@ public class TitusFederationGrpcServer {
 
     private final JobManagementServiceImplBase jobManagementService;
     private AutoScalingServiceImplBase autoScalingService;
+    private LoadBalancerServiceImplBase loadBalancerService;
     private final EndpointConfiguration config;
 
     private final AtomicBoolean started = new AtomicBoolean();
@@ -56,9 +59,11 @@ public class TitusFederationGrpcServer {
     public TitusFederationGrpcServer(
             JobManagementServiceImplBase jobManagementService,
             AutoScalingServiceImplBase autoScalingService,
+            LoadBalancerServiceImplBase loadBalancerService,
             EndpointConfiguration config) {
         this.jobManagementService = jobManagementService;
         this.autoScalingService = autoScalingService;
+        this.loadBalancerService = loadBalancerService;
         this.config = config;
     }
 
@@ -74,6 +79,10 @@ public class TitusFederationGrpcServer {
                     autoScalingService,
                     createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
             ));
+
+            serverBuilder.addService(ServerInterceptors.intercept(
+                    loadBalancerService,
+                    createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())));
 
             this.server = serverBuilder.build();
 
