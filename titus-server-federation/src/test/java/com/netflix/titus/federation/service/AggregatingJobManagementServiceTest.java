@@ -39,7 +39,9 @@ import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
+import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.SnapshotEnd;
@@ -51,12 +53,14 @@ import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.testing.GrpcServerRule;
 import org.junit.After;
 import org.junit.Before;
@@ -68,6 +72,10 @@ import rx.subjects.PublishSubject;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
 import static com.netflix.titus.federation.service.ServiceTests.walkAllPages;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPage;
+import static io.grpc.Status.DEADLINE_EXCEEDED;
+import static io.grpc.Status.INTERNAL;
+import static io.grpc.Status.NOT_FOUND;
+import static io.grpc.Status.UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.any;
@@ -319,7 +327,7 @@ public class AggregatingJobManagementServiceTest {
 
     @Test
     public void findJobsWithFailingCell() {
-        final List<Job> cellTwoSnapshot = new ArrayList<>();
+        List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
             cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
@@ -336,6 +344,216 @@ public class AggregatingJobManagementServiceTest {
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertError(Status.INTERNAL.asRuntimeException().getClass());
         testSubscriber.assertNoValues();
+    }
+
+    @Test
+    public void findJob() {
+        Random random = new Random();
+        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(10, V3GrpcModelConverters::toGrpcJob));
+        cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
+
+        Job expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertValueCount(1);
+        testSubscriber.assertValue(expected);
+    }
+
+    @Test
+    public void findJobWithFailingCell() {
+        Random random = new Random();
+        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(10, V3GrpcModelConverters::toGrpcJob));
+        cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService());
+
+        Job expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertValueCount(1);
+        testSubscriber.assertValue(expected);
+    }
+
+    @Test
+    public void findJobErrors() {
+        cellOne.getServiceRegistry().addService(new CellWithFailingJobManagementService(NOT_FOUND));
+        cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService(UNAVAILABLE));
+
+        AssertableSubscriber<Job> testSubscriber = service.findJob("any").test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        // transient errors have higher precedence than not found
+        testSubscriber.assertError(StatusRuntimeException.class);
+        assertThat(Status.fromThrowable(testSubscriber.getOnErrorEvents().get(0))).isEqualTo(UNAVAILABLE);
+    }
+
+    @Test
+    public void killJob() {
+        Random random = new Random();
+        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(12, V3GrpcModelConverters::toGrpcJob));
+        List<Job> cellTwoSnapshot = new ArrayList<>(dataGenerator.newBatchJobs(7, V3GrpcModelConverters::toGrpcJob));
+        CellWithFixedJobsService cellOneService = new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize());
+        CellWithFixedJobsService cellTwoService = new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize());
+        cellOne.getServiceRegistry().addService(cellOneService);
+        cellTwo.getServiceRegistry().addService(cellTwoService);
+
+        Job killInCellOne = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        Job killInCellTwo = cellTwoSnapshot.get(random.nextInt(cellTwoSnapshot.size()));
+        assertThat(cellOneService.currentJobs()).containsKey(killInCellOne.getId());
+        assertThat(cellTwoService.currentJobs()).containsKey(killInCellTwo.getId());
+
+        AssertableSubscriber<Void> testSubscriber = service.killJob(killInCellOne.getId()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertCompleted();
+        assertThat(cellOneService.currentJobs()).doesNotContainKey(killInCellOne.getId());
+        assertThat(cellTwoService.currentJobs()).doesNotContainKey(killInCellOne.getId());
+        testSubscriber.unsubscribe();
+
+        testSubscriber = service.killJob(killInCellTwo.getId()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertCompleted();
+        assertThat(cellOneService.currentJobs()).doesNotContainKey(killInCellTwo.getId());
+        assertThat(cellTwoService.currentJobs()).doesNotContainKey(killInCellTwo.getId());
+        testSubscriber.unsubscribe();
+    }
+
+    @Test
+    public void singleJobUpdates() {
+        Random random = new Random();
+        List<String> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(12)).stream()
+                .map(job -> job.getId())
+                .collect(Collectors.toList());
+        List<String> cellTwoSnapshot = new ArrayList<>(dataGenerator.newBatchJobs(7)).stream()
+                .map(job -> job.getId())
+                .collect(Collectors.toList());
+        CellWithJobIds cellOneService = new CellWithJobIds(cellOneSnapshot);
+        CellWithJobIds cellTwoService = new CellWithJobIds(cellTwoSnapshot);
+        cellOne.getServiceRegistry().addService(cellOneService);
+        cellTwo.getServiceRegistry().addService(cellTwoService);
+
+        String cellOneJobId = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        String cellTwoJobId = cellTwoSnapshot.get(random.nextInt(cellTwoSnapshot.size()));
+        assertThat(cellOneService.containsCapacityUpdates(cellOneJobId)).isFalse();
+        assertThat(cellTwoService.containsCapacityUpdates(cellOneJobId)).isFalse();
+
+        JobCapacityUpdate cellOneUpdate = JobCapacityUpdate.newBuilder()
+                .setJobId(cellOneJobId)
+                .setCapacity(Capacity.newBuilder()
+                        .setMax(1).setDesired(2).setMax(3)
+                        .build())
+                .build();
+        AssertableSubscriber<Void> testSubscriber = service.updateJobCapacity(cellOneUpdate).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertCompleted();
+        assertThat(cellOneService.containsCapacityUpdates(cellOneJobId)).isTrue();
+        assertThat(cellTwoService.containsCapacityUpdates(cellOneJobId)).isFalse();
+        testSubscriber.unsubscribe();
+
+        JobCapacityUpdate cellTwoUpdate = JobCapacityUpdate.newBuilder()
+                .setJobId(cellTwoJobId)
+                .setCapacity(Capacity.newBuilder()
+                        .setMax(2).setDesired(2).setMax(2)
+                        .build())
+                .build();
+        testSubscriber = service.updateJobCapacity(cellTwoUpdate).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertCompleted();
+        assertThat(cellOneService.containsCapacityUpdates(cellTwoJobId)).isFalse();
+        assertThat(cellTwoService.containsCapacityUpdates(cellTwoJobId)).isTrue();
+        testSubscriber.unsubscribe();
+    }
+
+    @Test
+    public void killTask() {
+        Random random = new Random();
+        List<Task> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobWithTasks());
+        List<Task> cellTwoSnapshot = new ArrayList<>(dataGenerator.newBatchJobWithTasks());
+        CellWithFixedTasksService cellOneService = new CellWithFixedTasksService(cellOneSnapshot);
+        CellWithFixedTasksService cellTwoService = new CellWithFixedTasksService(cellTwoSnapshot);
+        cellOne.getServiceRegistry().addService(cellOneService);
+        cellTwo.getServiceRegistry().addService(cellTwoService);
+
+        Task killInCellOne = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        Task killInCellTwo = cellTwoSnapshot.get(random.nextInt(cellTwoSnapshot.size()));
+        assertThat(cellOneService.currentTasks()).containsKey(killInCellOne.getId());
+        assertThat(cellTwoService.currentTasks()).containsKey(killInCellTwo.getId());
+
+        TaskKillRequest cellOneRequest = TaskKillRequest.newBuilder()
+                .setTaskId(killInCellOne.getId())
+                .setShrink(false)
+                .build();
+        AssertableSubscriber<Void> testSubscriber = service.killTask(cellOneRequest).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertCompleted();
+        assertThat(cellOneService.currentTasks()).doesNotContainKey(killInCellOne.getId());
+        assertThat(cellTwoService.currentTasks()).doesNotContainKey(killInCellOne.getId());
+        testSubscriber.unsubscribe();
+
+        TaskKillRequest cellTwoRequest = TaskKillRequest.newBuilder()
+                .setTaskId(killInCellTwo.getId())
+                .setShrink(false)
+                .build();
+        testSubscriber = service.killTask(cellTwoRequest).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertCompleted();
+        assertThat(cellOneService.currentTasks()).doesNotContainKey(killInCellTwo.getId());
+        assertThat(cellTwoService.currentTasks()).doesNotContainKey(killInCellTwo.getId());
+        testSubscriber.unsubscribe();
+    }
+
+    @Test
+    public void findTask() {
+        Random random = new Random();
+        List<Task> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobWithTasks());
+        cellOne.getServiceRegistry().addService(new CellWithFixedTasksService(cellOneSnapshot));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedTasksService(Collections.emptyList()));
+
+        Task expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertValueCount(1);
+        testSubscriber.assertValue(expected);
+    }
+
+    @Test
+    public void findTaskWithFailingCell() {
+        Random random = new Random();
+        List<Task> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobWithTasks());
+        cellOne.getServiceRegistry().addService(new CellWithFixedTasksService(cellOneSnapshot));
+        cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService(DEADLINE_EXCEEDED));
+
+        Task expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertValueCount(1);
+        testSubscriber.assertValue(expected);
+    }
+
+    @Test
+    public void findTaskErrors() {
+        cellOne.getServiceRegistry().addService(new CellWithFailingJobManagementService(INTERNAL));
+        cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService(UNAVAILABLE));
+
+        AssertableSubscriber<Task> testSubscriber = service.findTask("any").test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        // unexpected errors have higher precedence than transient
+        testSubscriber.assertError(StatusRuntimeException.class);
+        assertThat(Status.fromThrowable(testSubscriber.getOnErrorEvents().get(0))).isEqualTo(INTERNAL);
     }
 
     @Test

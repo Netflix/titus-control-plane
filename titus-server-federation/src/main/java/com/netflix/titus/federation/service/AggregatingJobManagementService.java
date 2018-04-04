@@ -16,13 +16,11 @@
 
 package com.netflix.titus.federation.service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -52,6 +50,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
@@ -78,6 +77,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     private final GrpcConfiguration grpcConfiguration;
     private final TitusFederationConfiguration federationConfiguration;
     private final CellConnector connector;
+    private final AllCells allCells;
     private final CellRouter router;
     private final SessionContext sessionContext;
 
@@ -90,6 +90,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;
         this.connector = connector;
+        this.allCells = new AllCells(connector);
         this.router = router;
         this.sessionContext = sessionContext;
     }
@@ -118,23 +119,49 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     @Override
-    public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
-        return Completable.error(TitusServiceException.unimplemented());
+    public Completable updateJobCapacity(JobCapacityUpdate request) {
+        Observable<Empty> result = findJobInAllCells(request.getJobId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> wrap(client).updateJobCapacity(request, streamObserver))
+                );
+        return result.toCompletable();
     }
 
     @Override
-    public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
-        return Completable.error(TitusServiceException.unimplemented());
+    public Completable updateJobProcesses(JobProcessesUpdate request) {
+        Observable<Empty> result = findJobInAllCells(request.getJobId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> wrap(client).updateJobProcesses(request, streamObserver))
+                );
+        return result.toCompletable();
     }
 
     @Override
-    public Completable updateJobStatus(JobStatusUpdate statusUpdate) {
-        return Completable.error(TitusServiceException.unimplemented());
+    public Completable updateJobStatus(JobStatusUpdate request) {
+        Observable<Empty> result = findJobInAllCells(request.getId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> wrap(client).updateJobStatus(request, streamObserver))
+                );
+        return result.toCompletable();
     }
 
     @Override
     public Observable<Job> findJob(String jobId) {
-        return Observable.error(TitusServiceException.unimplemented());
+        return findJobInAllCells(jobId).map(CellResponse::getResult);
+    }
+
+    private Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
+        return allCells.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
+                .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
+                .flatMap(response -> response.getResult()
+                        .map(v -> Observable.just(CellResponse.ofValue(response)))
+                        .onErrorGet(Observable::error)
+                );
+    }
+
+    private SingleCellCall<Job> findJobInCell(String jobId) {
+        JobId id = JobId.newBuilder().setId(jobId).build();
+        return (client, streamObserver) -> wrap(client).findJob(id, streamObserver);
     }
 
     @Override
@@ -152,42 +179,37 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request) {
-        BiConsumer<JobManagementServiceStub, StreamObserver<JobQueryResult>> findJobs =
-                (client, streamObserver) -> wrap(client).findJobs(request, streamObserver);
+        return allCells.call(JobManagementServiceGrpc::newStub, findJobsInCell(request))
+                .map(CellResponse::getResult)
+                .reduce(AggregatingJobManagementService::combineJobResults)
+                .map(combinedResults -> {
+                    Pair<List<Job>, Pagination> combinedPage = takeCombinedPage(
+                            request.getPage(),
+                            combinedResults.getItemsList(),
+                            combinedResults.getPagination(),
+                            this::addStackName,
+                            JobManagerCursors.jobCursorOrderComparator(),
+                            JobManagerCursors::newCursorFrom
+                    );
 
-        List<Observable<JobQueryResult>> requests = CellConnectorUtil.callToAllCells(connector, JobManagementServiceGrpc::newStub, findJobs)
-                .stream()
-                .map(observable -> observable.map(CellResponse::getResult))
-                .collect(Collectors.toList());
-
-        return Observable.combineLatest(requests, (rawResults) -> {
-            JobQueryResult[] results = Arrays.copyOf(rawResults, rawResults.length, JobQueryResult[].class);
-            JobQueryResult combinedResults = combineJobResults(results);
-            Pair<List<Job>, Pagination> combinedPage = takeCombinedPage(
-                    request.getPage(),
-                    combinedResults.getItemsList(),
-                    combinedResults.getPagination(),
-                    this::addStackName,
-                    JobManagerCursors.jobCursorOrderComparator(),
-                    JobManagerCursors::newCursorFrom
-            );
-
-            return JobQueryResult.newBuilder()
-                    .addAllItems(combinedPage.getLeft())
-                    .setPagination(combinedPage.getRight())
-                    .build();
-        });
+                    return JobQueryResult.newBuilder()
+                            .addAllItems(combinedPage.getLeft())
+                            .setPagination(combinedPage.getRight())
+                            .build();
+                });
     }
 
-    private static JobQueryResult combineJobResults(JobQueryResult[] results) {
-        return Arrays.stream(results).reduce((one, other) -> {
-            Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
-            return JobQueryResult.newBuilder()
-                    .setPagination(pagination)
-                    .addAllItems(one.getItemsList())
-                    .addAllItems(other.getItemsList())
-                    .build();
-        }).orElseThrow(() -> TitusServiceException.unexpected("no results from any Cells"));
+    private SingleCellCall<JobQueryResult> findJobsInCell(JobQuery request) {
+        return (client, streamObserver) -> wrap(client).findJobs(request, streamObserver);
+    }
+
+    private static JobQueryResult combineJobResults(JobQueryResult one, JobQueryResult other) {
+        Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
+        return JobQueryResult.newBuilder()
+                .setPagination(pagination)
+                .addAllItems(one.getItemsList())
+                .addAllItems(other.getItemsList())
+                .build();
     }
 
     @Override
@@ -213,12 +235,31 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Completable killJob(String jobId) {
-        return Completable.error(TitusServiceException.unimplemented());
+        JobId id = JobId.newBuilder().setId(jobId).build();
+        Observable<Empty> result = findJobInAllCells(jobId)
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> wrap(client).killJob(id, streamObserver))
+                );
+        return result.toCompletable();
     }
 
     @Override
     public Observable<Task> findTask(String taskId) {
-        return Observable.error(TitusServiceException.unimplemented());
+        return findTaskInAllCells(taskId).map(CellResponse::getResult);
+    }
+
+    private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId) {
+        return allCells.callExpectingErrors(JobManagementServiceGrpc::newStub, findTaskInCell(taskId))
+                .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
+                .flatMap(response -> response.getResult()
+                        .map(v -> Observable.just(CellResponse.ofValue(response)))
+                        .onErrorGet(Observable::error)
+                );
+    }
+
+    private SingleCellCall<Task> findTaskInCell(String taskId) {
+        TaskId id = TaskId.newBuilder().setId(taskId).build();
+        return (client, streamObserver) -> wrap(client).findTask(id, streamObserver);
     }
 
     @Override
@@ -236,47 +277,45 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request) {
-        BiConsumer<JobManagementServiceStub, StreamObserver<TaskQueryResult>> findTasks =
-                (client, streamObserver) -> wrap(client).findTasks(request, streamObserver);
-
-        List<Observable<TaskQueryResult>> requests = CellConnectorUtil.callToAllCells(connector, JobManagementServiceGrpc::newStub, findTasks)
-                .stream()
-                .map(observable -> observable.map(CellResponse::getResult))
-                .collect(Collectors.toList());
-
-        return Observable.combineLatest(requests, (rawResults) -> {
-            TaskQueryResult[] results = Arrays.copyOf(rawResults, rawResults.length, TaskQueryResult[].class);
-            TaskQueryResult combinedResults = combineTaskResults(results);
-            Pair<List<Task>, Pagination> combinedPage = takeCombinedPage(
-                    request.getPage(),
-                    combinedResults.getItemsList(),
-                    combinedResults.getPagination(),
-                    this::addStackName,
-                    JobManagerCursors.taskCursorOrderComparator(),
-                    JobManagerCursors::newCursorFrom
-            );
-            return TaskQueryResult.newBuilder()
-                    .addAllItems(combinedPage.getLeft())
-                    .setPagination(combinedPage.getRight())
-                    .build();
-        });
+        return allCells.call(JobManagementServiceGrpc::newStub, findTasksInCell(request))
+                .map(CellResponse::getResult)
+                .reduce(AggregatingJobManagementService::combineTaskResults)
+                .map(combinedResults -> {
+                    Pair<List<Task>, Pagination> combinedPage = takeCombinedPage(
+                            request.getPage(),
+                            combinedResults.getItemsList(),
+                            combinedResults.getPagination(),
+                            this::addStackName,
+                            JobManagerCursors.taskCursorOrderComparator(),
+                            JobManagerCursors::newCursorFrom
+                    );
+                    return TaskQueryResult.newBuilder()
+                            .addAllItems(combinedPage.getLeft())
+                            .setPagination(combinedPage.getRight())
+                            .build();
+                });
     }
 
-    private static TaskQueryResult combineTaskResults(TaskQueryResult[] results) {
-        return Arrays.stream(results).reduce((one, other) -> {
-            Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
-            return TaskQueryResult.newBuilder()
-                    .setPagination(pagination)
-                    .addAllItems(one.getItemsList())
-                    .addAllItems(other.getItemsList())
-                    .build();
-        }).orElseThrow(() -> TitusServiceException.unexpected("no results from any Cells"));
+    private SingleCellCall<TaskQueryResult> findTasksInCell(TaskQuery request) {
+        return (client, streamObserver) -> wrap(client).findTasks(request, streamObserver);
     }
 
+    private static TaskQueryResult combineTaskResults(TaskQueryResult one, TaskQueryResult other) {
+        Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
+        return TaskQueryResult.newBuilder()
+                .setPagination(pagination)
+                .addAllItems(one.getItemsList())
+                .addAllItems(other.getItemsList())
+                .build();
+    }
 
     @Override
-    public Completable killTask(TaskKillRequest taskKillRequest) {
-        return Completable.error(TitusServiceException.unimplemented());
+    public Completable killTask(TaskKillRequest request) {
+        Observable<Empty> result = findTaskInAllCells(request.getTaskId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> wrap(client).killTask(request, streamObserver))
+                );
+        return result.toCompletable();
     }
 
     private Job addStackName(Job job) {
@@ -314,7 +353,19 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private JobManagementServiceStub wrap(JobManagementServiceStub client) {
         return createWrappedStub(client, sessionContext, grpcConfiguration.getRequestTimeoutMs());
-
     }
+
+    private <T> Observable<T> singleCellCall(Cell cell, SingleCellCall<T> singleCellCall) {
+        return CellConnectorUtil.callToCell(cell, connector, JobManagementServiceGrpc::newStub, singleCellCall);
+    }
+
+    private interface SingleCellCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
+        // generics sanity
+    }
+
+    private static <T> ErrorMerger<JobManagementServiceStub, T> pointQueriesErrorMerger() {
+        return ErrorMerger.grpc(FixedStatusOrder.common());
+    }
+
 }
 
