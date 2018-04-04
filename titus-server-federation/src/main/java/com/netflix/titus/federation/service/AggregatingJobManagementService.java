@@ -154,7 +154,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
         return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
-                .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
+                .reduce(ResponseMerger.singleValue())
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
                         .onErrorGet(Observable::error)
@@ -261,7 +261,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId) {
         return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findTaskInCell(taskId))
-                .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
+                .reduce(ResponseMerger.singleValue())
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
                         .onErrorGet(Observable::error)
@@ -379,10 +379,5 @@ public class AggregatingJobManagementService implements JobManagementService {
     private interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
         // generics sanity
     }
-
-    private static <T> ErrorMerger<JobManagementServiceStub, T> pointQueriesErrorMerger() {
-        return ErrorMerger.grpc(StatusCategoryComparator.defaultPriorities());
-    }
-
 }
 

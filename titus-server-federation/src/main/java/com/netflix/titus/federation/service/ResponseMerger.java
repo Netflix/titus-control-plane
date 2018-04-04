@@ -36,6 +36,12 @@ interface ResponseMerger<STUB extends AbstractStub<STUB>, T> extends Func2<
     static <STUB extends AbstractStub<STUB>, T>
     ResponseMerger<STUB, Either<T, Throwable>> singleValue(ErrorMerger<STUB, T> errorMerger) {
         return (one, other) -> {
+            if (isEmptyResponseMarker(one)) {
+                return other;
+            }
+            if (isEmptyResponseMarker(other)) {
+                return one;
+            }
             boolean bothHaveValues = one.getResult().hasValue() && other.getResult().hasValue();
             Preconditions.checkArgument(!bothHaveValues, "expecting a single non-error response");
             if (one.getResult().hasValue()) {
@@ -46,5 +52,33 @@ interface ResponseMerger<STUB extends AbstractStub<STUB>, T> extends Func2<
             }
             return errorMerger.call(one, other);
         };
+    }
+
+    final CellResponse<?, ?> EMPTY_RESPONSE_MARKER = new CellResponse<>(null, null, null);
+
+    /**
+     * Marker to be used with {@link rx.Observable#reduce(Object, Func2)} and {@link rx.Observable#reduce(Func2)} on
+     * empty Observables. By design, <tt>reduce</tt> emits an error for empty Observables. This marker can be used as
+     * the initial seed, and will be passed through in case the <tt>Observable</tt> is empty, and can be filtered out
+     * later with {@link ResponseMerger#isNotEmptyResponseMarker(CellResponse)}. Merger functions _must_ ignore the
+     * empty marker with {@link ResponseMerger#isEmptyResponseMarker(CellResponse)}.
+     * <p>
+     * See https://github.com/ReactiveX/RxJava/pull/474
+     */
+    @SuppressWarnings("unchecked")
+    static <STUB extends AbstractStub<STUB>, T> CellResponse<STUB, T> emptyResponseMarker() {
+        return (CellResponse<STUB, T>) EMPTY_RESPONSE_MARKER;
+    }
+
+    static <STUB extends AbstractStub<STUB>, T> boolean isEmptyResponseMarker(CellResponse<STUB, T> response) {
+        return response == EMPTY_RESPONSE_MARKER;
+    }
+
+    static <STUB extends AbstractStub<STUB>, T> boolean isNotEmptyResponseMarker(CellResponse<STUB, T> response) {
+        return response != EMPTY_RESPONSE_MARKER;
+    }
+
+    static <STUB extends AbstractStub<STUB>, T> ResponseMerger<STUB, Either<T, Throwable>> singleValue() {
+        return singleValue(ErrorMerger.<STUB, T>grpcWithDefaultPriorities());
     }
 }

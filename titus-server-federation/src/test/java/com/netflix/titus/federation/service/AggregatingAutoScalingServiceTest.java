@@ -78,7 +78,6 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onErrorEvents.size()).isEqualTo(1);
     }
 
-
     @Test
     public void getPoliciesForJobFromTwoCells() {
         ScalingPolicyID policy1 = ScalingPolicyID.newBuilder().setId(POLICY_1).build();
@@ -102,6 +101,15 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents.size()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
+
+        // Bad policy id
+        testSubscriber = service.getJobScalingPolicies(JobId.newBuilder().setId("badID").build()).test();
+        testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
+        onNextEvents = testSubscriber.getOnNextEvents();
+        assertThat(onNextEvents).isNotNull();
+        assertThat(onNextEvents.size()).isEqualTo(1);
+        assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(0);
     }
 
     @Test
@@ -244,6 +252,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         // Bad policy id
         testSubscriber = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId("badID").build()).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        testSubscriber.assertNoErrors();
         onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();
         assertThat(onNextEvents.size()).isEqualTo(1);

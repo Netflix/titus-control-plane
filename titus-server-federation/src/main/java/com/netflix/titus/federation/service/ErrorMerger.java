@@ -50,4 +50,7 @@ interface ErrorMerger<STUB extends AbstractStub<STUB>, T> extends Func2<
         };
     }
 
+    static <STUB extends AbstractStub<STUB>, T> ErrorMerger<STUB, T> grpcWithDefaultPriorities() {
+        return grpc(StatusCategoryComparator.defaultPriorities());
+    }
 }
