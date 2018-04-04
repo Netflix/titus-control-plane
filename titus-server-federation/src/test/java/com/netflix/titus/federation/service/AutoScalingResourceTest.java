@@ -66,7 +66,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         ScalingPolicyResult policyOneResult = ScalingPolicyResult.newBuilder().setId(policy1).build();
 
         CellWithPolicies cellOneService = new CellWithPolicies(Collections.singletonList(policyOneResult));
-        FailingCell badCell = new FailingCell();
+        CellWithFailingAutoscalingService badCell = new CellWithFailingAutoscalingService();
 
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(badCell);
@@ -133,8 +133,8 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         CellWithPolicies cellOneService = new CellWithPolicies(Collections.singletonList(policyOneResult));
         CellWithPolicies cellTwoService = new CellWithPolicies(Collections.singletonList(policyTwoResult));
 
-        CellWithJobs cellOneJobsService = new CellWithJobs(Collections.singletonList(JOB_1));
-        CellWithJobs cellTwoJobsService = new CellWithJobs(Collections.singletonList(JOB_2));
+        CellWithJobIds cellOneJobsService = new CellWithJobIds(Collections.singletonList(JOB_1));
+        CellWithJobIds cellTwoJobsService = new CellWithJobIds(Collections.singletonList(JOB_2));
         cellOne.getServiceRegistry().addService(cellOneService);
         cellOne.getServiceRegistry().addService(cellOneJobsService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
@@ -181,8 +181,8 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         CellWithPolicies cellOneService = new CellWithPolicies(Collections.singletonList(policyOneResult));
         CellWithPolicies cellTwoService = new CellWithPolicies(Collections.singletonList(policyTwoResult));
 
-        CellWithJobs cellOneJobsService = new CellWithJobs(Collections.singletonList(JOB_1));
-        CellWithJobs cellTwoJobsService = new CellWithJobs(Collections.singletonList(JOB_2));
+        CellWithJobIds cellOneJobsService = new CellWithJobIds(Collections.singletonList(JOB_1));
+        CellWithJobIds cellTwoJobsService = new CellWithJobIds(Collections.singletonList(JOB_2));
         cellOne.getServiceRegistry().addService(cellOneService);
         cellOne.getServiceRegistry().addService(cellOneJobsService);
         cellTwo.getServiceRegistry().addService(cellTwoService);

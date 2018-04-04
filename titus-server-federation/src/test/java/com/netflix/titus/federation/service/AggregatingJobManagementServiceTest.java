@@ -16,33 +16,27 @@
 
 package com.netflix.titus.federation.service;
 
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.protobuf.Empty;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.model.Page;
-import com.netflix.titus.api.model.Pagination;
-import com.netflix.titus.api.model.PaginationUtil;
-import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.grpc.AnonymousSessionContext;
-import com.netflix.titus.common.grpc.GrpcUtil;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
@@ -52,35 +46,28 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification.SnapshotEnd;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatus;
+import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskQuery;
+import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
-import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
-import com.netflix.titus.testkit.model.job.JobGenerator;
-import io.grpc.ManagedChannel;
 import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcServerRule;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Subscription;
 import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
+import static com.netflix.titus.federation.service.ServiceTests.walkAllPages;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPage;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.any;
@@ -88,13 +75,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class AggregatingJobManagementServiceTest {
-    private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementServiceTest.class);
-    private static final JobStatus.Builder ACCEPTED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Accepted);
+    private static final JobStatus ACCEPTED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Accepted).build();
+    private static final int TASKS_IN_GENERATED_JOBS = 10;
 
     @Rule
     public final GrpcServerRule cellOne = new GrpcServerRule().directExecutor();
     private final PublishSubject<JobChangeNotification> cellOneUpdates = PublishSubject.create();
-
 
     @Rule
     public final GrpcServerRule cellTwo = new GrpcServerRule().directExecutor();
@@ -102,10 +88,9 @@ public class AggregatingJobManagementServiceTest {
 
     private String stackName;
     private AggregatingJobManagementService service;
-    private Map<Cell, Pair<ManagedChannel, GrpcServerRule>> cellToChannelMap;
-    private DataGenerator<Job> batchJobs;
-    private DataGenerator<Job> serviceJobs;
+    private Map<Cell, GrpcServerRule> cellToServiceMap;
     private TestClock clock;
+    private ServiceDataGenerator dataGenerator;
 
     @Before
     public void setUp() {
@@ -122,35 +107,30 @@ public class AggregatingJobManagementServiceTest {
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
         DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
         List<Cell> cells = cellInfoResolver.resolve();
-        cellToChannelMap = Collections.unmodifiableMap(Stream.of(
-                new SimpleImmutableEntry<>(cells.get(0), Pair.of(cellOne.getChannel(), cellOne)),
-                new SimpleImmutableEntry<>(cells.get(1), Pair.of(cellTwo.getChannel(), cellTwo)))
-                .collect(Collectors.toMap(
-                        SimpleImmutableEntry::getKey,
-                        SimpleImmutableEntry::getValue,
-                        (v1, v2) -> v2,
-                        TreeMap::new)));
+        cellToServiceMap = ImmutableMap.of(
+                cells.get(0), cellOne,
+                cells.get(1), cellTwo
+        );
 
         CellConnector connector = mock(CellConnector.class);
-        when(connector.getChannels()).thenReturn(cellToChannelMap.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, cellPairEntry -> cellPairEntry.getValue().getLeft())));
-        Answer<Optional<ManagedChannel>> answer = (InvocationOnMock invocation) -> {
-            Cell cell = invocation.getArgument(0);
-            if (cellToChannelMap.containsKey(cell)) {
-                return Optional.of(cellToChannelMap.get(cell).getLeft());
-            }
-            return Optional.empty();
-        };
-        when(connector.getChannelForCell(any(Cell.class)))
-                .thenAnswer(answer);
+        when(connector.getChannels()).thenReturn(cellToServiceMap.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, cellPairEntry -> cellPairEntry.getValue().getChannel()))
+        );
+        when(connector.getChannelForCell(any(Cell.class))).thenAnswer(invocation ->
+                Optional.ofNullable(cellToServiceMap.get(invocation.<Cell>getArgument(0)))
+                        .map(GrpcServerRule::getChannel)
+        );
 
-        service = new AggregatingJobManagementService(grpcClientConfiguration, titusFederationConfiguration, connector, cellRouter, new AnonymousSessionContext());
+        service = new AggregatingJobManagementService(
+                grpcClientConfiguration,
+                titusFederationConfiguration,
+                connector,
+                cellRouter,
+                new AnonymousSessionContext()
+        );
+
         clock = Clocks.test();
-        batchJobs = JobGenerator.batchJobs(JobDescriptorGenerator.batchJobDescriptors().getValue(), clock)
-                .map(V3GrpcModelConverters::toGrpcJob);
-        serviceJobs = JobGenerator.serviceJobs(JobDescriptorGenerator.serviceJobDescriptors().getValue(), clock)
-                .map(V3GrpcModelConverters::toGrpcJob);
+        dataGenerator = new ServiceDataGenerator(clock, TASKS_IN_GENERATED_JOBS);
     }
 
     @After
@@ -164,11 +144,20 @@ public class AggregatingJobManagementServiceTest {
         Random random = new Random();
         final List<Job> cellOneSnapshot = new ArrayList<>();
         final List<Job> cellTwoSnapshot = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
-            batchJobs = batchJobs.apply(cellOneSnapshot::add, random.nextInt(10));
-            batchJobs = batchJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
-            serviceJobs = serviceJobs.apply(cellOneSnapshot::add, random.nextInt(10));
-            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
+        for (int i = 0; i < 5; i++) {
+            cellOneSnapshot.addAll(
+                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+            );
+            cellTwoSnapshot.addAll(
+                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+            );
+            cellOneSnapshot.addAll(
+                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+            );
+            cellTwoSnapshot.addAll(
+                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+            );
+            clock.advanceTime(1, TimeUnit.MINUTES);
         }
 
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
@@ -186,7 +175,7 @@ public class AggregatingJobManagementServiceTest {
         assertThat(results).hasSize(1);
 
         // expect stackName to have changed
-        List<Job> expected = CollectionsExt.merge(cellOneSnapshot, cellTwoSnapshot).stream()
+        List<Job> expected = Stream.concat(cellOneSnapshot.stream(), cellTwoSnapshot.stream())
                 .sorted(JobManagerCursors.jobCursorOrderComparator())
                 .map(this::withStackName)
                 .collect(Collectors.toList());
@@ -198,11 +187,16 @@ public class AggregatingJobManagementServiceTest {
         Random random = new Random();
         final List<Job> cellOneSnapshot = new ArrayList<>();
         final List<Job> cellTwoSnapshot = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
-            batchJobs = batchJobs.apply(cellOneSnapshot::add, random.nextInt(10));
-            batchJobs = batchJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
-            serviceJobs = serviceJobs.apply(cellOneSnapshot::add, random.nextInt(10));
-            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, random.nextInt(10));
+        for (int i = 0; i < 5; i++) {
+            Iterables.addAll(cellOneSnapshot, Iterables.concat(
+                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob),
+                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+            ));
+            Iterables.addAll(cellTwoSnapshot, Iterables.concat(
+                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob),
+                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+            ));
+            clock.advanceTime(1, TimeUnit.MINUTES);
         }
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
@@ -229,16 +223,16 @@ public class AggregatingJobManagementServiceTest {
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                batchJobs = batchJobs.apply(cellOneSnapshot::add, 1);
+                cellOneSnapshot.add(dataGenerator.newBatchJob(V3GrpcModelConverters::toGrpcJob));
 
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, 1);
+                cellTwoSnapshot.add(dataGenerator.newServiceJob(V3GrpcModelConverters::toGrpcJob));
 
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                serviceJobs = serviceJobs.apply(cellOneSnapshot::add, 1);
+                cellOneSnapshot.add(dataGenerator.newServiceJob(V3GrpcModelConverters::toGrpcJob));
 
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                batchJobs = batchJobs.apply(cellTwoSnapshot::add, 1);
+                cellTwoSnapshot.add(dataGenerator.newBatchJob(V3GrpcModelConverters::toGrpcJob));
             }
             clock.advanceTime(9, TimeUnit.SECONDS);
         }
@@ -249,7 +243,7 @@ public class AggregatingJobManagementServiceTest {
         assertThat(allJobs).hasSize(cellOneSnapshot.size() + cellTwoSnapshot.size());
 
         // expect stackName to have changed
-        List<Job> expected = CollectionsExt.merge(cellOneSnapshot, cellTwoSnapshot).stream()
+        List<Job> expected = Stream.concat(cellOneSnapshot.stream(), cellTwoSnapshot.stream())
                 .sorted(JobManagerCursors.jobCursorOrderComparator())
                 .map(this::withStackName)
                 .collect(Collectors.toList());
@@ -266,13 +260,13 @@ public class AggregatingJobManagementServiceTest {
         final List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             clock.advanceTime(1, TimeUnit.SECONDS);
-            batchJobs = batchJobs.apply(cellOneSnapshot::add, 5);
+            cellOneSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            serviceJobs = serviceJobs.apply(cellOneSnapshot::add, 5);
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            batchJobs = batchJobs.apply(cellTwoSnapshot::add, 5);
+            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, 5);
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
         }
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
@@ -296,9 +290,9 @@ public class AggregatingJobManagementServiceTest {
     public void findJobsWithEmptyCell() {
         final List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            batchJobs = batchJobs.apply(cellTwoSnapshot::add, 5);
+            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, 5);
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
@@ -327,11 +321,11 @@ public class AggregatingJobManagementServiceTest {
     public void findJobsWithFailingCell() {
         final List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            batchJobs = batchJobs.apply(cellTwoSnapshot::add, 5);
-            serviceJobs = serviceJobs.apply(cellTwoSnapshot::add, 5);
+            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
-        cellOne.getServiceRegistry().addService(new FailingCell());
+        cellOne.getServiceRegistry().addService(new CellWithFailingJobManagementService());
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
 
         JobQuery query = JobQuery.newBuilder()
@@ -344,47 +338,30 @@ public class AggregatingJobManagementServiceTest {
         testSubscriber.assertNoValues();
     }
 
-    private List<Job> walkAllFindJobsPages(int pageWalkSize) {
-        List<Job> allJobs = new ArrayList<>();
-        Optional<JobQueryResult> lastResult = Optional.empty();
-        int currentCursorPosition = -1;
-        int currentPageNumber = 0;
+    @Test
+    public void findTasksMergesAllCellsIntoSingleResult() {
+        List<Task> cellOneSnapshot = new ArrayList<>();
+        List<Task> cellTwoSnapshot = new ArrayList<>();
 
-        while (lastResult.map(r -> r.getPagination().getHasMore()).orElse(true)) {
-            final Page.Builder builder = Page.newBuilder().withPageSize(pageWalkSize);
-            if (lastResult.isPresent()) {
-                builder.withCursor(lastResult.get().getPagination().getCursor());
-            } else {
-                builder.withPageNumber(0);
-            }
-
-            final JobQuery query = JobQuery.newBuilder()
-                    .setPage(toGrpcPage(builder.build()))
-                    .build();
-            final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
-            testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-            testSubscriber.assertNoErrors().assertCompleted();
-            testSubscriber.assertValueCount(1);
-
-            final List<JobQueryResult> results = testSubscriber.getOnNextEvents();
-            assertThat(results).hasSize(1);
-            JobQueryResult jobQueryResult = results.get(0);
-            if (jobQueryResult.getPagination().getHasMore()) {
-                assertThat(jobQueryResult.getItemsList()).hasSize(pageWalkSize);
-            }
-            currentCursorPosition += jobQueryResult.getItemsCount();
-            if (jobQueryResult.getPagination().getTotalItems() > 0) {
-                assertThat(jobQueryResult.getPagination().getCursorPosition()).isEqualTo(currentCursorPosition);
-            } else {
-                assertThat(jobQueryResult.getPagination().getCursorPosition()).isEqualTo(0);
-            }
-            assertThat(jobQueryResult.getPagination().getCurrentPage().getPageNumber()).isEqualTo(currentPageNumber++);
-            allJobs.addAll(jobQueryResult.getItemsList());
-            lastResult = Optional.of(jobQueryResult);
-            testSubscriber.unsubscribe();
+        // 10 jobs on each cell with TASKS_IN_GENERATED_JOBS tasks each
+        for (int i = 0; i < 5; i++) {
+            cellOneSnapshot.addAll(dataGenerator.newBatchJobWithTasks());
+            cellTwoSnapshot.addAll(dataGenerator.newBatchJobWithTasks());
+            cellOneSnapshot.addAll(dataGenerator.newServiceJobWithTasks());
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobWithTasks());
+            clock.advanceTime(1, TimeUnit.MINUTES);
         }
 
-        return allJobs;
+        cellOne.getServiceRegistry().addService(new CellWithFixedTasksService(cellOneSnapshot));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedTasksService(cellTwoSnapshot));
+
+        List<Task> tasks = walkAllFindTasksPages(7);
+        assertThat(tasks).hasSize(cellOneSnapshot.size() + cellTwoSnapshot.size());
+        List<Task> expected = Stream.concat(cellOneSnapshot.stream(), cellTwoSnapshot.stream())
+                .sorted(JobManagerCursors.taskCursorOrderComparator())
+                .map(this::withStackName)
+                .collect(Collectors.toList());
+        assertThat(tasks).containsExactlyElementsOf(expected);
     }
 
     @Test
@@ -482,21 +459,19 @@ public class AggregatingJobManagementServiceTest {
     }
 
     @Test
-    public void createJobRouteToCorrectStack() throws InterruptedException {
+    public void createJobRouteToCorrectStack() {
         // Build service handlers for each cell
-        cellToChannelMap.entrySet().forEach((cellPairEntry -> {
-            Cell cell = cellPairEntry.getKey();
-            GrpcServerRule grpcServerRule = cellPairEntry.getValue().getRight();
-            grpcServerRule.getServiceRegistry().addService(new CellWithCachedJobsService(cell.getName()));
-        }));
+        cellToServiceMap.forEach((cell, grpcServerRule) ->
+                grpcServerRule.getServiceRegistry().addService(new CellWithCachedJobsService(cell.getName()))
+        );
 
         // Expected assignments based on routing rules in setUp()
-        Map<String, String> expectedAssignmentMap = Collections.unmodifiableMap(Stream.of(
-                new SimpleImmutableEntry<>("app1", "one"),
-                new SimpleImmutableEntry<>("app2", "one"),
-                new SimpleImmutableEntry<>("app3", "two"),
-                new SimpleImmutableEntry<>("app4", "one"))
-                .collect(Collectors.toMap(SimpleImmutableEntry::getKey, SimpleImmutableEntry::getValue)));
+        Map<String, String> expectedAssignmentMap = ImmutableMap.of(
+                "app1", "one",
+                "app2", "one",
+                "app3", "two",
+                "app4", "one"
+        );
 
         expectedAssignmentMap.forEach((appName, expectedCellName) -> {
             // Create the job and let it get routed
@@ -508,9 +483,9 @@ public class AggregatingJobManagementServiceTest {
 
             // Get a client to the test gRPC service for the cell that we expect got it
             // TODO(Andrew L): This can use findJob() instead once AggregatingService implements it
-            Cell expectedCell = getCellWithName(expectedCellName).get();
-            JobManagementServiceGrpc.JobManagementServiceStub expectedCellClient = JobManagementServiceGrpc.newStub(cellToChannelMap.get(expectedCell).getRight()
-                    .getChannel());
+            Cell expectedCell = getCellWithName(expectedCellName)
+                    .orElseThrow(() -> TitusServiceException.cellNotFound(expectedCellName));
+            JobManagementServiceStub expectedCellClient = JobManagementServiceGrpc.newStub(cellToServiceMap.get(expectedCell).getChannel());
 
             // Check that the cell has it with the correct attribute
             TestStreamObserver<Job> findJobResponse = new TestStreamObserver<>();
@@ -522,6 +497,26 @@ public class AggregatingJobManagementServiceTest {
         });
     }
 
+    private List<Job> walkAllFindJobsPages(int pageWalkSize) {
+        return walkAllPages(
+                pageWalkSize,
+                service::findJobs,
+                page -> JobQuery.newBuilder().setPage(page).build(),
+                JobQueryResult::getPagination,
+                JobQueryResult::getItemsList
+        );
+    }
+
+    private List<Task> walkAllFindTasksPages(int pageWalkSize) {
+        return walkAllPages(
+                pageWalkSize,
+                service::findTasks,
+                page -> TaskQuery.newBuilder().setPage(page).build(),
+                TaskQueryResult::getPagination,
+                TaskQueryResult::getItemsList
+        );
+    }
+
     private JobChangeNotification toNotification(Job job) {
         return JobChangeNotification.newBuilder().setJobUpdate(JobUpdate.newBuilder().setJob(job)).build();
     }
@@ -531,6 +526,12 @@ public class AggregatingJobManagementServiceTest {
                 .putAttributes("titus.stack", stackName)
                 .build();
         return job.toBuilder().setJobDescriptor(jobDescriptor).build();
+    }
+
+    private Task withStackName(Task task) {
+        return task.toBuilder()
+                .putTaskContext("titus.stack", stackName)
+                .build();
     }
 
     private JobChangeNotification withStackName(JobChangeNotification jobChangeNotification) {
@@ -546,97 +547,7 @@ public class AggregatingJobManagementServiceTest {
     }
 
     private Optional<Cell> getCellWithName(String cellName) {
-        return cellToChannelMap.keySet().stream().filter(cell -> cell.getName().equals(cellName)).findFirst();
+        return cellToServiceMap.keySet().stream().filter(cell -> cell.getName().equals(cellName)).findFirst();
     }
-
-    private static class CellWithFixedJobsService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
-        private final List<Job> snapshot;
-        private final Observable<JobChangeNotification> updates;
-
-        private CellWithFixedJobsService(List<Job> snapshot, Observable<JobChangeNotification> updates) {
-            this.snapshot = snapshot;
-            this.updates = updates;
-        }
-
-        @Override
-        public void findJobs(JobQuery request, StreamObserver<JobQueryResult> responseObserver) {
-            Pair<List<Job>, Pagination> page = PaginationUtil.takePageWithCursor(
-                    toPage(request.getPage()),
-                    snapshot,
-                    JobManagerCursors.jobCursorOrderComparator(),
-                    JobManagerCursors::jobIndexOf,
-                    JobManagerCursors::newCursorFrom
-            );
-            JobQueryResult result = JobQueryResult.newBuilder()
-                    .addAllItems(page.getLeft())
-                    .setPagination(toGrpcPagination(page.getRight()))
-                    .build();
-            responseObserver.onNext(result);
-            responseObserver.onCompleted();
-        }
-
-        @Override
-        public void observeJobs(Empty request, StreamObserver<JobChangeNotification> responseObserver) {
-            for (Job job : snapshot) {
-                JobUpdate update = JobUpdate.newBuilder().setJob(job).build();
-                JobChangeNotification notification = JobChangeNotification.newBuilder().setJobUpdate(update).build();
-                responseObserver.onNext(notification);
-            }
-            SnapshotEnd snapshotEnd = SnapshotEnd.newBuilder().build();
-            JobChangeNotification marker = JobChangeNotification.newBuilder().setSnapshotEnd(snapshotEnd).build();
-            responseObserver.onNext(marker);
-
-            final Subscription subscription = updates.subscribe(
-                    responseObserver::onNext,
-                    responseObserver::onError,
-                    responseObserver::onCompleted
-            );
-            GrpcUtil.attachCancellingCallback(responseObserver, subscription);
-        }
-    }
-
-    private static class CellWithCachedJobsService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
-        private final String cellName;
-        private final Map<JobId, JobDescriptor> jobDescriptorMap = new HashMap<>();
-
-        private CellWithCachedJobsService(String name) {
-            this.cellName = name;
-        }
-
-        @Override
-        public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
-            JobId jobId = JobId.newBuilder().setId(UUID.randomUUID().toString()).build();
-            jobDescriptorMap.put(
-                    jobId,
-                    JobDescriptor.newBuilder(request)
-                            .putAttributes(JOB_ATTRIBUTES_CELL, cellName)
-                            .build());
-            final Subscription subscription = Observable.just(jobId)
-                    .subscribe(
-                            responseObserver::onNext,
-                            responseObserver::onError,
-                            responseObserver::onCompleted
-                    );
-            GrpcUtil.attachCancellingCallback(responseObserver, subscription);
-        }
-
-        @Override
-        public void findJob(JobId request, StreamObserver<Job> responseObserver) {
-            final Subscription subscription = Observable.just(Job.newBuilder().setJobDescriptor(jobDescriptorMap.get(request)).build())
-                    .subscribe(
-                            responseObserver::onNext,
-                            responseObserver::onError,
-                            responseObserver::onCompleted
-                    );
-            GrpcUtil.attachCancellingCallback(responseObserver, subscription);
-        }
-    }
-
-    private static class FailingCell extends JobManagementServiceGrpc.JobManagementServiceImplBase {
-        @Override
-        public void findJobs(JobQuery request, StreamObserver<JobQueryResult> responseObserver) {
-            responseObserver.onError(Status.INTERNAL.asRuntimeException());
-        }
-    }
-
 }
+
