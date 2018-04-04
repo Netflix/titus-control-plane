@@ -69,7 +69,6 @@ class CellWithFixedTasksService extends JobManagementServiceGrpc.JobManagementSe
             responseObserver.onError(NOT_FOUND.asRuntimeException());
             return;
         }
-        // none of this is thread safe, but it is probably OK since it is used only in tests
         tasksIndex.remove(request.getTaskId());
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
