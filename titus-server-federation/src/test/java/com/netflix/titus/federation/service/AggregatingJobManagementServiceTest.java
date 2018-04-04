@@ -45,6 +45,7 @@ import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.SnapshotEnd;
+import com.netflix.titus.grpc.protogen.JobChangeNotification.TaskUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -84,6 +85,8 @@ import static org.mockito.Mockito.when;
 
 public class AggregatingJobManagementServiceTest {
     private static final JobStatus ACCEPTED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Accepted).build();
+    private static final JobStatus KILL_INITIATED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.KillInitiated).build();
+    private static final JobStatus FINISHED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Finished).build();
     private static final int TASKS_IN_GENERATED_JOBS = 10;
 
     @Rule
@@ -677,6 +680,46 @@ public class AggregatingJobManagementServiceTest {
     }
 
     @Test
+    public void observeJob() {
+        String cellOneJobId = UUID.randomUUID().toString();
+        String cellTwoJobId = UUID.randomUUID().toString();
+        cellOne.getServiceRegistry().addService(new CellWithJobStream(cellOneJobId, cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithJobStream(cellTwoJobId, cellTwoUpdates.serialize()));
+
+        AssertableSubscriber<JobChangeNotification> subscriber1 = service.observeJob(cellOneJobId).test();
+        AssertableSubscriber<JobChangeNotification> subscriber2 = service.observeJob(cellTwoJobId).test();
+
+        cellOneUpdates.onNext(toNotification(Job.newBuilder().setId(cellOneJobId).setStatus(ACCEPTED_STATE).build()));
+        cellOneUpdates.onNext(toNotification(Job.newBuilder().setId(cellOneJobId).setStatus(KILL_INITIATED_STATE).build()));
+        cellOneUpdates.onNext(toNotification(Job.newBuilder().setId(cellOneJobId).setStatus(FINISHED_STATE).build()));
+        cellOneUpdates.onNext(toNotification(Job.newBuilder().setId(cellOneJobId).setStatus(ACCEPTED_STATE).build()));
+
+        subscriber1.awaitValueCount(3, 5, TimeUnit.SECONDS);
+        subscriber1.assertNoErrors();
+        subscriber1.assertNotCompleted();
+        assertThat(subscriber1.isUnsubscribed()).isFalse();
+
+        subscriber2.assertNoErrors();
+        subscriber2.assertNoValues();
+        subscriber2.assertNotCompleted();
+
+        cellTwoUpdates.onNext(toNotification(Task.newBuilder()
+                .setId(cellTwoJobId + "-task1").setJobId(cellTwoJobId)
+                .build())
+        );
+        subscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
+        subscriber2.assertNoErrors();
+        subscriber2.assertNotCompleted();
+
+        cellOneUpdates.onCompleted();
+
+        subscriber1.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        assertThat(subscriber1.getOnErrorEvents()).isEmpty();
+        assertThat(subscriber1.isUnsubscribed()).isTrue();
+        assertThat(subscriber1.getCompletions()).isEqualTo(1);
+    }
+
+    @Test
     public void createJobRouteToCorrectStack() {
         // Build service handlers for each cell
         cellToServiceMap.forEach((cell, grpcServerRule) ->
@@ -737,6 +780,10 @@ public class AggregatingJobManagementServiceTest {
 
     private JobChangeNotification toNotification(Job job) {
         return JobChangeNotification.newBuilder().setJobUpdate(JobUpdate.newBuilder().setJob(job)).build();
+    }
+
+    private JobChangeNotification toNotification(Task task) {
+        return JobChangeNotification.newBuilder().setTaskUpdate(TaskUpdate.newBuilder().setTask(task)).build();
     }
 
     private Job withStackName(Job job) {
