@@ -21,6 +21,8 @@ import com.netflix.titus.common.grpc.AnonymousSessionContext;
 import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 
 public class GrpcModule extends AbstractModule {
 

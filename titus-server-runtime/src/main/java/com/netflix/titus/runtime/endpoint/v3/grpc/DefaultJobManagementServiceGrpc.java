@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.endpoint.v3.grpc;
+package com.netflix.titus.runtime.endpoint.v3.grpc;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.runtime.service.JobManagementService;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -36,6 +35,7 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.runtime.service.JobManagementService;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +44,7 @@ import rx.Subscription;
 
 import static com.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
 import static com.netflix.titus.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 
 @Singleton
 public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
@@ -79,6 +80,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void findJobs(JobQuery jobQuery, StreamObserver<JobQueryResult> responseObserver) {
+        if (!checkPageIsValid(jobQuery.getPage(), responseObserver)) {
+            return;
+        }
         Subscription subscription = jobManagementService.findJobs(jobQuery).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
@@ -139,6 +143,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void findTasks(TaskQuery request, StreamObserver<TaskQueryResult> responseObserver) {
+        if (!checkPageIsValid(request.getPage(), responseObserver)) {
+            return;
+        }
         Subscription subscription = jobManagementService.findTasks(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),

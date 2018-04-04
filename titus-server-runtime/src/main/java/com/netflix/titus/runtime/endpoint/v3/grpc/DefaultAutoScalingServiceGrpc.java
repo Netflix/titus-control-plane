@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.endpoint.v3.grpc;
+package com.netflix.titus.runtime.endpoint.v3.grpc;
 
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
+import com.netflix.titus.runtime.service.AutoScalingService;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
