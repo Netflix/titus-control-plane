@@ -23,6 +23,7 @@ import com.google.protobuf.Empty;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.MethodDescriptor;
+import io.grpc.Status;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
@@ -207,5 +208,9 @@ public class GrpcUtil {
 
     public static long getRxJavaAdjustedTimeout(long initialTimeoutMs) {
         return (long) (initialTimeoutMs * RX_CLIENT_TIMEOUT_FACTOR);
+    }
+
+    public static boolean isNotOK(Status oneStatus) {
+        return !Status.Code.OK.equals(oneStatus.getCode());
     }
 }

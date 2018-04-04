@@ -17,6 +17,7 @@
 package com.netflix.titus.federation.service;
 
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.common.util.tuple.Either;
 import io.grpc.stub.AbstractStub;
 
 class CellResponse<STUB extends AbstractStub<STUB>, T> {
@@ -49,5 +50,10 @@ class CellResponse<STUB extends AbstractStub<STUB>, T> {
                 ", client=" + client +
                 ", result=" + result +
                 '}';
+    }
+
+    public static <STUB extends AbstractStub<STUB>, T>
+    CellResponse<STUB, T> ofValue(CellResponse<STUB, Either<T, Throwable>> response) {
+        return new CellResponse<>(response.getCell(), response.getClient(), response.getResult().getValue());
     }
 }
