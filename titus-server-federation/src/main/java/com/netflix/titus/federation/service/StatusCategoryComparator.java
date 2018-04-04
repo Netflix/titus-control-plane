@@ -43,18 +43,18 @@ import static io.grpc.Status.Code.UNIMPLEMENTED;
 import static io.grpc.Status.Code.UNKNOWN;
 
 /**
- * Fixed order to determine precedence when merging gRPC errors. More important errors take place of less important
- * errors.
+ * Group gRPC {@link Status} codes in categories (buckets) with different precedence. More important errors take place
+ * of less important errors.
  * <p>
- * Errors non explicitly provided are considered less important than ones explicitly provided.
+ * Errors not explicitly provided are considered less important than the ones explicitly provided.
  */
-class FixedStatusOrder implements Comparator<Status> {
+class StatusCategoryComparator implements Comparator<Status> {
     private final Map<Status.Code, Integer> priorities = new HashMap<>();
 
     @SafeVarargs
-    FixedStatusOrder(List<Status.Code>... codePriorities) {
-        for (int i = 0; i < codePriorities.length; i++) {
-            List<Status.Code> codes = codePriorities[i];
+    StatusCategoryComparator(List<Status.Code>... statusCategories) {
+        for (int i = 0; i < statusCategories.length; i++) {
+            List<Status.Code> codes = statusCategories[i];
             for (Status.Code code : codes) {
                 if (priorities.putIfAbsent(code, i) != null) {
                     throw new IllegalArgumentException(code + " has been already specified with a different priority");
@@ -74,7 +74,7 @@ class FixedStatusOrder implements Comparator<Status> {
         return priorities.get(one.getCode()).compareTo(priorities.get(other.getCode()));
     }
 
-    private static final FixedStatusOrder COMMON_ORDER = new FixedStatusOrder(
+    private static final StatusCategoryComparator DEFAULT = new StatusCategoryComparator(
             // unexpected system errors first
             Arrays.asList(UNKNOWN, FAILED_PRECONDITION, PERMISSION_DENIED, UNIMPLEMENTED, INTERNAL, DATA_LOSS, UNAUTHENTICATED),
             // then errors where the entity existed somewhere
@@ -86,13 +86,15 @@ class FixedStatusOrder implements Comparator<Status> {
     );
 
     /**
-     * A default order that should be good enough for most point query cases. The precedence order is:
+     * A default categorization with priorities that should be good enough for most point query cases. The precedence
+     * order is:
+     * <p>
      * 1. Unexpected system errors.
      * 2. Errors where we can deduce the entity existed in a Cell (e.g.: validation errors).
      * 3. Transient errors.
      * 4. <tt>NOT_FOUND</tt> (we can only be sure if all errors are a <tt>NOT_FOUND</tt>)
      */
-    static FixedStatusOrder common() {
-        return COMMON_ORDER;
+    static StatusCategoryComparator defaultPriorities() {
+        return DEFAULT;
     }
 }

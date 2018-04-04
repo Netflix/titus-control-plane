@@ -83,7 +83,7 @@ public class ResponseAggregationTest {
         Collections.shuffle(responses);
 
         CellResponse<JobManagementServiceStub, Either<String, Throwable>> merged = Observable.from(responses)
-                .reduce(ErrorMerger.grpc(FixedStatusOrder.common()))
+                .reduce(ErrorMerger.grpc(StatusCategoryComparator.defaultPriorities()))
                 .toBlocking().single();
 
         // unexpected system errors have the highest precedence
@@ -91,7 +91,7 @@ public class ResponseAggregationTest {
 
         List<Status> sorted = responses.stream()
                 .map(r -> Status.fromThrowable(r.getResult().getError()))
-                .sorted(FixedStatusOrder.common())
+                .sorted(StatusCategoryComparator.defaultPriorities())
                 .collect(Collectors.toList());
 
         // verify common order: unexpected > entity existed > transient > not found

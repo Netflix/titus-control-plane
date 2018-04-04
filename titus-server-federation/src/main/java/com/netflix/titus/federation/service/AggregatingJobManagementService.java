@@ -78,7 +78,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     private final GrpcConfiguration grpcConfiguration;
     private final TitusFederationConfiguration federationConfiguration;
     private final CellConnector connector;
-    private final AllCells allCells;
+    private final AggregatingCellClient aggregatingClient;
     private final CellRouter router;
     private final SessionContext sessionContext;
 
@@ -91,7 +91,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;
         this.connector = connector;
-        this.allCells = new AllCells(connector);
+        this.aggregatingClient = new AggregatingCellClient(connector);
         this.router = router;
         this.sessionContext = sessionContext;
     }
@@ -152,7 +152,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
-        return allCells.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
+        return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
                 .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
@@ -160,7 +160,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                 );
     }
 
-    private SingleCellCall<Job> findJobInCell(String jobId) {
+    private ClientCall<Job> findJobInCell(String jobId) {
         JobId id = JobId.newBuilder().setId(jobId).build();
         return (client, streamObserver) -> wrap(client).findJob(id, streamObserver);
     }
@@ -180,7 +180,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request) {
-        return allCells.call(JobManagementServiceGrpc::newStub, findJobsInCell(request))
+        return aggregatingClient.call(JobManagementServiceGrpc::newStub, findJobsInCell(request))
                 .map(CellResponse::getResult)
                 .reduce(this::combineJobResults)
                 .map(combinedResults -> {
@@ -199,7 +199,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                 });
     }
 
-    private SingleCellCall<JobQueryResult> findJobsInCell(JobQuery request) {
+    private ClientCall<JobQueryResult> findJobsInCell(JobQuery request) {
         return (client, streamObserver) -> wrap(client).findJobs(request, streamObserver);
     }
 
@@ -255,7 +255,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId) {
-        return allCells.callExpectingErrors(JobManagementServiceGrpc::newStub, findTaskInCell(taskId))
+        return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findTaskInCell(taskId))
                 .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
@@ -263,7 +263,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                 );
     }
 
-    private SingleCellCall<Task> findTaskInCell(String taskId) {
+    private ClientCall<Task> findTaskInCell(String taskId) {
         TaskId id = TaskId.newBuilder().setId(taskId).build();
         return (client, streamObserver) -> wrap(client).findTask(id, streamObserver);
     }
@@ -283,7 +283,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request) {
-        return allCells.call(JobManagementServiceGrpc::newStub, findTasksInCell(request))
+        return aggregatingClient.call(JobManagementServiceGrpc::newStub, findTasksInCell(request))
                 .map(CellResponse::getResult)
                 .reduce(this::combineTaskResults)
                 .map(combinedResults -> {
@@ -301,7 +301,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                 });
     }
 
-    private SingleCellCall<TaskQueryResult> findTasksInCell(TaskQuery request) {
+    private ClientCall<TaskQueryResult> findTasksInCell(TaskQuery request) {
         return (client, streamObserver) -> wrap(client).findTasks(request, streamObserver);
     }
 
@@ -366,16 +366,16 @@ public class AggregatingJobManagementService implements JobManagementService {
         return createWrappedStub(client, sessionContext, grpcConfiguration.getRequestTimeoutMs());
     }
 
-    private <T> Observable<T> singleCellCall(Cell cell, SingleCellCall<T> singleCellCall) {
-        return CellConnectorUtil.callToCell(cell, connector, JobManagementServiceGrpc::newStub, singleCellCall);
+    private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
+        return CellConnectorUtil.callToCell(cell, connector, JobManagementServiceGrpc::newStub, clientCall);
     }
 
-    private interface SingleCellCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
+    private interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
         // generics sanity
     }
 
     private static <T> ErrorMerger<JobManagementServiceStub, T> pointQueriesErrorMerger() {
-        return ErrorMerger.grpc(FixedStatusOrder.common());
+        return ErrorMerger.grpc(StatusCategoryComparator.defaultPriorities());
     }
 
 }

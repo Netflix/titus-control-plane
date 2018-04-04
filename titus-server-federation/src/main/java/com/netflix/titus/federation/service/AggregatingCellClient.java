@@ -33,10 +33,10 @@ import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.federation.service.CellConnectorUtil.stubs;
 
-class AllCells {
+class AggregatingCellClient {
     private final CellConnector connector;
 
-    AllCells(CellConnector connector) {
+    AggregatingCellClient(CellConnector connector) {
         this.connector = connector;
     }
 
