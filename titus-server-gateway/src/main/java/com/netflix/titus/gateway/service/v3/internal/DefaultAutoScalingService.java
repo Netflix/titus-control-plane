@@ -23,7 +23,7 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.common.grpc.GrpcUtil;
 import com.netflix.titus.common.grpc.SessionContext;
-import com.netflix.titus.gateway.service.v3.AutoScalingService;
+import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;

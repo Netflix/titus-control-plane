@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.federation.service;
+package com.netflix.titus.runtime.service;
 
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;

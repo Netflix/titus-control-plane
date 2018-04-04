@@ -27,6 +27,8 @@ import com.netflix.titus.gateway.service.v3.internal.DefaultJobManagementService
 import com.netflix.titus.gateway.service.v3.internal.DefaultLoadBalancerService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultSchedulerService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultTitusManagementService;
+import com.netflix.titus.runtime.service.AutoScalingService;
+import com.netflix.titus.runtime.service.JobManagementService;
 
 public class V3ServiceModule extends AbstractModule {
     @Override

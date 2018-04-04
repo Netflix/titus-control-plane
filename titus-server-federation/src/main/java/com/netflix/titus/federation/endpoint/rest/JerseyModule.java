@@ -29,6 +29,8 @@ import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter;
 import com.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
+import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingResource;
+import com.netflix.titus.runtime.endpoint.v3.rest.JobManagementResource;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
 
@@ -63,6 +65,7 @@ public final class JerseyModule extends JerseyServletModule {
 
             // resources
             config.getClasses().add(JobManagementResource.class);
+            config.getClasses().add(AutoScalingResource.class);
             return config;
         };
     }

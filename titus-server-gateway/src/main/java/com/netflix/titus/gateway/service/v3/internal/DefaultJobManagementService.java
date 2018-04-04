@@ -51,7 +51,7 @@ import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
-import com.netflix.titus.gateway.service.v3.JobManagementService;
+import com.netflix.titus.runtime.service.JobManagementService;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -175,7 +175,7 @@ public class DefaultJobManagementService implements JobManagementService {
     }
 
     @Override
-    public Completable changeJobInServiceStatus(JobStatusUpdate statusUpdate) {
+    public Completable updateJobStatus(JobStatusUpdate statusUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateJobStatus(statusUpdate, streamObserver);
