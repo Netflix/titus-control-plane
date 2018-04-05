@@ -16,6 +16,7 @@
 
 package com.netflix.titus.gateway.endpoint.v3.rest;
 
+import java.util.Objects;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -30,6 +31,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.base.Strings;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
 import com.netflix.titus.gateway.service.v3.AgentManagementService;
 import com.netflix.titus.grpc.protogen.AgentInstance;
@@ -39,9 +42,7 @@ import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
-import com.netflix.titus.grpc.protogen.InstanceGroupLaunchEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.InstanceGroupTerminateEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
@@ -128,7 +129,14 @@ public class AgentManagementResource {
     @PUT
     @ApiOperation("Update instance group attributes")
     @Path("/instanceGroups/{id}/attributes")
-    public Response updateInstanceGroupLifecycle(InstanceGroupAttributesUpdate attributesUpdate) {
+    public Response updateInstanceGroupLifecycle(@PathParam("id") String instanceGroupId, InstanceGroupAttributesUpdate attributesUpdate) {
+        if (Strings.isNullOrEmpty(attributesUpdate.getInstanceGroupId())) {
+            attributesUpdate = attributesUpdate.toBuilder().setInstanceGroupId(instanceGroupId).build();
+        } else if (!Objects.equals(instanceGroupId, attributesUpdate.getInstanceGroupId())) {
+            throw TitusServiceException.invalidArgument("Path parameter id: " + instanceGroupId + " must match payload instanceGroupId: "
+                    + attributesUpdate.getInstanceGroupId());
+        }
+
         return Responses.fromCompletable(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
     }
 
