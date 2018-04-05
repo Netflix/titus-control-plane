@@ -20,6 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -37,24 +38,23 @@ import io.grpc.stub.StreamObserver;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
-import static com.netflix.titus.federation.service.CellConnectorUtil.callToAllCells;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
 import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 
 @Singleton
 public class AggregatingAutoScalingService implements AutoScalingService {
-    private CellConnector connector;
-    private SessionContext sessionContext;
-    private GrpcConfiguration grpcConfiguration;
+    private final CellConnector connector;
+    private final AggregatingCellClient aggregatingClient;
+    private final SessionContext sessionContext;
+    private final GrpcConfiguration grpcConfiguration;
 
     @Inject
     public AggregatingAutoScalingService(CellConnector connector,
                                          SessionContext sessionContext,
                                          GrpcConfiguration configuration) {
+        this.aggregatingClient = new AggregatingCellClient(connector);
         this.connector = connector;
         this.sessionContext = sessionContext;
         grpcConfiguration = configuration;
@@ -62,94 +62,117 @@ public class AggregatingAutoScalingService implements AutoScalingService {
 
     @Override
     public Observable<GetPolicyResult> getJobScalingPolicies(JobId jobId) {
-        BiConsumer<AutoScalingServiceStub, StreamObserver<GetPolicyResult>> getJobScalingPolicies =
-                (client, responseObserver) -> wrap(client).getJobScalingPolicies(jobId, responseObserver);
+        return aggregatingClient.callExpectingErrors(AutoScalingServiceGrpc::newStub, getJobScalingPoliciesInCell(jobId))
+                .filter(response -> response.getResult().hasError() || response.getResult().getValue().getItemsCount() > 0)
+                .reduce(ResponseMerger.emptyResponseMarker(), ResponseMerger.singleValue())
+                .filter(ResponseMerger::isNotEmptyResponseMarker)
+                .flatMap(response -> response.getResult()
+                        .map(Observable::just)
+                        .onErrorGet(Observable::error)
+                )
+                .switchIfEmpty(Observable.just(GetPolicyResult.newBuilder().build()));
+    }
 
-        return Observable.mergeDelayError(
-                callToAllCells(connector, AutoScalingServiceGrpc::newStub, true, getJobScalingPolicies)
-        ).compose(combinePolicyResults());
+    private ClientCall<GetPolicyResult> getJobScalingPoliciesInCell(JobId jobId) {
+        return (client, responseObserver) -> wrap(client).getJobScalingPolicies(jobId, responseObserver);
     }
 
     @Override
     public Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request) {
         JobId jobId = JobId.newBuilder().setId(request.getJobId()).build();
-        BiConsumer<JobManagementServiceStub, StreamObserver<Job>> findJob =
-                (client, responseObserver) -> wrap(client).findJob(jobId, responseObserver);
-        BiConsumer<AutoScalingServiceStub, StreamObserver<ScalingPolicyID>> setPolicy =
-                (client, responseObserver) -> wrap(client).setAutoScalingPolicy(request, responseObserver);
+        return findJobInAllCells(jobId)
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, responseObserver) -> client.setAutoScalingPolicy(request, responseObserver))
+                );
+    }
 
-        return Observable.mergeDelayError(
-                callToAllCells(connector, JobManagementServiceGrpc::newStub, true, findJob)
-        ).flatMap(response ->
-                callToCell(response.getCell(), connector, AutoScalingServiceGrpc::newStub, setPolicy)
-        );
+    private Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(JobId jobId) {
+        return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
+                .reduce(ResponseMerger.singleValue())
+                .flatMap(response -> response.getResult()
+                        .map(v -> Observable.just(CellResponse.ofValue(response)))
+                        .onErrorGet(Observable::error)
+                );
+    }
+
+    private BiConsumer<JobManagementServiceStub, StreamObserver<Job>> findJobInCell(JobId jobId) {
+        return (client, responseObserver) -> wrap(client).findJob(jobId, responseObserver);
     }
 
     @Override
     public Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request) {
-        BiConsumer<AutoScalingServiceStub, StreamObserver<GetPolicyResult>> getScalingPolicy =
-                (client, responseObserver) -> wrap(client).getScalingPolicy(request, responseObserver);
+        // each Cell returns an Status.INTERNAL error today when the id is not found
+        // TODO: make the error condition more explicit and return NOT_ERROR
+        return getScalingPolicyInAllCells(request).map(CellResponse::getResult);
+    }
 
-        return Observable.mergeDelayError(
-                callToAllCells(connector, AutoScalingServiceGrpc::newStub, true, getScalingPolicy)
-        ).compose(combinePolicyResults());
+    /**
+     * @return can be an empty Observable. Callers must handle it appropriately, usually with
+     * {@link Observable#switchIfEmpty(Observable)}.
+     */
+    private Observable<CellResponse<AutoScalingServiceStub, GetPolicyResult>> getScalingPolicyInAllCells(ScalingPolicyID request) {
+        return aggregatingClient.callExpectingErrors(AutoScalingServiceGrpc::newStub, getScalingPolicyInCell(request))
+                .filter(response -> response.getResult().hasError() || response.getResult().getValue().getItemsCount() > 0)
+                // Observable#reduce does not support empty Observables, so we inject a marker and take it out after
+                // merging results. The marker will be passed through only when the Observable is empty
+                .reduce(ResponseMerger.emptyResponseMarker(), ResponseMerger.singleValue())
+                .filter(ResponseMerger::isNotEmptyResponseMarker)
+                .flatMap(response -> response.getResult()
+                        .map(v -> Observable.just(CellResponse.ofValue(response)))
+                        .onErrorGet(Observable::error)
+                );
+    }
+
+    private ClientCall<GetPolicyResult> getScalingPolicyInCell(ScalingPolicyID request) {
+        return (client, responseObserver) -> wrap(client).getScalingPolicy(request, responseObserver);
     }
 
     @Override
     public Observable<GetPolicyResult> getAllScalingPolicies() {
-        BiConsumer<AutoScalingServiceStub, StreamObserver<GetPolicyResult>> getAllPolicies =
-                (client, responseObserver) -> wrap(client).getAllScalingPolicies(Empty.getDefaultInstance(), responseObserver);
+        return aggregatingClient.call(AutoScalingServiceGrpc::newStub, getAllScalingPoliciesInCell())
+                .map(CellResponse::getResult)
+                .reduce((acc, next) -> GetPolicyResult.newBuilder()
+                        .addAllItems(acc.getItemsList())
+                        .addAllItems(next.getItemsList())
+                        .build()
+                );
+    }
 
-        return Observable.mergeDelayError(
-                callToAllCells(connector, AutoScalingServiceGrpc::newStub, getAllPolicies)
-        ).compose(combinePolicyResults());
+    private ClientCall<GetPolicyResult> getAllScalingPoliciesInCell() {
+        return (client, responseObserver) ->
+                wrap(client).getAllScalingPolicies(Empty.getDefaultInstance(), responseObserver);
     }
 
     @Override
     public Completable deleteAutoScalingPolicy(DeletePolicyRequest request) {
         ScalingPolicyID policyId = request.getId();
-        BiConsumer<AutoScalingServiceStub, StreamObserver<GetPolicyResult>> getScalingPolicy =
-                (client, responseObserver) -> wrap(client).getScalingPolicy(policyId, responseObserver);
-        BiConsumer<AutoScalingServiceStub, StreamObserver<Empty>> deleteAutoScalingPolicy =
-                (client, responseObserver) -> wrap(client).deleteAutoScalingPolicy(request, responseObserver);
-
-        Observable<CellResponse<AutoScalingServiceStub, GetPolicyResult>> cellResponses = Observable.mergeDelayError(
-                callToAllCells(connector, AutoScalingServiceGrpc::newStub, true, getScalingPolicy)
-        );
-        return cellResponses
-                .filter(response -> response.getResult().getItemsCount() > 0)
-                .flatMap(t -> callToCell(t.getCell(), connector, AutoScalingServiceGrpc::newStub, deleteAutoScalingPolicy))
-                .toCompletable();
+        Observable<Empty> observable = getScalingPolicyInAllCells(policyId)
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, responseObserver) -> client.deleteAutoScalingPolicy(request, responseObserver))
+                );
+        return observable.toCompletable();
     }
 
     @Override
     public Completable updateAutoScalingPolicy(UpdatePolicyRequest request) {
         ScalingPolicyID policyId = request.getPolicyId();
-        BiConsumer<AutoScalingServiceStub, StreamObserver<GetPolicyResult>> getScalingPolicy =
-                (client, responseObserver) -> wrap(client).getScalingPolicy(policyId, responseObserver);
+        Observable<Empty> observable = getScalingPolicyInAllCells(policyId)
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, responseObserver) -> client.updateAutoScalingPolicy(request, responseObserver))
+                );
+        return observable.toCompletable();
+    }
 
-        Observable<CellResponse<AutoScalingServiceStub, GetPolicyResult>> cellResponses = Observable.mergeDelayError(
-                callToAllCells(connector, AutoScalingServiceGrpc::newStub, true, getScalingPolicy)
-        );
-
-        Observable<Empty> update = cellResponses.filter(response -> response.getResult().getItemsCount() > 0)
-                .flatMap(response -> createRequestObservable(emitter -> {
-                    StreamObserver<Empty> responseObserver = createSimpleClientResponseObserver(emitter);
-                    wrap(response.getClient()).updateAutoScalingPolicy(request, responseObserver);
-                }));
-        return update.toCompletable();
+    private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
+        return callToCell(cell, connector, AutoScalingServiceGrpc::newStub,
+                (client, streamObserver) -> clientCall.accept(wrap(client), streamObserver));
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
         return createWrappedStub(stub, sessionContext, grpcConfiguration.getRequestTimeoutMs());
     }
 
-    private Observable.Transformer<CellResponse<AutoScalingServiceStub, GetPolicyResult>, GetPolicyResult> combinePolicyResults() {
-        return policyResults -> policyResults.reduce(GetPolicyResult.newBuilder().build(),
-                (acc, next) -> GetPolicyResult.newBuilder()
-                        .addAllItems(acc.getItemsList())
-                        .addAllItems(next.getResult().getItemsList())
-                        .build());
+    private interface ClientCall<T> extends BiConsumer<AutoScalingServiceStub, StreamObserver<T>> {
+        // generics sanity
     }
-
 }

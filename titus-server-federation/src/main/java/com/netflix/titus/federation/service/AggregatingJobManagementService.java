@@ -68,6 +68,7 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STAC
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.emptyGrpcPagination;
@@ -123,7 +124,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     public Completable updateJobCapacity(JobCapacityUpdate request) {
         Observable<Empty> result = findJobInAllCells(request.getJobId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(client).updateJobCapacity(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobCapacity(request, streamObserver))
                 );
         return result.toCompletable();
     }
@@ -132,7 +133,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     public Completable updateJobProcesses(JobProcessesUpdate request) {
         Observable<Empty> result = findJobInAllCells(request.getJobId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(client).updateJobProcesses(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobProcesses(request, streamObserver))
                 );
         return result.toCompletable();
     }
@@ -141,7 +142,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     public Completable updateJobStatus(JobStatusUpdate request) {
         Observable<Empty> result = findJobInAllCells(request.getId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(client).updateJobStatus(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobStatus(request, streamObserver))
                 );
         return result.toCompletable();
     }
@@ -153,7 +154,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
         return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
-                .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
+                .reduce(ResponseMerger.singleValue())
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
                         .onErrorGet(Observable::error)
@@ -248,7 +249,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         JobId id = JobId.newBuilder().setId(jobId).build();
         Observable<Empty> result = findJobInAllCells(jobId)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(client).killJob(id, streamObserver))
+                        (client, streamObserver) -> client.killJob(id, streamObserver))
                 );
         return result.toCompletable();
     }
@@ -260,7 +261,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId) {
         return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findTaskInCell(taskId))
-                .reduce(ResponseMerger.singleValue(pointQueriesErrorMerger()))
+                .reduce(ResponseMerger.singleValue())
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
                         .onErrorGet(Observable::error)
@@ -328,7 +329,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     public Completable killTask(TaskKillRequest request) {
         Observable<Empty> result = findTaskInAllCells(request.getTaskId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(client).killTask(request, streamObserver))
+                        (client, streamObserver) -> client.killTask(request, streamObserver))
                 );
         return result.toCompletable();
     }
@@ -371,16 +372,12 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
-        return CellConnectorUtil.callToCell(cell, connector, JobManagementServiceGrpc::newStub, clientCall);
+        return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
+                (client, streamObserver) -> clientCall.accept(wrap(client), streamObserver));
     }
 
     private interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
         // generics sanity
     }
-
-    private static <T> ErrorMerger<JobManagementServiceStub, T> pointQueriesErrorMerger() {
-        return ErrorMerger.grpc(StatusCategoryComparator.defaultPriorities());
-    }
-
 }
 
