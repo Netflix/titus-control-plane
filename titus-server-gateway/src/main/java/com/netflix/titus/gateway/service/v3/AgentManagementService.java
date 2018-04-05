@@ -23,7 +23,10 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupLaunchEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupTerminateEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import rx.Completable;
@@ -44,6 +47,8 @@ public interface AgentManagementService {
     Completable updateAutoScalingRule(AutoScalingRuleUpdate autoScalingRuleUpdate);
 
     Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate);
+
+    Completable updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate);
 
     Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate);
 

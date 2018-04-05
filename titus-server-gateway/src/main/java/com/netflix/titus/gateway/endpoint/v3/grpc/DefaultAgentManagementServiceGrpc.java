@@ -30,7 +30,10 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagemen
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.Id;
+import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupLaunchEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupTerminateEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import io.grpc.stub.StreamObserver;
@@ -123,6 +126,15 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceGroupLifecycleState(InstanceGroupLifecycleStateUpdate request, StreamObserver<Empty> responseObserver) {
         Subscription subscription = agentManagementService.updateInstanceGroupLifecycle(request).subscribe(
+                () -> emitEmptyReply(responseObserver),
+                e -> safeOnError(logger, e, responseObserver)
+        );
+        attachCancellingCallback(responseObserver, subscription);
+    }
+
+    @Override
+    public void updateInstanceGroupAttributes(InstanceGroupAttributesUpdate request, StreamObserver<Empty> responseObserver) {
+        Subscription subscription = agentManagementService.updateInstanceGroupAttributes(request).subscribe(
                 () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
         );

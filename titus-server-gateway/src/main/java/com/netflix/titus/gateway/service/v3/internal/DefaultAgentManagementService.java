@@ -39,7 +39,10 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagemen
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.Id;
+import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupLaunchEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupTerminateEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
@@ -131,6 +134,14 @@ public class DefaultAgentManagementService implements AgentManagementService {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupLifecycleState(lifecycleStateUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
+    }
+
+    @Override
+    public Completable updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupAttributes(attributesUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 

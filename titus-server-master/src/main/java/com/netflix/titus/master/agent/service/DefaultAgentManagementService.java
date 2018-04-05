@@ -19,6 +19,7 @@ package com.netflix.titus.master.agent.service;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -86,13 +87,13 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public AgentInstanceGroup getInstanceGroup(String id) {
-        return agentCache.getInstanceGroup(id);
+    public AgentInstanceGroup getInstanceGroup(String instanceGroupId) {
+        return agentCache.getInstanceGroup(instanceGroupId);
     }
 
     @Override
-    public AgentInstance getAgentInstance(String id) {
-        return agentCache.getAgentInstance(id);
+    public AgentInstance getAgentInstance(String instanceId) {
+        return agentCache.getAgentInstance(instanceId);
     }
 
     @Override
@@ -164,11 +165,21 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public Completable updateCapacity(String agentServerGroupId, Optional<Integer> min, Optional<Integer> desired) {
+    public Completable updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes) {
+        return Observable.fromCallable(() -> getInstanceGroup(instanceGroupId))
+                .flatMap(instanceGroup -> {
+                    AgentInstanceGroup newInstanceGroup = instanceGroup.toBuilder().withAttributes(attributes).build();
+                    return agentCache.updateInstanceGroupStore(newInstanceGroup).toObservable();
+
+                }).toCompletable();
+    }
+
+    @Override
+    public Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired) {
         if (!configuration.isInstanceGroupUpdateCapacityEnabled()) {
             return Completable.complete();
         }
-        return Observable.fromCallable(() -> agentCache.getInstanceGroup(agentServerGroupId))
+        return Observable.fromCallable(() -> agentCache.getInstanceGroup(instanceGroupId))
                 .flatMap(instanceGroup -> {
                             if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable && min.isPresent()) {
                                 return Observable.error(AgentManagementException.invalidArgument("Min cannot be set in the Removable state"));
@@ -198,40 +209,40 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public Completable updateInstanceOverride(String agentServerId, InstanceOverrideStatus instanceOverrideStatus) {
-        return Observable.fromCallable(() -> agentCache.getAgentInstance(agentServerId))
-                .flatMap(agentInstance -> {
-                            AgentInstance updated = agentInstance.toBuilder().withOverrideStatus(instanceOverrideStatus).build();
+    public Completable updateInstanceOverride(String instanceId, InstanceOverrideStatus instanceOverrideStatus) {
+        return Observable.fromCallable(() -> agentCache.getAgentInstance(instanceId))
+                .flatMap(instance -> {
+                            AgentInstance updated = instance.toBuilder().withOverrideStatus(instanceOverrideStatus).build();
                             return agentCache.updateAgentInstanceStore(updated).toObservable();
                         }
                 ).toCompletable();
     }
 
     @Override
-    public Completable removeInstanceOverride(String agentServerId) {
-        return updateInstanceOverride(agentServerId, InstanceOverrideStatus.none());
+    public Completable removeInstanceOverride(String instanceId) {
+        return updateInstanceOverride(instanceId, InstanceOverrideStatus.none());
     }
 
     @Override
-    public Observable<List<Either<Boolean, Throwable>>> terminateAgents(String agentServerGroupId, List<String> agentInstanceIds, boolean shrink) {
-        if (!configuration.isInstanceGroupUpdateCapacityEnabled() || agentInstanceIds.isEmpty()) {
+    public Observable<List<Either<Boolean, Throwable>>> terminateAgents(String instanceGroupId, List<String> instanceIds, boolean shrink) {
+        if (!configuration.isInstanceGroupUpdateCapacityEnabled() || instanceIds.isEmpty()) {
             return Observable.empty();
         }
-        return Observable.fromCallable(() -> resolveServerGroup(agentInstanceIds))
-                .flatMap(instanceGroupId ->
-                        instanceCloudConnector.terminateInstances(agentServerGroupId, agentInstanceIds, shrink)
+        return Observable.fromCallable(() -> resolveServerGroup(instanceIds))
+                .flatMap(id ->
+                        instanceCloudConnector.terminateInstances(id, instanceIds, shrink)
                                 .flatMap(resultList -> {
                                     Set<String> removedInstanceIds = new HashSet<>();
                                     for (int i = 0; i < resultList.size(); i++) {
                                         Either<Boolean, Throwable> result = resultList.get(i);
                                         if (result.hasValue() && result.getValue()) {
-                                            removedInstanceIds.add(agentInstanceIds.get(i));
+                                            removedInstanceIds.add(instanceIds.get(i));
                                         }
                                     }
                                     if (removedInstanceIds.isEmpty()) {
                                         return Observable.empty();
                                     }
-                                    Observable cacheUpdate = agentCache.removeInstances(agentServerGroupId, removedInstanceIds).toObservable();
+                                    Observable cacheUpdate = agentCache.removeInstances(instanceGroupId, removedInstanceIds).toObservable();
                                     return (Observable<List<Either<Boolean, Throwable>>>) cacheUpdate.concatWith(Observable.just(resultList));
                                 })
                 );
