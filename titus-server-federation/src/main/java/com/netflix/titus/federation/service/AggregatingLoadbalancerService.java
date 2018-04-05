@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.netflix.titus.federation.service;
+package com.netflix.titus.federation.service;
 
 import java.util.function.BiConsumer;
 import javax.inject.Inject;
@@ -27,19 +27,20 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
+import com.netflix.titus.runtime.service.LoadBalancerService;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
-import io.netflix.titus.common.grpc.SessionContext;
-import io.netflix.titus.federation.startup.GrpcConfiguration;
+import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.federation.startup.GrpcConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import static io.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
-import static io.netflix.titus.federation.service.CellConnectorUtil.callToAllCells;
+import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.federation.service.CellConnectorUtil.callToAllCells;
 
 @Singleton
 public class AggregatingLoadbalancerService implements LoadBalancerService {

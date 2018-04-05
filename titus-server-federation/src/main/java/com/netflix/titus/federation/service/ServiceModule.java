@@ -19,6 +19,7 @@ package com.netflix.titus.federation.service;
 import com.google.inject.AbstractModule;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.JobManagementService;
+import com.netflix.titus.runtime.service.LoadBalancerService;
 
 public class ServiceModule extends AbstractModule {
     @Override
