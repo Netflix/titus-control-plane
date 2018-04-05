@@ -29,6 +29,7 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.Test;
 import rx.observers.AssertableSubscriber;
@@ -102,7 +103,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
 
-        // Bad policy id
+        // Bad policy id, currently each Cell returns an empty result
         testSubscriber = service.getJobScalingPolicies(JobId.newBuilder().setId("badID").build()).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
@@ -249,14 +250,14 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents.size()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(1);
 
-        // Bad policy id
+        // Bad id. The current behavior is "INTERNAL: Completed without a response", but it will change to NOT_FOUND someday
         testSubscriber = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId("badID").build()).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
-        testSubscriber.assertNoErrors();
-        onNextEvents = testSubscriber.getOnNextEvents();
-        assertThat(onNextEvents).isNotNull();
-        assertThat(onNextEvents.size()).isEqualTo(1);
-        assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(0);
-
+        testSubscriber.assertError(StatusRuntimeException.class);
+        testSubscriber.assertNoValues();
+        List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
+        assertThat(onErrorEvents).isNotNull();
+        assertThat(onErrorEvents).hasSize(1);
+        assertThat(Status.fromThrowable(onErrorEvents.get(0)).getCode()).isEqualTo(Status.INTERNAL.getCode());
     }
 }

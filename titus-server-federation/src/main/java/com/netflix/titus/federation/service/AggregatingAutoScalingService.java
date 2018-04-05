@@ -101,8 +101,9 @@ public class AggregatingAutoScalingService implements AutoScalingService {
 
     @Override
     public Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request) {
-        return getScalingPolicyInAllCells(request).map(CellResponse::getResult)
-                .switchIfEmpty(Observable.just(GetPolicyResult.newBuilder().build()));
+        // each Cell returns an Status.INTERNAL error today when the id is not found
+        // TODO: make the error condition more explicit and return NOT_ERROR
+        return getScalingPolicyInAllCells(request).map(CellResponse::getResult);
     }
 
     /**
