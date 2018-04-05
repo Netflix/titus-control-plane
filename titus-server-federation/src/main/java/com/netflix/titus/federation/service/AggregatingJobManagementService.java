@@ -220,7 +220,11 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
-        return Observable.error(TitusServiceException.unimplemented());
+        JobId request = JobId.newBuilder().setId(jobId).build();
+        return findJobInAllCells(jobId)
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> client.observeJob(request, streamObserver))
+                );
     }
 
     @Override
