@@ -75,7 +75,6 @@ class CellWithFixedJobsService extends JobManagementServiceGrpc.JobManagementSer
             responseObserver.onError(NOT_FOUND.asRuntimeException());
             return;
         }
-        // none of this is thread safe, but it is probably OK since it is used only in tests
         jobsIndex.remove(request.getId());
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();

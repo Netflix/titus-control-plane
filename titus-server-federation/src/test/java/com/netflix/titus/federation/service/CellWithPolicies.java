@@ -41,6 +41,12 @@ class CellWithPolicies extends AutoScalingServiceGrpc.AutoScalingServiceImplBase
     public void getScalingPolicy(ScalingPolicyID request, StreamObserver<GetPolicyResult> responseObserver) {
         List<ScalingPolicyResult> result = policyMap.values().stream()
                 .filter(p -> p.getId().getId().equals(request.getId())).collect(Collectors.toList());
+        if (result.isEmpty()) {
+            // mirror the current behavior of titus-master on each Cell, this will generate an INTERNAL error
+            // TODO: respond with NOT_FOUND when gateway/master gets fixed
+            responseObserver.onCompleted();
+            return;
+        }
         sendScalingPolicyResults(result, responseObserver);
     }
 

@@ -64,6 +64,10 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
     @Override
     public void getScalingPolicy(com.netflix.titus.grpc.protogen.ScalingPolicyID request,
                                  io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
+        // FIXME: make NOT_FOUND an explicit error condition
+        // appScaleManager.getScalingPolicy(id) will return an empty Observable when the id is not found, which makes
+        // the gRPC handler throw an exception (INTERNAL: Completed without a response). This error should be an
+        // explicit condition of the API, and mapped to Status.NOT_FOUND
         appScaleManager.getScalingPolicy(request.getId()).subscribe(
                 autoScalingPolicyInternal -> {
                     ScalingPolicyResult scalingPolicyResult = GrpcModelConverters.toScalingPolicyResult(autoScalingPolicyInternal);

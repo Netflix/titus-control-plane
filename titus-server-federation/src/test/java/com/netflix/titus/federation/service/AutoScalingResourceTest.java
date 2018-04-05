@@ -30,6 +30,8 @@ import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import com.netflix.titus.runtime.endpoint.common.rest.RestException;
 import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingResource;
+import io.grpc.Status;
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -117,8 +119,8 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         assertThat(scalingPolicy.getItems(0).getId().getId()).isEqualTo(POLICY_2);
 
         // bad id
-        final GetPolicyResult badScalingPolicyResult = autoScalingResource.getScalingPolicy("badPolicyId");
-        assertThat(badScalingPolicyResult.getItemsCount()).isEqualTo(0);
+        Assertions.assertThatCode(() -> autoScalingResource.getScalingPolicy("badPolicyId"))
+                .hasCause(Status.INTERNAL.withDescription("Completed without a response").asRuntimeException());
     }
 
 

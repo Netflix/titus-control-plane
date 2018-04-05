@@ -1,5 +1,6 @@
 package com.netflix.titus.federation.service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,12 +25,14 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConv
 import static io.grpc.Status.NOT_FOUND;
 
 class CellWithFixedTasksService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
-    private List<Task> snapshot;
     private final Map<String, Task> tasksIndex;
 
     CellWithFixedTasksService(List<Task> snapshot) {
-        this.snapshot = snapshot;
         this.tasksIndex = snapshot.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
+    }
+
+    private List<Task> getTasksList() {
+        return new ArrayList<>(tasksIndex.values());
     }
 
     @Override
@@ -47,7 +50,7 @@ class CellWithFixedTasksService extends JobManagementServiceGrpc.JobManagementSe
     public void findTasks(TaskQuery request, StreamObserver<TaskQueryResult> responseObserver) {
         Pair<List<Task>, Pagination> page = PaginationUtil.takePageWithCursor(
                 toPage(request.getPage()),
-                snapshot,
+                getTasksList(),
                 JobManagerCursors.taskCursorOrderComparator(),
                 JobManagerCursors::taskIndexOf,
                 JobManagerCursors::newCursorFrom
@@ -66,11 +69,7 @@ class CellWithFixedTasksService extends JobManagementServiceGrpc.JobManagementSe
             responseObserver.onError(NOT_FOUND.asRuntimeException());
             return;
         }
-        // none of this is thread safe, but it is probably OK since it is used only in tests
         tasksIndex.remove(request.getTaskId());
-        snapshot = snapshot.stream()
-                .filter(task -> !task.getId().equals(request.getTaskId()))
-                .collect(Collectors.toList());
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
     }
