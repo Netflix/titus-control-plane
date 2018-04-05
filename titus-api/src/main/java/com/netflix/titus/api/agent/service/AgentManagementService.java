@@ -17,6 +17,7 @@
 package com.netflix.titus.api.agent.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -41,16 +42,16 @@ public interface AgentManagementService {
     List<AgentInstanceGroup> getInstanceGroups();
 
     /**
-     * Get an agent server group by id.
+     * Get an agent instance group by id.
      *
-     * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the server group is not found
+     * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the instance group is not found
      */
-    AgentInstanceGroup getInstanceGroup(String id);
+    AgentInstanceGroup getInstanceGroup(String instanceGroupId);
 
     /**
      * Get all agents belonging to the given instance group.
      *
-     * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the server group is not found
+     * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the instance group is not found
      */
     List<AgentInstance> getAgentInstances(String instanceGroupId);
 
@@ -59,7 +60,7 @@ public interface AgentManagementService {
      *
      * @throws AgentManagementException {@link AgentManagementException.ErrorCode#AgentNotFound} if the agent instance is not found
      */
-    AgentInstance getAgentInstance(String id);
+    AgentInstance getAgentInstance(String instanceId);
 
     /**
      * Find all agent instances matching a given filter.
@@ -85,32 +86,39 @@ public interface AgentManagementService {
     Completable updateInstanceGroupTier(String instanceGroupId, Tier tier);
 
     /**
-     * Associates a new auto scaling rule with a given server group.
+     * Associates a new auto scaling rule with a given instance group.
      *
-     * @return AgentManagementException if the server group is not found
+     * @return AgentManagementException if the instance group is not found
      */
-    Completable updateAutoScalingRule(String serverGroupId, AutoScaleRule autoScaleRule);
+    Completable updateAutoScalingRule(String instanceGroupId, AutoScaleRule autoScaleRule);
 
     /**
-     * Changes lifecycle status of a server group.
+     * Changes lifecycle status of a instance group.
      *
-     * @return AgentManagementException if the server group is not found
+     * @return AgentManagementException if the instance group is not found
      */
-    Completable updateInstanceGroupLifecycle(String serverGroupId, InstanceGroupLifecycleStatus instanceGroupLifecycleStatus);
+    Completable updateInstanceGroupLifecycle(String instanceGroupId, InstanceGroupLifecycleStatus instanceGroupLifecycleStatus);
 
     /**
-     * Updates server group capacity. If only min value is provided, the desired size is adjusted to be no less than min.
+     * Changes attributes of an instance group.
+     *
+     * @return AgentManagementException if the instance group is not found
+     */
+    Completable updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes);
+
+    /**
+     * Updates instance group capacity. If only min value is provided, the desired size is adjusted to be no less than min.
      * If only desired value is provided, min value is adjusted to be no bigger than desired.
      * In any case, both min and desired cannot exceed max value, which cannot be changed via this API.
      *
-     * @param agentInstanceGroupId
-     * @param min                  if set, change the min size of the server group
-     * @param desired              if set, change the desired size of the server group
-     * @return AgentManagementException if the server group is not found
+     * @param instanceGroupId
+     * @param min             if set, change the min size of the instance group
+     * @param desired         if set, change the desired size of the instance group
+     * @return AgentManagementException if the instance group is not found
      * @deprecated Use instead {@link #scaleUp(String, int)}.
      */
     @Deprecated
-    Completable updateCapacity(String agentInstanceGroupId, Optional<Integer> min, Optional<Integer> desired);
+    Completable updateCapacity(String instanceGroupId, Optional<Integer> min, Optional<Integer> desired);
 
     /**
      * Increase instance group size by the given number of instances. The following constraints are checked prior
@@ -121,28 +129,28 @@ public interface AgentManagementService {
      * </ul>
      *
      * @param scaleUpCount number of instances to add (must be >= 0)
-     * @return AgentManagementException if the server group is not found
+     * @return AgentManagementException if the instance group is not found
      */
     Completable scaleUp(String instanceGroupId, int scaleUpCount);
 
     /**
      * Add/change override status of the given agent server.
      *
-     * @return AgentManagementException if the server group is not found
+     * @return AgentManagementException if the instance group is not found
      */
-    Completable updateInstanceOverride(String agentInstanceId, InstanceOverrideStatus instanceOverrideStatus);
+    Completable updateInstanceOverride(String instanceId, InstanceOverrideStatus instanceOverrideStatus);
 
     /**
      * Remove status override of the given agent server.
      *
-     * @return AgentManagementException if the server group is not found
+     * @return AgentManagementException if the instance group is not found
      */
-    Completable removeInstanceOverride(String agentInstanceId);
+    Completable removeInstanceOverride(String instanceId);
 
     /**
-     * Terminate agents with the given instance ids. The agents must belong to the same server group.
+     * Terminate agents with the given instance ids. The agents must belong to the same instance group.
      */
-    Observable<List<Either<Boolean, Throwable>>> terminateAgents(String agentInstanceGroupId, List<String> agentInstanceIds, boolean shrink);
+    Observable<List<Either<Boolean, Throwable>>> terminateAgents(String instanceGroupId, List<String> instanceIds, boolean shrink);
 
     /**
      * Refresh any cached state now.
@@ -151,7 +159,7 @@ public interface AgentManagementService {
 
     /**
      * On subscription emit all known agent instance groups and instances, followed by a marker event. Next emit an
-     * event for each server group or agent instance change (add/update/remove).
+     * event for each instance group or agent instance change (add/update/remove).
      */
     Observable<AgentEvent> events(boolean includeSnapshot);
 }

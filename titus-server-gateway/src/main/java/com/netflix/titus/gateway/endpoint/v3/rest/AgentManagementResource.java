@@ -38,7 +38,10 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupLaunchEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
+import com.netflix.titus.grpc.protogen.InstanceGroupTerminateEnabledUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
@@ -120,6 +123,13 @@ public class AgentManagementResource {
     @Path("/instanceGroups/{id}/lifecycle")
     public Response updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
         return Responses.fromCompletable(agentManagementService.updateInstanceGroupLifecycle(lifecycleStateUpdate));
+    }
+
+    @PUT
+    @ApiOperation("Update instance group attributes")
+    @Path("/instanceGroups/{id}/attributes")
+    public Response updateInstanceGroupLifecycle(InstanceGroupAttributesUpdate attributesUpdate) {
+        return Responses.fromCompletable(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
     }
 
     @PUT

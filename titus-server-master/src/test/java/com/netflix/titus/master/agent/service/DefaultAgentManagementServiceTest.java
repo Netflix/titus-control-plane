@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -162,6 +163,18 @@ public class DefaultAgentManagementServiceTest {
         ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
         verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
         assertThat(captor.getValue().getLifecycleStatus()).isEqualTo(updatedInstanceGroupLifecycleStatus);
+    }
+
+    @Test
+    public void testUpdateAttributes() {
+        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+        AgentInstanceGroup instanceGroup = serverGroups.get(0);
+        assertThat(instanceGroup.getAttributes()).isEmpty();
+        service.updateInstanceGroupAttributes(instanceGroup.getId(), Collections.singletonMap("a", "1")).toObservable().subscribe(testSubscriber);
+
+        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
+        verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
+        assertThat(captor.getValue().getAttributes()).containsOnlyKeys("a").containsValue("1");
     }
 
     @Test
