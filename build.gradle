@@ -51,7 +51,7 @@ allprojects {
 }
 
 subprojects {
-    group "io.netflix.titus"
+    group "com.netflix.titus"
 
     apply plugin: 'java'
     apply plugin: 'jacoco'
@@ -151,7 +151,7 @@ subprojects {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 
         useJUnit {
-            excludeCategories 'io.netflix.titus.testkit.junit.category.IntegrationTest'
+            excludeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
         }
 
         reports {
@@ -162,7 +162,7 @@ subprojects {
 
     task integrationTest(type: Test) {
         useJUnit {
-            includeCategories 'io.netflix.titus.testkit.junit.category.IntegrationTest'
+            includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
         }
 
         reports {
