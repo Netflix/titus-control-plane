@@ -22,6 +22,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.common.util.tuple.Either;
 import io.grpc.ManagedChannel;
@@ -33,10 +36,12 @@ import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.federation.service.CellConnectorUtil.stubs;
 
+@Singleton
 class AggregatingCellClient {
     private final CellConnector connector;
 
-    AggregatingCellClient(CellConnector connector) {
+    @Inject
+    public AggregatingCellClient(CellConnector connector) {
         this.connector = connector;
     }
 

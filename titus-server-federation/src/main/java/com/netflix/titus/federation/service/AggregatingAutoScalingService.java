@@ -49,15 +49,19 @@ public class AggregatingAutoScalingService implements AutoScalingService {
     private final AggregatingCellClient aggregatingClient;
     private final SessionContext sessionContext;
     private final GrpcConfiguration grpcConfiguration;
+    private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
 
     @Inject
     public AggregatingAutoScalingService(CellConnector connector,
                                          SessionContext sessionContext,
-                                         GrpcConfiguration configuration) {
-        this.aggregatingClient = new AggregatingCellClient(connector);
+                                         GrpcConfiguration configuration,
+                                         AggregatingJobManagementServiceHelper jobManagementServiceHelper,
+                                         AggregatingCellClient aggregatingClient) {
         this.connector = connector;
         this.sessionContext = sessionContext;
         grpcConfiguration = configuration;
+        this.jobManagementServiceHelper = jobManagementServiceHelper;
+        this.aggregatingClient = aggregatingClient;
     }
 
     @Override
@@ -80,23 +84,10 @@ public class AggregatingAutoScalingService implements AutoScalingService {
     @Override
     public Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request) {
         JobId jobId = JobId.newBuilder().setId(request.getJobId()).build();
-        return findJobInAllCells(jobId)
+        return jobManagementServiceHelper.findJobInAllCells(jobId.getId())
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, responseObserver) -> client.setAutoScalingPolicy(request, responseObserver))
                 );
-    }
-
-    private Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(JobId jobId) {
-        return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
-                .reduce(ResponseMerger.singleValue())
-                .flatMap(response -> response.getResult()
-                        .map(v -> Observable.just(CellResponse.ofValue(response)))
-                        .onErrorGet(Observable::error)
-                );
-    }
-
-    private BiConsumer<JobManagementServiceStub, StreamObserver<Job>> findJobInCell(JobId jobId) {
-        return (client, responseObserver) -> wrap(client).findJob(jobId, responseObserver);
     }
 
     @Override
