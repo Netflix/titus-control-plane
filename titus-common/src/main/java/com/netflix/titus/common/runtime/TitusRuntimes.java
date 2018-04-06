@@ -18,8 +18,9 @@ package com.netflix.titus.common.runtime;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
-import com.netflix.titus.common.util.code.CodeInvariants;
+import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodePointTracker;
+import com.netflix.titus.common.util.code.RecordingCodeInvariants;
 import com.netflix.titus.common.util.time.Clocks;
 import rx.schedulers.TestScheduler;
 
@@ -31,7 +32,7 @@ public final class TitusRuntimes {
     public static TitusRuntime internal() {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
-                CodeInvariants.codeInvariants(),
+                LoggingCodeInvariants.INSTANCE,
                 new DefaultRegistry(),
                 Clocks.system(),
                 false
@@ -41,7 +42,7 @@ public final class TitusRuntimes {
     public static TitusRuntime test() {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
-                CodeInvariants.codeInvariants(),
+                new RecordingCodeInvariants(),
                 new DefaultRegistry(),
                 Clocks.test(),
                 false
@@ -51,7 +52,7 @@ public final class TitusRuntimes {
     public static TitusRuntime test(TestScheduler testScheduler) {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
-                CodeInvariants.codeInvariants(),
+                new RecordingCodeInvariants(),
                 new DefaultRegistry(),
                 Clocks.testScheduler(testScheduler),
                 false

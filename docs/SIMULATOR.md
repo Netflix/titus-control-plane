@@ -11,6 +11,7 @@ The simulator runs two server endpoints:
 * GRPC on port 7006
 
 Cloud simulator REST API:
+
 |Method   |Resource|Description|
 |---------|--------|-----------|
 |GET      | [http://localhost:8099/cloud/agents/instanceGroups](http://localhost:8099/cloud/agents/instanceGroups) | Returns agent instance groups. |
@@ -33,10 +34,10 @@ which is read by the cloud simulator and executed.
 
 Example 1:  
 `TASK_LIFECYCLE_1=selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}`  
-`TASK_LIFECYCLE_2=selector: slots=1.. slotStep=2; launched: delay=2s; startInitiated: finish=failed}`  
+`TASK_LIFECYCLE_2=selector: slots=1.. slotStep=2; launched: delay=2s; startInitiated: action=finish titusReasonCode=crashed}`  
 
 Example 2:  
-`TASK_LIFECYCLE_1=selector: resubmits=0,1 slots=0.. slotStep=2; launched: delay=2s; startInitiated: finish=failed}`  
+`TASK_LIFECYCLE_1=selector: resubmits=0,1 slots=0.. slotStep=2; launched: delay=2s; startInitiated: action=finish titusReasonCode=crashed}`  
 `TASK_LIFECYCLE_2=selector: resubmits=2..; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}`  
 
 
@@ -47,7 +48,9 @@ job is part of the task definition, and in case of service job is assigned by th
 * `resubmits` refers to a resubmit number(s) of a task at a given index
 * `slotStep` step applied to task resubmit range defined by `resubmits` parameter
 
-The rules may be defined for states: `launched`, `startInitiated`, `started` and `killInitiated`. The following parameters
-are possible in each state:
-* `delay` which defines how long the container should stay in this state, before moving to the next one
-* `finish` which instructs to fail the container in the given state, with the provided status (possible values are: `failed`, `error`)
+The rules may be defined for states: `launched`, `startInitiated`, `started` and `killInitiated`. Amount of time to stay
+in a state is configurable via `delay` parameter.
+
+Each state can be associated with an action, by providing the `action` parameter. The following actions are available:
+* `finish` - complete execution of the task in this state. Additional (optional) parameters: `mesosReasonCode`/`titusReasonCode`, and `reasonMessage`.   
+* `forget` - silently terminate a task, without notifying Titus about that  

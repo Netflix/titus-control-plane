@@ -22,19 +22,19 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.mesos")
 public interface MesosConfiguration {
 
-    @DefaultValue("invalidRequest")
+    @DefaultValue(".*invalidRequest.*")
     String getInvalidRequestMessagePattern();
 
-    @DefaultValue("crashed")
+    @DefaultValue(".*crashed.*")
     String getCrashedMessagePattern();
 
-    @DefaultValue("transientSystemError")
+    @DefaultValue(".*transientSystemError.*")
     String getTransientSystemErrorMessagePattern();
 
-    @DefaultValue("localSystemError")
+    @DefaultValue(".*localSystemError.*")
     String getLocalSystemErrorMessagePattern();
 
-    @DefaultValue("unknownSystemError")
+    @DefaultValue(".*unknownSystemError.*")
     String getUnknownSystemErrorMessagePattern();
 
     @DefaultValue("true")

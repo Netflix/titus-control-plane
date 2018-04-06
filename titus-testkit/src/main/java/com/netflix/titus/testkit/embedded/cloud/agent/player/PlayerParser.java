@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.netflix.titus.common.util.NumberSequence;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.common.util.unit.TimeUnitExt;
@@ -40,9 +41,9 @@ import org.slf4j.LoggerFactory;
  * Container player scenario parser. The scenario is encoded in the environment variables like in the examples below:
  * <p>
  * {@code TASK_LIFECYCLE_1=selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
- * {@code TASK_LIFECYCLE_2=selector: slots=1.. slotStep=2; launched: delay=2s; startInitiated: finish=failed}<br>
+ * {@code TASK_LIFECYCLE_2=selector: slots=1.. slotStep=2; launched: delay=2s; startInitiated: action=finish titusReasonCode=failed failureMessage='rate limited'}<br>
  * <p>or:<br/>
- * {@code TASK_LIFECYCLE_1=selector: resubmits=0,1 slots=0.. slotStep=2; launched: delay=2s; startInitiated: finish=failed}<br>
+ * {@code TASK_LIFECYCLE_1=selector: resubmits=0,1 slots=0.. slotStep=2; launched: delay=2s; startInitiated: action=forget}<br>
  * {@code TASK_LIFECYCLE_2=selector: resubmits=2..; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
  */
 class PlayerParser {
@@ -149,7 +150,7 @@ class PlayerParser {
             case "started":
                 return SimulatedTaskState.Started;
             case "killInitiated":
-                return SimulatedTaskState.Killed; // TODO Add KillInitiated state to simulator
+                return SimulatedTaskState.KillInitiated;
         }
         throw new IllegalStateException("Unknown task state: " + partName);
     }
@@ -211,8 +212,20 @@ class PlayerParser {
                     }
                     builder.withDelayInStateMs(delayMs.get());
                     break;
-                case "finish":
-                    builder.withReason(value, "Triggered by player");
+                case "action":
+                    builder.withAction(StringExt.parseEnumIgnoreCase(value, ContainerStateRule.Action.class));
+                    break;
+                case "mesosTerminalState":
+                    builder.withMesosTerminalState(StringExt.parseEnumIgnoreCase(value, Protos.TaskState.class));
+                    break;
+                case "mesosReasonCode":
+                    builder.withMesosReasonCode(StringExt.parseEnumIgnoreCase(value, Protos.TaskStatus.Reason.class));
+                    break;
+                case "titusReasonCode":
+                    builder.withTitusReasonCode(value);
+                    break;
+                case "reasonMessage":
+                    builder.withReasonMessage(value);
                     break;
                 default:
                     return Either.ofError(String.format("Invalid parameter name '%s'", name));
@@ -228,7 +241,11 @@ class PlayerParser {
                         ContainerSelector.everything(),
                         new ContainerRules(Collections.singletonMap(
                                 SimulatedTaskState.Launched,
-                                ContainerStateRule.newBuilder().withReason(Protos.TaskStatus.Reason.REASON_CONTAINER_LAUNCH_FAILED.name(), reasonMessage).build()
+                                ContainerStateRule.newBuilder()
+                                        .withMesosTerminalState(Protos.TaskState.TASK_ERROR)
+                                        .withMesosReasonCode(Protos.TaskStatus.Reason.REASON_CONTAINER_LAUNCH_FAILED)
+                                        .withReasonMessage(reasonMessage)
+                                        .build()
                         ))
                 )
         );

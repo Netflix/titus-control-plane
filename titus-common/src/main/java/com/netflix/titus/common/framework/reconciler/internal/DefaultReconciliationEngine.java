@@ -267,7 +267,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                             case Reference:
                                 previousHolder = getPrevious(modelHolder.getReference(), changedItem);
                                 modelHolder.setReference(newRoot);
-                                if (changedItem != newRoot) {
+                                if (changedItem != newRoot || rootHolder.getChildren().size() != newRoot.getChildren().size()) {
                                     indexEntityHolder(newRoot);
                                 }
                                 break;

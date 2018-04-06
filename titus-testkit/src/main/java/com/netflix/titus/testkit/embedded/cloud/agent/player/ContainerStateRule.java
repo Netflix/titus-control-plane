@@ -19,15 +19,35 @@ package com.netflix.titus.testkit.embedded.cloud.agent.player;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
+import org.apache.mesos.Protos;
+
 class ContainerStateRule {
 
+    enum Action {
+        None,
+        Finish,
+        Forget
+    }
+
     private final long delayInStateMs;
-    private final Optional<String> reasonCode;
+    private final Action action;
+    private final Optional<Protos.TaskState> mesosTerminalState;
+    private final Optional<Protos.TaskStatus.Reason> mesosReasonCode;
     private final Optional<String> reasonMessage;
 
-    ContainerStateRule(long delayInStateMs, Optional<String> reasonCode, Optional<String> reasonMessage) {
+    ContainerStateRule(long delayInStateMs,
+                       Action action,
+                       Optional<Protos.TaskState> mesosTerminalState,
+                       Optional<Protos.TaskStatus.Reason> mesosReasonCode,
+                       Optional<String> reasonMessage) {
         this.delayInStateMs = delayInStateMs;
-        this.reasonCode = reasonCode;
+        this.action = action;
+        this.mesosTerminalState = mesosTerminalState;
+        this.mesosReasonCode = mesosReasonCode;
         this.reasonMessage = reasonMessage;
     }
 
@@ -35,8 +55,16 @@ class ContainerStateRule {
         return delayInStateMs;
     }
 
-    public Optional<String> getReasonCode() {
-        return reasonCode;
+    public Action getAction() {
+        return action;
+    }
+
+    public Optional<Protos.TaskState> getMesosTerminalState() {
+        return mesosTerminalState;
+    }
+
+    public Optional<Protos.TaskStatus.Reason> getMesosReasonCode() {
+        return mesosReasonCode;
     }
 
     public Optional<String> getReasonMessage() {
@@ -53,20 +81,25 @@ class ContainerStateRule {
         }
         ContainerStateRule that = (ContainerStateRule) o;
         return delayInStateMs == that.delayInStateMs &&
-                Objects.equals(reasonCode, that.reasonCode) &&
+                action == that.action &&
+                Objects.equals(mesosTerminalState, that.mesosTerminalState) &&
+                Objects.equals(mesosReasonCode, that.mesosReasonCode) &&
                 Objects.equals(reasonMessage, that.reasonMessage);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(delayInStateMs, reasonCode, reasonMessage);
+
+        return Objects.hash(delayInStateMs, action, mesosTerminalState, mesosReasonCode, reasonMessage);
     }
 
     @Override
     public String toString() {
         return "ContainerStateRule{" +
                 "delayInStateMs=" + delayInStateMs +
-                ", reasonCode=" + reasonCode +
+                ", action=" + action +
+                ", mesosTerminalState=" + mesosTerminalState +
+                ", mesosReasonCode=" + mesosReasonCode +
                 ", reasonMessage=" + reasonMessage +
                 '}';
     }
@@ -78,8 +111,11 @@ class ContainerStateRule {
     public static final class Builder {
 
         private long delayInStateMs;
-        private Optional<String> reasonCode = Optional.empty();
-        private Optional<String> reasonMessage = Optional.empty();
+        private Action action = Action.None;
+        private Protos.TaskState mesosTerminalState;
+        private Protos.TaskStatus.Reason mesosReasonCode;
+        private String titusReasonCode;
+        private String reasonMessage;
 
         private Builder() {
         }
@@ -89,14 +125,67 @@ class ContainerStateRule {
             return this;
         }
 
-        public Builder withReason(String reasonCode, String reasonMessage) {
-            this.reasonCode = Optional.of(reasonCode);
-            this.reasonMessage = Optional.of(reasonMessage);
+        public Builder withAction(Action action) {
+            this.action = action;
+            return this;
+        }
+
+        public Builder withMesosTerminalState(Protos.TaskState mesosTerminalState) {
+            Preconditions.checkArgument(TaskExecutorHolder.isTerminal(mesosTerminalState), "Not a terminal state: %s", mesosTerminalState);
+            this.action = Action.Finish;
+            this.mesosTerminalState = mesosTerminalState;
+            return this;
+        }
+
+        public Builder withMesosReasonCode(Protos.TaskStatus.Reason mesosReasonCode) {
+            this.mesosReasonCode = mesosReasonCode;
+            return this;
+        }
+
+        public Builder withTitusReasonCode(String titusReasonCode) {
+            this.titusReasonCode = titusReasonCode;
+            return this;
+        }
+
+        public Builder withReasonMessage(String reasonMessage) {
+            this.reasonMessage = reasonMessage;
             return this;
         }
 
         public ContainerStateRule build() {
-            return new ContainerStateRule(delayInStateMs, reasonCode, reasonMessage);
+            Protos.TaskState effectiveMesosTerminalState = mesosTerminalState;
+            Protos.TaskStatus.Reason effectiveMesosReasonCode = mesosReasonCode;
+            String effectiveReasonMessage = reasonMessage;
+
+            if (mesosReasonCode == null && titusReasonCode != null) {
+                switch (titusReasonCode) {
+                    case TaskStatus.REASON_INVALID_REQUEST:
+                    case TaskStatus.REASON_CRASHED:
+                    case TaskStatus.REASON_FAILED:
+                    case TaskStatus.REASON_LOCAL_SYSTEM_ERROR:
+                    case TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR:
+                    case TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR:
+                        effectiveMesosTerminalState = mesosTerminalState == null ? Protos.TaskState.TASK_FAILED : mesosTerminalState;
+                        effectiveMesosReasonCode = Protos.TaskStatus.Reason.REASON_COMMAND_EXECUTOR_FAILED;
+                        break;
+                    case TaskStatus.REASON_TASK_KILLED:
+                        effectiveMesosTerminalState = mesosTerminalState == null ? Protos.TaskState.TASK_KILLED : mesosTerminalState;
+                        effectiveMesosReasonCode = Protos.TaskStatus.Reason.REASON_TASK_KILLED_DURING_LAUNCH;
+                        break;
+                    case TaskStatus.REASON_TASK_LOST:
+                        effectiveMesosTerminalState = mesosTerminalState == null ? Protos.TaskState.TASK_LOST : mesosTerminalState;
+                        effectiveMesosReasonCode = Protos.TaskStatus.Reason.REASON_TASK_UNKNOWN;
+                        break;
+                    default:
+                        effectiveMesosTerminalState = mesosTerminalState == null ? Protos.TaskState.TASK_UNKNOWN : mesosTerminalState;
+                        effectiveMesosReasonCode = Protos.TaskStatus.Reason.REASON_TASK_INVALID;
+                }
+                effectiveReasonMessage = String.format("%s: (from titusReasonCode=%s)", StringExt.safeTrim(reasonMessage), titusReasonCode);
+            }
+
+            return new ContainerStateRule(delayInStateMs, action, Optional.ofNullable(effectiveMesosTerminalState),
+                    Optional.ofNullable(effectiveMesosReasonCode), Optional.ofNullable(effectiveReasonMessage)
+            );
         }
     }
 }

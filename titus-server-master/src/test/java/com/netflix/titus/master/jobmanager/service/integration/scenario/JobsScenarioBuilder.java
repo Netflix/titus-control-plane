@@ -163,6 +163,10 @@ public class JobsScenarioBuilder {
         jobOperations.enterActiveMode();
     }
 
+    public TitusRuntime getTitusRuntime() {
+        return titusRuntime;
+    }
+
     public JobsScenarioBuilder trigger() {
         testScheduler.triggerActions();
         return this;
