@@ -45,6 +45,7 @@ import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -54,7 +55,6 @@ import org.apache.mesos.Protos;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
-import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
 /**
  * Collection of common functions.
@@ -94,7 +94,7 @@ public final class JobManagerUtil {
         return Pair.of(applicationSLA.getTier(), capacityGroup);
     }
 
-    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, Optional<TitusExecutorDetails> detailsOpt) {
+    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, Optional<TitusExecutorDetails> detailsOpt, TitusRuntime titusRuntime) {
         return oldTask -> {
             TaskState oldState = oldTask.getStatus().getState();
             TaskState newState = newTaskStatus.getState();
@@ -110,7 +110,7 @@ public final class JobManagerUtil {
             }
             // Sanity check. If we got earlier task state, it is state model invariant violation.
             if (TaskState.isBefore(newState, oldState)) {
-                codeInvariants().inconsistent("Received task state update to a previous state: taskId=%s, previous=%s, current=%s", oldTask.getId(), oldState, newState);
+                titusRuntime.getCodeInvariants().inconsistent("Received task state update to a previous state: taskId=%s, previous=%s, current=%s", oldTask.getId(), oldState, newState);
                 return Optional.empty();
             }
 

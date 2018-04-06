@@ -58,8 +58,8 @@ import com.netflix.titus.common.framework.reconciler.internal.DefaultReconciliat
 import com.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationFramework;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations.IndexKind;
@@ -116,6 +116,7 @@ public class JobReconciliationFrameworkFactory {
     private final EntitySanitizer permissiveEntitySanitizer;
     private final EntitySanitizer strictEntitySanitizer;
     private final InitializationErrorCollector errorCollector; // Keep reference so it is not garbage collected (it holds metrics)
+    private final TitusRuntime titusRuntime;
     private final Registry registry;
     private final Clock clock;
     private final Scheduler scheduler;
@@ -136,10 +137,10 @@ public class JobReconciliationFrameworkFactory {
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              @Named(JOB_PERMISSIVE_SANITIZER) EntitySanitizer permissiveEntitySanitizer,
                                              @Named(JOB_STRICT_SANITIZER) EntitySanitizer strictEntitySanitizer,
-                                             Registry registry) {
+                                             TitusRuntime titusRuntime) {
         this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService,
                 systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer,
-                registry, Clocks.system(), Schedulers.computation());
+                titusRuntime, Schedulers.computation());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -153,8 +154,7 @@ public class JobReconciliationFrameworkFactory {
                                              ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                                              EntitySanitizer permissiveEntitySanitizer,
                                              EntitySanitizer strictEntitySanitizer,
-                                             Registry registry,
-                                             Clock clock,
+                                             TitusRuntime titusRuntime,
                                              Scheduler scheduler) {
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.store = store;
@@ -165,9 +165,10 @@ public class JobReconciliationFrameworkFactory {
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.permissiveEntitySanitizer = permissiveEntitySanitizer;
         this.strictEntitySanitizer = strictEntitySanitizer;
-        this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, registry);
-        this.registry = registry;
-        this.clock = clock;
+        this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, titusRuntime.getRegistry());
+        this.titusRuntime = titusRuntime;
+        this.registry = titusRuntime.getRegistry();
+        this.clock = titusRuntime.getClock();
         this.scheduler = scheduler;
 
         this.loadedJobs = registry.gauge(ROOT_METRIC_NAME + "loadedJobs");
@@ -243,8 +244,7 @@ public class JobReconciliationFrameworkFactory {
                 JOB_EVENT_FACTORY,
                 this::extraChangeActionTags,
                 this::extraModelActionTags,
-                registry,
-                clock
+                titusRuntime
         );
     }
 

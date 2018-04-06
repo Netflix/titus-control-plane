@@ -39,6 +39,7 @@ import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -116,9 +117,11 @@ public class DifferenceResolverUtils {
     public static List<ChangeAction> findTaskStateTimeouts(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                            JobView runningJobView,
                                                            JobManagerConfiguration configuration,
-                                                           Clock clock,
                                                            VirtualMachineMasterService vmService,
-                                                           JobStore jobStore) {
+                                                           JobStore jobStore,
+                                                           TitusRuntime titusRuntime) {
+        Clock clock = titusRuntime.getClock();
+
         List<ChangeAction> actions = new ArrayList<>();
         runningJobView.getJobHolder().getChildren().forEach(taskHolder -> {
             Task task = taskHolder.getEntity();
@@ -132,8 +135,8 @@ public class DifferenceResolverUtils {
 
                 long deadline = task.getStatus().getTimestamp() + runtimeLimitMs;
                 if (deadline < clock.wallTime()) {
-                    actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore,
-                            TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED, "Task running too long (runtimeLimit=" + runtimeLimitMs + "ms)")
+                    actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED,
+                            "Task running too long (runtimeLimit=" + runtimeLimitMs + "ms)", titusRuntime)
                     );
                 }
                 return;
@@ -182,15 +185,17 @@ public class DifferenceResolverUtils {
                                                     .build()
                                             ),
                                             "TimedOut in KillInitiated state",
-                                            clock
+                                            titusRuntime
                                     )
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));
-                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_KILLING_STATE, "Another kill attempt (" + (attempts + 1) + ')'));
+                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_KILLING_STATE,
+                                    "Another kill attempt (" + (attempts + 1) + ')', titusRuntime));
                         }
                     } else {
-                        actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE, "Task stuck in " + taskState + " state"));
+                        actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE,
+                                "Task stuck in " + taskState + " state", titusRuntime));
                     }
                     break;
             }

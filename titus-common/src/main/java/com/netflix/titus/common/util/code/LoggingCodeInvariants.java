@@ -35,7 +35,7 @@ public class LoggingCodeInvariants extends CodeInvariants {
 
     private static final long DROPPED_LOGS_INTERVAL_MS = 5_000;
 
-    public static CodeInvariants INSTANCE = new LoggingCodeInvariants(
+    private static CodeInvariants INSTANCE = new LoggingCodeInvariants(
             Limiters.createFixedIntervalTokenBucket(
                     "invariants", 1000, 1000, 100, 1, TimeUnit.SECONDS
             ),
@@ -125,5 +125,9 @@ public class LoggingCodeInvariants extends CodeInvariants {
             }
         }
         return false;
+    }
+
+    public static CodeInvariants getDefault() {
+        return INSTANCE;
     }
 }

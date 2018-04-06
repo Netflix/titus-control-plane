@@ -36,6 +36,7 @@ import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
@@ -70,16 +71,19 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     private final JobSubmitLimiter jobSubmitLimiter;
     private final LogStorageInfo<Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
+    private final TitusRuntime titusRuntime;
 
     @Inject
     public V3GrpcTitusServiceGateway(V3JobOperations jobOperations,
                                      JobSubmitLimiter jobSubmitLimiter,
                                      LogStorageInfo<Task> logStorageInfo,
-                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
+                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                     TitusRuntime titusRuntime) {
         this.jobOperations = jobOperations;
         this.jobSubmitLimiter = jobSubmitLimiter;
         this.logStorageInfo = logStorageInfo;
         this.entitySanitizer = entitySanitizer;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -131,7 +135,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         int offset = page.getPageSize() * page.getPageNumber();
 
         List<com.netflix.titus.api.jobmanager.model.job.Job<?>> queryResult = jobOperations.findJobs(
-                new V3JobQueryCriteriaEvaluator(queryCriteria),
+                new V3JobQueryCriteriaEvaluator(queryCriteria, titusRuntime),
                 offset,
                 page.getPageSize() + 1
         );
@@ -152,7 +156,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         int offset = page.getPageSize() * page.getPageNumber();
 
         List<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, Task>> queryResult = jobOperations.findTasks(
-                new V3TaskQueryCriteriaEvaluator(queryCriteria),
+                new V3TaskQueryCriteriaEvaluator(queryCriteria, titusRuntime),
                 offset,
                 page.getPageSize() + 1
         );
