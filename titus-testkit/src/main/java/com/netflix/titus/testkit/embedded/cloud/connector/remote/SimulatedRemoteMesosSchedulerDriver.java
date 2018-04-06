@@ -314,6 +314,10 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
                 mesosStatusBuilder.setState(Protos.TaskState.TASK_RUNNING);
                 mesosStatusBuilder.setReason(Protos.TaskStatus.Reason.valueOf(0));
                 break;
+            case KillInitiated:
+                mesosStatusBuilder.setState(Protos.TaskState.TASK_KILLING);
+                mesosStatusBuilder.setReason(Protos.TaskStatus.Reason.REASON_TASK_KILLED_DURING_LAUNCH);
+                break;
             case Killed:
                 mesosStatusBuilder.setState(Protos.TaskState.TASK_KILLED);
                 mesosStatusBuilder.setReason(Protos.TaskStatus.Reason.valueOf(0));

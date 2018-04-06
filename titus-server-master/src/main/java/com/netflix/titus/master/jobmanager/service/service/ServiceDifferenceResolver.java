@@ -207,9 +207,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
     private Optional<TitusChangeAction> createNewTaskAction(ServiceJobView refJobView, Optional<EntityHolder> previousTask) {
         // Safety check
-        long numberOfNotFinishedTasks = refJobView.getJobHolder().getChildren().stream()
-                .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
-                .count();
+        long numberOfNotFinishedTasks = getNumberOfNotFinishedTasks(refJobView);
         if (numberOfNotFinishedTasks >= refJobView.getRequiredSize()) {
             codeInvariants.inconsistent(
                     "Service job reconciler attempts to create too many tasks: jobId=%s, requiredSize=%s, current=%s",
@@ -277,7 +275,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             if (refAndStoreInSync) {
                 TaskState currentTaskState = refTask.getStatus().getState();
                 if (currentTaskState == TaskState.Finished) {
-                    if (isJobTerminating || isScaledDown(storeTask)) {
+                    if (isJobTerminating || isScaledDown(storeTask) || hasEnoughTasksRunning(refJobView)) {
                         actions.add(removeFinishedServiceTaskAction(jobStore, storeTask));
                     } else if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTaskHolder, clock)) {
                         createNewTaskAction(refJobView, Optional.of(referenceTaskHolder)).ifPresent(actions::add);
@@ -294,6 +292,16 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             }
         }
         return actions;
+    }
+
+    private long getNumberOfNotFinishedTasks(ServiceJobView refJobView) {
+        return refJobView.getJobHolder().getChildren().stream()
+                .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
+                .count();
+    }
+
+    private boolean hasEnoughTasksRunning(ServiceJobView refJobView) {
+        return getNumberOfNotFinishedTasks(refJobView) >= refJobView.getRequiredSize();
     }
 
     private boolean isScaledDown(ServiceJobTask task) {

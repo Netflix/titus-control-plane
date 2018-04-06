@@ -47,7 +47,7 @@ public class PlayerParserTest {
         expectNonFailingStateRule(containerRules, SimulatedTaskState.Launched, 2_000);
         expectNonFailingStateRule(containerRules, SimulatedTaskState.StartInitiated, 3_000);
         expectNonFailingStateRule(containerRules, SimulatedTaskState.Started, 60_000);
-        expectNonFailingStateRule(containerRules, SimulatedTaskState.Killed, 5_000);
+        expectNonFailingStateRule(containerRules, SimulatedTaskState.KillInitiated, 5_000);
     }
 
     private void expectSequenceStartingWith(NumberSequence sequence, long... expectedValues) {
@@ -61,6 +61,6 @@ public class PlayerParserTest {
         ContainerStateRule rule = containerRules.getTaskStateRules().get(state);
         assertThat(rule).isNotNull();
         assertThat(rule.getDelayInStateMs()).isEqualTo(expectedDelayMs);
-        assertThat(rule.getReasonCode()).isNotPresent();
+        assertThat(rule.getMesosReasonCode()).isNotPresent();
     }
 }

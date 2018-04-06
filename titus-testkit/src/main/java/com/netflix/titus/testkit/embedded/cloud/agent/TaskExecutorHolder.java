@@ -46,11 +46,12 @@ import static com.netflix.titus.common.util.CollectionsExt.asSet;
 public class TaskExecutorHolder {
 
     private static final Map<TaskState, Set<TaskState>> VALID_STATE_TRANSITIONS = CollectionsExt.<TaskState, Set<TaskState>>newHashMap()
-            .entry(TaskState.TASK_STAGING, asSet(TaskState.TASK_STARTING, TaskState.TASK_FAILED, TaskState.TASK_KILLED))
-            .entry(TaskState.TASK_STARTING, asSet(TaskState.TASK_RUNNING, TaskState.TASK_FAILED, TaskState.TASK_KILLED))
+            .entry(TaskState.TASK_STAGING, asSet(TaskState.TASK_STARTING, TaskState.TASK_FAILED, TaskState.TASK_KILLING, TaskState.TASK_KILLED))
+            .entry(TaskState.TASK_STARTING, asSet(TaskState.TASK_RUNNING, TaskState.TASK_FAILED, TaskState.TASK_KILLING, TaskState.TASK_KILLED))
             .entry(TaskState.TASK_RUNNING, asSet(TaskState.TASK_FINISHED, TaskState.TASK_ERROR, TaskState.TASK_FAILED,
-                    TaskState.TASK_KILLED, TaskState.TASK_KILLED
+                    TaskState.TASK_KILLING, TaskState.TASK_KILLED
             ))
+            .entry(TaskState.TASK_KILLING, asSet(TaskState.TASK_ERROR, TaskState.TASK_FAILED, TaskState.TASK_KILLED))
             .entry(TaskState.TASK_FINISHED, asSet())
             .entry(TaskState.TASK_ERROR, asSet())
             .entry(TaskState.TASK_FAILED, asSet())
@@ -261,9 +262,25 @@ public class TaskExecutorHolder {
     }
 
     public static boolean isTerminal(TaskState taskState) {
-        return taskState == TaskState.TASK_FINISHED || taskState == TaskState.TASK_ERROR
-                || taskState == TaskState.TASK_FAILED || taskState == TaskState.TASK_KILLED
-                || taskState == TaskState.TASK_KILLED;
+        switch (taskState) {
+            case TASK_STAGING:
+            case TASK_STARTING:
+            case TASK_RUNNING:
+            case TASK_KILLING:
+                return false;
+            case TASK_FINISHED:
+            case TASK_FAILED:
+            case TASK_KILLED:
+            case TASK_ERROR:
+            case TASK_LOST:
+            case TASK_DROPPED:
+            case TASK_UNREACHABLE:
+            case TASK_GONE:
+            case TASK_GONE_BY_OPERATOR:
+            case TASK_UNKNOWN:
+                return true;
+        }
+        throw new IllegalArgumentException("Unknown Mesos task state: " + taskState);
     }
 
     private Protos.TaskStatus.Builder newTaskStatusBuilder() {
