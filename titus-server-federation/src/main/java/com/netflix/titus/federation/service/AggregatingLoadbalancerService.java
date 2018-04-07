@@ -93,7 +93,7 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
 
     @Override
     public Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId) {
-        BiConsumer<LoadBalancerServiceStub, StreamObserver<GetJobLoadBalancersResult>> getLoadBalancersForJob =
+        ClientCall<GetJobLoadBalancersResult> getLoadBalancersForJob =
                 (client, responseObserver) -> wrap(client).getJobLoadBalancers(jobId, responseObserver);
 
         return aggregatingClient.callExpectingErrors(LoadBalancerServiceGrpc::newStub, getLoadBalancersForJob)
