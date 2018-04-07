@@ -66,7 +66,6 @@ public class AggregatingLoadBalancerServiceTest {
 
     AggregatingLoadbalancerService service;
 
-
     @Before
     public void setup() {
         CellConnector connector = mock(CellConnector.class);
@@ -105,7 +104,6 @@ public class AggregatingLoadBalancerServiceTest {
         assertThat(onNextEvents.get(0).getLoadBalancers(0).getId()).isEqualTo(LB_2);
     }
 
-
     @Test
     public void addLoadBalancer() {
         JobLoadBalancer jobLoadBalancer1 = new JobLoadBalancer(JOB_1, LB_1);
@@ -133,6 +131,8 @@ public class AggregatingLoadBalancerServiceTest {
         final List<LoadBalancerId> loadBalancersList = onNextEvents.get(0).getLoadBalancersList();
         assertThat(loadBalancersList.size()).isEqualTo(2);
 
+        final List<String> resultLoadBalancerIds = loadBalancersList.stream().map(loadBalancerId -> loadBalancerId.getId()).collect(Collectors.toList());
+        assertThat(resultLoadBalancerIds).contains(LB_2, LB_3);
     }
 
     @Test
@@ -239,6 +239,48 @@ public class AggregatingLoadBalancerServiceTest {
         assertThat(Status.fromThrowable(onErrorEvents.get(0))).isEqualTo(Status.INTERNAL);
     }
 
+    @Test
+    public void getJobLoadBalancersWithOneFailingCell() {
+        JobLoadBalancer jobLoadBalancer1 = new JobLoadBalancer(JOB_1, LB_1);
+        JobLoadBalancer jobLoadBalancer2 = new JobLoadBalancer(JOB_1, LB_2);
+        final CellWithLoadBalancers cellWithLoadBalancersOne = new CellWithLoadBalancers(
+                Arrays.asList(jobLoadBalancer1, jobLoadBalancer2));
+
+        cellOne.getServiceRegistry().addService(cellWithLoadBalancersOne);
+        cellTwo.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.INTERNAL));
+
+        final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
+        resultSubscriber.assertNoErrors();
+        final List<GetJobLoadBalancersResult> onNextEvents = resultSubscriber.getOnNextEvents();
+        assertThat(onNextEvents).hasSize(1);
+        final List<LoadBalancerId> loadBalancersList = onNextEvents.get(0).getLoadBalancersList();
+        final List<String> resultLoadBalancers = loadBalancersList.stream().map(loadBalancerId -> loadBalancerId.getId()).collect(Collectors.toList());
+        assertThat(resultLoadBalancers).contains(LB_1, LB_2);
+    }
+
+    @Test
+    public void getJobLoadBalancersWithTwoFailingCell() {
+        cellOne.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.NOT_FOUND));
+        cellTwo.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.INTERNAL));
+
+        final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
+        resultSubscriber.assertNoValues();
+        final List<Throwable> onErrorEvents = resultSubscriber.getOnErrorEvents();
+        assertThat(onErrorEvents).hasSize(1);
+        assertThat(Status.fromThrowable(onErrorEvents.get(0))).isEqualTo(Status.INTERNAL);
+    }
+
+    @Test
+    public void getJobLoadBalancersInvalidJobId() {
+        cellOne.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.NOT_FOUND));
+        cellTwo.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.NOT_FOUND));
+
+        final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
+        resultSubscriber.assertNoValues();
+        final List<Throwable> onErrorEvents = resultSubscriber.getOnErrorEvents();
+        assertThat(onErrorEvents).hasSize(1);
+        assertThat(Status.fromThrowable(onErrorEvents.get(0))).isEqualTo(Status.NOT_FOUND);
+    }
 
     private List<JobLoadBalancer> buildJobLoadBalancerList(GetAllLoadBalancersResult getAllLoadBalancersResult) {
         return getAllLoadBalancersResult.getJobLoadBalancersList().stream()
@@ -248,6 +290,4 @@ public class AggregatingLoadBalancerServiceTest {
                             .map(loadBalancerId -> new JobLoadBalancer(jobId, loadBalancerId.getId()));
                 }).collect(Collectors.toList());
     }
-
-
 }
