@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.federation.model.Cell;
@@ -56,7 +57,7 @@ public class AggregatingLoadBalancerServiceTest {
     private static final String JOB_2 = "job2";
     private static final String LB_1 = "loadBalancer1";
     private static final String LB_2 = "loadBalancer2";
-    public static final String LB_3 = "loadBalancer3";
+    private static final String LB_3 = "loadBalancer3";
 
     @Rule
     public final GrpcServerRule cellOne = new GrpcServerRule().directExecutor();
@@ -96,6 +97,7 @@ public class AggregatingLoadBalancerServiceTest {
         cellTwo.getServiceRegistry().addService(cellWithLoadBalancersTwo);
 
         final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_2).build()).test();
+        resultSubscriber.awaitValueCount(1,1, TimeUnit.SECONDS);
         resultSubscriber.assertNoErrors();
         final List<GetJobLoadBalancersResult> onNextEvents = resultSubscriber.getOnNextEvents();
         assertThat(onNextEvents.size()).isEqualTo(1);
@@ -120,6 +122,7 @@ public class AggregatingLoadBalancerServiceTest {
         cellTwo.getServiceRegistry().addService(cellWithJobIdsTwo);
 
         final AssertableSubscriber<Void> resultSubscriber = service.addLoadBalancer(AddLoadBalancerRequest.newBuilder().setJobId(JOB_2).setLoadBalancerId(LoadBalancerId.newBuilder().setId(LB_3).build()).build()).test();
+        resultSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         resultSubscriber.assertNoErrors();
         resultSubscriber.assertNoValues();
         resultSubscriber.assertCompleted();
@@ -152,11 +155,13 @@ public class AggregatingLoadBalancerServiceTest {
         cellTwo.getServiceRegistry().addService(cellWithJobIdsTwo);
 
         final AssertableSubscriber<Void> resultSubscriber = service.removeLoadBalancer(RemoveLoadBalancerRequest.newBuilder().setJobId(JOB_2).setLoadBalancerId(LoadBalancerId.newBuilder().setId(LB_2).build()).build()).test();
+        resultSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         resultSubscriber.assertNoErrors();
         resultSubscriber.assertNoValues();
         resultSubscriber.assertCompleted();
 
         final AssertableSubscriber<GetJobLoadBalancersResult> jobResults = service.getLoadBalancers(JobId.newBuilder().setId(JOB_2).build()).test();
+        jobResults.awaitValueCount(1, 1, TimeUnit.SECONDS);
         jobResults.assertNoErrors();
         final List<GetJobLoadBalancersResult> onNextEvents = jobResults.getOnNextEvents();
         assertThat(onNextEvents.size()).isEqualTo(1);
@@ -175,6 +180,7 @@ public class AggregatingLoadBalancerServiceTest {
         cellTwo.getServiceRegistry().addService(cellWithLoadBalancersTwo);
 
         final AssertableSubscriber<GetAllLoadBalancersResult> resultSubscriber = service.getAllLoadBalancers(GetAllLoadBalancersRequest.newBuilder().setPage(Page.newBuilder().setPageNumber(0).setPageSize(10)).build()).test();
+        resultSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
         resultSubscriber.assertNoErrors();
         final List<GetAllLoadBalancersResult> onNextEvents = resultSubscriber.getOnNextEvents();
         assertThat(onNextEvents).hasSize(1);
@@ -220,6 +226,7 @@ public class AggregatingLoadBalancerServiceTest {
 
         final AssertableSubscriber<GetAllLoadBalancersResult> resultSubscriber = service.getAllLoadBalancers(
                 GetAllLoadBalancersRequest.newBuilder().setPage(Page.newBuilder().setPageSize(10)).build()).test();
+        resultSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         resultSubscriber.assertNoValues();
         final List<Throwable> onErrorEvents = resultSubscriber.getOnErrorEvents();
         assertThat(onErrorEvents).hasSize(1);
@@ -233,6 +240,7 @@ public class AggregatingLoadBalancerServiceTest {
 
         final AssertableSubscriber<GetAllLoadBalancersResult> resultSubscriber = service.getAllLoadBalancers(
                 GetAllLoadBalancersRequest.newBuilder().setPage(Page.newBuilder().setPageSize(10)).build()).test();
+        resultSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         resultSubscriber.assertNoValues();
         final List<Throwable> onErrorEvents = resultSubscriber.getOnErrorEvents();
         assertThat(onErrorEvents).hasSize(1);
@@ -250,6 +258,7 @@ public class AggregatingLoadBalancerServiceTest {
         cellTwo.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.INTERNAL));
 
         final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
+        resultSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
         resultSubscriber.assertNoErrors();
         final List<GetJobLoadBalancersResult> onNextEvents = resultSubscriber.getOnNextEvents();
         assertThat(onNextEvents).hasSize(1);
@@ -264,6 +273,7 @@ public class AggregatingLoadBalancerServiceTest {
         cellTwo.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.INTERNAL));
 
         final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
+        resultSubscriber.awaitTerminalEvent( 1, TimeUnit.SECONDS);
         resultSubscriber.assertNoValues();
         final List<Throwable> onErrorEvents = resultSubscriber.getOnErrorEvents();
         assertThat(onErrorEvents).hasSize(1);
@@ -276,6 +286,7 @@ public class AggregatingLoadBalancerServiceTest {
         cellTwo.getServiceRegistry().addService(new CellWithFailingLoadBalancers(Status.NOT_FOUND));
 
         final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
+        resultSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         resultSubscriber.assertNoValues();
         final List<Throwable> onErrorEvents = resultSubscriber.getOnErrorEvents();
         assertThat(onErrorEvents).hasSize(1);

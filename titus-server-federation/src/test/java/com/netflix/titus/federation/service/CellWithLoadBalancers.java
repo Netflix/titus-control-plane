@@ -39,11 +39,11 @@ import org.slf4j.LoggerFactory;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 
-public class CellWithLoadBalancers extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
+class CellWithLoadBalancers extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
     private static final Logger logger = LoggerFactory.getLogger(CellWithLoadBalancers.class);
     private List<JobLoadBalancer> jobLoadBalancerList;
 
-    public CellWithLoadBalancers(List<JobLoadBalancer> jobLoadBalancerList) {
+    CellWithLoadBalancers(List<JobLoadBalancer> jobLoadBalancerList) {
         this.jobLoadBalancerList = jobLoadBalancerList;
     }
 

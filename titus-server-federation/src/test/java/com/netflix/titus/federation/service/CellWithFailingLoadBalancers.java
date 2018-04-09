@@ -28,11 +28,11 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CellWithFailingLoadBalancers extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
+class CellWithFailingLoadBalancers extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
     private static final Logger logger = LoggerFactory.getLogger(CellWithFailingLoadBalancers.class);
     private Status errorStatus;
 
-    public CellWithFailingLoadBalancers(Status errorStatus) {
+    CellWithFailingLoadBalancers(Status errorStatus) {
         this.errorStatus = errorStatus;
     }
 
