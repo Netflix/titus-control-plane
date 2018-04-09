@@ -76,6 +76,8 @@ public class JobManagementResourceTest {
 
     private static final V2LegacyTitusServiceGateway serviceGateway = mock(V2LegacyTitusServiceGateway.class);
 
+    private static final RestConfig restConfig = newRestConfigMock();
+
     private static final MasterConfiguration configuration = ConfigurationMockSamples.withJobSpec(mock(MasterConfiguration.class));
 
     private static final JobConfiguration jobConfiguration = ConfigurationMockSamples.withJobConfiguration(mock(JobConfiguration.class));
@@ -85,7 +87,7 @@ public class JobManagementResourceTest {
     private static RxEventBus eventBus = mock(RxEventBus.class);
 
     private static final JobManagementResource restService = new JobManagementResource(
-            serviceGateway, configuration, jobConfiguration, validatorConfiguration, null, NoOpHttpCallerIdResolver.INSTANCE, eventBus);
+            serviceGateway, restConfig, configuration, jobConfiguration, validatorConfiguration, null, NoOpHttpCallerIdResolver.INSTANCE, eventBus);
 
     @ClassRule
     public static final JaxRsServerResource<JobManagementResource> jaxRsServer = JaxRsServerResource.newBuilder(restService)
@@ -99,6 +101,8 @@ public class JobManagementResourceTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
         client = new HttpTestClient(jaxRsServer.getBaseURI());
+
+
     }
 
     @Before
@@ -343,5 +347,15 @@ public class JobManagementResourceTest {
         String jobId = generator.newJobInfo(jobSpec).getId();
         generator.scheduleJob(jobId);
         return generator.getTitusTaskInfos(jobId);
+    }
+
+    private static RestConfig newRestConfigMock() {
+        RestConfig restConfigMock = mock(RestConfig.class);
+
+        when(restConfigMock.getV2EnabledApps()).thenReturn(".*");
+        when(restConfigMock.getV2EnabledImages()).thenReturn(".*");
+        when(restConfigMock.getV2EnabledLabels()).thenReturn(".*");
+
+        return restConfigMock;
     }
 }
