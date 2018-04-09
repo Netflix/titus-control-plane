@@ -61,12 +61,13 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                 public void close(Status status, Metadata trailers) {
                     if (status.getCode() != Status.Code.OK) {
                         Pair<Status, Metadata> pair = ErrorResponses.of(status, trailers, debug);
-                        if (isCriticalError(status)) {
-                            logger.warn("Returning exception to the client: {}", formatStatus(pair.getLeft()));
+                        Status newStatus = pair.getLeft();
+                        if (isCriticalError(newStatus)) {
+                            logger.warn("Returning exception to the client: {}", formatStatus(newStatus));
                         } else {
-                            logger.debug("Returning exception to the client: {}", formatStatus(pair.getLeft()));
+                            logger.debug("Returning exception to the client: {}", formatStatus(newStatus));
                         }
-                        safeClose(() -> super.close(pair.getLeft(), pair.getRight()));
+                        safeClose(() -> super.close(newStatus, pair.getRight()));
                     }
                     safeClose(() -> super.close(status, trailers));
                 }
