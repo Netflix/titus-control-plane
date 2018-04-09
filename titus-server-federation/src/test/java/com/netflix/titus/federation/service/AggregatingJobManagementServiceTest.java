@@ -132,12 +132,16 @@ public class AggregatingJobManagementServiceTest {
                         .map(GrpcServerRule::getChannel)
         );
 
+        final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
+        final AnonymousSessionContext anonymousSessionContext = new AnonymousSessionContext();
         service = new AggregatingJobManagementService(
                 grpcClientConfiguration,
                 titusFederationConfiguration,
                 connector,
                 cellRouter,
-                new AnonymousSessionContext()
+                anonymousSessionContext,
+                aggregatingCellClient,
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration, anonymousSessionContext)
         );
 
         clock = Clocks.test();

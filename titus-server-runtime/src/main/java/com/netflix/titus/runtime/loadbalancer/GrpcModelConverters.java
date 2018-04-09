@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.loadbalancer.endpoint.grpc;
+package com.netflix.titus.runtime.loadbalancer;
 
 import java.util.HashSet;
 import java.util.List;

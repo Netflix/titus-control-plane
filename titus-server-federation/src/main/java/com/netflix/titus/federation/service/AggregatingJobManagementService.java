@@ -80,6 +80,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     private final TitusFederationConfiguration federationConfiguration;
     private final CellConnector connector;
     private final AggregatingCellClient aggregatingClient;
+    private AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private final CellRouter router;
     private final SessionContext sessionContext;
 
@@ -88,13 +89,17 @@ public class AggregatingJobManagementService implements JobManagementService {
                                            TitusFederationConfiguration federationConfiguration,
                                            CellConnector connector,
                                            CellRouter router,
-                                           SessionContext sessionContext) {
+                                           SessionContext sessionContext,
+                                           AggregatingCellClient aggregatingClient,
+                                           AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
+
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;
         this.connector = connector;
-        this.aggregatingClient = new AggregatingCellClient(connector);
         this.router = router;
         this.sessionContext = sessionContext;
+        this.aggregatingClient = aggregatingClient;
+        this.jobManagementServiceHelper = jobManagementServiceHelper;
     }
 
     @Override
@@ -122,7 +127,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate request) {
-        Observable<Empty> result = findJobInAllCells(request.getJobId())
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, streamObserver) -> client.updateJobCapacity(request, streamObserver))
                 );
@@ -131,7 +136,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate request) {
-        Observable<Empty> result = findJobInAllCells(request.getJobId())
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, streamObserver) -> client.updateJobProcesses(request, streamObserver))
                 );
@@ -140,7 +145,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Completable updateJobStatus(JobStatusUpdate request) {
-        Observable<Empty> result = findJobInAllCells(request.getId())
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getId())
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, streamObserver) -> client.updateJobStatus(request, streamObserver))
                 );
@@ -149,21 +154,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<Job> findJob(String jobId) {
-        return findJobInAllCells(jobId).map(CellResponse::getResult);
-    }
-
-    private Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
-        return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
-                .reduce(ResponseMerger.singleValue())
-                .flatMap(response -> response.getResult()
-                        .map(v -> Observable.just(CellResponse.ofValue(response)))
-                        .onErrorGet(Observable::error)
-                );
-    }
-
-    private ClientCall<Job> findJobInCell(String jobId) {
-        JobId id = JobId.newBuilder().setId(jobId).build();
-        return (client, streamObserver) -> wrap(client).findJob(id, streamObserver);
+        return jobManagementServiceHelper.findJobInAllCells(jobId).map(CellResponse::getResult);
     }
 
     @Override
@@ -222,7 +213,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
         JobId request = JobId.newBuilder().setId(jobId).build();
-        return findJobInAllCells(jobId)
+        return jobManagementServiceHelper.findJobInAllCells(jobId)
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, streamObserver) -> client.observeJob(request, streamObserver))
                 );
@@ -247,7 +238,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     @Override
     public Completable killJob(String jobId) {
         JobId id = JobId.newBuilder().setId(jobId).build();
-        Observable<Empty> result = findJobInAllCells(jobId)
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(jobId)
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, streamObserver) -> client.killJob(id, streamObserver))
                 );

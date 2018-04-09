@@ -26,7 +26,7 @@ import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultAgentManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
-import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultSchedulerServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
