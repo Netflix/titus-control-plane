@@ -201,7 +201,6 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
                 "Calling Mesos to kill task " + taskId,
                 () -> mesosDriver.killTask(TaskID.newBuilder().setValue(taskId).build())
         );
-        logger.info("Kill status = " + status);
         switch (status) {
             case DRIVER_ABORTED:
             case DRIVER_STOPPED:
