@@ -52,7 +52,6 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLO
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_BATCH;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_KILL_WAIT_SECONDS;
-import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 
 /**
@@ -93,10 +92,11 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                                        String hostname,
                                        Map<String, String> attributesMap,
                                        Protos.SlaveID slaveID,
-                                       PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult) {
+                                       PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
+                                       Optional<String> executorUriOverrideOpt) {
         String taskId = task.getId();
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
-        Protos.ExecutorInfo executorInfo = newExecutorInfo(task, attributesMap);
+        Protos.ExecutorInfo executorInfo = newExecutorInfo(task, attributesMap, executorUriOverrideOpt);
         Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID);
         taskInfoBuilder = setupPrimaryResources(taskInfoBuilder, fenzoTask);
 
@@ -250,7 +250,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     }
 
     private Protos.ExecutorInfo newExecutorInfo(Task task,
-                                                Map<String, String> attributesMap) {
+                                                Map<String, String> attributesMap,
+                                                Optional<String> executorUriOverrideOpt) {
 
         boolean executorPerTask = attributesMap.containsKey(EXECUTOR_PER_TASK_LABEL);
         String executorName = LEGACY_EXECUTOR_NAME;
@@ -260,7 +261,6 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             executorId = EXECUTOR_PER_TASK_EXECUTOR_NAME + "-" + task.getId();
         }
 
-        Optional<String> executorUriOverrideOpt = Optional.ofNullable(task.getTaskContext().get(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE));
         Protos.CommandInfo commandInfo = newCommandInfo(executorPerTask, executorUriOverrideOpt);
         return Protos.ExecutorInfo.newBuilder()
                 .setExecutorId(Protos.ExecutorID.newBuilder().setValue(executorId).build())
