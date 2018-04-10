@@ -56,6 +56,12 @@ public interface JobManagerConfiguration {
     @DefaultValue("300000")
     long getTaskRetryerResetTimeMs();
 
+    /**
+     * A lower bound on the retry interval.
+     */
+    @DefaultValue("1000")
+    long getMinRetryIntervalMs();
+
     @DefaultValue("2")
     long getTaskKillAttempts();
 

@@ -49,11 +49,11 @@ public class TaskRetryers {
                 .orElseGet(() -> JobFunctions.retryer(job));
     }
 
-    public static long getCurrentRetryerDelayMs(EntityHolder taskHolder, long taskRetryerResetTimeMs, Clock clock) {
+    public static long getCurrentRetryerDelayMs(EntityHolder taskHolder, long minRetryIntervalMs, long taskRetryerResetTimeMs, Clock clock) {
         return getCurrentTaskRetryer(taskHolder).map(retryer -> {
             long timeInStartedState = JobFunctions.getTimeInState(taskHolder.getEntity(), TaskState.Started, clock).orElse(0L);
-            return timeInStartedState >= taskRetryerResetTimeMs ? 0L : retryer.getDelayMs().orElse(0L);
-        }).orElse(0L);
+            return timeInStartedState >= taskRetryerResetTimeMs ? 0L : Math.max(minRetryIntervalMs, retryer.getDelayMs().orElse(minRetryIntervalMs));
+        }).orElse(minRetryIntervalMs);
     }
 
     public static boolean shouldRetryNow(EntityHolder taskHolder, Clock clock) {

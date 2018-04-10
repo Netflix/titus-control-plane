@@ -158,7 +158,9 @@ public class BasicTaskActions {
                             // Add retryer data to task context.
                             EntityHolder newTaskHolder;
                             if (newTask.getStatus().getState() == TaskState.Finished) {
-                                long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(taskHolder, configuration.getTaskRetryerResetTimeMs(), titusRuntime.getClock());
+                                long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(
+                                        taskHolder, configuration.getMinRetryIntervalMs(), configuration.getTaskRetryerResetTimeMs(), titusRuntime.getClock()
+                                );
                                 String retryDelayString = DateTimeExt.toTimeUnitString(retryDelayMs);
 
                                 newTask = newTask.toBuilder()
