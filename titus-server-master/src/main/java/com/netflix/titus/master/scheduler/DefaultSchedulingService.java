@@ -672,8 +672,8 @@ public class DefaultSchedulingService implements SchedulingService {
                             fitInjection.ifPresent(i -> i.beforeImmediate("storeLaunchConfiguration"));
                             boolean completedInTime = false;
                             Throwable recordTaskError = null;
+                            Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
                             try {
-                                Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
                                 completedInTime = v3JobOperations.recordTaskPlacement(
                                         task.getId(),
                                         oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
@@ -687,7 +687,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
                             Protos.TaskInfo taskInfo = v3TaskInfoFactory.newTaskInfo(
                                     task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
-                                    consumeResult);
+                                    consumeResult, executorUriOverrideOpt);
 
                             fitInjection.ifPresent(i -> i.afterImmediate("storeLaunchConfiguration"));
 

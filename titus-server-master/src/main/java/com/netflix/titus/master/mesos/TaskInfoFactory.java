@@ -17,6 +17,7 @@
 package com.netflix.titus.master.mesos;
 
 import java.util.Map;
+import java.util.Optional;
 
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -31,5 +32,6 @@ public interface TaskInfoFactory<T> {
                   String hostname,
                   Map<String, String> attributesMap,
                   Protos.SlaveID slaveID,
-                  PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult);
+                  PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
+                  Optional<String> executorUriOverrideOpt);
 }
