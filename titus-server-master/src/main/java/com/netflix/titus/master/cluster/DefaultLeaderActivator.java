@@ -80,19 +80,19 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
 
         PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_LEADER + "isLeaderGauge")
-                .monitorValue(this, self -> leader ? 1 : 0);
+                .monitorValue(this, self -> self.leader ? 1 : 0);
 
         PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_LEADER + "isActivatedGauge")
-                .monitorValue(this, self -> activated ? 1 : 0);
+                .monitorValue(this, self -> self.activated ? 1 : 0);
 
         PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_LEADER + "activationTime")
-                .monitorValue(this, self -> getActivationTime());
+                .monitorValue(this, DefaultLeaderActivator::getActivationTime);
 
         PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_LEADER + "inActiveStateTime")
-                .monitorValue(this, self -> isActivated() ? clock.wallTime() - activationEndTimestamp : 0L);
+                .monitorValue(this, self -> self.isActivated() ? clock.wallTime() - self.activationEndTimestamp : 0L);
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
