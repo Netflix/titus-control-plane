@@ -30,4 +30,13 @@ public interface RestConfig extends RestServerConfiguration {
      */
     @DefaultValue("true")
     boolean isArchiveDataQueryRestricted();
+
+    @DefaultValue(".*")
+    String getV2EnabledApps();
+
+    @DefaultValue(".*")
+    String getV2EnabledImages();
+
+    @DefaultValue(".*")
+    String getV2EnabledLabels();
 }

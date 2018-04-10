@@ -22,32 +22,31 @@ import java.util.Optional;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import rx.Observable;
-
-import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
 /**
  * Functions for processing job manager {@link EntityHolder} instances.
  */
 public final class JobEntityHolders {
 
-    public static Optional<EntityHolder> expectTaskHolder(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
+    public static Optional<EntityHolder> expectTaskHolder(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId, TitusRuntime titusRuntime) {
         Optional<EntityHolder> taskHolder = engine.getReferenceView().findById(taskId);
         if (taskHolder.isPresent()) {
             return Optional.of(taskHolder.get());
         }
-        codeInvariants().inconsistent("Expected to find task %s owned by job %s", taskId, engine.getReferenceView().getId());
+        titusRuntime.getCodeInvariants().inconsistent("Expected to find task %s owned by job %s", taskId, engine.getReferenceView().getId());
         return Optional.empty();
     }
 
-    public static Optional<Task> expectTask(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
-        return expectTaskHolder(engine, taskId).map(EntityHolder::getEntity);
+    public static Optional<Task> expectTask(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId, TitusRuntime titusRuntime) {
+        return expectTaskHolder(engine, taskId, titusRuntime).map(EntityHolder::getEntity);
     }
 
-    public static Observable<Task> toTaskObservable(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId) {
-        return Observable.fromCallable(() -> expectTask(engine, taskId).orElse(null)).filter(Objects::nonNull);
+    public static Observable<Task> toTaskObservable(ReconciliationEngine<JobManagerReconcilerEvent> engine, String taskId, TitusRuntime titusRuntime) {
+        return Observable.fromCallable(() -> expectTask(engine, taskId, titusRuntime).orElse(null)).filter(Objects::nonNull);
     }
 
     public static Pair<EntityHolder, EntityHolder> addTask(EntityHolder rootHolder, Task newTask) {

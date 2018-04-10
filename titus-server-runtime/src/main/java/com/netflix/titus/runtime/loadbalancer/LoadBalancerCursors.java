@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,7 @@ public class LoadBalancerCursors {
     public static String newCursorFrom(JobLoadBalancer jobLoadBalancer) {
         return encode(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId());
     }
+
 
     private static String encode(String jobId, String loadBalancerId) {
         String value = jobId + '@' + loadBalancerId;

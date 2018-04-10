@@ -32,7 +32,7 @@ public final class TitusRuntimes {
     public static TitusRuntime internal() {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
-                LoggingCodeInvariants.INSTANCE,
+                LoggingCodeInvariants.getDefault(),
                 new DefaultRegistry(),
                 Clocks.system(),
                 false

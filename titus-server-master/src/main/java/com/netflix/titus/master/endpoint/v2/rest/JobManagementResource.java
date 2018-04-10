@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -53,6 +55,7 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.event.UserRequestEvent;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.tuple.Either;
@@ -75,10 +78,13 @@ import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.common.rest.RestException;
 import com.netflix.titus.runtime.endpoint.resolver.HttpCallerIdResolver;
 import io.swagger.annotations.Api;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Notification;
 import rx.Observable;
 
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
+import static com.netflix.titus.common.util.StringExt.safeTrim;
 import static com.netflix.titus.common.util.StringExt.trimAndApplyIfNonEmpty;
 
 @Api(tags = "Job")
@@ -87,6 +93,8 @@ import static com.netflix.titus.common.util.StringExt.trimAndApplyIfNonEmpty;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class JobManagementResource implements JobManagementEndpoint {
+
+    private static final Logger logger = LoggerFactory.getLogger(JobManagementResource.class);
 
     private final V2LegacyTitusServiceGateway legacyTitusServiceGateway;
     private final MasterConfiguration configuration;
@@ -99,8 +107,13 @@ public class JobManagementResource implements JobManagementEndpoint {
     @Context
     private HttpServletRequest httpServletRequest;
 
+    private final Function<String, Matcher> whiteListJobClusterInfoMatcher;
+    private final Function<String, Matcher> whiteListImageMatcher;
+    private final Function<String, Matcher> whiteListLabelMatcher;
+
     @Inject
     public JobManagementResource(V2LegacyTitusServiceGateway legacyTitusServiceGateway,
+                                 RestConfig restConfig,
                                  MasterConfiguration configuration,
                                  JobConfiguration jobConfiguration,
                                  ValidatorConfiguration validatorConfiguration,
@@ -114,6 +127,25 @@ public class JobManagementResource implements JobManagementEndpoint {
         this.apiOperations = apiOperations;
         this.httpCallerIdResolver = httpCallerIdResolver;
         this.eventBus = eventBus;
+
+        this.whiteListJobClusterInfoMatcher = RegExpExt.dynamicMatcher(
+                restConfig::getV2EnabledApps,
+                "titus.gateway.v2.v2EnabledApps",
+                0,
+                logger
+        );
+        this.whiteListImageMatcher = RegExpExt.dynamicMatcher(
+                restConfig::getV2EnabledImages,
+                "titus.gateway.v2.v2EnabledImage",
+                0,
+                logger
+        );
+        this.whiteListLabelMatcher = RegExpExt.dynamicMatcher(
+                restConfig::getV2EnabledLabels,
+                "titus.gateway.v2.v2EnabledLabels",
+                0,
+                logger
+        );
     }
 
     @GET
@@ -146,7 +178,7 @@ public class JobManagementResource implements JobManagementEndpoint {
         criteriaBuilder.withLabelsAndOp("and".equals(labelsOp));
 
         // type
-        String trimmedType = StringExt.safeTrim(type);
+        String trimmedType = safeTrim(type);
         if (!trimmedType.isEmpty()) {
             try {
                 criteriaBuilder.withJobType(TitusJobType.valueOf(trimmedType));
@@ -155,9 +187,9 @@ public class JobManagementResource implements JobManagementEndpoint {
         }
 
         // Job cluster
-        trimAndApplyIfNonEmpty(StringExt.safeTrim(jobGroupStack), criteriaBuilder::withJobGroupStack);
-        trimAndApplyIfNonEmpty(StringExt.safeTrim(jobGroupDetail), criteriaBuilder::withJobGroupDetail);
-        trimAndApplyIfNonEmpty(StringExt.safeTrim(jobGroupSequence), criteriaBuilder::withJobGroupSequence);
+        trimAndApplyIfNonEmpty(safeTrim(jobGroupStack), criteriaBuilder::withJobGroupStack);
+        trimAndApplyIfNonEmpty(safeTrim(jobGroupDetail), criteriaBuilder::withJobGroupDetail);
+        trimAndApplyIfNonEmpty(safeTrim(jobGroupSequence), criteriaBuilder::withJobGroupSequence);
 
         // Limit
         criteriaBuilder.withLimit(limit);
@@ -185,6 +217,10 @@ public class JobManagementResource implements JobManagementEndpoint {
     @POST
     @Path("/api/v2/jobs")
     public Response addJob(TitusJobSpec jobSpec) {
+        if (!isJobCreateEnabled(jobSpec)) {
+            return Response.status(Status.FORBIDDEN).build();
+        }
+
         try {
             TitusJobSpec sanitizedJobSpec = TitusJobSpec.sanitize(jobConfiguration, jobSpec);
 
@@ -205,6 +241,38 @@ public class JobManagementResource implements JobManagementEndpoint {
             eventBus.publish(new UserRequestEvent("POST /api/v2/jobs", resolveCallerId(), "ERROR: " + ex.getMessage(), System.currentTimeMillis()));
             throw ex;
         }
+    }
+
+    private boolean isJobCreateEnabled(TitusJobSpec jobSpec) {
+        try {
+            String jobGroupId = buildJobGroupId(jobSpec);
+            if (whiteListJobClusterInfoMatcher.apply(jobGroupId).matches()) {
+                return true;
+            }
+            if (whiteListImageMatcher.apply(safeTrim(jobSpec.getApplicationName())).matches()) {
+                return true;
+            }
+
+            Map<String, String> labels = jobSpec.getLabels();
+            if (CollectionsExt.isNullOrEmpty(labels)) {
+                return false;
+            }
+
+            return labels.entrySet().stream().anyMatch(entry -> {
+                String labelNameValue = StringExt.safeTrim(entry.getKey()) + '=' + StringExt.safeTrim(entry.getValue());
+                return whiteListLabelMatcher.apply(labelNameValue).matches();
+            });
+        } catch (Exception e) {
+            logger.warn("Unexpected error during job create white list processing", e);
+            return true;
+        }
+    }
+
+    private String buildJobGroupId(TitusJobSpec jobDescriptor) {
+        return safeTrim(jobDescriptor.getAppName())
+                + '-' + safeTrim(jobDescriptor.getJobGroupStack())
+                + '-' + safeTrim(jobDescriptor.getJobGroupDetail())
+                + '-' + safeTrim(jobDescriptor.getJobGroupSequence());
     }
 
     private String resolveCallerId() {

@@ -950,7 +950,7 @@ public class DefaultSchedulingService implements SchedulingService {
         for (VirtualMachineCurrentState inactiveVmState : inactiveVmStates) {
             VirtualMachineLease lease = inactiveVmState.getCurrAvailableResources();
             String vmHost = lease.hostname();
-            logger.info("expiring all leases of inactive vm " + vmHost);
+            logger.debug("expiring all leases of inactive vm " + vmHost);
             taskScheduler.expireAllLeases(vmHost);
         }
     }

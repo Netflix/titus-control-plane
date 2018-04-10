@@ -31,8 +31,4 @@ public abstract class CodeInvariants {
     public abstract CodeInvariants unexpectedError(String message, Exception e);
 
     public abstract CodeInvariants unexpectedError(String message, Object... args);
-
-    public static CodeInvariants codeInvariants() {
-        return LoggingCodeInvariants.INSTANCE;
-    }
 }

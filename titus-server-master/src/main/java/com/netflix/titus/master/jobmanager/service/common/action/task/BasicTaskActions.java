@@ -37,8 +37,8 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.DateTimeExt;
-import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -56,8 +56,6 @@ import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import rx.Observable;
 
-import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
-
 public class BasicTaskActions {
 
     /**
@@ -69,13 +67,14 @@ public class BasicTaskActions {
                                                                 Function<Task, Task> changeFunction,
                                                                 JobStore jobStore,
                                                                 Trigger trigger,
-                                                                String reason) {
+                                                                String reason,
+                                                                TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("updateTaskAndWriteItToStore")
                 .id(taskId)
                 .trigger(trigger)
                 .summary(reason)
                 .changeWithModelUpdates(self ->
-                        JobEntityHolders.expectTask(engine, taskId)
+                        JobEntityHolders.expectTask(engine, taskId, titusRuntime)
                                 .map(task -> {
                                     Task newTask = changeFunction.apply(task);
                                     TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
@@ -93,7 +92,8 @@ public class BasicTaskActions {
                                                               SchedulingService schedulingService,
                                                               ApplicationSlaManagementService capacityGroupService,
                                                               ReconciliationEngine<JobManagerReconcilerEvent> engine,
-                                                              String taskId) {
+                                                              String taskId,
+                                                              TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("writeReferenceTaskToStore")
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .id(taskId)
@@ -102,7 +102,7 @@ public class BasicTaskActions {
                     Optional<EntityHolder> taskHolder = engine.getReferenceView().findById(taskId);
                     if (!taskHolder.isPresent()) {
                         // Should never happen
-                        codeInvariants().inconsistent("Reference task with id %s not found.", taskId);
+                        titusRuntime.getCodeInvariants().inconsistent("Reference task with id %s not found.", taskId);
                         return Observable.empty();
                     }
                     Task referenceTask = taskHolder.get().getEntity();
@@ -134,13 +134,13 @@ public class BasicTaskActions {
                                                              ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                              Function<Task, Optional<Task>> changeFunction,
                                                              String reason,
-                                                             Clock clock) {
+                                                             TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("updateTaskInRunningModel")
                 .id(taskId)
                 .trigger(trigger)
                 .summary(reason)
                 .applyModelUpdates(self -> {
-                            Optional<EntityHolder> taskOptional = JobEntityHolders.expectTaskHolder(engine, taskId);
+                            Optional<EntityHolder> taskOptional = JobEntityHolders.expectTaskHolder(engine, taskId, titusRuntime);
                             if (!taskOptional.isPresent()) {
                                 return Collections.emptyList();
                             }
@@ -159,7 +159,7 @@ public class BasicTaskActions {
                             EntityHolder newTaskHolder;
                             if (newTask.getStatus().getState() == TaskState.Finished) {
                                 long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(
-                                        taskHolder, configuration.getMinRetryIntervalMs(), configuration.getTaskRetryerResetTimeMs(), clock
+                                        taskHolder, configuration.getMinRetryIntervalMs(), configuration.getTaskRetryerResetTimeMs(), titusRuntime.getClock()
                                 );
                                 String retryDelayString = DateTimeExt.toTimeUnitString(retryDelayMs);
 
