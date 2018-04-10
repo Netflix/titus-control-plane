@@ -37,6 +37,7 @@ import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.api.store.v2.V2JobMetadata;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.Status;
 import com.netflix.titus.master.VirtualMachineMasterService;
@@ -79,6 +80,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultWorkerStateMonitor.class);
+
     private final VirtualMachineMasterService vmService;
     private final V2JobOperations jobOps;
     private final Observable<V2JobMgrIntf> jobCreationObservable;
@@ -91,7 +93,8 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
     public DefaultWorkerStateMonitor(VirtualMachineMasterService vmService,
                                      V2JobOperations jOps,
                                      V3JobOperations v3JobOperations,
-                                     JobManagerConfiguration jobManagerConfiguration) {
+                                     JobManagerConfiguration jobManagerConfiguration,
+                                     TitusRuntime titusRuntime) {
         this.vmService = vmService;
         this.jobOps = jOps;
         this.jobCreationObservable = jOps.getJobCreationPublishSubject();
@@ -165,7 +168,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                                         .build();
 
                                 // Failures are logged only, as the reconciler will take care of it if needed.
-                                final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails());
+                                final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails(), titusRuntime);
                                 v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus).subscribe(
                                         () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
                                         e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())

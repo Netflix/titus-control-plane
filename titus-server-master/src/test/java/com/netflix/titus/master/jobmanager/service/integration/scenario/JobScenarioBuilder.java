@@ -48,6 +48,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -63,6 +64,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     private final String jobId;
+    private final TitusRuntime titusRuntime;
     private final EventHolder<JobManagerEvent<?>> jobEventsSubscriber;
     private final EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber;
     private final EventHolder<Pair<StubbedVirtualMachineMasterService.MesosEvent, String>> mesosEventsSubscriber;
@@ -81,8 +83,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                               StubbedSchedulingService schedulingService,
                               StubbedJobStore jobStore,
                               StubbedVirtualMachineMasterService vmService,
+                              TitusRuntime titusRuntime,
                               TestScheduler testScheduler) {
         this.jobId = jobId;
+        this.titusRuntime = titusRuntime;
         this.batchJob = JobFunctions.isBatchJob(jobStore.retrieveJob(jobId).toBlocking().first());
         this.jobEventsSubscriber = jobEventsSubscriber;
         this.storeEventsSubscriber = storeEventsSubscriber;
@@ -520,7 +524,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 .withTimestamp(testScheduler.now())
                 .build();
 
-        Function<Task, Optional<Task>> changeFunction = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, data);
+        Function<Task, Optional<Task>> changeFunction = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, data, titusRuntime);
 
         jobOperations.updateTask(task.getId(),
                 changeFunction,

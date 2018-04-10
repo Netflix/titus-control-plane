@@ -28,6 +28,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.grpc.AnonymousSessionContext;
 import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
@@ -71,8 +72,9 @@ public class V3EndpointModule extends AbstractModule {
     public GrpcTitusServiceGateway getV3ServiceGateway(V3JobOperations jobOperations,
                                                        JobSubmitLimiter jobSubmitLimiter,
                                                        LogStorageInfo<Task> v3LogStorage,
-                                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
-        return new V3GrpcTitusServiceGateway(jobOperations, jobSubmitLimiter, v3LogStorage, entitySanitizer);
+                                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                                       TitusRuntime titusRuntime) {
+        return new V3GrpcTitusServiceGateway(jobOperations, jobSubmitLimiter, v3LogStorage, entitySanitizer, titusRuntime);
     }
 
     @Provides

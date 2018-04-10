@@ -29,13 +29,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -46,9 +46,6 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.subjects.PublishSubject;
 import rx.subscriptions.Subscriptions;
-
-import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
-
 
 /**
  * TODO Catch model update exceptions and propagate them as change actions error result.
@@ -66,6 +63,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     private final BlockingQueue<Pair<ChangeActionHolder, Subscriber<Void>>> referenceChangeActions = new LinkedBlockingQueue<>();
     private final BlockingQueue<Pair<ChangeActionHolder, List<ModelActionHolder>>> modelActionHolders = new LinkedBlockingQueue<>();
     private final ReconciliationEngineMetrics<EVENT> metrics;
+    private final TitusRuntime titusRuntime;
     private final Clock clock;
 
     private IndexSet<EntityHolder> indexSet;
@@ -85,15 +83,15 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                                        ReconcileEventFactory<EVENT> eventFactory,
                                        Function<ChangeAction, List<Tag>> extraChangeActionTags,
                                        Function<EVENT, List<Tag>> extraModelActionTags,
-                                       Registry registry,
-                                       Clock clock) {
+                                       TitusRuntime titusRuntime) {
         this.eventFactory = eventFactory;
         this.indexSet = IndexSet.newIndexSet(indexComparators);
-        this.clock = clock;
+        this.titusRuntime = titusRuntime;
+        this.clock = titusRuntime.getClock();
         this.eventObservable = ObservableExt.protectFromMissingExceptionHandlers(eventSubject, logger);
         this.modelHolder = new ModelHolder<>(this, bootstrapModel, runningDifferenceResolver);
         this.firstTrigger = newlyCreated;
-        this.metrics = new ReconciliationEngineMetrics<>(bootstrapModel.getId(), extraChangeActionTags, extraModelActionTags, registry, clock);
+        this.metrics = new ReconciliationEngineMetrics<>(bootstrapModel.getId(), extraChangeActionTags, extraModelActionTags, titusRuntime.getRegistry(), clock);
         indexEntityHolder(bootstrapModel);
     }
 
@@ -108,7 +106,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             applyModelUpdatesInternal();
         } catch (Exception e) {
             metrics.eventsAndModelUpdates(clock.nanoTime() - startTimeNs, e);
-            codeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
+            titusRuntime.getCodeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
             return false;
         } finally {
             metrics.eventsAndModelUpdates(clock.nanoTime() - startTimeNs);
@@ -168,7 +166,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             return false;
         } catch (Exception e) {
             metrics.evaluated(clock.nanoTime() - startTimeNs, e);
-            codeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
+            titusRuntime.getCodeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
             return true;
         } finally {
             metrics.evaluated(clock.nanoTime() - startTimeNs);
