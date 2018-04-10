@@ -101,7 +101,7 @@ final class StoreUtils {
                                     if (failOnError) {
                                         throw e;
                                     }
-                                    logger.warn("Ignoring bad record of type {}: {}", type, text, e);
+                                    logger.warn("Ignoring bad record of type {}: content={}, jacksonError={}", type.getName(), text, e.getMessage());
                                 }
                             });
                             return converted;

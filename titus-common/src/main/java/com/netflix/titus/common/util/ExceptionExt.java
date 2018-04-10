@@ -72,14 +72,6 @@ public class ExceptionExt {
         }
     }
 
-    public static <T> Optional<T> doTry(Callable<T> callable) {
-        try {
-            return Optional.ofNullable(callable.call());
-        } catch (Throwable e) {
-            return Optional.empty();
-        }
-    }
-
     public static <T> Optional<T> doTry(Supplier<T> callable) {
         try {
             return Optional.ofNullable(callable.get());

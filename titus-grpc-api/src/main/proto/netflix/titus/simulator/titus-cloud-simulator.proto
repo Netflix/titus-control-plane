@@ -118,14 +118,15 @@ message SimulatedTaskStatus {
 
         Started = 2;
 
-
-        Killed = 3;
+        KillInitiated = 3;
 
         Finished = 4;
 
         Failed = 5;
 
         Lost = 6;
+
+        Killed = 7;
     }
 
     message SimulatedNetworkConfiguration {

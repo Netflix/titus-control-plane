@@ -214,10 +214,11 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     }
 
     private Protos.TaskInfo.Builder setupPrimaryResources(Protos.TaskInfo.Builder builder, TitusQueuableTask<Job, Task> fenzoTask) {
-        return builder.addResources(Protos.Resource.newBuilder()
-                .setName("cpus")
-                .setType(Protos.Value.Type.SCALAR)
-                .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getCPUs()).build()))
+        builder
+                .addResources(Protos.Resource.newBuilder()
+                        .setName("cpus")
+                        .setType(Protos.Value.Type.SCALAR)
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getCPUs()).build()))
                 .addResources(Protos.Resource.newBuilder()
                         .setName("mem")
                         .setType(Protos.Value.Type.SCALAR)
@@ -230,6 +231,22 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                         .setName("network")
                         .setType(Protos.Value.Type.SCALAR)
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getNetworkMbps())));
+
+        // set scalars other than cpus, mem, disk
+        final Map<String, Double> scalars = fenzoTask.getScalarRequests();
+        if (scalars != null && !scalars.isEmpty()) {
+            for (Map.Entry<String, Double> entry : scalars.entrySet()) {
+                if (!Container.PRIMARY_RESOURCES.contains(entry.getKey())) { // Already set above
+                    builder.addResources(Protos.Resource.newBuilder()
+                            .setName(entry.getKey())
+                            .setType(Protos.Value.Type.SCALAR)
+                            .setScalar(Protos.Value.Scalar.newBuilder().setValue(entry.getValue()).build())
+                    );
+                }
+            }
+        }
+
+        return builder;
     }
 
     private Protos.ExecutorInfo newExecutorInfo(Task task,

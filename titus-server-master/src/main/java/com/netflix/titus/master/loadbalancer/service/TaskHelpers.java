@@ -64,7 +64,7 @@ final class TaskHelpers {
             return false;
         }
         final boolean hasIp = task.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
-        if (!hasIp) {
+        if (!hasIp && TaskState.isRunning(state)) {
             logger.warn("Task {} has state {} but no ipAddress associated", task.getId(), state);
         }
         return hasIp;

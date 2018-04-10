@@ -18,7 +18,6 @@ package com.netflix.titus.testkit.embedded.cloud.agent.player;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedTaskState;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import org.apache.mesos.Protos;
@@ -85,27 +84,23 @@ class ContainerPlayer {
     }
 
     private void moveToNextState(SimulatedTaskState simulatedState, ContainerStateRule rule) {
-        if (rule.getReasonCode().isPresent()) {
-            taskHolder.transitionTo(
-                    toMesosTaskFailedStatus(rule.getReasonCode().get()),
-                    Protos.TaskStatus.Reason.REASON_COMMAND_EXECUTOR_FAILED,
-                    rule.getReasonMessage().orElse("Reason details not provided")
-            );
-            return;
+        switch (rule.getAction()) {
+            case None:
+                moveToNextState(simulatedState);
+                break;
+            case Finish:
+                moveToTerminalState(rule);
+                break;
+            case Forget:
+                // TODO
+                break;
         }
-        moveToNextState(simulatedState);
     }
 
-    private Protos.TaskState toMesosTaskFailedStatus(String reasonCode) {
-        switch (reasonCode) {
-            case TaskStatus.REASON_TASK_KILLED:
-                return Protos.TaskState.TASK_KILLED;
-            case TaskStatus.REASON_FAILED:
-                return Protos.TaskState.TASK_FAILED;
-            case TaskStatus.REASON_TASK_LOST:
-                return Protos.TaskState.TASK_LOST;
-        }
-        return Protos.TaskState.TASK_ERROR;
+    private void moveToTerminalState(ContainerStateRule rule) {
+        Protos.TaskState mesosTaskState = rule.getMesosTerminalState().orElse(Protos.TaskState.TASK_ERROR);
+        Protos.TaskStatus.Reason mesosReasonCode = rule.getMesosReasonCode().orElse(Protos.TaskStatus.Reason.REASON_COMMAND_EXECUTOR_FAILED);
+        taskHolder.transitionTo(mesosTaskState, mesosReasonCode, rule.getReasonMessage().orElse("Reason details not provided"));
     }
 
     private void moveToNextState(SimulatedTaskState simulatedState) {
@@ -119,6 +114,8 @@ class ContainerPlayer {
             case Started:
                 taskHolder.transitionTo(Protos.TaskState.TASK_FINISHED);
                 break;
+            case KillInitiated:
+                taskHolder.transitionTo(Protos.TaskState.TASK_KILLED);
         }
     }
 
@@ -133,6 +130,8 @@ class ContainerPlayer {
                 return SimulatedTaskState.StartInitiated;
             case TASK_RUNNING:
                 return SimulatedTaskState.Started;
+            case TASK_KILLING:
+                return SimulatedTaskState.KillInitiated;
         }
         logger.warn("Unknown task state: {}", state);
         return SimulatedTaskState.Finished;

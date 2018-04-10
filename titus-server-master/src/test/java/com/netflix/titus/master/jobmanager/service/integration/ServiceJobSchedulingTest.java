@@ -27,17 +27,26 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.common.util.code.RecordingCodeInvariants;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
+import org.junit.After;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeServiceJobCapacity;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 public class ServiceJobSchedulingTest {
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder();
+
+    @After
+    public void tearDown() {
+        RecordingCodeInvariants invariants = (RecordingCodeInvariants) jobsScenarioBuilder.getTitusRuntime().getCodeInvariants();
+        assertThat(invariants.getViolations()).describedAs("Invariant violations found").isEmpty();
+    }
 
     /**
      * Run single service task that terminates with exit code 0. The task should be resubmitted.
@@ -129,6 +138,21 @@ public class ServiceJobSchedulingTest {
                 .firstTaskMatch(task -> task.getStatus().getState() == TaskState.KillInitiated, matchingTask -> {
                     assertThat(matchingTask.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_SCALED_DOWN);
                 })
+        );
+    }
+
+    @Test
+    public void testJobScaleDownWithTaskInKillInitiatedState() {
+        Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(0).withMax(5).build();
+        jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .killTask(0, 0)
+                .template(ScenarioTemplates.changeJobCapacity(newCapacity))
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated)
+                .triggerMesosFinishedEvent(0, 0)
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
+                .advance().advance().advance()
+                .allActiveTasks(task -> fail("No active task expected, but found: " + task))
         );
     }
 

@@ -208,6 +208,8 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
                 return SimulatedTaskStatus.SimulatedTaskState.StartInitiated;
             case TASK_RUNNING:
                 return SimulatedTaskStatus.SimulatedTaskState.Started;
+            case TASK_KILLING:
+                return SimulatedTaskStatus.SimulatedTaskState.KillInitiated;
             case TASK_FINISHED:
                 return SimulatedTaskStatus.SimulatedTaskState.Finished;
             case TASK_FAILED:
@@ -221,7 +223,6 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
             case TASK_UNREACHABLE:
             case TASK_GONE:
             case TASK_DROPPED:
-            case TASK_KILLING:
             case TASK_GONE_BY_OPERATOR:
             case TASK_UNKNOWN:
         }

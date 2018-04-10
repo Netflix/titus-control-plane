@@ -55,7 +55,7 @@ class JobAssignmentsPublisher {
         if (jobSchedulingObserver != null) {
             behaviorSubject = BehaviorSubject.create(
                     new JobSchedulingInfo(jobId, new HashMap<Integer, WorkerAssignments>()));
-            logger.info("Added behavior subject of job " + jobId + " to schedulingObserver");
+            logger.debug("Added behavior subject of job " + jobId + " to schedulingObserver");
             jobSchedulingObserver.onNext(this.behaviorSubject);
             statusObservable
                     .onErrorResumeNext(new Func1<Throwable, Observable<? extends Status>>() {
