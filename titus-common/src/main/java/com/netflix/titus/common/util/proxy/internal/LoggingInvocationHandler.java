@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import com.netflix.titus.common.util.proxy.LoggingProxyBuilder;
 import org.slf4j.Logger;
+import rx.Completable;
 import rx.Observable;
 
 /**
@@ -114,16 +115,11 @@ public class LoggingInvocationHandler<API, NATIVE> extends InterceptingInvocatio
         long methodExitTime = System.currentTimeMillis();
 
         AtomicInteger subscriptionCount = new AtomicInteger();
-        return Observable.create(subscriber -> {
+        return Observable.unsafeCreate(subscriber -> {
             long start = System.currentTimeMillis();
             int idx = subscriptionCount.incrementAndGet();
 
-            logWithPriority(observableReplyLevel, () -> {
-                StringBuilder sb = new StringBuilder("Subscription #").append(idx);
-                sb.append(" in ").append(getMethodSignature(method));
-                sb.append(" after ").append(start - methodExitTime).append("[ms]");
-                return sb;
-            });
+            logOnSubscribe(method, methodExitTime, start, idx);
 
             Queue<Object> emittedItems = new ConcurrentLinkedQueue<>();
             AtomicInteger emittedCounter = new AtomicInteger();
@@ -163,6 +159,51 @@ public class LoggingInvocationHandler<API, NATIVE> extends InterceptingInvocatio
                         subscriber.onCompleted();
                     }
             );
+        });
+    }
+
+    @Override
+    protected Completable afterCompletable(Method method, Completable result, Long aLong) {
+        long methodExitTime = System.currentTimeMillis();
+
+        AtomicInteger subscriptionCount = new AtomicInteger();
+        return Completable.create(subscriber -> {
+            long start = System.currentTimeMillis();
+            int idx = subscriptionCount.incrementAndGet();
+
+            logOnSubscribe(method, methodExitTime, start, idx);
+
+            result.subscribe(
+                    () -> {
+                        logWithPriority(observableReplyLevel, () -> {
+                            StringBuilder sb = new StringBuilder("Completed subscription #").append(idx);
+                            sb.append(" in ").append(getMethodSignature(method));
+                            return sb;
+                        });
+                        subscriber.onCompleted();
+                    },
+                    cause -> {
+                        logWithPriority(observableErrorLevel, () -> {
+                            Throwable realCause = cause instanceof InvocationTargetException ? cause.getCause() : cause;
+
+                            StringBuilder sb = new StringBuilder("Error in subscription #").append(idx);
+                            sb.append(" in ").append(getMethodSignature(method));
+                            sb.append(" with ").append(realCause.getClass().getSimpleName()).append(" (")
+                                    .append(realCause.getMessage()).append(')');
+                            return sb;
+                        });
+                        subscriber.onError(cause);
+                    }
+            );
+        });
+    }
+
+    private void logOnSubscribe(Method method, long methodExitTime, long start, int idx) {
+        logWithPriority(observableReplyLevel, () -> {
+            StringBuilder sb = new StringBuilder("Subscription #").append(idx);
+            sb.append(" in ").append(getMethodSignature(method));
+            sb.append(" after ").append(start - methodExitTime).append("[ms]");
+            return sb;
         });
     }
 

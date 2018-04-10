@@ -19,6 +19,7 @@ package com.netflix.titus.common.util.proxy;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.proxy.annotation.NoIntercept;
 import com.netflix.titus.common.util.proxy.annotation.ObservableResult;
+import rx.Completable;
 import rx.Observable;
 
 @ObservableResult
@@ -35,6 +36,10 @@ public interface MyApi {
     @ObservableResult(enabled = false)
     Observable<String> untrackedObservableEcho(String message);
 
+    Completable okCompletable();
+
+    Completable failingCompletable();
+
     class MyApiImpl implements MyApi {
         @Override
         public String echo(String message) {
@@ -48,7 +53,7 @@ public interface MyApi {
 
         @Override
         public Observable<String> observableEcho(String message) {
-            return Observable.create(subscriber -> {
+            return Observable.unsafeCreate(subscriber -> {
                 subscriber.onNext(buildReply(message));
                 subscriber.onCompleted();
             });
@@ -57,6 +62,20 @@ public interface MyApi {
         @Override
         public Observable<String> untrackedObservableEcho(String message) {
             return observableEcho(message);
+        }
+
+        @Override
+        public Completable okCompletable() {
+            return Completable.fromAction(() -> {
+                // Do nothing
+            });
+        }
+
+        @Override
+        public Completable failingCompletable() {
+            return Completable.fromAction(() -> {
+                throw new RuntimeException("simulated completable error");
+            });
         }
 
         String buildReply(String message) {

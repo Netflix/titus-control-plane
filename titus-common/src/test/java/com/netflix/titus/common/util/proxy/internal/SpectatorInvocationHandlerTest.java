@@ -33,22 +33,32 @@ public class SpectatorInvocationHandlerTest {
     private final MyApi myApi = ProxyCatalog.createSpectatorProxy(MyApi.class, new MyApi.MyApiImpl(), registry);
 
     @Test
-    public void testSuccessfulMethodInvocation() throws Exception {
+    public void testSuccessfulMethodInvocation() {
         assertThat(myApi.echo("abc")).startsWith("abc");
     }
 
     @Test(expected = NullPointerException.class)
-    public void testFailedMethodInvocation() throws Exception {
+    public void testFailedMethodInvocation() {
         myApi.echo(null);
     }
 
     @Test
-    public void testObservableResult() throws Exception {
+    public void testObservableResult() {
         assertThat(myApi.observableEcho(MESSAGE).toBlocking().first()).startsWith(MESSAGE);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testFailedObservableResult() throws Exception {
+    public void testFailedObservableResult() {
         assertThat(myApi.observableEcho(null).toBlocking().first());
+    }
+
+    @Test
+    public void testCompletable() {
+        assertThat(myApi.okCompletable().get()).isNull();
+    }
+
+    @Test
+    public void testFailingCompletable() {
+        assertThat(myApi.failingCompletable().get()).isInstanceOf(RuntimeException.class);
     }
 }

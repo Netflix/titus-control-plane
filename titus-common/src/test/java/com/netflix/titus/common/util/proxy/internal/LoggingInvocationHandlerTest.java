@@ -36,22 +36,32 @@ public class LoggingInvocationHandlerTest {
             .build();
 
     @Test
-    public void testSuccessfulMethodInvocationLogging() throws Exception {
+    public void testSuccessfulMethodInvocationLogging() {
         assertThat(myApi.echo(MESSAGE)).startsWith(MESSAGE);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testFailedMethodInvocationLogging() throws Exception {
+    public void testFailedMethodInvocationLogging() {
         myApi.echo(null);
     }
 
     @Test
-    public void testObservableResultLogging() throws Exception {
+    public void testObservableResultLogging() {
         assertThat(myApi.observableEcho(MESSAGE).toBlocking().first()).startsWith(MESSAGE);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testFailedObservableResultLogging() throws Exception {
-        assertThat(myApi.observableEcho(null).toBlocking().first());
+    public void testFailedObservableResultLogging() {
+        myApi.observableEcho(null).toBlocking().first();
+    }
+
+    @Test
+    public void testCompletableResultLogging() {
+        assertThat(myApi.okCompletable().get()).isNull();
+    }
+
+    @Test
+    public void testFailingCompletableResultLogging() {
+        assertThat(myApi.failingCompletable().get()).isInstanceOf(RuntimeException.class);
     }
 }
