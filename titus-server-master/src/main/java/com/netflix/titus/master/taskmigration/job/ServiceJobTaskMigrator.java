@@ -19,6 +19,7 @@ package com.netflix.titus.master.taskmigration.job;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
@@ -41,6 +43,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.v2.WorkerNaming;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.master.MetricConstants;
@@ -78,7 +81,7 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     private final Scheduler.Worker worker;
     private final Registry registry;
 
-    private AtomicInteger tasksToBeMigrated;
+    private final Map<String, Gauge> jobsToBeMigratedCounters = new HashMap<>();
     private EnumMap<TaskMigrationManager.State, AtomicInteger> serviceJobsToBeMigrated;
     private Timer runLoopDurationTimer;
     private Set<String> appNamesToIgnore;
@@ -239,9 +242,6 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     }
 
     private void registerMetricMeters() {
-        Id tasksToBeMigratedId = registry.createId(MetricConstants.METRIC_TASK_MIGRATION + "tasksToBeMigrated");
-        tasksToBeMigrated = registry.gauge(tasksToBeMigratedId, new AtomicInteger(0));
-
         serviceJobsToBeMigrated = new EnumMap<>(TaskMigrationManager.State.class);
         for (TaskMigrationManager.State state : TaskMigrationManager.State.values()) {
             Id id = registry.createId(MetricConstants.METRIC_TASK_MIGRATION + "serviceJobsToBeMigrated", "state", state.name().toLowerCase());
@@ -253,7 +253,29 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     }
 
     private void updateMetricMeters() {
-        tasksToBeMigrated.set(taskMigrationDetailsMap.size());
+        Map<String, Integer> newJobCounters = new HashMap<>();
+        Map<String, String> jobToApplicationNameMap = new HashMap<>();
+        taskMigrationDetailsMap.forEach((id, migrationDetails) ->
+                {
+                    newJobCounters.put(
+                            migrationDetails.getJobId(),
+                            newJobCounters.getOrDefault(migrationDetails.getJobId(), 0) + 1
+                    );
+                    jobToApplicationNameMap.put(migrationDetails.getJobId(), migrationDetails.getApplicationName());
+                }
+        );
+
+        Set<String> jobCountersToClear = CollectionsExt.copyAndRemove(jobsToBeMigratedCounters.keySet(), newJobCounters.keySet());
+        jobCountersToClear.forEach(jobId -> jobsToBeMigratedCounters.remove(jobId).set(0));
+
+        newJobCounters.forEach((jobId, counter) ->
+                jobsToBeMigratedCounters.computeIfAbsent(jobId, jid ->
+                        registry.gauge(MetricConstants.METRIC_TASK_MIGRATION + "tasksToBeMigrated",
+                                "jobId", jobId,
+                                "applicationName", jobToApplicationNameMap.getOrDefault(jobId, "UNKNOWN")
+                        )
+                ).set(counter)
+        );
 
         Map<TaskMigrationManager.State, Long> countPerState = taskMigrationManagers.values().stream()
                 .collect(Collectors.groupingBy(TaskMigrationManager::getState, Collectors.counting()));
