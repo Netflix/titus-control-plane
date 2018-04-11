@@ -24,13 +24,7 @@ allprojects {
     repositories {
         jcenter()
         maven { url 'https://dl.bintray.com/netflixoss/oss-candidate/' }
-        maven {
-            url 'https://titusoss.bintray.com/maven'
-            credentials {
-                username resolveTitusOssUserName()
-                password resolveTitusOssUserPassword()
-            }
-        }
+        maven { url 'https://dl.bintray.com/netflixoss/maven/' }
     }
 
     bintray {
@@ -180,26 +174,4 @@ subprojects {
 
 dependencyLock {
     includeTransitives = true
-}
-
-def resolveTitusOssUserName() {
-    def secret = file('root/metatron/decrypted/Bintray-TitusOSS')
-    if (project.hasProperty('titusUsername')) {
-        return project.property('titusUsername')
-    }
-    if (secret.exists()) {
-        return 'titusbintrayprivate'
-    }
-    throw new GradleException("TitusOSS Bintray credentials missing")
-}
-
-def resolveTitusOssUserPassword() {
-    def secret = file('root/metatron/decrypted/Bintray-TitusOSS')
-    if (project.hasProperty('titusUsername')) {
-        return project.hasProperty('titusPassword') ? project.property('titusPassword') : 'passwordnotset'
-    }
-    if (secret.exists()) {
-        return secret.text.trim()
-    }
-    throw new GradleException("TitusOSS Bintray credentials missing")
 }
