@@ -28,7 +28,7 @@ public class JobReconcilerCommand implements Command {
 
     @Override
     public String getDescription() {
-        return "Report inconsistencies in V3 job data";
+        return "Report inconsistencies between V3 job/task tables";
     }
 
     @Override
@@ -89,7 +89,7 @@ public class JobReconcilerCommand implements Command {
             List<Pair<Object, Object>> bucketToJobIdList = CassandraUtils.readTwoColumnTable(context.getTargetSession(), ACTIVE_JOB_IDS_TABLE).toList().toBlocking().first();
             tableSizes.put(ACTIVE_JOB_IDS_TABLE, bucketToJobIdList.size());
 
-            // Check that each job is associated with unique bucket id.
+            // Check that each job is associated with a unique bucket id.
             Map<String, Integer> jobIdToBucketMap = new HashMap<>();
             bucketToJobIdList.forEach(pair -> {
                 int bucketId = (Integer) pair.getLeft();
@@ -112,9 +112,9 @@ public class JobReconcilerCommand implements Command {
             return jobIdToJobList.stream()
                     .map(pair -> {
                         String jobId = (String) pair.getLeft();
-                        String body = (String) pair.getRight();
+                        String value = (String) pair.getRight();
                         try {
-                            return (Job<?>) ObjectMappers.storeMapper().readValue(body, Job.class);
+                            return (Job<?>) ObjectMappers.storeMapper().readValue(value, Job.class);
                         } catch (Exception e) {
                             recordViolation("badJobRecord", String.format("Job %s cannot be mapped to Job object: %s", jobId, e.getMessage()), 1);
                             return null;
@@ -151,9 +151,9 @@ public class JobReconcilerCommand implements Command {
             return taskIdToTaskList.stream()
                     .map(pair -> {
                         String taskId = (String) pair.getLeft();
-                        String body = (String) pair.getRight();
+                        String value = (String) pair.getRight();
                         try {
-                            return ObjectMappers.storeMapper().readValue(body, Task.class);
+                            return ObjectMappers.storeMapper().readValue(value, Task.class);
                         } catch (Exception e) {
                             recordViolation("badTaskRecord", String.format("Task %s cannot be mapped to Task object: %s", taskId, e.getMessage()), 1);
                             return null;
