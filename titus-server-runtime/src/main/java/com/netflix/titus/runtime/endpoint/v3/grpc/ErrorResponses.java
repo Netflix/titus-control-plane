@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.endpoint.v3.grpc;
 
+import java.net.SocketException;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import com.google.protobuf.Any;
@@ -111,7 +113,11 @@ public final class ErrorResponses {
     }
 
     private static Status toGrpcStatus(Throwable cause) {
-        if (cause instanceof TitusServiceException) {
+        if (cause instanceof SocketException) {
+            return Status.UNAVAILABLE;
+        } else if (cause instanceof TimeoutException) {
+            return Status.DEADLINE_EXCEEDED;
+        } else if (cause instanceof TitusServiceException) {
             TitusServiceException e = (TitusServiceException) cause;
             switch (e.getErrorCode()) {
                 case NOT_LEADER:

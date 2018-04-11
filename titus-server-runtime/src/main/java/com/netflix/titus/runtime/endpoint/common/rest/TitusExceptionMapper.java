@@ -16,7 +16,9 @@
 
 package com.netflix.titus.runtime.endpoint.common.rest;
 
+import java.net.SocketException;
 import java.util.Collection;
+import java.util.concurrent.TimeoutException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.WebApplicationException;
@@ -45,6 +47,9 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
 
     @Override
     public Response toResponse(Throwable exception) {
+        if (exception instanceof SocketException) {
+            return fromSocketException((SocketException) exception);
+        }
         if (exception instanceof WebApplicationException) {
             return fromWebApplicationException((WebApplicationException) exception);
         }
@@ -63,6 +68,9 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
         if (exception instanceof SchedulerException) {
             return fromSchedulerException((SchedulerException) exception);
         }
+        if (exception instanceof TimeoutException) {
+            return fromTimeoutException((TimeoutException) exception);
+        }
 
         ErrorResponse errorResponse = ErrorResponse.newError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unexpected error: " + exception.getMessage())
                 .clientRequest(httpServletRequest)
@@ -70,6 +78,20 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
                 .exceptionContext(exception)
                 .build();
         return Response.status(Status.INTERNAL_SERVER_ERROR).entity(errorResponse).build();
+    }
+
+    private Response fromSocketException(SocketException e) {
+        int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+
+        Throwable cause = e.getCause() == null ? e : e.getCause();
+        String errorMessage = toStandardHttpErrorMessage(status, cause);
+
+        ErrorResponse errorResponse = ErrorResponse.newError(status, errorMessage)
+                .clientRequest(httpServletRequest)
+                .serverContext()
+                .exceptionContext(cause)
+                .build();
+        return Response.status(status).entity(errorResponse).build();
     }
 
     private Response fromRestException(RestException e) {
@@ -230,5 +252,19 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
         }
         ErrorResponse errorResponse = errorBuilder.build();
         return Response.status(errorResponse.getStatusCode()).entity(errorResponse).build();
+    }
+
+    private Response fromTimeoutException(TimeoutException e) {
+        int status = HttpServletResponse.SC_GATEWAY_TIMEOUT;
+
+        Throwable cause = e.getCause() == null ? e : e.getCause();
+        String errorMessage = toStandardHttpErrorMessage(status, cause);
+
+        ErrorResponse errorResponse = ErrorResponse.newError(status, errorMessage)
+                .clientRequest(httpServletRequest)
+                .serverContext()
+                .exceptionContext(cause)
+                .build();
+        return Response.status(status).entity(errorResponse).build();
     }
 }
