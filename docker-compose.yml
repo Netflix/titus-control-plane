@@ -1,0 +1,56 @@
+version: '3'
+services:
+  master:
+    build:
+      context: .
+      dockerfile: titus-ext/runner/Dockerfile.master
+    networks:
+      - titus
+    environment:
+      - ZK_HOST=zookeeper
+      - MESOS_MASTER_HOST=mesos-master
+    links:
+      - zookeeper
+      - mesos-master
+
+  gateway:
+    build:
+      context: .
+      dockerfile: titus-ext/runner/Dockerfile.gateway
+    networks:
+      - titus
+    environment:
+      - TITUS_MASTER_HOST=master
+    ports:
+      - 7001:7001
+      - 7104:7104
+    links:
+      - zookeeper
+      - mesos-master
+
+  mesos-master:
+    image: mesosphere/mesos-master:1.2.3
+    networks:
+      - titus
+    environment:
+      - MESOS_PORT=5050
+      - MESOS_ZK=zk://zookeeper:2181/titus/mesos
+      - MESOS_QUORUM=1
+      - MESOS_REGISTRY=in_memory
+    links:
+      - zookeeper
+
+  zookeeper:
+    image: zookeeper
+    networks:
+      - titus
+    restart: always
+    ports:
+      - 2181:2181
+
+networks:
+  titus:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
