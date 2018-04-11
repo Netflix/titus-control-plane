@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.ext.cassandra.tool.command.CreateKeyspaceCommand;
 import com.netflix.titus.ext.cassandra.tool.command.DeleteKeyspaceCommand;
 import com.netflix.titus.ext.cassandra.tool.command.JobCopyCommand;
+import com.netflix.titus.ext.cassandra.tool.command.JobReconcilerCommand;
 import com.netflix.titus.ext.cassandra.tool.command.JobSnapshotDownloadCommand;
 import com.netflix.titus.ext.cassandra.tool.command.JobSnapshotUploadCommand;
 import com.netflix.titus.ext.cassandra.tool.command.JobTruncateCommand;
@@ -37,6 +38,7 @@ public class CassTool extends AbstractCassTool {
     private static final Logger logger = LoggerFactory.getLogger(CassTool.class);
 
     public static final Map<String, Command> COMMANDS = ImmutableMap.<String, Command>builder()
+            .put("jobReconciler", new JobReconcilerCommand())
             .put("jobCopy", new JobCopyCommand())
             .put("jobTruncate", new JobTruncateCommand())
             .put("jobSnapshotDownload", new JobSnapshotDownloadCommand())
