@@ -24,6 +24,8 @@ import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.time.Clock;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
@@ -41,16 +43,18 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
 
     private final Class<API> apiInterface;
     private final Registry registry;
+    private final Clock clock;
     private final String invocationCounterMetricName;
     private final String invocationTimeMetricName;
     private final String resultSubscriptionCountMetricName;
     private final String resultSubscriptionEmitMetricName;
     private final String resultSubscriptionTimeMetricName;
 
-    public SpectatorInvocationHandler(Class<API> apiInterface, Registry registry, boolean followObservableResults) {
+    public SpectatorInvocationHandler(Class<API> apiInterface, TitusRuntime titusRuntime, boolean followObservableResults) {
         super(apiInterface, followObservableResults);
         this.apiInterface = apiInterface;
-        this.registry = registry;
+        this.registry = titusRuntime.getRegistry();
+        this.clock = titusRuntime.getClock();
 
         this.invocationCounterMetricName = "titusMaster.api." + apiInterface.getSimpleName() + ".invocations";
         this.invocationTimeMetricName = "titusMaster.api." + apiInterface.getSimpleName() + ".executionTime";
@@ -61,7 +65,7 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
 
     @Override
     protected Long before(Method method, Object[] args) {
-        return System.currentTimeMillis();
+        return clock.wallTime();
     }
 
     @Override
@@ -95,10 +99,10 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
 
     @Override
     protected Observable<Object> afterObservable(Method method, Observable<Object> result, Long startTime) {
-        long methodExitTime = System.currentTimeMillis();
+        long methodExitTime = clock.wallTime();
 
         return Observable.unsafeCreate(subscriber -> {
-            long subscriptionTime = System.currentTimeMillis();
+            long subscriptionTime = clock.wallTime();
 
             registry.counter(
                     resultSubscriptionCountMetricName,
@@ -155,10 +159,10 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
 
     @Override
     protected Completable afterCompletable(Method method, Completable result, Long aLong) {
-        long methodExitTime = System.currentTimeMillis();
+        long methodExitTime = clock.wallTime();
 
         return Completable.create(subscriber -> {
-            long subscriptionTime = System.currentTimeMillis();
+            long subscriptionTime = clock.wallTime();
 
             registry.counter(
                     resultSubscriptionCountMetricName,
@@ -211,7 +215,7 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
                 "class", apiInterface.getName(),
                 "method", method.getName()
         ).withTags(tags);
-        registry.timer(id).record(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS);
+        registry.timer(id).record(clock.wallTime() - startTime, TimeUnit.MILLISECONDS);
     }
 
     private void reportSubscriptionExecutionTime(Method method, Long startTime, long endTime) {

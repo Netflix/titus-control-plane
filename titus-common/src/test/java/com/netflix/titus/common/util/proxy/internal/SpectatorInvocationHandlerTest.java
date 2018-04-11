@@ -16,8 +16,8 @@
 
 package com.netflix.titus.common.util.proxy.internal;
 
-import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.proxy.MyApi;
 import com.netflix.titus.common.util.proxy.ProxyCatalog;
 import org.junit.Test;
@@ -28,9 +28,9 @@ public class SpectatorInvocationHandlerTest {
 
     private static final String MESSAGE = "abcdefg";
 
-    private final Registry registry = new DefaultRegistry();
+    private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final MyApi myApi = ProxyCatalog.createSpectatorProxy(MyApi.class, new MyApi.MyApiImpl(), registry);
+    private final MyApi myApi = ProxyCatalog.createSpectatorProxy(MyApi.class, new MyApi.MyApiImpl(), titusRuntime);
 
     @Test
     public void testSuccessfulMethodInvocation() {

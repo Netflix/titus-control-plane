@@ -28,7 +28,7 @@ import javax.inject.Singleton;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
@@ -73,12 +73,12 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
             });
 
     private final Provider<ActivationLifecycle> activationLifecycle;
-    private final Provider<Registry> registry;
+    private final Provider<TitusRuntime> titusRuntimeProvider;
 
     @Inject
-    public ProxyMethodInterceptor(Provider<ActivationLifecycle> activationLifecycle, Provider<Registry> registry) {
+    public ProxyMethodInterceptor(Provider<ActivationLifecycle> activationLifecycle, Provider<TitusRuntime> titusRuntimeProvider) {
         this.activationLifecycle = activationLifecycle;
-        this.registry = registry;
+        this.titusRuntimeProvider = titusRuntimeProvider;
     }
 
     @Override
@@ -198,10 +198,10 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
             for (ProxyType type : configuration.types()) {
                 switch (type) {
                     case Logging:
-                        interceptors.add(new LoggingProxyBuilder(interf, null).buildHandler());
+                        interceptors.add(new LoggingProxyBuilder(interf, null).titusRuntime(titusRuntimeProvider.get()).buildHandler());
                         break;
                     case Spectator:
-                        interceptors.add(new SpectatorInvocationHandler<>(interf, registry.get(), true));
+                        interceptors.add(new SpectatorInvocationHandler<>(interf, titusRuntimeProvider.get(), true));
                         break;
                     case ActiveGuard:
                         interceptors.add(new GuardingInvocationHandler<>(interf, instance -> activationLifecycle.get().isActive(instance)));

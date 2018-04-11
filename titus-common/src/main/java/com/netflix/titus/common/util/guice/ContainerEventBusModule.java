@@ -18,7 +18,7 @@ package com.netflix.titus.common.util.guice;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
-import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.guice.internal.ActivationProvisionListener;
 import com.netflix.titus.common.util.guice.internal.DefaultContainerEventBus;
@@ -40,7 +40,7 @@ public final class ContainerEventBusModule extends AbstractModule {
         bindInterceptor(
                 Matchers.annotatedWith(ProxyConfiguration.class),
                 Matchers.any(),
-                new ProxyMethodInterceptor(getProvider(ActivationLifecycle.class), getProvider(Registry.class))
+                new ProxyMethodInterceptor(getProvider(ActivationLifecycle.class), getProvider(TitusRuntime.class))
         );
     }
 

@@ -18,6 +18,8 @@ package com.netflix.titus.common.util.proxy;
 
 import java.lang.reflect.Proxy;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.proxy.internal.InvocationHandlerBridge;
 import com.netflix.titus.common.util.proxy.internal.LoggingInvocationHandler;
 import org.slf4j.Logger;
@@ -39,6 +41,7 @@ public final class LoggingProxyBuilder<API, INSTANCE extends API> {
     private Priority exceptionLevel = Priority.ERROR;
     private Priority observableErrorLevel = Priority.ERROR;
     private Logger logger;
+    private TitusRuntime titusRuntime;
 
     public LoggingProxyBuilder(Class<API> apiInterface, INSTANCE instance) {
         this.apiInterface = apiInterface;
@@ -75,9 +78,17 @@ public final class LoggingProxyBuilder<API, INSTANCE extends API> {
         return this;
     }
 
+    public LoggingProxyBuilder<API, INSTANCE> titusRuntime(TitusRuntime titusRuntime) {
+        this.titusRuntime = titusRuntime;
+        return this;
+    }
+
     public ProxyInvocationHandler buildHandler() {
         if (logger == null) {
             logger = LoggerFactory.getLogger(getCategory(apiInterface, instance));
+        }
+        if (titusRuntime == null) {
+            titusRuntime = TitusRuntimes.internal();
         }
 
         return new LoggingInvocationHandler(
@@ -87,7 +98,8 @@ public final class LoggingProxyBuilder<API, INSTANCE extends API> {
                 replyLevel,
                 observableReplyLevel,
                 exceptionLevel,
-                observableErrorLevel
+                observableErrorLevel,
+                titusRuntime
         );
     }
 
