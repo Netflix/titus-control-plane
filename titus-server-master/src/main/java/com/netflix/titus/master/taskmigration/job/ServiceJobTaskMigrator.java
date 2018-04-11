@@ -253,22 +253,22 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     }
 
     private void updateMetricMeters() {
-        Map<String, Integer> newJobCounters = new HashMap<>();
+        Map<String, Integer> tasksToBeMigratedPerJob = new HashMap<>();
         Map<String, String> jobToApplicationNameMap = new HashMap<>();
         taskMigrationDetailsMap.forEach((id, migrationDetails) ->
                 {
-                    newJobCounters.put(
+                    tasksToBeMigratedPerJob.put(
                             migrationDetails.getJobId(),
-                            newJobCounters.getOrDefault(migrationDetails.getJobId(), 0) + 1
+                            tasksToBeMigratedPerJob.getOrDefault(migrationDetails.getJobId(), 0) + 1
                     );
                     jobToApplicationNameMap.put(migrationDetails.getJobId(), migrationDetails.getApplicationName());
                 }
         );
 
-        Set<String> jobCountersToClear = CollectionsExt.copyAndRemove(jobsToBeMigratedCounters.keySet(), newJobCounters.keySet());
+        Set<String> jobCountersToClear = CollectionsExt.copyAndRemove(jobsToBeMigratedCounters.keySet(), tasksToBeMigratedPerJob.keySet());
         jobCountersToClear.forEach(jobId -> jobsToBeMigratedCounters.remove(jobId).set(0));
 
-        newJobCounters.forEach((jobId, counter) ->
+        tasksToBeMigratedPerJob.forEach((jobId, counter) ->
                 jobsToBeMigratedCounters.computeIfAbsent(jobId, jid ->
                         registry.gauge(MetricConstants.METRIC_TASK_MIGRATION + "tasksToBeMigrated",
                                 "jobId", jobId,
