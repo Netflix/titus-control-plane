@@ -19,7 +19,7 @@ package com.netflix.titus.common.util.proxy;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
 
-import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.proxy.internal.GuardingInvocationHandler;
 import com.netflix.titus.common.util.proxy.internal.InvocationHandlerBridge;
 import com.netflix.titus.common.util.proxy.internal.SpectatorInvocationHandler;
@@ -48,17 +48,17 @@ public final class ProxyCatalog {
         return new LoggingProxyBuilder<>(apiInterface, instance).build();
     }
 
-    public static <API, INSTANCE extends API> API createSpectatorProxy(Class<API> apiInterface, INSTANCE instance, Registry registry,
+    public static <API, INSTANCE extends API> API createSpectatorProxy(Class<API> apiInterface, INSTANCE instance, TitusRuntime titusRuntime,
                                                                        boolean followObservableResults) {
         return (API) Proxy.newProxyInstance(
                 apiInterface.getClassLoader(),
                 new Class<?>[]{apiInterface},
-                new InvocationHandlerBridge<>(new SpectatorInvocationHandler<>(apiInterface, registry, followObservableResults), instance)
+                new InvocationHandlerBridge<>(new SpectatorInvocationHandler<>(apiInterface, titusRuntime, followObservableResults), instance)
         );
     }
 
-    public static <API, INSTANCE extends API> API createSpectatorProxy(Class<API> apiInterface, INSTANCE instance, Registry registry) {
-        return createSpectatorProxy(apiInterface, instance, registry, false);
+    public static <API, INSTANCE extends API> API createSpectatorProxy(Class<API> apiInterface, INSTANCE instance, TitusRuntime titusRuntime) {
+        return createSpectatorProxy(apiInterface, instance, titusRuntime, false);
     }
 
     public static <API, INSTANCE extends API> API createGuardingProxy(Class<API> apiInterface, INSTANCE instance, Supplier<Boolean> predicate) {

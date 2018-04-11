@@ -23,6 +23,7 @@ import java.util.List;
 
 import com.netflix.titus.common.util.proxy.MyApi;
 import org.junit.Test;
+import rx.Completable;
 import rx.Observable;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +31,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class InterceptingInvocationHandlerTest {
 
-    private enum InterceptionPoint {Before, After, AfterException, AfterObservable}
+    private enum InterceptionPoint {Before, After, AfterException, AfterObservable, AfterCompletable}
 
     private static final String MESSAGE = "abcdefg";
 
@@ -43,38 +44,50 @@ public class InterceptingInvocationHandlerTest {
     );
 
     @Test
-    public void testSuccessfulMethodInvocation() throws Exception {
+    public void testSuccessfulMethodInvocation() {
         assertThat(myApi.echo(MESSAGE)).startsWith(MESSAGE);
-        verifyIntereceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After);
+        verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After);
     }
 
     @Test
-    public void testFailedMethodInvocation() throws Exception {
+    public void testFailedMethodInvocation() {
         try {
             myApi.echo(null);
             fail("Exception expected");
         } catch (NullPointerException e) {
-            verifyIntereceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.AfterException);
+            verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.AfterException);
         }
     }
 
     @Test
-    public void testObservableResult() throws Exception {
+    public void testObservableResult() {
         assertThat(myApi.observableEcho(MESSAGE).toBlocking().first()).startsWith(MESSAGE);
-        verifyIntereceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterObservable);
+        verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterObservable);
     }
 
     @Test
-    public void testFailedObservableResult() throws Exception {
+    public void testFailedObservableResult() {
         try {
             myApi.observableEcho(null).toBlocking().first();
             fail("Exception expected");
         } catch (NullPointerException e) {
-            verifyIntereceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterObservable);
+            verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterObservable);
         }
     }
 
-    private void verifyIntereceptionPointsCalled(InterceptionPoint... interceptionPoints) {
+    @Test
+    public void tesCompletableResult() {
+        assertThat(myApi.okCompletable().get()).isNull();
+        verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterCompletable);
+    }
+
+    @Test
+    public void tesFailedCompletableResult() {
+        assertThat(myApi.failingCompletable().get()).isInstanceOf(RuntimeException.class);
+        verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterCompletable);
+    }
+
+    private void verifyInterceptionPointsCalled(InterceptionPoint... interceptionPoints) {
         assertThat(handler.interceptionPoints).hasSize(interceptionPoints.length);
         for (int i = 0; i < interceptionPoints.length; i++) {
             assertThat(interceptionPoints[i]).isEqualTo(handler.interceptionPoints.get(i));
@@ -108,6 +121,12 @@ public class InterceptingInvocationHandlerTest {
         @Override
         protected Observable<Object> afterObservable(Method method, Observable<Object> result, Boolean aBoolean) {
             interceptionPoints.add(InterceptionPoint.AfterObservable);
+            return result;
+        }
+
+        @Override
+        protected Completable afterCompletable(Method method, Completable result, Boolean aBoolean) {
+            interceptionPoints.add(InterceptionPoint.AfterCompletable);
             return result;
         }
     }

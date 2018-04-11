@@ -24,8 +24,8 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
-import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -46,7 +46,7 @@ public class ActivationProvisionListenerTest {
                 new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(Registry.class).toInstance(new DefaultRegistry());
+                        bind(TitusRuntime.class).toInstance(TitusRuntimes.internal());
                         bind(ActivationProvisionListenerTest.class).toInstance(ActivationProvisionListenerTest.this);
                         bind(ServiceA.class).asEagerSingleton();
                     }
@@ -73,7 +73,7 @@ public class ActivationProvisionListenerTest {
                 new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(Registry.class).toInstance(new DefaultRegistry());
+                        bind(TitusRuntime.class).toInstance(TitusRuntimes.internal());
                         bind(ActivationProvisionListenerTest.class).toInstance(ActivationProvisionListenerTest.this);
                         bind(ServiceB.class).asEagerSingleton();
                         bind(ServiceA.class).asEagerSingleton();
