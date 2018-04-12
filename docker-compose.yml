@@ -28,6 +28,25 @@ services:
       - zookeeper
       - mesos-master
 
+  agent:
+    build:
+      context: titus-ext/runner
+      dockerfile: Dockerfile.agent
+    networks:
+      - titus
+    privileged: true
+    security_opt:
+      - seccomp=unconfined
+    environment:
+      - DISABLE_METRICS=true
+      - SHORT_CIRCUIT_QUITELITE=true
+      - DEBUG=true
+    links:
+      - zookeeper
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+
   mesos-master:
     image: mesosphere/mesos-master:1.2.3
     networks:

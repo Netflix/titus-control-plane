@@ -1,0 +1,17 @@
+#!/bin/bash
+
+attributes="id:${HOSTNAME}"
+attributes="${attributes};cluster:unknown-instanceGroup"
+attributes="${attributes};region:local"
+attributes="${attributes};itype:dockercontainer"
+attributes="${attributes};res:ResourceSet-ENIs-4-10"
+attributes="${attributes};executorpertask:true"
+
+cat <<-EOF >/etc/default/mesos-slave
+MASTER=zk://zookeeper:2181/titus/mesos
+MESOS_RECOVER=reconnect
+MESOS_SYSTEMD_ENABLE_SUPPORT=false
+MESOS_CGROUPS_ROOT=containers.slice
+MESOS_ATTRIBUTES="${attributes}"
+MESOS_RESOURCES="network:1000"
+EOF
