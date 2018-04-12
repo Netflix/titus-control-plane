@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.embedded.stack;
 
+import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
 import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.perf.load.LoadGenerator;
@@ -50,6 +51,14 @@ public class EmbeddedTitusStackRunner {
                         EmbeddedTitusGateway.aDefaultTitusGateway()
                                 .withMasterEndpoint("localhost", 8090, 8080)
                                 .withHttpPort(8081)
+                                .withGrpcPort(8091)
+                                .build()
+                )
+                .withFederation(
+                        EmbeddedTitusFederation.aDefaultTitusFederation()
+                                .witGatewayEndpoint("localhost", 8091)
+                                .withHttpPort(8082)
+                                .withGrpcPort(8092)
                                 .build()
                 )
                 .build();

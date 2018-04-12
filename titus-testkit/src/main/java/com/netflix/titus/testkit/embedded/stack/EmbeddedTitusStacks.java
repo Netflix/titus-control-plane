@@ -18,24 +18,35 @@ package com.netflix.titus.testkit.embedded.stack;
 
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters;
 
 public class EmbeddedTitusStacks {
 
     public static EmbeddedTitusStack basicStack(int desired) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(desired);
-        return EmbeddedTitusStack.aTitusStack()
+
+        EmbeddedTitusStack.Builder builder = EmbeddedTitusStack.aTitusStack()
                 .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud))
-                .withGateway(EmbeddedTitusGateway.aDefaultTitusGateway().build())
-                .build();
+                .withDefaultGateway();
+
+        return addFederation(builder).build();
     }
 
     public static EmbeddedTitusStack twoPartitionsPerTierStack(int desired) {
         SimulatedCloud simulatedCloud = SimulatedClouds.twoPartitionsPerTierStack(desired);
-        return EmbeddedTitusStack.aTitusStack()
+
+        EmbeddedTitusStack.Builder builder = EmbeddedTitusStack.aTitusStack()
                 .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud))
-                .withGateway(EmbeddedTitusGateway.aDefaultTitusGateway().build())
-                .build();
+                .withDefaultGateway();
+
+        return addFederation(builder).build();
+    }
+
+    private static EmbeddedTitusStack.Builder addFederation(EmbeddedTitusStack.Builder builder) {
+        boolean federationEnabled = "true".equalsIgnoreCase(System.getProperty("titus.test.federation", "true"));
+        if (federationEnabled) {
+            builder.withDefaultFederation();
+        }
+        return builder;
     }
 }

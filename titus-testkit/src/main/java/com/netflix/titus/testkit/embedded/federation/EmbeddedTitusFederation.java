@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.embedded.gateway;
+package com.netflix.titus.testkit.embedded.federation;
 
 import java.util.Properties;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Module;
-import com.google.inject.util.Modules;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
-import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.grpc.AnonymousSessionContext;
 import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.common.grpc.V3HeaderInterceptor;
-import com.netflix.titus.gateway.startup.TitusGatewayModule;
+import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -45,20 +42,17 @@ import org.slf4j.LoggerFactory;
 import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 
 /**
- * Run embedded version of TitusGateway.
+ * Run embedded version of TitusFederation.
  */
-public class EmbeddedTitusGateway {
+public class EmbeddedTitusFederation {
 
-    private static final Logger logger = LoggerFactory.getLogger(EmbeddedTitusGateway.class);
+    private static final Logger logger = LoggerFactory.getLogger(EmbeddedTitusFederation.class);
 
-    private final String masterGrpcHost;
-    private final int masterGrpcPort;
-    private final int masterHttpPort;
+    private final String gatewayGrpcHost;
+    private final int gatewayGrpcPort;
 
     private final int httpPort;
     private final int grpcPort;
-    private final boolean enableREST;
-    private final JobStore store;
     private final Properties properties;
 
     private final DefaultSettableConfig config;
@@ -67,14 +61,11 @@ public class EmbeddedTitusGateway {
 
     private ManagedChannel grpcChannel;
 
-    public EmbeddedTitusGateway(Builder builder) {
-        this.masterGrpcHost = getOrDefault(builder.masterGrpcHost, "localhost");
-        this.masterGrpcPort = builder.masterGrpcPort;
-        this.masterHttpPort = builder.masterHttpPort;
+    public EmbeddedTitusFederation(Builder builder) {
+        this.gatewayGrpcHost = getOrDefault(builder.gatewayGrpcHost, "localhost");
+        this.gatewayGrpcPort = builder.gatewayGrpcPort;
         this.httpPort = builder.httpPort;
         this.grpcPort = builder.grpcPort;
-        this.enableREST = builder.enableREST;
-        this.store = builder.store;
         this.properties = builder.properties;
 
         this.config = new DefaultSettableConfig();
@@ -82,42 +73,26 @@ public class EmbeddedTitusGateway {
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
-        props.put("titusMaster.v2Enabled", Boolean.toString(builder.v2Enabled));
-        props.put("titus.gateway.masterIp", masterGrpcHost);
-        props.put("titus.gateway.masterGrpcPort", masterGrpcPort);
-        props.put("titus.gateway.masterHttpPort", masterHttpPort);
-        props.put("titusGateway.endpoint.grpc.port", grpcPort);
+        props.put("titus.federation.endpoint.grpcPort", grpcPort);
+        props.put("titus.federation.cells", String.format("cell1=%s:%s", gatewayGrpcHost, gatewayGrpcPort));
+        props.put("titus.federation.routingRules", "cell1=.*");
         props.put("governator.jetty.embedded.port", httpPort);
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
-        props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
-        props.put("titusMaster.job.configuration.defaultIamRole", "iam-12345");
-        props.put("titusGateway.endpoint.grpc.loadbalancer.enabled", "true");
         config.setProperties(props);
     }
 
-    public int getGrpcPort() {
-        return grpcPort;
-    }
-
-    public EmbeddedTitusGateway boot() {
-        logger.info("Starting Titus Gateway");
+    public EmbeddedTitusFederation boot() {
+        logger.info("Starting Titus Federation");
 
         injector = InjectorBuilder.fromModules(
-                newJettyModule(),
+                new Archaius2JettyModule(),
                 new ArchaiusModule() {
                     @Override
                     protected void configureArchaius() {
                         bindApplicationConfigurationOverride().toInstance(config);
                     }
                 },
-                Modules.override(new TitusGatewayModule(enableREST)).with(new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        if (store != null) {
-                            bind(JobStore.class).toInstance(store);
-                        }
-                    }
-                }),
+                new TitusFederationModule(),
                 new AbstractModule() {
                     @Override
                     protected void configure() {
@@ -128,11 +103,7 @@ public class EmbeddedTitusGateway {
         return this;
     }
 
-    private Module newJettyModule() {
-        return enableREST ? new Archaius2JettyModule() : Modules.EMPTY_MODULE;
-    }
-
-    public EmbeddedTitusGateway shutdown() {
+    public EmbeddedTitusFederation shutdown() {
         if (injector != null) {
             injector.close();
         }
@@ -179,47 +150,29 @@ public class EmbeddedTitusGateway {
     }
 
     public Builder toBuilder() {
-        return aDefaultTitusGateway()
-                .withStore(store)
-                .withMasterEndpoint(masterGrpcHost, masterGrpcPort, masterHttpPort)
+        return aDefaultTitusFederation()
+                .witGatewayEndpoint(gatewayGrpcHost, gatewayGrpcPort)
                 .withHttpPort(httpPort)
                 .withGrpcPort(grpcPort)
                 .withProperties(properties);
     }
 
-    public static Builder aDefaultTitusGateway() {
+    public static Builder aDefaultTitusFederation() {
         return new Builder()
                 .withProperty("titusGateway.endpoint.grpc.shutdownTimeoutMs", "0");
     }
 
     public static class Builder {
 
-        private String masterGrpcHost;
-        private int masterGrpcPort;
-        private int masterHttpPort;
+        private String gatewayGrpcHost;
+        private int gatewayGrpcPort;
         private int grpcPort;
         private int httpPort;
-        private boolean enableREST = true;
-        private JobStore store;
         private Properties properties = new Properties();
 
-        // Enable V2 engine by default
-        private boolean v2Enabled = true;
-
-        public Builder withV2Engine(boolean v2Enabled) {
-            this.v2Enabled = v2Enabled;
-            return this;
-        }
-
-        public Builder withMasterEndpoint(String host, int grpcPort, int httpPort) {
-            this.masterGrpcHost = host;
-            this.masterGrpcPort = grpcPort;
-            this.masterHttpPort = httpPort;
-            return this;
-        }
-
-        public Builder withGrpcPort(int grpcPort) {
-            this.grpcPort = grpcPort;
+        public Builder witGatewayEndpoint(String host, int grpcPort) {
+            this.gatewayGrpcHost = host;
+            this.gatewayGrpcPort = grpcPort;
             return this;
         }
 
@@ -228,13 +181,8 @@ public class EmbeddedTitusGateway {
             return this;
         }
 
-        public Builder withEnableREST(boolean enableREST) {
-            this.enableREST = enableREST;
-            return this;
-        }
-
-        public Builder withStore(JobStore store) {
-            this.store = store;
+        public Builder withGrpcPort(int grpcPort) {
+            this.grpcPort = grpcPort;
             return this;
         }
 
@@ -248,11 +196,11 @@ public class EmbeddedTitusGateway {
             return this;
         }
 
-        public EmbeddedTitusGateway build() {
+        public EmbeddedTitusFederation build() {
             httpPort = httpPort == 0 ? NetworkExt.findUnusedPort() : httpPort;
             grpcPort = grpcPort == 0 ? NetworkExt.findUnusedPort() : grpcPort;
 
-            return new EmbeddedTitusGateway(this);
+            return new EmbeddedTitusFederation(this);
         }
     }
 }

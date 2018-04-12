@@ -63,6 +63,16 @@ import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
  */
 public class TitusMasterModule extends AbstractModule {
 
+    private final boolean enableREST;
+
+    public TitusMasterModule() {
+        this(true);
+    }
+
+    public TitusMasterModule(boolean enableREST) {
+        this.enableREST = enableREST;
+    }
+
     @Override
     protected void configure() {
         // Configuration
@@ -98,12 +108,14 @@ public class TitusMasterModule extends AbstractModule {
         bind(V3EndpointModule.V3_LOG_STORAGE_INFO).toInstance(EmptyLogStorageInfo.INSTANCE);
         bind(ContextResolver.class).toInstance(EmptyContextResolver.INSTANCE);
 
-        install(new GovernatorJerseySupportModule());
+        if (enableREST) {
+            install(new GovernatorJerseySupportModule());
 
-        // This should be in JerseyModule, but overrides get broken if we do that (possibly Governator bug).
-        bind(HttpCallerIdResolver.class).to(ByRemoteAddressHttpCallerIdResolver.class);
-        bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
-        install(new JerseyModule());
+            // This should be in JerseyModule, but overrides get broken if we do that (possibly Governator bug).
+            bind(HttpCallerIdResolver.class).to(ByRemoteAddressHttpCallerIdResolver.class);
+            bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
+            install(new JerseyModule());
+        }
 
         install(new EndpointModule());
         install(new V3EndpointModule());

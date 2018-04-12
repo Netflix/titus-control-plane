@@ -48,6 +48,7 @@ public class DefaultCellConnector implements CellConnector {
                     .stream()
                     .collect(Collectors.toMap(cell -> cell,
                             cell -> NettyChannelBuilder.forTarget(cell.getAddress())
+                                    .usePlaintext(true)
                                     .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
                                     .build()));
         } else {

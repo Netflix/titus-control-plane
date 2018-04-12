@@ -28,6 +28,7 @@ import javax.inject.Singleton;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.inject.AbstractModule;
+import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.util.Modules;
 import com.netflix.archaius.ConfigProxyFactory;
@@ -114,6 +115,7 @@ public class EmbeddedTitusMaster {
     private final DefaultSettableConfig config;
     private final int apiPort;
     private final int grpcPort;
+    private final boolean enableREST;
     private final MasterDescription masterDescription;
 
     private final V2StorageProvider storageProvider;
@@ -138,6 +140,7 @@ public class EmbeddedTitusMaster {
         this.config.setProperties(builder.props);
         this.apiPort = builder.apiPort;
         this.grpcPort = builder.grpcPort;
+        this.enableREST = builder.enableREST;
         this.masterDescription = new MasterDescription(
                 "embedded_titus_master", "192.168.0.1", builder.apiPort, "api/postjobstatus",
                 System.currentTimeMillis()
@@ -185,7 +188,7 @@ public class EmbeddedTitusMaster {
                         bind(Registry.class).toInstance(new DefaultRegistry());
                     }
                 }),
-                Modules.override(new TitusMasterModule())
+                Modules.override(new TitusMasterModule(enableREST))
                         .with(new AbstractModule() {
                                   @Override
                                   protected void configure() {
@@ -232,7 +235,7 @@ public class EmbeddedTitusMaster {
                                   }
                               }
                         ),
-                new Archaius2JettyModule(),
+                newJettyModule(),
                 new ArchaiusModule() {
                     @Override
                     protected void configureArchaius() {
@@ -245,19 +248,25 @@ public class EmbeddedTitusMaster {
         injector.getInstance(LeaderActivator.class).becomeLeader();
         injector.getInstance(AuditLogService.class).auditLogEvents().subscribe(auditLogs::add);
 
-        // Since jetty API server is run on a separate thread, it may not be ready yet
-        // We do not have better way, but call it until it replies.
-        getClient().findAllJobs().retryWhen(attempts -> {
-                    return attempts.zipWith(Observable.range(1, 5), (n, i) -> i).flatMap(i -> {
-                        return Observable.timer(i, TimeUnit.SECONDS);
-                    });
-                }
-        ).timeout(30, TimeUnit.SECONDS).toBlocking().firstOrDefault(null);
+        if (enableREST) {
+            // Since jetty API server is run on a separate thread, it may not be ready yet
+            // We do not have better way, but call it until it replies.
+            getClient().findAllJobs().retryWhen(attempts -> {
+                        return attempts.zipWith(Observable.range(1, 5), (n, i) -> i).flatMap(i -> {
+                            return Observable.timer(i, TimeUnit.SECONDS);
+                        });
+                    }
+            ).timeout(30, TimeUnit.SECONDS).toBlocking().firstOrDefault(null);
+        }
 
         workerStateMonitor = injector.getInstance(DefaultWorkerStateMonitor.class);
         logger.info("Embedded TitusMaster started in {}ms", timer.elapsed(TimeUnit.MILLISECONDS));
 
         return this;
+    }
+
+    private Module newJettyModule() {
+        return enableREST ? new Archaius2JettyModule() : Modules.EMPTY_MODULE;
     }
 
     public void shutdown() {
@@ -397,6 +406,7 @@ public class EmbeddedTitusMaster {
         private Properties props = new Properties();
         private int apiPort;
         private int grpcPort;
+        private boolean enableREST = true;
 
         private V2StorageProvider v2JobStore;
         private JobStore v3JobStore;
@@ -426,6 +436,11 @@ public class EmbeddedTitusMaster {
 
         public Builder withGrpcPort(int grpcPort) {
             this.grpcPort = grpcPort;
+            return this;
+        }
+
+        public Builder withEnableREST(boolean enableREST) {
+            this.enableREST = enableREST;
             return this;
         }
 
