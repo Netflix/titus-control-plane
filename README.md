@@ -1,16 +1,20 @@
 # Titus Control Plane
 ## Overview
-Titus is the Netflix Cloud Container Runtime that manages containers and provides integrations to the
-infrastructure ecosystem. This repository contains the control plane components which
-are responsible for accepting requests and scheduling those requests on agents.
+Titus is the Netflix Cloud Container Runtime that manages containers and provides integrations to the infrastructure
+ecosystem. This repository contains the control plane components which are responsible for accepting requests and
+scheduling those requests on agents.
 
 ## Local testing with docker-compose
 
-[`docker-compose`](https://docs.docker.com/compose/install/) can be used to stand
-up a local cluster with all components necessary to run titus containers. Each
-component (titus-master, titus-gateway, mesos-master, zookeeper, titus-agent) will
-run as a separate docker container, and Titus containers will be launched as nested
-containers (docker-in-docker) inside the `agent` container.
+[`docker-compose`](https://docs.docker.com/compose/install/) together with [`docker-engine`](https://docs.docker.com/engine/)
+can be used to stand up a local cluster with all components necessary to run titus containers. Each component
+(titus-master, titus-gateway, mesos-master, zookeeper, titus-agent) will run as a separate docker container, and Titus
+containers will be launched as nested containers (docker-in-docker) inside the `agent` container.
+
+The last versions known to work:
+
+* docker-engine `18.03.0-ce`
+* docker-compose `1.21.0`
 
 To build and launch all components:
 
@@ -31,7 +35,10 @@ used in a shell inside the agent container:
 
 ```sh-session
 docker-compose exec agent bash
-(agent) $ journald
+(agent) $ journalctl
+
+# Note: some warnings and errors are to be expected on those logs
+# Not all systemd units will work when not on an EC2 VM
 
 # list nested docker containers launched by Titus
 (agent) $ docker ps
@@ -88,3 +95,10 @@ docker-compose scale agent=2
 ```
 
 Note that it can take ~10s for a new titus-agent to be detected and registered with the default configuration.
+
+To tear everything down or to stop individual components:
+
+```
+docker-compose down
+docker-compose stop master
+```
