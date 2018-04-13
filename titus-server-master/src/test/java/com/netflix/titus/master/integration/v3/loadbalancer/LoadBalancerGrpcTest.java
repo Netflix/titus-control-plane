@@ -19,7 +19,6 @@ package com.netflix.titus.master.integration.v3.loadbalancer;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
@@ -29,7 +28,6 @@ import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
-import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
@@ -46,6 +44,7 @@ import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.master.loadbalancer.service.LoadBalancerTests.buildPageSupplier;
 import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -188,13 +187,4 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
     private BiConsumer<RemoveLoadBalancerRequest, TestStreamObserver<Empty>> removeLoadBalancers = (request, removeResponse) -> {
         client.removeLoadBalancer(request, removeResponse);
     };
-
-    private Supplier<Page> buildPageSupplier(int pageNumber, int pageSize) {
-        return () -> Page.newBuilder().setPageNumber(pageNumber).setPageSize(pageSize).build();
-    }
-
-    private Supplier<Page> buildPageSupplier(String cursor, int pageSize) {
-        return () -> Page.newBuilder().setCursor(cursor).setPageSize(pageSize).build();
-    }
-
 }
