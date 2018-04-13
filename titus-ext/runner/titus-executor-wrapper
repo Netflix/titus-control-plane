@@ -3,7 +3,6 @@
 set -eu -o pipefail
 
 export METATRON_ENABLED=false
-export METATRON_ENABLED=false
 export DISABLE_GPU=true
 export DISABLE_METRICS=true
 export SHORT_CIRCUIT_QUITELITE=true

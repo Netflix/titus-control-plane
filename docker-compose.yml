@@ -36,7 +36,13 @@ services:
       - titus
     privileged: true
     security_opt:
-      - seccomp=unconfined
+      - seccomp:unconfined
+      - apparmor:unconfined
+    tmpfs:
+      - /run
+      - /run/lock
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
     environment:
       - DISABLE_METRICS=true
       - SHORT_CIRCUIT_QUITELITE=true
