@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.twoPartitionsPerTierStack;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.twoPartitionsPerTierCell;
 import static com.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 
@@ -42,7 +42,7 @@ public class V3JobSchedulingTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierStack(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierCell(2));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 

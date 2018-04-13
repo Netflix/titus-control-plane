@@ -41,8 +41,8 @@ import com.netflix.titus.master.store.V2StageMetadataWritable;
 import com.netflix.titus.master.store.V2WorkerMetadataWritable;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import com.netflix.titus.testkit.embedded.master.EmbeddedStorageProvider;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedStorageProvider;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.JobObserver;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
@@ -60,7 +60,7 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 
 import static com.netflix.titus.testkit.embedded.cloud.SimulatedClouds.basicCloud;
-import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static com.netflix.titus.testkit.model.v2.TitusV2ModelAsserts.assertAllTasksInState;
 import static org.assertj.core.api.Assertions.assertThat;
 

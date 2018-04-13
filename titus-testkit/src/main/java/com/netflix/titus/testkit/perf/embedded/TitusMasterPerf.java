@@ -24,7 +24,7 @@ import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.model.v2.TitusV2ModelGenerator;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;

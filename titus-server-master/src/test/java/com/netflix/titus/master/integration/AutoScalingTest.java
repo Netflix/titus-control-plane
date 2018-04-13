@@ -30,13 +30,13 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor.awsInstanceGroup;
-import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack.aTitusStack;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell.aTitusCell;
 
 @Category(IntegrationTest.class)
 public class AutoScalingTest extends BaseIntegrationTest {
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(aTitusStack()
+    private final TitusStackResource titusStackResource = new TitusStackResource(aTitusCell()
             .withMaster(basicMaster(new SimulatedCloud().createAgentInstanceGroups(
                     awsInstanceGroup("flex1", AwsInstanceType.M4_4XLarge, 0, 1, 10)
             )))

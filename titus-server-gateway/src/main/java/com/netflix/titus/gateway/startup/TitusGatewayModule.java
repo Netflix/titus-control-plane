@@ -60,9 +60,18 @@ public final class TitusGatewayModule extends AbstractModule {
             new TypeLiteral<LogStorageInfo<Task>>() {
             };
 
+    private final boolean enableREST;
+
+    public TitusGatewayModule() {
+        this(true);
+    }
+
+    public TitusGatewayModule(boolean enableREST) {
+        this.enableREST = enableREST;
+    }
+
     @Override
     protected void configure() {
-
         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
         bind(Registry.class).toInstance(new DefaultRegistry());
 
@@ -70,8 +79,10 @@ public final class TitusGatewayModule extends AbstractModule {
 
         install(new TitusEntitySanitizerModule());
 
-        install(new GovernatorJerseySupportModule());
-        install(new JerseyModule());
+        if (enableREST) {
+            install(new GovernatorJerseySupportModule());
+            install(new JerseyModule());
+        }
 
         bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
 

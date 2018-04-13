@@ -35,7 +35,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.testkit.embedded.cloud.SimulatedClouds.twoPartitionsPerTierStack;
-import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 

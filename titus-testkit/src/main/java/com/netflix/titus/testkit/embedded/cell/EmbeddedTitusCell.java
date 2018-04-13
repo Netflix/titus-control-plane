@@ -14,42 +14,43 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.embedded.stack;
+package com.netflix.titus.testkit.embedded.cell;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 
 /**
  * Represents complete Titus stack, which includes master, gateway and agents.
  */
-public class EmbeddedTitusStack {
+public class EmbeddedTitusCell {
 
     private final EmbeddedTitusMaster master;
     private final EmbeddedTitusGateway gateway;
     private final EmbeddedTitusOperations titusOperations;
 
-    private EmbeddedTitusStack(EmbeddedTitusMaster master, EmbeddedTitusGateway gateway) {
+    private EmbeddedTitusCell(EmbeddedTitusMaster master,
+                              EmbeddedTitusGateway gateway) {
         this.master = master;
         this.gateway = gateway;
-        this.titusOperations = new EmbeddedTitusOperations(master, gateway);
+        this.titusOperations = new EmbeddedCellTitusOperations(master, gateway);
     }
 
-    public EmbeddedTitusStack toMaster(Function<EmbeddedTitusMaster.Builder, EmbeddedTitusMaster.Builder> masterTransformer) {
-        return new EmbeddedTitusStack(masterTransformer.apply(master.toBuilder()).build(), gateway);
+    public EmbeddedTitusCell toMaster(Function<EmbeddedTitusMaster.Builder, EmbeddedTitusMaster.Builder> masterTransformer) {
+        return new EmbeddedTitusCell(masterTransformer.apply(master.toBuilder()).build(), gateway);
     }
 
-    public EmbeddedTitusStack boot() {
+    public EmbeddedTitusCell boot() {
         master.boot();
         gateway.boot();
         return this;
     }
 
-    public EmbeddedTitusStack shutdown() {
-        master.shutdown();
+    public EmbeddedTitusCell shutdown() {
         gateway.shutdown();
+        master.shutdown();
         return this;
     }
 
@@ -65,7 +66,7 @@ public class EmbeddedTitusStack {
         return titusOperations;
     }
 
-    public static EmbeddedTitusStack.Builder aTitusStack() {
+    public static EmbeddedTitusCell.Builder aTitusCell() {
         return new Builder();
     }
 
@@ -73,6 +74,7 @@ public class EmbeddedTitusStack {
 
         private EmbeddedTitusMaster master;
         private EmbeddedTitusGateway gateway;
+        private boolean enableREST;
         private boolean defaultGateway;
 
         public Builder withMaster(EmbeddedTitusMaster master) {
@@ -80,8 +82,9 @@ public class EmbeddedTitusStack {
             return this;
         }
 
-        public Builder withGateway(EmbeddedTitusGateway gateway) {
+        public Builder withGateway(EmbeddedTitusGateway gateway, boolean enableREST) {
             this.gateway = gateway;
+            this.enableREST = enableREST;
             return this;
         }
 
@@ -90,23 +93,27 @@ public class EmbeddedTitusStack {
             return this;
         }
 
-        public EmbeddedTitusStack build() {
+        public EmbeddedTitusCell build() {
             Preconditions.checkNotNull(master, "TitusMaster not set");
             Preconditions.checkState(gateway != null || defaultGateway, "TitusGateway not set, nor default gateway requested");
+
+            master = master.toBuilder().withEnableREST(false).build();
 
             if (defaultGateway) {
                 gateway = EmbeddedTitusGateway.aDefaultTitusGateway()
                         .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
                         .withStore(master.getJobStore())
+                        .withEnableREST(enableREST)
                         .build();
             } else {
                 gateway = gateway.toBuilder()
                         .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
                         .withStore(master.getJobStore())
+                        .withEnableREST(enableREST)
                         .build();
             }
 
-            return new EmbeddedTitusStack(master, gateway);
+            return new EmbeddedTitusCell(master, gateway);
         }
     }
 }

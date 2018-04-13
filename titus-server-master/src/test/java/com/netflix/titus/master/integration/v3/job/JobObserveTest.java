@@ -32,8 +32,8 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -66,7 +66,7 @@ public class JobObserveTest extends BaseIntegrationTest {
             .withApplicationName(V2_ENGINE_APP)
             .build();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStacks.basicStack(1));
+    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(1));
 
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
