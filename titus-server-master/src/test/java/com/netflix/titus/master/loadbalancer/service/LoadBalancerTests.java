@@ -267,4 +267,12 @@ public class LoadBalancerTests {
                 .map(t -> t.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP))
                 .toArray(String[]::new);
     }
+
+    public static Supplier<Page> buildPageSupplier(int pageNumber, int pageSize) {
+        return () -> Page.newBuilder().setPageNumber(pageNumber).setPageSize(pageSize).build();
+    }
+
+    public static Supplier<Page> buildPageSupplier(String cursor, int pageSize) {
+        return () -> Page.newBuilder().setCursor(cursor).setPageSize(pageSize).build();
+    }
 }
