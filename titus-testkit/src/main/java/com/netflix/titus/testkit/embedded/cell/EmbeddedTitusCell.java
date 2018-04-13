@@ -14,49 +14,41 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.embedded.stack;
-
-import java.util.Optional;
+package com.netflix.titus.testkit.embedded.cell;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 
 /**
  * Represents complete Titus stack, which includes master, gateway and agents.
  */
-public class EmbeddedTitusStack {
+public class EmbeddedTitusCell {
 
     private final EmbeddedTitusMaster master;
     private final EmbeddedTitusGateway gateway;
-    private final Optional<EmbeddedTitusFederation> federation;
     private final EmbeddedTitusOperations titusOperations;
 
-    private EmbeddedTitusStack(EmbeddedTitusMaster master,
-                               EmbeddedTitusGateway gateway,
-                               Optional<EmbeddedTitusFederation> federation) {
+    private EmbeddedTitusCell(EmbeddedTitusMaster master,
+                              EmbeddedTitusGateway gateway) {
         this.master = master;
         this.gateway = gateway;
-        this.federation = federation;
-        this.titusOperations = new EmbeddedTitusOperations(master, gateway, federation);
+        this.titusOperations = new EmbeddedCellTitusOperations(master, gateway);
     }
 
-    public EmbeddedTitusStack toMaster(Function<EmbeddedTitusMaster.Builder, EmbeddedTitusMaster.Builder> masterTransformer) {
-        return new EmbeddedTitusStack(masterTransformer.apply(master.toBuilder()).build(), gateway, federation);
+    public EmbeddedTitusCell toMaster(Function<EmbeddedTitusMaster.Builder, EmbeddedTitusMaster.Builder> masterTransformer) {
+        return new EmbeddedTitusCell(masterTransformer.apply(master.toBuilder()).build(), gateway);
     }
 
-    public EmbeddedTitusStack boot() {
+    public EmbeddedTitusCell boot() {
         master.boot();
         gateway.boot();
-        federation.ifPresent(EmbeddedTitusFederation::boot);
         return this;
     }
 
-    public EmbeddedTitusStack shutdown() {
-        federation.ifPresent(EmbeddedTitusFederation::shutdown);
+    public EmbeddedTitusCell shutdown() {
         gateway.shutdown();
         master.shutdown();
         return this;
@@ -74,7 +66,7 @@ public class EmbeddedTitusStack {
         return titusOperations;
     }
 
-    public static EmbeddedTitusStack.Builder aTitusStack() {
+    public static EmbeddedTitusCell.Builder aTitusCell() {
         return new Builder();
     }
 
@@ -82,17 +74,17 @@ public class EmbeddedTitusStack {
 
         private EmbeddedTitusMaster master;
         private EmbeddedTitusGateway gateway;
+        private boolean enableREST;
         private boolean defaultGateway;
-        private EmbeddedTitusFederation federation;
-        private boolean defaultFederation;
 
         public Builder withMaster(EmbeddedTitusMaster master) {
             this.master = master;
             return this;
         }
 
-        public Builder withGateway(EmbeddedTitusGateway gateway) {
+        public Builder withGateway(EmbeddedTitusGateway gateway, boolean enableREST) {
             this.gateway = gateway;
+            this.enableREST = enableREST;
             return this;
         }
 
@@ -101,45 +93,27 @@ public class EmbeddedTitusStack {
             return this;
         }
 
-        public Builder withFederation(EmbeddedTitusFederation federation) {
-            this.federation = federation;
-            return this;
-        }
-
-        public Builder withDefaultFederation() {
-            this.defaultFederation = true;
-            return this;
-        }
-
-        public EmbeddedTitusStack build() {
+        public EmbeddedTitusCell build() {
             Preconditions.checkNotNull(master, "TitusMaster not set");
             Preconditions.checkState(gateway != null || defaultGateway, "TitusGateway not set, nor default gateway requested");
 
             master = master.toBuilder().withEnableREST(false).build();
 
-            boolean federationEnabled = federation != null || defaultFederation;
-
             if (defaultGateway) {
                 gateway = EmbeddedTitusGateway.aDefaultTitusGateway()
                         .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
                         .withStore(master.getJobStore())
-                        .withEnableREST(!federationEnabled)
+                        .withEnableREST(enableREST)
                         .build();
             } else {
                 gateway = gateway.toBuilder()
                         .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
                         .withStore(master.getJobStore())
-                        .withEnableREST(!federationEnabled)
+                        .withEnableREST(enableREST)
                         .build();
             }
 
-            if (defaultFederation) {
-                federation = EmbeddedTitusFederation.aDefaultTitusFederation()
-                        .witGatewayEndpoint("localhost", gateway.getGrpcPort())
-                        .build();
-            }
-
-            return new EmbeddedTitusStack(master, gateway, Optional.ofNullable(federation));
+            return new EmbeddedTitusCell(master, gateway);
         }
     }
 }

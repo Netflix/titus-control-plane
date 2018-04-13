@@ -28,7 +28,7 @@ import com.netflix.titus.api.model.event.SchedulingEvent;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
 import com.netflix.titus.testkit.client.TitusMasterClient;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -33,8 +33,8 @@ import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.loadbalancer.service.LoadBalancerTests;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -46,7 +46,7 @@ import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 /**
@@ -58,10 +58,13 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
     private final Logger logger = LoggerFactory.getLogger(LoadBalancerGrpcTest.class);
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
 
-    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStack.aTitusStack()
-            .withMaster(basicMaster(new SimulatedCloud()))
-            .withDefaultGateway()
-            .build());
+    public static final TitusStackResource titusStackResource = new TitusStackResource(
+            EmbeddedTitusCell.aTitusCell()
+                    .withMaster(basicMaster(new SimulatedCloud()))
+                    .withDefaultGateway()
+                    .build(),
+            false // FIXME These tests fail when run via TitusFederation
+    );
 
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource);

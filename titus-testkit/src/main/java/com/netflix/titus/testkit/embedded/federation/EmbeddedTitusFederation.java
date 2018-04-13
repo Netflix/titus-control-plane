@@ -16,7 +16,12 @@
 
 package com.netflix.titus.testkit.embedded.federation;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import com.google.inject.AbstractModule;
 import com.netflix.archaius.config.DefaultSettableConfig;
@@ -33,13 +38,13 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
+import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.util.NetworkExt;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 
 /**
  * Run embedded version of TitusFederation.
@@ -48,8 +53,7 @@ public class EmbeddedTitusFederation {
 
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedTitusFederation.class);
 
-    private final String gatewayGrpcHost;
-    private final int gatewayGrpcPort;
+    private final Map<String, CellInfo> cells;
 
     private final int httpPort;
     private final int grpcPort;
@@ -61,9 +65,10 @@ public class EmbeddedTitusFederation {
 
     private ManagedChannel grpcChannel;
 
+    private final EmbeddedTitusOperations titusOperations;
+
     public EmbeddedTitusFederation(Builder builder) {
-        this.gatewayGrpcHost = getOrDefault(builder.gatewayGrpcHost, "localhost");
-        this.gatewayGrpcPort = builder.gatewayGrpcPort;
+        this.cells = builder.cells;
         this.httpPort = builder.httpPort;
         this.grpcPort = builder.grpcPort;
         this.properties = builder.properties;
@@ -74,11 +79,29 @@ public class EmbeddedTitusFederation {
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
         props.put("titus.federation.endpoint.grpcPort", grpcPort);
-        props.put("titus.federation.cells", String.format("cell1=%s:%s", gatewayGrpcHost, gatewayGrpcPort));
-        props.put("titus.federation.routingRules", "cell1=.*");
+        props.put("titus.federation.cells", buildCellString());
+        props.put("titus.federation.routingRules", buildRoutingRules());
         props.put("governator.jetty.embedded.port", httpPort);
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         config.setProperties(props);
+
+        this.titusOperations = new EmbeddedFederationTitusOperations(this);
+    }
+
+    private String buildCellString() {
+        StringBuilder sb = new StringBuilder();
+        cells.forEach((cellId, cellInfo) ->
+                sb.append(';').append(cellId).append("=localhost:").append(cellInfo.getCell().getGateway().getGrpcPort())
+        );
+        return sb.substring(1);
+    }
+
+    private String buildRoutingRules() {
+        StringBuilder sb = new StringBuilder();
+        cells.forEach((cellId, cellInfo) ->
+                sb.append(';').append(cellId).append('=').append(cellInfo.getRoutingRules())
+        );
+        return sb.substring(1);
     }
 
     public EmbeddedTitusFederation boot() {
@@ -108,6 +131,18 @@ public class EmbeddedTitusFederation {
             injector.close();
         }
         return this;
+    }
+
+    public EmbeddedTitusCell getCell(String cellId) {
+        return cells.get(cellId).getCell();
+    }
+
+    public List<EmbeddedTitusCell> getCells() {
+        return new ArrayList<>(cells.values().stream().map(CellInfo::getCell).collect(Collectors.toList()));
+    }
+
+    public EmbeddedTitusOperations getTitusOperations() {
+        return titusOperations;
     }
 
     public JobManagementServiceGrpc.JobManagementServiceStub getV3GrpcClient() {
@@ -150,29 +185,30 @@ public class EmbeddedTitusFederation {
     }
 
     public Builder toBuilder() {
-        return aDefaultTitusFederation()
-                .witGatewayEndpoint(gatewayGrpcHost, gatewayGrpcPort)
+        Builder builder = aDefaultTitusFederation()
                 .withHttpPort(httpPort)
                 .withGrpcPort(grpcPort)
                 .withProperties(properties);
+
+        cells.forEach((cellId, cellInfo) -> builder.withCell(cellId, cellInfo.getRoutingRules(), cellInfo.getCell()));
+
+        return builder;
     }
 
     public static Builder aDefaultTitusFederation() {
         return new Builder()
-                .withProperty("titusGateway.endpoint.grpc.shutdownTimeoutMs", "0");
+                .withProperty("titus.federation.endpoint.grpcServerShutdownTimeoutMs", "0");
     }
 
     public static class Builder {
 
-        private String gatewayGrpcHost;
-        private int gatewayGrpcPort;
+        private final Map<String, CellInfo> cells = new HashMap<>();
         private int grpcPort;
         private int httpPort;
         private Properties properties = new Properties();
 
-        public Builder witGatewayEndpoint(String host, int grpcPort) {
-            this.gatewayGrpcHost = host;
-            this.gatewayGrpcPort = grpcPort;
+        public Builder withCell(String cellId, String routingRules, EmbeddedTitusCell cell) {
+            cells.put(cellId, new CellInfo(cellId, routingRules, cell));
             return this;
         }
 
@@ -201,6 +237,31 @@ public class EmbeddedTitusFederation {
             grpcPort = grpcPort == 0 ? NetworkExt.findUnusedPort() : grpcPort;
 
             return new EmbeddedTitusFederation(this);
+        }
+    }
+
+    private static class CellInfo {
+
+        private final String cellId;
+        private final EmbeddedTitusCell cell;
+        private final String routingRules;
+
+        private CellInfo(String cellId, String routingRules, EmbeddedTitusCell cell) {
+            this.cellId = cellId;
+            this.cell = cell;
+            this.routingRules = routingRules;
+        }
+
+        private String getCellId() {
+            return cellId;
+        }
+
+        private String getRoutingRules() {
+            return routingRules;
+        }
+
+        private EmbeddedTitusCell getCell() {
+            return cell;
         }
     }
 }

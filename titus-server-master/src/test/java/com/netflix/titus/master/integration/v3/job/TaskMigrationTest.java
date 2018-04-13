@@ -34,12 +34,12 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.twoPartitionsPerTierStack;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.twoPartitionsPerTierCell;
 
 @Category(IntegrationTest.class)
 public class TaskMigrationTest extends BaseIntegrationTest {
 
-    private static final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierStack(2));
+    private static final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierCell(2), false);
 
     private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 

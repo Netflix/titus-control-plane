@@ -44,7 +44,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
@@ -53,7 +53,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
     private static final int JOBS_PER_ENGINE = 3;
     private static final int TASKS_PER_JOB = 2;
 
-    private static final TitusStackResource titusStackResource = new TitusStackResource(basicStack(5));
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicCell(5));
 
     private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 

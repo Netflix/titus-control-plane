@@ -27,7 +27,7 @@ import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
 import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.junit.master.JobObserver;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.apache.mesos.Protos;

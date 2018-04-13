@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.embedded.master;
+package com.netflix.titus.testkit.embedded.cell.master;
 
 import java.util.ArrayList;
 import java.util.Collections;

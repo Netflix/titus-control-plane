@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.embedded.gateway;
+package com.netflix.titus.testkit.embedded.cell.gateway;
 
 import java.util.Properties;
 

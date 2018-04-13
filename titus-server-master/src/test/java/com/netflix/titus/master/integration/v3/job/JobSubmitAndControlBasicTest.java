@@ -43,7 +43,7 @@ import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.master.integration.v3.scenario.JobAsserts.containerWithEfsMounts;
 import static com.netflix.titus.master.integration.v3.scenario.JobAsserts.containerWithResources;
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
@@ -57,7 +57,7 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
     private static final JobDescriptor<BatchJobExt> ONE_TASK_BATCH_JOB = oneTaskBatchJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
     private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
