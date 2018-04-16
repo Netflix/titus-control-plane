@@ -21,8 +21,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.common.grpc.GrpcUtil;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
@@ -38,10 +38,10 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultAutoScalingService implements AutoScalingService {
@@ -50,12 +50,12 @@ public class DefaultAutoScalingService implements AutoScalingService {
 
     private final GrpcClientConfiguration configuration;
     private AutoScalingServiceStub client;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver sessionContext;
 
     @Inject
     public DefaultAutoScalingService(GrpcClientConfiguration configuration,
                                      AutoScalingServiceStub client,
-                                     SessionContext sessionContext) {
+                                     CallMetadataResolver sessionContext) {
         this.configuration = configuration;
         this.client = client;
         this.sessionContext = sessionContext;

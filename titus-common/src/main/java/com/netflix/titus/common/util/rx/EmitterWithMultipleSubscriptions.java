@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.grpc;
+package com.netflix.titus.common.util.rx;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;

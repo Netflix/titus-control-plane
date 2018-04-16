@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.endpoint.grpc;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -31,7 +32,6 @@ import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
@@ -45,6 +45,8 @@ import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -62,12 +64,12 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     private final AgentManagementService agentManagementService;
     private final AgentStatusMonitor agentStatusMonitor;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver sessionContext;
 
     @Inject
     public DefaultAgentManagementServiceGrpc(AgentManagementService agentManagementService,
                                              AgentStatusMonitor agentStatusMonitor,
-                                             SessionContext sessionContext) {
+                                             CallMetadataResolver sessionContext) {
         this.agentManagementService = agentManagementService;
         this.agentStatusMonitor = agentStatusMonitor;
         this.sessionContext = sessionContext;
@@ -207,13 +209,14 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
         );
     }
 
-    private void execute(StreamObserver<?> responseObserver, Consumer<String> action) {
-        if (!sessionContext.getCallerId().isPresent()) {
+    private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
+        Optional<CallMetadata> callMetadata = sessionContext.resolve();
+        if (!callMetadata.isPresent()) {
             responseObserver.onError(TitusServiceException.noCallerId());
             return;
         }
         try {
-            action.accept(sessionContext.getCallerId().get());
+            action.accept(callMetadata.get());
             responseObserver.onCompleted();
         } catch (Exception e) {
             responseObserver.onError(e);

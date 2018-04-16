@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 
 @Singleton
 public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {

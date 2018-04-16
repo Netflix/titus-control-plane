@@ -22,8 +22,8 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceValidator;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.GrpcUtil;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
@@ -39,10 +39,10 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultLoadBalancerService implements LoadBalancerService {
@@ -50,14 +50,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     private final GrpcClientConfiguration configuration;
     private LoadBalancerServiceStub client;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver sessionContext;
     private final LoadBalancerResourceValidator validator;
 
     @Inject
     public DefaultLoadBalancerService(GrpcClientConfiguration configuration,
                                       LoadBalancerResourceValidator validator,
                                       LoadBalancerServiceStub client,
-                                      SessionContext sessionContext) {
+                                      CallMetadataResolver sessionContext) {
         this.configuration = configuration;
         this.client = client;
         this.sessionContext = sessionContext;

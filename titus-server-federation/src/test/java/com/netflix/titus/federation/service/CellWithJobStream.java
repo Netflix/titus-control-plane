@@ -16,7 +16,7 @@
 
 package com.netflix.titus.federation.service;
 
-import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobId;

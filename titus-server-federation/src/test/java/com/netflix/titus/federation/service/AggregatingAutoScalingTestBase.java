@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.federation.model.Cell;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import io.grpc.ManagedChannel;
 import io.grpc.testing.GrpcServerRule;
@@ -59,7 +59,7 @@ public class AggregatingAutoScalingTestBase {
 
         GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
         when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
-        final AnonymousSessionContext anonymousSessionContext = new AnonymousSessionContext();
+        final AnonymousCallMetadataResolver anonymousSessionContext = new AnonymousCallMetadataResolver();
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
 
         service = new AggregatingAutoScalingService(connector, anonymousSessionContext, grpcConfiguration,

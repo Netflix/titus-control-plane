@@ -29,8 +29,8 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.common.util.ProtobufCopy;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
@@ -53,6 +53,8 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.endpoint.TitusServiceGateway;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -62,11 +64,11 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 
 @Singleton
@@ -78,18 +80,18 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private static final Set<String> TASK_MINIMUM_FIELD_SET = asSet("id");
 
     private final TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> serviceGateway;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver sessionContext;
 
     @Inject
     public DefaultJobManagementServiceGrpc(TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> serviceGateway,
-                                           SessionContext sessionContext) {
+                                           CallMetadataResolver sessionContext) {
         this.serviceGateway = serviceGateway;
         this.sessionContext = sessionContext;
     }
 
     @Override
     public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
-        execute(responseObserver, userId ->
+        execute(responseObserver, callMetadata ->
                 serviceGateway.createJob(
                         request
                 ).subscribe(
@@ -171,10 +173,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, userId -> {
+        execute(responseObserver, callMetadata -> {
             Capacity taskInstances = request.getCapacity();
             serviceGateway.resizeJob(
-                    userId, request.getJobId(), taskInstances.getDesired(), taskInstances.getMin(), taskInstances.getMax()
+                    toReasonString(callMetadata), request.getJobId(), taskInstances.getDesired(), taskInstances.getMin(), taskInstances.getMax()
             ).subscribe(
                     nothing -> {
                     },
@@ -189,10 +191,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, userId -> {
+        execute(responseObserver, callMetadata -> {
             ServiceJobSpec.ServiceJobProcesses serviceJobProcesses = request.getServiceJobProcesses();
             serviceGateway.updateJobProcesses(
-                    userId, request.getJobId(), serviceJobProcesses.getDisableDecreaseDesired(), serviceJobProcesses.getDisableIncreaseDesired()
+                    toReasonString(callMetadata), request.getJobId(), serviceJobProcesses.getDisableDecreaseDesired(), serviceJobProcesses.getDisableIncreaseDesired()
             ).subscribe(
                     nothing -> {
                     },
@@ -207,9 +209,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, userId ->
+        execute(responseObserver, callMetadata ->
                 serviceGateway.changeJobInServiceStatus(
-                        userId, request.getId(), request.getEnableStatus()
+                        toReasonString(callMetadata), request.getId(), request.getEnableStatus()
                 ).subscribe(
                         nothing -> {
                         },
@@ -223,9 +225,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, userId ->
+        execute(responseObserver, callMetadata ->
                 serviceGateway.killJob(
-                        userId, request.getId()
+                        toReasonString(callMetadata), request.getId()
                 ).subscribe(
                         nothing -> {
                         },
@@ -239,10 +241,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
-        // TODO shrink?
-        execute(responseObserver, userId ->
+        execute(responseObserver, callMetadata ->
                 serviceGateway.killTask(
-                        userId, request.getTaskId(), request.getShrink()
+                        toReasonString(callMetadata), request.getTaskId(), request.getShrink()
                 ).subscribe(
                         nothing -> {
                         },
@@ -293,13 +294,14 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
      * Helper class working as key selector for building distinct stream of Job info objects.
      * Currently we observe only number of workers and their state.
      */
-    private void execute(StreamObserver<?> responseObserver, Consumer<String> action) {
-        if (!sessionContext.getCallerId().isPresent()) {
+    private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
+        Optional<CallMetadata> callMetadata = sessionContext.resolve();
+        if (!callMetadata.isPresent()) {
             responseObserver.onError(TitusServiceException.noCallerId());
             return;
         }
         try {
-            action.accept(sessionContext.getCallerId().get());
+            action.accept(callMetadata.get());
         } catch (Exception e) {
             responseObserver.onError(e);
         }
@@ -317,5 +319,29 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .addAllItems(tasks)
                 .setPagination(toGrpcPagination(runtimePagination))
                 .build();
+    }
+
+    private String toReasonString(CallMetadata callMetadata) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("calledBy=").append(callMetadata.getCallerId());
+        builder.append(", relayedVia=");
+
+        List<String> callPath = callMetadata.getCallPath();
+        if (callPath.isEmpty()) {
+            builder.append("direct to TitusMaster");
+        } else {
+            for (int i = 0; i < callPath.size(); i++) {
+                if (i > 0) {
+                    builder.append(',');
+                }
+                builder.append(callPath.get(i));
+            }
+        }
+
+        if (StringExt.isNotEmpty(callMetadata.getCallReason())) {
+            builder.append(", reason=").append(callMetadata.getCallReason());
+        }
+
+        return builder.toString();
     }
 }

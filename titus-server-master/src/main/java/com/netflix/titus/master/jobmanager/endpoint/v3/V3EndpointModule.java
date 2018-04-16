@@ -25,8 +25,6 @@ import com.google.inject.TypeLiteral;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.Job;
@@ -50,6 +48,8 @@ import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.master.MasterMonitor;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.SimpleGrpcCallMetadataResolver;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 
@@ -62,7 +62,7 @@ public class V3EndpointModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(GrpcTitusServiceGateway.class).to(V2GrpcTitusServiceGateway.class);
-        bind(SessionContext.class).to(AnonymousSessionContext.class);
+        bind(CallMetadataResolver.class).to(SimpleGrpcCallMetadataResolver.class);
         bind(JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
     }
 

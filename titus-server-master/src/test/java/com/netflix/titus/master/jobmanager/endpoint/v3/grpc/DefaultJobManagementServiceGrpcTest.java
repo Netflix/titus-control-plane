@@ -19,7 +19,6 @@ package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 import java.util.Optional;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
@@ -34,6 +33,8 @@ import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusServiceGateway;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -56,18 +57,20 @@ import static org.mockito.Mockito.when;
 
 public class DefaultJobManagementServiceGrpcTest {
 
+    private static final CallMetadata CALL_METADATA = CallMetadata.newBuilder().withCallerId("unitTest").build();
+
     private static Job JOB = toGrpcJob(JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue());
     private static JobDescriptor JOB_DESCRIPTOR = JOB.getJobDescriptor();
 
     private final GrpcTitusServiceGateway gateway = mock(GrpcTitusServiceGateway.class);
 
-    private final SessionContext sessionContext = mock(SessionContext.class);
+    private final CallMetadataResolver sessionContext = mock(CallMetadataResolver.class);
 
     private final DefaultJobManagementServiceGrpc service = new DefaultJobManagementServiceGrpc(gateway, sessionContext);
 
     @Before
     public void setUp() throws Exception {
-        when(sessionContext.getCallerId()).thenReturn(Optional.of("unitTest"));
+        when(sessionContext.resolve()).thenReturn(Optional.of(CALL_METADATA));
     }
 
     @Test
@@ -92,18 +95,18 @@ public class DefaultJobManagementServiceGrpcTest {
                 ).build();
         service.updateJobCapacity(update, response);
 
-        verify(gateway, times(1)).resizeJob("unitTest", JOB.getId(), 1, 2, 3);
+        verify(gateway, times(1)).resizeJob("calledBy=unitTest, relayedVia=direct to TitusMaster", JOB.getId(), 1, 2, 3);
     }
 
     @Test
-    public void testUpdateJobProcesses() throws Exception {
+    public void testUpdateJobPAggregatingJobManagementServiceTestProcesses() throws Exception {
         when(gateway.updateJobProcesses(any(), any(), anyBoolean(), anyBoolean())).thenReturn(Observable.empty());
         TestStreamObserver<Empty> response = new TestStreamObserver<>();
         JobProcessesUpdate jobProcessesUpdate = JobProcessesUpdate.newBuilder().setJobId(JOB.getId()).setServiceJobProcesses(
                 ServiceJobSpec.ServiceJobProcesses.newBuilder().setDisableDecreaseDesired(true).setDisableIncreaseDesired(false).build()
         ).build();
         service.updateJobProcesses(jobProcessesUpdate, response);
-        verify(gateway, times(1)).updateJobProcesses("unitTest", JOB.getId(),
+        verify(gateway, times(1)).updateJobProcesses("calledBy=unitTest, relayedVia=direct to TitusMaster", JOB.getId(),
                 true, false);
     }
 

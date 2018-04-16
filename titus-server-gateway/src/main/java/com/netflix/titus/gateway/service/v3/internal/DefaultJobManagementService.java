@@ -42,8 +42,8 @@ import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.GrpcUtil;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -79,10 +79,10 @@ import rx.Completable;
 import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 
 @Singleton
@@ -94,7 +94,7 @@ public class DefaultJobManagementService implements JobManagementService {
     private final GrpcClientConfiguration configuration;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final JobManagementServiceStub client;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver sessionContext;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
@@ -104,7 +104,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public DefaultJobManagementService(GrpcClientConfiguration configuration,
                                        JobManagerConfiguration jobManagerConfiguration,
                                        JobManagementServiceStub client,
-                                       SessionContext sessionContext,
+                                       CallMetadataResolver sessionContext,
                                        JobStore store,
                                        LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                        @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {

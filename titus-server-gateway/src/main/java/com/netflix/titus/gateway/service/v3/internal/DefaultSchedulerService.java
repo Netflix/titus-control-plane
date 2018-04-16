@@ -24,7 +24,7 @@ import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.gateway.service.v3.SchedulerService;
@@ -41,11 +41,11 @@ import rx.Completable;
 import rx.Observable;
 
 import static com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder.SCHEDULER_SANITIZER;
-import static com.netflix.titus.common.grpc.GrpcUtil.createEmptyClientResponseObserver;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createEmptyClientResponseObserver;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultSchedulerService implements SchedulerService {
@@ -53,13 +53,13 @@ public class DefaultSchedulerService implements SchedulerService {
 
     private final GrpcClientConfiguration configuration;
     private final SchedulerServiceStub client;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver sessionContext;
     private final EntitySanitizer entitySanitizer;
 
     @Inject
     public DefaultSchedulerService(GrpcClientConfiguration configuration,
                                    SchedulerServiceStub client,
-                                   SessionContext sessionContext,
+                                   CallMetadataResolver sessionContext,
                                    @Named(SCHEDULER_SANITIZER) EntitySanitizer entitySanitizer) {
         this.configuration = configuration;
         this.client = client;

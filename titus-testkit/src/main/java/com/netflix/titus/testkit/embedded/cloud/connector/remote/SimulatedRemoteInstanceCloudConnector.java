@@ -33,7 +33,7 @@ import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.aws.AwsInstanceType;
-import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Either;

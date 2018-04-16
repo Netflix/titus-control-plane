@@ -29,6 +29,7 @@ import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses.KEY_TITUS_DEBUG;
 
 /**
@@ -53,7 +54,7 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
     @Override
     public <ReqT, RespT> Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers,
                                                       ServerCallHandler<ReqT, RespT> next) {
-        boolean debug = headers.containsKey(KEY_TITUS_DEBUG);
+        boolean debug = "true".equalsIgnoreCase(getOrDefault(headers.get(KEY_TITUS_DEBUG), "false"));
         Listener<ReqT> listener = null;
         try {
             listener = next.startCall(new ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT>(call) {

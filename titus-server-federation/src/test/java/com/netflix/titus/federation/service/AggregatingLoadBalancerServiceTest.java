@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
@@ -80,7 +80,7 @@ public class AggregatingLoadBalancerServiceTest {
 
         GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
         when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
-        final AnonymousSessionContext anonymousSessionContext = new AnonymousSessionContext();
+        final AnonymousCallMetadataResolver anonymousSessionContext = new AnonymousCallMetadataResolver();
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
 
         service = new AggregatingLoadbalancerService(connector, anonymousSessionContext, grpcConfiguration, aggregatingCellClient,

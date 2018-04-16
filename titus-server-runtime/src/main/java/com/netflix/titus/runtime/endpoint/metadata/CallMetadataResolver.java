@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.grpc;
+package com.netflix.titus.runtime.endpoint.metadata;
 
 import java.util.Optional;
-import javax.inject.Singleton;
 
-@Singleton
-public class AnonymousSessionContext implements SessionContext {
+/**
+ * Additional information associated with a client's request.
+ */
+public interface CallMetadataResolver {
 
-    public static final String ANONYMOUS = "anonymous";
-
-    private static final Optional<String> ANONYMOUS_OPTIONAL = Optional.of(ANONYMOUS);
-
-    @Override
-    public Optional<String> getCallerId() {
-        return ANONYMOUS_OPTIONAL;
-    }
+    Optional<CallMetadata> resolve();
 }
