@@ -50,17 +50,17 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     private final GrpcClientConfiguration configuration;
     private LoadBalancerServiceStub client;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final LoadBalancerResourceValidator validator;
 
     @Inject
     public DefaultLoadBalancerService(GrpcClientConfiguration configuration,
                                       LoadBalancerResourceValidator validator,
                                       LoadBalancerServiceStub client,
-                                      CallMetadataResolver sessionContext) {
+                                      CallMetadataResolver callMetadataResolver) {
         this.configuration = configuration;
         this.client = client;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.validator = validator;
     }
 
@@ -68,7 +68,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId) {
         return createRequestObservable(emitter -> {
             StreamObserver<GetJobLoadBalancersResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getJobLoadBalancers(jobId, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getJobLoadBalancers(jobId, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -76,7 +76,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request) {
         return createRequestObservable(emitter -> {
             StreamObserver<GetAllLoadBalancersResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getAllLoadBalancers(request, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getAllLoadBalancers(request, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -86,7 +86,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                 .onErrorResumeNext(e -> Completable.error(TitusServiceException.invalidArgument(e.getMessage())))
                 .andThen(createRequestCompletable(emitter -> {
                     StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-                    createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).addLoadBalancer(addLoadBalancerRequest, streamObserver);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).addLoadBalancer(addLoadBalancerRequest, streamObserver);
                 }, configuration.getRequestTimeout()));
     }
 
@@ -94,7 +94,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     public Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).removeLoadBalancer(removeLoadBalancerRequest, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).removeLoadBalancer(removeLoadBalancerRequest, streamObserver);
         }, configuration.getRequestTimeout());
     }
 }

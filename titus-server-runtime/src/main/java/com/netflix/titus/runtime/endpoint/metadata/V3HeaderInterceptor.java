@@ -53,7 +53,7 @@ public class V3HeaderInterceptor implements ServerInterceptor {
 
         Object debugValue = headers.get(DEBUG_KEY);
         if (debugValue != null) {
-            boolean debugEnabled = "true".equalsIgnoreCase(debugValue.toString());
+            boolean debugEnabled = Boolean.parseBoolean(debugValue.toString());
             if (debugEnabled) {
                 wrappedContext = wrappedContext.withValue(DEBUG_CONTEXT_KEY, "true");
             }

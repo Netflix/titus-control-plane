@@ -64,15 +64,15 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     private final AgentManagementService agentManagementService;
     private final AgentStatusMonitor agentStatusMonitor;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public DefaultAgentManagementServiceGrpc(AgentManagementService agentManagementService,
                                              AgentStatusMonitor agentStatusMonitor,
-                                             CallMetadataResolver sessionContext) {
+                                             CallMetadataResolver callMetadataResolver) {
         this.agentManagementService = agentManagementService;
         this.agentStatusMonitor = agentStatusMonitor;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
@@ -210,7 +210,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     }
 
     private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
-        Optional<CallMetadata> callMetadata = sessionContext.resolve();
+        Optional<CallMetadata> callMetadata = callMetadataResolver.resolve();
         if (!callMetadata.isPresent()) {
             responseObserver.onError(TitusServiceException.noCallerId());
             return;

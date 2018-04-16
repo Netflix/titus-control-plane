@@ -94,7 +94,7 @@ public class DefaultJobManagementService implements JobManagementService {
     private final GrpcClientConfiguration configuration;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final JobManagementServiceStub client;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
@@ -104,14 +104,14 @@ public class DefaultJobManagementService implements JobManagementService {
     public DefaultJobManagementService(GrpcClientConfiguration configuration,
                                        JobManagerConfiguration jobManagerConfiguration,
                                        JobManagementServiceStub client,
-                                       CallMetadataResolver sessionContext,
+                                       CallMetadataResolver callMetadataResolver,
                                        JobStore store,
                                        LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                        @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
         this.configuration = configuration;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.client = client;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
         this.entitySanitizer = entitySanitizer;
@@ -149,7 +149,7 @@ public class DefaultJobManagementService implements JobManagementService {
                     emitter::onError,
                     emitter::onCompleted
             );
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -162,7 +162,7 @@ public class DefaultJobManagementService implements JobManagementService {
         }
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateJobCapacity(jobCapacityUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobCapacity(jobCapacityUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -170,7 +170,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateJobProcesses(jobProcessesUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobProcesses(jobProcessesUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -178,7 +178,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Completable updateJobStatus(JobStatusUpdate statusUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateJobStatus(statusUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobStatus(statusUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -186,7 +186,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Observable<Job> findJob(String jobId) {
         Observable<Job> observable = createRequestObservable(emitter -> {
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         }, configuration.getRequestTimeout());
 
         return observable.onErrorResumeNext(e -> {
@@ -203,7 +203,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
         return createRequestObservable(emitter -> {
             StreamObserver<JobQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findJobs(jobQuery, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findJobs(jobQuery, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -211,7 +211,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Observable<JobChangeNotification> observeJob(String jobId) {
         return createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext).observeJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver).observeJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         });
     }
 
@@ -219,7 +219,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Observable<JobChangeNotification> observeJobs() {
         return createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext).observeJobs(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStub(client, callMetadataResolver).observeJobs(Empty.getDefaultInstance(), streamObserver);
         });
     }
 
@@ -227,7 +227,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Completable killJob(String jobId) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).killJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).killJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -235,7 +235,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Observable<Task> findTask(String taskId) {
         Observable<Task> observable = createRequestObservable(emitter -> {
             StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
         }, configuration.getRequestTimeout());
 
         observable = observable.onErrorResumeNext(e -> {
@@ -254,7 +254,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
         Observable<TaskQueryResult> observable = createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
         }, configuration.getRequestTimeout());
 
         observable = observable.flatMap(result -> {
@@ -278,7 +278,7 @@ public class DefaultJobManagementService implements JobManagementService {
     public Completable killTask(TaskKillRequest taskKillRequest) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).killTask(taskKillRequest, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).killTask(taskKillRequest, streamObserver);
         }, configuration.getRequestTimeout());
     }
 

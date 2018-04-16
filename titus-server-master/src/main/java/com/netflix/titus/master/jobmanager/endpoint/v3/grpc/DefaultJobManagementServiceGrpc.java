@@ -80,13 +80,13 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private static final Set<String> TASK_MINIMUM_FIELD_SET = asSet("id");
 
     private final TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> serviceGateway;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public DefaultJobManagementServiceGrpc(TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> serviceGateway,
-                                           CallMetadataResolver sessionContext) {
+                                           CallMetadataResolver callMetadataResolver) {
         this.serviceGateway = serviceGateway;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
@@ -295,7 +295,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
      * Currently we observe only number of workers and their state.
      */
     private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
-        Optional<CallMetadata> callMetadata = sessionContext.resolve();
+        Optional<CallMetadata> callMetadata = callMetadataResolver.resolve();
         if (!callMetadata.isPresent()) {
             responseObserver.onError(TitusServiceException.noCallerId());
             return;

@@ -53,17 +53,17 @@ public class DefaultSchedulerService implements SchedulerService {
 
     private final GrpcClientConfiguration configuration;
     private final SchedulerServiceStub client;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final EntitySanitizer entitySanitizer;
 
     @Inject
     public DefaultSchedulerService(GrpcClientConfiguration configuration,
                                    SchedulerServiceStub client,
-                                   CallMetadataResolver sessionContext,
+                                   CallMetadataResolver callMetadataResolver,
                                    @Named(SCHEDULER_SANITIZER) EntitySanitizer entitySanitizer) {
         this.configuration = configuration;
         this.client = client;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.entitySanitizer = entitySanitizer;
     }
 
@@ -71,7 +71,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Observable<SystemSelectors> getSystemSelectors() {
         return createRequestObservable(emitter -> {
             StreamObserver<SystemSelectors> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getSystemSelectors(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelectors(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -79,7 +79,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Observable<SystemSelector> getSystemSelector(String id) {
         return createRequestObservable(emitter -> {
             StreamObserver<SystemSelector> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -93,7 +93,7 @@ public class DefaultSchedulerService implements SchedulerService {
 
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).createSystemSelector(systemSelector, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createSystemSelector(systemSelector, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -108,7 +108,7 @@ public class DefaultSchedulerService implements SchedulerService {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
             SystemSelectorUpdate systemSelectorUpdate = SystemSelectorUpdate.newBuilder().setId(id).setSystemSelector(systemSelector).build();
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateSystemSelector(systemSelectorUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateSystemSelector(systemSelectorUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -116,7 +116,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Completable deleteSystemSelector(String id) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 }

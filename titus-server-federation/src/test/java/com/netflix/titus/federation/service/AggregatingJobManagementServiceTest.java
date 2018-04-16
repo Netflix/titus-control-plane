@@ -133,15 +133,15 @@ public class AggregatingJobManagementServiceTest {
         );
 
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
-        final AnonymousCallMetadataResolver anonymousSessionContext = new AnonymousCallMetadataResolver();
+        final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
         service = new AggregatingJobManagementService(
                 grpcClientConfiguration,
                 titusFederationConfiguration,
                 connector,
                 cellRouter,
-                anonymousSessionContext,
+                anonymousCallMetadataResolver,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration, anonymousSessionContext)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration, anonymousCallMetadataResolver)
         );
 
         clock = Clocks.test();

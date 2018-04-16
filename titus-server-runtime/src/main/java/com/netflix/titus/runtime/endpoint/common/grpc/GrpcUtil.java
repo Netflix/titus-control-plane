@@ -122,9 +122,9 @@ public class GrpcUtil {
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
-                                                                           CallMetadataResolver sessionContext,
+                                                                           CallMetadataResolver callMetadataResolver,
                                                                            long deadlineMs) {
-        return createWrappedStub(client, sessionContext).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
+        return createWrappedStub(client, callMetadataResolver).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, CallMetadataResolver callMetadataResolver) {
@@ -159,13 +159,13 @@ public class GrpcUtil {
         }, Emitter.BackpressureMode.NONE);
     }
 
-    public static <STUB extends AbstractStub<STUB>, ReqT, RespT> ClientCall call(CallMetadataResolver sessionContext,
+    public static <STUB extends AbstractStub<STUB>, ReqT, RespT> ClientCall call(CallMetadataResolver callMetadataResolver,
                                                                                  STUB client,
                                                                                  MethodDescriptor<ReqT, RespT> methodDescriptor,
                                                                                  ReqT request,
                                                                                  long deadlineMs,
                                                                                  StreamObserver<RespT> responseObserver) {
-        STUB wrappedStub = createWrappedStub(client, sessionContext);
+        STUB wrappedStub = createWrappedStub(client, callMetadataResolver);
         CallOptions callOptions = wrappedStub.getCallOptions().withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
         ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, callOptions);
         asyncUnaryCall(clientCall, request, responseObserver);

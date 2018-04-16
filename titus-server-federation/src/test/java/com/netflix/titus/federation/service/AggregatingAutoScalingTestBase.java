@@ -59,11 +59,11 @@ public class AggregatingAutoScalingTestBase {
 
         GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
         when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
-        final AnonymousCallMetadataResolver anonymousSessionContext = new AnonymousCallMetadataResolver();
+        final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
 
-        service = new AggregatingAutoScalingService(connector, anonymousSessionContext, grpcConfiguration,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration, anonymousSessionContext),
+        service = new AggregatingAutoScalingService(connector, anonymousCallMetadataResolver, grpcConfiguration,
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration, anonymousCallMetadataResolver),
                 aggregatingCellClient);
     }
 

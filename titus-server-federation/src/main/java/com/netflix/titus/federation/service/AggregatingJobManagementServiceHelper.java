@@ -39,20 +39,20 @@ public class AggregatingJobManagementServiceHelper {
     private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementServiceHelper.class);
     private AggregatingCellClient aggregatingCellClient;
     private final GrpcConfiguration grpcConfiguration;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public AggregatingJobManagementServiceHelper(AggregatingCellClient aggregatingCellClient,
                                                  GrpcConfiguration grpcConfiguration,
-                                                 CallMetadataResolver sessionContext) {
+                                                 CallMetadataResolver callMetadataResolver) {
         this.aggregatingCellClient = aggregatingCellClient;
         this.grpcConfiguration = grpcConfiguration;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
 
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     public Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
@@ -72,5 +72,4 @@ public class AggregatingJobManagementServiceHelper {
     public interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
         // generics sanity
     }
-
 }

@@ -44,18 +44,18 @@ import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScaling
 public class AggregatingAutoScalingService implements AutoScalingService {
     private final CellConnector connector;
     private final AggregatingCellClient aggregatingClient;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final GrpcConfiguration grpcConfiguration;
     private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
 
     @Inject
     public AggregatingAutoScalingService(CellConnector connector,
-                                         CallMetadataResolver sessionContext,
+                                         CallMetadataResolver callMetadataResolver,
                                          GrpcConfiguration configuration,
                                          AggregatingJobManagementServiceHelper jobManagementServiceHelper,
                                          AggregatingCellClient aggregatingClient) {
         this.connector = connector;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         grpcConfiguration = configuration;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
         this.aggregatingClient = aggregatingClient;
@@ -157,7 +157,7 @@ public class AggregatingAutoScalingService implements AutoScalingService {
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private interface ClientCall<T> extends BiConsumer<AutoScalingServiceStub, StreamObserver<T>> {

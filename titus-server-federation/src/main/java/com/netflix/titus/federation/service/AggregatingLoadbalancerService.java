@@ -61,17 +61,17 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
     private final AggregatingCellClient aggregatingClient;
     private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private CellConnector connector;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final GrpcConfiguration grpcConfiguration;
 
     @Inject
     public AggregatingLoadbalancerService(CellConnector connector,
-                                          CallMetadataResolver sessionContext,
+                                          CallMetadataResolver callMetadataResolver,
                                           GrpcConfiguration grpcConfiguration,
                                           AggregatingCellClient aggregatingClient,
                                           AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
         this.connector = connector;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.grpcConfiguration = grpcConfiguration;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
@@ -122,7 +122,7 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {

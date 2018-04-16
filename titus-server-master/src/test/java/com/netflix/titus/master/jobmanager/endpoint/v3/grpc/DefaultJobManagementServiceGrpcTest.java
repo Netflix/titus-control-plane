@@ -64,13 +64,13 @@ public class DefaultJobManagementServiceGrpcTest {
 
     private final GrpcTitusServiceGateway gateway = mock(GrpcTitusServiceGateway.class);
 
-    private final CallMetadataResolver sessionContext = mock(CallMetadataResolver.class);
+    private final CallMetadataResolver callMetadataResolver = mock(CallMetadataResolver.class);
 
-    private final DefaultJobManagementServiceGrpc service = new DefaultJobManagementServiceGrpc(gateway, sessionContext);
+    private final DefaultJobManagementServiceGrpc service = new DefaultJobManagementServiceGrpc(gateway, callMetadataResolver);
 
     @Before
     public void setUp() throws Exception {
-        when(sessionContext.resolve()).thenReturn(Optional.of(CALL_METADATA));
+        when(callMetadataResolver.resolve()).thenReturn(Optional.of(CALL_METADATA));
     }
 
     @Test

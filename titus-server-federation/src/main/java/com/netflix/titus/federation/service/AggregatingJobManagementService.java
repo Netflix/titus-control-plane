@@ -82,14 +82,14 @@ public class AggregatingJobManagementService implements JobManagementService {
     private final AggregatingCellClient aggregatingClient;
     private AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private final CellRouter router;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public AggregatingJobManagementService(GrpcConfiguration grpcConfiguration,
                                            TitusFederationConfiguration federationConfiguration,
                                            CellConnector connector,
                                            CellRouter router,
-                                           CallMetadataResolver sessionContext,
+                                           CallMetadataResolver callMetadataResolver,
                                            AggregatingCellClient aggregatingClient,
                                            AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
 
@@ -97,7 +97,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         this.federationConfiguration = federationConfiguration;
         this.connector = connector;
         this.router = router;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
     }
@@ -359,7 +359,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private JobManagementServiceStub wrap(JobManagementServiceStub client) {
-        return createWrappedStub(client, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {

@@ -43,12 +43,12 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
     private static final Logger logger = LoggerFactory.getLogger(DefaultSchedulerServiceGrpc.class);
 
     private final SchedulerService schedulerService;
-    private final CallMetadataResolver sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public DefaultSchedulerServiceGrpc(SchedulerService schedulerService, CallMetadataResolver sessionContext) {
+    public DefaultSchedulerServiceGrpc(SchedulerService schedulerService, CallMetadataResolver callMetadataResolver) {
         this.schedulerService = schedulerService;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
@@ -109,7 +109,7 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
     }
 
     private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
-        Optional<CallMetadata> callMetadata = sessionContext.resolve();
+        Optional<CallMetadata> callMetadata = callMetadataResolver.resolve();
         if (!callMetadata.isPresent()) {
             responseObserver.onError(TitusServiceException.noCallerId());
             return;

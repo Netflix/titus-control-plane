@@ -80,11 +80,11 @@ public class AggregatingLoadBalancerServiceTest {
 
         GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
         when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
-        final AnonymousCallMetadataResolver anonymousSessionContext = new AnonymousCallMetadataResolver();
+        final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
 
-        service = new AggregatingLoadbalancerService(connector, anonymousSessionContext, grpcConfiguration, aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration, anonymousSessionContext));
+        service = new AggregatingLoadbalancerService(connector, anonymousCallMetadataResolver, grpcConfiguration, aggregatingCellClient,
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration, anonymousCallMetadataResolver));
     }
 
     @Test
