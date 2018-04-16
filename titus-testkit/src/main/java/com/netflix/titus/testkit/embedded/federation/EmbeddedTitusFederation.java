@@ -23,26 +23,26 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import com.google.inject.AbstractModule;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
-import com.netflix.titus.common.grpc.SessionContext;
-import com.netflix.titus.common.grpc.V3HeaderInterceptor;
 import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.util.NetworkExt;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
+import io.grpc.stub.AbstractStub;
+import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,13 +115,7 @@ public class EmbeddedTitusFederation {
                         bindApplicationConfigurationOverride().toInstance(config);
                     }
                 },
-                new TitusFederationModule(),
-                new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(SessionContext.class).to(AnonymousSessionContext.class);
-                    }
-                }
+                new TitusFederationModule()
         ).createInjector();
         return this;
     }
@@ -147,32 +141,32 @@ public class EmbeddedTitusFederation {
 
     public JobManagementServiceGrpc.JobManagementServiceStub getV3GrpcClient() {
         JobManagementServiceGrpc.JobManagementServiceStub client = JobManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+        return attachCallHeaders(client);
     }
 
     public JobManagementServiceGrpc.JobManagementServiceBlockingStub getV3BlockingGrpcClient() {
         JobManagementServiceGrpc.JobManagementServiceBlockingStub client = JobManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+        return attachCallHeaders(client);
     }
 
     public AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient() {
         AgentManagementServiceGrpc.AgentManagementServiceStub client = AgentManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+        return attachCallHeaders(client);
     }
 
     public AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient() {
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub client = AgentManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+        return attachCallHeaders(client);
     }
 
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         AutoScalingServiceGrpc.AutoScalingServiceStub client = AutoScalingServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+        return attachCallHeaders(client);
     }
 
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return V3HeaderInterceptor.attachCallerId(client, "integrationTest");
+        return attachCallHeaders(client);
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {
@@ -182,6 +176,14 @@ public class EmbeddedTitusFederation {
                     .build();
         }
         return grpcChannel;
+    }
+
+    private <STUB extends AbstractStub<STUB>> STUB attachCallHeaders(STUB client) {
+        Metadata metadata = new Metadata();
+        metadata.put(V3HeaderInterceptor.CALLER_ID_KEY, "embeddedFederationClient");
+        metadata.put(V3HeaderInterceptor.CALL_REASON_KEY, "test call");
+        metadata.put(V3HeaderInterceptor.DEBUG_KEY, "true");
+        return client.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
     }
 
     public Builder toBuilder() {
