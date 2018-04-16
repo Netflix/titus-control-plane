@@ -22,8 +22,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -34,9 +34,9 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
-public class EmbeddedTitusStackTest {
+public class EmbeddedTitusCellTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(EmbeddedTitusStackTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(EmbeddedTitusCellTest.class);
 
     private static final String[] OK_THREAD_GROUPS = {
             "system"
@@ -71,7 +71,7 @@ public class EmbeddedTitusStackTest {
     public void testShutdownCleanup() throws Throwable {
         Set<Thread> threadsBefore = Thread.getAllStackTraces().keySet();
 
-        EmbeddedTitusStack titusStack = EmbeddedTitusStacks.basicStack(1);
+        EmbeddedTitusCell titusStack = EmbeddedTitusCells.basicCell(1);
         titusStack.boot();
         titusStack.shutdown();
 

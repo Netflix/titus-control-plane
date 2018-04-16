@@ -14,28 +14,29 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.embedded.stack;
+package com.netflix.titus.testkit.embedded.cell;
 
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters;
 
-public class EmbeddedTitusStacks {
+public class EmbeddedTitusCells {
 
-    public static EmbeddedTitusStack basicStack(int desired) {
+    public static EmbeddedTitusCell basicCell(int desired) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(desired);
-        return EmbeddedTitusStack.aTitusStack()
+
+        return EmbeddedTitusCell.aTitusCell()
                 .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud))
-                .withGateway(EmbeddedTitusGateway.aDefaultTitusGateway().build())
+                .withDefaultGateway()
                 .build();
     }
 
-    public static EmbeddedTitusStack twoPartitionsPerTierStack(int desired) {
+    public static EmbeddedTitusCell twoPartitionsPerTierCell(int desired) {
         SimulatedCloud simulatedCloud = SimulatedClouds.twoPartitionsPerTierStack(desired);
-        return EmbeddedTitusStack.aTitusStack()
+
+        return EmbeddedTitusCell.aTitusCell()
                 .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud))
-                .withGateway(EmbeddedTitusGateway.aDefaultTitusGateway().build())
+                .withDefaultGateway()
                 .build();
     }
 }

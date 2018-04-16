@@ -34,8 +34,8 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBu
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.JobObserver;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;

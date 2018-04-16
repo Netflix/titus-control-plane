@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.embedded.stack;
+package com.netflix.titus.testkit.embedded;
 
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
+import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
 import com.netflix.titus.testkit.perf.load.LoadGenerator;
 import org.apache.log4j.PropertyConfigurator;
 
@@ -44,17 +46,27 @@ public class EmbeddedTitusStackRunner {
 
         EmbeddedTitusMaster titusMaster = masterBuilder.build();
 
-        EmbeddedTitusStack stack = EmbeddedTitusStack.aTitusStack()
+        EmbeddedTitusCell cell = EmbeddedTitusCell.aTitusCell()
                 .withMaster(titusMaster)
                 .withGateway(
                         EmbeddedTitusGateway.aDefaultTitusGateway()
                                 .withMasterEndpoint("localhost", 8090, 8080)
                                 .withHttpPort(8081)
-                                .build()
+                                .withGrpcPort(8091)
+                                .build(),
+                        false
                 )
                 .build();
 
+        EmbeddedTitusFederation stack = EmbeddedTitusFederation.aDefaultTitusFederation()
+                .withCell("defaultCell", ".*", cell)
+                .withHttpPort(8082)
+                .withGrpcPort(8092)
+                .build();
+
+        cell.boot();
         stack.boot();
+
         System.out.println("TitusStack started");
         Thread.sleep(24 * 60 * 60 * 1000L);
     }

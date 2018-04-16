@@ -33,7 +33,7 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyStatus;
 import com.netflix.titus.master.appscale.endpoint.v3.grpc.AutoScalingTestUtils;
 import com.netflix.titus.master.appscale.service.AutoScalingPolicyTests;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -58,7 +58,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
     private static final long TIMEOUT_MS = 30_000;
 
     @Rule
-    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusStacks.basicStack(2));
+    public static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(2));
 
     @Before
     public void setUp() throws Exception {

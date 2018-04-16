@@ -20,7 +20,7 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import org.junit.Before;

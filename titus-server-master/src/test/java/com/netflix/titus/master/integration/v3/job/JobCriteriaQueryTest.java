@@ -44,7 +44,7 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
@@ -54,7 +54,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.master.integration.v3.job.CellAssertions.assertCellInfo;
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,7 +72,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     private static final String V2_ENGINE_APP = "myV2App";
     private static final String V2_ENGINE_APP2 = "myV2App2";
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicStack(5));
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(5));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 

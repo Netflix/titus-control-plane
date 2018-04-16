@@ -19,8 +19,9 @@ package com.netflix.titus.testkit.junit.master;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedCellTitusOperations;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -51,6 +52,6 @@ public class TitusMasterResource extends ExternalResource {
     }
 
     public EmbeddedTitusOperations getOperations() {
-        return new EmbeddedTitusOperations(embeddedTitusMaster);
+        return new EmbeddedCellTitusOperations(embeddedTitusMaster);
     }
 }
