@@ -7,7 +7,7 @@ WORKDIR /usr/src/titus-control-plane
 RUN ./gradlew tasks
 ## build titus-server-gateway
 COPY . /usr/src/titus-control-plane
-RUN ./gradlew :titus-server-gateway:installDist
+RUN ./gradlew -PdisablePrivateRepo=true :titus-server-gateway:installDist
 
 
 FROM openjdk:8-jre
