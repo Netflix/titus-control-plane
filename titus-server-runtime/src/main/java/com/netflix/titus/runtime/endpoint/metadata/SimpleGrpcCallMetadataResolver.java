@@ -12,6 +12,7 @@ import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 
 @Singleton
 public class SimpleGrpcCallMetadataResolver implements CallMetadataResolver {
+
     @Override
     public Optional<CallMetadata> resolve() {
         if (Context.current() == Context.ROOT) {
