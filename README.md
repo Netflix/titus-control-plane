@@ -55,6 +55,9 @@ curl localhost:7001/api/v3/agent/instanceGroups/unknown-instanceGroup/lifecycle 
   '{"instanceGroupId": "unknown-instanceGroup", "lifecycleState": "Active"}'
 ```
 
+If you get an error saying that `unknown-instanceGroup` does not exist, wait 10s and try again. Agents take some time to
+get registered.
+
 After that, jobs can be submitted normally. AWS integrations will not work in this mode:
 
 ```sh-session
@@ -76,6 +79,17 @@ curl localhost:7001/api/v3/jobs \
   }'
 ```
 
+The status of the new job, and its task (container) can be queried with:
+
+```sh-session
+curl localhost:7001/api/v3/jobs
+curl localhost:7001/api/v3/tasks
+
+# to delete a task or a job:
+curl localhost:7001/api/v3/jobs/:id -X DELETE
+curl localhost:7001/api/v3/tasks/:id -X DELETE
+```
+
 Components can also be built and deployed individually. E.g.:
 
 ```sh-session
@@ -91,7 +105,7 @@ docker-compose up -d master
 To add more agents to the cluster:
 
 ```sh-session
-docker-compose scale agent=2
+docker-compose up -d --scale agent=2
 ```
 
 Note that it can take ~10s for a new titus-agent to be detected and registered with the default configuration.
