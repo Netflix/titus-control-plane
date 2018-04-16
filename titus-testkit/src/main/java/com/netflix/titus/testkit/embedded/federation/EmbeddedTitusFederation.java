@@ -190,7 +190,7 @@ public class EmbeddedTitusFederation {
                 .withGrpcPort(grpcPort)
                 .withProperties(properties);
 
-        cells.forEach((cellId, cellInfo) -> builder.withCell(cellId, cellInfo.getRoutingRules(), cellInfo.getCell()));
+        cells.forEach((cellId, cellInfo) -> builder.withCell(cellInfo.getRoutingRules(), cellInfo.getCell()));
 
         return builder;
     }
@@ -207,7 +207,8 @@ public class EmbeddedTitusFederation {
         private int httpPort;
         private Properties properties = new Properties();
 
-        public Builder withCell(String cellId, String routingRules, EmbeddedTitusCell cell) {
+        public Builder withCell(String routingRules, EmbeddedTitusCell cell) {
+            String cellId = cell.getMaster().getCellName();
             cells.put(cellId, new CellInfo(cellId, routingRules, cell));
             return this;
         }
