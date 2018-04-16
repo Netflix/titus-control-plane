@@ -96,9 +96,12 @@ docker-compose scale agent=2
 
 Note that it can take ~10s for a new titus-agent to be detected and registered with the default configuration.
 
-To tear everything down or to stop individual components:
+After you are done:
 
 ```
+# tear everything down
 docker-compose down
+
+# or only stop titus-master
 docker-compose stop master
 ```

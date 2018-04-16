@@ -9,4 +9,6 @@ export SHORT_CIRCUIT_QUITELITE=true
 export USE_NEW_NETWORK_DRIVER=false
 export DEBUG=true
 
-exec /apps/titus-executor/bin/titus-executor --copy-uploader /tmp/titus-executor/logs
+exec /apps/titus-executor/bin/titus-executor \
+    --copy-uploader /tmp/titus-executor/logs \
+    --titus.executor.tiniSchedPriority=false

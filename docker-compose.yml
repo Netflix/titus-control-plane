@@ -57,6 +57,7 @@ services:
     image: mesosphere/mesos-master:1.2.3
     networks:
       - titus
+    restart: always
     environment:
       - MESOS_PORT=5050
       - MESOS_ZK=zk://zookeeper:2181/titus/mesos
