@@ -32,8 +32,8 @@ import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.federation.service.CellConnectorUtil.stubs;
 
 @Singleton

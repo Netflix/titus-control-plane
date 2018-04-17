@@ -21,12 +21,7 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultAgentManagementServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultSchedulerServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
@@ -35,6 +30,11 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.SimpleCallMetadataResolverProvider;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
 
 public class GrpcModule extends AbstractModule {
 
@@ -46,7 +46,7 @@ public class GrpcModule extends AbstractModule {
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(SchedulerServiceGrpc.SchedulerServiceImplBase.class).to(DefaultSchedulerServiceGrpc.class);
         bind(TitusGatewayGrpcServer.class).asEagerSingleton();
-        bind(SessionContext.class).to(AnonymousSessionContext.class);
+        bind(CallMetadataResolver.class).toProvider(SimpleCallMetadataResolverProvider.class);
     }
 
     @Provides

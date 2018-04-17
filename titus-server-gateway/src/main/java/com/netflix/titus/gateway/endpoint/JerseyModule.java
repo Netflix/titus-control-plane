@@ -33,6 +33,7 @@ import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter;
 import com.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
+import com.netflix.titus.runtime.endpoint.metadata.SimpleHttpCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.JobManagementResource;
 import com.sun.jersey.api.core.DefaultResourceConfig;
@@ -49,6 +50,9 @@ public final class JerseyModule extends JerseyServletModule {
 
         // Store HTTP servlet request data in thread local variable
         filter("/api/v3/*").through(CallerContextFilter.class);
+
+        // Call metadata interceptor (see CallMetadataHeaders).
+        filter("/api/v3/*").through(SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter.class);
 
         // Configure servlet that proxies requests to master
         serve("/api/v2/*").with(TitusMasterProxyServlet.class);

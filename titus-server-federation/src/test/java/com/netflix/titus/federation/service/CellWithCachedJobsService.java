@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;

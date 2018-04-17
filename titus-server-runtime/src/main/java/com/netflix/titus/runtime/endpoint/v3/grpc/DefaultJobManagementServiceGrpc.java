@@ -42,8 +42,8 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Subscription;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.attachCancellingCallback;
-import static com.netflix.titus.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 
 @Singleton

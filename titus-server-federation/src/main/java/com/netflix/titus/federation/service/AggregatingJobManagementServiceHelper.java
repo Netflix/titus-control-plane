@@ -19,7 +19,7 @@ import java.util.function.BiConsumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -31,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 
 @Singleton
@@ -39,20 +39,20 @@ public class AggregatingJobManagementServiceHelper {
     private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementServiceHelper.class);
     private AggregatingCellClient aggregatingCellClient;
     private final GrpcConfiguration grpcConfiguration;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public AggregatingJobManagementServiceHelper(AggregatingCellClient aggregatingCellClient,
                                                  GrpcConfiguration grpcConfiguration,
-                                                 SessionContext sessionContext) {
+                                                 CallMetadataResolver callMetadataResolver) {
         this.aggregatingCellClient = aggregatingCellClient;
         this.grpcConfiguration = grpcConfiguration;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
 
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     public Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
@@ -72,5 +72,4 @@ public class AggregatingJobManagementServiceHelper {
     public interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
         // generics sanity
     }
-
 }

@@ -38,6 +38,7 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
 import com.netflix.titus.master.endpoint.common.grpc.interceptor.LeaderServerInterceptor;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -146,6 +147,6 @@ public class TitusMasterGrpcServer {
      * Override to add server side interceptors.
      */
     protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
-        return Arrays.asList(new ErrorCatchingServerInterceptor(), leaderServerInterceptor);
+        return Arrays.asList(new ErrorCatchingServerInterceptor(), leaderServerInterceptor, new V3HeaderInterceptor());
     }
 }

@@ -33,7 +33,7 @@ import com.google.common.collect.Iterables;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
@@ -133,15 +133,15 @@ public class AggregatingJobManagementServiceTest {
         );
 
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
-        final AnonymousSessionContext anonymousSessionContext = new AnonymousSessionContext();
+        final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
         service = new AggregatingJobManagementService(
                 grpcClientConfiguration,
                 titusFederationConfiguration,
                 connector,
                 cellRouter,
-                anonymousSessionContext,
+                anonymousCallMetadataResolver,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration, anonymousSessionContext)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration, anonymousCallMetadataResolver)
         );
 
         clock = Clocks.test();

@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.grpc;
+package com.netflix.titus.runtime.endpoint.common.grpc;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.CallOptions;
 import io.grpc.ClientCall;
 import io.grpc.MethodDescriptor;
@@ -120,14 +122,14 @@ public class GrpcUtil {
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
-                                                                           SessionContext sessionContext,
+                                                                           CallMetadataResolver callMetadataResolver,
                                                                            long deadlineMs) {
-        return createWrappedStub(client, sessionContext).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
+        return createWrappedStub(client, callMetadataResolver).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
     }
 
-    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, SessionContext sessionContext) {
-        return sessionContext.getCallerId()
-                .map(callerId -> V3HeaderInterceptor.attachCallerId(client, callerId + ",TitusGateway"))
+    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, CallMetadataResolver callMetadataResolver) {
+        return callMetadataResolver.resolve()
+                .map(caller -> V3HeaderInterceptor.attachCallerId(client, caller))
                 .orElse(client);
     }
 
@@ -157,13 +159,13 @@ public class GrpcUtil {
         }, Emitter.BackpressureMode.NONE);
     }
 
-    public static <STUB extends AbstractStub<STUB>, ReqT, RespT> ClientCall call(SessionContext sessionContext,
+    public static <STUB extends AbstractStub<STUB>, ReqT, RespT> ClientCall call(CallMetadataResolver callMetadataResolver,
                                                                                  STUB client,
                                                                                  MethodDescriptor<ReqT, RespT> methodDescriptor,
                                                                                  ReqT request,
                                                                                  long deadlineMs,
                                                                                  StreamObserver<RespT> responseObserver) {
-        STUB wrappedStub = createWrappedStub(client, sessionContext);
+        STUB wrappedStub = createWrappedStub(client, callMetadataResolver);
         CallOptions callOptions = wrappedStub.getCallOptions().withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
         ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, callOptions);
         asyncUnaryCall(clientCall, request, responseObserver);

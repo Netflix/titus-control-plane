@@ -21,14 +21,12 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
-import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
@@ -38,27 +36,26 @@ import io.grpc.stub.StreamObserver;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
-import static com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 
 @Singleton
 public class AggregatingAutoScalingService implements AutoScalingService {
     private final CellConnector connector;
     private final AggregatingCellClient aggregatingClient;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final GrpcConfiguration grpcConfiguration;
     private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
 
     @Inject
     public AggregatingAutoScalingService(CellConnector connector,
-                                         SessionContext sessionContext,
+                                         CallMetadataResolver callMetadataResolver,
                                          GrpcConfiguration configuration,
                                          AggregatingJobManagementServiceHelper jobManagementServiceHelper,
                                          AggregatingCellClient aggregatingClient) {
         this.connector = connector;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         grpcConfiguration = configuration;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
         this.aggregatingClient = aggregatingClient;
@@ -160,7 +157,7 @@ public class AggregatingAutoScalingService implements AutoScalingService {
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private interface ClientCall<T> extends BiConsumer<AutoScalingServiceStub, StreamObserver<T>> {

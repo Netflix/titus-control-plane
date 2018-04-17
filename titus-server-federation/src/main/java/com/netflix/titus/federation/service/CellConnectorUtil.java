@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
