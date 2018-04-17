@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.embedded.cell;
 
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
@@ -23,10 +24,31 @@ import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
 public class EmbeddedTitusCells {
 
     public static EmbeddedTitusCell basicCell(int desired) {
+        return basicCell(EmbeddedTitusMaster.CELL_NAME, desired);
+    }
+
+    public static EmbeddedTitusCell basicCell(String cellName, int desired) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(desired);
 
         return EmbeddedTitusCell.aTitusCell()
-                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud))
+                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
+                        .withCellName(cellName)
+                        .build()
+                )
+                .withDefaultGateway()
+                .build();
+    }
+
+    public static EmbeddedTitusCell basicV3OnlyCell(String cellName, int desired) {
+        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(desired);
+
+        return EmbeddedTitusCell.aTitusCell()
+                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
+                        .withCellName(cellName)
+                        .withProperty("titus.master.grpcServer.v3EnabledApps", ".*")
+                        .withV2Engine(false)
+                        .build()
+                )
                 .withDefaultGateway()
                 .build();
     }

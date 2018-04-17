@@ -116,6 +116,7 @@ public class EmbeddedTitusMaster {
     private final int apiPort;
     private final int grpcPort;
     private final boolean enableREST;
+    private final String cellName;
     private final MasterDescription masterDescription;
 
     private final V2StorageProvider storageProvider;
@@ -141,6 +142,7 @@ public class EmbeddedTitusMaster {
         this.apiPort = builder.apiPort;
         this.grpcPort = builder.grpcPort;
         this.enableREST = builder.enableREST;
+        this.cellName = builder.cellName;
         this.masterDescription = new MasterDescription(
                 "embedded_titus_master", "192.168.0.1", builder.apiPort, "api/postjobstatus",
                 System.currentTimeMillis()
@@ -155,7 +157,7 @@ public class EmbeddedTitusMaster {
         Properties embeddedProperties = new Properties();
         embeddedProperties.put("governator.jetty.embedded.port", apiPort);
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
-        embeddedProperties.put("titus.master.cellName", CELL_NAME);
+        embeddedProperties.put("titus.master.cellName", cellName);
         embeddedProperties.put("titusMaster.v2Enabled", Boolean.toString(builder.v2Enabled));
         config.setProperties(embeddedProperties);
 
@@ -383,6 +385,10 @@ public class EmbeddedTitusMaster {
                 .collect(Collectors.toList())));
     }
 
+    public String getCellName() {
+        return cellName;
+    }
+
     public int getApiPort() {
         return apiPort;
     }
@@ -395,6 +401,7 @@ public class EmbeddedTitusMaster {
         return new Builder()
                 .withApiPort(apiPort)
                 .withGrpcPort(grpcPort)
+                .withCellName(cellName)
                 .withSimulatedCloud(simulatedCloud)
                 .withProperties(properties)
                 .withV3JobStore(jobStore)
@@ -404,6 +411,8 @@ public class EmbeddedTitusMaster {
     public static class Builder {
 
         private Properties props = new Properties();
+
+        public String cellName = CELL_NAME;
         private int apiPort;
         private int grpcPort;
         private boolean enableREST = true;
@@ -426,6 +435,11 @@ public class EmbeddedTitusMaster {
 
         public Builder withV2Engine(boolean v2Enabled) {
             this.v2Enabled = v2Enabled;
+            return this;
+        }
+
+        public Builder withCellName(String cellName) {
+            this.cellName = cellName;
             return this;
         }
 

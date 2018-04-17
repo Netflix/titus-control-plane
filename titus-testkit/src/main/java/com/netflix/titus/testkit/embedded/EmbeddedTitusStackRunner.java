@@ -59,7 +59,7 @@ public class EmbeddedTitusStackRunner {
                 .build();
 
         EmbeddedTitusFederation stack = EmbeddedTitusFederation.aDefaultTitusFederation()
-                .withCell("defaultCell", ".*", cell)
+                .withCell( ".*", cell)
                 .withHttpPort(8082)
                 .withGrpcPort(8092)
                 .build();
