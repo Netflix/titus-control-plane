@@ -206,7 +206,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     @Override
     public Observable<Void> killTask(String user, String taskId, boolean shrink) {
-        return jobOperations.killTask(taskId, shrink, String.format("User initiated task kill: ", user));
+        return jobOperations.killTask(taskId, shrink, String.format("User initiated task kill: %s", user));
     }
 
     @Override

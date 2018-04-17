@@ -99,7 +99,7 @@ public class DefaultJobManagementServiceGrpcTest {
     }
 
     @Test
-    public void testUpdateJobPAggregatingJobManagementServiceTestProcesses() throws Exception {
+    public void testUpdateJobProcesses() throws Exception {
         when(gateway.updateJobProcesses(any(), any(), anyBoolean(), anyBoolean())).thenReturn(Observable.empty());
         TestStreamObserver<Empty> response = new TestStreamObserver<>();
         JobProcessesUpdate jobProcessesUpdate = JobProcessesUpdate.newBuilder().setJobId(JOB.getId()).setServiceJobProcesses(
