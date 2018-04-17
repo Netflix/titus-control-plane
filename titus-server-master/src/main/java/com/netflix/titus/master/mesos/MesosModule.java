@@ -31,6 +31,7 @@ public class MesosModule extends AbstractModule {
         bind(MesosMasterResolver.class).to(DefaultMesosMasterResolver.class);
         bind(MesosSchedulerDriverFactory.class).to(StdSchedulerDriverFactory.class);
         bind(VirtualMachineMasterService.class).to(VirtualMachineMasterServiceMesosImpl.class);
+        bind(VirtualMachineMasterServiceActivator.class).asEagerSingleton();
 
         install(new HealthModule() {
             @Override

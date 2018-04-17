@@ -18,18 +18,14 @@ package com.netflix.titus.common.util.guice.internal;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
 import com.google.inject.spi.ProvisionListener;
 import com.netflix.governator.annotations.SuppressLifecycleUninitialized;
-import com.netflix.titus.common.util.GraphExt;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -77,8 +73,6 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
 
     @Override
     public void activate() {
-        enforceOrderInvariants();
-
         long startTime = System.currentTimeMillis();
         logger.info("Activating services");
 
@@ -112,33 +106,12 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Objects are by default activated in the order of their provisioning. However it is possible to specify direct
-     * dependency between objects, which may require reordering.
-     */
-    private void enforceOrderInvariants() {
-        List<ServiceHolder> ordered = GraphExt.order(new ArrayList<>(services), this::shouldRunBefore);
-        this.services.clear();
-        this.services.addAll(ordered);
-    }
-
-    private Boolean shouldRunBefore(ServiceHolder before, ServiceHolder after) {
-        Class<?> beforeClass = before.getInjectee().getClass();
-        for (Class<?> beforeInterf : beforeClass.getInterfaces()) {
-            if (after.getServicesToRunFirst().contains(beforeInterf)) {
-                return true;
-            }
-        }
-        return after.getServicesToRunFirst().contains(beforeClass);
-    }
-
     static class ServiceHolder {
         private final Object injectee;
         private final String name;
 
         private final List<Method> activateMethods;
         private final List<Method> deactivateMethods;
-        private final Set<Class<?>> servicesToRunFirst;
 
         private boolean activated;
         private long activationTime = -1;
@@ -148,18 +121,6 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
             this.name = injectee.getClass().getSimpleName();
             this.activateMethods = ReflectionExt.findAnnotatedMethods(injectee, Activator.class);
             this.deactivateMethods = ReflectionExt.findAnnotatedMethods(injectee, Deactivator.class);
-
-            this.servicesToRunFirst = resolveServicesToRunFirst();
-        }
-
-        private Set<Class<?>> resolveServicesToRunFirst() {
-            for (Method method : activateMethods) {
-                Class<?>[] after = method.getAnnotation(Activator.class).after();
-                if (after.length > 0) {
-                    return new HashSet<>(Arrays.asList(after));
-                }
-            }
-            return Collections.emptySet();
         }
 
         Object getInjectee() {
@@ -168,10 +129,6 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
 
         String getName() {
             return name;
-        }
-
-        Set<Class<?>> getServicesToRunFirst() {
-            return servicesToRunFirst;
         }
 
         boolean isActivated() {
