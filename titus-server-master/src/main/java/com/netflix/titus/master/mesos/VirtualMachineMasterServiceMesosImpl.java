@@ -227,8 +227,10 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         return vmTaskStatusObserver;
     }
 
-    @Activator(after = SchedulingService.class)
-    public void enterActiveMode() {
+    /**
+     * Due to circular dependency with SchedulingService, activate via VirtualMachineMasterServiceActivator
+     */
+    void enterActiveMode() {
         // Due to circular dependency, we need to differ services access until the activation phase.
         V2JobOperations v2JobOperations = injector.getInstance(V2JobOperations.class);
         V3JobOperations v3JobOperations = injector.getInstance(V3JobOperations.class);

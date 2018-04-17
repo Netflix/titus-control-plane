@@ -123,7 +123,7 @@ public class ActivationProvisionListenerTest {
             this.owner = owner;
         }
 
-        @Activator(after = ServiceA.class)
+        @Activator
         public void activate() {
             state = "ACTIVATED";
             owner.activationTrace.add(Pair.of("serviceB", state));
