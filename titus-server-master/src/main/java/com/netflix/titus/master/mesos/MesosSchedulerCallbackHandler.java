@@ -316,7 +316,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         List<V2WorkerMetadata> runningWorkers = new ArrayList<>();
         v2JobOperations.getAllJobMgrs().forEach(m -> {
                     List<V2WorkerMetadata> tasks = m.getWorkers().stream()
-                            .filter(t -> V2JobState.isRunningState(t.getState()))
+                            .filter(t -> t.getState() == V2JobState.Started)
                             .collect(Collectors.toList());
                     runningWorkers.addAll(tasks);
                 }
@@ -338,12 +338,23 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         }
         for (Task task : v3JobOperations.getTasks()) {
             com.netflix.titus.api.jobmanager.model.job.TaskState taskState = task.getStatus().getState();
-            if (com.netflix.titus.api.jobmanager.model.job.TaskState.isRunning(taskState)) {
+            TaskState mesosState;
+            switch (taskState) {
+                case Started:
+                    mesosState = TaskState.TASK_RUNNING;
+                    break;
+                case KillInitiated:
+                    mesosState = TaskState.TASK_KILLING;
+                    break;
+                default:
+                    mesosState = null;
+            }
+            if (mesosState != null) {
                 String taskHost = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
                 if (taskHost != null) {
                     tasksToInitialize.add(TaskStatus.newBuilder()
                             .setTaskId(Protos.TaskID.newBuilder().setValue(task.getId()).build())
-                            .setState(TaskState.TASK_RUNNING)
+                            .setState(mesosState)
                             .setSlaveId(SlaveID.newBuilder().setValue(taskHost).build())
                             .build()
                     );
