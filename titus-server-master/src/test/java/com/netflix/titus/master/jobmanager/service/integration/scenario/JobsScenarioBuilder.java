@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -155,7 +156,7 @@ public class JobsScenarioBuilder {
                         newJobSanitizer(VerifierMode.Permissive),
                         newJobSanitizer(VerifierMode.Strict),
                         titusRuntime,
-                        testScheduler
+                        Optional.of(testScheduler)
                 ),
                 titusRuntime
         );

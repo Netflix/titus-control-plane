@@ -22,6 +22,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import org.junit.Test;
 
 import static com.netflix.titus.common.framework.reconciler.EntityHolder.newRoot;
+import static com.netflix.titus.common.util.CollectionsExt.first;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EntityHolderTest {
@@ -35,7 +36,7 @@ public class EntityHolderTest {
         assertThat(root.getId()).isEqualTo("myRoot");
         assertThat((String) root.getEntity()).isEqualTo("as");
         assertThat(root.getChildren()).hasSize(1);
-        assertThat(root.getChildren().first() == child).isTrue();
+        assertThat(first(root.getChildren()) == child).isTrue();
 
         // Check child
         assertThat(child.getId()).isEqualTo("myChild");
@@ -47,7 +48,7 @@ public class EntityHolderTest {
         EntityHolder rootV1 = newRoot("myRoot", "as").addChild(newRoot("myChild", "a1"));
         EntityHolder rootV2 = rootV1.addChild(newRoot("myChild", "a1_v2"));
 
-        assertThat((String) rootV2.getChildren().first().getEntity()).isEqualTo("a1_v2");
+        assertThat((String) first(rootV2.getChildren()).getEntity()).isEqualTo("a1_v2");
     }
 
     @Test
@@ -61,7 +62,7 @@ public class EntityHolderTest {
         EntityHolder child1 = rootChildPair.getRight().get();
 
         assertThat(rootV2.getChildren()).hasSize(1);
-        assertThat(rootV2.getChildren().first().getId()).isEqualTo("myChild2");
+        assertThat(first(rootV2.getChildren()).getId()).isEqualTo("myChild2");
         assertThat(child1.getId()).isEqualTo("myChild1");
     }
 }

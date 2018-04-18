@@ -119,7 +119,7 @@ public class JobReconciliationFrameworkFactory {
     private final TitusRuntime titusRuntime;
     private final Registry registry;
     private final Clock clock;
-    private final Scheduler scheduler;
+    private final Optional<Scheduler> optionalScheduler;
 
     private final Gauge loadedJobs;
     private final Gauge loadedTasks;
@@ -140,7 +140,7 @@ public class JobReconciliationFrameworkFactory {
                                              TitusRuntime titusRuntime) {
         this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService,
                 systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer,
-                titusRuntime, Schedulers.computation());
+                titusRuntime, Optional.empty());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
@@ -155,7 +155,7 @@ public class JobReconciliationFrameworkFactory {
                                              EntitySanitizer permissiveEntitySanitizer,
                                              EntitySanitizer strictEntitySanitizer,
                                              TitusRuntime titusRuntime,
-                                             Scheduler scheduler) {
+                                             Optional<Scheduler> optionalScheduler) {
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.store = store;
         this.schedulingService = schedulingService;
@@ -165,11 +165,11 @@ public class JobReconciliationFrameworkFactory {
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.permissiveEntitySanitizer = permissiveEntitySanitizer;
         this.strictEntitySanitizer = strictEntitySanitizer;
+        this.optionalScheduler = optionalScheduler;
         this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, titusRuntime.getRegistry());
         this.titusRuntime = titusRuntime;
         this.registry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();
-        this.scheduler = scheduler;
 
         this.loadedJobs = registry.gauge(ROOT_METRIC_NAME + "loadedJobs");
         this.loadedTasks = registry.gauge(ROOT_METRIC_NAME + "loadedTasks");
@@ -222,7 +222,7 @@ public class JobReconciliationFrameworkFactory {
                 jobManagerConfiguration.getReconcilerActiveTimeoutMs(),
                 INDEX_COMPARATORS,
                 registry,
-                scheduler
+                optionalScheduler
         );
     }
 
