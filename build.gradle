@@ -5,7 +5,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.netflix.nebula:gradle-netflixoss-project-plugin:4.0.0'
+        classpath 'com.netflix.nebula:gradle-netflixoss-project-plugin:5.0.0'
         classpath 'com.netflix.nebula:nebula-ospackage-plugin:3.+'
     }
 }
@@ -24,27 +24,6 @@ allprojects {
     repositories {
         jcenter()
         maven { url 'https://dl.bintray.com/netflixoss/oss-candidate/' }
-        if (!project.hasProperty('disablePrivateRepo')) {
-            maven {
-                url 'https://titusoss.bintray.com/maven'
-                credentials {
-                    username resolveTitusOssUserName()
-                    password resolveTitusOssUserPassword()
-                }
-            }
-        }
-    }
-
-    bintray {
-        pkg {
-            repo = 'maven'
-            userOrg = 'titusoss'
-            version {
-                mavenCentralSync {
-                    sync = false
-                }
-            }
-        }
     }
 
     project.tasks.withType(org.jfrog.gradle.plugin.artifactory.task.BuildInfoBaseTask) { Task task ->
@@ -182,26 +161,4 @@ subprojects {
 
 dependencyLock {
     includeTransitives = true
-}
-
-def resolveTitusOssUserName() {
-    def secret = file('root/metatron/decrypted/Bintray-TitusOSS')
-    if (project.hasProperty('titusUsername')) {
-        return project.property('titusUsername')
-    }
-    if (secret.exists()) {
-        return 'titusbintrayprivate'
-    }
-    throw new GradleException("TitusOSS Bintray credentials missing")
-}
-
-def resolveTitusOssUserPassword() {
-    def secret = file('root/metatron/decrypted/Bintray-TitusOSS')
-    if (project.hasProperty('titusUsername')) {
-        return project.hasProperty('titusPassword') ? project.property('titusPassword') : 'passwordnotset'
-    }
-    if (secret.exists()) {
-        return secret.text.trim()
-    }
-    throw new GradleException("TitusOSS Bintray credentials missing")
 }
