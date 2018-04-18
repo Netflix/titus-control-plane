@@ -52,7 +52,7 @@ public final class LeaderServerInterceptor implements ServerInterceptor {
                 };
             }
         } else {
-            call.close(Status.ABORTED.withDescription("Titus Master is not leader."), new Metadata());
+            call.close(Status.UNAVAILABLE.withDescription("Titus Master is not leader."), new Metadata());
             return new ServerCall.Listener<ReqT>() {
             };
         }
