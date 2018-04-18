@@ -17,7 +17,7 @@
 package com.netflix.titus.federation.endpoint.grpc;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,6 +34,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementSer
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceImplBase;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -126,6 +127,6 @@ public class TitusFederationGrpcServer {
      * Override to add server side interceptors.
      */
     protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
-        return Collections.singletonList(new ErrorCatchingServerInterceptor());
+        return Arrays.asList(new ErrorCatchingServerInterceptor(), new V3HeaderInterceptor());
     }
 }

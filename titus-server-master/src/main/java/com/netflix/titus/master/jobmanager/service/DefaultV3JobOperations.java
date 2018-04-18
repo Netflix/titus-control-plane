@@ -54,7 +54,6 @@ import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
@@ -82,11 +81,11 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final long RECONCILER_SHUTDOWN_TIMEOUT_MS = 30_000;
 
-    private final Clock clock;
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
+    private final TitusRuntime titusRuntime;
 
     private ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
     private Subscription transactionLoggerSubscription;
@@ -104,7 +103,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
         this.jobMetricsCollector = new V3JobMetricsCollector(titusRuntime.getRegistry());
-        this.clock = titusRuntime.getClock();
+        this.titusRuntime = titusRuntime;
     }
 
     @Activator
@@ -249,7 +248,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
         ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
-        return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, clock)).toCompletable();
+        return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, titusRuntime)).toCompletable();
     }
 
     @Override
@@ -265,7 +264,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 .trigger(Trigger.Scheduler)
                 .summary("Scheduler assigned task to an agent")
                 .changeWithModelUpdates(self ->
-                        JobEntityHolders.expectTask(engine, taskId)
+                        JobEntityHolders.expectTask(engine, taskId, titusRuntime)
                                 .map(task -> {
 
                                     Task newTask;
@@ -355,7 +354,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink)
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink), titusRuntime
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })

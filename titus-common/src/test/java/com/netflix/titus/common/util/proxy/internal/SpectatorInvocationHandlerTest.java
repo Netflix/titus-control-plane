@@ -16,8 +16,8 @@
 
 package com.netflix.titus.common.util.proxy.internal;
 
-import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.proxy.MyApi;
 import com.netflix.titus.common.util.proxy.ProxyCatalog;
 import org.junit.Test;
@@ -28,27 +28,37 @@ public class SpectatorInvocationHandlerTest {
 
     private static final String MESSAGE = "abcdefg";
 
-    private final Registry registry = new DefaultRegistry();
+    private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final MyApi myApi = ProxyCatalog.createSpectatorProxy(MyApi.class, new MyApi.MyApiImpl(), registry);
+    private final MyApi myApi = ProxyCatalog.createSpectatorProxy(MyApi.class, new MyApi.MyApiImpl(), titusRuntime);
 
     @Test
-    public void testSuccessfulMethodInvocation() throws Exception {
+    public void testSuccessfulMethodInvocation() {
         assertThat(myApi.echo("abc")).startsWith("abc");
     }
 
     @Test(expected = NullPointerException.class)
-    public void testFailedMethodInvocation() throws Exception {
+    public void testFailedMethodInvocation() {
         myApi.echo(null);
     }
 
     @Test
-    public void testObservableResult() throws Exception {
+    public void testObservableResult() {
         assertThat(myApi.observableEcho(MESSAGE).toBlocking().first()).startsWith(MESSAGE);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testFailedObservableResult() throws Exception {
+    public void testFailedObservableResult() {
         assertThat(myApi.observableEcho(null).toBlocking().first());
+    }
+
+    @Test
+    public void testCompletable() {
+        assertThat(myApi.okCompletable().get()).isNull();
+    }
+
+    @Test
+    public void testFailingCompletable() {
+        assertThat(myApi.failingCompletable().get()).isInstanceOf(RuntimeException.class);
     }
 }

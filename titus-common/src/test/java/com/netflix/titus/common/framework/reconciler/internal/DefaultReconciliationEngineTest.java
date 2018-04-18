@@ -28,15 +28,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelAction;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
-import com.netflix.titus.common.util.time.Clocks;
-import com.netflix.titus.common.util.time.TestClock;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
@@ -53,8 +51,6 @@ public class DefaultReconciliationEngineTest {
 
     private final TestScheduler testScheduler = Schedulers.test();
 
-    private final TestClock clock = Clocks.testScheduler(testScheduler);
-
     private final Map<Object, Comparator<EntityHolder>> indexComparators = ImmutableMap.<Object, Comparator<EntityHolder>>builder()
             .put("ascending", Comparator.comparing(EntityHolder::getEntity))
             .put("descending", Comparator.<EntityHolder, String>comparing(EntityHolder::getEntity).reversed())
@@ -68,8 +64,7 @@ public class DefaultReconciliationEngineTest {
             new SimpleReconcilerEventFactory(),
             changeAction -> Collections.emptyList(),
             event -> Collections.emptyList(),
-            new DefaultRegistry(),
-            clock
+            TitusRuntimes.test(testScheduler)
     );
 
     private final ExtTestSubscriber<SimpleReconcilerEvent> eventSubscriber = new ExtTestSubscriber<>();

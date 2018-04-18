@@ -25,7 +25,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
@@ -61,17 +61,17 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
     private final AggregatingCellClient aggregatingClient;
     private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private CellConnector connector;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final GrpcConfiguration grpcConfiguration;
 
     @Inject
     public AggregatingLoadbalancerService(CellConnector connector,
-                                          SessionContext sessionContext,
+                                          CallMetadataResolver callMetadataResolver,
                                           GrpcConfiguration grpcConfiguration,
                                           AggregatingCellClient aggregatingClient,
                                           AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
         this.connector = connector;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.grpcConfiguration = grpcConfiguration;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
@@ -122,7 +122,7 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {

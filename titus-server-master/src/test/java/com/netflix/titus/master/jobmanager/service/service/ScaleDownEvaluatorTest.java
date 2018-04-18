@@ -27,6 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeServiceJobCapacity;
@@ -111,7 +112,7 @@ public class ScaleDownEvaluatorTest {
     }
 
     private List<ServiceJobTask> doEvaluate(List<ServiceJobTask> tasks, int expectedSize) {
-        List<ServiceJobTask> toRemove = ScaleDownEvaluator.selectTasksToTerminate(tasks, expectedSize);
+        List<ServiceJobTask> toRemove = ScaleDownEvaluator.selectTasksToTerminate(tasks, expectedSize, TitusRuntimes.test());
         checkAreForDuplicates(toRemove);
         return toRemove;
     }

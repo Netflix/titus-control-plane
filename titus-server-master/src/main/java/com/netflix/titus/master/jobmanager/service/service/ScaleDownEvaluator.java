@@ -29,10 +29,9 @@ import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
-
-import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
 
 /**
  * Helper class for evaluating which tasks from a job active task set should be terminated during scale down process.
@@ -41,46 +40,46 @@ import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
  * <p>
  * As Titus does not support scale down polices that would allow a user to define explicitly the termination rules, we
  * provide here a set of reasonable rules, that should give much better behavior than blind task termination.
- * <p>
+ *
  * <h1>Termination steps</h1>
  * An active task can be in one of the following states: Active, Launched, StartInitiated, Started and KillInitiated.
  * To maximize system availability, we consider for termination tasks in Started state only if there are no tasks in other
  * states.
- * <p>
+ *
  * <h2>Step 1: scale down task in KillInitiated state</h2>
  * As tasks in this state are in the termination process already, scaling them down means they should not be restarted after
  * they move to Finished state.
- * <p>
+ *
  * <h2>Step 2: scale down tasks in Accepted state</h2>
  * These task have no resources allocated yet, and it is not guaranteed that they can be successfully started.
  * Tasks in Accepted state are not yet associated with any agent, so no additional rules must be applied here.
- * <p>
+ *
  * <h2>Step 3: scale down tasks in Launched and StartInitiated states</h2>
  * These states can be considered as equivalent. The group of tasks with these states should be evaluated according
  * to rules defined in 'Equivalent group termination rules' in section below.
- * <p>
+ *
  * <h2>Step 4: scale down tasks in Started state</h2>
  * As in step 3, this task set should be evaluated according to rules defined in 'Equivalent group termination rules'.
- * <p>
+ *
  * <h1>Equivalent group termination rules</h1>
  * <p>
  * The selection process described below is applied repeatedly until the desired number of tasks is terminated. At each
  * step a subset of tasks is selected. The last step ('Terminate oldest task first'), makes final selection.
- * <p>
+ *
  * <h2>Scale down largest groups of tasks on an agent</h2>
  * To maximize availability we should eliminate large groups of tasks running on the same agent.
- * <p>
+ *
  * <h2>Enforce zone balancing</h2>
  * We want our tasks to be zone balanced (if applicable), If one zone runs more tasks than the other, we should terminate
  * tasks in this zone first.
- * <p>
+ *
  * <h2>Terminate oldest task first</h2>
  * From the given collection of tasks, select the task with the oldest creation timestamp and terminate it.
  * If there are more tasks to terminate, restart the evaluation process.
  */
 class ScaleDownEvaluator {
 
-    static List<ServiceJobTask> selectTasksToTerminate(List<ServiceJobTask> allTasks, int expectedSize) {
+    static List<ServiceJobTask> selectTasksToTerminate(List<ServiceJobTask> allTasks, int expectedSize, TitusRuntime titusRuntime) {
         int targetTerminateCount = allTasks.size() - expectedSize;
         if (targetTerminateCount <= 0) {
             return Collections.emptyList();
@@ -104,19 +103,19 @@ class ScaleDownEvaluator {
 
         // Step 3: scale down tasks in Launched and StartInitiated states
         Pair<List<ServiceJobTask>, List<ServiceJobTask>> notStartedAndStartedTaskGroups = splitIntoNotStartedAndStartedTaskGroups(tasksOnAgent);
-        List<ServiceJobTask> notStartedToRemove = selectTasksToTerminateInEquivalenceGroup(notStartedAndStartedTaskGroups.getLeft(), targetTerminateCount - tasksToKill.size());
+        List<ServiceJobTask> notStartedToRemove = selectTasksToTerminateInEquivalenceGroup(notStartedAndStartedTaskGroups.getLeft(), targetTerminateCount - tasksToKill.size(), titusRuntime);
         if (appendCandidatesToTerminate(tasksToKill, notStartedToRemove, targetTerminateCount)) {
             return tasksToKill;
         }
         List<ServiceJobTask> startedTasks = notStartedAndStartedTaskGroups.getRight();
 
         // Step 4: scale down tasks in Started state
-        List<ServiceJobTask> startedToRemove = selectTasksToTerminateInEquivalenceGroup(startedTasks, targetTerminateCount - tasksToKill.size());
+        List<ServiceJobTask> startedToRemove = selectTasksToTerminateInEquivalenceGroup(startedTasks, targetTerminateCount - tasksToKill.size(), titusRuntime);
         appendCandidatesToTerminate(tasksToKill, startedToRemove, targetTerminateCount);
 
         // Extra check in case we messed up somewhere.
         if (tasksToKill.size() != targetTerminateCount) {
-            codeInvariants().inconsistent("Wrong number of tasks to terminate %s (expected) != %s (actual). Got list: %s", targetTerminateCount, tasksToKill.size(), tasksToKill);
+            titusRuntime.getCodeInvariants().inconsistent("Wrong number of tasks to terminate %s (expected) != %s (actual). Got list: %s", targetTerminateCount, tasksToKill.size(), tasksToKill);
             if (tasksToKill.size() > targetTerminateCount) {
                 tasksToKill = tasksToKill.subList(0, targetTerminateCount);
             }
@@ -151,7 +150,7 @@ class ScaleDownEvaluator {
         return CollectionsExt.split(tasks, t -> t.getStatus().getState() != TaskState.Started);
     }
 
-    private static List<ServiceJobTask> selectTasksToTerminateInEquivalenceGroup(List<ServiceJobTask> allTasks, int targetTerminateCount) {
+    private static List<ServiceJobTask> selectTasksToTerminateInEquivalenceGroup(List<ServiceJobTask> allTasks, int targetTerminateCount, TitusRuntime titusRuntime) {
         List<ServiceJobTask> tasksToKill = new ArrayList<>();
         Region region = new Region(allTasks);
 
@@ -168,7 +167,7 @@ class ScaleDownEvaluator {
                     Optional<ServiceJobTask> removedTask = zoneOpt.get().removeOldestTaskFromLargestTaskGroup();
                     removedTask.ifPresent(tasksToKill::add);
                     if (!removedTask.isPresent()) {
-                        codeInvariants().inconsistent("Expected task, but found nothing. Terminating evaluation loop of job %s", allTasks.get(0).getJobId());
+                        titusRuntime.getCodeInvariants().inconsistent("Expected task, but found nothing. Terminating evaluation loop of job %s", allTasks.get(0).getJobId());
                         return tasksToKill;
                     }
                 }

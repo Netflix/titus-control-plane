@@ -40,7 +40,7 @@ import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.master.endpoint.v2.rest.Representation2ModelConvertions.asRepresentation;
 import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.fromAwsInstanceType;
-import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 
 /**

@@ -57,7 +57,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,7 +76,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
 
     private final ServiceJobSpec.Builder SERVICE_JOB_SPEC_BUILDER = SERVICE_JOB_DESCR_BUILDER.getService().toBuilder();
 
-    private static final TitusStackResource titusStackResource = new TitusStackResource(basicStack(2));
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
 
     private static final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 

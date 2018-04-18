@@ -28,27 +28,26 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 
-import static com.netflix.titus.common.util.code.CodeInvariants.codeInvariants;
-
 public class V3TaskQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluator<Task> {
 
-    public V3TaskQueryCriteriaEvaluator(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria) {
-        super(createTaskPredicates(criteria), criteria);
+    public V3TaskQueryCriteriaEvaluator(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria, TitusRuntime titusRuntime) {
+        super(createTaskPredicates(criteria, titusRuntime), criteria);
     }
 
-    private static List<Predicate<Pair<Job<?>, Task>>> createTaskPredicates(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria) {
+    private static List<Predicate<Pair<Job<?>, Task>>> createTaskPredicates(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> criteria, TitusRuntime titusRuntime) {
         List<Predicate<Pair<Job<?>, Task>>> predicates = new ArrayList<>();
         applyJobIds(criteria.getJobIds()).ifPresent(predicates::add);
         applyTaskIds(criteria.getTaskIds()).ifPresent(predicates::add);
         applyTaskStates(criteria.getTaskStates()).ifPresent(predicates::add);
         applyTaskStateReasons(criteria.getTaskStateReasons()).ifPresent(predicates::add);
-        applyNeedsMigration(criteria.isNeedsMigration()).ifPresent(predicates::add);
+        applyNeedsMigration(criteria.isNeedsMigration(), titusRuntime).ifPresent(predicates::add);
         return predicates;
     }
 
@@ -87,7 +86,7 @@ public class V3TaskQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluat
         });
     }
 
-    private static Optional<Predicate<Pair<Job<?>, Task>>> applyNeedsMigration(boolean needsMigration) {
+    private static Optional<Predicate<Pair<Job<?>, Task>>> applyNeedsMigration(boolean needsMigration, TitusRuntime titusRuntime) {
         if (!needsMigration) {
             return Optional.empty();
         }
@@ -97,7 +96,7 @@ public class V3TaskQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluat
                         return false;
                     }
                     ServiceJobTask serviceTask = (ServiceJobTask) t;
-                    codeInvariants().notNull(serviceTask.getMigrationDetails(), "MigrationDetails is null in task: %s", t.getId());
+                    titusRuntime.getCodeInvariants().notNull(serviceTask.getMigrationDetails(), "MigrationDetails is null in task: %s", t.getId());
                     return serviceTask.getMigrationDetails() != null && serviceTask.getMigrationDetails().isNeedsMigration();
                 }
         );

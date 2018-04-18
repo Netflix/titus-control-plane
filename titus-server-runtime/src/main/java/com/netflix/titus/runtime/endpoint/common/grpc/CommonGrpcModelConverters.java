@@ -33,6 +33,7 @@ import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -60,6 +61,24 @@ public class CommonGrpcModelConverters {
     public static final Set<String> TASK_CONTEXT_AGENT_ATTRIBUTES = asSet(
             "region", "zone", "asg", "cluster", "stack", "id", "itype"
     );
+
+    public static CallMetadata toCallMetadata(com.netflix.titus.grpc.protogen.CallMetadata grpcCallContext) {
+        return CallMetadata.newBuilder()
+                .withCallerId(grpcCallContext.getCallerId())
+                .withCallReason(grpcCallContext.getCallReason())
+                .withCallPath(grpcCallContext.getCallPathList())
+                .withDebug(grpcCallContext.getDebug())
+                .build();
+    }
+
+    public static com.netflix.titus.grpc.protogen.CallMetadata toGrpcCallMetadata(CallMetadata callMetadata) {
+        return com.netflix.titus.grpc.protogen.CallMetadata.newBuilder()
+                .setCallerId(callMetadata.getCallerId())
+                .setCallReason(callMetadata.getCallReason())
+                .addAllCallPath(callMetadata.getCallPath())
+                .setDebug(callMetadata.isDebug())
+                .build();
+    }
 
     public static Page toPage(com.netflix.titus.grpc.protogen.Page grpcPage) {
         return new Page(grpcPage.getPageNumber(), grpcPage.getPageSize(), grpcPage.getCursor());

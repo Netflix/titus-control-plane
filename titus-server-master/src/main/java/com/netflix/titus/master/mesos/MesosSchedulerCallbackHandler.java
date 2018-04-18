@@ -316,7 +316,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         List<V2WorkerMetadata> runningWorkers = new ArrayList<>();
         v2JobOperations.getAllJobMgrs().forEach(m -> {
                     List<V2WorkerMetadata> tasks = m.getWorkers().stream()
-                            .filter(t -> V2JobState.isRunningState(t.getState()))
+                            .filter(t -> t.getState() == V2JobState.Started)
                             .collect(Collectors.toList());
                     runningWorkers.addAll(tasks);
                 }
@@ -338,12 +338,23 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         }
         for (Task task : v3JobOperations.getTasks()) {
             com.netflix.titus.api.jobmanager.model.job.TaskState taskState = task.getStatus().getState();
-            if (com.netflix.titus.api.jobmanager.model.job.TaskState.isRunning(taskState)) {
+            TaskState mesosState;
+            switch (taskState) {
+                case Started:
+                    mesosState = TaskState.TASK_RUNNING;
+                    break;
+                case KillInitiated:
+                    mesosState = TaskState.TASK_KILLING;
+                    break;
+                default:
+                    mesosState = null;
+            }
+            if (mesosState != null) {
                 String taskHost = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
                 if (taskHost != null) {
                     tasksToInitialize.add(TaskStatus.newBuilder()
                             .setTaskId(Protos.TaskID.newBuilder().setValue(task.getId()).build())
-                            .setState(TaskState.TASK_RUNNING)
+                            .setState(mesosState)
                             .setSlaveId(SlaveID.newBuilder().setValue(taskHost).build())
                             .build()
                     );
@@ -519,6 +530,12 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
         com.netflix.titus.api.jobmanager.model.job.TaskState v3TaskState;
         String reasonCode;
+
+        /*
+         * Some of Mesos states could be mapped here directly to Titus system errors. We do not do that, and instead
+         * we depend on the error message pattern matching to isolate system-level errors. Tasks failed due to system errors
+         * are always retried, and so we want to have a full control over error conditions when we do that.
+         */
         switch (effectiveState) {
             case TASK_STAGING:
                 v3TaskState = com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
@@ -542,7 +559,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 break;
             case TASK_LOST: // The task failed but can be rescheduled.
                 v3TaskState = com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
                 break;
             case TASK_UNKNOWN: // The master has no knowledge of the task.
                 v3TaskState = com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
@@ -561,18 +578,18 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 break;
             case TASK_DROPPED: // The task failed to launch because of a transient error.
                 v3TaskState = com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
                 break;
             case TASK_UNREACHABLE: // The task was running on an agent that has lost contact with the master
                 // Ignore. We will handle this state once we add 'Disconnected' state support in Titus.
                 return;
             case TASK_GONE: // The task is no longer running. This can occur if the agent has been terminated along with all of its tasks
                 v3TaskState = com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
                 break;
             case TASK_GONE_BY_OPERATOR: // The task was running on an agent that the master cannot contact; the operator has asserted that the agent has been shutdown
                 v3TaskState = com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
                 break;
             default:
                 logger.warn("Unexpected Mesos task state " + effectiveState);

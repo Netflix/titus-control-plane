@@ -39,7 +39,6 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -83,7 +82,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
-    private final CodeInvariants codeInvariants;
+    private final TitusRuntime titusRuntime;
     private final Clock clock;
 
     @Inject
@@ -120,8 +119,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
+        this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
-        this.codeInvariants = titusRuntime.getCodeInvariants();
 
         this.storeWriteRetryInterceptor = new RetryActionInterceptor(
                 "storeWrite",
@@ -155,9 +154,11 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         BatchJobView runningJobView = new BatchJobView(runningModel);
 
         if (DifferenceResolverUtils.hasJobState(referenceModel, JobState.KillInitiated)) {
-            List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state");
+            List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
+                    engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state", titusRuntime
+            );
             if (killInitiatedActions.isEmpty()) {
-                return DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore);
+                return DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, vmService, jobStore, titusRuntime);
             }
             return killInitiatedActions;
         } else if (DifferenceResolverUtils.hasJobState(referenceModel, JobState.Finished)) {
@@ -169,7 +170,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         }
-        actions.addAll(DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, clock, vmService, jobStore));
+        actions.addAll(DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, vmService, jobStore, titusRuntime));
 
         return actions;
     }
@@ -199,7 +200,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
                 .count();
         if (numberOfNotFinishedTasks >= refJobView.getRequiredSize()) {
-            codeInvariants.inconsistent(
+            titusRuntime.getCodeInvariants().inconsistent(
                     "Batch job reconciler attempts to create too many tasks: jobId=%s, requiredSize=%s, current=%s",
                     refJobView.getJob().getId(), refJobView.getRequiredSize(), numberOfNotFinishedTasks
             );
@@ -264,7 +265,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 }
             } else {
                 Task task = referenceTask.getEntity();
-                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, task.getId())));
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, task.getId(), titusRuntime)));
             }
             // Both current and delayed retries are counted
             if (shouldRetry) {

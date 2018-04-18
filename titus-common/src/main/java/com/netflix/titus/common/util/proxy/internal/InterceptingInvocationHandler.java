@@ -26,8 +26,10 @@ import java.util.Set;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.proxy.ProxyInvocationChain;
 import com.netflix.titus.common.util.proxy.annotation.ObservableResult;
+import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Completable;
 import rx.Observable;
 
 /**
@@ -38,11 +40,15 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
 
     private final boolean followObservableResults;
     private final Set<Method> observableResultFollowers;
+    private final Set<Method> completableResultFollowers;
 
     InterceptingInvocationHandler(Class<API> apiInterface, boolean followObservableResults) {
         super(apiInterface);
         this.followObservableResults = followObservableResults;
-        this.observableResultFollowers = findObservableResultFollowers(apiInterface, getIncludedMethods());
+
+        Pair<Set<Method>, Set<Method>> asynchronousResultFollowers = findObservableAndCompletableResultFollowers(apiInterface, getIncludedMethods());
+        this.observableResultFollowers = asynchronousResultFollowers.getLeft();
+        this.completableResultFollowers = asynchronousResultFollowers.getRight();
     }
 
     @Override
@@ -81,6 +87,8 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
         }
         if (observableResultFollowers.contains(method)) {
             result = afterObservable(method, (Observable<Object>) result, context);
+        } else if (completableResultFollowers.contains(method)) {
+            result = afterCompletable(method, (Completable) result, context);
         }
 
         return result;
@@ -94,18 +102,27 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
 
     protected abstract Observable<Object> afterObservable(Method method, Observable<Object> result, CONTEXT context);
 
-    private Set<Method> findObservableResultFollowers(Class<API> apiInterface, Set<Method> includedMethodSet) {
-        Set<Method> followed = new HashSet<>();
+    protected abstract Completable afterCompletable(Method method, Completable result, CONTEXT context);
+
+    private Pair<Set<Method>, Set<Method>> findObservableAndCompletableResultFollowers(Class<API> apiInterface, Set<Method> includedMethodSet) {
+        Set<Method> followedObservables = new HashSet<>();
+        Set<Method> followedCompletables = new HashSet<>();
         boolean enabledByDefault = followObservableResults || enablesTarget(apiInterface.getAnnotations());
         for (Method method : includedMethodSet) {
-            if (method.getReturnType().isAssignableFrom(Observable.class)) {
+            boolean isObservableResult = method.getReturnType().isAssignableFrom(Observable.class);
+            boolean isCompletableResult = !isObservableResult && method.getReturnType().isAssignableFrom(Completable.class);
+            if (isObservableResult || isCompletableResult) {
                 boolean methodEnabled = enabledByDefault || enablesTarget(method.getAnnotations());
                 if (methodEnabled) {
-                    followed.add(method);
+                    if (isObservableResult) {
+                        followedObservables.add(method);
+                    } else {
+                        followedCompletables.add(method);
+                    }
                 }
             }
         }
-        return followed;
+        return Pair.of(followedObservables, followedCompletables);
     }
 
     private boolean enablesTarget(Annotation[] annotations) {

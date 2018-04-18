@@ -25,8 +25,8 @@ import javax.validation.ConstraintViolation;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.GrpcUtil;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.gateway.service.v3.AgentManagementService;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
@@ -49,27 +49,27 @@ import rx.Completable;
 import rx.Observable;
 
 import static com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestCompletable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class DefaultAgentManagementService implements AgentManagementService {
 
     private final GrpcClientConfiguration configuration;
     private final AgentManagementServiceStub client;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
     private final EntitySanitizer entitySanitizer;
 
     @Inject
     public DefaultAgentManagementService(GrpcClientConfiguration configuration,
                                          AgentManagementServiceStub client,
-                                         SessionContext sessionContext,
+                                         CallMetadataResolver callMetadataResolver,
                                          @Named(AGENT_SANITIZER) EntitySanitizer entitySanitizer) {
         this.configuration = configuration;
         this.client = client;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.entitySanitizer = entitySanitizer;
     }
 
@@ -77,7 +77,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Observable<AgentInstanceGroups> getInstanceGroups() {
         return createRequestObservable(emitter -> {
             StreamObserver<AgentInstanceGroups> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getInstanceGroups(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getInstanceGroups(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -85,7 +85,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Observable<AgentInstanceGroup> getInstanceGroup(String id) {
         return createRequestObservable(emitter -> {
             StreamObserver<AgentInstanceGroup> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getInstanceGroup(Id.newBuilder().setId(id).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getInstanceGroup(Id.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -93,7 +93,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Observable<AgentInstance> getAgentInstance(String id) {
         return createRequestObservable(emitter -> {
             StreamObserver<AgentInstance> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).getAgentInstance(Id.newBuilder().setId(id).build(), streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getAgentInstance(Id.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -101,7 +101,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Observable<AgentInstances> findAgentInstances(AgentQuery query) {
         return createRequestObservable(emitter -> {
             StreamObserver<AgentInstances> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).findAgentInstances(query, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findAgentInstances(query, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -109,7 +109,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Completable updateInstanceGroupTier(TierUpdate tierUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupTier(tierUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateInstanceGroupTier(tierUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -123,7 +123,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateAutoScalingRule(autoScalingRuleUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateAutoScalingRule(autoScalingRuleUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -131,7 +131,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupLifecycleState(lifecycleStateUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateInstanceGroupLifecycleState(lifecycleStateUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -139,7 +139,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Completable updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceGroupAttributes(attributesUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateInstanceGroupAttributes(attributesUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -147,7 +147,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext, configuration.getRequestTimeout()).updateInstanceOverrideState(overrideStateUpdate, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateInstanceOverrideState(overrideStateUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -155,7 +155,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     public Observable<AgentChangeEvent> observeAgents() {
         return createRequestObservable(emitter -> {
             StreamObserver<AgentChangeEvent> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, sessionContext).observeAgents(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStub(client, callMetadataResolver).observeAgents(Empty.getDefaultInstance(), streamObserver);
         });
     }
 }

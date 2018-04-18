@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
-import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;

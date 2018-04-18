@@ -24,7 +24,7 @@ import io.grpc.Status;
 import io.grpc.stub.AbstractStub;
 import rx.functions.Func2;
 
-import static com.netflix.titus.common.grpc.GrpcUtil.isNotOK;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.isNotOK;
 
 interface ErrorMerger<STUB extends AbstractStub<STUB>, T> extends Func2<
         CellResponse<STUB, Either<T, Throwable>>,

@@ -75,7 +75,7 @@ public class TitusFederationModule extends AbstractModule {
     @Singleton
     public TitusRuntime getTitusRuntime(Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
-                LoggingCodeInvariants.INSTANCE,
+                LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
         return new DefaultTitusRuntime(codeInvariants, registry);

@@ -28,9 +28,9 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.EmitterWithMultipleSubscriptions;
-import com.netflix.titus.common.grpc.GrpcUtil;
-import com.netflix.titus.common.grpc.SessionContext;
+import com.netflix.titus.common.util.rx.EmitterWithMultipleSubscriptions;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -66,8 +66,8 @@ import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
-import static com.netflix.titus.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
@@ -82,14 +82,14 @@ public class AggregatingJobManagementService implements JobManagementService {
     private final AggregatingCellClient aggregatingClient;
     private AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private final CellRouter router;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public AggregatingJobManagementService(GrpcConfiguration grpcConfiguration,
                                            TitusFederationConfiguration federationConfiguration,
                                            CellConnector connector,
                                            CellRouter router,
-                                           SessionContext sessionContext,
+                                           CallMetadataResolver callMetadataResolver,
                                            AggregatingCellClient aggregatingClient,
                                            AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
 
@@ -97,7 +97,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         this.federationConfiguration = federationConfiguration;
         this.connector = connector;
         this.router = router;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
     }
@@ -359,7 +359,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     }
 
     private JobManagementServiceStub wrap(JobManagementServiceStub client) {
-        return createWrappedStub(client, sessionContext, grpcConfiguration.getRequestTimeoutMs());
+        return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {

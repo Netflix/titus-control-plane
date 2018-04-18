@@ -447,6 +447,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -456,6 +459,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -790,13 +794,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1064,7 +1068,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1143,6 +1147,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -1172,6 +1177,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -1660,6 +1666,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -1669,6 +1678,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -2003,13 +2013,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -2277,7 +2287,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -2356,6 +2366,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -2385,6 +2396,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -2873,6 +2885,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -2882,6 +2897,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -3216,13 +3232,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -3490,7 +3506,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -3569,6 +3585,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -3599,6 +3616,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -4123,6 +4141,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -4132,6 +4153,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -4466,13 +4488,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -4740,7 +4762,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -4819,6 +4841,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -4849,6 +4872,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -5337,6 +5361,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -5346,6 +5373,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -5680,13 +5708,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -5954,7 +5982,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -6033,6 +6061,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -6063,6 +6092,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -6561,6 +6591,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -6570,6 +6603,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -6904,13 +6938,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -7185,7 +7219,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -7265,6 +7299,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -7294,6 +7329,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -7792,6 +7828,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -7801,6 +7840,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -8135,13 +8175,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -8416,7 +8456,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -8496,6 +8536,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -8525,6 +8566,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -9023,6 +9065,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -9032,6 +9077,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -9366,13 +9412,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -9647,7 +9693,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -9727,6 +9773,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -9757,6 +9804,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -10255,6 +10303,9 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "com.netflix.titus:titus-server-federation": {
+            "project": true
+        },
         "com.netflix.titus:titus-server-gateway": {
             "project": true
         },
@@ -10264,6 +10315,7 @@
         "com.netflix.titus:titus-server-runtime": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master"
             ]
@@ -10598,13 +10650,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.0",
+            "locked": "1.8.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -10879,7 +10931,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.17.0",
+            "locked": "2.18.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -10959,6 +11011,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -10989,6 +11042,7 @@
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"

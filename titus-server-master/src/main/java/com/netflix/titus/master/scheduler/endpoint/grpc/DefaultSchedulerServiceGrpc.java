@@ -17,6 +17,7 @@
 package com.netflix.titus.master.scheduler.endpoint.grpc;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -25,12 +26,13 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.scheduler.service.SchedulerService;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcSchedulerModelConverters;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -41,12 +43,12 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
     private static final Logger logger = LoggerFactory.getLogger(DefaultSchedulerServiceGrpc.class);
 
     private final SchedulerService schedulerService;
-    private final SessionContext sessionContext;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public DefaultSchedulerServiceGrpc(SchedulerService schedulerService, SessionContext sessionContext) {
+    public DefaultSchedulerServiceGrpc(SchedulerService schedulerService, CallMetadataResolver callMetadataResolver) {
         this.schedulerService = schedulerService;
-        this.sessionContext = sessionContext;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
@@ -106,13 +108,14 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
         );
     }
 
-    private void execute(StreamObserver<?> responseObserver, Consumer<String> action) {
-        if (!sessionContext.getCallerId().isPresent()) {
+    private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
+        Optional<CallMetadata> callMetadata = callMetadataResolver.resolve();
+        if (!callMetadata.isPresent()) {
             responseObserver.onError(TitusServiceException.noCallerId());
             return;
         }
         try {
-            action.accept(sessionContext.getCallerId().get());
+            action.accept(callMetadata.get());
             responseObserver.onCompleted();
         } catch (Exception e) {
             responseObserver.onError(e);

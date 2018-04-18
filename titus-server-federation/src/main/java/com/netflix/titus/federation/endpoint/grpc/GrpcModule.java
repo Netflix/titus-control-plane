@@ -17,11 +17,11 @@
 package com.netflix.titus.federation.endpoint.grpc;
 
 import com.google.inject.AbstractModule;
-import com.netflix.titus.common.grpc.AnonymousSessionContext;
-import com.netflix.titus.common.grpc.SessionContext;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.SimpleCallMetadataResolverProvider;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
@@ -31,7 +31,7 @@ public class GrpcModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TitusFederationGrpcServer.class).asEagerSingleton();
-        bind(SessionContext.class).to(AnonymousSessionContext.class);
+        bind(CallMetadataResolver.class).toProvider(SimpleCallMetadataResolverProvider.class);
         bind(JobManagementServiceGrpc.JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
         bind(AutoScalingServiceGrpc.AutoScalingServiceImplBase.class).to(DefaultAutoScalingServiceGrpc.class);
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);

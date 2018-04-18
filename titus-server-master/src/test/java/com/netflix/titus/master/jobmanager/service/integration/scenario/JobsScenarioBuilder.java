@@ -154,8 +154,7 @@ public class JobsScenarioBuilder {
                         constraintEvaluatorTransformer,
                         newJobSanitizer(VerifierMode.Permissive),
                         newJobSanitizer(VerifierMode.Strict),
-                        titusRuntime.getRegistry(),
-                        clock,
+                        titusRuntime,
                         testScheduler
                 ),
                 titusRuntime
@@ -198,7 +197,7 @@ public class JobsScenarioBuilder {
         String jobId = jobIdRef.get();
         assertThat(jobId).describedAs("Job not created").isNotNull();
 
-        JobScenarioBuilder<E> jobScenarioBuilder = new JobScenarioBuilder<>(jobId, jobEventsSubscriber, storeEventsSubscriber, jobOperations, schedulingService, jobStore, vmService, testScheduler);
+        JobScenarioBuilder<E> jobScenarioBuilder = new JobScenarioBuilder<>(jobId, jobEventsSubscriber, storeEventsSubscriber, jobOperations, schedulingService, jobStore, vmService, titusRuntime, testScheduler);
         jobScenarioBuilders.add(jobScenarioBuilder);
         jobScenario.apply(jobScenarioBuilder);
         return this;

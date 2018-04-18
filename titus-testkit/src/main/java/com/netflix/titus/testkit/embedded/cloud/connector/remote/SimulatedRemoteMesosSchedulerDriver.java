@@ -29,7 +29,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;

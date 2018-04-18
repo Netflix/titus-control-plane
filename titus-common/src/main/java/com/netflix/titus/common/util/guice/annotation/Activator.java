@@ -28,9 +28,4 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target(METHOD)
 public @interface Activator {
-
-    /**
-     * Activate a particular object only after the given one here.
-     */
-    Class<?>[] after() default {};
 }

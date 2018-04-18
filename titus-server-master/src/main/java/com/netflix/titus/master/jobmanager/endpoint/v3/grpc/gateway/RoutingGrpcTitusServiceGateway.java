@@ -112,7 +112,7 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         );
         this.blackListImageMatcher = RegExpExt.dynamicMatcher(
                 configuration::getNotV3EnabledImages,
-                "titus.master.grpcServer.notV3EnabledImage",
+                "titus.master.grpcServer.notV3EnabledImages",
                 0,
                 logger
         );

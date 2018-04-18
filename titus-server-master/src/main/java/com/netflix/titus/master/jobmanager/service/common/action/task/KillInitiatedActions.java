@@ -38,6 +38,7 @@ import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
@@ -86,13 +87,14 @@ public class KillInitiatedActions {
                                                           String taskId,
                                                           boolean shrink,
                                                           String reasonCode,
-                                                          String reason) {
+                                                          String reason,
+                                                          TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("userInitiateTaskKill")
                 .id(taskId)
                 .trigger(V3JobOperations.Trigger.API)
                 .summary(reason)
                 .changeWithModelUpdates(self ->
-                        JobEntityHolders.toTaskObservable(engine, taskId).flatMap(task -> {
+                        JobEntityHolders.toTaskObservable(engine, taskId, titusRuntime).flatMap(task -> {
                             TaskState taskState = task.getStatus().getState();
                             if (taskState == TaskState.KillInitiated || taskState == TaskState.Finished) {
                                 return Observable.just(Collections.<ModelActionHolder>emptyList());
@@ -100,7 +102,7 @@ public class KillInitiatedActions {
                             Task taskWithKillInitiated = JobFunctions.changeTaskStatus(task, TaskState.KillInitiated, reasonCode, reason);
 
                             Action0 killAction = () -> vmService.killTask(taskId);
-                            Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId()).map(current -> {
+                            Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId(), titusRuntime).map(current -> {
                                 List<ModelActionHolder> updateActions = new ArrayList<>();
 
                                 TitusModelAction stateUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
@@ -128,13 +130,14 @@ public class KillInitiatedActions {
                                                                     VirtualMachineMasterService vmService,
                                                                     JobStore jobStore,
                                                                     String reasonCode,
-                                                                    String reason) {
+                                                                    String reason,
+                                                                    TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("reconcilerInitiatedTaskKill")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary(reason)
                 .changeWithModelUpdates(self ->
-                        JobEntityHolders.toTaskObservable(engine, task.getId()).flatMap(currentTask -> {
+                        JobEntityHolders.toTaskObservable(engine, task.getId(), titusRuntime).flatMap(currentTask -> {
                             TaskState taskState = currentTask.getStatus().getState();
                             if (taskState == TaskState.Finished) {
                                 return Observable.just(Collections.<ModelActionHolder>emptyList());
@@ -163,7 +166,8 @@ public class KillInitiatedActions {
                                                                               VirtualMachineMasterService vmService,
                                                                               JobStore jobStore,
                                                                               String reasonCode,
-                                                                              String reason) {
+                                                                              String reason,
+                                                                              TitusRuntime titusRuntime) {
         List<ChangeAction> result = new ArrayList<>();
 
         // Move running tasks to KillInitiated state
@@ -174,7 +178,7 @@ public class KillInitiatedActions {
 
             TaskState state = task.getStatus().getState();
             if (state != TaskState.KillInitiated && state != TaskState.Finished) {
-                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, reasonCode, reason));
+                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, reasonCode, reason, titusRuntime));
             }
         });
 
@@ -189,7 +193,8 @@ public class KillInitiatedActions {
                         taskRef -> JobFunctions.changeTaskStatus(taskRef, TaskState.Finished, reasonCode, reason),
                         jobStore,
                         V3JobOperations.Trigger.Reconciler,
-                        reason
+                        reason,
+                        titusRuntime
                 ));
             }
         });

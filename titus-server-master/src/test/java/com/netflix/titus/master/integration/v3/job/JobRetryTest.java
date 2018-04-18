@@ -37,7 +37,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStacks.basicStack;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
@@ -65,7 +65,7 @@ public class JobRetryTest extends BaseIntegrationTest {
             )
             .build();
 
-    private static final TitusStackResource titusStackResource = new TitusStackResource(basicStack(5));
+    private static final TitusStackResource titusStackResource = new TitusStackResource(basicCell(5));
 
     private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 

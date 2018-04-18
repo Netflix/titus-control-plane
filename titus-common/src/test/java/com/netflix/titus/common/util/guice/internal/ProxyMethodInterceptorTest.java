@@ -22,8 +22,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provides;
-import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.common.util.guice.ProxyType;
@@ -61,7 +61,7 @@ public class ProxyMethodInterceptorTest {
                 new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(Registry.class).toInstance(new DefaultRegistry());
+                        bind(TitusRuntime.class).toInstance(TitusRuntimes.internal());
                     }
                 },
                 serviceModule

@@ -32,8 +32,8 @@ import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
-import com.netflix.titus.testkit.embedded.master.EmbeddedStorageProvider;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedStorageProvider;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.JobObserver;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
@@ -46,7 +46,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.master.EmbeddedTitusMasters.basicMaster;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)

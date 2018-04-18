@@ -28,7 +28,7 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
-import com.netflix.titus.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.simulator.SimulatedMesosServiceGrpc.SimulatedMesosServiceImplBase;

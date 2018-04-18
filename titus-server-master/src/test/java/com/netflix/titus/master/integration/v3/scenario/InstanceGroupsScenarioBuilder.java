@@ -30,9 +30,10 @@ import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedCellTitusOperations;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -73,7 +74,7 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
         this.titusStackResource = null;
         this.titusMasterResource = null;
         this.titusMaster = titusMaster;
-        this.titusOperations = new EmbeddedTitusOperations(titusMaster);
+        this.titusOperations = new EmbeddedCellTitusOperations(titusMaster);
         try {
             before();
         } catch (Throwable error) {

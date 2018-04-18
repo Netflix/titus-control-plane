@@ -16,10 +16,16 @@
 
 package com.netflix.titus.testkit.junit.master;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import com.google.common.base.Preconditions;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.gateway.EmbeddedTitusGateway;
-import com.netflix.titus.testkit.embedded.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.embedded.stack.EmbeddedTitusStack;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
+import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
 import org.junit.rules.ExternalResource;
 
 public class TitusStackResource extends ExternalResource {
@@ -27,35 +33,51 @@ public class TitusStackResource extends ExternalResource {
     public static String V2_ENGINE_APP_PREFIX = "v2App";
     public static String V3_ENGINE_APP_PREFIX = "v3App";
 
-    private final EmbeddedTitusStack embeddedTitusStack;
+    private final List<EmbeddedTitusCell> embeddedTitusCells;
+    private final Optional<EmbeddedTitusFederation> federation;
 
-    public TitusStackResource(EmbeddedTitusStack embeddedTitusStack) {
-        this.embeddedTitusStack = embeddedTitusStack;
+    public TitusStackResource(EmbeddedTitusCell embeddedTitusCell, boolean federationEnabled) {
+        if (federationEnabled) {
+            this.embeddedTitusCells = Collections.singletonList(embeddedTitusCell);
+            this.federation = Optional.of(EmbeddedTitusFederation.aDefaultTitusFederation().withCell(".*", embeddedTitusCell).build());
+        } else {
+            this.embeddedTitusCells = Collections.singletonList(embeddedTitusCell);
+            this.federation = Optional.empty();
+        }
+    }
+
+    public TitusStackResource(EmbeddedTitusCell embeddedTitusCell) {
+        this(embeddedTitusCell, "true".equalsIgnoreCase(System.getProperty("titus.test.federation", "true")));
+    }
+
+    public TitusStackResource(EmbeddedTitusFederation federation) {
+        this.embeddedTitusCells = federation.getCells();
+        this.federation = Optional.of(federation);
     }
 
     @Override
-    public void before() throws Throwable {
-        embeddedTitusStack.boot();
+    public void before() {
+        embeddedTitusCells.forEach(EmbeddedTitusCell::boot);
+        federation.ifPresent(EmbeddedTitusFederation::boot);
     }
 
     @Override
     public void after() {
-        embeddedTitusStack.shutdown();
-    }
-
-    public EmbeddedTitusStack getStack() {
-        return embeddedTitusStack;
+        federation.ifPresent(EmbeddedTitusFederation::shutdown);
+        embeddedTitusCells.forEach(EmbeddedTitusCell::shutdown);
     }
 
     public EmbeddedTitusMaster getMaster() {
-        return embeddedTitusStack.getMaster();
+        Preconditions.checkState(embeddedTitusCells.size() == 1, "Multiple TitusMasters");
+        return embeddedTitusCells.get(0).getMaster();
     }
 
     public EmbeddedTitusGateway getGateway() {
-        return embeddedTitusStack.getGateway();
+        Preconditions.checkState(embeddedTitusCells.size() == 1, "Multiple TitusGateways");
+        return embeddedTitusCells.get(0).getGateway();
     }
 
     public EmbeddedTitusOperations getOperations() {
-        return embeddedTitusStack.getTitusOperations();
+        return federation.map(EmbeddedTitusFederation::getTitusOperations).orElse(embeddedTitusCells.get(0).getTitusOperations());
     }
 }
