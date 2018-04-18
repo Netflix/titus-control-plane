@@ -36,7 +36,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
     @Override
     public JobManagerReconcilerEvent newBeforeChangeEvent(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                           ChangeAction changeAction,
-                                                          long transactionId) {
+                                                          String transactionId) {
         return new JobBeforeChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, transactionId);
     }
 
@@ -44,7 +44,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
     public JobManagerReconcilerEvent newAfterChangeEvent(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                          ChangeAction changeAction,
                                                          long executionTimeMs,
-                                                         long transactionId) {
+                                                         String transactionId) {
         return new JobAfterChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, executionTimeMs, transactionId);
     }
 
@@ -53,7 +53,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                          ChangeAction changeAction,
                                                          Throwable error,
                                                          long executionTimeMs,
-                                                         long transactionId) {
+                                                         String transactionId) {
         return new JobChangeErrorReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, error, executionTimeMs, transactionId);
     }
 
@@ -69,7 +69,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                          ModelActionHolder modelActionHolder,
                                                          EntityHolder changedEntityHolder,
                                                          Optional<EntityHolder> previousEntityHolder,
-                                                         long transactionId) {
+                                                         String transactionId) {
         return new JobModelReconcilerEvent.JobModelUpdateReconcilerEvent(getJob(engine, modelActionHolder), (TitusChangeAction) changeAction, modelActionHolder, changedEntityHolder, previousEntityHolder, transactionId);
     }
 
@@ -79,7 +79,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                               ModelActionHolder modelActionHolder,
                                                               EntityHolder previousEntityHolder,
                                                               Throwable error,
-                                                              long transactionId) {
+                                                              String transactionId) {
         return new JobModelReconcilerEvent.JobModelUpdateErrorReconcilerEvent(getJob(engine, modelActionHolder), (TitusChangeAction) changeAction, modelActionHolder, previousEntityHolder, error, transactionId);
     }
 

@@ -25,7 +25,7 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     private final TitusChangeAction changeAction;
 
-    JobChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long transactionId) {
+    JobChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId) {
         super(job, transactionId);
         this.changeAction = changeAction;
     }
@@ -36,7 +36,7 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     public static class JobBeforeChangeReconcilerEvent extends JobChangeReconcilerEvent {
 
-        JobBeforeChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long transactionId) {
+        JobBeforeChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId) {
             super(job, changeAction, transactionId);
         }
     }
@@ -45,7 +45,7 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
         private final long executionTimeMs;
 
-        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long executionTimeMs, long transactionId) {
+        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long executionTimeMs, String transactionId) {
             super(job, changeAction, transactionId);
             this.executionTimeMs = executionTimeMs;
         }
@@ -60,7 +60,7 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
         private final Throwable error;
         private final long executionTimeMs;
 
-        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long executionTimeMs, long transactionId) {
+        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long executionTimeMs, String transactionId) {
             super(job, changeAction, transactionId);
             this.error = error;
             this.executionTimeMs = executionTimeMs;

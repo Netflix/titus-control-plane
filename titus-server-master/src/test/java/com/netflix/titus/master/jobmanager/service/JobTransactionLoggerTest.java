@@ -68,7 +68,7 @@ public class JobTransactionLoggerTest {
                 modelActionHolder,
                 EntityHolder.newRoot(currentJob.getId(), currentJob),
                 Optional.of(EntityHolder.newRoot(previousJob.getId(), previousJob)),
-                1
+                "1"
         );
         String logLine = JobTransactionLogger.doFormat(jobReconcilerEvent);
         assertThat(logLine).isNotEmpty();

@@ -21,10 +21,10 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 final class ChangeActionHolder {
 
     private final ChangeAction changeAction;
-    private final long transactionId;
+    private final String transactionId;
     private final long createTimeMs;
 
-    ChangeActionHolder(ChangeAction changeAction, long transactionId, long createTimeMs) {
+    ChangeActionHolder(ChangeAction changeAction, String transactionId, long createTimeMs) {
         this.changeAction = changeAction;
         this.transactionId = transactionId;
         this.createTimeMs = createTimeMs;
@@ -34,7 +34,7 @@ final class ChangeActionHolder {
         return changeAction;
     }
 
-    long getTransactionId() {
+    String getTransactionId() {
         return transactionId;
     }
 
