@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
@@ -53,6 +54,7 @@ class ReconciliationEngineMetrics<EVENT> {
     private final Id emittedEventId;
 
     private final AtomicLong pendingChangeActions = new AtomicLong();
+    private final Gauge changeActionQueueSize;
     private final Counter abandonedIteration;
 
     ReconciliationEngineMetrics(String rootHolderId,
@@ -73,10 +75,12 @@ class ReconciliationEngineMetrics<EVENT> {
         this.emittedEventId = registry.createId(EMITTED_EVENTS, commonTags);
         this.abandonedIteration = registry.counter(ROOT_NAME + "abandonedIteration");
 
+        this.changeActionQueueSize = registry.gauge(registry.createId(ROOT_NAME + "changeActionQueueSize", commonTags));
         PolledMeter.using(registry).withName(PENDING_CHANGE_ACTIONS).withTags(commonTags).monitorValue(pendingChangeActions);
     }
 
     void shutdown() {
+        changeActionQueueSize.set(0);
         pendingChangeActions.set(0);
     }
 
@@ -88,12 +92,16 @@ class ReconciliationEngineMetrics<EVENT> {
         registry.timer(evaluationId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
-    public void eventsAndModelUpdates(long executionTimeNs) {
+    void eventsAndModelUpdates(long executionTimeNs) {
         registry.timer(eventsAndModelUpdatesId).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
     void eventsAndModelUpdates(long executionTimeNs, Exception error) {
         registry.timer(eventsAndModelUpdatesId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
+    }
+
+    void updateChangeActionQueueSize(int queueSize) {
+        changeActionQueueSize.set(queueSize);
     }
 
     void changeActionStarted(ChangeActionHolder actionHolder) {

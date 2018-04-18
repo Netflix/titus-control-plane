@@ -197,6 +197,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
             long transactionId = nextTransactionId.getAndIncrement();
             changeActionEventQueue.add(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
             referenceChangeActions.add(Pair.of(new ChangeActionHolder(referenceUpdate, transactionId, clock.wallTime()), (Subscriber<Void>) subscriber));
+            metrics.updateChangeActionQueueSize(referenceChangeActions.size());
         });
     }
 
@@ -304,49 +305,53 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     }
 
     private boolean startNextReferenceChangeAction() {
-        Pair<ChangeActionHolder, Subscriber<Void>> next;
-        while ((next = referenceChangeActions.poll()) != null) {
-            Subscriber<Void> subscriber = next.getRight();
-            if (!subscriber.isUnsubscribed()) {
-                ChangeActionHolder actionHolder = next.getLeft();
-                long startTimeNs = clock.nanoTime();
-                metrics.changeActionStarted(actionHolder);
+        try {
+            Pair<ChangeActionHolder, Subscriber<Void>> next;
+            while ((next = referenceChangeActions.poll()) != null) {
+                Subscriber<Void> subscriber = next.getRight();
+                if (!subscriber.isUnsubscribed()) {
+                    ChangeActionHolder actionHolder = next.getLeft();
+                    long startTimeNs = clock.nanoTime();
+                    metrics.changeActionStarted(actionHolder);
 
-                final Pair<ChangeActionHolder, Subscriber<Void>> finalNext = next;
-                AtomicBoolean metricsNotUpdated = new AtomicBoolean(true);
-                Subscription subscription = actionHolder.getChangeAction().apply()
-                        .doOnUnsubscribe(() -> {
-                            if (metricsNotUpdated.getAndSet(false)) {
-                                metrics.changeActionUnsubscribed(actionHolder, clock.nanoTime() - startTimeNs);
-                            }
-                            subscriber.unsubscribe();
-                        })
-                        .subscribe(
-                                modelActionHolderList -> {
-                                    changeActionEventQueue.add(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), passedMs(startTimeNs), actionHolder.getTransactionId()));
-                                    registerModelUpdateRequest(finalNext.getLeft(), modelActionHolderList);
-                                },
-                                e -> {
-                                    if (metricsNotUpdated.getAndSet(false)) {
-                                        metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs, e);
-                                    }
-                                    changeActionEventQueue.add(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, passedMs(startTimeNs), actionHolder.getTransactionId()));
-                                    subscriber.onError(e);
-                                },
-                                // TODO Make sure always one element is emitted
-                                () -> {
-                                    if (metricsNotUpdated.getAndSet(false)) {
-                                        metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs);
-                                    }
-                                    subscriber.onCompleted();
+                    final Pair<ChangeActionHolder, Subscriber<Void>> finalNext = next;
+                    AtomicBoolean metricsNotUpdated = new AtomicBoolean(true);
+                    Subscription subscription = actionHolder.getChangeAction().apply()
+                            .doOnUnsubscribe(() -> {
+                                if (metricsNotUpdated.getAndSet(false)) {
+                                    metrics.changeActionUnsubscribed(actionHolder, clock.nanoTime() - startTimeNs);
                                 }
-                        );
-                subscriber.add(Subscriptions.create(subscription::unsubscribe));
-                startedReferenceChangeActionSubscription = Optional.of(subscription);
-                return true;
+                                subscriber.unsubscribe();
+                            })
+                            .subscribe(
+                                    modelActionHolderList -> {
+                                        changeActionEventQueue.add(eventFactory.newAfterChangeEvent(this, actionHolder.getChangeAction(), passedMs(startTimeNs), actionHolder.getTransactionId()));
+                                        registerModelUpdateRequest(finalNext.getLeft(), modelActionHolderList);
+                                    },
+                                    e -> {
+                                        if (metricsNotUpdated.getAndSet(false)) {
+                                            metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs, e);
+                                        }
+                                        changeActionEventQueue.add(eventFactory.newChangeErrorEvent(this, actionHolder.getChangeAction(), e, passedMs(startTimeNs), actionHolder.getTransactionId()));
+                                        subscriber.onError(e);
+                                    },
+                                    // TODO Make sure always one element is emitted
+                                    () -> {
+                                        if (metricsNotUpdated.getAndSet(false)) {
+                                            metrics.changeActionFinished(actionHolder, clock.nanoTime() - startTimeNs);
+                                        }
+                                        subscriber.onCompleted();
+                                    }
+                            );
+                    subscriber.add(Subscriptions.create(subscription::unsubscribe));
+                    startedReferenceChangeActionSubscription = Optional.of(subscription);
+                    return true;
+                }
             }
+            return false;
+        } finally {
+            metrics.updateChangeActionQueueSize(referenceChangeActions.size());
         }
-        return false;
     }
 
     private void registerModelUpdateRequest(ChangeActionHolder changeActionHolder, List<ModelActionHolder> stateChange) {
