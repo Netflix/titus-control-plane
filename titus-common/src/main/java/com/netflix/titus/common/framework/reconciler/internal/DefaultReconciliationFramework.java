@@ -26,6 +26,8 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -48,6 +50,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 public class DefaultReconciliationFramework<EVENT> implements ReconciliationFramework<EVENT> {
@@ -61,6 +64,9 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private final Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory;
     private final long idleTimeoutMs;
     private final long activeTimeoutMs;
+
+    private final ExecutorService executor;
+    private final Scheduler scheduler;
 
     private final Set<ReconciliationEngine<EVENT>> engines = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
@@ -87,7 +93,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
                                           long activeTimeoutMs,
                                           Map<Object, Comparator<EntityHolder>> indexComparators,
                                           Registry registry,
-                                          Scheduler scheduler) {
+                                          Optional<Scheduler> optionalScheduler) {
         Preconditions.checkArgument(idleTimeoutMs > 0, "idleTimeout <= 0 (%s)", idleTimeoutMs);
         Preconditions.checkArgument(activeTimeoutMs <= idleTimeoutMs, "activeTimeout(%s) > idleTimeout(%s)", activeTimeoutMs, idleTimeoutMs);
 
@@ -96,6 +102,19 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
         this.idleTimeoutMs = idleTimeoutMs;
         this.activeTimeoutMs = activeTimeoutMs;
+
+        if (optionalScheduler.isPresent()) {
+            this.scheduler = optionalScheduler.get();
+            this.executor = null;
+        } else {
+            this.executor = Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "TitusReconciliationFramework");
+                thread.setDaemon(true);
+                return thread;
+            });
+            this.scheduler = Schedulers.from(executor);
+        }
+
         this.worker = scheduler.createWorker();
         this.eventsObservable = Observable.merge(eventsMergeSubject).share();
 
@@ -140,6 +159,10 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         ExceptionExt.silent(() -> latch.await(timeoutMs, TimeUnit.MILLISECONDS));
 
         internalEventSubscription.unsubscribe();
+
+        if (executor != null) {
+            executor.shutdownNow();
+        }
 
         return latch.getCount() == 0;
     }
@@ -189,7 +212,8 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     @Override
     public Optional<Pair<ReconciliationEngine<EVENT>, EntityHolder>> findEngineByChildId(String childId) {
         for (ReconciliationEngine engine : engines) {
-            Optional<EntityHolder> childHolder = engine.getReferenceView().getChildren().stream().filter(c -> c.getId().equals(childId)).findFirst();
+            EntityHolder rootHolder = engine.getReferenceView();
+            Optional<EntityHolder> childHolder = rootHolder.findChildById(childId);
             if (childHolder.isPresent()) {
                 return Optional.of(Pair.of(engine, childHolder.get()));
             }

@@ -72,7 +72,7 @@ public class DefaultReconciliationFrameworkTest {
             ACTIVE_TIMEOUT_MS,
             indexComparators,
             new DefaultRegistry(),
-            testScheduler
+            Optional.of(testScheduler)
     );
 
     @Before
@@ -106,7 +106,7 @@ public class DefaultReconciliationFrameworkTest {
                 ACTIVE_TIMEOUT_MS,
                 indexComparators,
                 new DefaultRegistry(),
-                testScheduler
+                Optional.of(testScheduler)
         );
         framework.start();
         AssertableSubscriber<SimpleReconcilerEvent> eventSubscriber = framework.events().test();
