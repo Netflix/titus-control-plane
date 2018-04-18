@@ -10,10 +10,30 @@ scheduling containers on agents.
 ## Documentation & Getting Started
 [netflix.github.io/titus](http://netflix.github.io/titus/)
 
-## Building
+## Building and Testing
+**Building**
 ```
 ./gradlew build
 ```
+**Run Tests**
+```
+./gradlew test
+```
+
+**Run Integration Tests**
+```
+./gradlew integrationTest
+```
+
+**Run All Tests**
+```
+./gradlew testAll
+```
+
+## Extensions
+There are several extensions in the `titus-ext` folder for integrations with various systems. In order to use
+these extensions, a wrapper project that reconfigures the guice bindings is needed. A tutorial project for binding
+the different implementations is coming soon. 
 
 ## Local testing with docker-compose
 [`docker-compose`](https://docs.docker.com/compose/install/) together with [`docker-engine`](https://docs.docker.com/engine/)
