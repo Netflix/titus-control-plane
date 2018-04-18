@@ -204,6 +204,13 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
+    private static ServiceJobSpec.ServiceJobProcesses toGrpcServiceJobProcesses(ServiceJobProcesses serviceJobProcesses) {
+        return ServiceJobSpec.ServiceJobProcesses.newBuilder()
+                .setDisableDecreaseDesired(serviceJobProcesses.isDisableDecreaseDesired())
+                .setDisableIncreaseDesired(serviceJobProcesses.isDisableIncreaseDesired())
+                .build();
+    }
+
     private static MigrationPolicy toCoreMigrationPolicy(com.netflix.titus.grpc.protogen.MigrationPolicy grpcMigrationPolicy) {
         switch (grpcMigrationPolicy.getPolicyCase()) {
             case SYSTEMDEFAULT:
@@ -455,6 +462,7 @@ public final class V3GrpcModelConverters {
     public static ServiceJobSpec toGrpcServiceSpec(ServiceJobExt serviceJobExt) {
         com.netflix.titus.api.jobmanager.model.job.Capacity capacity = serviceJobExt.getCapacity();
         ServiceJobSpec.Builder builder = ServiceJobSpec.newBuilder()
+                .setServiceJobProcesses(toGrpcServiceJobProcesses(serviceJobExt.getServiceJobProcesses()))
                 .setEnabled(serviceJobExt.isEnabled())
                 .setCapacity(toGrpcCapacity(capacity))
                 .setRetryPolicy(toGrpcRetryPolicy(serviceJobExt.getRetryPolicy()))

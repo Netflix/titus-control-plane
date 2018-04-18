@@ -67,6 +67,7 @@ public final class JobDescriptorGenerator {
     public static DataGenerator<ServiceJobExt> serviceJobExtensions() {
         return retryPolicies().map(retryPolicy -> JobModel.newServiceJobExt()
                 .withCapacity(JobModel.newCapacity().withMin(0).withDesired(1).withMax(2).build())
+                .withServiceJobProcesses(ServiceJobProcesses.newBuilder().withDisableDecreaseDesired(false).withDisableDecreaseDesired(false).build())
                 .withRetryPolicy(retryPolicy)
                 .build()
         );
