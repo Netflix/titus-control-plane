@@ -1,11 +1,21 @@
 # Titus Control Plane
+[![Build Status](https://travis-ci.org/Netflix/titus-control-plane.svg?branch=master)](https://travis-ci.org/Netflix/titus-control-plane)
+[![Apache 2.0](https://img.shields.io/github/license/nebula-plugins/gradle-lint-plugin.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+
 ## Overview
-Titus is the Netflix Cloud Container Runtime that manages containers and provides integrations to the infrastructure
-ecosystem. This repository contains the control plane components which are responsible for accepting requests and
-scheduling those requests on agents.
+Titus is the Netflix Container Management Platform that manages containers and provides integrations to the infrastructure
+ecosystem. This repository contains the control plane components which are responsible for accepting job requests and
+scheduling containers on agents.
+
+## Documentation & Getting Started
+[netflix.github.io/titus](http://netflix.github.io/titus/)
+
+## Building
+```
+./gradlew build
+```
 
 ## Local testing with docker-compose
-
 [`docker-compose`](https://docs.docker.com/compose/install/) together with [`docker-engine`](https://docs.docker.com/engine/)
 can be used to stand up a local cluster with all components necessary to run titus containers. Each component
 (titus-master, titus-gateway, mesos-master, zookeeper, titus-agent) will run as a separate docker container, and Titus
@@ -119,3 +129,19 @@ docker-compose down
 # or only stop titus-master
 docker-compose stop master
 ```
+
+## LICENSE
+
+Copyright (c) 2018 Netflix, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+<http://www.apache.org/licenses/LICENSE-2.0>
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
