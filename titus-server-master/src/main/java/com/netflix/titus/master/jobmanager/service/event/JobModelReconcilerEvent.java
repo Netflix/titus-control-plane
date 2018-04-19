@@ -25,7 +25,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeActi
 
 public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent {
 
-    protected JobModelReconcilerEvent(Job<?> job, long transactionId) {
+    protected JobModelReconcilerEvent(Job<?> job, String transactionId) {
         super(job, transactionId);
     }
 
@@ -33,7 +33,7 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
         private final EntityHolder newRoot;
 
         public JobNewModelReconcilerEvent(EntityHolder newRoot) {
-            super(newRoot.getEntity(), -1);
+            super(newRoot.getEntity(), "-1");
             this.newRoot = newRoot;
         }
 
@@ -54,7 +54,7 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
                                              ModelActionHolder modelActionHolder,
                                              EntityHolder changedEntityHolder,
                                              Optional<EntityHolder> previousEntityHolder,
-                                             long transactionId) {
+                                             String transactionId) {
             super(job, transactionId);
             this.changeAction = changeAction;
             this.modelActionHolder = modelActionHolder;
@@ -91,7 +91,7 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
                                                   ModelActionHolder modelActionHolder,
                                                   EntityHolder previousEntityHolder,
                                                   Throwable error,
-                                                  long transactionId) {
+                                                  String transactionId) {
             super(job, transactionId);
             this.changeAction = changeAction;
             this.modelActionHolder = modelActionHolder;

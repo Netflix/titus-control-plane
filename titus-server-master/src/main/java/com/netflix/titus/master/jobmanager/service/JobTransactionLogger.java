@@ -218,7 +218,7 @@ class JobTransactionLogger {
     }
 
     private static String doFormat(String jobId,
-                                   long transactionId,
+                                   String transactionId,
                                    String status,
                                    String type,
                                    String action,
@@ -228,7 +228,7 @@ class JobTransactionLogger {
                                    long executionTime,
                                    String summary) {
         return String.format(
-                "jobId=%s entity=%s transactionId=%-4d target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s summary=%s",
+                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s summary=%s",
                 jobId,
                 entityId,
                 transactionId,

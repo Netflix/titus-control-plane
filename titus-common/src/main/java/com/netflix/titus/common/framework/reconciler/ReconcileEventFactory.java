@@ -32,7 +32,7 @@ public interface ReconcileEventFactory<EVENT> {
      */
     EVENT newBeforeChangeEvent(ReconciliationEngine<EVENT> engine,
                                ChangeAction changeAction,
-                               long transactionId);
+                               String transactionId);
 
     /**
      * Called when a {@link ChangeAction} execution is completed.
@@ -40,7 +40,7 @@ public interface ReconcileEventFactory<EVENT> {
     EVENT newAfterChangeEvent(ReconciliationEngine<EVENT> engine,
                               ChangeAction changeAction,
                               long executionTimeMs,
-                              long transactionId);
+                              String transactionId);
 
     /**
      * Called when a {@link ChangeAction} execution is completes with an error.
@@ -49,7 +49,7 @@ public interface ReconcileEventFactory<EVENT> {
                               ChangeAction changeAction,
                               Throwable error,
                               long executionTimeMs,
-                              long transactionId);
+                              String transactionId);
 
     /**
      * Called when a new {@link ReconciliationEngine} instance is created, and populated with the initial model.
@@ -64,7 +64,7 @@ public interface ReconcileEventFactory<EVENT> {
                               ModelActionHolder modelActionHolder,
                               EntityHolder changedEntityHolder,
                               Optional<EntityHolder> previousEntityHolder,
-                              long transactionId);
+                              String transactionId);
 
     /**
      * Called after failed update to an {@link EntityHolder} instance.
@@ -74,5 +74,5 @@ public interface ReconcileEventFactory<EVENT> {
                                    ModelActionHolder modelActionHolder,
                                    EntityHolder previousEntityHolder,
                                    Throwable error,
-                                   long transactionId);
+                                   String transactionId);
 }

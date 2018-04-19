@@ -194,7 +194,7 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
     @Override
     public Observable<Void> changeReferenceModel(ChangeAction referenceUpdate) {
         return Observable.unsafeCreate(subscriber -> {
-            long transactionId = nextTransactionId.getAndIncrement();
+            String transactionId = Long.toString(nextTransactionId.getAndIncrement());
             changeActionEventQueue.add(eventFactory.newBeforeChangeEvent(this, referenceUpdate, transactionId));
             referenceChangeActions.add(Pair.of(new ChangeActionHolder(referenceUpdate, transactionId, clock.wallTime()), (Subscriber<Void>) subscriber));
             metrics.updateChangeActionQueueSize(referenceChangeActions.size());
@@ -371,14 +371,20 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
 
     private void startReconcileAction(List<ChangeAction> reconcileActions) {
         List<Subscription> subscriptions = new ArrayList<>(reconcileActions.size());
+        long transactionId = nextTransactionId.getAndIncrement();
+        long nestedId = 0;
         for (ChangeAction action : reconcileActions) {
-            long transactionId = nextTransactionId.getAndIncrement();
-            ChangeActionHolder changeActionHolder = new ChangeActionHolder(action, transactionId, clock.wallTime());
+            String compositeTransactionId = reconcileActions.size() == 1
+                    ? Long.toString(transactionId)
+                    : transactionId + "." + nestedId;
+            nestedId++;
+
+            ChangeActionHolder changeActionHolder = new ChangeActionHolder(action, compositeTransactionId, clock.wallTime());
 
             long startTimeNs = clock.nanoTime();
             metrics.reconcileActionStarted(changeActionHolder);
 
-            emitEvent(eventFactory.newBeforeChangeEvent(this, action, transactionId));
+            emitEvent(eventFactory.newBeforeChangeEvent(this, action, compositeTransactionId));
             AtomicBoolean metricsNotUpdated = new AtomicBoolean(true);
             Subscription subscription = action.apply()
                     .doOnUnsubscribe(() -> {
@@ -389,13 +395,13 @@ public class DefaultReconciliationEngine<EVENT> implements ReconciliationEngine<
                     .subscribe(
                             modelActionHolders -> {
                                 registerModelUpdateRequest(changeActionHolder, modelActionHolders);
-                                changeActionEventQueue.add(eventFactory.newAfterChangeEvent(this, action, passedMs(startTimeNs), transactionId));
+                                changeActionEventQueue.add(eventFactory.newAfterChangeEvent(this, action, passedMs(startTimeNs), compositeTransactionId));
                             },
                             e -> {
                                 if (metricsNotUpdated.getAndSet(false)) {
                                     metrics.reconcileActionFinished(changeActionHolder, clock.nanoTime() - startTimeNs, e);
                                 }
-                                changeActionEventQueue.add(eventFactory.newChangeErrorEvent(this, action, e, passedMs(startTimeNs), transactionId));
+                                changeActionEventQueue.add(eventFactory.newChangeErrorEvent(this, action, e, passedMs(startTimeNs), compositeTransactionId));
                                 logger.debug("Action execution error", e);
                             },
                             () -> {
