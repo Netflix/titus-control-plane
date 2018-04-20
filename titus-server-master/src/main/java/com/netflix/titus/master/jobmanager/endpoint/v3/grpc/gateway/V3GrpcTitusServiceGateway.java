@@ -233,7 +233,11 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
                     snapshot.add(SNAPSHOT_END_MARKER);
                     return snapshot;
                 }))
-                .doOnError(e -> logger.error("Unexpected error in job {} event stream", jobId, e));
+                .doOnError(e -> {
+                    if (!(e instanceof JobManagerException)) {
+                        logger.error("Unexpected error in job {} event stream", jobId, e);
+                    }
+                });
     }
 
     private List<JobChangeNotification> createJobsSnapshot() {

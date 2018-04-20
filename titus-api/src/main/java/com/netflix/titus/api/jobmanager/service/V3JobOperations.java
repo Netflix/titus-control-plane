@@ -62,10 +62,7 @@ public interface V3JobOperations {
 
     List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit);
 
-    default Optional<Pair<Job<?>, Task>> findTaskById(String taskId) {
-        List<Pair<Job<?>, Task>> tasks = findTasks(jobTaskPair -> jobTaskPair.getRight().getId().equals(taskId), 0, 1);
-        return tasks.isEmpty() ? Optional.empty() : Optional.of(tasks.get(0));
-    }
+    Optional<Pair<Job<?>, Task>> findTaskById(String taskId);
 
     Observable<Void> updateJobCapacity(String jobId, Capacity capacity);
 
