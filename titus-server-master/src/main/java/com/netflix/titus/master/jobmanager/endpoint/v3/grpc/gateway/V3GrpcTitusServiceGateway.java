@@ -234,8 +234,10 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
                     return snapshot;
                 }))
                 .doOnError(e -> {
-                    if (!(e instanceof JobManagerException)) {
+                    if (!JobManagerException.isExpected(e)) {
                         logger.error("Unexpected error in job {} event stream", jobId, e);
+                    } else {
+                        logger.debug("Error in job {} event stream", jobId, e);
                     }
                 });
     }
