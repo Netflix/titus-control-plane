@@ -2906,37 +2906,64 @@
     },
     "jacocoAgent": {
         "org.jacoco:org.jacoco.agent": {
-            "locked": "0.7.9"
+            "locked": "0.8.0"
         }
     },
     "jacocoAnt": {
         "org.jacoco:org.jacoco.agent": {
-            "locked": "0.7.9",
+            "locked": "0.8.0",
             "transitive": [
                 "org.jacoco:org.jacoco.ant"
             ]
         },
         "org.jacoco:org.jacoco.ant": {
-            "locked": "0.7.9"
+            "locked": "0.8.0"
         },
         "org.jacoco:org.jacoco.core": {
-            "locked": "0.7.9",
+            "locked": "0.8.0",
             "transitive": [
                 "org.jacoco:org.jacoco.ant",
                 "org.jacoco:org.jacoco.report"
             ]
         },
         "org.jacoco:org.jacoco.report": {
-            "locked": "0.7.9",
+            "locked": "0.8.0",
             "transitive": [
                 "org.jacoco:org.jacoco.ant"
             ]
         },
-        "org.ow2.asm:asm-debug-all": {
-            "locked": "5.2",
+        "org.ow2.asm:asm": {
+            "locked": "6.0",
             "transitive": [
                 "org.jacoco:org.jacoco.core",
-                "org.jacoco:org.jacoco.report"
+                "org.ow2.asm:asm-tree"
+            ]
+        },
+        "org.ow2.asm:asm-analysis": {
+            "locked": "6.0",
+            "transitive": [
+                "org.jacoco:org.jacoco.core"
+            ]
+        },
+        "org.ow2.asm:asm-commons": {
+            "locked": "6.0",
+            "transitive": [
+                "org.jacoco:org.jacoco.core"
+            ]
+        },
+        "org.ow2.asm:asm-tree": {
+            "locked": "6.0",
+            "transitive": [
+                "org.jacoco:org.jacoco.core",
+                "org.ow2.asm:asm-analysis",
+                "org.ow2.asm:asm-commons",
+                "org.ow2.asm:asm-util"
+            ]
+        },
+        "org.ow2.asm:asm-util": {
+            "locked": "6.0",
+            "transitive": [
+                "org.jacoco:org.jacoco.core"
             ]
         }
     },
@@ -5809,13 +5836,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -6116,7 +6143,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.18.0",
+            "locked": "2.18.3",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -7226,13 +7253,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -7533,7 +7560,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.18.0",
+            "locked": "2.18.3",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -8643,13 +8670,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -8950,7 +8977,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.18.0",
+            "locked": "2.18.3",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -10061,13 +10088,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.3",
+            "locked": "1.8.5",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -10368,7 +10395,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.18.0",
+            "locked": "2.18.3",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
