@@ -59,6 +59,32 @@ public class JobManagerException extends RuntimeException {
         return errorCode;
     }
 
+    /**
+     * Returns true, if the argument holds a {@link JobManagerException} instance with an error that may happen during
+     * normal execution (for example 'JobNotFound').
+     */
+    public static boolean isExpected(Throwable error) {
+        if (!(error instanceof JobManagerException)) {
+            return false;
+        }
+        switch (((JobManagerException) error).getErrorCode()) {
+            case JobCreateLimited:
+            case JobNotFound:
+            case NotServiceJob:
+            case TaskNotFound:
+            case JobTerminating:
+            case TaskTerminating:
+            case InvalidContainerResources:
+            case InvalidDesiredCapacity:
+                return true;
+            case UnexpectedJobState:
+            case UnexpectedTaskState:
+            case V2EngineTurnedOff:
+                return false;
+        }
+        return false;
+    }
+
     public static boolean hasErrorCode(Throwable error, ErrorCode errorCode) {
         return (error instanceof JobManagerException) && ((JobManagerException) error).getErrorCode() == errorCode;
     }

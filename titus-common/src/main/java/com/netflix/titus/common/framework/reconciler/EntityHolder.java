@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import com.netflix.titus.common.util.tuple.Pair;
 
@@ -121,6 +122,11 @@ public class EntityHolder {
 
     public <E> EntityHolder setEntity(E entity) {
         return new EntityHolder(id, entity, childrenById, attributes);
+    }
+
+    public void visit(Consumer<EntityHolder> visitor) {
+        visitor.accept(this);
+        children.forEach(c -> c.visit(visitor));
     }
 
     public static <E> EntityHolder newRoot(String id, E entity) {

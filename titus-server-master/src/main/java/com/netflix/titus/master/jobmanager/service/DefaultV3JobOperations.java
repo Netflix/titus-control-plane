@@ -242,6 +242,16 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
+    public Optional<Pair<Job<?>, Task>> findTaskById(String taskId) {
+        return reconciliationFramework.findEngineByChildId(taskId)
+                .map(pair -> {
+                    Job<?> job = pair.getLeft().getReferenceView().getEntity();
+                    Task task = pair.getRight().getEntity();
+                    return Pair.of(job, task);
+                });
+    }
+
+    @Override
     public Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason) {
         Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {

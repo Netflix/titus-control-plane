@@ -98,6 +98,7 @@ public class DefaultReconciliationFrameworkTest {
         PublishSubject<SimpleReconcilerEvent> eventSubject = PublishSubject.create();
         when(bootstrapEngine.events()).thenReturn(eventSubject);
         when(bootstrapEngine.triggerEvents()).thenReturn(true);
+        when(bootstrapEngine.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot1", "myEntity1"));
 
         DefaultReconciliationFramework<SimpleReconcilerEvent> framework = new DefaultReconciliationFramework<>(
                 Collections.singletonList(bootstrapEngine),

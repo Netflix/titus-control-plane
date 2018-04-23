@@ -19,6 +19,7 @@ package com.netflix.titus.common.framework.reconciler.internal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -73,6 +75,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private final BlockingQueue<Pair<ReconciliationEngine<EVENT>, Subscriber<ReconciliationEngine>>> enginesAdded = new LinkedBlockingQueue<>();
     private final BlockingQueue<Pair<ReconciliationEngine<EVENT>, Subscriber<Void>>> enginesToRemove = new LinkedBlockingQueue<>();
 
+    private final AtomicReference<Map<String, ReconciliationEngine<EVENT>>> idToEngineMapRef = new AtomicReference<>(Collections.emptyMap());
     private IndexSet<EntityHolder> indexSet;
 
     private final Scheduler.Worker worker;
@@ -206,19 +209,24 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
     @Override
     public Optional<ReconciliationEngine<EVENT>> findEngineByRootId(String id) {
-        return engines.stream().filter(e -> e.getReferenceView().getId().equals(id)).findFirst();
+        ReconciliationEngine<EVENT> engine = idToEngineMapRef.get().get(id);
+        if (engine == null) {
+            return Optional.empty();
+        }
+        return engine.getReferenceView().getId().equals(id) ? Optional.of(engine) : Optional.empty();
     }
 
     @Override
     public Optional<Pair<ReconciliationEngine<EVENT>, EntityHolder>> findEngineByChildId(String childId) {
-        for (ReconciliationEngine engine : engines) {
-            EntityHolder rootHolder = engine.getReferenceView();
-            Optional<EntityHolder> childHolder = rootHolder.findChildById(childId);
-            if (childHolder.isPresent()) {
-                return Optional.of(Pair.of(engine, childHolder.get()));
-            }
+        ReconciliationEngine<EVENT> engine = idToEngineMapRef.get().get(childId);
+        if (engine == null) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        EntityHolder rootHolder = engine.getReferenceView();
+        if (rootHolder.getId().equals(childId)) {
+            return Optional.empty();
+        }
+        return rootHolder.findChildById(childId).map(c -> Pair.of(engine, c));
     }
 
     @Override
@@ -318,6 +326,10 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     }
 
     private void updateIndexSet() {
+        Map<String, ReconciliationEngine<EVENT>> idToEngineMap = new HashMap<>();
+        engines.forEach(engine -> engine.getReferenceView().visit(h -> idToEngineMap.put(h.getId(), engine)));
+        this.idToEngineMapRef.set(idToEngineMap);
+
         indexSet = indexSet.apply(engines.stream().map(ReconciliationEngine::getReferenceView).collect(Collectors.toList()));
     }
 }
