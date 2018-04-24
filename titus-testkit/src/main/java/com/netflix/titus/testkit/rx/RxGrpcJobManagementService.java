@@ -24,9 +24,11 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
@@ -107,6 +109,21 @@ public class RxGrpcJobManagementService {
                     JobCapacityUpdate.newBuilder()
                             .setJobId(jobId)
                             .setCapacity(Capacity.newBuilder().setMin(min).setDesired(desired).setMax(max))
+                            .build()
+            ).ignoreElements().cast(Void.class).subscribe(subscriber);
+        });
+    }
+
+    public Observable<Void> updateJobProcesses(String jobId, boolean disableIncrease, boolean disableDecrease) {
+        return Observable.unsafeCreate(subscriber -> {
+            ObservableClientCall.create(
+                    channel.newCall(JobManagementServiceGrpc.METHOD_UPDATE_JOB_PROCESSES, CallOptions.DEFAULT),
+                    JobProcessesUpdate.newBuilder()
+                            .setJobId(jobId)
+                            .setServiceJobProcesses(ServiceJobSpec.ServiceJobProcesses.newBuilder()
+                                    .setDisableIncreaseDesired(disableIncrease)
+                                    .setDisableDecreaseDesired(disableDecrease)
+                                    .build())
                             .build()
             ).ignoreElements().cast(Void.class).subscribe(subscriber);
         });
