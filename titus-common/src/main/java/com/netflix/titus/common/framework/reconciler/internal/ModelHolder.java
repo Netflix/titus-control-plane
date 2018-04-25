@@ -16,29 +16,20 @@
 
 package com.netflix.titus.common.framework.reconciler.internal;
 
-import java.util.List;
-
-import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
-import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 
 /**
  */
-class ModelHolder<EVENT> {
+class ModelHolder {
 
-    private final ReconciliationEngine<EVENT> engine;
-    private final ReconciliationEngine.DifferenceResolver<EVENT> differenceResolver;
+    private final EntityHolder reference;
+    private final EntityHolder running;
+    private final EntityHolder store;
 
-    private EntityHolder reference;
-    private EntityHolder running;
-    private EntityHolder store;
-
-    ModelHolder(ReconciliationEngine<EVENT> engine, EntityHolder bootstrapModel, ReconciliationEngine.DifferenceResolver<EVENT> differenceResolver) {
-        this.engine = engine;
-        this.differenceResolver = differenceResolver;
-        this.reference = bootstrapModel;
-        this.store = bootstrapModel;
-        this.running = bootstrapModel;
+    ModelHolder(EntityHolder reference, EntityHolder running, EntityHolder store) {
+        this.reference = reference;
+        this.running = running;
+        this.store = store;
     }
 
     EntityHolder getReference() {
@@ -51,21 +42,5 @@ class ModelHolder<EVENT> {
 
     EntityHolder getRunning() {
         return running;
-    }
-
-    void setReference(EntityHolder reference) {
-        this.reference = reference;
-    }
-
-    void setRunning(EntityHolder running) {
-        this.running = running;
-    }
-
-    void setStore(EntityHolder store) {
-        this.store = store;
-    }
-
-    List<ChangeAction> resolveDifference() {
-        return differenceResolver.apply(engine);
     }
 }

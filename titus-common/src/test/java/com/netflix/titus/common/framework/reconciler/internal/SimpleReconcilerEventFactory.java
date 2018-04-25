@@ -34,13 +34,13 @@ public class SimpleReconcilerEventFactory implements ReconcileEventFactory<Simpl
     }
 
     @Override
-    public SimpleReconcilerEvent newAfterChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long executionTimeMs, String transactionId) {
+    public SimpleReconcilerEvent newAfterChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long waitTimeMs, long executionTimeMs, String transactionId) {
         return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.Changed, changeAction.toString(), Optional.empty());
     }
 
     @Override
-    public SimpleReconcilerEvent newChangeErrorEvent(ReconciliationEngine engine, ChangeAction changeAction, Throwable error, long executionTimeMs, String transactionId) {
-        return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.Changed, changeAction.toString(), Optional.of(error));
+    public SimpleReconcilerEvent newChangeErrorEvent(ReconciliationEngine engine, ChangeAction changeAction, Throwable error, long waitTimeMs, long executionTimeMs, String transactionId) {
+        return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.ChangeError, changeAction.toString(), Optional.of(error));
     }
 
     @Override

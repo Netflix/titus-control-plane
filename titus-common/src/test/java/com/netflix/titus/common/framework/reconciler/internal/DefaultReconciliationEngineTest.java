@@ -57,7 +57,7 @@ public class DefaultReconciliationEngineTest {
             .build();
 
     private final DefaultReconciliationEngine<SimpleReconcilerEvent> engine = new DefaultReconciliationEngine<>(
-            EntityHolder.newRoot("myRoot", "myEntity"),
+            EntityHolder.newRoot("myRoot", "rootInitial"),
             true,
             this::difference,
             indexComparators,
@@ -83,7 +83,8 @@ public class DefaultReconciliationEngineTest {
 
         // Trigger change event
         assertThat(engine.applyModelUpdates()).isFalse();
-        assertThat(engine.triggerEvents()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.triggerActions()).isTrue();
         testSubscriber.assertOpen();
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelInitial);
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ChangeRequest);
@@ -91,7 +92,9 @@ public class DefaultReconciliationEngineTest {
         // Move time, and verify that model is updated
         testScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
         assertThat(engine.applyModelUpdates()).isTrue();
-        assertThat(engine.triggerEvents()).isFalse();
+        engine.emitEvents();
+        engine.closeFinishedTransactions();
+        assertThat(engine.triggerActions()).isFalse();
 
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelUpdated);
         assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.Changed);
@@ -110,19 +113,169 @@ public class DefaultReconciliationEngineTest {
     }
 
     @Test
-    public void testReconciliation() {
-        engine.changeReferenceModel(new RootSetupChangeAction()).subscribe();
+    public void testReferenceModelChangeFailure() {
+        RuntimeException failure = new RuntimeException("simulated ChangeAction error");
+        testFailingChangeAction(() -> Observable.error(failure), failure);
+    }
+
+    @Test
+    public void testReferenceModelChangeWithEscapedException() {
+        RuntimeException failure = new RuntimeException("Escaped ChangeAction exception");
+        testFailingChangeAction(() -> {
+            throw failure;
+        }, failure);
+    }
+
+    @Test
+    public void testReferenceModelChangeFailureDuringModelUpdate() {
+        RuntimeException failure = new RuntimeException("ModelUpdate exception");
+        testFailingChangeAction(() -> Observable.just(singletonList(ModelActionHolder.reference(rootHolder -> {
+            throw failure;
+        }))), failure);
+    }
+
+    private void testFailingChangeAction(ChangeAction failingChangeAction, Throwable expectedError) {
+        ExtTestSubscriber<Void> testSubscriber = new ExtTestSubscriber<>();
+        engine.changeReferenceModel(failingChangeAction).subscribe(testSubscriber);
+
+        // Consume initial events
+        engine.emitEvents();
+        assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ModelInitial);
+        assertThat(eventSubscriber.takeNext().getEventType()).isEqualTo(EventType.ChangeRequest);
+
+        // Trigger failing action
+        engine.triggerActions();
+        engine.applyModelUpdates();
+        engine.emitEvents();
+
+        SimpleReconcilerEvent changeErrorEvent = eventSubscriber.takeNext();
+        assertThat(changeErrorEvent.getEventType()).isIn(EventType.ChangeError, EventType.ModelUpdateError);
+        assertThat(changeErrorEvent.getError()).contains(expectedError);
+
+        assertThat(eventSubscriber.takeNext()).isNull();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+
+        testSubscriber.assertOnError(expectedError);
+    }
+
+    @Test
+    public void testParallelExecutionOfNonOverlappingTasks() {
+        addChild("child1");
+        addChild("child2");
+
+        ExtTestSubscriber<Void> child1Subscriber = new ExtTestSubscriber<>();
+        ExtTestSubscriber<Void> child2Subscriber = new ExtTestSubscriber<>();
+        engine.changeReferenceModel(new UpdateChildAction("child1", "update1"), "child1").subscribe(child1Subscriber);
+        engine.changeReferenceModel(new UpdateChildAction("child2", "update2"), "child2").subscribe(child2Subscriber);
+
+        engine.triggerActions();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+
+        child1Subscriber.assertOnCompleted();
+        child2Subscriber.assertOnCompleted();
+
+        assertThat(engine.getReferenceView().findChildById("child1").get().<String>getEntity()).isEqualTo("update1");
+        assertThat(engine.getReferenceView().findChildById("child2").get().<String>getEntity()).isEqualTo("update2");
+    }
+
+    @Test
+    public void testParallelExecutionOfNonOverlappingTasksWithOneTaskFailing() {
+        addChild("child1");
+        addChild("child2");
+
+        ExtTestSubscriber<Void> child1Subscriber = new ExtTestSubscriber<>();
+        ExtTestSubscriber<Void> child2Subscriber = new ExtTestSubscriber<>();
+        engine.changeReferenceModel(new UpdateChildAction("child1", "update1"), "child1").subscribe(child1Subscriber);
+
+        RuntimeException failure = new RuntimeException("ModelUpdate exception");
+        engine.changeReferenceModel(() -> {
+            throw failure;
+        }, "child2").subscribe(child2Subscriber);
+
+        engine.triggerActions();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+
+        child1Subscriber.assertOnCompleted();
+        child2Subscriber.assertOnError(failure);
+
+        assertThat(engine.getReferenceView().findChildById("child1").get().<String>getEntity()).isEqualTo("update1");
+        assertThat(engine.getReferenceView().findChildById("child2").get().<String>getEntity()).isEqualTo("child2");
+    }
+
+    @Test
+    public void testOverlappingTasksAreExecutedSequentially() {
+        addChild("child1");
+        addChild("child2");
+
+        ExtTestSubscriber<Void> child1Subscriber = new ExtTestSubscriber<>();
+        ExtTestSubscriber<Void> rootSubscriber = new ExtTestSubscriber<>();
+        ExtTestSubscriber<Void> child2Subscriber = new ExtTestSubscriber<>();
+        engine.changeReferenceModel(new UpdateChildAction("child1", "update1"), "child1").subscribe(child1Subscriber);
+        engine.changeReferenceModel(new RootChangeAction("rootUpdate")).subscribe(rootSubscriber);
+        engine.changeReferenceModel(new UpdateChildAction("child2", "update2"), "child2").subscribe(child2Subscriber);
+
+        // Child 1
+        engine.triggerActions();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+
+        child1Subscriber.assertOnCompleted();
+        rootSubscriber.assertOpen();
+
+        assertThat(engine.getReferenceView().findChildById("child1").get().<String>getEntity()).isEqualTo("update1");
+        assertThat(engine.getReferenceView().<String>getEntity()).isEqualTo("rootInitial");
+        assertThat(engine.getReferenceView().findChildById("child2").get().<String>getEntity()).isEqualTo("child2");
+
+        // Root
+        engine.triggerActions();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+
+        rootSubscriber.assertOnCompleted();
+        child2Subscriber.assertOpen();
+
+        assertThat(engine.getReferenceView().<String>getEntity()).isEqualTo("rootUpdate");
+        assertThat(engine.getReferenceView().findChildById("child2").get().<String>getEntity()).isEqualTo("child2");
+
+        // Child 2
+        engine.triggerActions();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+
+        child2Subscriber.assertOnCompleted();
+
+        assertThat(engine.getReferenceView().findChildById("child2").get().<String>getEntity()).isEqualTo("update2");
+    }
+
+    @Test
+    public void testReconciliationActions() {
+        Subscription setupSubscription = engine.changeReferenceModel(new RootChangeAction("rootValue")).subscribe();
         assertThat(engine.applyModelUpdates()).isFalse();
-        assertThat(engine.triggerEvents()).isTrue();
+        assertThat(engine.triggerActions()).isTrue();
 
         runtimeReconcileActions.add(singletonList(new SlowChangeAction()));
-        assertThat(engine.applyModelUpdates()).isTrue();
-        assertThat(engine.triggerEvents()).isTrue();
 
-        // Move time, and verify that model is updated
-        testScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
+        // Complete first change action
         assertThat(engine.applyModelUpdates()).isTrue();
-        assertThat(engine.triggerEvents()).isFalse();
+        engine.emitEvents();
+        engine.closeFinishedTransactions();
+        assertThat(setupSubscription.isUnsubscribed()).isTrue();
+
+        // Create the reconciler action
+        assertThat(engine.triggerActions()).isTrue();
+        testScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
+
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        engine.closeFinishedTransactions();
+        assertThat(engine.triggerActions()).isFalse();
 
         List<EventType> emittedEvents = eventSubscriber.takeNext(7).stream().map(SimpleReconcilerEvent::getEventType).collect(Collectors.toList());
         assertThat(emittedEvents).contains(
@@ -143,7 +296,7 @@ public class DefaultReconciliationEngineTest {
     public void testChangeActionCancellation() {
         SlowChangeAction action = new SlowChangeAction();
         Subscription subscription = engine.changeReferenceModel(action).subscribe();
-        engine.triggerEvents();
+        engine.triggerActions();
 
         assertThat(action.unsubscribed).isFalse();
         subscription.unsubscribe();
@@ -159,16 +312,42 @@ public class DefaultReconciliationEngineTest {
         assertThat(engine.orderedView("descending").stream().map(EntityHolder::getEntity)).containsExactly("child2", "child1");
     }
 
+    @Test
+    public void testEventStreamConsumersThrowingException() {
+        RuntimeException failure = new RuntimeException("Simulated event handler error");
+        engine.events().subscribe(
+                event -> {
+                    throw failure;
+                },
+                e -> assertThat(e).isEqualTo(failure));
+        ExtTestSubscriber<Void> rootSubscriber = new ExtTestSubscriber<>();
+        engine.changeReferenceModel(new RootChangeAction("rootUpdate")).subscribe(rootSubscriber);
+
+        engine.emitEvents();
+        assertThat(engine.triggerActions()).isTrue();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+    }
+
     private void addChild(String childId) {
         engine.changeReferenceModel(new AddChildAction(childId)).subscribe();
-        engine.triggerEvents();
+        engine.triggerActions();
+
         assertThat(engine.applyModelUpdates()).isTrue();
+
+        engine.emitEvents();
+        engine.closeFinishedTransactions();
     }
 
     private void removeChild(String childId) {
         engine.changeReferenceModel(new RemoveChildAction(childId)).subscribe();
-        engine.triggerEvents();
+        engine.triggerActions();
+
         assertThat(engine.applyModelUpdates()).isTrue();
+
+        engine.emitEvents();
+        engine.closeFinishedTransactions();
     }
 
     private List<ChangeAction> difference(ReconciliationEngine<SimpleReconcilerEvent> engine) {
@@ -176,11 +355,17 @@ public class DefaultReconciliationEngineTest {
         return next == null ? Collections.emptyList() : next;
     }
 
-    class RootSetupChangeAction implements ChangeAction {
+    class RootChangeAction implements ChangeAction {
+
+        private final String rootValue;
+
+        RootChangeAction(String rootValue) {
+            this.rootValue = rootValue;
+        }
 
         @Override
         public Observable<List<ModelActionHolder>> apply() {
-            return Observable.just(ModelActionHolder.referenceAndRunning(new SimpleModelUpdateAction(EntityHolder.newRoot("root#0", "ROOT"), true)));
+            return Observable.just(ModelActionHolder.referenceAndRunning(new SimpleModelUpdateAction(EntityHolder.newRoot("root#0", rootValue), true)));
         }
     }
 
@@ -227,6 +412,23 @@ public class DefaultReconciliationEngineTest {
                 Pair<EntityHolder, Optional<EntityHolder>> result = rootHolder.removeChild(childId);
                 return result.getRight().map(removed -> Pair.of(result.getLeft(), removed));
             };
+            return Observable.just(ModelActionHolder.referenceList(updateAction));
+        }
+    }
+
+    class UpdateChildAction implements ChangeAction {
+
+        private final String childId;
+        private final String value;
+
+        UpdateChildAction(String childId, String value) {
+            this.childId = childId;
+            this.value = value;
+        }
+
+        @Override
+        public Observable<List<ModelActionHolder>> apply() {
+            SimpleModelUpdateAction updateAction = new SimpleModelUpdateAction(EntityHolder.newRoot(childId, value), false);
             return Observable.just(ModelActionHolder.referenceList(updateAction));
         }
     }

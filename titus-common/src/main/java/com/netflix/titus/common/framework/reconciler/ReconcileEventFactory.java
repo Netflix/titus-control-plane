@@ -39,6 +39,7 @@ public interface ReconcileEventFactory<EVENT> {
      */
     EVENT newAfterChangeEvent(ReconciliationEngine<EVENT> engine,
                               ChangeAction changeAction,
+                              long waitTimeMs,
                               long executionTimeMs,
                               String transactionId);
 
@@ -48,6 +49,7 @@ public interface ReconcileEventFactory<EVENT> {
     EVENT newChangeErrorEvent(ReconciliationEngine<EVENT> engine,
                               ChangeAction changeAction,
                               Throwable error,
+                              long waitTimeMs,
                               long executionTimeMs,
                               String transactionId);
 

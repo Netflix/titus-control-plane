@@ -29,29 +29,6 @@ public interface ReconciliationEngine<EVENT> {
     }
 
     /**
-     * Apply pending model updates. The model updates come from recently completed change actions (either requested or reconcile),
-     * and must be processed by the event loop before next action(s) are started.
-     *
-     * @return true if the model was updated
-     */
-    boolean applyModelUpdates();
-
-    /**
-     * Emit events and execute pending actions. The execution order is:
-     * <ul>
-     * <li>Emit all queued events first</li>
-     * <li>If there is pending reference change action, exit</li>
-     * <li>Start next reference change action, if present and exit</li>
-     * <li>If no reference action waits in the queue, check if there are running reconciliation actions. Exit if there are any.</li>
-     * <li>Compute the difference between the reference and running states, and create reconcile action list</li>
-     * <li>Start all independent actions from the beginning of the list</li>
-     * </ul>
-     *
-     * @return true if there are actions running, false otherwise
-     */
-    boolean triggerEvents();
-
-    /**
      * Change reference entity. The return observable completes successfully if the reference update was
      * successful. The action itself may include calls to external system to make the change persistent.
      * Examples of actions:
@@ -64,6 +41,11 @@ public interface ReconciliationEngine<EVENT> {
      * crossed, it is rejected. The deadline value must be always greater than the execution timeout.
      */
     Observable<Void> changeReferenceModel(ChangeAction changeAction);
+
+    /**
+     * Change reference entity with the given id. Change actions for non-overlapping entities can be executed in parallel.
+     */
+    Observable<Void> changeReferenceModel(ChangeAction changeAction, String entityHolderId);
 
     /**
      * Returns immutable reference model.
