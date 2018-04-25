@@ -30,6 +30,7 @@ import com.netflix.titus.testkit.cli.command.agent.AgentServerGroupGetCommand;
 import com.netflix.titus.testkit.cli.command.job.JobGetCommand;
 import com.netflix.titus.testkit.cli.command.job.JobInServiceCommand;
 import com.netflix.titus.testkit.cli.command.job.JobKillCommand;
+import com.netflix.titus.testkit.cli.command.job.JobProcessesCommand;
 import com.netflix.titus.testkit.cli.command.job.JobResizeCommand;
 import com.netflix.titus.testkit.cli.command.job.JobSubmitCommand;
 import com.netflix.titus.testkit.cli.command.job.JobTemplateCommand;
@@ -81,6 +82,7 @@ public class CLI {
         put("findTask", new TaskGetCommand());
         put("observeJobs", new ObserveJobsCommand());
         put("inService", new JobInServiceCommand());
+        put("jobProcesses", new JobProcessesCommand());
         put("resizeJob", new JobResizeCommand());
         put("killJob", new JobKillCommand());
         put("killTask", new KillTaskCommand());
