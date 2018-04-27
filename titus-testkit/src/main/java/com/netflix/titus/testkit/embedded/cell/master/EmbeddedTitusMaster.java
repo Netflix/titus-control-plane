@@ -133,6 +133,7 @@ public class EmbeddedTitusMaster {
     private final SimulatedCloud simulatedCloud;
     private final InstanceCloudConnector cloudInstanceConnector;
     private final MesosSchedulerDriverFactory mesosSchedulerDriverFactory;
+    private final Pair<String, Integer> remoteCloud;
 
     private LifecycleInjector injector;
     private final List<AuditLogEvent> auditLogs = new CopyOnWriteArrayList<>();
@@ -169,10 +170,12 @@ public class EmbeddedTitusMaster {
 
         if (builder.remoteCloud == null) {
             this.simulatedCloud = builder.simulatedCloud == null ? new SimulatedCloud() : builder.simulatedCloud;
+            this.remoteCloud = null;
             this.cloudInstanceConnector = new SimulatedLocalInstanceCloudConnector(simulatedCloud);
             this.mesosSchedulerDriverFactory = new SimulatedLocalMesosSchedulerDriverFactory(simulatedCloud);
         } else {
             this.simulatedCloud = null;
+            this.remoteCloud = builder.remoteCloud;
 
             CloudSimulatorResolver connectorConfiguration = () -> builder.remoteCloud;
             this.cloudInstanceConnector = new SimulatedRemoteInstanceCloudConnector(connectorConfiguration);
@@ -412,7 +415,7 @@ public class EmbeddedTitusMaster {
     }
 
     public Builder toBuilder() {
-        return new Builder()
+        Builder builder = new Builder()
                 .withApiPort(apiPort)
                 .withGrpcPort(grpcPort)
                 .withCellName(cellName)
@@ -420,6 +423,12 @@ public class EmbeddedTitusMaster {
                 .withProperties(properties)
                 .withV3JobStore(jobStore)
                 .withV2JobStore(storageProvider);
+
+        if (remoteCloud != null) {
+            builder.withRemoteCloud(remoteCloud.getLeft(), remoteCloud.getRight());
+        }
+
+        return builder;
     }
 
     public static class Builder {
@@ -525,10 +534,10 @@ public class EmbeddedTitusMaster {
             return this;
         }
 
-        public void withRemoteCloud(String hostAddress, int grpcPort) {
+        public Builder withRemoteCloud(String hostAddress, int grpcPort) {
             Preconditions.checkState(this.simulatedCloud == null, "Simulated cloud already configured");
-
             this.remoteCloud = Pair.of(hostAddress, grpcPort);
+            return this;
         }
 
         public EmbeddedTitusMaster build() {
