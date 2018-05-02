@@ -43,18 +43,20 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
     @Override
     public JobManagerReconcilerEvent newAfterChangeEvent(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                          ChangeAction changeAction,
+                                                         long waitTimeMs,
                                                          long executionTimeMs,
                                                          String transactionId) {
-        return new JobAfterChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, executionTimeMs, transactionId);
+        return new JobAfterChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, waitTimeMs, executionTimeMs, transactionId);
     }
 
     @Override
     public JobManagerReconcilerEvent newChangeErrorEvent(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                          ChangeAction changeAction,
                                                          Throwable error,
+                                                         long waitTimeMs,
                                                          long executionTimeMs,
                                                          String transactionId) {
-        return new JobChangeErrorReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, error, executionTimeMs, transactionId);
+        return new JobChangeErrorReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, error, waitTimeMs, executionTimeMs, transactionId);
     }
 
     @Override

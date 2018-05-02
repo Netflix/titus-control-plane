@@ -43,11 +43,17 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     public static class JobAfterChangeReconcilerEvent extends JobChangeReconcilerEvent {
 
+        private final long waitTimeMs;
         private final long executionTimeMs;
 
-        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long executionTimeMs, String transactionId) {
+        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long waitTimeMs, long executionTimeMs, String transactionId) {
             super(job, changeAction, transactionId);
+            this.waitTimeMs = waitTimeMs;
             this.executionTimeMs = executionTimeMs;
+        }
+
+        public long getWaitTimeMs() {
+            return waitTimeMs;
         }
 
         public long getExecutionTimeMs() {
@@ -58,12 +64,18 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
     public static class JobChangeErrorReconcilerEvent extends JobChangeReconcilerEvent {
 
         private final Throwable error;
+        private final long waitTimeMs;
         private final long executionTimeMs;
 
-        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long executionTimeMs, String transactionId) {
+        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long waitTimeMs, long executionTimeMs, String transactionId) {
             super(job, changeAction, transactionId);
             this.error = error;
+            this.waitTimeMs = waitTimeMs;
             this.executionTimeMs = executionTimeMs;
+        }
+
+        public long getWaitTimeMs() {
+            return waitTimeMs;
         }
 
         public long getExecutionTimeMs() {

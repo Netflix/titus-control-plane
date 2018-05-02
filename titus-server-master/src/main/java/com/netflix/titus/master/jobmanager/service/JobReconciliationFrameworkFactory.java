@@ -56,6 +56,7 @@ import com.netflix.titus.common.framework.reconciler.ReconciliationEngine.Differ
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import com.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.internal.DefaultReconciliationFramework;
+import com.netflix.titus.common.framework.reconciler.internal.InternalReconciliationEngine;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -77,7 +78,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
-import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
@@ -192,11 +192,11 @@ public class JobReconciliationFrameworkFactory {
         List<Pair<Job, List<Task>>> jobsAndTasks = checkGlobalConsistency(loadJobsAndTasksFromStore(errorCollector));
 
         // initialize fenzo with running tasks
-        List<ReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
+        List<InternalReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
         for (Pair<Job, List<Task>> pair : jobsAndTasks) {
             Job job = pair.getLeft();
             List<Task> tasks = pair.getRight();
-            ReconciliationEngine<JobManagerReconcilerEvent> engine = newRestoredEngine(job, tasks);
+            InternalReconciliationEngine<JobManagerReconcilerEvent> engine = newRestoredEngine(job, tasks);
             engines.add(engine);
             for (Task task : tasks) {
                 Optional<Task> validatedTask = validateTask(task);
@@ -226,7 +226,7 @@ public class JobReconciliationFrameworkFactory {
         );
     }
 
-    private ReconciliationEngine<JobManagerReconcilerEvent> newRestoredEngine(Job job, List<Task> tasks) {
+    private InternalReconciliationEngine<JobManagerReconcilerEvent> newRestoredEngine(Job job, List<Task> tasks) {
         EntityHolder jobHolder = EntityHolder.newRoot(job.getId(), job);
         for (Task task : tasks) {
             EntityHolder taskHolder = EntityHolder.newRoot(task.getId(), task);
@@ -236,7 +236,7 @@ public class JobReconciliationFrameworkFactory {
         return newEngine(jobHolder, false);
     }
 
-    private ReconciliationEngine<JobManagerReconcilerEvent> newEngine(EntityHolder bootstrapModel, boolean newlyCreated) {
+    private InternalReconciliationEngine<JobManagerReconcilerEvent> newEngine(EntityHolder bootstrapModel, boolean newlyCreated) {
         return new DefaultReconciliationEngine<>(bootstrapModel,
                 newlyCreated,
                 dispatchingResolver,
