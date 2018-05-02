@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -267,7 +268,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     }
 
     private void doLoop(boolean fullReconciliationCycle) {
-        Set<InternalReconciliationEngine<EVENT>> mustRunEngines = Collections.newSetFromMap(new HashMap<>());
+        Set<InternalReconciliationEngine<EVENT>> mustRunEngines = new HashSet<>();
 
         // Apply pending model updates/send events
         boolean modelUpdates = false;
