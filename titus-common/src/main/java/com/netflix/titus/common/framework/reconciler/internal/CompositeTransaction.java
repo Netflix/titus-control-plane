@@ -3,21 +3,21 @@ package com.netflix.titus.common.framework.reconciler.internal;
 import java.util.List;
 import java.util.Optional;
 
-class CompositeTransaction extends Transaction {
+class CompositeTransaction implements Transaction {
 
     private final List<Transaction> transactions;
 
-    public CompositeTransaction(List<Transaction> transactions) {
+    CompositeTransaction(List<Transaction> transactions) {
         this.transactions = transactions;
     }
 
     @Override
-    void close() {
+    public void close() {
         transactions.forEach(Transaction::close);
     }
 
     @Override
-    boolean isClosed() {
+    public boolean isClosed() {
         for (Transaction transaction : transactions) {
             if (!transaction.isClosed()) {
                 return false;
@@ -27,7 +27,7 @@ class CompositeTransaction extends Transaction {
     }
 
     @Override
-    Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
+    public Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
         ModelHolder currentModelHolder = modelHolder;
         for (Transaction transaction : transactions) {
             currentModelHolder = transaction.applyModelUpdates(currentModelHolder).orElse(currentModelHolder);
@@ -36,12 +36,12 @@ class CompositeTransaction extends Transaction {
     }
 
     @Override
-    void emitEvents() {
+    public void emitEvents() {
         transactions.forEach(Transaction::emitEvents);
     }
 
     @Override
-    boolean completeSubscribers() {
+    public boolean completeSubscribers() {
         boolean anyChange = false;
         for (Transaction transaction : transactions) {
             anyChange = transaction.completeSubscribers() | anyChange;

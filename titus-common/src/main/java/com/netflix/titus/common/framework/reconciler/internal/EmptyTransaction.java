@@ -2,30 +2,30 @@ package com.netflix.titus.common.framework.reconciler.internal;
 
 import java.util.Optional;
 
-class EmptyTransaction extends Transaction {
+class EmptyTransaction implements Transaction {
 
     static final Transaction EMPTY = new EmptyTransaction();
 
     @Override
-    void close() {
+    public void close() {
     }
 
     @Override
-    boolean isClosed() {
+    public boolean isClosed() {
         return true;
     }
 
     @Override
-    Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
+    public Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
         return Optional.empty();
     }
 
     @Override
-    void emitEvents() {
+    public void emitEvents() {
     }
 
     @Override
-    boolean completeSubscribers() {
+    public boolean completeSubscribers() {
         return false;
     }
 }

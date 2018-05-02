@@ -2,7 +2,7 @@ package com.netflix.titus.common.framework.reconciler.internal;
 
 import java.util.Optional;
 
-class FailedTransaction<EVENT> extends Transaction {
+class FailedTransaction<EVENT> implements Transaction {
 
     enum TransactionStep {
         ChangeActionFailed,
@@ -16,30 +16,30 @@ class FailedTransaction<EVENT> extends Transaction {
 
     private TransactionStep transactionStep = TransactionStep.ChangeActionFailed;
 
-    public FailedTransaction(DefaultReconciliationEngine<EVENT> engine, ChangeActionHolder changeActionHolder, Throwable error) {
+    FailedTransaction(DefaultReconciliationEngine<EVENT> engine, ChangeActionHolder changeActionHolder, Throwable error) {
         this.engine = engine;
         this.changeActionHolder = changeActionHolder;
         this.error = error;
     }
 
     @Override
-    void close() {
+    public void close() {
         changeActionHolder.getSubscriber().unsubscribe();
         this.transactionStep = TransactionStep.SubscribersCompleted;
     }
 
     @Override
-    boolean isClosed() {
+    public boolean isClosed() {
         return transactionStep == TransactionStep.SubscribersCompleted;
     }
 
     @Override
-    Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
+    public Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
         return Optional.empty();
     }
 
     @Override
-    void emitEvents() {
+    public void emitEvents() {
         if (transactionStep == TransactionStep.ChangeActionFailed) {
             this.transactionStep = TransactionStep.ErrorEventsEmitted;
 
@@ -51,7 +51,7 @@ class FailedTransaction<EVENT> extends Transaction {
     }
 
     @Override
-    boolean completeSubscribers() {
+    public boolean completeSubscribers() {
         if (transactionStep == TransactionStep.ErrorEventsEmitted) {
             this.transactionStep = TransactionStep.SubscribersCompleted;
 

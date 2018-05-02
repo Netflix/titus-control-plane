@@ -2,16 +2,15 @@ package com.netflix.titus.common.framework.reconciler.internal;
 
 import java.util.Optional;
 
-abstract class Transaction {
+interface Transaction {
 
-    abstract void close();
+    void close();
 
-    abstract boolean isClosed();
+    boolean isClosed();
 
-    abstract Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder);
+    Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder);
 
-    abstract void emitEvents();
+    void emitEvents();
 
-    abstract boolean completeSubscribers();
-
+    boolean completeSubscribers();
 }

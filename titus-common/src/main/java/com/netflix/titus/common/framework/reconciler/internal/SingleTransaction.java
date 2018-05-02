@@ -19,7 +19,7 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.subjects.PublishSubject;
 
-class SingleTransaction<EVENT> extends Transaction {
+class SingleTransaction<EVENT> implements Transaction {
 
     private static final Logger logger = LoggerFactory.getLogger(SingleTransaction.class);
 
@@ -115,18 +115,18 @@ class SingleTransaction<EVENT> extends Transaction {
     }
 
     @Override
-    void close() {
+    public void close() {
         this.changeActionSubscription.unsubscribe();
         this.transactionStep = TransactionStep.SubscribersCompleted;
     }
 
     @Override
-    boolean isClosed() {
+    public boolean isClosed() {
         return transactionStep == TransactionStep.SubscribersCompleted;
     }
 
     @Override
-    Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
+    public Optional<ModelHolder> applyModelUpdates(ModelHolder modelHolder) {
         if (transactionStep != TransactionStep.ChangeActionCompleted) {
             return Optional.empty();
         }
@@ -168,7 +168,7 @@ class SingleTransaction<EVENT> extends Transaction {
     }
 
     @Override
-    void emitEvents() {
+    public void emitEvents() {
         if (transactionStep == TransactionStep.ModelsUpdated) {
             modelEventQueue.forEach(this::emitEvent);
             emitEvent(eventFactory.newAfterChangeEvent(engine, changeAction, changeActionWaitTimeMs, changeActionExecutionTimeMs, transactionId));
@@ -180,7 +180,7 @@ class SingleTransaction<EVENT> extends Transaction {
     }
 
     @Override
-    boolean completeSubscribers() {
+    public boolean completeSubscribers() {
         if (transactionStep == TransactionStep.EventsEmitted) {
             changeActionSubscriber.ifPresent(Observer::onCompleted);
             this.transactionStep = TransactionStep.SubscribersCompleted;

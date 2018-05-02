@@ -89,10 +89,10 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private final Subscription internalEventSubscription;
 
     private final Timer loopExecutionTime;
-    private long lastFullCycleExecutionTimeMs;
+    private volatile long lastFullCycleExecutionTimeMs; // Probed by a polled meter.
     private volatile long lastExecutionTimeMs; // Probed by a polled meter.
 
-    public DefaultReconciliationFramework(List<ReconciliationEngine<EVENT>> bootstrapEngines,
+    public DefaultReconciliationFramework(List<InternalReconciliationEngine<EVENT>> bootstrapEngines,
                                           Function<EntityHolder, InternalReconciliationEngine<EVENT>> engineFactory,
                                           long idleTimeoutMs,
                                           long activeTimeoutMs,
@@ -101,10 +101,6 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
                                           Optional<Scheduler> optionalScheduler) {
         Preconditions.checkArgument(idleTimeoutMs > 0, "idleTimeout <= 0 (%s)", idleTimeoutMs);
         Preconditions.checkArgument(activeTimeoutMs <= idleTimeoutMs, "activeTimeout(%s) > idleTimeout(%s)", activeTimeoutMs, idleTimeoutMs);
-        Preconditions.checkArgument(
-                bootstrapEngines.stream().allMatch(e -> e instanceof InternalReconciliationEngine),
-                "Unexpected ReconciliationEngine implementation"
-        );
 
         this.engineFactory = engineFactory;
         this.indexSet = IndexSet.newIndexSet(indexComparators);
@@ -136,7 +132,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         PolledMeter.using(registry).withName(LAST_EXECUTION_TIME_METRIC).monitorValue(this, self -> scheduler.now() - self.lastExecutionTimeMs);
         PolledMeter.using(registry).withName(LAST_FULL_CYCLE_EXECUTION_TIME_METRIC).monitorValue(this, self -> scheduler.now() - self.lastFullCycleExecutionTimeMs);
 
-        engines.addAll(bootstrapEngines.stream().map(e -> (InternalReconciliationEngine<EVENT>) e).collect(Collectors.toList()));
+        engines.addAll(bootstrapEngines);
         bootstrapEngines.forEach(engine -> eventsMergeSubject.onNext(engine.events()));
 
         updateIndexSet();
@@ -323,7 +319,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
             try {
                 engine.emitEvents();
             } catch (Exception e) {
-                logger.warn("Unexpected error from reconciliation engine 'closeFinishedTransactions' method", e);
+                logger.warn("Unexpected error from reconciliation engine 'emitEvents' method", e);
             }
         }
 

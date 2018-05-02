@@ -301,7 +301,7 @@ public class DefaultReconciliationEngine<EVENT> implements InternalReconciliatio
             transactions.add(new SingleTransaction<>(this, changeAction, now, Optional.empty(), compositeTransactionId, true));
         }
 
-        pendingTransaction = new CompositeTransaction(transactions);
+        pendingTransaction = transactions.size() == 1 ? transactions.get(0) : new CompositeTransaction(transactions);
     }
 
     private void indexEntityHolder(EntityHolder entityHolder) {

@@ -192,11 +192,11 @@ public class JobReconciliationFrameworkFactory {
         List<Pair<Job, List<Task>>> jobsAndTasks = checkGlobalConsistency(loadJobsAndTasksFromStore(errorCollector));
 
         // initialize fenzo with running tasks
-        List<ReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
+        List<InternalReconciliationEngine<JobManagerReconcilerEvent>> engines = new ArrayList<>();
         for (Pair<Job, List<Task>> pair : jobsAndTasks) {
             Job job = pair.getLeft();
             List<Task> tasks = pair.getRight();
-            ReconciliationEngine<JobManagerReconcilerEvent> engine = newRestoredEngine(job, tasks);
+            InternalReconciliationEngine<JobManagerReconcilerEvent> engine = newRestoredEngine(job, tasks);
             engines.add(engine);
             for (Task task : tasks) {
                 Optional<Task> validatedTask = validateTask(task);
@@ -226,7 +226,7 @@ public class JobReconciliationFrameworkFactory {
         );
     }
 
-    private ReconciliationEngine<JobManagerReconcilerEvent> newRestoredEngine(Job job, List<Task> tasks) {
+    private InternalReconciliationEngine<JobManagerReconcilerEvent> newRestoredEngine(Job job, List<Task> tasks) {
         EntityHolder jobHolder = EntityHolder.newRoot(job.getId(), job);
         for (Task task : tasks) {
             EntityHolder taskHolder = EntityHolder.newRoot(task.getId(), task);
