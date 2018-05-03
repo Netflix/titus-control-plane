@@ -22,12 +22,6 @@ import com.netflix.fenzo.ConstraintEvaluator;
  * Defines behavior for global constraint evaluators
  */
 public interface GlobalConstraintEvaluator extends ConstraintEvaluator {
-
-    @Override
-    default String getName() {
-        return getClass().getSimpleName();
-    }
-
     default void prepare() {
     }
 }

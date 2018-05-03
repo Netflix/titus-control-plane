@@ -46,7 +46,7 @@ public class DefaultSystemSoftConstraint implements SystemSoftConstraint {
 
     @Override
     public String getName() {
-        return "System Soft Constraint";
+        return "Default System Soft Constraint";
     }
 
     @Override

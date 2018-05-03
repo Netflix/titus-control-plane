@@ -66,7 +66,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
 
     @Override
     public String getName() {
-        return GlobalAgentClusterConstraint.class.getSimpleName();
+        return "Global Agent Cluster Constraint";
     }
 
     @Override
