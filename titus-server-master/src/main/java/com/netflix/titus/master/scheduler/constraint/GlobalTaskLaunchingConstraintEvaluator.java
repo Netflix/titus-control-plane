@@ -48,6 +48,11 @@ public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintE
     }
 
     @Override
+    public String getName() {
+        return "Global Task Launching Constraint Evaluator";
+    }
+
+    @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         if (schedulerConfiguration.isGlobalTaskLaunchingConstraintEvaluatorEnabled()) {
             int totalLaunchingTasks = (int) targetVM.getRunningTasks().stream().filter(this::isTaskLaunching).count();

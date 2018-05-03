@@ -123,6 +123,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private static final Logger logger = LoggerFactory.getLogger(DefaultSchedulingService.class);
 
     private static final String METRIC_SLA_UPDATES = METRIC_SCHEDULING_SERVICE + "slaUpdates";
+    private static final String METRIC_SCHEDULING_ITERATION_LATENCY = METRIC_SCHEDULING_SERVICE + "schedulingIterationLatency";
     private static final long STORE_UPDATE_TIMEOUT_MS = 5_000;
     private static final long vmCurrentStatesCheckIntervalMillis = 10_000L;
     private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
@@ -170,7 +171,16 @@ public class DefaultSchedulingService implements SchedulingService {
     private final AtomicLong totalAvailableNetworkInterfaces;
     private final AtomicLong totalAllocatedNetworkInterfaces;
 
-    private final Timer schedulingIterationLatency;
+    private final Timer fenzoSchedulingResultLatencyTimer;
+
+    private final Timer fenzoCallbackLatencyTimer;
+    private final Timer fenzoEvaluationLatencyTimer;
+    private final Timer recordTaskPlacementLatencyTimer;
+    private final Timer mesosLatencyTimer;
+
+    private final AtomicLong totalSchedulingIterationRecordLatency;
+    private final AtomicLong totalSchedulingIterationMesosLatency;
+    private final AtomicLong lastFenzoSchedulingIterationStart;
 
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
     private final SystemSoftConstraint systemSoftConstraint;
@@ -343,7 +353,15 @@ public class DefaultSchedulingService implements SchedulingService {
         PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkInterfaces").monitorValue(totalAvailableNetworkInterfaces);
         PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkInterfaces").monitorValue(totalAllocatedNetworkInterfaces);
 
-        schedulingIterationLatency = registry.timer(METRIC_SCHEDULING_SERVICE + "schedulingIterationLatency");
+        fenzoSchedulingResultLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoSchedulingResult");
+        fenzoCallbackLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoCallback");
+        fenzoEvaluationLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoEvaluation");
+        recordTaskPlacementLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "recordTaskPlacement");
+        mesosLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "mesos");
+
+        totalSchedulingIterationRecordLatency = new AtomicLong();
+        totalSchedulingIterationMesosLatency = new AtomicLong();
+        lastFenzoSchedulingIterationStart = new AtomicLong();
 
         vmCurrentStatesMap = new ConcurrentHashMap<>();
     }
@@ -528,6 +546,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void preSchedulingHook() {
+        lastFenzoSchedulingIterationStart.set(titusRuntime.getClock().wallTime());
         systemHardConstraint.prepare();
         setupTierAutoscalerConfig();
     }
@@ -574,6 +593,12 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void schedulingResultsHandler(SchedulingResult schedulingResult) {
+        long callbackStart = titusRuntime.getClock().wallTime();
+        totalSchedulingIterationRecordLatency.set(0);
+        totalSchedulingIterationMesosLatency.set(0);
+
+        // the time between the start of a fenzo scheduling iteration and when this callback is called is considered the fenzo latency.
+        fenzoEvaluationLatencyTimer.record(titusRuntime.getClock().wallTime() - lastFenzoSchedulingIterationStart.get(), TimeUnit.MILLISECONDS);
         if (!schedulingResult.getExceptions().isEmpty()) {
             logger.error("Exceptions in scheduling iteration:");
             for (Exception e : schedulingResult.getExceptions()) {
@@ -627,13 +652,16 @@ public class DefaultSchedulingService implements SchedulingService {
         offersReceived.set(schedulingResult.getLeasesAdded());
         offersRejected.set(schedulingResult.getLeasesRejected());
         totalActiveAgents.set(schedulingResult.getTotalVMsCount());
-        schedulingIterationLatency.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
+        fenzoSchedulingResultLatencyTimer.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
+        fenzoCallbackLatencyTimer.record(titusRuntime.getClock().wallTime() - callbackStart, TimeUnit.MILLISECONDS);
+        recordTaskPlacementLatencyTimer.record(totalSchedulingIterationRecordLatency.get(), TimeUnit.MILLISECONDS);
+        mesosLatencyTimer.record(totalSchedulingIterationMesosLatency.get(), TimeUnit.MILLISECONDS);
     }
 
     private void launchTasks(Collection<TaskAssignmentResult> requests, List<VirtualMachineLease> leases) {
         final List<Protos.TaskInfo> taskInfoList = new LinkedList<>();
 
-        long recordStartTime = System.currentTimeMillis();
+        long recordStartTime = titusRuntime.getClock().wallTime();
         try {
             for (TaskAssignmentResult assignmentResult : requests) {
                 List<ConsumeResult> consumeResults = assignmentResult.getrSets();
@@ -717,7 +745,9 @@ public class DefaultSchedulingService implements SchedulingService {
                 }
             }
         } finally {
-            logger.info("Recorded task placement decisions in JobManager in {}ms: tasks={}, offers={}", titusRuntime.getClock().wallTime() - recordStartTime, requests.size(), leases.size());
+            long recordLatency = titusRuntime.getClock().wallTime() - recordStartTime;
+            totalSchedulingIterationRecordLatency.addAndGet(recordLatency);
+            logger.info("Recorded task placement decisions in JobManager in {}ms: tasks={}, offers={}", recordLatency, requests.size(), leases.size());
         }
 
         long mesosStartTime = titusRuntime.getClock().wallTime();
@@ -725,13 +755,17 @@ public class DefaultSchedulingService implements SchedulingService {
             try {
                 leases.forEach(virtualMachineService::rejectLease);
             } finally {
-                logger.info("Rejected offers as no task effectively placed on the agent in {}ms: offers={}", titusRuntime.getClock().wallTime() - mesosStartTime, leases.size());
+                long mesosLatency = titusRuntime.getClock().wallTime() - mesosStartTime;
+                totalSchedulingIterationMesosLatency.addAndGet(mesosLatency);
+                logger.info("Rejected offers as no task effectively placed on the agent in {}ms: offers={}", mesosLatency, leases.size());
             }
         } else {
             try {
                 virtualMachineService.launchTasks(taskInfoList, leases);
             } finally {
-                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", titusRuntime.getClock().wallTime() - mesosStartTime, taskInfoList.size(), leases.size());
+                long mesosLatency = titusRuntime.getClock().wallTime() - mesosStartTime;
+                totalSchedulingIterationMesosLatency.addAndGet(mesosLatency);
+                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", mesosLatency, taskInfoList.size(), leases.size());
             }
         }
     }

@@ -53,11 +53,9 @@ import rx.Completable;
 import rx.Observable;
 
 import static com.netflix.titus.common.util.guice.ProxyType.ActiveGuard;
-import static com.netflix.titus.common.util.guice.ProxyType.Logging;
-import static com.netflix.titus.common.util.guice.ProxyType.Spectator;
 
 @Singleton
-@ProxyConfiguration(types = {Logging, Spectator, ActiveGuard})
+@ProxyConfiguration(types = {ActiveGuard})
 public class DefaultAgentManagementService implements AgentManagementService {
 
     private final AgentManagementConfiguration configuration;

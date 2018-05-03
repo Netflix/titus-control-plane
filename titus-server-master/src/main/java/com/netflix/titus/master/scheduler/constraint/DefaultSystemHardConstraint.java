@@ -75,6 +75,11 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     }
 
     @Override
+    public String getName() {
+        return "Default System Hard Constraint";
+    }
+
+    @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         Preconditions.checkNotNull(delegate, "System activation not finished yet");
         return delegate.evaluate(taskRequest, targetVM, taskTrackerState);
