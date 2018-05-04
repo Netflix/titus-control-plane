@@ -290,7 +290,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                 })
                                 .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
                 );
-        return engine.changeReferenceModel(changeAction).toCompletable();
+        return engine.changeReferenceModel(changeAction, taskId).toCompletable();
     }
 
     @Override
