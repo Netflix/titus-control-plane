@@ -52,6 +52,7 @@ import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidat
 import com.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.guice.ContainerEventBus;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -179,8 +180,7 @@ public class EmbeddedTitusMaster {
 
             CloudSimulatorResolver connectorConfiguration = () -> builder.remoteCloud;
             this.cloudInstanceConnector = new SimulatedRemoteInstanceCloudConnector(connectorConfiguration);
-            this.mesosSchedulerDriverFactory = new SimulatedRemoteMesosSchedulerDriverFactory(connectorConfiguration);
-
+            this.mesosSchedulerDriverFactory = new SimulatedRemoteMesosSchedulerDriverFactory(connectorConfiguration, TitusRuntimes.internal());
         }
         if (simulatedCloud != null) {
             builder.agentClusters.forEach(simulatedCloud::addInstanceGroup);

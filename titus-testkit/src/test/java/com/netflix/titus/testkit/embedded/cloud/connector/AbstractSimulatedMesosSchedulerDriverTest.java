@@ -77,7 +77,7 @@ public abstract class AbstractSimulatedMesosSchedulerDriverTest {
         mesosDriver.launchTasks(singletonList(offer.getId()), singletonList(newTaskInfo()));
 
         // Check that task is launched
-        TaskExecutorHolder holder = launchesSubscriber.takeNext();
+        TaskExecutorHolder holder = launchesSubscriber.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         assertThat(holder).isNotNull();
 
         // Check that new offer is sent
@@ -247,7 +247,7 @@ public abstract class AbstractSimulatedMesosSchedulerDriverTest {
         offers().skipAvailable();
 
         mesosDriver.launchTasks(singletonList(offer.getId()), singletonList(newTaskInfo()));
-        TaskExecutorHolder holder = launchesSubscriber.takeNext();
+        TaskExecutorHolder holder = launchesSubscriber.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         Protos.TaskStatus afterLaunch = taskStatusUpdates().takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         assertThat(afterLaunch.getState()).isEqualTo(Protos.TaskState.TASK_STAGING);
