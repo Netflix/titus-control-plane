@@ -17,12 +17,11 @@
 package com.netflix.titus.master.scheduler.fitness;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import com.google.common.base.Strings;
+import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QueuableTask;
@@ -100,26 +99,32 @@ public class FitnessCalculatorFunctions {
             ScheduledRequest scheduledRequest = (ScheduledRequest) taskRequest;
             V2JobMetadata job = scheduledRequest.getJob();
             List<Parameter> parameters = job.getParameters();
-            Set<String> securityGroupIds = new HashSet<>(Parameters.getSecurityGroups(parameters));
-            return StringExt.concatenate(securityGroupIds, AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
+            return StringExt.concatenate(Parameters.getSecurityGroups(parameters), AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
         } else if (taskRequest instanceof V3QueueableTask) {
             V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
             Job job = v3QueueableTask.getJob();
             Container container = job.getJobDescriptor().getContainer();
-            Set<String> securityGroupIds = new HashSet<>(container.getSecurityProfile().getSecurityGroups());
-            return StringExt.concatenate(securityGroupIds, AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
+            return StringExt.concatenate(container.getSecurityProfile().getSecurityGroups(), AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
         }
         return AgentResourceCacheFunctions.EMPTY_JOINED_SECURITY_GROUP_IDS;
     }
 
     public static List<TaskRequest> getAllTasksOnAgent(VirtualMachineCurrentState targetVm) {
         List<TaskRequest> tasksOnAgent = new ArrayList<>(targetVm.getRunningTasks());
-        targetVm.getTasksCurrentlyAssigned().forEach(t -> tasksOnAgent.add(t.getRequest()));
+        for (TaskAssignmentResult taskAssignmentResult : targetVm.getTasksCurrentlyAssigned()) {
+            tasksOnAgent.add(taskAssignmentResult.getRequest());
+        }
         return tasksOnAgent;
     }
 
     public static long countMatchingTasks(List<TaskRequest> tasksOnAgent, Predicate<TaskRequest> predicate) {
-        return tasksOnAgent.stream().filter(predicate).count();
+        int count = 0;
+        for (TaskRequest taskRequest : tasksOnAgent) {
+            if (predicate.test(taskRequest)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public static String getAgentAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
