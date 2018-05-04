@@ -160,14 +160,11 @@ public class DefaultSchedulingService implements SchedulingService {
     private final AtomicLong totalAllocatedNetworkInterfaces;
 
     private final Timer fenzoSchedulingResultLatencyTimer;
-
     private final Timer fenzoCallbackLatencyTimer;
-    private final Timer fenzoEvaluationLatencyTimer;
     private final Timer recordTaskPlacementLatencyTimer;
     private final Timer mesosLatencyTimer;
 
     private final AtomicLong totalSchedulingIterationMesosLatency;
-    private final AtomicLong lastFenzoSchedulingIterationStart;
 
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
     private final SystemSoftConstraint systemSoftConstraint;
@@ -344,12 +341,10 @@ public class DefaultSchedulingService implements SchedulingService {
 
         fenzoSchedulingResultLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoSchedulingResult");
         fenzoCallbackLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoCallback");
-        fenzoEvaluationLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoEvaluation");
         recordTaskPlacementLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "recordTaskPlacement");
         mesosLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "mesos");
 
         totalSchedulingIterationMesosLatency = new AtomicLong();
-        lastFenzoSchedulingIterationStart = new AtomicLong();
 
         vmCurrentStatesMap = new ConcurrentHashMap<>();
     }
@@ -534,7 +529,6 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void preSchedulingHook() {
-        lastFenzoSchedulingIterationStart.set(titusRuntime.getClock().wallTime());
         systemHardConstraint.prepare();
         setupTierAutoscalerConfig();
     }
@@ -584,8 +578,6 @@ public class DefaultSchedulingService implements SchedulingService {
         long callbackStart = titusRuntime.getClock().wallTime();
         totalSchedulingIterationMesosLatency.set(0);
 
-        // the time between the start of a fenzo scheduling iteration and when this callback is called is considered the fenzo latency.
-        fenzoEvaluationLatencyTimer.record(titusRuntime.getClock().wallTime() - lastFenzoSchedulingIterationStart.get(), TimeUnit.MILLISECONDS);
         if (!schedulingResult.getExceptions().isEmpty()) {
             logger.error("Exceptions in scheduling iteration:");
             for (Exception e : schedulingResult.getExceptions()) {
