@@ -258,7 +258,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
         ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
-        return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, titusRuntime)).toCompletable();
+        TitusChangeAction changeAction = BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, titusRuntime);
+        return engine.changeReferenceModel(changeAction, taskId).toCompletable();
     }
 
     @Override
