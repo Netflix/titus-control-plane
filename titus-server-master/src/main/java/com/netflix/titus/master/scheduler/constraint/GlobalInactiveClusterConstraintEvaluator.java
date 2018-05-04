@@ -51,6 +51,11 @@ public class GlobalInactiveClusterConstraintEvaluator implements GlobalConstrain
     }
 
     @Override
+    public String getName() {
+        return "Global Inactive Cluster Constraint Evaluator";
+    }
+
+    @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         String serverGroupName = LeaseAttributes.getOrDefault(targetVM.getCurrAvailableResources(), serverGroupAttrName, null);
 

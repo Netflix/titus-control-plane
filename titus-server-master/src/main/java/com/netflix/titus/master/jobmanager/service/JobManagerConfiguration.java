@@ -24,17 +24,17 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titusMaster.jobManager")
 public interface JobManagerConfiguration {
 
-    @DefaultValue("1000")
+    @DefaultValue("100")
     long getReconcilerIdleTimeoutMs();
 
-    @DefaultValue("50")
+    @DefaultValue("1")
     long getReconcilerActiveTimeoutMs();
 
     /**
      * How many active tasks in the transient state (in other words not Started and not Finished) are allowed in a job.
      * If the number of active tasks in the transient state goes above this limit, no new tasks are created.
      */
-    @DefaultValue("100")
+    @DefaultValue("300")
     int getActiveNotStartedTasksLimit();
 
     @DefaultValue("60000")
