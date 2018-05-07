@@ -91,7 +91,9 @@ class TaskPlacementRecorder {
                     .collect(Collectors.toList());
         } finally {
             int taskCount = schedulingResult.getResultMap().values().stream().mapToInt(a -> a.getTasksAssigned().size()).sum();
-            logger.info("Task placement recording: tasks={}, executionTimeMs={}", taskCount, clock.wallTime() - startTime);
+            if(taskCount > 0) {
+                logger.info("Task placement recording: tasks={}, executionTimeMs={}", taskCount, clock.wallTime() - startTime);
+            }
         }
     }
 
@@ -228,9 +230,13 @@ class TaskPlacementRecorder {
     }
 
     private void removeUnknownTask(TaskAssignmentResult assignmentResult, TitusQueuableTask task) {
-        // job must have been terminated, remove task from Fenzo
-        logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: {}", task.getId());
-        schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
+        try {
+            // job must have been terminated, remove task from Fenzo
+            logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: {}", task.getId());
+            schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
+        } catch (Exception e) {
+            logger.warn("Unexpected error when removing task from the Fenzo queue", e);
+        }
     }
 
     private class AgentAssignment {

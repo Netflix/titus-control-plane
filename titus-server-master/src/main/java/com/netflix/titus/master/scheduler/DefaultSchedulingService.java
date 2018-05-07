@@ -102,7 +102,6 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
-import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_SERVICE;
@@ -120,11 +119,10 @@ public class DefaultSchedulingService implements SchedulingService {
     private final MasterConfiguration masterConfiguration;
     private final SchedulerConfiguration schedulerConfiguration;
     private final V2JobOperations v2JobOperations;
-    private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
     private final Optional<FitInjection> fitInjection;
     private TaskScheduler taskScheduler;
-    private TaskSchedulingService schedulingService;
+    private final TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
     private Subscription slaUpdateSubscription;
     // Choose this max delay between scheduling iterations with care. Making it too short makes scheduler do unnecessary
@@ -170,9 +168,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
     private final TaskPlacementRecorder taskPlacementRecorder;
-    private final Config config;
     private final Scheduler threadScheduler;
-    private Action1<QueuableTask> taskQueueAction;
     private final TitusRuntime titusRuntime;
     private final AgentResourceCache agentResourceCache;
     private final AgentResourceCacheUpdater agentResourceCacheUpdater;
@@ -183,7 +179,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
     private final DefaultAutoScaleController autoScaleController;
-    private final TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory;
     private Subscription vmStateUpdateSubscription;
 
     @Inject
@@ -243,10 +238,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     AgentResourceCache agentResourceCache,
                                     Config config) {
         this.v2JobOperations = v2JobOperations;
-        this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.autoScaleController = autoScaleController;
-        this.v3TaskInfoFactory = v3TaskInfoFactory;
         this.vmOps = vmOps;
         this.virtualMachineService = virtualMachineService;
         this.masterConfiguration = masterConfiguration;
@@ -260,8 +253,6 @@ public class DefaultSchedulingService implements SchedulingService {
         this.agentResourceCache = agentResourceCache;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
-        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
-        this.config = config;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
 
         FitFramework fit = titusRuntime.getFitFramework();
@@ -290,7 +281,8 @@ public class DefaultSchedulingService implements SchedulingService {
         taskQueue = TaskQueues.createTieredQueue(2);
         schedulingService = setupTaskSchedulingService(taskScheduler);
         virtualMachineService.setVMLeaseHandler(schedulingService::addLeases);
-        taskQueueAction = taskQueue::queueTask;
+
+        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
 
         totalTasksPerIteration = new AtomicLong(0);
         assignedTasksPerIteration = new AtomicLong(0);
