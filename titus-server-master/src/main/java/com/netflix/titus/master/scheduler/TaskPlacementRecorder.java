@@ -185,7 +185,8 @@ class TaskPlacementRecorder {
             )).timeout(
                     STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS
             ).onErrorResumeNext(error -> {
-                if (JobManagerException.hasErrorCode(error, JobManagerException.ErrorCode.UnexpectedTaskState)) {
+                Throwable recordTaskError = (Throwable) error; // Type inference issue
+                if (JobManagerException.hasErrorCode(recordTaskError, JobManagerException.ErrorCode.UnexpectedTaskState)) {
                     // TODO More checking here. If it is actually running, we should kill it
                     logger.info("Not launching task, as it is no longer in Accepted state (probably killed): {}", v3Task.getId());
                 } else {
@@ -194,7 +195,7 @@ class TaskPlacementRecorder {
                     } else {
                         logger.info("Not launching task due to model update failure: {}", v3Task.getId(), error);
                     }
-                    killBrokenV3Task(fenzoTask, "model update error: " + error.getMessage());
+                    killBrokenV3Task(fenzoTask, "model update error: " + recordTaskError.getMessage());
                 }
                 return Observable.empty();
             }).map(taskInfo -> Pair.of(assignment, taskInfo));
