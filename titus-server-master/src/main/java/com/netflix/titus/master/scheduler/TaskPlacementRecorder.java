@@ -44,10 +44,9 @@ import rx.Observable;
 @Singleton
 class TaskPlacementRecorder {
 
-    private static final long STORE_UPDATE_TIMEOUT_MS = 5_000;
-
     private static final Logger logger = LoggerFactory.getLogger(TaskPlacementRecorder.class);
 
+    private static final long STORE_UPDATE_TIMEOUT_MS = 5_000;
     private static final int RECORD_CONCURRENCY_LIMIT = 500;
 
     private final Config config;
@@ -186,17 +185,16 @@ class TaskPlacementRecorder {
             )).timeout(
                     STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS
             ).onErrorResumeNext(error -> {
-                Throwable recordTaskError = (Throwable) error; // Type inference issue
-                if (JobManagerException.hasErrorCode(recordTaskError, JobManagerException.ErrorCode.UnexpectedTaskState)) {
+                if (JobManagerException.hasErrorCode(error, JobManagerException.ErrorCode.UnexpectedTaskState)) {
                     // TODO More checking here. If it is actually running, we should kill it
                     logger.info("Not launching task, as it is no longer in Accepted state (probably killed): {}", v3Task.getId());
                 } else {
-                    if (recordTaskError instanceof TimeoutException) {
+                    if (error instanceof TimeoutException) {
                         logger.error("Timed out during writing task {} (job {}) status update to the store", fenzoTask.getId(), v3Job.getId());
                     } else {
-                        logger.info("Not launching task due to model update failure: {}", v3Task.getId(), recordTaskError);
+                        logger.info("Not launching task due to model update failure: {}", v3Task.getId(), error);
                     }
-                    killBrokenV3Task(fenzoTask, "model update error: " + recordTaskError.getMessage());
+                    killBrokenV3Task(fenzoTask, "model update error: " + error.getMessage());
                 }
                 return Observable.empty();
             }).map(taskInfo -> Pair.of(assignment, taskInfo));
@@ -222,7 +220,7 @@ class TaskPlacementRecorder {
                             return;
                         }
                     }
-                    logger.warn("Attempt to terminate task in potentially inconsistent state due to failed launch process {} failed: {}", task.getId(), e.getMessage());
+                    logger.warn("Attempted to terminate task in potentially inconsistent state due to failed launch process {} failed: {}", task.getId(), e.getMessage());
                 },
                 () -> logger.warn("Terminated task {} as launch operation could not be completed", task.getId())
         );
@@ -230,19 +228,19 @@ class TaskPlacementRecorder {
 
     private void removeUnknownTask(TaskAssignmentResult assignmentResult, TitusQueuableTask task) {
         // job must have been terminated, remove task from Fenzo
-        logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: " + task.getId());
+        logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: {}", task.getId());
         schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
     }
 
     private class AgentAssignment {
-        private final String hostName;
+        private final String hostname;
         private final Map<String, String> attributeMap;
         private final VMAssignmentResult assignmentResult;
         private final List<TaskAssignmentResult> v2Assignments;
         private final List<TaskAssignmentResult> v3Assignments;
 
-        AgentAssignment(String hostName, VMAssignmentResult assignmentResult) {
-            this.hostName = hostName;
+        AgentAssignment(String hostname, VMAssignmentResult assignmentResult) {
+            this.hostname = hostname;
             this.assignmentResult = assignmentResult;
             this.attributeMap = buildAttributeMap(assignmentResult);
 
@@ -277,7 +275,7 @@ class TaskPlacementRecorder {
 
         @Override
         public int hashCode() {
-            return hostName.hashCode();
+            return hostname.hashCode();
         }
 
         @Override
@@ -286,8 +284,9 @@ class TaskPlacementRecorder {
                 return false;
             }
             AgentAssignment a2 = (AgentAssignment) obj;
-            return hostName.equals(a2.hostName);
+            return hostname.equals(a2.hostname);
         }
+
 
         private Map<String, String> buildAttributeMap(VMAssignmentResult assignmentResult) {
             final Map<String, Protos.Attribute> attributeMap = assignmentResult.getLeasesUsed().get(0).getAttributeMap();
