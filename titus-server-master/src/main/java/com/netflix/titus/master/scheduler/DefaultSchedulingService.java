@@ -19,10 +19,8 @@ package com.netflix.titus.master.scheduler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,7 +42,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
-import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.ConsumeResult;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.PreferentialNamedConsumableResource;
 import com.netflix.fenzo.ScaleDownAction;
 import com.netflix.fenzo.ScaleDownConstraintEvaluator;
@@ -55,7 +52,6 @@ import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskScheduler;
 import com.netflix.fenzo.TaskSchedulingService;
-import com.netflix.fenzo.VMAssignmentResult;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QAttributes;
@@ -72,14 +68,9 @@ import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import com.netflix.titus.api.agent.service.AgentManagementFunctions;
 import com.netflix.titus.api.agent.service.AgentManagementService;
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.WorkerNaming;
-import com.netflix.titus.api.store.v2.InvalidJobException;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -93,7 +84,6 @@ import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.job.JobMgr;
 import com.netflix.titus.master.job.V2JobOperations;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
@@ -105,7 +95,6 @@ import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
 import com.netflix.titus.master.scheduler.scaling.DefaultAutoScaleController;
 import com.netflix.titus.master.scheduler.scaling.FenzoAutoScaleRuleWrapper;
-import com.netflix.titus.master.store.InvalidJobStateChangeException;
 import com.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -124,7 +113,6 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private static final String METRIC_SLA_UPDATES = METRIC_SCHEDULING_SERVICE + "slaUpdates";
     private static final String METRIC_SCHEDULING_ITERATION_LATENCY = METRIC_SCHEDULING_SERVICE + "schedulingIterationLatency";
-    private static final long STORE_UPDATE_TIMEOUT_MS = 5_000;
     private static final long vmCurrentStatesCheckIntervalMillis = 10_000L;
     private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
 
@@ -172,19 +160,16 @@ public class DefaultSchedulingService implements SchedulingService {
     private final AtomicLong totalAllocatedNetworkInterfaces;
 
     private final Timer fenzoSchedulingResultLatencyTimer;
-
     private final Timer fenzoCallbackLatencyTimer;
-    private final Timer fenzoEvaluationLatencyTimer;
     private final Timer recordTaskPlacementLatencyTimer;
     private final Timer mesosLatencyTimer;
 
-    private final AtomicLong totalSchedulingIterationRecordLatency;
     private final AtomicLong totalSchedulingIterationMesosLatency;
-    private final AtomicLong lastFenzoSchedulingIterationStart;
 
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
+    private final TaskPlacementRecorder taskPlacementRecorder;
     private final Config config;
     private final Scheduler threadScheduler;
     private Action1<QueuableTask> taskQueueAction;
@@ -275,6 +260,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.agentResourceCache = agentResourceCache;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
+        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
         this.config = config;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
 
@@ -355,13 +341,10 @@ public class DefaultSchedulingService implements SchedulingService {
 
         fenzoSchedulingResultLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoSchedulingResult");
         fenzoCallbackLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoCallback");
-        fenzoEvaluationLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoEvaluation");
         recordTaskPlacementLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "recordTaskPlacement");
         mesosLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "mesos");
 
-        totalSchedulingIterationRecordLatency = new AtomicLong();
         totalSchedulingIterationMesosLatency = new AtomicLong();
-        lastFenzoSchedulingIterationStart = new AtomicLong();
 
         vmCurrentStatesMap = new ConcurrentHashMap<>();
     }
@@ -546,7 +529,6 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void preSchedulingHook() {
-        lastFenzoSchedulingIterationStart.set(titusRuntime.getClock().wallTime());
         systemHardConstraint.prepare();
         setupTierAutoscalerConfig();
     }
@@ -594,11 +576,8 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void schedulingResultsHandler(SchedulingResult schedulingResult) {
         long callbackStart = titusRuntime.getClock().wallTime();
-        totalSchedulingIterationRecordLatency.set(0);
         totalSchedulingIterationMesosLatency.set(0);
 
-        // the time between the start of a fenzo scheduling iteration and when this callback is called is considered the fenzo latency.
-        fenzoEvaluationLatencyTimer.record(titusRuntime.getClock().wallTime() - lastFenzoSchedulingIterationStart.get(), TimeUnit.MILLISECONDS);
         if (!schedulingResult.getExceptions().isEmpty()) {
             logger.error("Exceptions in scheduling iteration:");
             for (Exception e : schedulingResult.getExceptions()) {
@@ -617,12 +596,11 @@ public class DefaultSchedulingService implements SchedulingService {
         int assignedDuringSchedulingResult = 0;
         int failedTasksDuringSchedulingResult = 0;
 
-        Map<String, VMAssignmentResult> assignmentResultMap = schedulingResult.getResultMap();
-        for (Map.Entry<String, VMAssignmentResult> aResult : assignmentResultMap.entrySet()) {
-            Set<TaskAssignmentResult> tasksAssigned = aResult.getValue().getTasksAssigned();
-            launchTasks(tasksAssigned, aResult.getValue().getLeasesUsed());
-            assignedDuringSchedulingResult += tasksAssigned.size();
-        }
+        long recordingStart = titusRuntime.getClock().wallTime();
+        List<Pair<List<VirtualMachineLease>, List<Protos.TaskInfo>>> taskInfos = taskPlacementRecorder.record(schedulingResult);
+        recordTaskPlacementLatencyTimer.record(titusRuntime.getClock().wallTime() - recordingStart, TimeUnit.MILLISECONDS);
+        taskInfos.forEach(ts -> launchTasks(ts.getLeft(), ts.getRight()));
+        assignedDuringSchedulingResult += taskInfos.stream().mapToInt(p -> p.getRight().size()).sum();
 
         List<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
         taskFailuresActions.drainTo(failActions);
@@ -654,102 +632,10 @@ public class DefaultSchedulingService implements SchedulingService {
         totalActiveAgents.set(schedulingResult.getTotalVMsCount());
         fenzoSchedulingResultLatencyTimer.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
         fenzoCallbackLatencyTimer.record(titusRuntime.getClock().wallTime() - callbackStart, TimeUnit.MILLISECONDS);
-        recordTaskPlacementLatencyTimer.record(totalSchedulingIterationRecordLatency.get(), TimeUnit.MILLISECONDS);
         mesosLatencyTimer.record(totalSchedulingIterationMesosLatency.get(), TimeUnit.MILLISECONDS);
     }
 
-    private void launchTasks(Collection<TaskAssignmentResult> requests, List<VirtualMachineLease> leases) {
-        final List<Protos.TaskInfo> taskInfoList = new LinkedList<>();
-
-        long recordStartTime = titusRuntime.getClock().wallTime();
-        try {
-            for (TaskAssignmentResult assignmentResult : requests) {
-                List<ConsumeResult> consumeResults = assignmentResult.getrSets();
-                TitusQueuableTask task = (TitusQueuableTask) assignmentResult.getRequest();
-
-                boolean taskFound;
-                ConsumeResult consumeResult = consumeResults.get(0);
-                if (JobFunctions.isV2Task(task.getId())) {
-                    final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(task.getId());
-                    taskFound = jobMgr != null;
-                    if (taskFound) {
-                        final VirtualMachineLease lease = leases.get(0);
-                        try {
-                            taskInfoList.add(jobMgr.setLaunchedAndCreateTaskInfo(task, lease.hostname(), getAttributesMap(lease), lease.getOffer().getSlaveId(),
-                                    consumeResult, assignmentResult.getAssignedPorts()));
-                        } catch (InvalidJobStateChangeException | InvalidJobException e) {
-                            logger.warn("Not launching task due to error setting state to launched for " + task.getId() + " - " +
-                                    e.getMessage());
-                        } catch (Exception e) {
-                            // unexpected error creating task info
-                            String msg = "fatal error creating taskInfo for " + task.getId() + ": " + e.getMessage();
-                            logger.warn("Killing job " + jobMgr.getJobId() + ": " + msg, e);
-                            jobMgr.killJob("SYSTEM", msg);
-                        }
-                    }
-                } else { // V3 task
-                    Optional<Pair<Job<?>, Task>> v3JobAndTask = v3JobOperations.findTaskById(task.getId());
-                    taskFound = v3JobAndTask.isPresent();
-                    if (taskFound) {
-                        Job v3Job = v3JobAndTask.get().getLeft();
-                        Task v3Task = v3JobAndTask.get().getRight();
-                        final VirtualMachineLease lease = leases.get(0);
-                        try {
-                            Map<String, String> attributesMap = getAttributesMap(lease);
-
-                            fitInjection.ifPresent(i -> i.beforeImmediate("storeLaunchConfiguration"));
-                            boolean completedInTime = false;
-                            Throwable recordTaskError = null;
-                            Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
-                            try {
-                                completedInTime = v3JobOperations.recordTaskPlacement(
-                                        task.getId(),
-                                        oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
-                                                masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
-                                                executorUriOverrideOpt, attributesMap
-                                        ).apply(oldTask)
-                                ).await(STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                            } catch (Exception e) {
-                                recordTaskError = ExceptionExt.unpackRuntimeException(e);
-                            }
-
-                            Protos.TaskInfo taskInfo = v3TaskInfoFactory.newTaskInfo(
-                                    task, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
-                                    consumeResult, executorUriOverrideOpt);
-
-                            fitInjection.ifPresent(i -> i.afterImmediate("storeLaunchConfiguration"));
-
-                            if (recordTaskError != null) {
-                                if (JobManagerException.hasErrorCode(recordTaskError, JobManagerException.ErrorCode.UnexpectedTaskState)) {
-                                    logger.info("Not launching task, as it is no longer in Accepted state (probably killed): {}", v3Task.getId());
-                                } else {
-                                    logger.info("Not launching task due to model update failure: {}", v3Task.getId(), recordTaskError);
-                                    killBrokenTask(task, "model update error: " + recordTaskError.getMessage());
-                                }
-                            } else if (completedInTime) {
-                                taskInfoList.add(taskInfo);
-                            } else {
-                                killBrokenTask(task, "store update timeout");
-                                logger.error("Timed out during writing task {} (job {}) status update to the store", task.getId(), v3Job.getId());
-                            }
-                        } catch (Exception e) {
-                            killBrokenTask(task, e.toString());
-                            logger.error("Fatal error when creating TaskInfo for task: {}", task.getId(), e);
-                        }
-                    }
-                }
-                if (!taskFound) {
-                    // job must have been terminated, remove task from Fenzo
-                    logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: " + task.getId());
-                    schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
-                }
-            }
-        } finally {
-            long recordLatency = titusRuntime.getClock().wallTime() - recordStartTime;
-            totalSchedulingIterationRecordLatency.addAndGet(recordLatency);
-            logger.info("Recorded task placement decisions in JobManager in {}ms: tasks={}, offers={}", recordLatency, requests.size(), leases.size());
-        }
-
+    private void launchTasks(List<VirtualMachineLease> leases, List<Protos.TaskInfo> taskInfoList) {
         long mesosStartTime = titusRuntime.getClock().wallTime();
         if (taskInfoList.isEmpty()) {
             try {
@@ -768,38 +654,6 @@ public class DefaultSchedulingService implements SchedulingService {
                 logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", mesosLatency, taskInfoList.size(), leases.size());
             }
         }
-    }
-
-    private void killBrokenTask(TitusQueuableTask task, String reason) {
-        v3JobOperations.killTask(task.getId(), false, String.format("Failed to launch task %s due to %s", task.getId(), reason)).subscribe(
-                next -> {
-                },
-                e -> {
-                    if (e instanceof JobManagerException) {
-                        JobManagerException je = (JobManagerException) e;
-
-                        // This means task is no longer around, so we can safely ignore this.
-                        if (je.getErrorCode() == JobManagerException.ErrorCode.JobNotFound
-                                || je.getErrorCode() == JobManagerException.ErrorCode.TaskNotFound
-                                || je.getErrorCode() == JobManagerException.ErrorCode.TaskTerminating) {
-                            return;
-                        }
-                    }
-                    logger.warn("Attempt to terminate task in potentially inconsistent state due to failed launch process {} failed: {}", task.getId(), e.getMessage());
-                },
-                () -> logger.warn("Terminated task {} as launch operation could not be completed", task.getId())
-        );
-    }
-
-    private Map<String, String> getAttributesMap(VirtualMachineLease virtualMachineLease) {
-        final Map<String, Protos.Attribute> attributeMap = virtualMachineLease.getAttributeMap();
-        final Map<String, String> result = new HashMap<>();
-        if (!attributeMap.isEmpty()) {
-            for (Map.Entry<String, Protos.Attribute> entry : attributeMap.entrySet()) {
-                result.put(entry.getKey(), entry.getValue().getText().getValue());
-            }
-        }
-        return result;
     }
 
     @Override

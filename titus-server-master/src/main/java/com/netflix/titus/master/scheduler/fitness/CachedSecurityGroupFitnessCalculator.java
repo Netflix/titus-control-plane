@@ -52,12 +52,12 @@ public class CachedSecurityGroupFitnessCalculator implements VMTaskFitnessCalcul
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         Optional<AgentResourceCacheInstance> instanceOpt = agentResourceCache.get(targetVM.getHostname());
         if (instanceOpt.isPresent()) {
-            String joinSecurityGroupIds = getJoinedSecurityGroupIds(taskRequest);
+            String joinedSecurityGroupIds = getJoinedSecurityGroupIds(taskRequest);
             AgentResourceCacheInstance instance = instanceOpt.get();
-            Optional<AgentResourceCacheNetworkInterface> matchingNetworkInterface = instance.getNetworkInterfaces()
-                    .values().stream().filter(i -> i.getJoinedSecurityGroupIds().equals(joinSecurityGroupIds)).findFirst();
-            if (matchingNetworkInterface.isPresent()) {
-                return SECURITY_GROUPS_CACHED_SCORE;
+            for (AgentResourceCacheNetworkInterface networkInterface : instance.getNetworkInterfaces().values()) {
+                if (networkInterface.getJoinedSecurityGroupIds().equals(joinedSecurityGroupIds)) {
+                    return SECURITY_GROUPS_CACHED_SCORE;
+                }
             }
         }
         return SECURITY_GROUPS_NOT_CACHED_SCORE;

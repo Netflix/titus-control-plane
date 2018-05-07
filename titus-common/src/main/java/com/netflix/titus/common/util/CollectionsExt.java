@@ -212,7 +212,9 @@ public final class CollectionsExt {
         }
         List<T> result = new ArrayList<>();
         for (List<T> next : lists) {
-            result.addAll(next);
+            if (next != null) {
+                result.addAll(next);
+            }
         }
         return result;
     }

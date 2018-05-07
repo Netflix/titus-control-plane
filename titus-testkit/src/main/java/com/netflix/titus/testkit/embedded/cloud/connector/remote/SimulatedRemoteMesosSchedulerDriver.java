@@ -17,23 +17,28 @@
 package com.netflix.titus.testkit.embedded.cloud.connector.remote;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.simulator.SimulatedMesosServiceGrpc;
 import com.netflix.titus.simulator.SimulatedMesosServiceGrpc.SimulatedMesosServiceBlockingStub;
 import com.netflix.titus.simulator.SimulatedMesosServiceGrpc.SimulatedMesosServiceStub;
@@ -45,13 +50,16 @@ import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedNetworkConfiguration;
 import com.netflix.titus.simulator.TitusCloudSimulator.TasksLaunchRequest;
 import io.grpc.ManagedChannel;
+import io.grpc.stub.StreamObserver;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Completable;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
 
@@ -67,20 +75,40 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
     private final SimulatedMesosServiceBlockingStub blockingClient;
 
     private final Scheduler callbackHandler;
+    private final TitusRuntime titusRuntime;
 
     private Subscription offerSubscription;
     private Subscription taskStatusUpdateSubscription;
 
-    SimulatedRemoteMesosSchedulerDriver(Protos.MasterInfo masterInfo, ManagedChannel channel, Scheduler callbackHandler) {
+    private final BlockingQueue<TasksLaunchRequest> launchQueue = new LinkedBlockingQueue<>();
+    private Subscription queueDrainerSubscription;
+
+    SimulatedRemoteMesosSchedulerDriver(Protos.MasterInfo masterInfo, ManagedChannel channel, Scheduler callbackHandler, TitusRuntime titusRuntime) {
         this.masterInfo = masterInfo;
         this.asyncClient = SimulatedMesosServiceGrpc.newStub(channel);
         this.blockingClient = SimulatedMesosServiceGrpc.newBlockingStub(channel);
         this.callbackHandler = callbackHandler;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
     public Protos.Status start() {
         this.callbackHandler.registered(this, FRAMEWORK_ID, masterInfo);
+
+        this.queueDrainerSubscription = ObservableExt.schedule(
+                "titusMaster.simulatedRemoteMesosSchedulerDriver",
+                titusRuntime.getRegistry(),
+                "queueDrainer",
+                drainRequestQueues(),
+                0,
+                1,
+                TimeUnit.MILLISECONDS,
+                Schedulers.computation()
+        ).subscribe(
+                next -> next.ifPresent(error -> logger.warn("Queue processing error", error)),
+                e -> logger.error("Queue drainer process died", e),
+                () -> logger.info("Queue drainer process completed")
+        );
 
         this.offerSubscription = GrpcUtil.toObservable(asyncClient::offerStream)
                 .retryWhen(RetryHandlerBuilder.retryHandler()
@@ -112,6 +140,34 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
         return Protos.Status.DRIVER_RUNNING;
     }
 
+    private Completable drainRequestQueues() {
+        return Completable.fromEmitter(emitter -> {
+            if (launchQueue.isEmpty()) {
+                emitter.onCompleted();
+                return;
+            }
+            List<TasksLaunchRequest> batch = new ArrayList<>();
+            launchQueue.drainTo(batch);
+
+            TitusCloudSimulator.TasksLaunchRequests request = TitusCloudSimulator.TasksLaunchRequests.newBuilder().addAllLaunchRequests(batch).build();
+            asyncClient.launchTasks(request, new StreamObserver<Empty>() {
+                @Override
+                public void onNext(Empty value) {
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    emitter.onError(t);
+                }
+
+                @Override
+                public void onCompleted() {
+                    emitter.onCompleted();
+                }
+            });
+        });
+    }
+
     @Override
     public Protos.Status stop(boolean failover) {
         return stop();
@@ -119,7 +175,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
 
     @Override
     public Protos.Status stop() {
-        ObservableExt.safeUnsubscribe(offerSubscription, taskStatusUpdateSubscription);
+        ObservableExt.safeUnsubscribe(offerSubscription, taskStatusUpdateSubscription, queueDrainerSubscription);
         return Protos.Status.DRIVER_STOPPED;
     }
 
@@ -160,7 +216,9 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
                 .addAllOfferIds(offerIds.stream().map(Protos.OfferID::getValue).collect(Collectors.toList()))
                 .addAllTasks(tasks.stream().map(this::toSimulatedTask).collect(Collectors.toList()))
                 .build();
-        blockingClient.launchTasks(request);
+
+        launchQueue.add(request);
+
         return Protos.Status.DRIVER_RUNNING;
     }
 

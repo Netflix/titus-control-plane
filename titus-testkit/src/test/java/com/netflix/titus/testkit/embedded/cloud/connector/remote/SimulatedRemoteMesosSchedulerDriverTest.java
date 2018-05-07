@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.embedded.cloud.connector.remote;
 
 import com.netflix.governator.LifecycleInjector;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.connector.AbstractSimulatedMesosSchedulerDriverTest;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
@@ -39,7 +40,7 @@ public class SimulatedRemoteMesosSchedulerDriverTest extends AbstractSimulatedMe
         int grpcPort = NetworkExt.findUnusedPort();
         this.injector = RemoteConnectorUtil.createSimulatedCloudGrpcServer(cloud, grpcPort);
 
-        this.factory = new SimulatedRemoteMesosSchedulerDriverFactory(RemoteConnectorUtil.newConnectorConfiguration(grpcPort));
+        this.factory = new SimulatedRemoteMesosSchedulerDriverFactory(RemoteConnectorUtil.newConnectorConfiguration(grpcPort), TitusRuntimes.internal());
         return factory.createDriver(framework, "N/A", callbackHandler);
     }
 
