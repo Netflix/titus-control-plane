@@ -48,6 +48,8 @@ class TaskPlacementRecorder {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskPlacementRecorder.class);
 
+    private static final int RECORD_CONCURRENCY_LIMIT = 500;
+
     private final Config config;
     private final MasterConfiguration masterConfiguration;
     private final TaskSchedulingService schedulingService;
@@ -142,7 +144,7 @@ class TaskPlacementRecorder {
         List<Observable<Pair<AgentAssignment, Protos.TaskInfo>>> recordActions = assignments.stream()
                 .flatMap(a -> a.getV3Assignments().stream().map(ar -> processTask(a, ar)))
                 .collect(Collectors.toList());
-        List<Pair<AgentAssignment, Protos.TaskInfo>> taskInfos = Observable.merge(recordActions).toList().toBlocking().first();
+        List<Pair<AgentAssignment, Protos.TaskInfo>> taskInfos = Observable.merge(recordActions, RECORD_CONCURRENCY_LIMIT).toList().toBlocking().first();
 
         Map<AgentAssignment, List<Protos.TaskInfo>> result = new HashMap<>();
         taskInfos.forEach(p -> result.computeIfAbsent(p.getLeft(), a -> new ArrayList<>()).add(p.getRight()));
