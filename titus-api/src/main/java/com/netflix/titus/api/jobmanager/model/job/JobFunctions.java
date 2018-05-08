@@ -256,7 +256,12 @@ public final class JobFunctions {
         if (task.getStatus().getState() == checkedState) {
             return Optional.of(task.getStatus());
         }
-        return task.getStatusHistory().stream().filter(s -> s.getState() == checkedState).findFirst();
+        for (TaskStatus taskStatus : task.getStatusHistory()) {
+            if (taskStatus.getState() == checkedState) {
+                return Optional.of(taskStatus);
+            }
+        }
+        return Optional.empty();
     }
 
     public static Optional<TaskStatus> findStatusAfter(Task task, TaskState before) {

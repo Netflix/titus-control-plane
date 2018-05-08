@@ -19,6 +19,8 @@ package com.netflix.titus.common.framework.reconciler.internal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,8 +28,11 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,6 +53,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 public class DefaultReconciliationFramework<EVENT> implements ReconciliationFramework<EVENT> {
@@ -57,16 +63,21 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private static final String ROOT_METRIC_NAME = "titus.reconciliation.framework.";
     private static final String LOOP_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "executionTime";
     private static final String LAST_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "lastExecutionTime";
+    private static final String LAST_FULL_CYCLE_EXECUTION_TIME_METRIC = ROOT_METRIC_NAME + "lastFullCycleExecutionTime";
 
-    private final Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory;
+    private final Function<EntityHolder, InternalReconciliationEngine<EVENT>> engineFactory;
     private final long idleTimeoutMs;
     private final long activeTimeoutMs;
 
-    private final Set<ReconciliationEngine<EVENT>> engines = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final ExecutorService executor;
+    private final Scheduler scheduler;
 
-    private final BlockingQueue<Pair<ReconciliationEngine<EVENT>, Subscriber<ReconciliationEngine>>> enginesAdded = new LinkedBlockingQueue<>();
-    private final BlockingQueue<Pair<ReconciliationEngine<EVENT>, Subscriber<Void>>> enginesToRemove = new LinkedBlockingQueue<>();
+    private final Set<InternalReconciliationEngine<EVENT>> engines = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
+    private final BlockingQueue<Pair<InternalReconciliationEngine<EVENT>, Subscriber<ReconciliationEngine>>> enginesAdded = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<InternalReconciliationEngine<EVENT>, Subscriber<Void>>> enginesToRemove = new LinkedBlockingQueue<>();
+
+    private final AtomicReference<Map<String, InternalReconciliationEngine<EVENT>>> idToEngineMapRef = new AtomicReference<>(Collections.emptyMap());
     private IndexSet<EntityHolder> indexSet;
 
     private final Scheduler.Worker worker;
@@ -79,15 +90,16 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private final Subscription internalEventSubscription;
 
     private final Timer loopExecutionTime;
-    private volatile long lastExecutionTimeMs;
+    private volatile long lastFullCycleExecutionTimeMs; // Probed by a polled meter.
+    private volatile long lastExecutionTimeMs; // Probed by a polled meter.
 
-    public DefaultReconciliationFramework(List<ReconciliationEngine<EVENT>> bootstrapEngines,
-                                          Function<EntityHolder, ReconciliationEngine<EVENT>> engineFactory,
+    public DefaultReconciliationFramework(List<InternalReconciliationEngine<EVENT>> bootstrapEngines,
+                                          Function<EntityHolder, InternalReconciliationEngine<EVENT>> engineFactory,
                                           long idleTimeoutMs,
                                           long activeTimeoutMs,
                                           Map<Object, Comparator<EntityHolder>> indexComparators,
                                           Registry registry,
-                                          Scheduler scheduler) {
+                                          Optional<Scheduler> optionalScheduler) {
         Preconditions.checkArgument(idleTimeoutMs > 0, "idleTimeout <= 0 (%s)", idleTimeoutMs);
         Preconditions.checkArgument(activeTimeoutMs <= idleTimeoutMs, "activeTimeout(%s) > idleTimeout(%s)", activeTimeoutMs, idleTimeoutMs);
 
@@ -96,6 +108,19 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
         this.idleTimeoutMs = idleTimeoutMs;
         this.activeTimeoutMs = activeTimeoutMs;
+
+        if (optionalScheduler.isPresent()) {
+            this.scheduler = optionalScheduler.get();
+            this.executor = null;
+        } else {
+            this.executor = Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "TitusReconciliationFramework");
+                thread.setDaemon(true);
+                return thread;
+            });
+            this.scheduler = Schedulers.from(executor);
+        }
+
         this.worker = scheduler.createWorker();
         this.eventsObservable = Observable.merge(eventsMergeSubject).share();
 
@@ -103,8 +128,10 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         this.internalEventSubscription = eventsObservable.subscribe(ObservableExt.silentSubscriber());
 
         this.loopExecutionTime = registry.timer(LOOP_EXECUTION_TIME_METRIC);
+        this.lastFullCycleExecutionTimeMs = scheduler.now() - idleTimeoutMs;
         this.lastExecutionTimeMs = scheduler.now();
         PolledMeter.using(registry).withName(LAST_EXECUTION_TIME_METRIC).monitorValue(this, self -> scheduler.now() - self.lastExecutionTimeMs);
+        PolledMeter.using(registry).withName(LAST_FULL_CYCLE_EXECUTION_TIME_METRIC).monitorValue(this, self -> scheduler.now() - self.lastFullCycleExecutionTimeMs);
 
         engines.addAll(bootstrapEngines);
         bootstrapEngines.forEach(engine -> eventsMergeSubject.onNext(engine.events()));
@@ -141,6 +168,10 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
         internalEventSubscription.unsubscribe();
 
+        if (executor != null) {
+            executor.shutdownNow();
+        }
+
         return latch.getCount() == 0;
     }
 
@@ -160,19 +191,21 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
                 subscriber.onError(new IllegalStateException("Reconciliation engine is stopped"));
                 return;
             }
-            ReconciliationEngine newEngine = engineFactory.apply(bootstrapModel);
+            InternalReconciliationEngine newEngine = engineFactory.apply(bootstrapModel);
             enginesAdded.add(Pair.of(newEngine, (Subscriber<ReconciliationEngine>) subscriber));
         });
     }
 
     @Override
     public Completable removeEngine(ReconciliationEngine engine) {
+        Preconditions.checkArgument(engine instanceof InternalReconciliationEngine, "Unexpected ReconciliationEngine implementation");
+
         return Observable.<Void>unsafeCreate(subscriber -> {
             if (!runnable) {
                 subscriber.onError(new IllegalStateException("Reconciliation engine is stopped"));
                 return;
             }
-            enginesToRemove.add(Pair.of(engine, (Subscriber<Void>) subscriber));
+            enginesToRemove.add(Pair.of((InternalReconciliationEngine<EVENT>) engine, (Subscriber<Void>) subscriber));
         }).toCompletable();
     }
 
@@ -183,18 +216,24 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
 
     @Override
     public Optional<ReconciliationEngine<EVENT>> findEngineByRootId(String id) {
-        return engines.stream().filter(e -> e.getReferenceView().getId().equals(id)).findFirst();
+        InternalReconciliationEngine<EVENT> engine = idToEngineMapRef.get().get(id);
+        if (engine == null) {
+            return Optional.empty();
+        }
+        return engine.getReferenceView().getId().equals(id) ? Optional.of(engine) : Optional.empty();
     }
 
     @Override
     public Optional<Pair<ReconciliationEngine<EVENT>, EntityHolder>> findEngineByChildId(String childId) {
-        for (ReconciliationEngine engine : engines) {
-            Optional<EntityHolder> childHolder = engine.getReferenceView().getChildren().stream().filter(c -> c.getId().equals(childId)).findFirst();
-            if (childHolder.isPresent()) {
-                return Optional.of(Pair.of(engine, childHolder.get()));
-            }
+        InternalReconciliationEngine<EVENT> engine = idToEngineMapRef.get().get(childId);
+        if (engine == null) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        EntityHolder rootHolder = engine.getReferenceView();
+        if (rootHolder.getId().equals(childId)) {
+            return Optional.empty();
+        }
+        return rootHolder.findChildById(childId).map(c -> Pair.of(engine, c));
     }
 
     @Override
@@ -209,8 +248,14 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         worker.schedule(() -> {
             long startTimeMs = worker.now();
             try {
-                long nextDelayMs = doLoop();
-                doSchedule(nextDelayMs);
+                boolean fullCycle = (startTimeMs - lastFullCycleExecutionTimeMs) >= idleTimeoutMs;
+                if (fullCycle) {
+                    lastFullCycleExecutionTimeMs = startTimeMs;
+                }
+
+                doLoop(fullCycle);
+
+                doSchedule(activeTimeoutMs);
             } catch (Exception e) {
                 logger.warn("Unexpected error in the reconciliation loop", e);
                 doSchedule(idleTimeoutMs);
@@ -222,70 +267,89 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
         }, delayMs, TimeUnit.MILLISECONDS);
     }
 
-    private long doLoop() {
+    private void doLoop(boolean fullReconciliationCycle) {
+        Set<InternalReconciliationEngine<EVENT>> mustRunEngines = new HashSet<>();
+
+        // Apply pending model updates/send events
+        boolean modelUpdates = false;
+        for (InternalReconciliationEngine engine : engines) {
+            try {
+                boolean anyChange = engine.applyModelUpdates();
+                modelUpdates = modelUpdates || anyChange;
+            } catch (Exception e) {
+                logger.warn("Unexpected error from reconciliation engine 'applyModelUpdates' method", e);
+            }
+        }
+
         // Add new engines.
-        List<Pair<ReconciliationEngine<EVENT>, Subscriber<ReconciliationEngine>>> recentlyAdded = new ArrayList<>();
+        List<Pair<InternalReconciliationEngine<EVENT>, Subscriber<ReconciliationEngine>>> recentlyAdded = new ArrayList<>();
         enginesAdded.drainTo(recentlyAdded);
-        recentlyAdded.forEach(pair -> engines.add(pair.getLeft()));
+        recentlyAdded.forEach(pair -> {
+            InternalReconciliationEngine<EVENT> newEngine = pair.getLeft();
+            engines.add(newEngine);
+            mustRunEngines.add(newEngine);
+            eventsMergeSubject.onNext(newEngine.events());
+        });
 
         // Remove engines.
-        List<Pair<ReconciliationEngine<EVENT>, Subscriber<Void>>> recentlyRemoved = new ArrayList<>();
+        List<Pair<InternalReconciliationEngine<EVENT>, Subscriber<Void>>> recentlyRemoved = new ArrayList<>();
         enginesToRemove.drainTo(recentlyRemoved);
         shutdownEnginesToRemove(recentlyRemoved);
 
         boolean engineSetUpdate = !recentlyAdded.isEmpty() || !recentlyRemoved.isEmpty();
 
-        // Update indexes to reflect engine collection update, before completing engine add/remove subscribers.
-        if (engines.isEmpty()) {
-            indexSet = indexSet.apply(Collections.emptyList());
-        } else if (engineSetUpdate) {
+        // Update indexes if there are model changes.
+        if (modelUpdates || engineSetUpdate) {
             updateIndexSet();
         }
 
         // Complete engine add/remove subscribers.
+        // We want to complete the subscribers that create new engines, before the first event is emitted.
+        // Otherwise the initial event would be emitted immediately, before the subscriber has a chance to subscriber to the event stream.
         recentlyAdded.forEach(pair -> {
             Subscriber<ReconciliationEngine> subscriber = pair.getRight();
             if (!subscriber.isUnsubscribed()) {
-                ReconciliationEngine newEngine = pair.getLeft();
-                eventsMergeSubject.onNext(newEngine.events());
-                subscriber.onNext(newEngine);
+                subscriber.onNext(pair.getLeft());
                 subscriber.onCompleted();
             }
         });
         recentlyRemoved.forEach(pair -> pair.getRight().onCompleted());
 
-        // Apply pending model updates/send events
-        boolean modelUpdates = false;
-        for (ReconciliationEngine engine : engines) {
+        // Emit events
+        for (InternalReconciliationEngine engine : engines) {
             try {
-                boolean anyChange = engine.applyModelUpdates();
-                modelUpdates = modelUpdates || anyChange;
+                engine.emitEvents();
             } catch (Exception e) {
-                logger.warn("Unexpected error from reconciliation engine 'triggerEvents' method", e);
+                logger.warn("Unexpected error from reconciliation engine 'emitEvents' method", e);
             }
         }
 
-        // Update indexes if there are model changes.
-        if (modelUpdates) {
-            updateIndexSet();
-        }
-
-        // Trigger events on engines.
-        boolean pendingChangeActions = false;
-        for (ReconciliationEngine engine : engines) {
+        // Complete ChangeAction subscribers
+        for (InternalReconciliationEngine<EVENT> engine : engines) {
             try {
-                boolean anythingRunning = engine.triggerEvents();
-                pendingChangeActions = pendingChangeActions || anythingRunning;
+                if (engine.closeFinishedTransactions()) {
+                    mustRunEngines.add(engine);
+                }
             } catch (Exception e) {
-                logger.warn("Unexpected error from reconciliation engine 'triggerEvents' method", e);
+                logger.warn("Unexpected error from reconciliation engine 'closeFinishedTransactions' method", e);
             }
         }
-        return pendingChangeActions ? activeTimeoutMs : idleTimeoutMs;
+
+        // Trigger actions on engines.
+        for (InternalReconciliationEngine engine : engines) {
+            if (fullReconciliationCycle || engine.hasPendingTransactions() || mustRunEngines.contains(engine)) {
+                try {
+                    engine.triggerActions();
+                } catch (Exception e) {
+                    logger.warn("Unexpected error from reconciliation engine 'triggerActions' method", e);
+                }
+            }
+        }
     }
 
-    private void shutdownEnginesToRemove(List<Pair<ReconciliationEngine<EVENT>, Subscriber<Void>>> toRemove) {
+    private void shutdownEnginesToRemove(List<Pair<InternalReconciliationEngine<EVENT>, Subscriber<Void>>> toRemove) {
         toRemove.forEach(pair -> {
-            ReconciliationEngine e = pair.getLeft();
+            InternalReconciliationEngine e = pair.getLeft();
             if (e instanceof DefaultReconciliationEngine) {
                 ((DefaultReconciliationEngine) e).shutdown();
             }
@@ -294,6 +358,10 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     }
 
     private void updateIndexSet() {
+        Map<String, InternalReconciliationEngine<EVENT>> idToEngineMap = new HashMap<>();
+        engines.forEach(engine -> engine.getReferenceView().visit(h -> idToEngineMap.put(h.getId(), engine)));
+        this.idToEngineMapRef.set(idToEngineMap);
+
         indexSet = indexSet.apply(engines.stream().map(ReconciliationEngine::getReferenceView).collect(Collectors.toList()));
     }
 }

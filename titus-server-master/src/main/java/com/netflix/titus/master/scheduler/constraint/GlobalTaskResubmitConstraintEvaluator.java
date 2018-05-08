@@ -42,6 +42,11 @@ public class GlobalTaskResubmitConstraintEvaluator implements GlobalConstraintEv
     }
 
     @Override
+    public String getName() {
+        return "Global Task Resubmit Constraint Evaluator";
+    }
+
+    @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         if (!(taskRequest instanceof ScheduledRequest)) {
             return OK_RESULT;

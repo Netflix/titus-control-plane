@@ -28,14 +28,15 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.simulator.SimulatedMesosServiceGrpc.SimulatedMesosServiceImplBase;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedComputeResources;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedOfferEvent;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedNetworkConfiguration;
+import com.netflix.titus.simulator.TitusCloudSimulator.TasksLaunchRequests;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.OfferChangeEvent;
 import io.grpc.stub.StreamObserver;
@@ -110,12 +111,13 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
     }
 
     @Override
-    public void launchTasks(TasksLaunchRequest request, StreamObserver<Empty> responseObserver) {
-        List<Protos.TaskInfo> taskInfos = request.getTasksList().stream()
-                .map(GrpcSimulatedMesosService::toMesosTaskInfo)
-                .collect(Collectors.toList());
-        cloud.launchTasks(request.getOfferIdsList(), taskInfos);
-
+    public void launchTasks(TasksLaunchRequests requests, StreamObserver<Empty> responseObserver) {
+        for (TasksLaunchRequest request : requests.getLaunchRequestsList()) {
+            List<Protos.TaskInfo> taskInfos = request.getTasksList().stream()
+                    .map(GrpcSimulatedMesosService::toMesosTaskInfo)
+                    .collect(Collectors.toList());
+            cloud.launchTasks(request.getOfferIdsList(), taskInfos);
+        }
         responseObserver.onNext(Empty.getDefaultInstance());
         responseObserver.onCompleted();
     }

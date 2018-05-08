@@ -32,6 +32,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeou
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions.TimeoutStatus;
 import org.junit.Test;
 
+import static com.netflix.titus.common.util.CollectionsExt.first;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobGenerator.batchJobs;
 import static com.netflix.titus.testkit.model.job.JobGenerator.batchTasks;
@@ -50,7 +51,7 @@ public class TaskTimeoutChangeActionsTest {
     public void testTimeout() throws Exception {
         BatchJobTask launchedTask = createTaskInState(TaskState.Launched);
         EntityHolder initialRoot = rootFrom(job, launchedTask);
-        EntityHolder initialChild = initialRoot.getChildren().first();
+        EntityHolder initialChild = first(initialRoot.getChildren());
 
         // Initially there is no timeout associated
         TimeoutStatus timeoutStatus = TaskTimeoutChangeActions.getTimeoutStatus(initialChild, testClock);
@@ -65,11 +66,11 @@ public class TaskTimeoutChangeActionsTest {
         ).apply().toBlocking().first();
 
         EntityHolder rootWithTimeout = modelActionHolders.get(0).getAction().apply(initialRoot).get().getLeft();
-        assertThat(TaskTimeoutChangeActions.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.Pending);
+        assertThat(TaskTimeoutChangeActions.getTimeoutStatus(first(rootWithTimeout.getChildren()), testClock)).isEqualTo(TimeoutStatus.Pending);
 
         // Advance time to trigger timeout
         testClock.advanceTime(DEADLINE_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(TaskTimeoutChangeActions.getTimeoutStatus(rootWithTimeout.getChildren().first(), testClock)).isEqualTo(TimeoutStatus.TimedOut);
+        assertThat(TaskTimeoutChangeActions.getTimeoutStatus(first(rootWithTimeout.getChildren()), testClock)).isEqualTo(TimeoutStatus.TimedOut);
     }
 
     private EntityHolder rootFrom(Job<BatchJobExt> job, BatchJobTask task) {

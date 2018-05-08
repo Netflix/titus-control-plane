@@ -193,8 +193,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.updateJobCapacity(jobId, newCapacity).subscribe(subscriber);
 
-        advance();
-        checkOperationSubscriberAndThrowExceptionIfError(subscriber);
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
         return this;
     }
@@ -203,8 +202,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.updateJobStatus(jobId, enabled).subscribe(subscriber);
 
-        advance();
-        checkOperationSubscriberAndThrowExceptionIfError(subscriber);
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
         return this;
     }
@@ -213,8 +211,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.killJob(jobId).subscribe(subscriber);
 
-        advance();
-        checkOperationSubscriberAndThrowExceptionIfError(subscriber);
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
         return this;
     }
@@ -223,8 +220,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.killTask(task.getId(), false, "Task kill requested by a user").subscribe(subscriber);
 
-        advance();
-        checkOperationSubscriberAndThrowExceptionIfError(subscriber);
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
         return this;
     }
@@ -237,8 +233,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.killTask(task.getId(), true, "Task terminate & shrink requested by a user").subscribe(subscriber);
 
-        advance();
-        checkOperationSubscriberAndThrowExceptionIfError(subscriber);
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
         return this;
     }
@@ -425,7 +420,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         AtomicBoolean done = new AtomicBoolean();
         AtomicReference<Throwable> failed = new AtomicReference<>();
         jobOperations.recordTaskPlacement(task.getId(), changeFunction).subscribe(() -> done.set(true), failed::set);
-        advance();
+        autoAdvanceUntil(() -> failed.get() != null || done.get());
         if (failed.get() != null) {
             ExceptionExt.rethrow(failed.get());
         }
@@ -451,7 +446,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 },
                 failed::set
         );
-        advance();
+        autoAdvanceUntil(() -> failed.get() != null);
         assertThat(failed.get()).isNotNull();
         assertFun.accept(failed.get());
 
@@ -531,19 +526,44 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 Trigger.Mesos,
                 String.format("Mesos callback taskStatus=%s, reason=%s (%s)", taskState, reason, reasonMessage)
         ).subscribe(() -> done.set(true));
-        advance();
+        autoAdvanceUntil(done::get);
         assertThat(done.get()).isTrue();
-
-        advance(); // As store update is done in second cycle always trigger it
 
         return this;
     }
 
-    private <T> T autoAdvance(Supplier<T> action) {
-        return ExceptionExt.doTry(action).orElseGet(() -> {
+    private boolean autoAdvanceUntil(Supplier<Boolean> action) {
+        for (int i = 0; i < 5; i++) {
+            if (action.get()) {
+                return true;
+            }
             advance();
-            return action.get();
-        });
+        }
+        return false;
+    }
+
+    private <T> T autoAdvance(Supplier<T> action) {
+        Optional<T> result;
+        for (int i = 0; i < 5; i++) {
+            result = ExceptionExt.doTry(action);
+            if (result.isPresent()) {
+                return result.get();
+            }
+            advance();
+        }
+        return null;
+    }
+
+    private void autoAdvanceUntilSuccessful(Runnable action) {
+        for (int i = 0; i < 5; i++) {
+            try {
+                action.run();
+                return;
+            } catch (Throwable ignore) {
+            }
+            advance();
+        }
+        action.run();
     }
 
     String getJobId() {

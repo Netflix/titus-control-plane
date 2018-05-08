@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -35,8 +36,6 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.common.util.time.Clocks;
-import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -99,8 +98,6 @@ public class JobsScenarioBuilder {
 
         jobStore.events().subscribe(storeEvents);
 
-        TestClock clock = Clocks.testScheduler(testScheduler);
-
         SystemSoftConstraint systemSoftConstraint = new SystemSoftConstraint() {
             @Override
             public String getName() {
@@ -112,7 +109,17 @@ public class JobsScenarioBuilder {
                 return 1.0;
             }
         };
-        SystemHardConstraint systemHardConstraint = (taskRequest, targetVM, taskTrackerState) -> new ConstraintEvaluator.Result(true, "");
+        SystemHardConstraint systemHardConstraint = new SystemHardConstraint() {
+            @Override
+            public String getName() {
+                return "Test System Hard Constraint";
+            }
+
+            @Override
+            public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
+                return new ConstraintEvaluator.Result(true, "");
+            }
+        };
 
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
                 configuration,
@@ -155,7 +162,7 @@ public class JobsScenarioBuilder {
                         newJobSanitizer(VerifierMode.Permissive),
                         newJobSanitizer(VerifierMode.Strict),
                         titusRuntime,
-                        testScheduler
+                        Optional.of(testScheduler)
                 ),
                 titusRuntime
         );

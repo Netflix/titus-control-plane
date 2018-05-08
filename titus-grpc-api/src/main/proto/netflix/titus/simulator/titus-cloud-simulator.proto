@@ -173,6 +173,10 @@ message TasksLaunchRequest {
     repeated string offerIds = 2;
 }
 
+message TasksLaunchRequests {
+    repeated TasksLaunchRequest launchRequests = 1;
+}
+
 service SimulatedAgentService {
 
     rpc GetAllInstanceGroups (google.protobuf.Empty) returns (stream SimulatedInstanceGroup) {
@@ -208,7 +212,7 @@ service SimulatedMesosService {
     rpc TaskStatusUpdateStream (google.protobuf.Empty) returns (stream SimulatedTaskStatus) {
     }
 
-    rpc LaunchTasks (TasksLaunchRequest) returns (google.protobuf.Empty) {
+    rpc LaunchTasks (TasksLaunchRequests) returns (google.protobuf.Empty) {
     }
 
     rpc KillTask (Id) returns (google.protobuf.Empty) {

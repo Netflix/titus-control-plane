@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import com.netflix.spectator.api.BasicTag;
-import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
@@ -35,7 +35,6 @@ class ReconciliationEngineMetrics<EVENT> {
 
     private static final String ROOT_NAME = "titus.reconciliation.engine.";
     private static final String EVALUATIONS = ROOT_NAME + "evaluations";
-    private static final String EVENTS_AND_MODEL_UPDATES = ROOT_NAME + "eventsAndModelUpdatesId";
     private static final String PENDING_CHANGE_ACTIONS = ROOT_NAME + "pendingChangeActions";
     private static final String STARTED_CHANGE_ACTIONS = ROOT_NAME + "startedChangeActions";
     private static final String FINISHED_CHANGE_ACTIONS = ROOT_NAME + "finishedChangeActions";
@@ -47,13 +46,12 @@ class ReconciliationEngineMetrics<EVENT> {
     private final Clock clock;
 
     private final Id evaluationId;
-    private final Id eventsAndModelUpdatesId;
     private final Id startedChangeActionsId;
     private final Id finishedChangeActionId;
     private final Id emittedEventId;
 
     private final AtomicLong pendingChangeActions = new AtomicLong();
-    private final Counter abandonedIteration;
+    private final Gauge changeActionQueueSize;
 
     ReconciliationEngineMetrics(String rootHolderId,
                                 Function<ChangeAction, List<Tag>> extraChangeActionTags,
@@ -67,16 +65,16 @@ class ReconciliationEngineMetrics<EVENT> {
 
         List<Tag> commonTags = Collections.singletonList(new BasicTag("rootHolderId", rootHolderId));
         this.evaluationId = registry.createId(EVALUATIONS, commonTags);
-        this.eventsAndModelUpdatesId = registry.createId(EVENTS_AND_MODEL_UPDATES, commonTags);
         this.startedChangeActionsId = registry.createId(STARTED_CHANGE_ACTIONS, commonTags);
         this.finishedChangeActionId = registry.createId(FINISHED_CHANGE_ACTIONS, commonTags);
         this.emittedEventId = registry.createId(EMITTED_EVENTS, commonTags);
-        this.abandonedIteration = registry.counter(ROOT_NAME + "abandonedIteration");
 
+        this.changeActionQueueSize = registry.gauge(registry.createId(ROOT_NAME + "changeActionQueueSize", commonTags));
         PolledMeter.using(registry).withName(PENDING_CHANGE_ACTIONS).withTags(commonTags).monitorValue(pendingChangeActions);
     }
 
     void shutdown() {
+        changeActionQueueSize.set(0);
         pendingChangeActions.set(0);
     }
 
@@ -88,44 +86,34 @@ class ReconciliationEngineMetrics<EVENT> {
         registry.timer(evaluationId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
-    public void eventsAndModelUpdates(long executionTimeNs) {
-        registry.timer(eventsAndModelUpdatesId).record(executionTimeNs, TimeUnit.NANOSECONDS);
+    void updateChangeActionQueueSize(int queueSize) {
+        changeActionQueueSize.set(queueSize);
     }
 
-    void eventsAndModelUpdates(long executionTimeNs, Exception error) {
-        registry.timer(eventsAndModelUpdatesId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
+    void changeActionStarted(ChangeAction actionHolder, long createTimeMs, boolean byReconciler) {
+        pendingChangeActions.incrementAndGet();
+        registry.timer(startedChangeActionsId
+                .withTags(extraChangeActionTags.apply(actionHolder))
+                .withTag("actionType", toActionType(byReconciler))
+        ).record(clock.wallTime() - createTimeMs, TimeUnit.MILLISECONDS);
     }
 
-    void changeActionStarted(ChangeActionHolder actionHolder) {
-        changeActionStarted(actionHolder, "change");
+    void changeActionFinished(ChangeAction actionHolder, long executionTimeNs, boolean byReconciler) {
+        changeActionFinished(actionHolder, executionTimeNs, false, byReconciler);
     }
 
-    void reconcileActionStarted(ChangeActionHolder actionHolder) {
-        changeActionStarted(actionHolder, "reconcile");
+    void changeActionUnsubscribed(ChangeAction actionHolder, long executionTimeNs, boolean byReconciler) {
+        changeActionFinished(actionHolder, executionTimeNs, true, byReconciler);
     }
 
-    void changeActionFinished(ChangeActionHolder actionHolder, long executionTimeNs) {
-        changeActionFinished(actionHolder, executionTimeNs, "change", false);
-    }
-
-    void reconcileActionFinished(ChangeActionHolder actionHolder, long executionTimeNs) {
-        changeActionFinished(actionHolder, executionTimeNs, "reconcile", false);
-    }
-
-    void changeActionUnsubscribed(ChangeActionHolder actionHolder, long executionTimeNs) {
-        changeActionFinished(actionHolder, executionTimeNs, "change", true);
-    }
-
-    void reconcileActionUnsubscribed(ChangeActionHolder actionHolder, long executionTimeNs) {
-        changeActionFinished(actionHolder, executionTimeNs, "reconcile", true);
-    }
-
-    void changeActionFinished(ChangeActionHolder actionHolder, long executionTimeNs, Throwable error) {
-        changeActionFinished(actionHolder, executionTimeNs, error, "change");
-    }
-
-    void reconcileActionFinished(ChangeActionHolder actionHolder, long executionTimeNs, Throwable error) {
-        changeActionFinished(actionHolder, executionTimeNs, error, "reconcile");
+    void changeActionFinished(ChangeAction actionHolder, long executionTimeNs, Throwable error, boolean byReconciler) {
+        pendingChangeActions.decrementAndGet();
+        registry.timer(finishedChangeActionId
+                .withTags(extraChangeActionTags.apply(actionHolder))
+                .withTag("actionType", toActionType(byReconciler))
+                .withTag("error", error.getClass().getSimpleName())
+                .withTag("status", "error")
+        ).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
     void emittedEvent(EVENT event, long latencyNs) {
@@ -143,34 +131,16 @@ class ReconciliationEngineMetrics<EVENT> {
         ).record(latencyNs, TimeUnit.NANOSECONDS);
     }
 
-    void abandonedIteration() {
-        abandonedIteration.increment();
-    }
-
-    private void changeActionStarted(ChangeActionHolder actionHolder, String actionType) {
-        pendingChangeActions.incrementAndGet();
-        registry.timer(startedChangeActionsId
-                .withTags(extraChangeActionTags.apply(actionHolder.getChangeAction()))
-                .withTag("actionType", actionType)
-        ).record(clock.wallTime() - actionHolder.getCreateTimeMs(), TimeUnit.MILLISECONDS);
-    }
-
-    private void changeActionFinished(ChangeActionHolder actionHolder, long executionTimeNs, String actionType, boolean isUnsubscribe) {
+    private void changeActionFinished(ChangeAction actionHolder, long executionTimeNs, boolean isUnsubscribe, boolean byReconciler) {
         pendingChangeActions.decrementAndGet();
         registry.timer(finishedChangeActionId
-                .withTags(extraChangeActionTags.apply(actionHolder.getChangeAction()))
-                .withTag("actionType", actionType)
+                .withTags(extraChangeActionTags.apply(actionHolder))
+                .withTag("actionType", toActionType(byReconciler))
                 .withTag("status", isUnsubscribe ? "unsubscribed" : "success")
         ).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
-    private void changeActionFinished(ChangeActionHolder actionHolder, long executionTimeNs, Throwable error, String actionType) {
-        pendingChangeActions.decrementAndGet();
-        registry.timer(finishedChangeActionId
-                .withTags(extraChangeActionTags.apply(actionHolder.getChangeAction()))
-                .withTag("actionType", actionType)
-                .withTag("error", error.getClass().getSimpleName())
-                .withTag("status", "error")
-        ).record(executionTimeNs, TimeUnit.NANOSECONDS);
+    private String toActionType(boolean byReconciler) {
+        return byReconciler ? "reconcile" : "change";
     }
 }

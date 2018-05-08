@@ -28,21 +28,19 @@ import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
  */
 public class SimpleReconcilerEventFactory implements ReconcileEventFactory<SimpleReconcilerEvent> {
 
-    static SimpleReconcilerEventFactory INSTANCE = new SimpleReconcilerEventFactory();
-
     @Override
-    public SimpleReconcilerEvent newBeforeChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long transactionId) {
+    public SimpleReconcilerEvent newBeforeChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, String transactionId) {
         return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.ChangeRequest, changeAction.toString(), Optional.empty());
     }
 
     @Override
-    public SimpleReconcilerEvent newAfterChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long executionTimeMs, long transactionId) {
+    public SimpleReconcilerEvent newAfterChangeEvent(ReconciliationEngine engine, ChangeAction changeAction, long waitTimeMs, long executionTimeMs, String transactionId) {
         return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.Changed, changeAction.toString(), Optional.empty());
     }
 
     @Override
-    public SimpleReconcilerEvent newChangeErrorEvent(ReconciliationEngine engine, ChangeAction changeAction, Throwable error, long executionTimeMs, long transactionId) {
-        return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.Changed, changeAction.toString(), Optional.of(error));
+    public SimpleReconcilerEvent newChangeErrorEvent(ReconciliationEngine engine, ChangeAction changeAction, Throwable error, long waitTimeMs, long executionTimeMs, String transactionId) {
+        return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.ChangeError, changeAction.toString(), Optional.of(error));
     }
 
     @Override
@@ -51,12 +49,12 @@ public class SimpleReconcilerEventFactory implements ReconcileEventFactory<Simpl
     }
 
     @Override
-    public SimpleReconcilerEvent newModelUpdateEvent(ReconciliationEngine engine, ChangeAction changeAction, ModelActionHolder modelActionHolder, EntityHolder changedEntityHolder, Optional previousEntityHolder, long transactionId) {
+    public SimpleReconcilerEvent newModelUpdateEvent(ReconciliationEngine engine, ChangeAction changeAction, ModelActionHolder modelActionHolder, EntityHolder changedEntityHolder, Optional previousEntityHolder, String transactionId) {
         return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.ModelUpdated, changedEntityHolder.getEntity(), Optional.empty());
     }
 
     @Override
-    public SimpleReconcilerEvent newModelUpdateErrorEvent(ReconciliationEngine engine, ChangeAction changeAction, ModelActionHolder modelActionHolder, EntityHolder previousEntityHolder, Throwable error, long transactionId) {
+    public SimpleReconcilerEvent newModelUpdateErrorEvent(ReconciliationEngine engine, ChangeAction changeAction, ModelActionHolder modelActionHolder, EntityHolder previousEntityHolder, Throwable error, String transactionId) {
         return new SimpleReconcilerEvent(SimpleReconcilerEvent.EventType.ModelUpdateError, previousEntityHolder.getEntity(), Optional.of(error));
     }
 }

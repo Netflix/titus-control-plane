@@ -17,28 +17,41 @@
 package com.netflix.titus.common.framework.reconciler.internal;
 
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
+import rx.Subscriber;
 
 final class ChangeActionHolder {
 
+    private final String entityHolderId;
     private final ChangeAction changeAction;
-    private final long transactionId;
-    private final long createTimeMs;
+    private final Subscriber subscriber;
+    private final String transactionId;
+    private final long createTimestamp;
 
-    ChangeActionHolder(ChangeAction changeAction, long transactionId, long createTimeMs) {
+    ChangeActionHolder(String entityHolderId, ChangeAction changeAction, Subscriber subscriber, String transactionId, long createTimestamp) {
+        this.entityHolderId = entityHolderId;
         this.changeAction = changeAction;
+        this.subscriber = subscriber;
         this.transactionId = transactionId;
-        this.createTimeMs = createTimeMs;
+        this.createTimestamp = createTimestamp;
+    }
+
+    public String getEntityHolderId() {
+        return entityHolderId;
     }
 
     ChangeAction getChangeAction() {
         return changeAction;
     }
 
-    long getTransactionId() {
+    Subscriber<Void> getSubscriber() {
+        return subscriber;
+    }
+
+    String getTransactionId() {
         return transactionId;
     }
 
-    long getCreateTimeMs() {
-        return createTimeMs;
+    long getCreateTimestamp() {
+        return createTimestamp;
     }
 }

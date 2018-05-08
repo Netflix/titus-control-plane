@@ -23,9 +23,9 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 public abstract class JobManagerReconcilerEvent {
 
     private final Job<?> job;
-    private final long transactionId;
+    private final String transactionId;
 
-    JobManagerReconcilerEvent(Job<?> job, long transactionId) {
+    JobManagerReconcilerEvent(Job<?> job, String transactionId) {
         this.job = job;
         this.transactionId = transactionId;
     }
@@ -34,7 +34,7 @@ public abstract class JobManagerReconcilerEvent {
         return job;
     }
 
-    public long getTransactionId() {
+    public String getTransactionId() {
         return transactionId;
     }
 }

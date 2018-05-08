@@ -16,13 +16,13 @@
 
 package com.netflix.titus.common.framework.reconciler;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.function.Consumer;
 
 import com.netflix.titus.common.util.tuple.Pair;
 
@@ -36,13 +36,15 @@ public class EntityHolder {
     private final String id;
     private final Object entity;
 
-    private final SortedSet<EntityHolder> children;
+    private final List<EntityHolder> children;
+    private final Map<String, EntityHolder> childrenById;
     private final Map<String, Object> attributes;
 
-    private EntityHolder(String id, Object entity, SortedSet<EntityHolder> children, Map<String, Object> attributes) {
+    private EntityHolder(String id, Object entity, Map<String, EntityHolder> childrenById, Map<String, Object> attributes) {
         this.id = id;
         this.entity = entity;
-        this.children = children;
+        this.childrenById = childrenById;
+        this.children = new ArrayList<>(childrenById.values());
         this.attributes = attributes;
     }
 
@@ -54,7 +56,7 @@ public class EntityHolder {
         return (E) entity;
     }
 
-    public SortedSet<EntityHolder> getChildren() {
+    public List<EntityHolder> getChildren() {
         return children;
     }
 
@@ -66,8 +68,19 @@ public class EntityHolder {
         if (this.id.equals(requestedId)) {
             return Optional.of(this);
         }
+        return findChildById(requestedId);
+    }
+
+    public Optional<EntityHolder> findChildById(String childId) {
+        if (children.isEmpty()) {
+            return Optional.empty();
+        }
+        EntityHolder entityHolder = childrenById.get(childId);
+        if (entityHolder != null) {
+            return Optional.of(entityHolder);
+        }
         for (EntityHolder child : children) {
-            Optional<EntityHolder> result = child.findById(requestedId);
+            Optional<EntityHolder> result = child.findChildById(childId);
             if (result.isPresent()) {
                 return result;
             }
@@ -76,34 +89,26 @@ public class EntityHolder {
     }
 
     public EntityHolder addChild(EntityHolder child) {
-        SortedSet<EntityHolder> newChildren = new TreeSet<>(Comparator.comparing(EntityHolder::getId));
-        newChildren.addAll(children);
-
-        // Set will not be updated if the child already is there, so explicitly remove it.
-        newChildren.remove(child);
-        newChildren.add(child);
-
-        return new EntityHolder(id, entity, newChildren, attributes);
+        Map<String, EntityHolder> newChildrenById = new HashMap<>(childrenById);
+        newChildrenById.put(child.getId(), child);
+        return new EntityHolder(id, entity, newChildrenById, attributes);
     }
 
     public Pair<EntityHolder, Optional<EntityHolder>> removeChild(String id) {
-        return children.stream().filter(c -> c.getId().equals(id)).findFirst().map(removedChild -> {
-                    SortedSet<EntityHolder> filteredChildren = new TreeSet<>(Comparator.comparing(EntityHolder::getId));
-                    children.forEach(c -> {
-                        if (!c.getId().equals(id)) {
-                            filteredChildren.add(c);
-                        }
-                    });
-                    EntityHolder newRoot = new EntityHolder(this.id, this.entity, filteredChildren, this.attributes);
-                    return Pair.of(newRoot, Optional.of(removedChild));
-                }
-        ).orElseGet(() -> Pair.of(this, Optional.empty()));
+        if (!childrenById.containsKey(id)) {
+            return Pair.of(this, Optional.empty());
+        }
+        Map<String, EntityHolder> newChildrenById = new HashMap<>(childrenById);
+        EntityHolder removedChild = newChildrenById.remove(id);
+
+        EntityHolder newRoot = new EntityHolder(this.id, this.entity, newChildrenById, this.attributes);
+        return Pair.of(newRoot, Optional.of(removedChild));
     }
 
     public EntityHolder addTag(String tagName, Object tagValue) {
         Map<String, Object> newTags = new HashMap<>(attributes);
         newTags.put(tagName, tagValue);
-        return new EntityHolder(id, entity, children, newTags);
+        return new EntityHolder(id, entity, childrenById, newTags);
     }
 
     public EntityHolder removeTag(String tagName) {
@@ -112,14 +117,19 @@ public class EntityHolder {
         }
         Map<String, Object> newTags = new HashMap<>(attributes);
         newTags.remove(tagName);
-        return new EntityHolder(id, entity, children, newTags);
+        return new EntityHolder(id, entity, childrenById, newTags);
     }
 
     public <E> EntityHolder setEntity(E entity) {
-        return new EntityHolder(id, entity, children, attributes);
+        return new EntityHolder(id, entity, childrenById, attributes);
+    }
+
+    public void visit(Consumer<EntityHolder> visitor) {
+        visitor.accept(this);
+        children.forEach(c -> c.visit(visitor));
     }
 
     public static <E> EntityHolder newRoot(String id, E entity) {
-        return new EntityHolder(id, entity, Collections.emptySortedSet(), Collections.emptyMap());
+        return new EntityHolder(id, entity, Collections.emptyMap(), Collections.emptyMap());
     }
 }

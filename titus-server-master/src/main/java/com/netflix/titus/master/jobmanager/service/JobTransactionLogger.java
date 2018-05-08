@@ -39,9 +39,9 @@ import rx.schedulers.Schedulers;
 /**
  * Log all events in the following format:
  * <br/>
- * 'jobId=..., transactionId=..., status=ok,    type=beforeChange,           action=..., trigger=User , target=job , entityId=..., elapsedMs=..., summary=...'
+ * 'jobId=..., transactionId=..., status=ok,    type=beforeChange,           action=..., trigger=User , target=job , entityId=..., waited=..., elapsed=..., summary=...'
  * <br/>
- * 'jobId=..., transactionId=..., status=error, type=modelUpdate/reference,  action=..., trigger=Mesos, target=task, entityId=..., elapsedMs=..., summary=...'
+ * 'jobId=..., transactionId=..., status=error, type=modelUpdate/reference,  action=..., trigger=Mesos, target=task, entityId=..., waited=..., elapsed=..., summary=...'
  */
 class JobTransactionLogger {
 
@@ -110,6 +110,7 @@ class JobTransactionLogger {
                 toTargetName(jobId, entityId),
                 entityId,
                 0,
+                0,
                 changeAction.getSummary()
         );
     }
@@ -128,6 +129,7 @@ class JobTransactionLogger {
                 changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
+                event.getWaitTimeMs(),
                 event.getExecutionTimeMs(),
                 changeAction.getSummary()
         );
@@ -147,6 +149,7 @@ class JobTransactionLogger {
                 changeAction.getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
+                event.getWaitTimeMs(),
                 event.getExecutionTimeMs(),
                 event.getError().getMessage() + '(' + changeAction.getSummary() + ')'
         );
@@ -163,6 +166,7 @@ class JobTransactionLogger {
                 V3JobOperations.Trigger.API,
                 "job",
                 jobId,
+                0,
                 0,
                 "New job created"
         );
@@ -187,6 +191,7 @@ class JobTransactionLogger {
                 event.getChangeAction().getTrigger(),
                 toTargetName(jobId, entityId),
                 entityId,
+                0,
                 0,
                 summary
         );
@@ -213,22 +218,24 @@ class JobTransactionLogger {
                 toTargetName(jobId, entityId),
                 entityId,
                 0,
+                0,
                 action.getSummary()
         );
     }
 
     private static String doFormat(String jobId,
-                                   long transactionId,
+                                   String transactionId,
                                    String status,
                                    String type,
                                    String action,
                                    V3JobOperations.Trigger trigger,
                                    String targetName,
                                    String entityId,
+                                   long waitTimeMs,
                                    long executionTime,
                                    String summary) {
         return String.format(
-                "jobId=%s entity=%s transactionId=%-4d target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s summary=%s",
+                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s %-15s summary=%s",
                 jobId,
                 entityId,
                 transactionId,
@@ -237,6 +244,7 @@ class JobTransactionLogger {
                 type,
                 action,
                 trigger,
+                "waited=" + waitTimeMs + "ms",
                 "elapsed=" + executionTime + "ms",
                 summary
         );

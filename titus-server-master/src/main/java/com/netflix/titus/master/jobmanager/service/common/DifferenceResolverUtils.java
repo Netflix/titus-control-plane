@@ -246,12 +246,7 @@ public class DifferenceResolverUtils {
         }
 
         public TASK getTaskById(String refTaskId) {
-            for (TASK task : tasks) {
-                if (task.getId().equals(refTaskId)) {
-                    return task;
-                }
-            }
-            return null;
+            return jobHolder.findChildById(refTaskId).map(h -> (TASK) h.getEntity()).orElse(null);
         }
 
         public int getRequiredSize() {

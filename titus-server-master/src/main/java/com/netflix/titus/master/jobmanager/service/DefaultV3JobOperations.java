@@ -242,13 +242,24 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
+    public Optional<Pair<Job<?>, Task>> findTaskById(String taskId) {
+        return reconciliationFramework.findEngineByChildId(taskId)
+                .map(pair -> {
+                    Job<?> job = pair.getLeft().getReferenceView().getEntity();
+                    Task task = pair.getRight().getEntity();
+                    return Pair.of(job, task);
+                });
+    }
+
+    @Override
     public Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason) {
         Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
         ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
-        return engine.changeReferenceModel(BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, titusRuntime)).toCompletable();
+        TitusChangeAction changeAction = BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, titusRuntime);
+        return engine.changeReferenceModel(changeAction, taskId).toCompletable();
     }
 
     @Override
@@ -279,7 +290,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                 })
                                 .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
                 );
-        return engine.changeReferenceModel(changeAction).toCompletable();
+        return engine.changeReferenceModel(changeAction, taskId).toCompletable();
     }
 
     @Override

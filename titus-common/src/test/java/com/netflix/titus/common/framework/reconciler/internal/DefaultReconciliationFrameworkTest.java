@@ -52,10 +52,10 @@ public class DefaultReconciliationFrameworkTest {
 
     private final TestScheduler testScheduler = Schedulers.test();
 
-    private final Function<EntityHolder, ReconciliationEngine<SimpleReconcilerEvent>> engineFactory = mock(Function.class);
+    private final Function<EntityHolder, InternalReconciliationEngine<SimpleReconcilerEvent>> engineFactory = mock(Function.class);
 
-    private final ReconciliationEngine engine1 = mock(ReconciliationEngine.class);
-    private final ReconciliationEngine engine2 = mock(ReconciliationEngine.class);
+    private final InternalReconciliationEngine engine1 = mock(InternalReconciliationEngine.class);
+    private final InternalReconciliationEngine engine2 = mock(InternalReconciliationEngine.class);
 
     private final PublishSubject<SimpleReconcilerEvent> engine1Events = PublishSubject.create();
     private final PublishSubject<SimpleReconcilerEvent> engine2Events = PublishSubject.create();
@@ -72,17 +72,17 @@ public class DefaultReconciliationFrameworkTest {
             ACTIVE_TIMEOUT_MS,
             indexComparators,
             new DefaultRegistry(),
-            testScheduler
+            Optional.of(testScheduler)
     );
 
     @Before
     public void setUp() {
         framework.start();
         when(engineFactory.apply(any())).thenReturn(engine1, engine2);
-        when(engine1.triggerEvents()).thenReturn(true);
+        when(engine1.triggerActions()).thenReturn(true);
         when(engine1.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot1", "myEntity1"));
         when(engine1.events()).thenReturn(engine1Events.asObservable());
-        when(engine2.triggerEvents()).thenReturn(true);
+        when(engine2.triggerActions()).thenReturn(true);
         when(engine2.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot2", "myEntity2"));
         when(engine2.events()).thenReturn(engine2Events.asObservable());
     }
@@ -94,10 +94,11 @@ public class DefaultReconciliationFrameworkTest {
 
     @Test
     public void testBootstrapEngineInitialization() {
-        ReconciliationEngine<SimpleReconcilerEvent> bootstrapEngine = mock(ReconciliationEngine.class);
+        InternalReconciliationEngine<SimpleReconcilerEvent> bootstrapEngine = mock(InternalReconciliationEngine.class);
         PublishSubject<SimpleReconcilerEvent> eventSubject = PublishSubject.create();
         when(bootstrapEngine.events()).thenReturn(eventSubject);
-        when(bootstrapEngine.triggerEvents()).thenReturn(true);
+        when(bootstrapEngine.triggerActions()).thenReturn(true);
+        when(bootstrapEngine.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot1", "myEntity1"));
 
         DefaultReconciliationFramework<SimpleReconcilerEvent> framework = new DefaultReconciliationFramework<>(
                 Collections.singletonList(bootstrapEngine),
@@ -106,7 +107,7 @@ public class DefaultReconciliationFrameworkTest {
                 ACTIVE_TIMEOUT_MS,
                 indexComparators,
                 new DefaultRegistry(),
-                testScheduler
+                Optional.of(testScheduler)
         );
         framework.start();
         AssertableSubscriber<SimpleReconcilerEvent> eventSubscriber = framework.events().test();
@@ -116,18 +117,40 @@ public class DefaultReconciliationFrameworkTest {
     }
 
     @Test
-    public void testEngineLifecycle() {
+    public void testEngineAddRemove() {
         ExtTestSubscriber<ReconciliationEngine> addSubscriber = new ExtTestSubscriber<>();
-        framework.newEngine(EntityHolder.newRoot("myRoot", "myEntity")).subscribe(addSubscriber);
+        framework.newEngine(EntityHolder.newRoot("myRoot1", "myEntity")).subscribe(
+                next -> {
+                    // When subscriber gets notified, the model must be already updated
+                    assertThat(framework.findEngineByRootId("myRoot1")).isPresent();
+                    addSubscriber.onNext(next);
+                },
+                addSubscriber::onError,
+                addSubscriber::onCompleted
+        );
         testScheduler.triggerActions();
 
-        ReconciliationEngine engine = addSubscriber.takeNext();
-        verify(engine, times(1)).triggerEvents();
+        InternalReconciliationEngine engine = (InternalReconciliationEngine) addSubscriber.takeNext();
+        verify(engine, times(1)).emitEvents();
+        verify(engine, times(1)).closeFinishedTransactions();
+        verify(engine, times(1)).triggerActions();
 
+        // Model updates are performed only on the second iteration
+        testScheduler.advanceTimeBy(ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        verify(engine, times(1)).applyModelUpdates();
+
+        // Now remove the engine
         ExtTestSubscriber<Void> removeSubscriber = new ExtTestSubscriber<>();
-        framework.removeEngine(engine).subscribe(removeSubscriber);
+        framework.removeEngine(engine).subscribe(
+                () -> {
+                    // When subscriber gets notified, the model must be already updated
+                    assertThat(framework.findEngineByRootId("myRoot1")).isNotPresent();
+                    addSubscriber.onCompleted();
+                },
+                removeSubscriber::onError
+        );
         testScheduler.advanceTimeBy(IDLE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        verify(engine, times(1)).triggerEvents();
+        verify(engine, times(1)).triggerActions();
     }
 
     @Test

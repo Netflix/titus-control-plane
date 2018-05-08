@@ -20,6 +20,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import io.grpc.ManagedChannel;
@@ -33,9 +34,11 @@ public class SimulatedRemoteMesosSchedulerDriverFactory implements MesosSchedule
 
     private final ManagedChannel channel;
     private final Protos.MasterInfo masterInfo;
+    private final TitusRuntime titusRuntime;
 
     @Inject
-    public SimulatedRemoteMesosSchedulerDriverFactory(CloudSimulatorResolver cloudSimulatorResolver) {
+    public SimulatedRemoteMesosSchedulerDriverFactory(CloudSimulatorResolver cloudSimulatorResolver, TitusRuntime titusRuntime) {
+        this.titusRuntime = titusRuntime;
         Pair<String, Integer> address = cloudSimulatorResolver.resolveGrpcEndpoint();
         String host = address.getLeft();
         int port = address.getRight();
@@ -61,6 +64,6 @@ public class SimulatedRemoteMesosSchedulerDriverFactory implements MesosSchedule
 
     @Override
     public SchedulerDriver createDriver(Protos.FrameworkInfo framework, String mesosMaster, Scheduler scheduler) {
-        return new SimulatedRemoteMesosSchedulerDriver(masterInfo, channel, scheduler);
+        return new SimulatedRemoteMesosSchedulerDriver(masterInfo, channel, scheduler, titusRuntime);
     }
 }

@@ -25,7 +25,7 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     private final TitusChangeAction changeAction;
 
-    JobChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long transactionId) {
+    JobChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId) {
         super(job, transactionId);
         this.changeAction = changeAction;
     }
@@ -36,18 +36,24 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
 
     public static class JobBeforeChangeReconcilerEvent extends JobChangeReconcilerEvent {
 
-        JobBeforeChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long transactionId) {
+        JobBeforeChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, String transactionId) {
             super(job, changeAction, transactionId);
         }
     }
 
     public static class JobAfterChangeReconcilerEvent extends JobChangeReconcilerEvent {
 
+        private final long waitTimeMs;
         private final long executionTimeMs;
 
-        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long executionTimeMs, long transactionId) {
+        JobAfterChangeReconcilerEvent(Job<?> job, TitusChangeAction changeAction, long waitTimeMs, long executionTimeMs, String transactionId) {
             super(job, changeAction, transactionId);
+            this.waitTimeMs = waitTimeMs;
             this.executionTimeMs = executionTimeMs;
+        }
+
+        public long getWaitTimeMs() {
+            return waitTimeMs;
         }
 
         public long getExecutionTimeMs() {
@@ -58,12 +64,18 @@ public abstract class JobChangeReconcilerEvent extends JobManagerReconcilerEvent
     public static class JobChangeErrorReconcilerEvent extends JobChangeReconcilerEvent {
 
         private final Throwable error;
+        private final long waitTimeMs;
         private final long executionTimeMs;
 
-        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long executionTimeMs, long transactionId) {
+        JobChangeErrorReconcilerEvent(Job<?> job, TitusChangeAction changeAction, Throwable error, long waitTimeMs, long executionTimeMs, String transactionId) {
             super(job, changeAction, transactionId);
             this.error = error;
+            this.waitTimeMs = waitTimeMs;
             this.executionTimeMs = executionTimeMs;
+        }
+
+        public long getWaitTimeMs() {
+            return waitTimeMs;
         }
 
         public long getExecutionTimeMs() {
