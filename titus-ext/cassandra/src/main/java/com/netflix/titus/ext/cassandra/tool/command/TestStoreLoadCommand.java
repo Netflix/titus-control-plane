@@ -195,7 +195,7 @@ public class TestStoreLoadCommand implements Command {
     private Job<BatchJobExt> createJobObject() {
         String jobId = UUID.randomUUID().toString();
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptor.<BatchJobExt>newBuilder()
-                .withExtensions(new BatchJobExt(1, 1, null))
+                .withExtensions(new BatchJobExt(1, 1, null, false))
                 .build();
         JobStatus status = new JobStatus(Accepted, "code", "message", System.currentTimeMillis());
         return new Job<>(jobId, jobDescriptor, status, new ArrayList<>());

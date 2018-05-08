@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -72,8 +73,16 @@ public class DifferenceResolverUtils {
         if (!isBatch(job)) {
             return true;
         }
-        String reasonCode = taskStatus.getReasonCode();
-        return !TaskStatus.REASON_NORMAL.equals(reasonCode);
+
+        // Batch job
+        String killInitiatedReason = JobFunctions.findTaskStatus(task, TaskState.KillInitiated).map(ExecutableStatus::getReasonCode).orElse("N/A");
+        if (TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED.equals(killInitiatedReason)) {
+            BatchJobExt batchExt = (BatchJobExt) job.getJobDescriptor().getExtensions();
+            if (!batchExt.isRetryOnRuntimeLimit()) {
+                return false;
+            }
+        }
+        return !TaskStatus.REASON_NORMAL.equals(taskStatus.getReasonCode());
     }
 
     public static boolean hasReachedRetryLimit(Job<?> refJob, Task task) {

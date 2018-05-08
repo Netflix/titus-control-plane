@@ -241,9 +241,7 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
         );
 
         TitanProtos.ContainerInfo containerInfo = TitanProtos.ContainerInfo.newBuilder()
-                .setAllocateIpAddress(task.getAllocateIpAddress())
                 .setNetworkConfigInfo(TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
-                        .setAllocateIpAddress(task.getAllocateIpAddress())
                         .setEniLabel(task.getEniLabel())
                         .setEniLablel(task.getEniLabel())
                         .addAllSecurityGroups(task.getSecurityGroupsList())

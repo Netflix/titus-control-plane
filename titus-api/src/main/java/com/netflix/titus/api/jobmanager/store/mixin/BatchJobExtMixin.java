@@ -24,6 +24,7 @@ public abstract class BatchJobExtMixin {
     @JsonCreator
     BatchJobExtMixin(@JsonProperty("size") int size,
                      @JsonProperty("runtimeLimitMs") long runtimeLimitMs,
-                     @JsonProperty("retryPolicy") RetryPolicy retryPolicy) {
+                     @JsonProperty("retryPolicy") RetryPolicy retryPolicy,
+                     @JsonProperty("retryOnRuntimeLimit") boolean retryOnRuntimeLimit) {
     }
 }

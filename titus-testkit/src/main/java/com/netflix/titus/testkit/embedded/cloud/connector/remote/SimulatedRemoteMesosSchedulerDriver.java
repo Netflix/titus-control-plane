@@ -330,7 +330,6 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
         return SimulatedTask.newBuilder()
                 .setTaskId(taskInfo.getTaskId().getValue())
                 .setInstanceId(taskInfo.getSlaveId().getValue())
-                .setAllocateIpAddress(containerInfo.getAllocateIpAddress())
                 .setComputeResources(TitusCloudSimulator.SimulatedComputeResources.newBuilder()
                         .setCpu(getResourceValue("cpus", taskInfo))
                         .setGpu(getResourceValue("gpu", taskInfo))
