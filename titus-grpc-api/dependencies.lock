@@ -402,7 +402,7 @@
     },
     "protobuf": {
         "com.netflix.titus:titus-api-definitions": {
-            "locked": "0.0.1-rc27",
+            "locked": "0.0.1-rc28",
             "requested": "0.0.1-rc+"
         }
     },
