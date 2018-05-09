@@ -133,7 +133,12 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
                         .withDelay(100, 1_000, TimeUnit.MILLISECONDS)
                         .buildExponentialBackoff()
                 ).subscribe(
-                        taskStatus -> callbackHandler.statusUpdate(this, toTaskStatusUpdate(taskStatus)),
+                        taskStatus -> {
+                            long startTime = System.currentTimeMillis();
+                            callbackHandler.statusUpdate(this, toTaskStatusUpdate(taskStatus));
+                            logger.info("Forwarded task status update: taskId={}, newStatus={}, elapsedMs={}",
+                                    taskStatus.getTaskId(), taskStatus.getTaskState(), System.currentTimeMillis() - startTime);
+                        },
                         e -> logger.error("Task status stream terminated with an error", e),
                         () -> logger.warn("Task status stream terminated")
                 );
