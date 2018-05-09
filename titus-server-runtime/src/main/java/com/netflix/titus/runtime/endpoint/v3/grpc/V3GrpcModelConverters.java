@@ -243,6 +243,7 @@ public final class V3GrpcModelConverters {
                     .withSize(batchSpec.getSize())
                     .withRetryPolicy(toCoreRetryPolicy(batchSpec.getRetryPolicy()))
                     .withRuntimeLimitMs(batchSpec.getRuntimeLimitSec() * 1000)
+                    .withRetryOnRuntimeLimit(batchSpec.getRetryOnRuntimeLimit())
                     .build();
         }
         ServiceJobSpec serviceSpec = grpcJobDescriptor.getService();
@@ -456,6 +457,7 @@ public final class V3GrpcModelConverters {
                 .setSize(desired)
                 .setRuntimeLimitSec(batchJobExt.getRuntimeLimitMs() / 1000)
                 .setRetryPolicy(toGrpcRetryPolicy(batchJobExt.getRetryPolicy()))
+                .setRetryOnRuntimeLimit(batchJobExt.isRetryOnRuntimeLimit())
                 .build();
     }
 

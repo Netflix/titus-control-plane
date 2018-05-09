@@ -340,15 +340,38 @@ public class BatchJobSchedulingTest {
     }
 
     @Test
-    public void testBatchJobRuntimeLimit() {
+    public void testBatchJobRuntimeLimitWithRetries() {
+        testBatchJobRuntimeLimit(true);
+    }
+
+    @Test
+    public void testBatchJobRuntimeLimitWithNoRetries() {
+        testBatchJobRuntimeLimit(false);
+    }
+
+    private void testBatchJobRuntimeLimit(boolean retryOnRuntimeLimit) {
         JobDescriptor<BatchJobExt> jobWithRuntimeLimit = oneTaskBatchJobDescriptor().but(jd ->
-                jd.getExtensions().toBuilder().withRuntimeLimitMs(120_000).build()
+                jd.getExtensions().toBuilder()
+                        .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(1).build())
+                        .withRuntimeLimitMs(120_000)
+                        .withRetryOnRuntimeLimit(retryOnRuntimeLimit)
+                        .build()
         );
         jobsScenarioBuilder.scheduleJob(jobWithRuntimeLimit, jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .advance(120_000, TimeUnit.MILLISECONDS)
                 .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED)
+                .expectMesosTaskKill(0, 0)
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_KILLED)
+                .andThen(() -> {
+                            if (retryOnRuntimeLimit) {
+                                jobScenario.expectTaskAddedToStore(0, 1, task -> assertThat(task.getResubmitNumber()).isEqualTo(1));
+                            } else {
+                                jobScenario.expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished));
+                            }
+                        }
+                )
         );
     }
 }

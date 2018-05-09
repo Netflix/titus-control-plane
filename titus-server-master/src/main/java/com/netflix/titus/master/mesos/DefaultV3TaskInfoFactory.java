@@ -182,13 +182,10 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         });
 
         // Configure ENI (IP Address, SGs)
-        containerInfoBuilder.setAllocateIpAddress(containerResources.isAllocateIP());
-
         List<String> securityGroups = v3SecurityProfile.getSecurityGroups();
         final TaskRequest.AssignedResources assignedResources = fenzoTask.getAssignedResources();
         String eniLabel = assignedResources == null ? "0" : "" + assignedResources.getConsumedNamedResources().get(0).getIndex();
         TitanProtos.ContainerInfo.NetworkConfigInfo.Builder networkConfigInfoBuilder = TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
-                .setAllocateIpAddress(containerResources.isAllocateIP())
                 .setEniLabel(eniLabel)
                 .setEniLablel(eniLabel)
                 .addAllSecurityGroups(securityGroups)

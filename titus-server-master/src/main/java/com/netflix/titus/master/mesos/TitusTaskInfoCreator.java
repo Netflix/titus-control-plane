@@ -248,9 +248,7 @@ public class TitusTaskInfoCreator {
 
         // TODO verify if this is where the info is
 
-        boolean allocateIP = fenzoTask.getJob().getStageMetadata(1).getAllocateIP();
         cInfoBuilder
-                .setAllocateIpAddress(allocateIP)
                 .setImageName(imageName)
                 .setContainerPorts(reqPorts);
         if (scalars != null && !scalars.isEmpty()) {
@@ -263,7 +261,6 @@ public class TitusTaskInfoCreator {
         if (!config.getDisableSecurityGroupsAssignments() && assignedResources != null) {
             String eniLabel = "" + assignedResources.getConsumedNamedResources().get(0).getIndex();
             TitanProtos.ContainerInfo.NetworkConfigInfo.Builder nwcfgBldr = TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
-                    .setAllocateIpAddress(allocateIP)
                     .setEniLablel(eniLabel)
                     .setEniLabel(eniLabel)
                     .addAllSecurityGroups(securityGroups);
@@ -273,7 +270,6 @@ public class TitusTaskInfoCreator {
             cInfoBuilder.setNetworkConfigInfo(nwcfgBldr.build());
         } else {
             TitanProtos.ContainerInfo.NetworkConfigInfo.Builder nwcfgBldr = TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
-                    .setAllocateIpAddress(allocateIP)
                     .setEniLablel("0")
                     .setEniLabel("0")
                     .addAllSecurityGroups(Collections.emptyList());
