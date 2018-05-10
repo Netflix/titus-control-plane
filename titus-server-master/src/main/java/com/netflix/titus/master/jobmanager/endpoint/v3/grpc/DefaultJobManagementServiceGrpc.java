@@ -64,20 +64,18 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
+import static com.netflix.titus.runtime.service.JobManagementService.JOB_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.service.JobManagementService.TASK_MINIMUM_FIELD_SET;
 
 @Singleton
 public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementServiceGrpc.class);
-
-    private static final Set<String> JOB_MINIMUM_FIELD_SET = asSet("id");
-    private static final Set<String> TASK_MINIMUM_FIELD_SET = asSet("id");
 
     private final TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> serviceGateway;
     private final CallMetadataResolver callMetadataResolver;
