@@ -32,7 +32,6 @@ import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -126,9 +125,7 @@ public class GlobalAgentClusterConstraintTest {
         when(agentManagementService.getInstanceGroup(anyString())).thenAnswer(argument ->
                 agentDeployment.getInstanceGroup(argument.getArgument(0))
         );
-        when(agentStatusMonitor.getStatus(anyString())).thenAnswer(argument ->
-                AgentStatus.healthy("test", agentDeployment.getInstance(argument.getArgument(0)), "test", System.currentTimeMillis())
-        );
+        when(agentStatusMonitor.isHealthy(anyString())).thenReturn(true);
         return new GlobalAgentClusterConstraint(schedulerConfiguration, agentManagementService, agentStatusMonitor);
     }
 

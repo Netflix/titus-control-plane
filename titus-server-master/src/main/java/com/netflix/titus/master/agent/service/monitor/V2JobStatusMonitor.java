@@ -133,6 +133,15 @@ public class V2JobStatusMonitor implements AgentStatusMonitor {
     }
 
     @Override
+    public boolean isHealthy(String agentInstanceId) {
+        try {
+            return delegate.getStatus(agentInstanceId).getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
     public Observable<AgentStatus> monitor() {
         return delegate.monitor();
     }

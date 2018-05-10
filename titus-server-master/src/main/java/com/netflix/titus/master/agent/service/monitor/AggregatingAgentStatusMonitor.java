@@ -25,13 +25,13 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.model.monitor.AgentStatus.AgentStatusCode;
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.service.AgentManagementFunctions;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -65,10 +65,10 @@ public class AggregatingAgentStatusMonitor implements AgentStatusMonitor {
     static long INITIAL_RETRY_INTERVAL_MS = 1_000;
     static long MAX_RETRY_INTERVAL_MS = 10_000;
 
-    private final Registry registry;
     private final Scheduler scheduler;
 
     private final AgentManagementService agentManagementService;
+    private final TitusRuntime titusRuntime;
     private final AgentStatusMonitorMetrics metrics;
     private final Set<AgentStatusMonitor> delegates;
 
@@ -78,20 +78,20 @@ public class AggregatingAgentStatusMonitor implements AgentStatusMonitor {
 
     public AggregatingAgentStatusMonitor(Set<AgentStatusMonitor> delegates,
                                          AgentManagementService agentManagementService,
-                                         Registry registry,
+                                         TitusRuntime titusRuntime,
                                          Scheduler scheduler) {
         this.delegates = delegates;
         this.agentManagementService = agentManagementService;
-        this.metrics = new AgentStatusMonitorMetrics(SOURCE_ID, registry);
-        this.registry = registry;
+        this.titusRuntime = titusRuntime;
+        this.metrics = new AgentStatusMonitorMetrics(SOURCE_ID, titusRuntime.getRegistry());
         this.scheduler = scheduler;
     }
 
     @Inject
     public AggregatingAgentStatusMonitor(Set<AgentStatusMonitor> delegates,
                                          AgentManagementService agentManagementService,
-                                         Registry registry) {
-        this(delegates, agentManagementService, registry, Schedulers.computation());
+                                         TitusRuntime titusRuntime) {
+        this(delegates, agentManagementService, titusRuntime, Schedulers.computation());
     }
 
     @Activator
@@ -102,7 +102,7 @@ public class AggregatingAgentStatusMonitor implements AgentStatusMonitor {
                 .withScheduler(scheduler);
 
         Observable<AgentStatus> downstreamUpdates = Observable.merge(merge(delegates))
-                .compose(subscriptionMetrics(METRIC_AGENT_MONITOR + "monitorSubscription", AggregatingAgentStatusMonitor.class, registry))
+                .compose(subscriptionMetrics(METRIC_AGENT_MONITOR + "monitorSubscription", AggregatingAgentStatusMonitor.class, titusRuntime.getRegistry()))
                 .retryWhen(
                         retryTemplate.but().withTitle("agent status monitor").buildExponentialBackoff()
                 );
@@ -137,6 +137,21 @@ public class AggregatingAgentStatusMonitor implements AgentStatusMonitor {
     @Override
     public AgentStatus getStatus(String agentInstanceId) {
         return getStatusInternal(agentInstanceId);
+    }
+
+    @Override
+    public boolean isHealthy(String agentInstanceId) {
+        try {
+            for (AgentStatusMonitor delegate : delegates) {
+                if (!delegate.isHealthy(agentInstanceId)) {
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            titusRuntime.getCodeInvariants().unexpectedError("Health check failure: agentInstanceId=%s, error=%s", agentInstanceId, e.getMessage());
+            return false;
+        }
+        return true;
     }
 
     @Override

@@ -72,6 +72,11 @@ public class OnOffStatusMonitor implements AgentStatusMonitor {
     }
 
     @Override
+    public boolean isHealthy(String agentInstanceId) {
+        return !isOn.get() || delegate.isHealthy(agentInstanceId);
+    }
+
+    @Override
     public Observable<AgentStatus> monitor() {
         return Observable.merge(delegate.monitor(), Observable.interval(CHECK_INTERVAL_MS, TimeUnit.MILLISECONDS, scheduler))
                 .compose(ObservableExt.combine(() -> new StateCache(isOn.get())))

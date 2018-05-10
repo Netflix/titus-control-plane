@@ -63,6 +63,11 @@ public interface AgentManagementService {
     AgentInstance getAgentInstance(String instanceId);
 
     /**
+     * Find an instance by id.
+     */
+    Optional<AgentInstance> findAgentInstance(String instanceId);
+
+    /**
      * Find all agent instances matching a given filter.
      */
     List<Pair<AgentInstanceGroup, List<AgentInstance>>> findAgentInstances(Predicate<Pair<AgentInstanceGroup, AgentInstance>> filter);

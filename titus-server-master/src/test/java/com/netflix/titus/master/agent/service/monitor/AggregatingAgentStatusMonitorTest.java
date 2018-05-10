@@ -23,6 +23,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
@@ -50,7 +51,7 @@ public class AggregatingAgentStatusMonitorTest {
     @Before
     public void setUp() throws Exception {
         Set<AgentStatusMonitor> delegates = asSet(delegate1.delegate, delegate2.delegate);
-        AggregatingAgentStatusMonitor monitor = new AggregatingAgentStatusMonitor(delegates, agentManagementService, new DefaultRegistry(), testScheduler);
+        AggregatingAgentStatusMonitor monitor = new AggregatingAgentStatusMonitor(delegates, agentManagementService, TitusRuntimes.internal(), testScheduler);
         monitor.enterActiveMode();
         monitor.monitor().subscribe(monitorSubscriber);
     }

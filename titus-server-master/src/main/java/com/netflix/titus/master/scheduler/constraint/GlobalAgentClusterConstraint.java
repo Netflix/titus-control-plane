@@ -26,14 +26,10 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValue;
 
@@ -49,7 +45,7 @@ import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValu
 @Singleton
 public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalAgentClusterConstraint.class);
+    private static final Result UNHEALTHY = new Result(false, "Unhealthy agent");
 
     private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
@@ -75,23 +71,14 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
 
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        Pair<Boolean, String> health = evaluateHealthy(targetVM);
-        if (!health.getLeft()) {
-            return new Result(false, health.getRight());
+        if (!isHealthy(targetVM)) {
+            return UNHEALTHY;
         }
         return evaluateGpuAndCapacityTierPinning(taskRequest, targetVM);
     }
 
-    private Pair<Boolean, String> evaluateHealthy(VirtualMachineCurrentState targetVM) {
-        AgentStatus status;
-        try {
-            status = agentStatusMonitor.getStatus(getAttributeValue(targetVM, schedulerConfiguration.getInstanceAttributeName()));
-        } catch (Exception e) {
-            logger.debug("Cannot evaluate health of agent: ", e);
-            return Pair.of(false, "Unhealthy: Cannot find agent");
-        }
-        boolean healthy = status.getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
-        return Pair.of(healthy, status.getStatusCode().name() + ": " + status.getDescription());
+    private boolean isHealthy(VirtualMachineCurrentState targetVM) {
+        return agentStatusMonitor.isHealthy(getAttributeValue(targetVM, schedulerConfiguration.getInstanceAttributeName()));
     }
 
     private Result evaluateGpuAndCapacityTierPinning(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {
