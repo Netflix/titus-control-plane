@@ -704,7 +704,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(false)
                 .withAttributes(ImmutableMap.of("keyA", "valueA", "keyB", "valueB"))
                 .build();
-        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.jobAccepted()));
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startTasks()));
 
         // Check jobs
         List<Job> foundJobs = client.findJobs(JobQuery.newBuilder().setPage(PAGE)
@@ -720,10 +720,15 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(foundJobDescriptor.getAttributesMap()).containsEntry("keyA", "valueA");
 
         // Check tasks
-        List<Task> foundTasks = client.findTasks(TaskQuery.newBuilder().setPage(PAGE).addFields("status").build()).getItemsList();
+        List<Task> foundTasks = client.findTasks(TaskQuery.newBuilder().setPage(PAGE)
+                .addFields("status")
+                .addFields("statusHistory")
+                .build()
+        ).getItemsList();
         assertThat(foundTasks).hasSize(1);
         assertThat(foundTasks.get(0).getId()).isNotEmpty(); // Always present
         assertThat(foundTasks.get(0).getStatus().getReasonMessage()).isNotEmpty();
+        assertThat(foundTasks.get(0).getStatusHistoryList()).isNotEmpty();
         assertThat(foundTasks.get(0).getTaskContextMap()).isEmpty();
     }
 

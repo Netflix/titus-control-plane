@@ -16,8 +16,8 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
@@ -113,12 +113,16 @@ public class ProtobufCopyTest {
                 .setField(INNER_FIELD_1, "innerValue1")
                 .setField(INNER_FIELD_2, "innerValue2")
                 .build();
+        DynamicMessage innerValue2 = DynamicMessage.newBuilder(INNER_TYPE)
+                .setField(INNER_FIELD_1, "inner2Value1")
+                .setField(INNER_FIELD_2, "inner2Value2")
+                .build();
 
         OUTER_FIELD_1 = OUTER_TYPE.getFields().get(0);
         OUTER_FIELD_2 = OUTER_TYPE.getFields().get(1);
         OUTER_VALUE = DynamicMessage.newBuilder(OUTER_TYPE)
                 .setField(OUTER_FIELD_1, innerValue)
-                .setField(OUTER_FIELD_2, Collections.singletonList(innerValue))
+                .setField(OUTER_FIELD_2, Arrays.asList(innerValue, innerValue2))
                 .build();
     }
 
@@ -144,6 +148,21 @@ public class ProtobufCopyTest {
         assertFieldHasNoValue((DynamicMessage) filtered.getField(OUTER_FIELD_1), INNER_FIELD_2);
 
         assertFieldHasValue(filtered, OUTER_FIELD_2);
+    }
+
+    @Test
+    public void testCollectionFieldSelection() throws Exception {
+        DynamicMessage filtered = ProtobufCopy.copy(OUTER_VALUE, asSet("objectArrayField", "primitiveField"));
+
+        assertFieldHasNoValue(filtered, OUTER_FIELD_1);
+        assertFieldHasValue(filtered, OUTER_FIELD_2);
+
+        Collection<DynamicMessage> collection = (Collection<DynamicMessage>) filtered.getField(OUTER_FIELD_2);
+        assertThat(collection).hasSize(2);
+        for (DynamicMessage dm : collection) {
+            assertFieldHasValue(dm, INNER_FIELD_1);
+            assertFieldHasValue(dm, INNER_FIELD_2);
+        }
     }
 
     @Test
