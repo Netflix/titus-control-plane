@@ -419,6 +419,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
             return Completable.complete();
         }
 
+        logger.info("Saving AutoScalePolicyException {}", autoScalePolicyExceptionOpt.get());
         AutoScalePolicyException autoScalePolicyException = autoScalePolicyExceptionOpt.get();
         if (autoScalePolicyException.getPolicyRefId() != null && !autoScalePolicyException.getPolicyRefId().isEmpty()) {
             metrics.reportErrorForException(autoScalePolicyException);
@@ -429,8 +430,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Deleted);
                 return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage)
                         .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Deleted));
-            } else if (autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.InvalidScalingPolicy ||
-                    autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.JobManagerError) {
+            } else if (isPolicyCreationError(autoScalePolicyException)) {
                 metrics.reportPolicyStatusTransition(autoScalingPolicy, PolicyStatus.Error);
                 return appScalePolicyStore.updateStatusMessage(autoScalePolicyException.getPolicyRefId(), statusMessage)
                         .andThen(appScalePolicyStore.updatePolicyStatus(autoScalePolicyException.getPolicyRefId(), PolicyStatus.Error));
@@ -718,5 +718,14 @@ public class DefaultAppScaleManager implements AppScaleManager {
         AppScaleAction deletePolicyAction = AppScaleAction.newBuilder().buildDeletePolicyAction(autoScalingPolicy.getJobId(), autoScalingPolicy);
         appScaleActionsSubject.onNext(deletePolicyAction);
         return deletePolicyAction;
+    }
+
+    private Boolean isPolicyCreationError(AutoScalePolicyException autoScalePolicyException) {
+        return autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.InvalidScalingPolicy ||
+                autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.ErrorCreatingTarget ||
+                autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.ErrorCreatingAlarm ||
+                autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.ErrorCreatingPolicy ||
+                autoScalePolicyException.getErrorCode() == AutoScalePolicyException.ErrorCode.JobManagerError;
+
     }
 }
