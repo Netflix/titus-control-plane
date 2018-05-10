@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.service;
 
+import java.util.Set;
+
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -31,10 +33,15 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import rx.Completable;
 import rx.Observable;
 
+import static com.netflix.titus.common.util.CollectionsExt.asSet;
+
 /**
  * RxJava wrapper for the JobManagement gRPC service.
  */
 public interface JobManagementService {
+    Set<String> JOB_MINIMUM_FIELD_SET = asSet("id");
+    Set<String> TASK_MINIMUM_FIELD_SET = asSet("id");
+
     Observable<String> createJob(JobDescriptor jobDescriptor);
 
     Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate);
