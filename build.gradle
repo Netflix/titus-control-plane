@@ -48,7 +48,7 @@ subprojects {
         javaxElVersion = '3.+'
         springVersion = '4.3.9.RELEASE'
         javaxInjectVersion = '1'
-        guavaVersion = '19.+'
+        guavaVersion = '20.+'
         servletVersion = '3.1.0'
         rxJava = '1.+'
         rxnettyVersion = '0.4.+'
@@ -68,8 +68,8 @@ subprojects {
         fenzoVersion = '1.1.0-rc.2'
         spectatorVersion = '0.59.+'
         mesosVersion = '1.1.3'
-        protobufVersion = '3.3.+'
-        grpcVersion = '1.9.+'
+        protobufVersion = '3.5.+'
+        grpcVersion = '1.10.+'
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
         zkVersion = '0.4'
@@ -111,9 +111,6 @@ subprojects {
         // Superceded by governator-api
         exclude group: 'com.netflix.governator', module: 'governator-annotations'
         resolutionStrategy {
-            force 'com.google.protobuf:protobuf-java:3.3.0'
-            force 'com.google.protobuf:protobuf-java-util:3.3.0'
-            force 'com.google.guava:guava:19.0'
         }
     }
 
