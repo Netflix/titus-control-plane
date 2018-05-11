@@ -37,8 +37,8 @@ public class V3ZoneBalancedHardConstraintEvaluator implements ConstraintEvaluato
             return VALID;
         }
 
-        String targetZoneId = SchedulerUtils.getZoneId(targetVM, zoneAttributeName);
-        if (targetZoneId == null) {
+        String targetZoneId = SchedulerUtils.getAttributeValueOrEmptyString(targetVM, zoneAttributeName);
+        if (targetZoneId.isEmpty()) {
             return NO_ZONE_ID;
         }
 

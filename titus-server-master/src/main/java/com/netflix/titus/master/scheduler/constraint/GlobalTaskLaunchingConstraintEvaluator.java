@@ -58,7 +58,7 @@ public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintE
 
     @Override
     public String getName() {
-        return "Global Task Launching Constraint Evaluator";
+        return "GlobalTaskLaunchingConstraintEvaluator";
     }
 
     @Override
@@ -80,10 +80,10 @@ public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintE
             return INVALID;
         }
 
-        return hasAlreadyLaunchingTask(targetVM) ? INVALID : VALID;
+        return hasLaunchingTask(targetVM) ? INVALID : VALID;
     }
 
-    private boolean hasAlreadyLaunchingTask(VirtualMachineCurrentState targetVM) {
+    private boolean hasLaunchingTask(VirtualMachineCurrentState targetVM) {
         for (TaskRequest running : targetVM.getRunningTasks()) {
             if (isTaskLaunching(running)) {
                 return true;

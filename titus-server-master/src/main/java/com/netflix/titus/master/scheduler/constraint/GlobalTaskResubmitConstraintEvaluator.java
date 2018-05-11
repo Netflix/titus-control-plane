@@ -43,7 +43,7 @@ public class GlobalTaskResubmitConstraintEvaluator implements GlobalConstraintEv
 
     @Override
     public String getName() {
-        return "Global Task Resubmit Constraint Evaluator";
+        return "GlobalTaskResubmitConstraintEvaluator";
     }
 
     @Override

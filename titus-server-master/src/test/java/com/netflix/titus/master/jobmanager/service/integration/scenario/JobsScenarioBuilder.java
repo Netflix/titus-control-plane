@@ -112,7 +112,7 @@ public class JobsScenarioBuilder {
         SystemHardConstraint systemHardConstraint = new SystemHardConstraint() {
             @Override
             public String getName() {
-                return "Test System Hard Constraint";
+                return "TestSystemHardConstraint";
             }
 
             @Override

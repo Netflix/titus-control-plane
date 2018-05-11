@@ -31,7 +31,7 @@ import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 
-import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValue;
+import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValueOrEmptyString;
 
 /**
  * A constraint to support global rules on picking agent clusters for jobs.
@@ -62,7 +62,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
 
     @Override
     public String getName() {
-        return "Global Agent Cluster Constraint";
+        return "GlobalAgentClusterConstraint";
     }
 
     @Override
@@ -78,7 +78,8 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
     }
 
     private boolean isHealthy(VirtualMachineCurrentState targetVM) {
-        return agentStatusMonitor.isHealthy(getAttributeValue(targetVM, schedulerConfiguration.getInstanceAttributeName()));
+        String instanceId = getAttributeValueOrEmptyString(targetVM, schedulerConfiguration.getInstanceAttributeName());
+        return !instanceId.isEmpty() && agentStatusMonitor.isHealthy(instanceId);
     }
 
     private Result evaluateGpuAndCapacityTierPinning(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {
@@ -86,7 +87,7 @@ public class GlobalAgentClusterConstraint implements GlobalConstraintEvaluator {
         Tier tier = getTier((QueuableTask) taskRequest);
 
         String instanceGroupAttributeName = schedulerConfiguration.getInstanceGroupAttributeName();
-        String instanceGroupId = getAttributeValue(targetVM, instanceGroupAttributeName);
+        String instanceGroupId = getAttributeValueOrEmptyString(targetVM, instanceGroupAttributeName);
         if (Strings.isNullOrEmpty(instanceGroupId)) {
             return new Result(false, "No info for agent instance type attribute: " + instanceGroupAttributeName);
         }

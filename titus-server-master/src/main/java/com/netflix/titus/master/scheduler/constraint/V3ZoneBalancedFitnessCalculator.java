@@ -11,6 +11,9 @@ import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 public class V3ZoneBalancedFitnessCalculator implements VMTaskFitnessCalculator {
 
+    private final double NOT_MATCHING = 0.01;
+    private final double MATCHING = 1.0;
+
     private final TaskCache taskCache;
     private final int expectedValues;
     private final String zoneAttributeName;
@@ -30,12 +33,12 @@ public class V3ZoneBalancedFitnessCalculator implements VMTaskFitnessCalculator 
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         // Ignore the constraint for non-V3 tasks.
         if (!(taskRequest instanceof V3QueueableTask)) {
-            return 1.0;
+            return MATCHING;
         }
 
-        String targetZoneId = SchedulerUtils.getZoneId(targetVM, zoneAttributeName);
-        if (targetZoneId == null) {
-            return 0.0;
+        String targetZoneId = SchedulerUtils.getAttributeValueOrEmptyString(targetVM, zoneAttributeName);
+        if (targetZoneId.isEmpty()) {
+            return NOT_MATCHING;
         }
 
         V3QueueableTask v3FenzoTask = (V3QueueableTask) taskRequest;
@@ -47,17 +50,17 @@ public class V3ZoneBalancedFitnessCalculator implements VMTaskFitnessCalculator 
 
         int taskZoneCounter = tasksByZoneId.getOrDefault(targetZoneId, 0);
         if (taskZoneCounter == 0 || tasksByZoneId.isEmpty()) {
-            return 1.0;
+            return MATCHING;
         }
 
         double sum = 0.0;
-        for (int i : tasksByZoneId.values()) {
-            sum += i;
+        for (int value : tasksByZoneId.values()) {
+            sum += value;
         }
         double avg = Math.ceil((sum + 1) / Math.max(expectedValues, tasksByZoneId.size()));
         if (taskZoneCounter < avg) {
             return (avg - (double) taskZoneCounter) / avg;
         }
-        return 0.0;
+        return NOT_MATCHING;
     }
 }
