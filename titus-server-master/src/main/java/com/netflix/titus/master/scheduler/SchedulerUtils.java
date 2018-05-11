@@ -16,20 +16,21 @@
 
 package com.netflix.titus.master.scheduler;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.base.Strings;
+import com.netflix.fenzo.TaskRequest;
+import com.netflix.fenzo.TaskTracker;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import org.apache.mesos.Protos;
 
 public class SchedulerUtils {
-
-    public static boolean hasGpuRequest(ScheduledRequest request) {
-        return hasGpuRequest((QueuableTask) request);
-    }
 
     public static boolean hasGpuRequest(QueuableTask task) {
         return task != null && task.getScalarRequests() != null &&
@@ -37,19 +38,47 @@ public class SchedulerUtils {
                 task.getScalarRequests().get("gpu") >= 1.0;
     }
 
-    public static Optional<String> getInstanceGroupName(String instanceGroupAttributeName, VirtualMachineLease lease) {
-        Map<String, Protos.Attribute> attributeMap = lease.getAttributeMap();
-        if (attributeMap != null) {
-            final Protos.Attribute attribute = attributeMap.get(instanceGroupAttributeName);
-            if (attribute != null && attribute.hasText()) {
-                return Optional.of(attribute.getText().getValue());
-            }
+    public static String getAttributeValueOrEmptyString(Map<String, Protos.Attribute> attributeMap, String attributeName) {
+        if (attributeMap == null) {
+            return "";
         }
-        return Optional.empty();
+
+        Protos.Attribute attributeValue = attributeMap.get(attributeName);
+        if (attributeValue == null) {
+            return "";
+        }
+
+        if (!attributeValue.hasText()) {
+            return "";
+        }
+        return Strings.nullToEmpty(attributeValue.getText().getValue());
     }
 
-    public static String getAttributeValue(VirtualMachineCurrentState targetVM, String attributeName) {
-        Protos.Attribute attribute = targetVM.getCurrAvailableResources().getAttributeMap().get(attributeName);
-        return Strings.nullToEmpty(attribute.getText().getValue());
+    public static String getAttributeValueOrEmptyString(VirtualMachineCurrentState targetVM, String attributeName) {
+        return getAttributeValueOrEmptyString(targetVM.getCurrAvailableResources().getAttributeMap(), attributeName);
+    }
+
+    public static Optional<String> getInstanceGroupName(String instanceGroupAttributeName, VirtualMachineLease lease) {
+        String name = getAttributeValueOrEmptyString(lease.getAttributeMap(), instanceGroupAttributeName);
+        return name.isEmpty() ? Optional.empty() : Optional.of(name);
+    }
+
+    public static Map<String, Integer> groupCurrentlyAssignedTasksByZoneId(String jobId, Collection<TaskTracker.ActiveTask> tasksCurrentlyAssigned, String zoneAttributeName) {
+        Map<String, Integer> result = new HashMap<>();
+
+        for (TaskTracker.ActiveTask activeTask : tasksCurrentlyAssigned) {
+            TaskRequest request = activeTask.getTaskRequest();
+            if (request instanceof V3QueueableTask) {
+                String requestJobId = ((V3QueueableTask) request).getJob().getId();
+                if (jobId.equals(requestJobId)) {
+                    String zoneId = getAttributeValueOrEmptyString(activeTask.getTotalLease().getAttributeMap(), zoneAttributeName);
+                    if (!zoneId.isEmpty()) {
+                        result.put(zoneId, result.getOrDefault(zoneId, 0) + 1);
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 }

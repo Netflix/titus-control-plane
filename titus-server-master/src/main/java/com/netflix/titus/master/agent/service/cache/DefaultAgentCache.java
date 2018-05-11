@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -193,6 +194,11 @@ public class DefaultAgentCache implements AgentCache {
     @Override
     public AgentInstance getAgentInstance(String instanceId) {
         return AgentManagementException.checkAgentFound(dataSnapshot.getInstance(instanceId), instanceId);
+    }
+
+    @Override
+    public Optional<AgentInstance> findAgentInstance(String instanceId) {
+        return Optional.ofNullable(dataSnapshot.getInstance(instanceId));
     }
 
     @Override

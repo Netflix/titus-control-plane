@@ -25,9 +25,7 @@ import javax.inject.Singleton;
 import com.netflix.fenzo.AsSoftConstraint;
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
-import com.netflix.fenzo.plugins.BalancedHostAttrConstraint;
 import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
-import com.netflix.fenzo.plugins.UniqueHostAttrConstraint;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import org.slf4j.Logger;
@@ -53,10 +51,12 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private static final ExclusiveHostConstraint EXCLUSIVE_HOST_CONSTRAINT = new ExclusiveHostConstraint();
 
     private final MasterConfiguration config;
+    private final TaskCache taskCache;
 
     @Inject
-    public V3ConstraintEvaluatorTransformer(MasterConfiguration config) {
+    public V3ConstraintEvaluatorTransformer(MasterConfiguration config, TaskCache taskCache) {
         this.config = config;
+        this.taskCache = taskCache;
     }
 
     @Override
@@ -67,10 +67,10 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
             case "exclusivehost":
                 return "true".equals(value) ? Optional.of(EXCLUSIVE_HOST_CONSTRAINT) : Optional.empty();
             case "uniquehost":
-                return "true".equals(value) ? Optional.of(new UniqueHostAttrConstraint(s -> activeTasksGetter.get())) : Optional.empty();
+                return "true".equals(value) ? Optional.of(new V3UniqueHostConstraint()) : Optional.empty();
             case "zonebalance":
                 return "true".equals(value)
-                        ? Optional.of(new BalancedHostAttrConstraint(s -> activeTasksGetter.get(), config.getHostZoneAttributeName(), EXPECTED_NUM_ZONES))
+                        ? Optional.of(new V3ZoneBalancedHardConstraintEvaluator(taskCache, EXPECTED_NUM_ZONES, config.getHostZoneAttributeName()))
                         : Optional.empty();
             case "host":
             case "servergroup":
@@ -87,10 +87,10 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
             case "exclusivehost":
                 return "true".equals(value) ? Optional.of(AsSoftConstraint.get(EXCLUSIVE_HOST_CONSTRAINT)) : Optional.empty();
             case "uniquehost":
-                return "true".equals(value) ? Optional.of(AsSoftConstraint.get(new UniqueHostAttrConstraint(s -> activeTasksGetter.get()))) : Optional.empty();
+                return "true".equals(value) ? Optional.of(AsSoftConstraint.get(new V3UniqueHostConstraint())) : Optional.empty();
             case "zonebalance":
                 return "true".equals(value)
-                        ? Optional.of(new BalancedHostAttrConstraint(s -> activeTasksGetter.get(), config.getHostZoneAttributeName(), EXPECTED_NUM_ZONES).asSoftConstraint())
+                        ? Optional.of(new V3ZoneBalancedFitnessCalculator(taskCache, EXPECTED_NUM_ZONES, config.getHostZoneAttributeName()))
                         : Optional.empty();
             case "host":
             case "servergroup":

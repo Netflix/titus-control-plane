@@ -86,6 +86,15 @@ public class EurekaAgentStatusMonitor implements AgentStatusMonitor, EurekaEvent
     }
 
     @Override
+    public boolean isHealthy(String agentInstanceId) {
+        if (!agentManagementService.findAgentInstance(agentInstanceId).isPresent()) {
+            return false;
+        }
+        Pair<InstanceStatus, AgentStatus> current = statusByInstanceId.get(agentInstanceId);
+        return current != null && current.getRight().getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
+    }
+
+    @Override
     public Observable<AgentStatus> monitor() {
         return statusUpdateSubject.asObservable();
     }

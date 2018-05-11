@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
@@ -49,6 +50,8 @@ import static java.util.Arrays.asList;
  */
 public class SimulatedTitusAgentCluster {
 
+    private static final String[] ZONES = {"zoneA", "zoneB", "zoneA", "zoneC", "zoneA", "zoneB"};
+
     private final String name;
     private final ComputeResources computeResources;
     private final AwsInstanceType instanceType;
@@ -69,6 +72,8 @@ public class SimulatedTitusAgentCluster {
     private final ConcurrentMap<String, SimulatedTitusAgent> agents = new ConcurrentHashMap<>();
 
     private final Subject<AgentChangeEvent, AgentChangeEvent> topologUpdateSubject = new SerializedSubject<>(PublishSubject.create());
+
+    private final AtomicLong zoneCounter = new AtomicLong();
 
     private SimulatedTitusAgentCluster(String name,
                                        ComputeResources computeResources,
@@ -251,10 +256,12 @@ public class SimulatedTitusAgentCluster {
 
     private SimulatedTitusAgent createAgent() {
         String hostName = ComputeResources.asHostname(computeResources.allocateIpAddress(), name);
+        String zoneId = ZONES[(int) (zoneCounter.getAndIncrement() % ZONES.length)];
         Protos.SlaveID slaveId = Protos.SlaveID.newBuilder().setValue(hostName).build();
 
         Protos.Offer.Builder agentOfferTemplate = offerTemplate.clone()
                 .setHostname(hostName)
+                .addAttributes(Attribute.newBuilder().setName("zone").setType(Type.TEXT).setText(Text.newBuilder().setValue(zoneId).build()).build())
                 .setUrl(Protos.URL.newBuilder()
                         .setScheme("http")
                         .setAddress(Protos.Address.newBuilder().setHostname(hostName).setPort(5051))
@@ -275,7 +282,6 @@ public class SimulatedTitusAgentCluster {
     public static class Builder {
 
         private final String name;
-        private final int idx;
         private AwsInstanceType instanceType;
         private ComputeResources computeResources;
         private double cpus = 8;
@@ -294,7 +300,6 @@ public class SimulatedTitusAgentCluster {
 
         private Builder(String name, int idx) {
             this.name = name;
-            this.idx = idx;
         }
 
         public Builder withComputeResources(ComputeResources computeResources) {

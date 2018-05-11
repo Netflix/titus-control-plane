@@ -16,6 +16,10 @@
 
 package com.netflix.titus.master.scheduler.constraint;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -37,8 +41,13 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 @Singleton
 public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintEvaluator {
 
+    private static final Result VALID = new Result(true, null);
+    private static final Result INVALID = new Result(false, "The agent has a task already launching");
+
     private final SchedulerConfiguration schedulerConfiguration;
     private final V3JobOperations v3JobOperations;
+
+    private final AtomicReference<Map<String, Task>> taskIdMapRef = new AtomicReference<>(Collections.emptyMap());
 
     @Inject
     public GlobalTaskLaunchingConstraintEvaluator(SchedulerConfiguration schedulerConfiguration,
@@ -49,21 +58,38 @@ public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintE
 
     @Override
     public String getName() {
-        return "Global Task Launching Constraint Evaluator";
+        return "GlobalTaskLaunchingConstraintEvaluator";
+    }
+
+    @Override
+    public void prepare() {
+        Map<String, Task> taskIdMap = new HashMap<>();
+        for (Task task : v3JobOperations.getTasks()) {
+            taskIdMap.put(task.getId(), task);
+        }
+        taskIdMapRef.set(taskIdMap);
     }
 
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        if (schedulerConfiguration.isGlobalTaskLaunchingConstraintEvaluatorEnabled()) {
-            int totalLaunchingTasks = (int) targetVM.getRunningTasks().stream().filter(this::isTaskLaunching).count();
-            int totalAssignedTasks = targetVM.getTasksCurrentlyAssigned().size();
-            totalLaunchingTasks += totalAssignedTasks;
+        if (!schedulerConfiguration.isGlobalTaskLaunchingConstraintEvaluatorEnabled()) {
+            return VALID;
+        }
 
-            if (totalLaunchingTasks > 0) {
-                return new Result(false, targetVM.getHostname() + " has a task already launching");
+        if (!targetVM.getTasksCurrentlyAssigned().isEmpty()) {
+            return INVALID;
+        }
+
+        return hasLaunchingTask(targetVM) ? INVALID : VALID;
+    }
+
+    private boolean hasLaunchingTask(VirtualMachineCurrentState targetVM) {
+        for (TaskRequest running : targetVM.getRunningTasks()) {
+            if (isTaskLaunching(running)) {
+                return true;
             }
         }
-        return new Result(true, "");
+        return false;
     }
 
     private boolean isTaskLaunching(TaskRequest request) {
@@ -72,12 +98,12 @@ public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintE
             V2JobState state = task.getState();
             return state == V2JobState.Accepted || state == V2JobState.Launched || state == V2JobState.StartInitiated;
         } else if (request instanceof V3QueueableTask) {
-            Task task = ((V3QueueableTask) request).getTask();
-            return v3JobOperations.findTaskById(task.getId())
-                    .map(current -> {
-                        TaskState state = current.getRight().getStatus().getState();
-                        return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
-                    }).orElse(false);
+            Task current = taskIdMapRef.get().get(request.getId());
+            if (current == null) {
+                return false;
+            }
+            TaskState state = current.getStatus().getState();
+            return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
         }
         return false;
     }

@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.service.cache;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
@@ -32,6 +33,8 @@ public interface AgentCache {
     Set<AgentInstance> getAgentInstances(String instanceGroupId);
 
     AgentInstance getAgentInstance(String instanceId);
+
+    Optional<AgentInstance> findAgentInstance(String instanceId);
 
     Completable updateInstanceGroupStore(AgentInstanceGroup instanceGroup);
 

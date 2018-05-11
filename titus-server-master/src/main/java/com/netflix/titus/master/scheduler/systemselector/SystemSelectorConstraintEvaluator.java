@@ -60,7 +60,7 @@ public class SystemSelectorConstraintEvaluator implements GlobalConstraintEvalua
 
     @Override
     public String getName() {
-        return "System Selector Constraint Evaluator";
+        return "SystemSelectorConstraintEvaluator";
     }
 
     @Override

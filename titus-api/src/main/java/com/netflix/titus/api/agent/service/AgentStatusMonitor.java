@@ -33,6 +33,12 @@ public interface AgentStatusMonitor {
     AgentStatus getStatus(String agentInstanceId);
 
     /**
+     * Returns true if the agent is healthy. Returns false, if the agent is unhealthy or there is no agent with the
+     * given id.
+     */
+    boolean isHealthy(String agentInstanceId);
+
+    /**
      * Observable that emits {@link AgentStatus}es.
      */
     Observable<AgentStatus> monitor();

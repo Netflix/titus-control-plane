@@ -48,6 +48,8 @@ public final class ReflectionExt {
 
     private static final ConcurrentMap<Class<?>, List<Field>> CLASS_FIELDS = new ConcurrentHashMap<>();
 
+    private static final ConcurrentMap<Method, Optional<Method>> FIND_INTERFACE_METHOD_CACHE = new ConcurrentHashMap<>();
+
     private ReflectionExt() {
     }
 
@@ -136,19 +138,21 @@ public final class ReflectionExt {
     }
 
     public static Optional<Method> findInterfaceMethod(Method method) {
-        if (method.getDeclaringClass().isInterface()) {
-            return Optional.of(method);
-        }
-        for (Class<?> interf : method.getDeclaringClass().getInterfaces()) {
-            try {
-                Method interfMethod = interf.getMethod(method.getName(), method.getParameterTypes());
-                if (interfMethod != null) {
-                    return Optional.of(interfMethod);
-                }
-            } catch (NoSuchMethodException ignore) {
+        return FIND_INTERFACE_METHOD_CACHE.computeIfAbsent(method, m -> {
+            if (method.getDeclaringClass().isInterface()) {
+                return Optional.of(method);
             }
-        }
-        return Optional.empty();
+            for (Class<?> interf : method.getDeclaringClass().getInterfaces()) {
+                try {
+                    Method interfMethod = interf.getMethod(method.getName(), method.getParameterTypes());
+                    if (interfMethod != null) {
+                        return Optional.of(interfMethod);
+                    }
+                } catch (NoSuchMethodException ignore) {
+                }
+            }
+            return Optional.empty();
+        });
     }
 
     public static Field getField(Class<?> type, String name) {

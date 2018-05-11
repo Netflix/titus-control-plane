@@ -19,6 +19,7 @@ package com.netflix.titus.master.agent.service.monitor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.PreDestroy;
@@ -83,6 +84,15 @@ public abstract class PollingStatusMonitor implements AgentStatusMonitor {
     @Override
     public AgentStatus getStatus(String agentInstanceId) {
         return resolve(agentManagementService.getAgentInstance(agentInstanceId));
+    }
+
+    @Override
+    public boolean isHealthy(String agentInstanceId) {
+        Optional<AgentInstance> instance = agentManagementService.findAgentInstance(agentInstanceId);
+        if (!instance.isPresent()) {
+            return false;
+        }
+        return resolve(instance.get()).getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
     }
 
     @Override

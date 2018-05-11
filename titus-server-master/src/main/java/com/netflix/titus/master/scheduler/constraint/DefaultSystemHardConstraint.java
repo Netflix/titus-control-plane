@@ -76,7 +76,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
 
     @Override
     public String getName() {
-        return "Default System Hard Constraint";
+        return "DefaultSystemHardConstraint";
     }
 
     @Override

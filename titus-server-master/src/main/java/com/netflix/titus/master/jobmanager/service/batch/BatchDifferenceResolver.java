@@ -18,12 +18,12 @@ package com.netflix.titus.master.jobmanager.service.batch;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -253,12 +253,12 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         for (EntityHolder referenceTask : refJobHolder.getChildren()) {
 
             Optional<EntityHolder> storeHolder = storeJob.findById(referenceTask.getId());
-            BatchJobTask storeTask = storeHolder.get().getEntity();
 
             boolean refAndStoreInSync = storeHolder.isPresent() && DifferenceResolverUtils.areEquivalent(storeHolder.get(), referenceTask);
             boolean shouldRetry = !isJobTerminating && DifferenceResolverUtils.shouldRetry(refJob, referenceTask.getEntity()) && allowedNewTasks.get() > 0;
 
             if (refAndStoreInSync) {
+                BatchJobTask storeTask = storeHolder.get().getEntity();
                 if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTask, clock)) {
                     logger.info("Retrying task: oldTaskId={}, index={}", referenceTask.getId(), storeTask.getIndex());
                     createNewTaskAction(refJobView, storeTask.getIndex()).ifPresent(actions::add);
@@ -284,7 +284,6 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             if (!BasicJobActions.isClosed(referenceModel)) {
                 return Collections.singletonList(BasicJobActions.removeJobFromStore(referenceModel.getEntity(), titusStore));
             }
-
         }
         return Collections.emptyList();
     }
@@ -295,10 +294,18 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
         BatchJobView(EntityHolder jobHolder) {
             super(jobHolder);
-            this.indexes = getTasks().stream().map(BatchJobTask::getIndex).collect(Collectors.toSet());
+            this.indexes = collectIndexes();
         }
 
         Set<Integer> getIndexes() {
+            return indexes;
+        }
+
+        private Set<Integer> collectIndexes() {
+            Set<Integer> indexes = new HashSet<>();
+            for (BatchJobTask task : getTasks()) {
+                indexes.add(task.getIndex());
+            }
             return indexes;
         }
     }

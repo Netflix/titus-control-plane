@@ -90,6 +90,7 @@ import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
+import com.netflix.titus.master.scheduler.constraint.TaskCache;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
@@ -181,6 +182,8 @@ public class DefaultSchedulingService implements SchedulingService {
     private final DefaultAutoScaleController autoScaleController;
     private Subscription vmStateUpdateSubscription;
 
+    private final TaskCache taskCache;
+
     @Inject
     public DefaultSchedulingService(V2JobOperations v2JobOperations,
                                     V3JobOperations v3JobOperations,
@@ -193,6 +196,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
+                                    TaskCache taskCache,
                                     ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
@@ -206,7 +210,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Config config) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, masterConfiguration, schedulerConfiguration,
-                systemSoftConstraint, systemHardConstraint, v2ConstraintEvaluatorTransformer,
+                systemSoftConstraint, systemHardConstraint, taskCache, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
                 tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
                 preferentialNamedConsumableResourceEvaluator,
@@ -225,6 +229,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
+                                    TaskCache taskCache,
                                     ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
@@ -281,6 +286,7 @@ public class DefaultSchedulingService implements SchedulingService {
         taskQueue = TaskQueues.createTieredQueue(2);
         schedulingService = setupTaskSchedulingService(taskScheduler);
         virtualMachineService.setVMLeaseHandler(schedulingService::addLeases);
+        this.taskCache = taskCache;
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
 
@@ -522,6 +528,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void preSchedulingHook() {
         systemHardConstraint.prepare();
+        taskCache.prepare();
         setupTierAutoscalerConfig();
     }
 
