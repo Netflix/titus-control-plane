@@ -68,7 +68,7 @@ public final class JobManagerUtil {
 
     public static Set<String> filterActiveTaskIds(ReconciliationEngine<JobManagerReconcilerEvent> engine) {
         Set<String> result = new HashSet<>();
-        for (EntityHolder taskHolder : engine.getReferenceView().getChildren()) {
+        for (EntityHolder taskHolder : engine.getRunningView().getChildren()) {
             Task task = taskHolder.getEntity();
             TaskState state = task.getStatus().getState();
             if (state != TaskState.Finished) {
