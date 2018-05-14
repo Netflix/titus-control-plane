@@ -60,9 +60,9 @@ import com.netflix.fenzo.queues.TaskQueue;
 import com.netflix.fenzo.queues.TaskQueueException;
 import com.netflix.fenzo.queues.TaskQueueMultiException;
 import com.netflix.fenzo.queues.TaskQueues;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
-import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
@@ -133,30 +133,31 @@ public class DefaultSchedulingService implements SchedulingService {
     private final ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer;
     private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
-    private final AtomicLong totalTasksPerIteration;
-    private final AtomicLong assignedTasksPerIteration;
-    private final AtomicLong failedTasksPerIteration;
-    private final AtomicLong offersReceived;
-    private final AtomicLong offersRejected;
-    private final AtomicLong totalActiveAgents;
-    private final AtomicLong totalDisabledAgents;
-    private final AtomicLong minDisableDuration;
-    private final AtomicLong maxDisableDuration;
-    private final AtomicLong totalAvailableCpus;
-    private final AtomicLong totalAllocatedCpus;
-    private final AtomicLong cpuUtilization;
-    private final AtomicLong totalAvailableMemory;
-    private final AtomicLong totalAllocatedMemory;
-    private final AtomicLong memoryUtilization;
-    private final AtomicLong totalAvailableDisk;
-    private final AtomicLong totalAllocatedDisk;
-    private final AtomicLong diskUtilization;
-    private final AtomicLong totalAvailableNetworkMbps;
-    private final AtomicLong totalAllocatedNetworkMbps;
-    private final AtomicLong networkUtilization;
-    private final AtomicLong dominantResourceUtilization;
-    private final AtomicLong totalAvailableNetworkInterfaces;
-    private final AtomicLong totalAllocatedNetworkInterfaces;
+    private final Gauge totalTasksPerIterationGauge;
+    private final Gauge assignedTasksPerIterationGauge;
+    private final Gauge failedTasksPerIterationGauge;
+    private final Gauge taskAndAgentEvaluationsPerIterationGauge;
+    private final Gauge offersReceivedGauge;
+    private final Gauge offersRejectedGauge;
+    private final Gauge totalActiveAgentsGauge;
+    private final Gauge totalDisabledAgentsGauge;
+    private final Gauge minDisableDurationGauge;
+    private final Gauge maxDisableDurationGauge;
+    private final Gauge totalAvailableCpusGauge;
+    private final Gauge totalAllocatedCpusGauge;
+    private final Gauge cpuUtilizationGauge;
+    private final Gauge totalAvailableMemoryGauge;
+    private final Gauge totalAllocatedMemoryGauge;
+    private final Gauge memoryUtilizationGauge;
+    private final Gauge totalAvailableDiskGauge;
+    private final Gauge totalAllocatedDiskGauge;
+    private final Gauge diskUtilizationGauge;
+    private final Gauge totalAvailableNetworkMbpsGauge;
+    private final Gauge totalAllocatedNetworkMbpsGauge;
+    private final Gauge networkUtilizationGauge;
+    private final Gauge dominantResourceUtilizationGauge;
+    private final Gauge totalAvailableNetworkInterfacesGauge;
+    private final Gauge totalAllocatedNetworkInterfacesGauge;
 
     private final Timer fenzoSchedulingResultLatencyTimer;
     private final Timer fenzoCallbackLatencyTimer;
@@ -280,7 +281,8 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
                 .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
-                .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent());
+                .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent())
+                .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize);
 
         taskScheduler = setupTaskSchedulerAndAutoScaler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);
@@ -290,52 +292,31 @@ public class DefaultSchedulingService implements SchedulingService {
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
 
-        totalTasksPerIteration = new AtomicLong(0);
-        assignedTasksPerIteration = new AtomicLong(0);
-        failedTasksPerIteration = new AtomicLong(0);
-        offersReceived = new AtomicLong(0);
-        offersRejected = new AtomicLong(0);
-        totalActiveAgents = new AtomicLong(0);
-        totalDisabledAgents = new AtomicLong(0);
-        minDisableDuration = new AtomicLong(0);
-        maxDisableDuration = new AtomicLong(0);
-        totalAvailableCpus = new AtomicLong(0);
-        totalAllocatedCpus = new AtomicLong(0);
-        cpuUtilization = new AtomicLong(0);
-        totalAvailableMemory = new AtomicLong(0);
-        totalAllocatedMemory = new AtomicLong(0);
-        memoryUtilization = new AtomicLong(0);
-        totalAvailableDisk = new AtomicLong(0);
-        totalAllocatedDisk = new AtomicLong(0);
-        diskUtilization = new AtomicLong(0);
-        totalAvailableNetworkMbps = new AtomicLong(0);
-        totalAllocatedNetworkMbps = new AtomicLong(0);
-        networkUtilization = new AtomicLong(0);
-        dominantResourceUtilization = new AtomicLong(0);
-        totalAvailableNetworkInterfaces = new AtomicLong(0);
-        totalAllocatedNetworkInterfaces = new AtomicLong(0);
-
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration").monitorValue(totalTasksPerIteration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration").monitorValue(assignedTasksPerIteration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "failedTasksPerIteration").monitorValue(failedTasksPerIteration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "offersReceived").monitorValue(offersReceived);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "offersRejected").monitorValue(offersRejected);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalActiveAgents").monitorValue(totalActiveAgents);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalDisabledAgents").monitorValue(totalDisabledAgents);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "minDisableDuration").monitorValue(minDisableDuration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "maxDisableDuration").monitorValue(maxDisableDuration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableCpus").monitorValue(totalAvailableCpus);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedCpus").monitorValue(totalAllocatedCpus);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "cpuUtilization").monitorValue(cpuUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableMemory").monitorValue(totalAvailableMemory);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedMemory").monitorValue(totalAllocatedMemory);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "memoryUtilization").monitorValue(memoryUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkMbps").monitorValue(totalAvailableNetworkMbps);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkMbps").monitorValue(totalAllocatedNetworkMbps);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "networkUtilization").monitorValue(networkUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "dominantResourceUtilization").monitorValue(dominantResourceUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkInterfaces").monitorValue(totalAvailableNetworkInterfaces);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkInterfaces").monitorValue(totalAllocatedNetworkInterfaces);
+        totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
+        assignedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration");
+        failedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "failedTasksPerIteration");
+        taskAndAgentEvaluationsPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "taskAndAgentEvaluationsPerIteration");
+        offersReceivedGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "offersReceived");
+        offersRejectedGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "offersRejected");
+        totalActiveAgentsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalActiveAgents");
+        totalDisabledAgentsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalDisabledAgents");
+        minDisableDurationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "minDisableDuration");
+        maxDisableDurationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "maxDisableDuration");
+        totalAvailableCpusGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableCpus");
+        totalAllocatedCpusGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedCpus");
+        cpuUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "cpuUtilization");
+        totalAvailableMemoryGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableMemory");
+        totalAllocatedMemoryGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedMemory");
+        memoryUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "memoryUtilization");
+        totalAvailableDiskGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableDisk");
+        totalAllocatedDiskGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedDisk");
+        diskUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "diskUtilization");
+        totalAvailableNetworkMbpsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkMbps");
+        totalAllocatedNetworkMbpsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkMbps");
+        networkUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "networkUtilization");
+        dominantResourceUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "dominantResourceUtilization");
+        totalAvailableNetworkInterfacesGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkInterfaces");
+        totalAllocatedNetworkInterfacesGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkInterfaces");
 
         fenzoSchedulingResultLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoSchedulingResult");
         fenzoCallbackLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoCallback");
@@ -574,6 +555,8 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void schedulingResultsHandler(SchedulingResult schedulingResult) {
+        logger.info("Task placement results: taskAndAgentEvaluations={}, executionTimeMs={}",
+                schedulingResult.getNumAllocations(), schedulingResult.getRuntime());
         long callbackStart = titusRuntime.getClock().wallTime();
         totalSchedulingIterationMesosLatency.set(0);
 
@@ -623,12 +606,14 @@ public class DefaultSchedulingService implements SchedulingService {
         if (!failActions.isEmpty()) { // If no such tasks for the registered actions, call them with null result
             failActions.forEach(action -> action.values().iterator().next().call(null));
         }
-        totalTasksPerIteration.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
-        assignedTasksPerIteration.set(assignedDuringSchedulingResult);
-        failedTasksPerIteration.set(failedTasksDuringSchedulingResult);
-        offersReceived.set(schedulingResult.getLeasesAdded());
-        offersRejected.set(schedulingResult.getLeasesRejected());
-        totalActiveAgents.set(schedulingResult.getTotalVMsCount());
+
+        totalTasksPerIterationGauge.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
+        assignedTasksPerIterationGauge.set(assignedDuringSchedulingResult);
+        failedTasksPerIterationGauge.set(failedTasksDuringSchedulingResult);
+        taskAndAgentEvaluationsPerIterationGauge.set(schedulingResult.getNumAllocations());
+        offersReceivedGauge.set(schedulingResult.getLeasesAdded());
+        offersRejectedGauge.set(schedulingResult.getLeasesRejected());
+        totalActiveAgentsGauge.set(schedulingResult.getTotalVMsCount());
         fenzoSchedulingResultLatencyTimer.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
         fenzoCallbackLatencyTimer.record(titusRuntime.getClock().wallTime() - callbackStart, TimeUnit.MILLISECONDS);
         mesosLatencyTimer.record(totalSchedulingIterationMesosLatency.get(), TimeUnit.MILLISECONDS);
@@ -794,28 +779,28 @@ public class DefaultSchedulingService implements SchedulingService {
                 }
             }
 
-            totalDisabledAgents.set(totalDisabled);
-            minDisableDuration.set(currentMinDisableDuration);
-            maxDisableDuration.set(currentMaxDisableDuration);
-            totalAvailableCpus.set((long) totalCpu);
-            totalAllocatedCpus.set((long) usedCpu);
-            cpuUtilization.set((long) (usedCpu * 100.0 / Math.max(1.0, totalCpu)));
+            totalDisabledAgentsGauge.set(totalDisabled);
+            minDisableDurationGauge.set(currentMinDisableDuration);
+            maxDisableDurationGauge.set(currentMaxDisableDuration);
+            totalAvailableCpusGauge.set((long) totalCpu);
+            totalAllocatedCpusGauge.set((long) usedCpu);
+            cpuUtilizationGauge.set((long) (usedCpu * 100.0 / Math.max(1.0, totalCpu)));
             double dominantResourceUtilization = usedCpu * 100.0 / totalCpu;
-            totalAvailableMemory.set((long) totalMemory);
-            totalAllocatedMemory.set((long) usedMemory);
-            memoryUtilization.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
+            totalAvailableMemoryGauge.set((long) totalMemory);
+            totalAllocatedMemoryGauge.set((long) usedMemory);
+            memoryUtilizationGauge.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedMemory * 100.0 / totalMemory);
-            totalAvailableDisk.set((long) totalDisk);
-            totalAllocatedDisk.set((long) usedDisk);
-            diskUtilization.set((long) (usedDisk * 100.0 / Math.max(1.0, totalDisk)));
+            totalAvailableDiskGauge.set((long) totalDisk);
+            totalAllocatedDiskGauge.set((long) usedDisk);
+            diskUtilizationGauge.set((long) (usedDisk * 100.0 / Math.max(1.0, totalDisk)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedDisk * 100.0 / totalDisk);
-            totalAvailableNetworkMbps.set((long) totalNetworkMbps);
-            totalAllocatedNetworkMbps.set((long) usedNetworkMbps);
-            networkUtilization.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
+            totalAvailableNetworkMbpsGauge.set((long) totalNetworkMbps);
+            totalAllocatedNetworkMbpsGauge.set((long) usedNetworkMbps);
+            networkUtilizationGauge.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedNetworkMbps * 100.0 / totalNetworkMbps);
-            this.dominantResourceUtilization.set((long) dominantResourceUtilization);
-            totalAvailableNetworkInterfaces.set(totalNetworkInterfaces);
-            totalAllocatedNetworkInterfaces.set(usedNetworkInterfaces);
+            this.dominantResourceUtilizationGauge.set((long) dominantResourceUtilization);
+            totalAvailableNetworkInterfacesGauge.set(totalNetworkInterfaces);
+            totalAllocatedNetworkInterfacesGauge.set(usedNetworkInterfaces);
         } catch (Exception e) {
             logger.error("Error settings metrics with error: ", e);
         }
