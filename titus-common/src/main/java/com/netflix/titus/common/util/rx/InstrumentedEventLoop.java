@@ -48,7 +48,7 @@ public class InstrumentedEventLoop {
         this.worker = scheduler.createWorker();
         this.actionMetrics = new ConcurrentHashMap<>();
         this.actionsRemaining = new AtomicLong(0);
-        this.actionsRemainingId = registry.createId(metricNameRoot + ".actionsRemaining");
+        this.actionsRemainingId = registry.createId(metricNameRoot + ".eventLoop.actionsRemaining");
 
         PolledMeter.using(registry)
                 .withId(this.actionsRemainingId)

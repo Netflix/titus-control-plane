@@ -51,7 +51,7 @@ public class DefaultAgentResourceCache implements AgentResourceCache {
     public DefaultAgentResourceCache(Registry registry,
                                      Scheduler scheduler) {
         eventLoop = ObservableExt.createEventLoop(METRIC_NAME_ROOT, registry, scheduler);
-        cache = Caches.instrumentedCacheWithMaxSize(MAX_CACHE_SIZE, METRIC_NAME_ROOT + ".active", registry);
+        cache = Caches.instrumentedCacheWithMaxSize(MAX_CACHE_SIZE, METRIC_NAME_ROOT, registry);
     }
 
     @Override

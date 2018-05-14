@@ -2206,13 +2206,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -3457,13 +3457,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -4708,13 +4708,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -5960,13 +5960,13 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.2",
+            "locked": "1.1.0-rc.3",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
