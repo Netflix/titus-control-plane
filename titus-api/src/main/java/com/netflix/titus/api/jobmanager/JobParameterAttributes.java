@@ -19,16 +19,13 @@ package com.netflix.titus.api.jobmanager;
 /**
  * Constant keys for Job attributes.
  */
-public final class JobAttributes {
-    /**
-     * Stack name that can be replaced in a federated deployment, where all Cells have the same Stack name.
-     */
-    public static final String JOB_ATTRIBUTES_STACK = "titus.stack";
-    /**
-     * Unique Cell name for a deployment.
-     */
-    public static final String JOB_ATTRIBUTES_CELL = "titus.cell";
+public final class JobParameterAttributes {
+    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING = "titusParameter.agent.allowCpuBursting";
+    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING = "titusParameter.agent.allowNetworkBursting";
+    public static final String JOB_PARAMETER_ATTRIBUTES_BATCH = "titusParameter.agent.batch";
+    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_NESTED_CONTAINERS = "titusParameter.agent.allowNestedContainers";
+    public static final String JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS = "titusParameter.agent.killWaitSeconds";
 
-    private JobAttributes() {
+    private JobParameterAttributes() {
     }
 }
