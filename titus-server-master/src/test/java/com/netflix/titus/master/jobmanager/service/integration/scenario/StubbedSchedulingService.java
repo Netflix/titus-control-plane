@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 import com.netflix.fenzo.TaskAssignmentResult;
@@ -28,10 +29,12 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
+import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.scheduler.constraint.V2ConstraintEvaluatorTransformer;
+import rx.Observable;
 
 class StubbedSchedulingService implements SchedulingService {
 
@@ -92,5 +95,15 @@ class StubbedSchedulingService implements SchedulingService {
 
     @Override
     public void registerTaskFailuresAction(String taskId, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> action) throws IllegalStateException {
+    }
+
+    @Override
+    public Optional<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
+        throw new IllegalStateException("not implemented");
+    }
+
+    @Override
+    public Observable<SchedulingResultEvent> observeSchedulingResults(String taskId) {
+        return Observable.error(new IllegalStateException("not implemented"));
     }
 }

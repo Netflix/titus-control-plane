@@ -24,15 +24,17 @@ import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
+import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
+import com.netflix.titus.grpc.protogen.SchedulingResultRequest;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcSchedulerModelConverters;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -118,5 +120,21 @@ public class DefaultSchedulerService implements SchedulerService {
             StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
+    }
+
+    @Override
+    public Observable<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
+        return createRequestObservable(emitter -> {
+            StreamObserver<SchedulingResultEvent> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getSchedulingResult(SchedulingResultRequest.newBuilder().setTaskId(taskId).build(), streamObserver);
+        }, configuration.getRequestTimeout());
+    }
+
+    @Override
+    public Observable<SchedulingResultEvent> observeSchedulingResults(String taskId) {
+        return createRequestObservable(emitter -> {
+            StreamObserver<SchedulingResultEvent> streamObserver = createSimpleClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver).observeSchedulingResults(SchedulingResultRequest.newBuilder().setTaskId(taskId).build(), streamObserver);
+        });
     }
 }

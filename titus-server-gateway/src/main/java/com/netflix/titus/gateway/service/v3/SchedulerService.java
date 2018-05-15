@@ -17,6 +17,7 @@
 package com.netflix.titus.gateway.service.v3;
 
 import com.netflix.titus.api.scheduler.service.SchedulerException;
+import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
 import rx.Completable;
@@ -64,4 +65,17 @@ public interface SchedulerService {
      * @throws SchedulerException {@link SchedulerException.ErrorCode#SystemSelectorNotFound} if the system selector is not found
      */
     Completable deleteSystemSelector(String id);
+
+    /**
+     * Returns the last know scheduling result for a task.
+     *
+     * @return {@link Observable#empty()} if the task is not found or the scheduling result otherwise
+     */
+    Observable<SchedulingResultEvent> findLastSchedulingResult(String taskId);
+
+    /**
+     * Observe Fenzo scheduling results for a task. The stream is completed when the task is successfully scheduled or
+     * removed from the Fenzo queue.
+     */
+    Observable<SchedulingResultEvent> observeSchedulingResults(String taskId);
 }

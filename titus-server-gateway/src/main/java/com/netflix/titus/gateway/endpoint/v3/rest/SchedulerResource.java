@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.netflix.titus.gateway.service.v3.SchedulerService;
+import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
@@ -83,5 +84,12 @@ public class SchedulerResource {
     @Path("/systemSelectors/{id}")
     public Response deleteSystemSelector(@PathParam("id") String id) {
         return Responses.fromCompletable(schedulerService.deleteSystemSelector(id));
+    }
+
+    @GET
+    @ApiOperation("Find scheduling result for a task")
+    @Path("/results/{id}")
+    public SchedulingResultEvent findLastSchedulingResult(@PathParam("id") String taskId) {
+        return Responses.fromSingleValueObservable(schedulerService.findLastSchedulingResult(taskId));
     }
 }
