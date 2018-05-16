@@ -19,6 +19,7 @@ package com.netflix.titus.master.scheduler;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskScheduler;
@@ -30,6 +31,7 @@ import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
+import rx.Observable;
 
 /**
  */
@@ -87,4 +89,17 @@ public interface SchedulingService {
     void registerTaskFailuresAction(
             String taskId, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> action
     ) throws IllegalStateException;
+
+    /**
+     * Returns the last known scheduling result for a task.
+     *
+     * @return {@link Optional#empty()} if the task is not found or the scheduling result otherwise
+     */
+    Optional<SchedulingResultEvent> findLastSchedulingResult(String taskId);
+
+    /**
+     * Observe Fenzo scheduling results for a task. The stream is completed when the task is successfully scheduled or
+     * removed from the Fenzo queue.
+     */
+    Observable<SchedulingResultEvent> observeSchedulingResults(String taskId);
 }

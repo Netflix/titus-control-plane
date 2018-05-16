@@ -19,6 +19,7 @@ package com.netflix.titus.master.scheduler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -54,6 +56,7 @@ import com.netflix.fenzo.TaskScheduler;
 import com.netflix.fenzo.TaskSchedulingService;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
+import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
@@ -68,6 +71,10 @@ import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import com.netflix.titus.api.agent.service.AgentManagementFunctions;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.WorkerNaming;
@@ -104,6 +111,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
+import rx.subjects.BehaviorSubject;
 
 import static com.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_SERVICE;
 
@@ -120,6 +128,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final MasterConfiguration masterConfiguration;
     private final SchedulerConfiguration schedulerConfiguration;
     private final V2JobOperations v2JobOperations;
+    private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
     private final Optional<FitInjection> fitInjection;
     private TaskScheduler taskScheduler;
@@ -174,14 +183,16 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TitusRuntime titusRuntime;
     private final AgentResourceCache agentResourceCache;
     private final AgentResourceCacheUpdater agentResourceCacheUpdater;
-    private final BlockingQueue<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>>
-            taskFailuresActions = new LinkedBlockingQueue<>(5);
+    private final BlockingQueue<Map<String, Action1<List<TaskAssignmentResult>>>> taskFailuresActions = new LinkedBlockingQueue<>(5);
     private final TierSlaUpdater tierSlaUpdater;
     private final Registry registry;
     private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
     private final DefaultAutoScaleController autoScaleController;
     private Subscription vmStateUpdateSubscription;
+
+    private final AtomicReference<Map<String, List<TaskAssignmentResult>>> lastSchedulingResult = new AtomicReference<>();
+    private final BehaviorSubject<Map<String, List<TaskAssignmentResult>>> schedulingResultSubject = BehaviorSubject.create();
 
     private final TaskCache taskCache;
 
@@ -244,6 +255,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     AgentResourceCache agentResourceCache,
                                     Config config) {
         this.v2JobOperations = v2JobOperations;
+        this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.autoScaleController = autoScaleController;
         this.vmOps = vmOps;
@@ -499,8 +511,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public void registerTaskFailuresAction(
-            String taskId, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> action
+    public void registerTaskFailuresAction(String taskId, Action1<List<TaskAssignmentResult>> action
     ) throws IllegalStateException {
         if (!taskFailuresActions.offer(Collections.singletonMap(taskId, action))) {
             throw new IllegalStateException("Too many concurrent requests");
@@ -576,7 +587,7 @@ public class DefaultSchedulingService implements SchedulingService {
         }
 
         int assignedDuringSchedulingResult = 0;
-        int failedTasksDuringSchedulingResult = 0;
+        int failedTasksDuringSchedulingResult = schedulingResult.getFailures().size();
 
         long recordingStart = titusRuntime.getClock().wallTime();
         List<Pair<List<VirtualMachineLease>, List<Protos.TaskInfo>>> taskInfos = taskPlacementRecorder.record(schedulingResult);
@@ -584,28 +595,8 @@ public class DefaultSchedulingService implements SchedulingService {
         taskInfos.forEach(ts -> launchTasks(ts.getLeft(), ts.getRight()));
         assignedDuringSchedulingResult += taskInfos.stream().mapToInt(p -> p.getRight().size()).sum();
 
-        List<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
-        taskFailuresActions.drainTo(failActions);
-        for (Map.Entry<TaskRequest, List<TaskAssignmentResult>> entry : schedulingResult.getFailures().entrySet()) {
-            final TitusQueuableTask task = (TitusQueuableTask) entry.getKey();
-            failedTasksDuringSchedulingResult++;
-            if (!failActions.isEmpty()) {
-                final Iterator<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> iterator =
-                        failActions.iterator();
-                while (iterator.hasNext()) { // iterate over all of them, there could be multiple requests with the same taskId
-                    final Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>> next = iterator.next();
-                    final String reqId = next.keySet().iterator().next();
-                    final com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> a = next.values().iterator().next();
-                    if (task.getId().equals(reqId)) {
-                        a.call(entry.getValue());
-                        iterator.remove();
-                    }
-                }
-            }
-        }
-        if (!failActions.isEmpty()) { // If no such tasks for the registered actions, call them with null result
-            failActions.forEach(action -> action.values().iterator().next().call(null));
-        }
+        recordLastSchedulingResult(schedulingResult);
+        processTaskSchedulingFailureCallbacks(schedulingResult);
 
         totalTasksPerIterationGauge.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
         assignedTasksPerIterationGauge.set(assignedDuringSchedulingResult);
@@ -617,6 +608,48 @@ public class DefaultSchedulingService implements SchedulingService {
         fenzoSchedulingResultLatencyTimer.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
         fenzoCallbackLatencyTimer.record(titusRuntime.getClock().wallTime() - callbackStart, TimeUnit.MILLISECONDS);
         mesosLatencyTimer.record(totalSchedulingIterationMesosLatency.get(), TimeUnit.MILLISECONDS);
+    }
+
+    private void recordLastSchedulingResult(SchedulingResult schedulingResult) {
+        try {
+            Map<String, List<TaskAssignmentResult>> byTaskId = new HashMap<>();
+            schedulingResult.getResultMap().forEach((agentId, vmAssignments) ->
+                    vmAssignments.getTasksAssigned().forEach(ta -> byTaskId.put(ta.getTaskId(), Collections.singletonList(ta)))
+            );
+            schedulingResult.getFailures().forEach((taskRequest, taskAssignments) ->
+                    byTaskId.put(taskRequest.getId(), taskAssignments)
+            );
+            this.lastSchedulingResult.set(byTaskId);
+            this.schedulingResultSubject.onNext(byTaskId);
+        } catch (Exception e) {
+            logger.warn("Failed to record the last scheduling decision", e);
+        }
+    }
+
+    private void processTaskSchedulingFailureCallbacks(SchedulingResult schedulingResult) {
+        List<Map<String, Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
+        taskFailuresActions.drainTo(failActions);
+
+        if (failActions.isEmpty()) {
+            return;
+        }
+
+        for (Map.Entry<TaskRequest, List<TaskAssignmentResult>> entry : schedulingResult.getFailures().entrySet()) {
+            final TitusQueuableTask task = (TitusQueuableTask) entry.getKey();
+            final Iterator<Map<String, Action1<List<TaskAssignmentResult>>>> iterator = failActions.iterator();
+            while (iterator.hasNext()) { // iterate over all of them, there could be multiple requests with the same taskId
+                final Map<String, Action1<List<TaskAssignmentResult>>> next = iterator.next();
+                final String reqId = next.keySet().iterator().next();
+                final Action1<List<TaskAssignmentResult>> a = next.values().iterator().next();
+                if (task.getId().equals(reqId)) {
+                    a.call(entry.getValue());
+                    iterator.remove();
+                }
+            }
+        }
+        if (!failActions.isEmpty()) { // If no such tasks for the registered actions, call them with null result
+            failActions.forEach(action -> action.values().iterator().next().call(null));
+        }
     }
 
     private void launchTasks(List<VirtualMachineLease> leases, List<Protos.TaskInfo> taskInfoList) {
@@ -700,6 +733,59 @@ public class DefaultSchedulingService implements SchedulingService {
 
     public List<VirtualMachineCurrentState> getVmCurrentStates() {
         return vmCurrentStatesMap.get(0);
+    }
+
+    public Optional<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
+        if (lastSchedulingResult.get() == null) {
+            return Optional.empty();
+        }
+
+        Optional<Pair<Job<?>, Task>> jobTaskOptional = v3JobOperations.findTaskById(taskId);
+        if (!jobTaskOptional.isPresent()) {
+            return Optional.empty();
+        }
+        Task task = jobTaskOptional.get().getRight();
+
+        if (task.getStatus().getState() != TaskState.Accepted) {
+            return Optional.of(SchedulingResultEvent.onStarted(task));
+        }
+
+        List<TaskAssignmentResult> taskAssignmentResults = lastSchedulingResult.get().get(taskId);
+        if (taskAssignmentResults == null) {
+            return Optional.of(SchedulingResultEvent.onNoAgent(task));
+        }
+        if (taskAssignmentResults.isEmpty()) {
+            throw new IllegalStateException("Unexpected to find empty task assignment list: " + taskId);
+        }
+        if (taskAssignmentResults.size() == 1 && taskAssignmentResults.get(0).isSuccessful()) {
+            // If just launched, the state in job manager is not updated yet. We fix it here to reflect this change in the event.
+            Task currentTask = task.toBuilder().withStatus(
+                    TaskStatus.newBuilder()
+                            .withState(TaskState.Launched)
+                            .withReasonCode(TaskStatus.REASON_NORMAL)
+                            .withReasonMessage("Launched by scheduler")
+                            .build()
+            ).build();
+            return Optional.of(SchedulingResultEvent.onStarted(currentTask));
+        }
+
+        // Failures
+        return Optional.of(SchedulingResultEvent.onFailure(task, taskAssignmentResults));
+    }
+
+    @Override
+    public Observable<SchedulingResultEvent> observeSchedulingResults(String taskId) {
+        return schedulingResultSubject
+                .flatMap(schedulingResult -> {
+                    try {
+                        return findLastSchedulingResult(taskId)
+                                .map(Observable::just)
+                                .orElseGet(() -> Observable.error(new IllegalArgumentException("Task not found: " + taskId)));
+                    } catch (Exception e) {
+                        return Observable.error(e);
+                    }
+                })
+                .takeUntil(event -> event.getTask().getStatus().getState() != TaskState.Accepted);
     }
 
     private void verifyAndReportResourceUsageMetrics(List<VirtualMachineCurrentState> vmCurrentStates) {
