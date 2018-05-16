@@ -47,11 +47,11 @@ import io.titanframework.messages.TitanProtos;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
 import org.apache.mesos.Protos;
 
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_CPU_BURSTING;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_BATCH;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_KILL_WAIT_SECONDS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NESTED_CONTAINERS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 
 /**
@@ -108,7 +108,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private TitanProtos.ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask) {
         TitanProtos.ContainerInfo.Builder containerInfoBuilder = TitanProtos.ContainerInfo.newBuilder();
         Container container = job.getJobDescriptor().getContainer();
-        Map<String, String> attributes = container.getAttributes();
+        Map<String, String> containerAttributes = container.getAttributes();
         ContainerResources containerResources = container.getContainerResources();
         SecurityProfile v3SecurityProfile = container.getSecurityProfile();
 
@@ -140,14 +140,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         }
 
         // Configure agent job attributes
-        containerInfoBuilder.setAllowCpuBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_CPU_BURSTING)));
-        containerInfoBuilder.setAllowNetworkBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
-        containerInfoBuilder.setBatch(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_BATCH)));
+        containerInfoBuilder.setAllowCpuBursting(Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING)));
+        containerInfoBuilder.setAllowNetworkBursting(Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
+        containerInfoBuilder.setBatch(Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH)));
 
-        boolean allowNestedContainers = mesosConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
+        boolean allowNestedContainers = mesosConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
         containerInfoBuilder.setAllowNestedContainers(allowNestedContainers);
 
-        final String attributeKillWaitSeconds = attributes.get(JOB_ATTRIBUTES_KILL_WAIT_SECONDS);
+        String attributeKillWaitSeconds = containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS);
         Integer killWaitSeconds = attributeKillWaitSeconds == null ? null : Ints.tryParse(attributeKillWaitSeconds);
         if (killWaitSeconds == null || killWaitSeconds < mesosConfiguration.getMinKillWaitSeconds() || killWaitSeconds > mesosConfiguration.getMaxKillWaitSeconds()) {
             killWaitSeconds = mesosConfiguration.getDefaultKillWaitSeconds();
