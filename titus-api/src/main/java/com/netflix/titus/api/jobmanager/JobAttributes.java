@@ -17,7 +17,8 @@
 package com.netflix.titus.api.jobmanager;
 
 /**
- * Constant keys for Job attributes.
+ * Constant keys for Job attributes. Attributes that begin with <b>titus.</b> are readonly system generated attributes
+ * while attributes that begin with <b>titusParameter.</b> are user supplied parameters.
  */
 public final class JobAttributes {
 
