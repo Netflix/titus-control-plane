@@ -67,7 +67,7 @@ public interface SchedulerService {
     Completable deleteSystemSelector(String id);
 
     /**
-     * Returns the last know scheduling result for a task.
+     * Returns the last known scheduling result for a task.
      *
      * @return {@link Observable#empty()} if the task is not found or the scheduling result otherwise
      */

@@ -51,7 +51,7 @@ class StubbedSchedulingService implements SchedulingService {
 
     @Override
     public List<VirtualMachineCurrentState> getVmCurrentStates() {
-        throw new IllegalStateException("not implemented");
+        throw new UnsupportedOperationException("not implemented");
     }
 
     public HashMap<String, QueuableTask> getQueuableTasks() {
@@ -99,11 +99,11 @@ class StubbedSchedulingService implements SchedulingService {
 
     @Override
     public Optional<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
-        throw new IllegalStateException("not implemented");
+        throw new UnsupportedOperationException("not implemented");
     }
 
     @Override
     public Observable<SchedulingResultEvent> observeSchedulingResults(String taskId) {
-        return Observable.error(new IllegalStateException("not implemented"));
+        return Observable.error(new UnsupportedOperationException("not implemented"));
     }
 }

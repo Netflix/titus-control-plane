@@ -91,7 +91,7 @@ public interface SchedulingService {
     ) throws IllegalStateException;
 
     /**
-     * Returns the last know scheduling result for a task.
+     * Returns the last known scheduling result for a task.
      *
      * @return {@link Optional#empty()} if the task is not found or the scheduling result otherwise
      */
