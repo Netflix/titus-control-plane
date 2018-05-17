@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master;
 
+import java.util.Collections;
 import java.util.Map;
 
 import com.netflix.archaius.api.annotations.Configuration;
@@ -23,5 +24,7 @@ import com.netflix.archaius.api.annotations.Configuration;
 @Configuration(prefix = "titusMaster.runtime")
 public interface TitusRuntimeConfiguration {
 
-    Map<String, String> getFitActions();
+    default Map<String, String> getFitActions() {
+        return Collections.emptyMap();
+    }
 }
