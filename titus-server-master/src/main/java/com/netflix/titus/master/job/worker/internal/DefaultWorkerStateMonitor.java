@@ -155,17 +155,22 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
 
                                 String reasonCode = args.getReasonCode();
 
+                                TaskStatus.Builder taskStatusBuilder = JobModel.newTaskStatus()
+                                        .withState(newState)
+                                        .withTimestamp(args.getTimestamp());
+
                                 // We send kill operation even if task is in Accepted state, but if the latter is the case
                                 // we do not want to report Mesos 'lost' state in task status.
                                 if (isKillConfirmationForTaskInAcceptedState(task, newState, reasonCode)) {
-                                    reasonCode = TaskStatus.REASON_TASK_KILLED;
+                                    taskStatusBuilder
+                                            .withReasonCode(TaskStatus.REASON_TASK_KILLED)
+                                            .withReasonMessage("Task killed before it was launched");
+                                } else {
+                                    taskStatusBuilder
+                                            .withReasonCode(reasonCode)
+                                            .withReasonMessage("Mesos task state change event: " + args.getReasonMessage());
                                 }
-                                TaskStatus taskStatus = JobModel.newTaskStatus()
-                                        .withState(newState)
-                                        .withReasonCode(reasonCode)
-                                        .withReasonMessage("Mesos task state change event: " + args.getReasonMessage())
-                                        .withTimestamp(args.getTimestamp())
-                                        .build();
+                                TaskStatus taskStatus = taskStatusBuilder.build();
 
                                 // Failures are logged only, as the reconciler will take care of it if needed.
                                 final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails(), titusRuntime);
