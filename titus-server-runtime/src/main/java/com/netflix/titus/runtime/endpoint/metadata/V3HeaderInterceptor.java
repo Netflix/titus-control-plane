@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.endpoint.metadata;
 
+import java.util.Set;
+
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
 import io.grpc.Context;
 import io.grpc.Contexts;
@@ -28,20 +30,25 @@ import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.common.util.CollectionsExt.asSet;
+
 /**
  *
  */
 public class V3HeaderInterceptor implements ServerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(V3HeaderInterceptor.class);
+    private static final Set<String> ALLOWED_COMPRESSION_TYPES = asSet("gzip");
 
     public static Metadata.Key<String> DEBUG_KEY = Metadata.Key.of(CallMetadataHeaders.DEBUG_HEADER, Metadata.ASCII_STRING_MARSHALLER);
+    public static Metadata.Key<String> COMPRESSION_KEY = Metadata.Key.of(CallMetadataHeaders.COMPRESSION_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<String> CALLER_ID_KEY = Metadata.Key.of(CallMetadataHeaders.CALLER_ID_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<String> DIRECT_CALLER_ID_KEY = Metadata.Key.of(CallMetadataHeaders.DIRECT_CALLER_ID_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<String> CALL_REASON_KEY = Metadata.Key.of(CallMetadataHeaders.CALL_REASON_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<byte[]> CALL_METADATA_KEY = Metadata.Key.of(CallMetadataHeaders.CALL_METADATA_HEADER, Metadata.BINARY_BYTE_MARSHALLER);
 
     public static Context.Key<String> DEBUG_CONTEXT_KEY = Context.key(CallMetadataHeaders.DEBUG_HEADER);
+    public static Context.Key<String> COMPRESSION_CONTEXT_KEY = Context.key(CallMetadataHeaders.COMPRESSION_HEADER);
     public static Context.Key<String> CALLER_ID_CONTEXT_KEY = Context.key(CallMetadataHeaders.CALLER_ID_HEADER);
     public static Context.Key<String> DIRECT_CALLER_ID_CONTEXT_KEY = Context.key(CallMetadataHeaders.DIRECT_CALLER_ID_HEADER);
     public static Context.Key<String> CALL_REASON_CONTEXT_KEY = Context.key(CallMetadataHeaders.CALL_REASON_HEADER);
@@ -56,6 +63,14 @@ public class V3HeaderInterceptor implements ServerInterceptor {
             boolean debugEnabled = Boolean.parseBoolean(debugValue.toString());
             if (debugEnabled) {
                 wrappedContext = wrappedContext.withValue(DEBUG_CONTEXT_KEY, "true");
+            }
+        }
+        Object compressionValue = headers.get(COMPRESSION_KEY);
+        if (compressionValue != null) {
+            String compressionType = compressionValue.toString();
+            if (ALLOWED_COMPRESSION_TYPES.contains(compressionType)) {
+                call.setCompression(compressionType);
+                wrappedContext = wrappedContext.withValue(COMPRESSION_CONTEXT_KEY, compressionType);
             }
         }
         Object callerIdValue = headers.get(CALLER_ID_KEY);
@@ -86,7 +101,7 @@ public class V3HeaderInterceptor implements ServerInterceptor {
                 : Contexts.interceptCall(wrappedContext, call, headers, next);
     }
 
-    public static <STUB extends AbstractStub<STUB>> STUB attachCallerId(STUB serviceStub, CallMetadata callMetadata) {
+    public static <STUB extends AbstractStub<STUB>> STUB attachCallMetadata(STUB serviceStub, CallMetadata callMetadata) {
         Metadata metadata = new Metadata();
         metadata.put(CALL_METADATA_KEY, CommonGrpcModelConverters.toGrpcCallMetadata(callMetadata).toByteArray());
         return serviceStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));

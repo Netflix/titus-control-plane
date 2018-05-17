@@ -4,6 +4,8 @@ public final class CallMetadataHeaders {
 
     public final static String DEBUG_HEADER = "X-Titus-Debug";
 
+    public final static String COMPRESSION_HEADER = "X-Titus-Compression";
+
     public final static String CALLER_ID_HEADER = "X-Titus-CallerId";
 
     public final static String DIRECT_CALLER_ID_HEADER = "X-Titus-DirectCallerId";
