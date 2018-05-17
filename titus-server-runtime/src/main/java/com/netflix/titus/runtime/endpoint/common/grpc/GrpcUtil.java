@@ -129,7 +129,7 @@ public class GrpcUtil {
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, CallMetadataResolver callMetadataResolver) {
         return callMetadataResolver.resolve()
-                .map(caller -> V3HeaderInterceptor.attachCallerId(client, caller))
+                .map(caller -> V3HeaderInterceptor.attachCallMetadata(client, caller))
                 .orElse(client);
     }
 
