@@ -164,7 +164,9 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<Job> findJob(String jobId) {
-        return jobManagementServiceHelper.findJobInAllCells(jobId).map(CellResponse::getResult);
+        return jobManagementServiceHelper.findJobInAllCells(jobId)
+                .map(CellResponse::getResult)
+                .map(this::addStackName);
     }
 
     @Override
@@ -275,7 +277,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<Task> findTask(String taskId) {
-        return findTaskInAllCells(taskId).map(CellResponse::getResult);
+        return findTaskInAllCells(taskId).map(CellResponse::getResult).map(this::addStackName);
     }
 
     private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId) {

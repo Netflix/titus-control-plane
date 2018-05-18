@@ -363,7 +363,7 @@ public class AggregatingJobManagementServiceTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
-        Job expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        Job expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
         AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId()).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
@@ -378,7 +378,7 @@ public class AggregatingJobManagementServiceTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService());
 
-        Job expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        Job expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
         AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId()).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
@@ -531,7 +531,7 @@ public class AggregatingJobManagementServiceTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedTasksService(cellOneSnapshot));
         cellTwo.getServiceRegistry().addService(new CellWithFixedTasksService(Collections.emptyList()));
 
-        Task expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        Task expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
         AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId()).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
@@ -546,7 +546,7 @@ public class AggregatingJobManagementServiceTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedTasksService(cellOneSnapshot));
         cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService(DEADLINE_EXCEEDED));
 
-        Task expected = cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size()));
+        Task expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
         AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId()).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
