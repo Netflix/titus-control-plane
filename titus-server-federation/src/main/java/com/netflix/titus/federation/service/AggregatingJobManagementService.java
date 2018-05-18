@@ -197,6 +197,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request, Set<String> fields) {
         return aggregatingClient.call(JobManagementServiceGrpc::newStub, findJobsInCell(request))
                 .map(CellResponse::getResult)
+                .map(this::addStackName)
                 .reduce(this::combineJobResults)
                 .map(combinedResults -> {
                     Pair<List<Job>, Pagination> combinedPage = takeCombinedPage(
@@ -227,16 +228,10 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private JobQueryResult combineJobResults(JobQueryResult one, JobQueryResult other) {
         Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
-        List<Job> oneDecoratedList = one.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
-        List<Job> otherDecoratedList = other.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
         return JobQueryResult.newBuilder()
                 .setPagination(pagination)
-                .addAllItems(oneDecoratedList)
-                .addAllItems(otherDecoratedList)
+                .addAllItems(one.getItemsList())
+                .addAllItems(other.getItemsList())
                 .build();
     }
 
@@ -322,6 +317,7 @@ public class AggregatingJobManagementService implements JobManagementService {
     private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request, Set<String> fields) {
         return aggregatingClient.call(JobManagementServiceGrpc::newStub, findTasksInCell(request))
                 .map(CellResponse::getResult)
+                .map(this::addStackName)
                 .reduce(this::combineTaskResults)
                 .map(combinedResults -> {
                     Pair<List<Task>, Pagination> combinedPage = takeCombinedPage(
@@ -352,16 +348,10 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private TaskQueryResult combineTaskResults(TaskQueryResult one, TaskQueryResult other) {
         Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
-        List<Task> oneDecoratedList = one.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
-        List<Task> otherDecoratedList = other.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
         return TaskQueryResult.newBuilder()
                 .setPagination(pagination)
-                .addAllItems(oneDecoratedList)
-                .addAllItems(otherDecoratedList)
+                .addAllItems(one.getItemsList())
+                .addAllItems(other.getItemsList())
                 .build();
     }
 
@@ -372,6 +362,16 @@ public class AggregatingJobManagementService implements JobManagementService {
                         (client, streamObserver) -> client.killTask(request, streamObserver))
                 );
         return result.toCompletable();
+    }
+
+    private JobQueryResult addStackName(JobQueryResult result) {
+        List<Job> withStackName = result.getItemsList().stream().map(this::addStackName).collect(Collectors.toList());
+        return result.toBuilder().clearItems().addAllItems(withStackName).build();
+    }
+
+    private TaskQueryResult addStackName(TaskQueryResult result) {
+        List<Task> withStackName = result.getItemsList().stream().map(this::addStackName).collect(Collectors.toList());
+        return result.toBuilder().clearItems().addAllItems(withStackName).build();
     }
 
     private Job addStackName(Job job) {
