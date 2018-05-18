@@ -68,7 +68,7 @@ public class Container {
 
     @CollectionInvariants(allowEmptyKeys = false)
     @FieldInvariant(
-            value = "@asserts.isEnvironmentVariableNotTooLarge(value)",
+            value = "@asserts.areEnvironmentVariablesNotTooLarge(value)",
             message = "Container environment variables size exceeds the limit " + JobAssertions.MAX_ENVIRONMENT_VARIABLE_SIZE_MB + "MB"
     )
     private final Map<String, String> env;

@@ -63,7 +63,7 @@ public class JobAssertions {
         return !StringExt.safeTrim(iamRole).isEmpty();
     }
 
-    public boolean isEnvironmentVariableNotTooLarge(Map<String, String> environment) {
+    public boolean areEnvironmentVariablesNotTooLarge(Map<String, String> environment) {
         if(CollectionsExt.isNullOrEmpty(environment)) {
             return true;
         }
