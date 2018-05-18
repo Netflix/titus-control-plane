@@ -16,7 +16,10 @@
 
 package com.netflix.titus.api.jobmanager.model.job.sanitizer;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.validation.ConstraintViolation;
@@ -37,11 +40,11 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.common.util.CollectionsExt.first;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static java.util.Arrays.asList;
@@ -163,7 +166,7 @@ public class JobModelSanitizationTest {
         ));
         Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
         assertThat(violations).hasSize(1);
-        assertThat(CollectionsExt.first(violations).getPropertyPath().toString()).contains("securityGroups");
+        assertThat(first(violations).getPropertyPath().toString()).contains("securityGroups");
     }
 
     @Test
@@ -175,7 +178,7 @@ public class JobModelSanitizationTest {
         ));
         Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
         assertThat(violations).hasSize(1);
-        assertThat(CollectionsExt.first(violations).getPropertyPath().toString()).contains("securityGroups");
+        assertThat(first(violations).getPropertyPath().toString()).contains("securityGroups");
     }
 
     @Test
@@ -185,7 +188,7 @@ public class JobModelSanitizationTest {
         ));
         Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
         assertThat(violations).hasSize(1);
-        assertThat(CollectionsExt.first(violations).getPropertyPath().toString()).contains("iamRole");
+        assertThat(first(violations).getPropertyPath().toString()).contains("iamRole");
     }
 
     @Test
@@ -228,6 +231,25 @@ public class JobModelSanitizationTest {
         // Now do cleanup
         Job<BatchJobExt> sanitized = entitySanitizer.sanitize(job).get();
         assertThat(entitySanitizer.validate(sanitized)).isEmpty();
+    }
+
+    @Test
+    public void testJobWithTooLargeEnvironmentVariables() {
+        // Make key/value pair size 1MB
+        char[] manyChars = new char[512 * 1024];
+        Arrays.fill(manyChars, '0');
+        String bigString = new String(manyChars);
+
+        Map<String, String> largeEnv = new HashMap<>();
+        for (int i = 0; i < JobAssertions.MAX_ENVIRONMENT_SIZE_MB; i++) {
+            largeEnv.put(bigString + i, bigString);
+        }
+
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().toBuilder().withEnv(largeEnv).build());
+
+        Set<ConstraintViolation<JobDescriptor<BatchJobExt>>> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getMessage()).contains("Container environment variables size exceeds the limit 32MB");
     }
 
     private EntitySanitizer newJobSanitizer(VerifierMode verifierMode) {

@@ -23,10 +23,12 @@ import java.util.function.Function;
 import javax.validation.Valid;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.SchedulingConstraintSetValidator;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.SchedulingConstraintValidator;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
+import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.util.CollectionsExt;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
@@ -65,6 +67,10 @@ public class Container {
     private final List<String> command;
 
     @CollectionInvariants
+    @FieldInvariant(
+            value = "@asserts.isEnvironmentNotTooLarge(value)",
+            message = "Container environment variables size exceeds the limit " + JobAssertions.MAX_ENVIRONMENT_SIZE_MB + "MB"
+    )
     private final Map<String, String> env;
 
     @CollectionInvariants
