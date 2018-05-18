@@ -30,6 +30,7 @@ import javax.inject.Singleton;
 import javax.validation.ConstraintViolation;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
 import com.google.common.collect.Sets;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -42,8 +43,6 @@ import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -51,7 +50,6 @@ import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
-import com.netflix.titus.runtime.service.JobManagementService;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -69,7 +67,10 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.service.JobManagementService;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -79,15 +80,17 @@ import rx.Completable;
 import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
+import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 
 @Singleton
 public class DefaultJobManagementService implements JobManagementService {
     private static Logger logger = LoggerFactory.getLogger(DefaultAutoScalingService.class);
+
+    private static final String TITUS_NON_COMPLIANT = "titus.noncompliant";
 
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
 
@@ -134,6 +137,8 @@ public class DefaultJobManagementService implements JobManagementService {
         if (isInNonCompliantWhiteList(sanitizedCoreJobDescriptor)) {
             sanitizedCoreJobDescriptor = addMissingSecurityGroupAndIamRole(sanitizedCoreJobDescriptor);
         }
+        // TODO Remove once all clients are compliant.
+        sanitizedCoreJobDescriptor = checkEnvironmentViolations(sanitizedCoreJobDescriptor);
 
         Set<ConstraintViolation<com.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
         if (!violations.isEmpty()) {
@@ -303,11 +308,44 @@ public class DefaultJobManagementService implements JobManagementService {
             builder.withIamRole(jobManagerConfiguration.getDefaultIamRole());
             nonCompliant = nonCompliant == null ? "noIamRole" : nonCompliant + ",noIamRole";
         }
-        return jobDescriptor.toBuilder()
-                .withAttributes(CollectionsExt.copyAndAdd(jobDescriptor.getAttributes(), "titus.noncompliant", nonCompliant))
+        com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> sanitizedJobDescriptor = jobDescriptor.toBuilder()
                 .withContainer(jobDescriptor.getContainer().toBuilder()
                         .withSecurityProfile(builder.build()).build()
                 ).build();
+        return markNonCompliant(sanitizedJobDescriptor, nonCompliant);
+    }
+
+    private com.netflix.titus.api.jobmanager.model.job.JobDescriptor checkEnvironmentViolations(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+        Map<String, String> env = jobDescriptor.getContainer().getEnv();
+        if (CollectionsExt.isNullOrEmpty(env)) {
+            return jobDescriptor;
+        }
+
+        boolean allAsciiCharacters = env.entrySet().stream().allMatch(entry -> isAscii(entry.getKey()) && isAscii(entry.getValue()));
+        boolean noDotInKeyName = env.keySet().stream().allMatch(key -> key == null || !key.contains("."));
+
+        if (allAsciiCharacters && noDotInKeyName) {
+            return jobDescriptor;
+        }
+
+        String nonCompliant = allAsciiCharacters
+                ? "environmentVariableNameWithDot"
+                : (noDotInKeyName ? "nonAsciiCharactersInEnvironmentVariable" : "environmentVariableNameWithDot,nonAsciiCharactersInEnvironmentVariable");
+
+        return markNonCompliant(jobDescriptor, nonCompliant);
+    }
+
+    private com.netflix.titus.api.jobmanager.model.job.JobDescriptor markNonCompliant(com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor, String nonCompliant) {
+        Map<String, String> attributes = jobDescriptor.getAttributes();
+        String previousNonCompliant = attributes.get(TITUS_NON_COMPLIANT);
+        String newNonCompliant = previousNonCompliant == null ? nonCompliant : previousNonCompliant + ',' + nonCompliant;
+        return jobDescriptor.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(jobDescriptor.getAttributes(), TITUS_NON_COMPLIANT, newNonCompliant))
+                .build();
+    }
+
+    private boolean isAscii(String value) {
+        return value == null || CharMatcher.ascii().matchesAllOf(value);
     }
 
     private Observable<Job> retrieveArchivedJob(String jobId) {
