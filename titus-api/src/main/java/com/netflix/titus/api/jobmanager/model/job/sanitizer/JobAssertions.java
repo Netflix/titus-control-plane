@@ -40,8 +40,8 @@ public class JobAssertions {
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    public static final int MAX_ENVIRONMENT_SIZE_MB = 32;
-    public static final int MAX_ENVIRONMENT_SIZE_BYTES = MAX_ENVIRONMENT_SIZE_MB * 1024 * 1024;
+    public static final int MAX_ENVIRONMENT_VARIABLE_SIZE_MB = 32;
+    public static final int MAX_ENVIRONMENT_VARIABLE_SIZE_BYTES = MAX_ENVIRONMENT_VARIABLE_SIZE_MB * 1024 * 1024;
 
     private static final Pattern SG_PATTERN = Pattern.compile("sg-.*");
     private static final Pattern IMAGE_NAME_PATTERN = Pattern.compile("[a-zA-Z0-9\\.\\\\/_-]+");
@@ -63,7 +63,7 @@ public class JobAssertions {
         return !StringExt.safeTrim(iamRole).isEmpty();
     }
 
-    public boolean isEnvironmentNotTooLarge(Map<String, String> environment) {
+    public boolean isEnvironmentVariableNotTooLarge(Map<String, String> environment) {
         if(CollectionsExt.isNullOrEmpty(environment)) {
             return true;
         }
@@ -71,10 +71,12 @@ public class JobAssertions {
         int totalSize = environment.entrySet().stream().mapToInt(entry -> {
             int keySize = StringExt.isEmpty(entry.getKey()) ? 0 : entry.getKey().getBytes(UTF_8).length;
             int valueSize = StringExt.isEmpty(entry.getValue()) ? 0 : entry.getValue().getBytes(UTF_8).length;
+
+            // The 2 additional bytes are for the equal sign and the NUL terminator.
             return keySize + valueSize + 2;
         }).sum();
 
-        return totalSize <= MAX_ENVIRONMENT_SIZE_BYTES;
+        return totalSize <= MAX_ENVIRONMENT_VARIABLE_SIZE_BYTES;
     }
 
     public Map<String, String> validateImage(Image image) {

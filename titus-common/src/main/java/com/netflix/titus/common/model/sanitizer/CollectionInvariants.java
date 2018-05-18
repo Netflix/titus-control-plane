@@ -39,6 +39,11 @@ public @interface CollectionInvariants {
 
     boolean allowNullKeys() default false;
 
+    /**
+     * Only for keys with {@link String} type. This property is ignored for other key types.
+     */
+    boolean allowEmptyKeys() default true;
+
     boolean allowNullValues() default false;
 
     String message() default "{CollectionInvariants.message}";

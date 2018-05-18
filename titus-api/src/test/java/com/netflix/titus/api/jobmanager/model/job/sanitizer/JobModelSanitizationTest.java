@@ -241,7 +241,7 @@ public class JobModelSanitizationTest {
         String bigString = new String(manyChars);
 
         Map<String, String> largeEnv = new HashMap<>();
-        for (int i = 0; i < JobAssertions.MAX_ENVIRONMENT_SIZE_MB; i++) {
+        for (int i = 0; i < JobAssertions.MAX_ENVIRONMENT_VARIABLE_SIZE_MB; i++) {
             largeEnv.put(bigString + i, bigString);
         }
 
