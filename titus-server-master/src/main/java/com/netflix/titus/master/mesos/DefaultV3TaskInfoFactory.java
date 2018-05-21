@@ -60,6 +60,7 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 @Singleton
 public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo> {
 
+    private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
     private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
@@ -154,12 +155,20 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         }
         containerInfoBuilder.setKillWaitSeconds(killWaitSeconds);
 
+        // Send passthrough attributes that begin with the agent prefix
+        containerAttributes.forEach((k, v) -> {
+            if (k.startsWith(PASSTHROUGH_ATTRIBUTES_PREFIX)) {
+                containerInfoBuilder.putPassthroughAttributes(k, v);
+            }
+        });
+
         // Configure Environment Variables
-        Map<String, String> userProvidedEnv = container.getEnv().entrySet()
-                .stream()
-                .filter(e -> e.getValue() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        containerInfoBuilder.putAllUserProvidedEnv(userProvidedEnv);
+        container.getEnv().forEach((k, v) -> {
+            if (v != null) {
+                containerInfoBuilder.putUserProvidedEnv(k, v);
+            }
+        });
+
         containerInfoBuilder.putTitusProvidedEnv("TITUS_JOB_ID", task.getJobId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ID", task.getId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INSTANCE_ID", task.getId());
