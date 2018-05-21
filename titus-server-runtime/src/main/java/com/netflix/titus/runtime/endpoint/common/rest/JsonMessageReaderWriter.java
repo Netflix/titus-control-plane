@@ -75,7 +75,7 @@ public class JsonMessageReaderWriter implements MessageBodyReader<Object>, Messa
     private static final Validator VALIDATION = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Context
-            /* Visible for testing */ HttpServletRequest httpServletRequest;
+    /* Visible for testing */ HttpServletRequest httpServletRequest;
 
     private static ObjectMapper createObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -122,8 +122,13 @@ public class JsonMessageReaderWriter implements MessageBodyReader<Object>, Messa
                            Annotation[] annotations,
                            MediaType mediaType,
                            MultivaluedMap<String, String> httpHeaders,
-                           InputStream entityStream) throws IOException, WebApplicationException {
-        Object entity = MAPPER.readValue(entityStream, type);
+                           InputStream entityStream) throws WebApplicationException {
+        Object entity;
+        try {
+            entity = MAPPER.readValue(entityStream, type);
+        } catch (IOException e) {
+            throw RestExceptions.badRequest(e);
+        }
         Set<ConstraintViolation<Object>> constraintViolations = VALIDATION.validate(entity);
         if (!constraintViolations.isEmpty()) {
             throw new ConstraintViolationException(type.getSimpleName() +

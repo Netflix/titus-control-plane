@@ -39,6 +39,12 @@ public class RestExceptions {
                 .build();
     }
 
+    public static RestException badRequest(Exception e) {
+        return RestException.newBuilder(BAD_REQUEST.getStatusCode(), e.getMessage())
+                .withCause(e)
+                .build();
+    }
+
     private static RestException fromStatusRuntimeException(StatusRuntimeException e) {
         int statusCode;
         switch (e.getStatus().getCode()) {
