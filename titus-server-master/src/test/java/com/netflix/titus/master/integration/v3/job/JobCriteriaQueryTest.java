@@ -542,7 +542,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         jobs1.getItemsList().forEach(job -> assertCellInfo(job, EmbeddedTitusMaster.CELL_NAME));
 
         JobQueryResult jobs2 = client.findJobs(JobQuery.newBuilder()
-                .putFilteringCriteria("attributes", "titus.cell,titus.stack")
+                .putFilteringCriteria("attributes", "titus.cell")
                 .putFilteringCriteria("attributes.op", "and")
                 .setPage(PAGE)
                 .build()
@@ -562,7 +562,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
         JobQueryResult jobs4 = client.findJobs(JobQuery.newBuilder()
                 .putFilteringCriteria("attributes",
-                        String.format("titus.cell:%1$s,titus.stack:%1$s", EmbeddedTitusMaster.CELL_NAME))
+                        String.format("titus.cell:%1$s", EmbeddedTitusMaster.CELL_NAME))
                 .putFilteringCriteria("attributes.op", "and")
                 .setPage(PAGE)
                 .build()
@@ -581,7 +581,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         tasks1.getItemsList().forEach(task -> assertCellInfo(task, EmbeddedTitusMaster.CELL_NAME));
 
         TaskQueryResult tasks2 = client.findTasks(TaskQuery.newBuilder()
-                .putFilteringCriteria("attributes", "titus.cell,titus.stack")
+                .putFilteringCriteria("attributes", "titus.cell")
                 .putFilteringCriteria("attributes.op", "and")
                 .setPage(PAGE)
                 .build()
@@ -600,7 +600,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
         final TaskQueryResult tasks4 = client.findTasks(TaskQuery.newBuilder()
                 .putFilteringCriteria("attributes",
-                        String.format("titus.cell:%1$s,titus.stack:%1$s", EmbeddedTitusMaster.CELL_NAME))
+                        String.format("titus.cell:%1$s", EmbeddedTitusMaster.CELL_NAME))
                 .putFilteringCriteria("attributes.op", "and")
                 .setPage(PAGE).build()
         );

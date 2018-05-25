@@ -25,7 +25,7 @@ public final class JobAttributes {
     // Job Descriptor Attributes
 
     /**
-     * Stack name that can be replaced in a federated deployment, where all Cells have the same Stack name.
+     * Federated stack name. All cells under the same federated stack must share the same value.
      */
     public static final String JOB_ATTRIBUTES_STACK = "titus.stack";
 

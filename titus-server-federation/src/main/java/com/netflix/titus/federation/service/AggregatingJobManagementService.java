@@ -124,6 +124,7 @@ public class AggregatingJobManagementService implements JobManagementService {
         }
         JobManagementServiceStub client = wrap(optionalClient.get());
 
+        JobDescriptor withStackName = addStackName(jobDescriptor);
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
@@ -131,7 +132,7 @@ public class AggregatingJobManagementService implements JobManagementService {
                     emitter::onError,
                     emitter::onCompleted
             );
-            client.createJob(jobDescriptor, streamObserver);
+            client.createJob(withStackName, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 
@@ -374,10 +375,14 @@ public class AggregatingJobManagementService implements JobManagementService {
         return result.toBuilder().clearItems().addAllItems(withStackName).build();
     }
 
-    private Job addStackName(Job job) {
-        JobDescriptor jobDescriptor = job.getJobDescriptor().toBuilder()
+    private JobDescriptor addStackName(JobDescriptor jobDescriptor) {
+        return jobDescriptor.toBuilder()
                 .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
                 .build();
+    }
+
+    private Job addStackName(Job job) {
+        JobDescriptor jobDescriptor = addStackName(job.getJobDescriptor());
         return job.toBuilder().setJobDescriptor(jobDescriptor).build();
     }
 

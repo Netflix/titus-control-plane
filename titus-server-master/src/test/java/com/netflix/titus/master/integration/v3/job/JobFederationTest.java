@@ -1,10 +1,12 @@
 package com.netflix.titus.master.integration.v3.job;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.Task;
@@ -27,10 +29,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class JobFederationTest extends BaseIntegrationTest {
+    private final String federatedStackName = UUID.randomUUID().toString();
 
     @Rule
     public final TitusStackResource titusStackResource = new TitusStackResource(
             EmbeddedTitusFederation.aDefaultTitusFederation()
+                    .withProperty("titus.federation.stack", federatedStackName)
                     .withCell("a.*", basicCell("defaultCell", 2))
                     .withCell("b.*", basicV3OnlyCell("v3OnlyCell", 2))
                     .build()
@@ -49,12 +53,19 @@ public class JobFederationTest extends BaseIntegrationTest {
 
     @Test
     public void testJobCreateRouting() {
+        Map<String, Job> jobs = new ConcurrentHashMap<>();
         Map<String, Task> tasks = new ConcurrentHashMap<>();
         eventStreamObserver.toObservable().subscribe(
                 event -> {
-                    if (event.getNotificationCase() == JobChangeNotification.NotificationCase.TASKUPDATE) {
-                        Task task = event.getTaskUpdate().getTask();
-                        tasks.put(task.getJobId(), task);
+                    switch (event.getNotificationCase()) {
+                        case JOBUPDATE:
+                            Job job = event.getJobUpdate().getJob();
+                            jobs.put(job.getId(), job);
+                            break;
+                        case TASKUPDATE:
+                            Task task = event.getTaskUpdate().getTask();
+                            tasks.put(task.getJobId(), task);
+                            break;
                     }
                 }
         );
@@ -66,7 +77,18 @@ public class JobFederationTest extends BaseIntegrationTest {
         await().timeout(5, TimeUnit.SECONDS).until(() -> tasks.containsKey(cell1JobId));
         await().timeout(5, TimeUnit.SECONDS).until(() -> tasks.containsKey(cell2JobId));
 
-        assertThat(tasks.get(cell1JobId).getTaskContextMap().get("titus.cell")).isEqualTo("defaultCell");
-        assertThat(tasks.get(cell2JobId).getTaskContextMap().get("titus.cell")).isEqualTo("v3OnlyCell");
+        Map<String, String> cell1JobAttributes = jobs.get(cell1JobId).getJobDescriptor().getAttributesMap();
+        assertThat(cell1JobAttributes).containsEntry("titus.stack", federatedStackName);
+        assertThat(cell1JobAttributes).containsEntry("titus.cell", "defaultCell");
+        Map<String, String> cell2JobAttributes = jobs.get(cell2JobId).getJobDescriptor().getAttributesMap();
+        assertThat(cell2JobAttributes).containsEntry("titus.stack", federatedStackName);
+        assertThat(cell2JobAttributes).containsEntry("titus.cell", "v3OnlyCell");
+
+        Map<String, String> cell1TaskContext = tasks.get(cell1JobId).getTaskContextMap();
+        assertThat(cell1TaskContext).containsEntry("titus.stack", federatedStackName);
+        assertThat(cell1TaskContext).containsEntry("titus.cell", "defaultCell");
+        Map<String, String> cell2TaskContext = tasks.get(cell2JobId).getTaskContextMap();
+        assertThat(cell2TaskContext).containsEntry("titus.stack", federatedStackName);
+        assertThat(cell2TaskContext).containsEntry("titus.cell", "v3OnlyCell");
     }
 }

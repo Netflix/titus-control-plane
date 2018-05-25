@@ -26,7 +26,6 @@ public class CellAssertions {
 
     public static void assertCellInfo(JobDescriptor jobDescriptor, String cellName) {
         assertThat(jobDescriptor.getAttributesMap()).containsEntry("titus.cell", cellName);
-        assertThat(jobDescriptor.getAttributesMap()).containsEntry("titus.stack", cellName);
     }
 
     public static void assertCellInfo(Job job, String cellName) {
@@ -35,7 +34,6 @@ public class CellAssertions {
 
     public static void assertCellInfo(Task task, String cellName) {
         assertThat(task.getTaskContextMap()).containsEntry("titus.cell", cellName);
-        assertThat(task.getTaskContextMap()).containsEntry("titus.stack", cellName);
     }
 
 }
