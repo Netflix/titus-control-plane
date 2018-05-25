@@ -49,7 +49,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
-import com.netflix.titus.runtime.service.JobManagementService;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -60,18 +60,18 @@ import io.swagger.annotations.ApiOperation;
 @Singleton
 public class JobManagementResource {
 
-    private final JobManagementService jobManagementService;
+    private final JobManagementClient jobManagementClient;
 
     @Inject
-    public JobManagementResource(JobManagementService jobManagementService) {
-        this.jobManagementService = jobManagementService;
+    public JobManagementResource(JobManagementClient jobManagementClient) {
+        this.jobManagementClient = jobManagementClient;
     }
 
     @POST
     @ApiOperation("Create a job")
     @Path("/jobs")
     public Response createJob(JobDescriptor jobDescriptor) {
-        String jobId = Responses.fromSingleValueObservable(jobManagementService.createJob(jobDescriptor));
+        String jobId = Responses.fromSingleValueObservable(jobManagementClient.createJob(jobDescriptor));
         return Response.status(Response.Status.ACCEPTED).entity(JobId.newBuilder().setId(jobId).build()).build();
     }
 
@@ -84,7 +84,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setCapacity(capacity)
                 .build();
-        return Responses.fromCompletable(jobManagementService.updateJobCapacity(jobCapacityUpdate));
+        return Responses.fromCompletable(jobManagementClient.updateJobCapacity(jobCapacityUpdate));
     }
 
     @PUT
@@ -96,7 +96,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setServiceJobProcesses(jobProcesses)
                 .build();
-        return Responses.fromCompletable(jobManagementService.updateJobProcesses(jobProcessesUpdate));
+        return Responses.fromCompletable(jobManagementClient.updateJobProcesses(jobProcessesUpdate));
     }
 
     @POST
@@ -107,7 +107,7 @@ public class JobManagementResource {
                 .setId(jobId)
                 .setEnableStatus(true)
                 .build();
-        return Responses.fromCompletable(jobManagementService.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobManagementClient.updateJobStatus(jobStatusUpdate));
     }
 
     @POST
@@ -118,14 +118,14 @@ public class JobManagementResource {
                 .setId(jobId)
                 .setEnableStatus(false)
                 .build();
-        return Responses.fromCompletable(jobManagementService.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobManagementClient.updateJobStatus(jobStatusUpdate));
     }
 
     @GET
     @ApiOperation("Find the job with the specified ID")
     @Path("/jobs/{jobId}")
     public Job findJob(@PathParam("jobId") String jobId) {
-        return Responses.fromSingleValueObservable(jobManagementService.findJob(jobId));
+        return Responses.fromSingleValueObservable(jobManagementClient.findJob(jobId));
     }
 
     @GET
@@ -137,21 +137,21 @@ public class JobManagementResource {
         queryBuilder.setPage(RestUtil.createPage(queryParameters));
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(jobManagementService.findJobs(queryBuilder.build()));
+        return Responses.fromSingleValueObservable(jobManagementClient.findJobs(queryBuilder.build()));
     }
 
     @DELETE
     @ApiOperation("Kill a job")
     @Path("/jobs/{jobId}")
     public Response killJob(@PathParam("jobId") String jobId) {
-        return Responses.fromCompletable(jobManagementService.killJob(jobId));
+        return Responses.fromCompletable(jobManagementClient.killJob(jobId));
     }
 
     @GET
     @ApiOperation("Find the task with the specified ID")
     @Path("/tasks/{taskId}")
     public Task findTask(@PathParam("taskId") String taskId) {
-        return Responses.fromSingleValueObservable(jobManagementService.findTask(taskId));
+        return Responses.fromSingleValueObservable(jobManagementClient.findTask(taskId));
     }
 
     @GET
@@ -163,7 +163,7 @@ public class JobManagementResource {
         queryBuilder.setPage(RestUtil.createPage(queryParameters));
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(jobManagementService.findTasks(queryBuilder.build()));
+        return Responses.fromSingleValueObservable(jobManagementClient.findTasks(queryBuilder.build()));
     }
 
     @DELETE
@@ -174,6 +174,6 @@ public class JobManagementResource {
             @DefaultValue("false") @QueryParam("shrink") boolean shrink
     ) {
         TaskKillRequest taskKillRequest = TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(shrink).build();
-        return Responses.fromCompletable(jobManagementService.killTask(taskKillRequest));
+        return Responses.fromCompletable(jobManagementClient.killTask(taskKillRequest));
     }
 }

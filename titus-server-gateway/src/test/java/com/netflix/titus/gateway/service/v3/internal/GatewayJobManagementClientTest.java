@@ -25,7 +25,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class DefaultJobManagementServiceTest {
+public class GatewayJobManagementClientTest {
 
     @Test
     public void verifyDeDupTaskIds() {
@@ -47,7 +47,7 @@ public class DefaultJobManagementServiceTest {
         archivedTasks.add(Task.newBuilder().setId("task3").build());
         archivedTasks.add(Task.newBuilder().setId("task4").build());
 
-        List<Task> tasks = DefaultJobManagementService.deDupTasks(activeTasks, archivedTasks);
+        List<Task> tasks = GatewayJobManagementClient.deDupTasks(activeTasks, archivedTasks);
         assertThat(tasks.size()).isEqualTo(4);
 
         List<String> taskIds = tasks.stream().map(Task::getId).sorted().collect(Collectors.toList());
@@ -62,7 +62,7 @@ public class DefaultJobManagementServiceTest {
         archivedTasks.add(Task.newBuilder().setId("task3").build());
         archivedTasks.add(Task.newBuilder().setId("task4").build());
 
-        tasks = DefaultJobManagementService.deDupTasks(activeTasks, archivedTasks);
+        tasks = GatewayJobManagementClient.deDupTasks(activeTasks, archivedTasks);
         assertThat(tasks.size()).isEqualTo(4);
         taskIds = tasks.stream().map(Task::getId).collect(Collectors.toList());
         Collections.sort(taskIds);

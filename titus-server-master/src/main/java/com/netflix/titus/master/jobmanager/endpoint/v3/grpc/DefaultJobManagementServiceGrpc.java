@@ -69,8 +69,8 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConv
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
-import static com.netflix.titus.runtime.service.JobManagementService.JOB_MINIMUM_FIELD_SET;
-import static com.netflix.titus.runtime.service.JobManagementService.TASK_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.JOB_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.TASK_MINIMUM_FIELD_SET;
 
 @Singleton
 public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {

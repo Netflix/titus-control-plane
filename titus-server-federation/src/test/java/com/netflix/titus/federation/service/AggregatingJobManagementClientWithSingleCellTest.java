@@ -56,14 +56,14 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AggregatingJobManagementServiceWithSingleCellTest {
+public class AggregatingJobManagementClientWithSingleCellTest {
     private static final int TASKS_IN_GENERATED_JOBS = 10;
 
     @Rule
     public final GrpcServerRule cell = new GrpcServerRule().directExecutor();
 
     private String stackName;
-    private AggregatingJobManagementService service;
+    private AggregatingJobManagementClient service;
     private Map<Cell, GrpcServerRule> cellToServiceMap;
     private TestClock clock;
     private ServiceDataGenerator dataGenerator;
@@ -96,7 +96,7 @@ public class AggregatingJobManagementServiceWithSingleCellTest {
 
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
         final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
-        service = new AggregatingJobManagementService(
+        service = new AggregatingJobManagementClient(
                 grpcClientConfiguration,
                 titusFederationConfiguration,
                 connector,

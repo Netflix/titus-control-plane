@@ -24,7 +24,7 @@ import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceVa
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.service;
+package com.netflix.titus.runtime.connector.jobmanager;
 
 import java.util.Set;
 
@@ -36,10 +36,12 @@ import rx.Observable;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 
 /**
- * RxJava wrapper for the JobManagement gRPC service.
+ * Remote job management client API.
  */
-public interface JobManagementService {
+public interface JobManagementClient {
+
     Set<String> JOB_MINIMUM_FIELD_SET = asSet("id");
+
     Set<String> TASK_MINIMUM_FIELD_SET = asSet("id");
 
     Observable<String> createJob(JobDescriptor jobDescriptor);
