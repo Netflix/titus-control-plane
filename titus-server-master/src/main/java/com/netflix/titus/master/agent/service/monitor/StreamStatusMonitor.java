@@ -93,6 +93,15 @@ public class StreamStatusMonitor implements AgentStatusMonitor {
     }
 
     @Override
+    public boolean isHealthy(String agentInstanceId) {
+        AgentStatus agentStatus = instanceStatuses.get(agentInstanceId);
+        if (agentStatus == null) {
+            return !failOnMissingData;
+        }
+        return agentStatus.getStatusCode() == AgentStatus.AgentStatusCode.Healthy;
+    }
+
+    @Override
     public Observable<AgentStatus> monitor() {
         return statusUpdateSubject.asObservable();
     }

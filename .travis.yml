@@ -8,7 +8,7 @@ cache:
   directories:
   - "$HOME/.gradle"
 git:
-  depth: 200
+  depth: false
 env:
   matrix:
   - TITUS_INTEGRATION_TEST=false

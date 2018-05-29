@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job.ext;
 
+import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
@@ -40,10 +41,13 @@ public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
     @Valid
     private final RetryPolicy retryPolicy;
 
-    public BatchJobExt(int size, long runtimeLimitMs, RetryPolicy retryPolicy) {
+    private final boolean retryOnRuntimeLimit;
+
+    public BatchJobExt(int size, long runtimeLimitMs, RetryPolicy retryPolicy, boolean retryOnRuntimeLimit) {
         this.size = size;
         this.runtimeLimitMs = runtimeLimitMs;
         this.retryPolicy = retryPolicy;
+        this.retryOnRuntimeLimit = retryOnRuntimeLimit;
     }
 
     public int getSize() {
@@ -58,6 +62,10 @@ public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
         return retryPolicy;
     }
 
+    public boolean isRetryOnRuntimeLimit() {
+        return retryOnRuntimeLimit;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -66,24 +74,17 @@ public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         BatchJobExt that = (BatchJobExt) o;
-
-        if (size != that.size) {
-            return false;
-        }
-        if (runtimeLimitMs != that.runtimeLimitMs) {
-            return false;
-        }
-        return retryPolicy != null ? retryPolicy.equals(that.retryPolicy) : that.retryPolicy == null;
+        return size == that.size &&
+                runtimeLimitMs == that.runtimeLimitMs &&
+                retryOnRuntimeLimit == that.retryOnRuntimeLimit &&
+                Objects.equals(retryPolicy, that.retryPolicy);
     }
 
     @Override
     public int hashCode() {
-        int result = size;
-        result = 31 * result + (int) (runtimeLimitMs ^ (runtimeLimitMs >>> 32));
-        result = 31 * result + (retryPolicy != null ? retryPolicy.hashCode() : 0);
-        return result;
+
+        return Objects.hash(size, runtimeLimitMs, retryPolicy, retryOnRuntimeLimit);
     }
 
     @Override
@@ -92,6 +93,7 @@ public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
                 "size=" + size +
                 ", runtimeLimitMs=" + runtimeLimitMs +
                 ", retryPolicy=" + retryPolicy +
+                ", retryOnRuntimeLimit=" + retryOnRuntimeLimit +
                 '}';
     }
 
@@ -107,13 +109,15 @@ public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
         return new Builder()
                 .withRuntimeLimitMs(batchJobExt.getRuntimeLimitMs())
                 .withRetryPolicy(batchJobExt.getRetryPolicy())
-                .withSize(batchJobExt.getSize());
+                .withSize(batchJobExt.getSize())
+                .withRetryOnRuntimeLimit(batchJobExt.isRetryOnRuntimeLimit());
     }
 
     public static final class Builder {
         private int size;
         private long runtimeLimitMs;
         private RetryPolicy retryPolicy;
+        private boolean retryOnRuntimeLimit;
 
         private Builder() {
         }
@@ -133,8 +137,13 @@ public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
             return this;
         }
 
+        public Builder withRetryOnRuntimeLimit(boolean retryOnRuntimeLimit) {
+            this.retryOnRuntimeLimit = retryOnRuntimeLimit;
+            return this;
+        }
+
         public BatchJobExt build() {
-            BatchJobExt batchJobExt = new BatchJobExt(size, runtimeLimitMs, retryPolicy);
+            BatchJobExt batchJobExt = new BatchJobExt(size, runtimeLimitMs, retryPolicy, retryOnRuntimeLimit);
             return batchJobExt;
         }
     }

@@ -95,8 +95,9 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
     public void taskStatusUpdateStream(Empty request, StreamObserver<SimulatedTaskStatus> responseObserver) {
         Subscription subscription = cloud.taskStatusUpdates().subscribe(
                 statusUpdate -> {
-                    logger.info("Sending task status update: taskId={}, state={}", statusUpdate.getTaskId().getValue(), statusUpdate.getState());
+                    long startTime = System.currentTimeMillis();
                     responseObserver.onNext(toSimulatedStatusUpdate(statusUpdate));
+                    logger.info("Sending task status update: taskId={}, state={}, elapsedMs={}", statusUpdate.getTaskId().getValue(), statusUpdate.getState(), System.currentTimeMillis() - startTime);
                 },
                 e -> {
                     logger.info("Task subscription stream terminated with an error", e);
@@ -241,9 +242,7 @@ public class GrpcSimulatedMesosService extends SimulatedMesosServiceImplBase {
         );
 
         TitanProtos.ContainerInfo containerInfo = TitanProtos.ContainerInfo.newBuilder()
-                .setAllocateIpAddress(task.getAllocateIpAddress())
                 .setNetworkConfigInfo(TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
-                        .setAllocateIpAddress(task.getAllocateIpAddress())
                         .setEniLabel(task.getEniLabel())
                         .setEniLablel(task.getEniLabel())
                         .addAllSecurityGroups(task.getSecurityGroupsList())

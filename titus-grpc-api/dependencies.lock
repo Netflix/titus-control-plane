@@ -9,28 +9,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -38,34 +35,28 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -73,28 +64,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -114,28 +105,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -143,34 +131,28 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -178,28 +160,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -219,28 +201,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -248,34 +227,28 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -283,28 +256,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -392,30 +365,30 @@
     },
     "protoPluginDeps": {
         "com.google.protobuf:protoc": {
-            "locked": "3.3.0",
-            "requested": "3.3.+"
+            "locked": "3.5.1-1",
+            "requested": "3.5.+"
         },
         "io.grpc:protoc-gen-grpc-java": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         }
     },
     "protobuf": {
         "com.netflix.titus:titus-api-definitions": {
-            "locked": "0.0.1-rc27",
+            "locked": "0.0.1-rc30",
             "requested": "0.0.1-rc+"
         }
     },
     "protobufToolsLocator_grpc": {
         "io.grpc:protoc-gen-grpc-java": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         }
     },
     "protobufToolsLocator_protoc": {
         "com.google.protobuf:protoc": {
-            "locked": "3.3.0",
-            "requested": "3.3.+"
+            "locked": "3.5.1-1",
+            "requested": "3.5.+"
         }
     },
     "runtime": {
@@ -428,28 +401,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -457,34 +427,28 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -492,28 +456,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -546,28 +510,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -575,34 +536,28 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -610,28 +565,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -670,28 +625,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -699,22 +651,16 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -724,13 +670,13 @@
             "requested": "1.7.0"
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -738,28 +684,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -831,28 +777,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -860,22 +803,16 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -885,13 +822,13 @@
             "requested": "1.7.0"
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -899,28 +836,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -992,28 +929,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -1021,22 +955,16 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -1046,13 +974,13 @@
             "requested": "1.7.0"
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -1060,28 +988,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -1166,28 +1094,25 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util"
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
             "locked": "19.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
@@ -1195,22 +1120,16 @@
                 "io.opencensus:opencensus-api"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
-            "requested": "3.3.+",
+            "locked": "3.5.1",
+            "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -1220,13 +1139,13 @@
             "requested": "1.7.0"
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -1234,28 +1153,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
-            "requested": "1.9.+"
+            "locked": "1.10.1",
+            "requested": "1.10.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]

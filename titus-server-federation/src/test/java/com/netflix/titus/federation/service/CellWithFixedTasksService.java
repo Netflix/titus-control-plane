@@ -2,14 +2,17 @@ package com.netflix.titus.federation.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
+import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.Task;
@@ -55,6 +58,13 @@ class CellWithFixedTasksService extends JobManagementServiceGrpc.JobManagementSe
                 JobManagerCursors::taskIndexOf,
                 JobManagerCursors::newCursorFrom
         );
+        Set<String> fieldsFilter = new HashSet<>(request.getFieldsList());
+        if (!fieldsFilter.isEmpty()) {
+            fieldsFilter.add("id");
+            page = page.mapLeft(tasks -> tasks.stream()
+                    .map(task -> ProtobufCopy.copy(task, fieldsFilter))
+                    .collect(Collectors.toList()));
+        }
         TaskQueryResult result = TaskQueryResult.newBuilder()
                 .addAllItems(page.getLeft())
                 .setPagination(toGrpcPagination(page.getRight()))

@@ -320,19 +320,15 @@ public class SimulatedTitusAgent {
             throw new IllegalStateException("Bad container info");
         }
 
-        String eniId = null;
-        String containerIp = null;
-        if (containerInfo.getAllocateIpAddress()) {
-            NetworkConfigInfo networkConfigInfo = containerInfo.getNetworkConfigInfo();
-            containerIp = computeResources.allocateIpAddress();
-            if (!networkResourceTracker.assign(task.getTaskId(), networkConfigInfo, containerIp)) {
-                handleTaskStateUpdate(task.getTaskId().getValue(), Protos.TaskState.TASK_FAILED, "Invalid ENI assignment");
+        NetworkConfigInfo networkConfigInfo = containerInfo.getNetworkConfigInfo();
+        String containerIp = computeResources.allocateIpAddress();
+        if (!networkResourceTracker.assign(task.getTaskId(), networkConfigInfo, containerIp)) {
+            handleTaskStateUpdate(task.getTaskId().getValue(), Protos.TaskState.TASK_FAILED, "Invalid ENI assignment");
 
-                // TODO Better handle failure scenarios during task launch
-                throw new IllegalStateException("Invalid ENI assignment");
-            }
-            eniId = networkConfigInfo.getEniLabel();
+            // TODO Better handle failure scenarios during task launch
+            throw new IllegalStateException("Invalid ENI assignment");
         }
+        String eniId = networkConfigInfo.getEniLabel();
         efsMounts = extractEfsMounts(containerInfo);
 
         Map<String, String> env = new HashMap<>(containerInfo.getTitusProvidedEnvMap());
@@ -670,7 +666,7 @@ public class SimulatedTitusAgent {
         private boolean assign(TaskID taskId, NetworkConfigInfo networkConfigInfo, String containerIp) {
             Preconditions.checkArgument(!eniTaskAssignments.containsKey(taskId));
 
-            String eniLabel = networkConfigInfo.getEniLablel();
+            String eniLabel = networkConfigInfo.getEniLabel();
             String taskSecurityGroups = StringExt.concatenate(networkConfigInfo.getSecurityGroupsList(), ",");
 
             Pair<Integer, String> eniState = eniAssignments.computeIfAbsent(eniLabel, l -> Pair.of(ipsPerEni, null));

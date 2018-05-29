@@ -51,6 +51,11 @@ import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelC
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_SCALED_DOWN;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+
 public class TaskDocument {
     private String id;
     private String instanceId;
@@ -617,14 +622,14 @@ public class TaskDocument {
                 return TitusTaskState.RUNNING;
             case Finished:
                 String reasonCode = taskStatus.getReasonCode();
-                if (reasonCode.equalsIgnoreCase("normal")) {
+                if (reasonCode.equalsIgnoreCase(REASON_NORMAL)) {
                     return TitusTaskState.FINISHED;
-                } else if (reasonCode.equalsIgnoreCase("failed")) {
-                    if (taskStatus.getReasonMessage().contains("Killed")) {
-                        return TitusTaskState.STOPPED;
-                    } else {
-                        return TitusTaskState.FAILED;
-                    }
+                } else if (reasonCode.equalsIgnoreCase(REASON_FAILED)) {
+                    return TitusTaskState.FAILED;
+                } else if (reasonCode.equalsIgnoreCase(REASON_TASK_KILLED) || reasonCode.equalsIgnoreCase(REASON_SCALED_DOWN)) {
+                    return TitusTaskState.STOPPED;
+                } else if (TaskStatus.isSystemError(taskStatus)) {
+                    return TitusTaskState.CRASHED;
                 }
                 return TitusTaskState.FAILED;
             default:

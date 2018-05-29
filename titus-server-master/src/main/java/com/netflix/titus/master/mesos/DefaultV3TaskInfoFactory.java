@@ -47,11 +47,11 @@ import io.titanframework.messages.TitanProtos;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
 import org.apache.mesos.Protos;
 
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_CPU_BURSTING;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_BATCH;
-import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_KILL_WAIT_SECONDS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NESTED_CONTAINERS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 
 /**
@@ -60,6 +60,7 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 @Singleton
 public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo> {
 
+    private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
     private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
@@ -108,7 +109,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private TitanProtos.ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask) {
         TitanProtos.ContainerInfo.Builder containerInfoBuilder = TitanProtos.ContainerInfo.newBuilder();
         Container container = job.getJobDescriptor().getContainer();
-        Map<String, String> attributes = container.getAttributes();
+        Map<String, String> containerAttributes = container.getAttributes();
         ContainerResources containerResources = container.getContainerResources();
         SecurityProfile v3SecurityProfile = container.getSecurityProfile();
 
@@ -140,26 +141,34 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         }
 
         // Configure agent job attributes
-        containerInfoBuilder.setAllowCpuBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_CPU_BURSTING)));
-        containerInfoBuilder.setAllowNetworkBursting(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
-        containerInfoBuilder.setBatch(Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_BATCH)));
+        containerInfoBuilder.setAllowCpuBursting(Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING)));
+        containerInfoBuilder.setAllowNetworkBursting(Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING)));
+        containerInfoBuilder.setBatch(Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH)));
 
-        boolean allowNestedContainers = mesosConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(attributes.get(JOB_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
+        boolean allowNestedContainers = mesosConfiguration.isNestedContainersEnabled() && Boolean.parseBoolean(containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_ALLOW_NESTED_CONTAINERS));
         containerInfoBuilder.setAllowNestedContainers(allowNestedContainers);
 
-        final String attributeKillWaitSeconds = attributes.get(JOB_ATTRIBUTES_KILL_WAIT_SECONDS);
+        String attributeKillWaitSeconds = containerAttributes.get(JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS);
         Integer killWaitSeconds = attributeKillWaitSeconds == null ? null : Ints.tryParse(attributeKillWaitSeconds);
         if (killWaitSeconds == null || killWaitSeconds < mesosConfiguration.getMinKillWaitSeconds() || killWaitSeconds > mesosConfiguration.getMaxKillWaitSeconds()) {
             killWaitSeconds = mesosConfiguration.getDefaultKillWaitSeconds();
         }
         containerInfoBuilder.setKillWaitSeconds(killWaitSeconds);
 
+        // Send passthrough attributes that begin with the agent prefix
+        containerAttributes.forEach((k, v) -> {
+            if (k.startsWith(PASSTHROUGH_ATTRIBUTES_PREFIX)) {
+                containerInfoBuilder.putPassthroughAttributes(k, v);
+            }
+        });
+
         // Configure Environment Variables
-        Map<String, String> userProvidedEnv = container.getEnv().entrySet()
-                .stream()
-                .filter(e -> e.getValue() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        containerInfoBuilder.putAllUserProvidedEnv(userProvidedEnv);
+        container.getEnv().forEach((k, v) -> {
+            if (v != null) {
+                containerInfoBuilder.putUserProvidedEnv(k, v);
+            }
+        });
+
         containerInfoBuilder.putTitusProvidedEnv("TITUS_JOB_ID", task.getJobId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ID", task.getId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INSTANCE_ID", task.getId());
@@ -182,13 +191,10 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         });
 
         // Configure ENI (IP Address, SGs)
-        containerInfoBuilder.setAllocateIpAddress(containerResources.isAllocateIP());
-
         List<String> securityGroups = v3SecurityProfile.getSecurityGroups();
         final TaskRequest.AssignedResources assignedResources = fenzoTask.getAssignedResources();
         String eniLabel = assignedResources == null ? "0" : "" + assignedResources.getConsumedNamedResources().get(0).getIndex();
         TitanProtos.ContainerInfo.NetworkConfigInfo.Builder networkConfigInfoBuilder = TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
-                .setAllocateIpAddress(containerResources.isAllocateIP())
                 .setEniLabel(eniLabel)
                 .setEniLablel(eniLabel)
                 .addAllSecurityGroups(securityGroups)

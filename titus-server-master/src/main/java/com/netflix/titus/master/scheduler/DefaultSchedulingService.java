@@ -19,6 +19,7 @@ package com.netflix.titus.master.scheduler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -54,20 +56,25 @@ import com.netflix.fenzo.TaskScheduler;
 import com.netflix.fenzo.TaskSchedulingService;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
+import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
 import com.netflix.fenzo.queues.TaskQueueException;
 import com.netflix.fenzo.queues.TaskQueueMultiException;
 import com.netflix.fenzo.queues.TaskQueues;
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
-import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import com.netflix.titus.api.agent.service.AgentManagementFunctions;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.WorkerNaming;
@@ -90,6 +97,7 @@ import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
+import com.netflix.titus.master.scheduler.constraint.TaskCache;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
@@ -103,6 +111,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
+import rx.subjects.BehaviorSubject;
 
 import static com.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_SERVICE;
 
@@ -119,6 +128,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final MasterConfiguration masterConfiguration;
     private final SchedulerConfiguration schedulerConfiguration;
     private final V2JobOperations v2JobOperations;
+    private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
     private final Optional<FitInjection> fitInjection;
     private TaskScheduler taskScheduler;
@@ -132,30 +142,31 @@ public class DefaultSchedulingService implements SchedulingService {
     private final ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer;
     private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
-    private final AtomicLong totalTasksPerIteration;
-    private final AtomicLong assignedTasksPerIteration;
-    private final AtomicLong failedTasksPerIteration;
-    private final AtomicLong offersReceived;
-    private final AtomicLong offersRejected;
-    private final AtomicLong totalActiveAgents;
-    private final AtomicLong totalDisabledAgents;
-    private final AtomicLong minDisableDuration;
-    private final AtomicLong maxDisableDuration;
-    private final AtomicLong totalAvailableCpus;
-    private final AtomicLong totalAllocatedCpus;
-    private final AtomicLong cpuUtilization;
-    private final AtomicLong totalAvailableMemory;
-    private final AtomicLong totalAllocatedMemory;
-    private final AtomicLong memoryUtilization;
-    private final AtomicLong totalAvailableDisk;
-    private final AtomicLong totalAllocatedDisk;
-    private final AtomicLong diskUtilization;
-    private final AtomicLong totalAvailableNetworkMbps;
-    private final AtomicLong totalAllocatedNetworkMbps;
-    private final AtomicLong networkUtilization;
-    private final AtomicLong dominantResourceUtilization;
-    private final AtomicLong totalAvailableNetworkInterfaces;
-    private final AtomicLong totalAllocatedNetworkInterfaces;
+    private final Gauge totalTasksPerIterationGauge;
+    private final Gauge assignedTasksPerIterationGauge;
+    private final Gauge failedTasksPerIterationGauge;
+    private final Gauge taskAndAgentEvaluationsPerIterationGauge;
+    private final Gauge offersReceivedGauge;
+    private final Gauge offersRejectedGauge;
+    private final Gauge totalActiveAgentsGauge;
+    private final Gauge totalDisabledAgentsGauge;
+    private final Gauge minDisableDurationGauge;
+    private final Gauge maxDisableDurationGauge;
+    private final Gauge totalAvailableCpusGauge;
+    private final Gauge totalAllocatedCpusGauge;
+    private final Gauge cpuUtilizationGauge;
+    private final Gauge totalAvailableMemoryGauge;
+    private final Gauge totalAllocatedMemoryGauge;
+    private final Gauge memoryUtilizationGauge;
+    private final Gauge totalAvailableDiskGauge;
+    private final Gauge totalAllocatedDiskGauge;
+    private final Gauge diskUtilizationGauge;
+    private final Gauge totalAvailableNetworkMbpsGauge;
+    private final Gauge totalAllocatedNetworkMbpsGauge;
+    private final Gauge networkUtilizationGauge;
+    private final Gauge dominantResourceUtilizationGauge;
+    private final Gauge totalAvailableNetworkInterfacesGauge;
+    private final Gauge totalAllocatedNetworkInterfacesGauge;
 
     private final Timer fenzoSchedulingResultLatencyTimer;
     private final Timer fenzoCallbackLatencyTimer;
@@ -172,14 +183,18 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TitusRuntime titusRuntime;
     private final AgentResourceCache agentResourceCache;
     private final AgentResourceCacheUpdater agentResourceCacheUpdater;
-    private final BlockingQueue<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>>
-            taskFailuresActions = new LinkedBlockingQueue<>(5);
+    private final BlockingQueue<Map<String, Action1<List<TaskAssignmentResult>>>> taskFailuresActions = new LinkedBlockingQueue<>(5);
     private final TierSlaUpdater tierSlaUpdater;
     private final Registry registry;
     private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
     private final DefaultAutoScaleController autoScaleController;
     private Subscription vmStateUpdateSubscription;
+
+    private final AtomicReference<Map<String, List<TaskAssignmentResult>>> lastSchedulingResult = new AtomicReference<>();
+    private final BehaviorSubject<Map<String, List<TaskAssignmentResult>>> schedulingResultSubject = BehaviorSubject.create();
+
+    private final TaskCache taskCache;
 
     @Inject
     public DefaultSchedulingService(V2JobOperations v2JobOperations,
@@ -193,6 +208,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
+                                    TaskCache taskCache,
                                     ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
@@ -206,7 +222,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Config config) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, masterConfiguration, schedulerConfiguration,
-                systemSoftConstraint, systemHardConstraint, v2ConstraintEvaluatorTransformer,
+                systemSoftConstraint, systemHardConstraint, taskCache, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
                 tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
                 preferentialNamedConsumableResourceEvaluator,
@@ -225,6 +241,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
+                                    TaskCache taskCache,
                                     ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
@@ -238,6 +255,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     AgentResourceCache agentResourceCache,
                                     Config config) {
         this.v2JobOperations = v2JobOperations;
+        this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.autoScaleController = autoScaleController;
         this.vmOps = vmOps;
@@ -275,61 +293,42 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
                 .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
-                .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent());
+                .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent())
+                .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize);
 
         taskScheduler = setupTaskSchedulerAndAutoScaler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);
         schedulingService = setupTaskSchedulingService(taskScheduler);
         virtualMachineService.setVMLeaseHandler(schedulingService::addLeases);
+        this.taskCache = taskCache;
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
 
-        totalTasksPerIteration = new AtomicLong(0);
-        assignedTasksPerIteration = new AtomicLong(0);
-        failedTasksPerIteration = new AtomicLong(0);
-        offersReceived = new AtomicLong(0);
-        offersRejected = new AtomicLong(0);
-        totalActiveAgents = new AtomicLong(0);
-        totalDisabledAgents = new AtomicLong(0);
-        minDisableDuration = new AtomicLong(0);
-        maxDisableDuration = new AtomicLong(0);
-        totalAvailableCpus = new AtomicLong(0);
-        totalAllocatedCpus = new AtomicLong(0);
-        cpuUtilization = new AtomicLong(0);
-        totalAvailableMemory = new AtomicLong(0);
-        totalAllocatedMemory = new AtomicLong(0);
-        memoryUtilization = new AtomicLong(0);
-        totalAvailableDisk = new AtomicLong(0);
-        totalAllocatedDisk = new AtomicLong(0);
-        diskUtilization = new AtomicLong(0);
-        totalAvailableNetworkMbps = new AtomicLong(0);
-        totalAllocatedNetworkMbps = new AtomicLong(0);
-        networkUtilization = new AtomicLong(0);
-        dominantResourceUtilization = new AtomicLong(0);
-        totalAvailableNetworkInterfaces = new AtomicLong(0);
-        totalAllocatedNetworkInterfaces = new AtomicLong(0);
-
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration").monitorValue(totalTasksPerIteration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration").monitorValue(assignedTasksPerIteration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "failedTasksPerIteration").monitorValue(failedTasksPerIteration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "offersReceived").monitorValue(offersReceived);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "offersRejected").monitorValue(offersRejected);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalActiveAgents").monitorValue(totalActiveAgents);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalDisabledAgents").monitorValue(totalDisabledAgents);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "minDisableDuration").monitorValue(minDisableDuration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "maxDisableDuration").monitorValue(maxDisableDuration);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableCpus").monitorValue(totalAvailableCpus);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedCpus").monitorValue(totalAllocatedCpus);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "cpuUtilization").monitorValue(cpuUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableMemory").monitorValue(totalAvailableMemory);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedMemory").monitorValue(totalAllocatedMemory);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "memoryUtilization").monitorValue(memoryUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkMbps").monitorValue(totalAvailableNetworkMbps);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkMbps").monitorValue(totalAllocatedNetworkMbps);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "networkUtilization").monitorValue(networkUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "dominantResourceUtilization").monitorValue(dominantResourceUtilization);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkInterfaces").monitorValue(totalAvailableNetworkInterfaces);
-        PolledMeter.using(registry).withName(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkInterfaces").monitorValue(totalAllocatedNetworkInterfaces);
+        totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
+        assignedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration");
+        failedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "failedTasksPerIteration");
+        taskAndAgentEvaluationsPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "taskAndAgentEvaluationsPerIteration");
+        offersReceivedGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "offersReceived");
+        offersRejectedGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "offersRejected");
+        totalActiveAgentsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalActiveAgents");
+        totalDisabledAgentsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalDisabledAgents");
+        minDisableDurationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "minDisableDuration");
+        maxDisableDurationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "maxDisableDuration");
+        totalAvailableCpusGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableCpus");
+        totalAllocatedCpusGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedCpus");
+        cpuUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "cpuUtilization");
+        totalAvailableMemoryGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableMemory");
+        totalAllocatedMemoryGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedMemory");
+        memoryUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "memoryUtilization");
+        totalAvailableDiskGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableDisk");
+        totalAllocatedDiskGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedDisk");
+        diskUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "diskUtilization");
+        totalAvailableNetworkMbpsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkMbps");
+        totalAllocatedNetworkMbpsGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkMbps");
+        networkUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "networkUtilization");
+        dominantResourceUtilizationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "dominantResourceUtilization");
+        totalAvailableNetworkInterfacesGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAvailableNetworkInterfaces");
+        totalAllocatedNetworkInterfacesGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalAllocatedNetworkInterfaces");
 
         fenzoSchedulingResultLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoSchedulingResult");
         fenzoCallbackLatencyTimer = registry.timer(METRIC_SCHEDULING_ITERATION_LATENCY, "section", "fenzoCallback");
@@ -512,8 +511,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public void registerTaskFailuresAction(
-            String taskId, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> action
+    public void registerTaskFailuresAction(String taskId, Action1<List<TaskAssignmentResult>> action
     ) throws IllegalStateException {
         if (!taskFailuresActions.offer(Collections.singletonMap(taskId, action))) {
             throw new IllegalStateException("Too many concurrent requests");
@@ -522,6 +520,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void preSchedulingHook() {
         systemHardConstraint.prepare();
+        taskCache.prepare();
         setupTierAutoscalerConfig();
     }
 
@@ -567,6 +566,8 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void schedulingResultsHandler(SchedulingResult schedulingResult) {
+        logger.info("Task placement results: taskAndAgentEvaluations={}, executionTimeMs={}",
+                schedulingResult.getNumAllocations(), schedulingResult.getRuntime());
         long callbackStart = titusRuntime.getClock().wallTime();
         totalSchedulingIterationMesosLatency.set(0);
 
@@ -586,7 +587,7 @@ public class DefaultSchedulingService implements SchedulingService {
         }
 
         int assignedDuringSchedulingResult = 0;
-        int failedTasksDuringSchedulingResult = 0;
+        int failedTasksDuringSchedulingResult = schedulingResult.getFailures().size();
 
         long recordingStart = titusRuntime.getClock().wallTime();
         List<Pair<List<VirtualMachineLease>, List<Protos.TaskInfo>>> taskInfos = taskPlacementRecorder.record(schedulingResult);
@@ -594,37 +595,61 @@ public class DefaultSchedulingService implements SchedulingService {
         taskInfos.forEach(ts -> launchTasks(ts.getLeft(), ts.getRight()));
         assignedDuringSchedulingResult += taskInfos.stream().mapToInt(p -> p.getRight().size()).sum();
 
-        List<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
+        recordLastSchedulingResult(schedulingResult);
+        processTaskSchedulingFailureCallbacks(schedulingResult);
+
+        totalTasksPerIterationGauge.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
+        assignedTasksPerIterationGauge.set(assignedDuringSchedulingResult);
+        failedTasksPerIterationGauge.set(failedTasksDuringSchedulingResult);
+        taskAndAgentEvaluationsPerIterationGauge.set(schedulingResult.getNumAllocations());
+        offersReceivedGauge.set(schedulingResult.getLeasesAdded());
+        offersRejectedGauge.set(schedulingResult.getLeasesRejected());
+        totalActiveAgentsGauge.set(schedulingResult.getTotalVMsCount());
+        fenzoSchedulingResultLatencyTimer.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
+        fenzoCallbackLatencyTimer.record(titusRuntime.getClock().wallTime() - callbackStart, TimeUnit.MILLISECONDS);
+        mesosLatencyTimer.record(totalSchedulingIterationMesosLatency.get(), TimeUnit.MILLISECONDS);
+    }
+
+    private void recordLastSchedulingResult(SchedulingResult schedulingResult) {
+        try {
+            Map<String, List<TaskAssignmentResult>> byTaskId = new HashMap<>();
+            schedulingResult.getResultMap().forEach((agentId, vmAssignments) ->
+                    vmAssignments.getTasksAssigned().forEach(ta -> byTaskId.put(ta.getTaskId(), Collections.singletonList(ta)))
+            );
+            schedulingResult.getFailures().forEach((taskRequest, taskAssignments) ->
+                    byTaskId.put(taskRequest.getId(), taskAssignments)
+            );
+            this.lastSchedulingResult.set(byTaskId);
+            this.schedulingResultSubject.onNext(byTaskId);
+        } catch (Exception e) {
+            logger.warn("Failed to record the last scheduling decision", e);
+        }
+    }
+
+    private void processTaskSchedulingFailureCallbacks(SchedulingResult schedulingResult) {
+        List<Map<String, Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
         taskFailuresActions.drainTo(failActions);
+
+        if (failActions.isEmpty()) {
+            return;
+        }
+
         for (Map.Entry<TaskRequest, List<TaskAssignmentResult>> entry : schedulingResult.getFailures().entrySet()) {
             final TitusQueuableTask task = (TitusQueuableTask) entry.getKey();
-            failedTasksDuringSchedulingResult++;
-            if (!failActions.isEmpty()) {
-                final Iterator<Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>>> iterator =
-                        failActions.iterator();
-                while (iterator.hasNext()) { // iterate over all of them, there could be multiple requests with the same taskId
-                    final Map<String, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>>> next = iterator.next();
-                    final String reqId = next.keySet().iterator().next();
-                    final com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> a = next.values().iterator().next();
-                    if (task.getId().equals(reqId)) {
-                        a.call(entry.getValue());
-                        iterator.remove();
-                    }
+            final Iterator<Map<String, Action1<List<TaskAssignmentResult>>>> iterator = failActions.iterator();
+            while (iterator.hasNext()) { // iterate over all of them, there could be multiple requests with the same taskId
+                final Map<String, Action1<List<TaskAssignmentResult>>> next = iterator.next();
+                final String reqId = next.keySet().iterator().next();
+                final Action1<List<TaskAssignmentResult>> a = next.values().iterator().next();
+                if (task.getId().equals(reqId)) {
+                    a.call(entry.getValue());
+                    iterator.remove();
                 }
             }
         }
         if (!failActions.isEmpty()) { // If no such tasks for the registered actions, call them with null result
             failActions.forEach(action -> action.values().iterator().next().call(null));
         }
-        totalTasksPerIteration.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
-        assignedTasksPerIteration.set(assignedDuringSchedulingResult);
-        failedTasksPerIteration.set(failedTasksDuringSchedulingResult);
-        offersReceived.set(schedulingResult.getLeasesAdded());
-        offersRejected.set(schedulingResult.getLeasesRejected());
-        totalActiveAgents.set(schedulingResult.getTotalVMsCount());
-        fenzoSchedulingResultLatencyTimer.record(schedulingResult.getRuntime(), TimeUnit.MILLISECONDS);
-        fenzoCallbackLatencyTimer.record(titusRuntime.getClock().wallTime() - callbackStart, TimeUnit.MILLISECONDS);
-        mesosLatencyTimer.record(totalSchedulingIterationMesosLatency.get(), TimeUnit.MILLISECONDS);
     }
 
     private void launchTasks(List<VirtualMachineLease> leases, List<Protos.TaskInfo> taskInfoList) {
@@ -710,6 +735,59 @@ public class DefaultSchedulingService implements SchedulingService {
         return vmCurrentStatesMap.get(0);
     }
 
+    public Optional<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
+        if (lastSchedulingResult.get() == null) {
+            return Optional.empty();
+        }
+
+        Optional<Pair<Job<?>, Task>> jobTaskOptional = v3JobOperations.findTaskById(taskId);
+        if (!jobTaskOptional.isPresent()) {
+            return Optional.empty();
+        }
+        Task task = jobTaskOptional.get().getRight();
+
+        if (task.getStatus().getState() != TaskState.Accepted) {
+            return Optional.of(SchedulingResultEvent.onStarted(task));
+        }
+
+        List<TaskAssignmentResult> taskAssignmentResults = lastSchedulingResult.get().get(taskId);
+        if (taskAssignmentResults == null) {
+            return Optional.of(SchedulingResultEvent.onNoAgent(task));
+        }
+        if (taskAssignmentResults.isEmpty()) {
+            throw new IllegalStateException("Unexpected to find empty task assignment list: " + taskId);
+        }
+        if (taskAssignmentResults.size() == 1 && taskAssignmentResults.get(0).isSuccessful()) {
+            // If just launched, the state in job manager is not updated yet. We fix it here to reflect this change in the event.
+            Task currentTask = task.toBuilder().withStatus(
+                    TaskStatus.newBuilder()
+                            .withState(TaskState.Launched)
+                            .withReasonCode(TaskStatus.REASON_NORMAL)
+                            .withReasonMessage("Launched by scheduler")
+                            .build()
+            ).build();
+            return Optional.of(SchedulingResultEvent.onStarted(currentTask));
+        }
+
+        // Failures
+        return Optional.of(SchedulingResultEvent.onFailure(task, taskAssignmentResults));
+    }
+
+    @Override
+    public Observable<SchedulingResultEvent> observeSchedulingResults(String taskId) {
+        return schedulingResultSubject
+                .flatMap(schedulingResult -> {
+                    try {
+                        return findLastSchedulingResult(taskId)
+                                .map(Observable::just)
+                                .orElseGet(() -> Observable.error(new IllegalArgumentException("Task not found: " + taskId)));
+                    } catch (Exception e) {
+                        return Observable.error(e);
+                    }
+                })
+                .takeUntil(event -> event.getTask().getStatus().getState() != TaskState.Accepted);
+    }
+
     private void verifyAndReportResourceUsageMetrics(List<VirtualMachineCurrentState> vmCurrentStates) {
         try {
             double totalCpu = 0.0;
@@ -787,28 +865,28 @@ public class DefaultSchedulingService implements SchedulingService {
                 }
             }
 
-            totalDisabledAgents.set(totalDisabled);
-            minDisableDuration.set(currentMinDisableDuration);
-            maxDisableDuration.set(currentMaxDisableDuration);
-            totalAvailableCpus.set((long) totalCpu);
-            totalAllocatedCpus.set((long) usedCpu);
-            cpuUtilization.set((long) (usedCpu * 100.0 / Math.max(1.0, totalCpu)));
+            totalDisabledAgentsGauge.set(totalDisabled);
+            minDisableDurationGauge.set(currentMinDisableDuration);
+            maxDisableDurationGauge.set(currentMaxDisableDuration);
+            totalAvailableCpusGauge.set((long) totalCpu);
+            totalAllocatedCpusGauge.set((long) usedCpu);
+            cpuUtilizationGauge.set((long) (usedCpu * 100.0 / Math.max(1.0, totalCpu)));
             double dominantResourceUtilization = usedCpu * 100.0 / totalCpu;
-            totalAvailableMemory.set((long) totalMemory);
-            totalAllocatedMemory.set((long) usedMemory);
-            memoryUtilization.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
+            totalAvailableMemoryGauge.set((long) totalMemory);
+            totalAllocatedMemoryGauge.set((long) usedMemory);
+            memoryUtilizationGauge.set((long) (usedMemory * 100.0 / Math.max(1.0, totalMemory)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedMemory * 100.0 / totalMemory);
-            totalAvailableDisk.set((long) totalDisk);
-            totalAllocatedDisk.set((long) usedDisk);
-            diskUtilization.set((long) (usedDisk * 100.0 / Math.max(1.0, totalDisk)));
+            totalAvailableDiskGauge.set((long) totalDisk);
+            totalAllocatedDiskGauge.set((long) usedDisk);
+            diskUtilizationGauge.set((long) (usedDisk * 100.0 / Math.max(1.0, totalDisk)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedDisk * 100.0 / totalDisk);
-            totalAvailableNetworkMbps.set((long) totalNetworkMbps);
-            totalAllocatedNetworkMbps.set((long) usedNetworkMbps);
-            networkUtilization.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
+            totalAvailableNetworkMbpsGauge.set((long) totalNetworkMbps);
+            totalAllocatedNetworkMbpsGauge.set((long) usedNetworkMbps);
+            networkUtilizationGauge.set((long) (usedNetworkMbps * 100.0 / Math.max(1.0, totalNetworkMbps)));
             dominantResourceUtilization = Math.max(dominantResourceUtilization, usedNetworkMbps * 100.0 / totalNetworkMbps);
-            this.dominantResourceUtilization.set((long) dominantResourceUtilization);
-            totalAvailableNetworkInterfaces.set(totalNetworkInterfaces);
-            totalAllocatedNetworkInterfaces.set(usedNetworkInterfaces);
+            this.dominantResourceUtilizationGauge.set((long) dominantResourceUtilization);
+            totalAvailableNetworkInterfacesGauge.set(totalNetworkInterfaces);
+            totalAllocatedNetworkInterfacesGauge.set(usedNetworkInterfaces);
         } catch (Exception e) {
             logger.error("Error settings metrics with error: ", e);
         }

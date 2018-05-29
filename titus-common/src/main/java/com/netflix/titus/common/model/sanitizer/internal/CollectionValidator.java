@@ -41,15 +41,15 @@ public class CollectionValidator implements ConstraintValidator<CollectionInvari
             return true;
         }
         if (value instanceof Collection) {
-            return isValid((Collection<?>) value, context);
+            return isValid((Collection<?>) value);
         }
         if (value instanceof Map) {
-            return isValid((Map<?, ?>) value, context);
+            return isValid((Map<?, ?>) value);
         }
         return false;
     }
 
-    private boolean isValid(Collection<?> value, ConstraintValidatorContext context) {
+    private boolean isValid(Collection<?> value) {
         if (value.isEmpty()) {
             return true;
         }
@@ -63,9 +63,15 @@ public class CollectionValidator implements ConstraintValidator<CollectionInvari
         return true;
     }
 
-    private boolean isValid(Map<?, ?> value, ConstraintValidatorContext context) {
+    private boolean isValid(Map<?, ?> value) {
         if (value.isEmpty()) {
             return true;
+        }
+
+        if (!constraintAnnotation.allowEmptyKeys()) {
+            if (value.keySet().stream().anyMatch(key -> key == null || (key instanceof String && ((String) key).isEmpty()))) {
+                return false;
+            }
         }
 
         if (!constraintAnnotation.allowNullKeys()) {
@@ -73,6 +79,7 @@ public class CollectionValidator implements ConstraintValidator<CollectionInvari
                 return false;
             }
         }
+
         if (!constraintAnnotation.allowNullValues()) {
             if (value.values().stream().anyMatch(Objects::isNull)) {
                 return false;

@@ -18,13 +18,12 @@ package com.netflix.titus.master.jobmanager.service;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
@@ -44,6 +43,7 @@ import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
@@ -67,14 +67,15 @@ public final class JobManagerUtil {
     }
 
     public static Set<String> filterActiveTaskIds(ReconciliationEngine<JobManagerReconcilerEvent> engine) {
-        return engine.getRunningView().getChildren().stream()
-                .map(taskHolder -> {
-                    Task task = taskHolder.getEntity();
-                    TaskState state = task.getStatus().getState();
-                    return state != TaskState.Finished ? task.getId() : null;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Set<String> result = new HashSet<>();
+        for (EntityHolder taskHolder : engine.getRunningView().getChildren()) {
+            Task task = taskHolder.getEntity();
+            TaskState state = task.getStatus().getState();
+            if (state != TaskState.Finished) {
+                result.add(task.getId());
+            }
+        }
+        return result;
     }
 
     public static Pair<Tier, String> getTierAssignment(Job job, ApplicationSlaManagementService capacityGroupService) {

@@ -24,22 +24,32 @@ import com.netflix.titus.master.scheduler.fitness.networkinterface.TitusNetworkI
 public interface SchedulerConfiguration {
 
     /**
-     * @return Sleep interval between consecutive scheduler iterations
+     * @return whether or not the scheduler should be started on initialization. Note: this value is only read at
+     * the time of becoming leader.
      */
-    @DefaultValue("1000")
-    long getSchedulerIterationIntervalMs();
-
     @DefaultValue("true")
     boolean isSchedulerEnabled();
 
     /**
-     * @return the maximum amount of concurrent threads to use while computing scheduler placements
+     * @return sleep interval between consecutive scheduler iterations.
+     */
+    @DefaultValue("500")
+    long getSchedulerIterationIntervalMs();
+
+    /**
+     * @return the maximum amount of concurrent threads to use while computing scheduler placements.
      */
     @DefaultValue("8")
     int getSchedulerMaxConcurrent();
 
     /**
-     * @return whether or not to limit concurrent task launches on a node
+     * @return the the amount of successful tasks that should be evaluated in the next scheduling iteration.
+     */
+    @DefaultValue("300")
+    long getTaskBatchSize();
+
+    /**
+     * @return whether or not to limit concurrent task launches on a node.
      */
     @DefaultValue("true")
     boolean isGlobalTaskLaunchingConstraintEvaluatorEnabled();
@@ -55,7 +65,7 @@ public interface SchedulerConfiguration {
     /**
      * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.
      *
-     * @return whether or not to use an optimizing algorithm for network interface allocation
+     * @return whether or not to use an optimizing algorithm for network interface allocation.
      */
     @DefaultValue("false")
     boolean isOptimizingNetworkInterfaceAllocationEnabled();
@@ -102,13 +112,13 @@ public interface SchedulerConfiguration {
     int getDelayAutoScaleDownBySecs();
 
     /**
-     * Return the attribute name to use to get the instance group id
+     * Return the attribute name to use to get the instance group id.
      */
     @DefaultValue("asg")
     String getInstanceGroupAttributeName();
 
     /**
-     * Return the attribute name to use to get the instance id
+     * Return the attribute name to use to get the instance id.
      */
     @DefaultValue("id")
     String getInstanceAttributeName();

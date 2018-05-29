@@ -39,6 +39,7 @@ import com.netflix.titus.testkit.cli.command.job.KillTaskCommand;
 import com.netflix.titus.testkit.cli.command.job.ObserveJobsCommand;
 import com.netflix.titus.testkit.cli.command.job.TaskGetCommand;
 import com.netflix.titus.testkit.cli.command.job.TasksGetCommand;
+import com.netflix.titus.testkit.cli.command.scheduler.ObserveSchedulingResultCommand;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -86,6 +87,9 @@ public class CLI {
         put("resizeJob", new JobResizeCommand());
         put("killJob", new JobKillCommand());
         put("killTask", new KillTaskCommand());
+
+        // Scheduler
+        put("schedulingResults", new ObserveSchedulingResultCommand());
     }};
 
     private final boolean helpRequested;

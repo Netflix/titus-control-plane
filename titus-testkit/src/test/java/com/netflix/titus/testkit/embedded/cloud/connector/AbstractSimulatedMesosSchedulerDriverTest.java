@@ -230,7 +230,6 @@ public abstract class AbstractSimulatedMesosSchedulerDriverTest {
                 .setData(TitanProtos.ContainerInfo.newBuilder()
                         .putTitusProvidedEnv("TITUS_JOB_ID", "myJob")
                         .setNetworkConfigInfo(TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
-                                .setAllocateIpAddress(true)
                                 .setEniLabel("eni0")
                                 .setEniLablel("eni0")
                                 .addSecurityGroups("sg-123456")

@@ -22,6 +22,8 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
+import com.netflix.titus.grpc.protogen.SchedulingResultRequest;
 import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
@@ -89,6 +91,26 @@ public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerS
         Subscription subscription = schedulerService.deleteSystemSelector(request.getId()).subscribe(
                 () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
+        );
+        attachCancellingCallback(responseObserver, subscription);
+    }
+
+    @Override
+    public void getSchedulingResult(SchedulingResultRequest request, StreamObserver<SchedulingResultEvent> responseObserver) {
+        Subscription subscription = schedulerService.findLastSchedulingResult(request.getTaskId()).subscribe(
+                responseObserver::onNext,
+                e -> safeOnError(logger, e, responseObserver),
+                responseObserver::onCompleted
+        );
+        attachCancellingCallback(responseObserver, subscription);
+    }
+
+    @Override
+    public void observeSchedulingResults(SchedulingResultRequest request, StreamObserver<SchedulingResultEvent> responseObserver) {
+        Subscription subscription = schedulerService.observeSchedulingResults(request.getTaskId()).subscribe(
+                responseObserver::onNext,
+                e -> safeOnError(logger, e, responseObserver),
+                responseObserver::onCompleted
         );
         attachCancellingCallback(responseObserver, subscription);
     }

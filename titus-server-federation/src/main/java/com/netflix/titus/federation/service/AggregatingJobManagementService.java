@@ -16,9 +16,12 @@
 
 package com.netflix.titus.federation.service;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -28,11 +31,11 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.util.rx.EmitterWithMultipleSubscriptions;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
+import com.netflix.titus.common.util.rx.EmitterWithMultipleSubscriptions;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
@@ -55,6 +58,8 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.runtime.service.JobManagementService;
 import io.grpc.stub.StreamObserver;
@@ -66,16 +71,21 @@ import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.emptyGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
 public class AggregatingJobManagementService implements JobManagementService {
     private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementService.class);
+
+    // some fields are required from each cell, so pagination cursors can be generated
+    private static final Set<String> JOB_FEDERATION_MINIMUM_FIELD_SET = CollectionsExt.asSet("id", "status", "statusHistory");
+    private static final Set<String> TASK_FEDERATION_MINIMUM_FIELD_SET = CollectionsExt.asSet("id", "status", "statusHistory");
+
     private final GrpcConfiguration grpcConfiguration;
     private final TitusFederationConfiguration federationConfiguration;
     private final CellConnector connector;
@@ -154,7 +164,9 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<Job> findJob(String jobId) {
-        return jobManagementServiceHelper.findJobInAllCells(jobId).map(CellResponse::getResult);
+        return jobManagementServiceHelper.findJobInAllCells(jobId)
+                .map(CellResponse::getResult)
+                .map(this::addStackName);
     }
 
     @Override
@@ -164,16 +176,28 @@ public class AggregatingJobManagementService implements JobManagementService {
                     .setPagination(emptyGrpcPagination(request.getPage()))
                     .build());
         }
+
+        Set<String> fieldsFilter = Collections.emptySet();
+        if (request.getFieldsCount() > 0) {
+            fieldsFilter = new HashSet<>(request.getFieldsList());
+            fieldsFilter.addAll(JOB_MINIMUM_FIELD_SET);
+            request = request.toBuilder()
+                    .addAllFields(fieldsFilter)
+                    .addAllFields(JOB_FEDERATION_MINIMUM_FIELD_SET)
+                    .build();
+        }
+
         if (StringExt.isNotEmpty(request.getPage().getCursor()) || request.getPage().getPageNumber() == 0) {
-            return findJobsWithCursorPagination(request);
+            return findJobsWithCursorPagination(request, fieldsFilter);
         }
         // TODO: page number pagination
         return Observable.error(TitusServiceException.invalidArgument("pageNumbers are not supported, please use cursors"));
     }
 
-    private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request) {
+    private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request, Set<String> fields) {
         return aggregatingClient.call(JobManagementServiceGrpc::newStub, findJobsInCell(request))
                 .map(CellResponse::getResult)
+                .map(this::addStackName)
                 .reduce(this::combineJobResults)
                 .map(combinedResults -> {
                     Pair<List<Job>, Pagination> combinedPage = takeCombinedPage(
@@ -183,6 +207,13 @@ public class AggregatingJobManagementService implements JobManagementService {
                             JobManagerCursors.jobCursorOrderComparator(),
                             JobManagerCursors::newCursorFrom
                     );
+
+                    if (!CollectionsExt.isNullOrEmpty(fields)) {
+                        combinedPage = combinedPage.mapLeft(jobs -> jobs.stream()
+                                .map(job -> ProtobufCopy.copy(job, fields))
+                                .collect(Collectors.toList())
+                        );
+                    }
 
                     return JobQueryResult.newBuilder()
                             .addAllItems(combinedPage.getLeft())
@@ -197,16 +228,10 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private JobQueryResult combineJobResults(JobQueryResult one, JobQueryResult other) {
         Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
-        List<Job> oneDecoratedList = one.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
-        List<Job> otherDecoratedList = other.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
         return JobQueryResult.newBuilder()
                 .setPagination(pagination)
-                .addAllItems(oneDecoratedList)
-                .addAllItems(otherDecoratedList)
+                .addAllItems(one.getItemsList())
+                .addAllItems(other.getItemsList())
                 .build();
     }
 
@@ -247,7 +272,7 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     @Override
     public Observable<Task> findTask(String taskId) {
-        return findTaskInAllCells(taskId).map(CellResponse::getResult);
+        return findTaskInAllCells(taskId).map(CellResponse::getResult).map(this::addStackName);
     }
 
     private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId) {
@@ -271,16 +296,28 @@ public class AggregatingJobManagementService implements JobManagementService {
                     .setPagination(emptyGrpcPagination(request.getPage()))
                     .build());
         }
+
+        Set<String> fieldsFilter = Collections.emptySet();
+        if (request.getFieldsCount() > 0) {
+            fieldsFilter = new HashSet<>(request.getFieldsList());
+            fieldsFilter.addAll(TASK_MINIMUM_FIELD_SET);
+            request = request.toBuilder()
+                    .addAllFields(fieldsFilter)
+                    .addAllFields(TASK_FEDERATION_MINIMUM_FIELD_SET)
+                    .build();
+        }
+
         if (StringExt.isNotEmpty(request.getPage().getCursor()) || request.getPage().getPageNumber() == 0) {
-            return findTasksWithCursorPagination(request);
+            return findTasksWithCursorPagination(request, fieldsFilter);
         }
         // TODO: page number pagination
         return Observable.error(TitusServiceException.invalidArgument("pageNumbers are not supported, please use cursors"));
     }
 
-    private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request) {
+    private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request, Set<String> fields) {
         return aggregatingClient.call(JobManagementServiceGrpc::newStub, findTasksInCell(request))
                 .map(CellResponse::getResult)
+                .map(this::addStackName)
                 .reduce(this::combineTaskResults)
                 .map(combinedResults -> {
                     Pair<List<Task>, Pagination> combinedPage = takeCombinedPage(
@@ -290,6 +327,14 @@ public class AggregatingJobManagementService implements JobManagementService {
                             JobManagerCursors.taskCursorOrderComparator(),
                             JobManagerCursors::newCursorFrom
                     );
+
+                    if (!CollectionsExt.isNullOrEmpty(fields)) {
+                        combinedPage = combinedPage.mapLeft(tasks -> tasks.stream()
+                                .map(task -> ProtobufCopy.copy(task, fields))
+                                .collect(Collectors.toList())
+                        );
+                    }
+
                     return TaskQueryResult.newBuilder()
                             .addAllItems(combinedPage.getLeft())
                             .setPagination(combinedPage.getRight())
@@ -303,16 +348,10 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private TaskQueryResult combineTaskResults(TaskQueryResult one, TaskQueryResult other) {
         Pagination pagination = combinePagination(one.getPagination(), other.getPagination());
-        List<Task> oneDecoratedList = one.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
-        List<Task> otherDecoratedList = other.getItemsList().stream()
-                .map(this::addStackName)
-                .collect(Collectors.toList());
         return TaskQueryResult.newBuilder()
                 .setPagination(pagination)
-                .addAllItems(oneDecoratedList)
-                .addAllItems(otherDecoratedList)
+                .addAllItems(one.getItemsList())
+                .addAllItems(other.getItemsList())
                 .build();
     }
 
@@ -323,6 +362,16 @@ public class AggregatingJobManagementService implements JobManagementService {
                         (client, streamObserver) -> client.killTask(request, streamObserver))
                 );
         return result.toCompletable();
+    }
+
+    private JobQueryResult addStackName(JobQueryResult result) {
+        List<Job> withStackName = result.getItemsList().stream().map(this::addStackName).collect(Collectors.toList());
+        return result.toBuilder().clearItems().addAllItems(withStackName).build();
+    }
+
+    private TaskQueryResult addStackName(TaskQueryResult result) {
+        List<Task> withStackName = result.getItemsList().stream().map(this::addStackName).collect(Collectors.toList());
+        return result.toBuilder().clearItems().addAllItems(withStackName).build();
     }
 
     private Job addStackName(Job job) {

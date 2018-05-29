@@ -52,7 +52,7 @@ public class GlobalInactiveClusterConstraintEvaluator implements GlobalConstrain
 
     @Override
     public String getName() {
-        return "Global Inactive Cluster Constraint Evaluator";
+        return "GlobalInactiveClusterConstraintEvaluator";
     }
 
     @Override

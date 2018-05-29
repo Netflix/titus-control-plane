@@ -156,7 +156,7 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
                 try {
                     m.invoke(injectee);
                 } catch (Exception e) {
-                    logger.warn("Service {} activation failure after {}[ms]", name, System.currentTimeMillis() - startTime);
+                    logger.warn("Service {} activation failure after {}[ms]", name, System.currentTimeMillis() - startTime, e);
                     throw new IllegalStateException(name + " service activation failure", e);
                 }
             }
@@ -179,8 +179,7 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
                     m.invoke(injectee);
                 } catch (Exception e) {
                     // Do not propagate exception in the deactivation phase
-                    logger.warn("Service {} deactivation failure after {}[ms]", name, System.currentTimeMillis() - startTime);
-                    logger.info("Deactivation error", e);
+                    logger.warn("Service {} deactivation failure after {}[ms]", name, System.currentTimeMillis() - startTime, e);
                 }
             }
 

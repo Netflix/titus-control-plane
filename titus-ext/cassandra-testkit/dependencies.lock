@@ -134,25 +134,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -189,14 +191,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -226,13 +222,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -342,26 +338,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -424,14 +420,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -737,7 +733,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -887,25 +883,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -942,14 +940,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -979,13 +971,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1095,26 +1087,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1177,14 +1169,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -1490,7 +1482,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -1640,25 +1632,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -1695,14 +1689,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1732,13 +1720,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1848,26 +1836,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1930,14 +1918,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -2244,7 +2232,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -2457,25 +2445,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -2512,14 +2502,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2549,13 +2533,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2665,26 +2649,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2747,14 +2731,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -3061,7 +3045,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -3211,25 +3195,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -3266,14 +3252,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3303,13 +3283,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3419,26 +3399,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3501,14 +3481,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -3815,7 +3795,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -3971,25 +3951,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -4026,14 +4008,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4067,13 +4043,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4183,26 +4159,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4265,14 +4241,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -4613,7 +4589,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -4769,25 +4745,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -4824,14 +4802,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4865,13 +4837,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4981,26 +4953,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5063,14 +5035,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -5411,7 +5383,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -5567,25 +5539,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -5622,14 +5596,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5663,13 +5631,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5779,26 +5747,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5861,14 +5829,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -6210,7 +6178,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -6366,25 +6334,27 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
+                "io.grpc:grpc-core"
+            ]
+        },
+        "com.google.code.gson:gson": {
+            "locked": "2.7",
+            "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
-                "io.grpc:grpc-core",
-                "io.opencensus:opencensus-api",
-                "io.opencensus:opencensus-contrib-grpc-metrics"
+                "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-api",
@@ -6421,14 +6391,8 @@
                 "com.netflix.governator:governator-core"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-core"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.3.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6462,13 +6426,13 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.2.14",
+            "locked": "2.3.2",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6578,26 +6542,26 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.9.1",
+            "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6660,14 +6624,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.10.0",
+            "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -7009,7 +6973,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.1",
+            "locked": "1.1.7.2",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
