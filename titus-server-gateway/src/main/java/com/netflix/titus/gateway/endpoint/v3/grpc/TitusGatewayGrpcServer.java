@@ -30,6 +30,8 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc.HealthImplBase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -51,6 +53,7 @@ import org.slf4j.LoggerFactory;
 public class TitusGatewayGrpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(TitusGatewayGrpcServer.class);
 
+    private final HealthImplBase healthService;
     private final JobManagementServiceImplBase jobManagementService;
     private final AgentManagementServiceImplBase agentManagementService;
     private final AutoScalingServiceImplBase appAutoScalingService;
@@ -63,12 +66,14 @@ public class TitusGatewayGrpcServer {
 
     @Inject
     public TitusGatewayGrpcServer(
+            HealthImplBase healthService,
             JobManagementServiceImplBase jobManagementService,
             AgentManagementServiceImplBase agentManagementService,
             AutoScalingServiceImplBase appAutoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             SchedulerServiceImplBase schedulerService,
             GrpcEndpointConfiguration config) {
+        this.healthService = healthService;
         this.jobManagementService = jobManagementService;
         this.agentManagementService = agentManagementService;
         this.appAutoScalingService = appAutoScalingService;
@@ -82,6 +87,9 @@ public class TitusGatewayGrpcServer {
         if (!started.getAndSet(true)) {
             ServerBuilder serverBuilder = configure(ServerBuilder.forPort(config.getPort()));
             serverBuilder.addService(ServerInterceptors.intercept(
+                    healthService,
+                    createInterceptors(HealthGrpc.getServiceDescriptor())
+            )).addService(ServerInterceptors.intercept(
                     jobManagementService,
                     createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
             )).addService(ServerInterceptors.intercept(

@@ -61,6 +61,8 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.cassandra.testkit.store.EmbeddedCassandraStoreFactory;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
@@ -308,6 +310,11 @@ public class EmbeddedTitusMaster {
 
     public TitusMasterClient getClient() {
         return new DefaultTitusMasterClient("127.0.0.1", apiPort);
+    }
+
+    public HealthStub getHealthClient() {
+        HealthStub client = HealthGrpc.newStub(getOrCreateGrpcChannel());
+        return attachCallHeaders(client);
     }
 
     public JobManagementServiceStub getV3GrpcClient() {

@@ -30,6 +30,7 @@ import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
@@ -135,6 +136,11 @@ public class EmbeddedTitusGateway {
             injector.close();
         }
         return this;
+    }
+
+    public HealthGrpc.HealthStub getHealthClient() {
+        HealthGrpc.HealthStub client = HealthGrpc.newStub(getOrCreateGrpcChannel());
+        return attachCallHeaders(client);
     }
 
     public JobManagementServiceGrpc.JobManagementServiceStub getV3GrpcClient() {
