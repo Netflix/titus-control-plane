@@ -254,7 +254,7 @@ public class AggregatingJobManagementService implements JobManagementService {
             );
             clients.forEach((cell, client) -> {
                 StreamObserver<JobChangeNotification> streamObserver = new FilterOutFirstMarker(emitter, markersEmitted);
-                wrap(client).observeJobs(Empty.getDefaultInstance(), streamObserver);
+                wrapWithNoDeadline(client).observeJobs(Empty.getDefaultInstance(), streamObserver);
             });
         });
         return observable.map(this::addStackName);
@@ -409,6 +409,10 @@ public class AggregatingJobManagementService implements JobManagementService {
 
     private JobManagementServiceStub wrap(JobManagementServiceStub client) {
         return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+    }
+
+    private JobManagementServiceStub wrapWithNoDeadline(JobManagementServiceStub client) {
+        return createWrappedStub(client, callMetadataResolver);
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
