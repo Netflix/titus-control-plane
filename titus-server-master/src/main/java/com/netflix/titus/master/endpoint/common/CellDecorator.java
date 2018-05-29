@@ -33,27 +33,25 @@ public class CellDecorator {
     }
 
     /**
-     * Adds {@link JobAttributes#JOB_ATTRIBUTES_CELL "titus.cell"} and {@link JobAttributes#JOB_ATTRIBUTES_STACK "titus.stack"}
-     * labels to a {@link TitusJobSpec V2 job spec}, replacing existing values if they are already present.
+     * Adds a {@link JobAttributes#JOB_ATTRIBUTES_CELL "titus.cell"} label to a {@link TitusJobSpec V2 job spec},
+     * replacing the existing value if it is already present.
      */
     public TitusJobSpec ensureCellInfo(TitusJobSpec jobSpec) {
         final Map<String, String> originalLabels = jobSpec.getLabels();
         final Map<String, String> labels = originalLabels == null ? new HashMap<>() : new HashMap<>(originalLabels);
         final String cellName = cellNameSupplier.get();
         labels.put(JobAttributes.JOB_ATTRIBUTES_CELL, cellName);
-        labels.put(JobAttributes.JOB_ATTRIBUTES_STACK, cellName);
         return new TitusJobSpec.Builder(jobSpec).labels(labels).build();
     }
 
     /**
-     * Adds {@link JobAttributes#JOB_ATTRIBUTES_CELL "titus.cell"} and {@link JobAttributes#JOB_ATTRIBUTES_STACK "titus.stack"}
-     * attributes to a {@link JobDescriptor V3 job spec}, replacing existing values if they are already present.
+     * Adds a {@link JobAttributes#JOB_ATTRIBUTES_CELL "titus.cell"} attribute to a {@link JobDescriptor V3 job spec},
+     * replacing the existing value if it is already present.
      */
     public JobDescriptor ensureCellInfo(JobDescriptor jobDescriptor) {
         final String cellName = cellNameSupplier.get();
         return jobDescriptor.toBuilder()
                 .putAttributes(JobAttributes.JOB_ATTRIBUTES_CELL, cellName)
-                .putAttributes(JobAttributes.JOB_ATTRIBUTES_STACK, cellName)
                 .build();
     }
 }

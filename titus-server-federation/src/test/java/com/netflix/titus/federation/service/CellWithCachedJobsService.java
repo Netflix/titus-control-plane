@@ -2,13 +2,14 @@ package com.netflix.titus.federation.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import io.grpc.stub.StreamObserver;
 import rx.Observable;
 import rx.Subscription;
@@ -21,6 +22,10 @@ class CellWithCachedJobsService extends JobManagementServiceGrpc.JobManagementSe
 
     CellWithCachedJobsService(String name) {
         this.cellName = name;
+    }
+
+    Optional<JobDescriptor> getCachedJob(String jobId) {
+        return Optional.ofNullable(jobDescriptorMap.get(JobId.newBuilder().setId(jobId).build()));
     }
 
     @Override
