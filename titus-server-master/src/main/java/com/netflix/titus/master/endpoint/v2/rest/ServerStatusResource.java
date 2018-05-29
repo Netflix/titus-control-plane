@@ -17,9 +17,8 @@
 package com.netflix.titus.master.endpoint.v2.rest;
 
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -29,11 +28,14 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.google.protobuf.util.Durations;
+import com.google.protobuf.util.Timestamps;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ServerStatusRepresentation;
 import com.netflix.titus.common.util.DateTimeExt;
-import com.netflix.titus.common.util.guice.ActivationLifecycle;
-import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.grpc.protogen.HealthCheckResponse.ServerStatus;
+import com.netflix.titus.grpc.protogen.HealthCheckResponse.ServingStatus;
+import com.netflix.titus.grpc.protogen.ServiceActivation;
+import com.netflix.titus.master.health.service.HealthService;
 
 /**
  * Provides local server status information.
@@ -46,26 +48,22 @@ public class ServerStatusResource {
     public static final String PATH_API_V2_STATUS = "/api/v2/status";
     public static final String NOT_APPLICABLE = "N/A";
 
-    private final ActivationLifecycle activationLifecycle;
-    private final LeaderActivator leaderActivator;
+    private final HealthService healthService;
 
     @Inject
-    public ServerStatusResource(ActivationLifecycle activationLifecycle,
-                                LeaderActivator leaderActivator) {
-        this.activationLifecycle = activationLifecycle;
-        this.leaderActivator = leaderActivator;
+    public ServerStatusResource(HealthService healthService) {
+        this.healthService = healthService;
     }
 
     @GET
     public ServerStatusRepresentation getServerStatus() {
-        RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
-        long uptime = rb.getUptime();
+        ServerStatus details = healthService.getServerStatus();
 
-        if (!leaderActivator.isLeader()) {
+        if (details.getStatus() != ServingStatus.SERVING) {
             return new ServerStatusRepresentation(
                     false,
                     false,
-                    DateTimeExt.toUtcDateTimeString(uptime),
+                    DateTimeExt.toTimeUnitString(details.getUptime()),
                     NOT_APPLICABLE,
                     NOT_APPLICABLE,
                     NOT_APPLICABLE,
@@ -74,26 +72,24 @@ public class ServerStatusResource {
             );
         }
 
-        boolean active = leaderActivator.isActivated();
-
-        List<ServerStatusRepresentation.ServiceActivation> serviceActivationTimes = activationLifecycle.getServiceActionTimesMs().stream()
-                .sorted((first, second) -> Long.compare(second.getRight(), first.getRight()))
-                .map(p -> new ServerStatusRepresentation.ServiceActivation(p.getLeft(), DateTimeExt.toTimeUnitString(p.getRight())))
+        List<ServerStatusRepresentation.ServiceActivation> sortedByActivationTime = details.getServiceActivationTimesList().stream()
+                .sorted(Comparator.comparing(ServiceActivation::getActivationTime, Durations.comparator()))
+                .map(s -> new ServerStatusRepresentation.ServiceActivation(s.getName(), DateTimeExt.toTimeUnitString(s.getActivationTime())))
                 .collect(Collectors.toList());
 
-        List<String> serviceActivationOrder = activationLifecycle.getServiceActionTimesMs().stream()
-                .map(Pair::getLeft)
+        List<String> namesSortedByActivationTimestamp = details.getServiceActivationTimesList().stream()
+                .map(ServiceActivation::getName)
                 .collect(Collectors.toList());
 
         return new ServerStatusRepresentation(
-                true,
-                active,
-                DateTimeExt.toTimeUnitString(uptime),
-                DateTimeExt.toUtcDateTimeString(leaderActivator.getElectionTimestamp()),
-                DateTimeExt.toUtcDateTimeString(leaderActivator.getActivationEndTimestamp()),
-                active ? DateTimeExt.toTimeUnitString(leaderActivator.getActivationTime()) : NOT_APPLICABLE,
-                serviceActivationTimes,
-                serviceActivationOrder
+                details.getLeader(),
+                details.getActive(),
+                DateTimeExt.toTimeUnitString(details.getUptime()),
+                Timestamps.toString(details.getElectionTimestamp()),
+                Timestamps.toString(details.getActivationTimestamp()),
+                details.getActive() ? DateTimeExt.toTimeUnitString(details.getActivationTime()) : NOT_APPLICABLE,
+                sortedByActivationTime,
+                namesSortedByActivationTimestamp
         );
     }
 }

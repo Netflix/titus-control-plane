@@ -20,6 +20,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
+import com.google.protobuf.Duration;
+import com.google.protobuf.util.Durations;
+
 /**
  * Data and time supplementary functions.
  */
@@ -42,7 +45,15 @@ public final class DateTimeExt {
     }
 
     /**
-     * Given time in milliseconds, format it using time units. For example 3600,000 is formatted as 1h.
+     * Given a duration with milliseconds resolution, format it using time units.
+     * For example 3600,000 is formatted as 1h.
+     */
+    public static String toTimeUnitString(Duration duration) {
+        return toTimeUnitString(Durations.toMillis(duration));
+    }
+
+    /**
+     * Given a duration in milliseconds, format it using time units. For example 3600,000 is formatted as 1h.
      */
     public static String toTimeUnitString(long timeMs) {
         StringBuilder sb = new StringBuilder();

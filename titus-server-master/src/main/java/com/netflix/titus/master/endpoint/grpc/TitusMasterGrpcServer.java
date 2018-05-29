@@ -30,6 +30,8 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc.HealthImplBase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -53,9 +55,10 @@ import org.slf4j.LoggerFactory;
 public class TitusMasterGrpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(TitusMasterGrpcServer.class);
 
+    private final HealthImplBase healthService;
     private final JobManagementServiceImplBase jobManagementService;
     private final AgentManagementServiceImplBase agentManagementService;
-    private AutoScalingServiceImplBase appAutoScalingService;
+    private final AutoScalingServiceImplBase appAutoScalingService;
     private final SchedulerServiceImplBase schedulerService;
     private final GrpcEndpointConfiguration config;
     private final LeaderServerInterceptor leaderServerInterceptor;
@@ -66,6 +69,7 @@ public class TitusMasterGrpcServer {
 
     @Inject
     public TitusMasterGrpcServer(
+            HealthImplBase healthService,
             JobManagementServiceImplBase jobManagementService,
             AgentManagementServiceImplBase agentManagementService,
             AutoScalingServiceImplBase appAutoScalingService,
@@ -73,6 +77,7 @@ public class TitusMasterGrpcServer {
             SchedulerServiceImplBase schedulerService,
             GrpcEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor) {
+        this.healthService = healthService;
         this.jobManagementService = jobManagementService;
         this.agentManagementService = agentManagementService;
         this.appAutoScalingService = appAutoScalingService;
@@ -87,6 +92,9 @@ public class TitusMasterGrpcServer {
         if (!started.getAndSet(true)) {
             ServerBuilder serverBuilder = configure(ServerBuilder.forPort(config.getPort()));
             serverBuilder.addService(ServerInterceptors.intercept(
+                    healthService,
+                    createInterceptors(HealthGrpc.getServiceDescriptor())
+            )).addService(ServerInterceptors.intercept(
                     jobManagementService,
                     createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
             )).addService(ServerInterceptors.intercept(

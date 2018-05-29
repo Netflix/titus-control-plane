@@ -26,6 +26,7 @@ dependencies {
     // gRPC dependencies
     compile "io.grpc:grpc-netty-shaded:${grpcVersion}"
     compile "io.grpc:grpc-stub:${grpcVersion}"
+    compile "io.grpc:grpc-protobuf:${grpcVersion}"
 
     testCompile project(':titus-testkit')
     testCompile "com.squareup.okhttp3:mockwebserver:${okHttpVersion}"
