@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.endpoint.v3.rest;
+package com.netflix.titus.runtime.endpoint.v3.rest;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

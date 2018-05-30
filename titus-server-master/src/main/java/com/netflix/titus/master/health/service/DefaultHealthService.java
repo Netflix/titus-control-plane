@@ -29,7 +29,7 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.grpc.protogen.HealthCheckResponse.ServerStatus;
+import com.netflix.titus.grpc.protogen.HealthCheckResponse.Details;
 import com.netflix.titus.grpc.protogen.ServiceActivation;
 import com.netflix.titus.master.cluster.LeaderActivator;
 import com.netflix.titus.master.config.CellInfoResolver;
@@ -52,12 +52,12 @@ public class DefaultHealthService implements HealthService {
         this.leaderActivator = leaderActivator;
     }
 
-    public ServerStatus getServerStatus() {
+    public Details getServerStatus() {
         RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
         Duration uptime = Durations.fromMillis(rb.getUptime());
 
         if (!leaderActivator.isLeader()) {
-            return ServerStatus.newBuilder()
+            return Details.newBuilder()
                     .setStatus(NOT_SERVING)
                     .setLeader(false)
                     .setActive(false)
@@ -75,7 +75,7 @@ public class DefaultHealthService implements HealthService {
                         .build())
                 .collect(Collectors.toList());
 
-        ServerStatus.Builder details = ServerStatus.newBuilder()
+        Details.Builder details = Details.newBuilder()
                 .setStatus(SERVING)
                 .setCell(cellInfoResolver.getCellName())
                 .setLeader(true)

@@ -19,5 +19,5 @@ package com.netflix.titus.master.health.service;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse;
 
 public interface HealthService {
-    public HealthCheckResponse.ServerStatus getServerStatus();
+    public HealthCheckResponse.Details getServerStatus();
 }

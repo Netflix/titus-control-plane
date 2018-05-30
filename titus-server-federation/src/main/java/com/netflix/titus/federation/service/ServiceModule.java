@@ -18,12 +18,14 @@ package com.netflix.titus.federation.service;
 
 import com.google.inject.AbstractModule;
 import com.netflix.titus.runtime.service.AutoScalingService;
+import com.netflix.titus.runtime.service.HealthService;
 import com.netflix.titus.runtime.service.JobManagementService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 
 public class ServiceModule extends AbstractModule {
     @Override
     protected void configure() {
+        bind(HealthService.class).to(AggregatingHealthService.class);
         bind(JobManagementService.class).to(AggregatingJobManagementService.class);
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);

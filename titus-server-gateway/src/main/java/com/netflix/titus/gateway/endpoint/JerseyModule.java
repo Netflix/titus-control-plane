@@ -27,7 +27,7 @@ import com.netflix.governator.providers.Advises;
 import com.netflix.titus.gateway.endpoint.v2.rest.ApiRewriteFilter;
 import com.netflix.titus.gateway.endpoint.v2.rest.TitusMasterProxyServlet;
 import com.netflix.titus.gateway.endpoint.v3.rest.AgentManagementResource;
-import com.netflix.titus.gateway.endpoint.v3.rest.HealthResource;
+import com.netflix.titus.runtime.endpoint.v3.rest.HealthResource;
 import com.netflix.titus.gateway.endpoint.v3.rest.SchedulerResource;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;

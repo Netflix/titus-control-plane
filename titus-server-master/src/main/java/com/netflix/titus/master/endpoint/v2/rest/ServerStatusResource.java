@@ -32,7 +32,7 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ServerStatusRepresentation;
 import com.netflix.titus.common.util.DateTimeExt;
-import com.netflix.titus.grpc.protogen.HealthCheckResponse.ServerStatus;
+import com.netflix.titus.grpc.protogen.HealthCheckResponse.Details;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse.ServingStatus;
 import com.netflix.titus.grpc.protogen.ServiceActivation;
 import com.netflix.titus.master.health.service.HealthService;
@@ -57,7 +57,7 @@ public class ServerStatusResource {
 
     @GET
     public ServerStatusRepresentation getServerStatus() {
-        ServerStatus details = healthService.getServerStatus();
+        Details details = healthService.getServerStatus();
 
         if (details.getStatus() != ServingStatus.SERVING) {
             return new ServerStatusRepresentation(

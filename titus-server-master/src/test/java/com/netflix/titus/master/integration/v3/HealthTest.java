@@ -41,7 +41,7 @@ public class HealthTest extends BaseIntegrationTest {
             EmbeddedTitusCell.aTitusCell()
                     .withMaster(basicMaster(new SimulatedCloud()))
                     .withDefaultGateway()
-                    .build(), true
+                    .build()
     );
 
     @Rule
@@ -56,10 +56,12 @@ public class HealthTest extends BaseIntegrationTest {
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(SERVING);
         assertThat(response.getDetailsCount()).isGreaterThan(0);
-        assertThat(response.getDetails(0).getStatus()).isEqualTo(SERVING);
-        assertThat(response.getDetails(0).hasUptime()).isTrue();
-        assertThat(response.getDetails(0).hasElectionTimestamp()).isTrue();
-        assertThat(response.getDetails(0).hasActivationTime()).isTrue();
-        assertThat(response.getDetails(0).hasActivationTimestamp()).isTrue();
+        assertThat(response.getDetails(0).hasDetails()).isTrue();
+        HealthCheckResponse.Details details = response.getDetails(0).getDetails();
+        assertThat(details.getStatus()).isEqualTo(SERVING);
+        assertThat(details.hasUptime()).isTrue();
+        assertThat(details.hasElectionTimestamp()).isTrue();
+        assertThat(details.hasActivationTime()).isTrue();
+        assertThat(details.hasActivationTimestamp()).isTrue();
     }
 }

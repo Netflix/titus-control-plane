@@ -14,36 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.health.endpoint.grpc;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+package com.netflix.titus.federation.service;
 
 import com.netflix.titus.grpc.protogen.HealthCheckRequest;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse;
-import com.netflix.titus.grpc.protogen.HealthCheckResponse.Details;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
-import com.netflix.titus.master.health.service.HealthService;
 import io.grpc.stub.StreamObserver;
 
-@Singleton
-public class DefaultHealthServiceGrpc extends HealthGrpc.HealthImplBase {
-    private final HealthService healthService;
+class CellWithHealthStatus extends HealthGrpc.HealthImplBase {
+    private final HealthCheckResponse response;
 
-    @Inject
-    public DefaultHealthServiceGrpc(HealthService healthService) {
-        this.healthService = healthService;
+    CellWithHealthStatus(HealthCheckResponse response) {
+        this.response = response;
     }
 
     @Override
     public void check(HealthCheckRequest request, StreamObserver<HealthCheckResponse> responseObserver) {
-        Details details = healthService.getServerStatus();
-        responseObserver.onNext(HealthCheckResponse.newBuilder()
-                .setStatus(details.getStatus())
-                .addDetails(HealthCheckResponse.ServerStatus.newBuilder()
-                        .setDetails(details)
-                        .build())
-                .build());
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 }
