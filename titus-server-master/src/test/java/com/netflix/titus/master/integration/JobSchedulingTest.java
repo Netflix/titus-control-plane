@@ -287,7 +287,6 @@ public class JobSchedulingTest extends BaseIntegrationTest {
         List<Parameter> parameters = job.getParameters();
         final Map<String, String> labels = Parameters.getLabels(parameters);
         assertThat(labels).containsEntry(JobAttributes.JOB_ATTRIBUTES_CELL, EmbeddedTitusMaster.CELL_NAME);
-        assertThat(labels).containsEntry(JobAttributes.JOB_ATTRIBUTES_STACK, EmbeddedTitusMaster.CELL_NAME);
 
         Collection<V2WorkerMetadata> tasksMetadata = job.getStageMetadata(1).getAllWorkers();
         tasksMetadata.forEach(workerMetadata ->

@@ -124,6 +124,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
         }
         JobManagementServiceStub client = wrap(optionalClient.get());
 
+        JobDescriptor withStackName = addStackName(jobDescriptor);
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
@@ -131,7 +132,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
                     emitter::onError,
                     emitter::onCompleted
             );
-            client.createJob(jobDescriptor, streamObserver);
+            client.createJob(withStackName, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 
@@ -254,7 +255,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
             );
             clients.forEach((cell, client) -> {
                 StreamObserver<JobChangeNotification> streamObserver = new FilterOutFirstMarker(emitter, markersEmitted);
-                wrap(client).observeJobs(Empty.getDefaultInstance(), streamObserver);
+                wrapWithNoDeadline(client).observeJobs(Empty.getDefaultInstance(), streamObserver);
             });
         });
         return observable.map(this::addStackName);
@@ -374,10 +375,14 @@ public class AggregatingJobManagementClient implements JobManagementClient {
         return result.toBuilder().clearItems().addAllItems(withStackName).build();
     }
 
-    private Job addStackName(Job job) {
-        JobDescriptor jobDescriptor = job.getJobDescriptor().toBuilder()
+    private JobDescriptor addStackName(JobDescriptor jobDescriptor) {
+        return jobDescriptor.toBuilder()
                 .putAttributes(JOB_ATTRIBUTES_STACK, federationConfiguration.getStack())
                 .build();
+    }
+
+    private Job addStackName(Job job) {
+        JobDescriptor jobDescriptor = addStackName(job.getJobDescriptor());
         return job.toBuilder().setJobDescriptor(jobDescriptor).build();
     }
 
@@ -409,6 +414,10 @@ public class AggregatingJobManagementClient implements JobManagementClient {
 
     private JobManagementServiceStub wrap(JobManagementServiceStub client) {
         return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+    }
+
+    private JobManagementServiceStub wrapWithNoDeadline(JobManagementServiceStub client) {
+        return createWrappedStub(client, callMetadataResolver);
     }
 
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {

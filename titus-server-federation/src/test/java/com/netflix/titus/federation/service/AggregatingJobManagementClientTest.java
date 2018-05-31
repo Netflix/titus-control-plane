@@ -72,6 +72,7 @@ import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static com.netflix.titus.federation.service.ServiceTests.walkAllPages;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPage;
 import static io.grpc.Status.DEADLINE_EXCEEDED;
@@ -100,6 +101,7 @@ public class AggregatingJobManagementClientTest {
 
     private String stackName;
     private AggregatingJobManagementClient service;
+    private List<Cell> cells;
     private Map<Cell, GrpcServerRule> cellToServiceMap;
     private TestClock clock;
     private ServiceDataGenerator dataGenerator;
@@ -118,7 +120,7 @@ public class AggregatingJobManagementClientTest {
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
         DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
-        List<Cell> cells = cellInfoResolver.resolve();
+        cells = cellInfoResolver.resolve();
         cellToServiceMap = ImmutableMap.of(
                 cells.get(0), cellOne,
                 cells.get(1), cellTwo
@@ -773,6 +775,23 @@ public class AggregatingJobManagementClientTest {
                 assertThat(job.getJobDescriptor().getAttributesOrThrow(JOB_ATTRIBUTES_CELL).equals(expectedCellName));
             }).doesNotThrowAnyException();
         });
+    }
+
+    @Test
+    public void createJobInjectsFederatedStackName() {
+        Cell firstCell = cells.get(0);
+        CellWithCachedJobsService cachedJobsService = new CellWithCachedJobsService(firstCell.getName());
+        cellToServiceMap.get(firstCell).getServiceRegistry().addService(cachedJobsService);
+
+        // Create the job and let it get routed
+        JobDescriptor jobDescriptor = JobDescriptor.newBuilder()
+                .setApplicationName("app1")
+                .setCapacityGroup("app1CapGroup")
+                .build();
+        String jobId = service.createJob(jobDescriptor).toBlocking().first();
+        Optional<JobDescriptor> createdJob = cachedJobsService.getCachedJob(jobId);
+        assertThat(createdJob).isPresent();
+        assertThat(createdJob.get().getAttributesMap()).containsEntry(JOB_ATTRIBUTES_STACK, stackName);
     }
 
     private List<Job> walkAllFindJobsPages(int pageWalkSize) {
