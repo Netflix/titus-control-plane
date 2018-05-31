@@ -40,6 +40,12 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -49,6 +55,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -63,7 +70,10 @@
             "requested": "20.+",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -97,7 +107,17 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
-            "requested": "3.5.+"
+            "requested": "3.5.+",
+            "transitive": [
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.3.2",
@@ -153,12 +173,24 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
@@ -352,6 +384,12 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -361,6 +399,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -375,7 +414,10 @@
             "requested": "20.+",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -409,7 +451,17 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
-            "requested": "3.5.+"
+            "requested": "3.5.+",
+            "transitive": [
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.3.2",
@@ -465,12 +517,24 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
@@ -664,6 +728,12 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -673,6 +743,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -687,7 +758,10 @@
             "requested": "20.+",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -721,7 +795,17 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
-            "requested": "3.5.+"
+            "requested": "3.5.+",
+            "transitive": [
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.3.2",
@@ -777,12 +861,24 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
@@ -1050,6 +1146,12 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -1059,6 +1161,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1073,7 +1176,10 @@
             "requested": "20.+",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -1107,7 +1213,17 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
-            "requested": "3.5.+"
+            "requested": "3.5.+",
+            "transitive": [
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.3.2",
@@ -1163,12 +1279,24 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
@@ -1373,6 +1501,12 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -1382,6 +1516,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1396,7 +1531,10 @@
             "requested": "20.+",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -1430,7 +1568,17 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
-            "requested": "3.5.+"
+            "requested": "3.5.+",
+            "transitive": [
+                "com.google.protobuf:protobuf-java-util",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "com.netflix.archaius:archaius2-api": {
             "locked": "2.3.2",
@@ -1486,12 +1634,24 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "requested": "1.10.+"
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
         },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
@@ -2267,7 +2427,9 @@
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
+            "requested": "1.10.+",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -3550,7 +3712,9 @@
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
+            "requested": "1.10.+",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -4833,7 +4997,9 @@
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
+            "requested": "1.10.+",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -6117,7 +6283,9 @@
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
+            "requested": "1.10.+",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },

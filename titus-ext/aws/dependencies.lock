@@ -7,11 +7,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -19,15 +19,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -81,6 +81,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -90,6 +96,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -103,8 +110,11 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -139,7 +149,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -223,6 +241,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -230,6 +250,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -447,11 +479,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -459,15 +491,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -521,6 +553,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -530,6 +568,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -543,8 +582,11 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -579,7 +621,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -663,6 +713,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -670,6 +722,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -887,11 +951,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -899,15 +963,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -961,6 +1025,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -970,6 +1040,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -983,8 +1054,11 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -1019,7 +1093,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -1103,6 +1185,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -1110,6 +1194,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -1391,11 +1487,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1403,15 +1499,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1465,6 +1561,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -1474,6 +1576,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1487,8 +1590,11 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -1523,7 +1629,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -1607,6 +1721,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -1614,6 +1730,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -1832,11 +1960,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1844,15 +1972,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1906,6 +2034,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -1915,6 +2049,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1928,8 +2063,11 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api"
             ]
         },
@@ -1964,7 +2102,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.netflix.archaius:archaius2-api": {
@@ -2048,6 +2194,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -2055,6 +2203,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -2297,11 +2457,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2309,15 +2469,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2902,6 +3062,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -3607,11 +3768,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -3619,15 +3780,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -4212,6 +4373,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -4917,11 +5079,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -4929,15 +5091,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -5522,6 +5684,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -6228,11 +6391,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -6240,15 +6403,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.337",
+            "locked": "1.11.339",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -6833,6 +6996,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },

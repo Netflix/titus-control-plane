@@ -131,6 +131,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -140,6 +146,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -155,8 +162,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -194,7 +204,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -347,6 +365,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -354,6 +374,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -880,6 +912,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -889,6 +927,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -904,8 +943,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -943,7 +985,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -1096,6 +1146,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -1103,6 +1155,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -1629,6 +1693,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -1638,6 +1708,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1653,8 +1724,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -1692,7 +1766,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -1845,6 +1927,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -1852,6 +1936,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -2442,6 +2538,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -2451,6 +2553,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -2466,8 +2569,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -2505,7 +2611,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -2658,6 +2772,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -2665,6 +2781,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -3192,6 +3320,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -3201,6 +3335,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -3216,8 +3351,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -3255,7 +3393,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -3408,6 +3554,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -3415,6 +3563,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -3948,6 +4108,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -3957,6 +4123,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -3972,8 +4139,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -4011,7 +4181,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -4168,6 +4346,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -4175,6 +4355,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -4742,6 +4934,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -4751,6 +4949,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -4766,8 +4965,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -4805,7 +5007,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -4962,6 +5172,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -4969,6 +5181,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -5536,6 +5760,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -5545,6 +5775,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -5560,8 +5791,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -5599,7 +5833,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -5756,6 +5998,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -5763,6 +6007,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
@@ -6331,6 +6587,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "com.google.api.grpc:proto-google-common-protos": {
+            "locked": "1.0.0",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
+            ]
+        },
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
@@ -6340,6 +6602,7 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
+                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
@@ -6355,8 +6618,11 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.google.inject:guice",
+                "com.google.protobuf:protobuf-java-util",
                 "com.netflix.titus:titus-common",
                 "io.grpc:grpc-core",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.opencensus:opencensus-api",
                 "org.apache.cassandra:cassandra-all",
                 "org.caffinitas.ohc:ohc-core",
@@ -6394,7 +6660,15 @@
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.google.protobuf:protobuf-java-util",
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.protobuf:protobuf-java-util": {
+            "locked": "3.5.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -6551,6 +6825,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
+                "io.grpc:grpc-protobuf",
+                "io.grpc:grpc-protobuf-lite",
                 "io.grpc:grpc-stub"
             ]
         },
@@ -6558,6 +6834,18 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.grpc:grpc-protobuf-lite": {
+            "locked": "1.10.1",
+            "transitive": [
+                "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {

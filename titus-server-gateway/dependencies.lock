@@ -327,6 +327,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -971,6 +972,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -1615,6 +1617,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -2323,6 +2326,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -2968,6 +2972,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -3912,6 +3917,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -5202,6 +5208,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -6492,6 +6499,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
@@ -7783,6 +7791,7 @@
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
             ]
         },
