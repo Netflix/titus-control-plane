@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.federation.service;
+package com.netflix.titus.master.health;
 
 import com.google.inject.AbstractModule;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.service.AutoScalingService;
-import com.netflix.titus.runtime.service.HealthService;
-import com.netflix.titus.runtime.service.LoadBalancerService;
+import com.netflix.titus.grpc.protogen.HealthGrpc.HealthImplBase;
+import com.netflix.titus.master.health.endpoint.grpc.DefaultHealthServiceGrpc;
+import com.netflix.titus.master.health.service.DefaultHealthService;
+import com.netflix.titus.master.health.service.HealthService;
 
-public class ServiceModule extends AbstractModule {
+public class HealthModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(HealthService.class).to(AggregatingHealthService.class);
-        bind(JobManagementClient.class).to(AggregatingJobManagementClient.class);
-        bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
-        bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
+        bind(HealthImplBase.class).to(DefaultHealthServiceGrpc.class);
+        bind(HealthService.class).to(DefaultHealthService.class);
     }
 }

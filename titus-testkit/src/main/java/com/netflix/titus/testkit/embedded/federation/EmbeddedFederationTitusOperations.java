@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
@@ -26,6 +27,11 @@ class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
     @Override
     public SimulatedCloud getSimulatedCloud() {
         return cloudSimulator;
+    }
+
+    @Override
+    public HealthGrpc.HealthStub getHealthClient() {
+        return federation.getHealthGrpcClient();
     }
 
     @Override

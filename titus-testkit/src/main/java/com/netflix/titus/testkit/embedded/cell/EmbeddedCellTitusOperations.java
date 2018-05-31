@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
@@ -48,6 +49,11 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
     @Override
     public SimulatedCloud getSimulatedCloud() {
         return simulatedCloud;
+    }
+
+    @Override
+    public HealthGrpc.HealthStub getHealthClient() {
+        return gateway.map(EmbeddedTitusGateway::getHealthClient).orElse(master.getHealthClient());
     }
 
     @Override

@@ -23,6 +23,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.gateway.service.v3.internal.DefaultAgentManagementService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultAutoScalingService;
+import com.netflix.titus.gateway.service.v3.internal.DefaultHealthService;
 import com.netflix.titus.gateway.service.v3.internal.GatewayJobManagementClient;
 import com.netflix.titus.gateway.service.v3.internal.DefaultLoadBalancerService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultSchedulerService;
@@ -30,11 +31,13 @@ import com.netflix.titus.gateway.service.v3.internal.DefaultTitusManagementServi
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.service.HealthService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 
 public class V3ServiceModule extends AbstractModule {
     @Override
     protected void configure() {
+        bind(HealthService.class).to(DefaultHealthService.class);
         bind(JobManagementClient.class).to(GatewayJobManagementClient.class);
         bind(AutoScalingService.class).to(DefaultAutoScalingService.class);
         bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
