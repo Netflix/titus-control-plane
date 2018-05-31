@@ -25,7 +25,7 @@ import javax.validation.ConstraintViolation;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SchedulingResultEvent;

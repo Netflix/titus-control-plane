@@ -35,7 +35,7 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.service.JobManagementService;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,16 +51,16 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementServiceGrpc.class);
 
-    private final JobManagementService jobManagementService;
+    private final JobManagementClient jobManagementClient;
 
     @Inject
-    public DefaultJobManagementServiceGrpc(JobManagementService jobManagementService) {
-        this.jobManagementService = jobManagementService;
+    public DefaultJobManagementServiceGrpc(JobManagementClient jobManagementClient) {
+        this.jobManagementClient = jobManagementClient;
     }
 
     @Override
     public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
-        Subscription subscription = jobManagementService.createJob(request).subscribe(
+        Subscription subscription = jobManagementClient.createJob(request).subscribe(
                 jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -70,12 +70,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobManagementService.updateJobCapacity(request), responseObserver);
+        streamCompletableResponse(jobManagementClient.updateJobCapacity(request), responseObserver);
     }
 
     @Override
     public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobManagementService.updateJobProcesses(request), responseObserver);
+        streamCompletableResponse(jobManagementClient.updateJobProcesses(request), responseObserver);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         if (!checkPageIsValid(jobQuery.getPage(), responseObserver)) {
             return;
         }
-        Subscription subscription = jobManagementService.findJobs(jobQuery).subscribe(
+        Subscription subscription = jobManagementClient.findJobs(jobQuery).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -93,7 +93,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void findJob(JobId request, StreamObserver<Job> responseObserver) {
-        Subscription subscription = jobManagementService.findJob(request.getId()).subscribe(
+        Subscription subscription = jobManagementClient.findJob(request.getId()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -103,12 +103,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobManagementService.updateJobStatus(request), responseObserver);
+        streamCompletableResponse(jobManagementClient.updateJobStatus(request), responseObserver);
     }
 
     @Override
     public void observeJobs(Empty request, StreamObserver<JobChangeNotification> responseObserver) {
-        Subscription subscription = jobManagementService.observeJobs().subscribe(
+        Subscription subscription = jobManagementClient.observeJobs().subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -118,7 +118,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void observeJob(JobId request, StreamObserver<JobChangeNotification> responseObserver) {
-        Subscription subscription = jobManagementService.observeJob(request.getId()).subscribe(
+        Subscription subscription = jobManagementClient.observeJob(request.getId()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -128,12 +128,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobManagementService.killJob(request.getId()), responseObserver);
+        streamCompletableResponse(jobManagementClient.killJob(request.getId()), responseObserver);
     }
 
     @Override
     public void findTask(TaskId request, StreamObserver<Task> responseObserver) {
-        Subscription subscription = jobManagementService.findTask(request.getId()).subscribe(
+        Subscription subscription = jobManagementClient.findTask(request.getId()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -146,7 +146,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         if (!checkPageIsValid(request.getPage(), responseObserver)) {
             return;
         }
-        Subscription subscription = jobManagementService.findTasks(request).subscribe(
+        Subscription subscription = jobManagementClient.findTasks(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -156,7 +156,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobManagementService.killTask(request), responseObserver);
+        streamCompletableResponse(jobManagementClient.killTask(request), responseObserver);
     }
 
     private static void streamCompletableResponse(Completable completable, StreamObserver<Empty> responseObserver) {

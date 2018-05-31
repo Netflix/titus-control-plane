@@ -61,7 +61,7 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
-import com.netflix.titus.runtime.service.JobManagementService;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,8 +79,8 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequ
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
-public class AggregatingJobManagementService implements JobManagementService {
-    private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementService.class);
+public class AggregatingJobManagementClient implements JobManagementClient {
+    private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementClient.class);
 
     // some fields are required from each cell, so pagination cursors can be generated
     private static final Set<String> JOB_FEDERATION_MINIMUM_FIELD_SET = CollectionsExt.asSet("id", "status", "statusHistory");
@@ -95,13 +95,13 @@ public class AggregatingJobManagementService implements JobManagementService {
     private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public AggregatingJobManagementService(GrpcConfiguration grpcConfiguration,
-                                           TitusFederationConfiguration federationConfiguration,
-                                           CellConnector connector,
-                                           CellRouter router,
-                                           CallMetadataResolver callMetadataResolver,
-                                           AggregatingCellClient aggregatingClient,
-                                           AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
+    public AggregatingJobManagementClient(GrpcConfiguration grpcConfiguration,
+                                          TitusFederationConfiguration federationConfiguration,
+                                          CellConnector connector,
+                                          CellRouter router,
+                                          CallMetadataResolver callMetadataResolver,
+                                          AggregatingCellClient aggregatingClient,
+                                          AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
 
         this.grpcConfiguration = grpcConfiguration;
         this.federationConfiguration = federationConfiguration;

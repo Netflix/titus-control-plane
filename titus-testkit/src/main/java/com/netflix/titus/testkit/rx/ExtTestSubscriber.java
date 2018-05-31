@@ -203,6 +203,10 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
     }
 
     public void assertOpen() {
+        if (state.get() == State.OnError) {
+            Throwable cause = onErrorResult.get();
+            throw cause instanceof RuntimeException ? (RuntimeException) cause : new RuntimeException(cause);
+        }
         assertThat(state.get(), is(equalTo(State.Open)));
     }
 

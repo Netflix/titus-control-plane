@@ -29,7 +29,7 @@ import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.gateway.service.v3.AgentManagementService;
-import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;

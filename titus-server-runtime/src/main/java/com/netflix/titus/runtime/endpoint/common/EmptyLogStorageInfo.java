@@ -40,4 +40,8 @@ public class EmptyLogStorageInfo<TASK> implements LogStorageInfo<TASK> {
     public Optional<S3LogLocation> getS3LogLocation(TASK task) {
         return Optional.empty();
     }
+
+    public static <TASK> LogStorageInfo<TASK> empty() {
+        return INSTANCE;
+    }
 }

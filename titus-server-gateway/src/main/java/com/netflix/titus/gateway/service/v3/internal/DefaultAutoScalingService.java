@@ -24,7 +24,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.AutoScalingService;
-import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.service.v3;
+package com.netflix.titus.runtime.connector;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;

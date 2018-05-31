@@ -99,6 +99,10 @@ public abstract class DataGenerator<A> {
 
     public abstract Optional<A> getOptionalValue();
 
+    public <B> DataGenerator<B> cast(Class<B> newType) {
+        return (DataGenerator<B>) this;
+    }
+
     /**
      * Generate batches of data.
      */

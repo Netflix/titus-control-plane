@@ -19,10 +19,10 @@ package com.netflix.titus.gateway.service.v3.internal;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.gateway.service.v3.GrpcClientConfiguration;
 import com.netflix.titus.grpc.protogen.HealthCheckRequest;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.HealthService;
 import io.grpc.stub.StreamObserver;

@@ -40,6 +40,8 @@ import static com.netflix.titus.common.data.generator.DataGenerator.zip;
  */
 public class JobGenerator {
 
+    public static final JobDescriptor<JobDescriptor.JobDescriptorExt> EMPTY_JOB_DESCRIPTOR = JobModel.newJobDescriptor().build();
+
     /**
      * See {@link #jobIds(DataGenerator)}.
      */
@@ -59,6 +61,21 @@ public class JobGenerator {
      */
     public static DataGenerator<String> taskIds(String jobId, DataGenerator<Long> numbers) {
         return numbers.map(n -> String.format("%s-Task#%09d", jobId.substring(14), n));
+    }
+
+    /**
+     * Generates sequence of jobs with empty job descriptor.
+     */
+    public static DataGenerator<Job> jobs(Clock clock) {
+        return jobIds().map(jobId ->
+                JobModel.newJob()
+                        .withId(jobId)
+                        .withStatus(JobStatus.newBuilder()
+                                .withTimestamp(clock.wallTime())
+                                .withState(JobState.Accepted).build()
+                        )
+                        .withJobDescriptor(EMPTY_JOB_DESCRIPTOR)
+                        .build());
     }
 
     /**

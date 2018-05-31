@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -47,6 +48,7 @@ public final class RetryHandlerBuilder {
 
     private Action1<Throwable> onErrorHook = e -> {
     };
+    private Supplier<Boolean> retryWhenCondition;
 
     private RetryHandlerBuilder() {
     }
@@ -98,6 +100,11 @@ public final class RetryHandlerBuilder {
         return this;
     }
 
+    public RetryHandlerBuilder withRetryWhen(Supplier<Boolean> retryWhenCondition) {
+        this.retryWhenCondition = retryWhenCondition;
+        return this;
+    }
+
     public RetryHandlerBuilder but() {
         RetryHandlerBuilder newInstance = new RetryHandlerBuilder();
         newInstance.retryCount = retryCount;
@@ -118,6 +125,13 @@ public final class RetryHandlerBuilder {
                 .doOnNext(error -> onErrorHook.call(error))
                 .zipWith(Observable.range(0, retryCount + 1), RetryItem::new)
                 .flatMap(retryItem -> {
+                    if(retryWhenCondition != null && !retryWhenCondition.get()) {
+                        String errorMessage = String.format(
+                                "Retry condition not met for %s. Last error: %s. Returning an error to the caller",
+                                title, retryItem.cause.getMessage()
+                        );
+                        return Observable.error(new IOException(errorMessage, retryItem.cause));
+                    }
                     if (retryItem.retry == retryCount) {
                         String errorMessage = String.format(
                                 "Retry limit reached for %s. Last error: %s. Returning an error to the caller",
