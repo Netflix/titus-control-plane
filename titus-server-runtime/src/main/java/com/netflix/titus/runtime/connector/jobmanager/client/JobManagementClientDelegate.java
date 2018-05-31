@@ -1,4 +1,4 @@
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.jobmanager.client;
 
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -12,6 +12,7 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import rx.Completable;
 import rx.Observable;
 

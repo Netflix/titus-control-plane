@@ -205,13 +205,6 @@ public class ObservableExt {
     }
 
     /**
-     * Creates an observable where on subscription first a context is computed, which is used to create a target observable.
-     */
-    public static <CONTEXT, T> Observable<T> inContext(Supplier<CONTEXT> contextProvider, Function<CONTEXT, Observable<T>> factory) {
-        return Observable.unsafeCreate(new InContextOnSubscribe<>(contextProvider, factory));
-    }
-
-    /**
      * Back-pressure enabled infinite stream of data generator.
      */
     public static <T> Observable<T> generatorFrom(Supplier<T> source) {
@@ -391,5 +384,13 @@ public class ObservableExt {
      */
     public static InstrumentedEventLoop createEventLoop(String metricNameRoot, Registry registry, Scheduler scheduler) {
         return new InstrumentedEventLoop(metricNameRoot, registry, scheduler);
+    }
+
+    /**
+     * If the source observable does not emit any item in the configured amount of time, the last emitted value is
+     * re-emitted again, optionally updated by the transformer.
+     */
+    public static <T> Observable.Transformer<T, T> reemiter(Function<T, T> transformer, long interval, TimeUnit timeUnit, Scheduler scheduler) {
+        return new ReEmitterTransformer<>(transformer, interval, timeUnit, scheduler);
     }
 }

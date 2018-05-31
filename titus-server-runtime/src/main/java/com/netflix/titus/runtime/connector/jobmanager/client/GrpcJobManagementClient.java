@@ -1,4 +1,4 @@
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.jobmanager.client;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +23,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
