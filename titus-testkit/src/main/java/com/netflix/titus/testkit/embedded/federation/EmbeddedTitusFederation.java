@@ -31,6 +31,7 @@ import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
@@ -137,6 +138,11 @@ public class EmbeddedTitusFederation {
 
     public EmbeddedTitusOperations getTitusOperations() {
         return titusOperations;
+    }
+
+    public HealthGrpc.HealthStub getHealthGrpcClient() {
+        HealthGrpc.HealthStub client = HealthGrpc.newStub(getOrCreateGrpcChannel());
+        return attachCallHeaders(client);
     }
 
     public JobManagementServiceGrpc.JobManagementServiceStub getV3GrpcClient() {

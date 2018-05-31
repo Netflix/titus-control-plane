@@ -29,6 +29,8 @@ import javax.inject.Singleton;
 import com.netflix.titus.federation.endpoint.EndpointConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc.HealthImplBase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -48,6 +50,7 @@ import org.slf4j.LoggerFactory;
 public class TitusFederationGrpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(TitusFederationGrpcServer.class);
 
+    private final HealthImplBase healthService;
     private final JobManagementServiceImplBase jobManagementService;
     private AutoScalingServiceImplBase autoScalingService;
     private LoadBalancerServiceImplBase loadBalancerService;
@@ -58,10 +61,12 @@ public class TitusFederationGrpcServer {
 
     @Inject
     public TitusFederationGrpcServer(
+            HealthImplBase healthService,
             JobManagementServiceImplBase jobManagementService,
             AutoScalingServiceImplBase autoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             EndpointConfiguration config) {
+        this.healthService = healthService;
         this.jobManagementService = jobManagementService;
         this.autoScalingService = autoScalingService;
         this.loadBalancerService = loadBalancerService;
@@ -72,6 +77,10 @@ public class TitusFederationGrpcServer {
     public void start() {
         if (!started.getAndSet(true)) {
             ServerBuilder serverBuilder = configure(ServerBuilder.forPort(config.getGrpcPort()));
+            serverBuilder.addService(ServerInterceptors.intercept(
+                    healthService,
+                    createInterceptors(HealthGrpc.getServiceDescriptor())
+            ));
             serverBuilder.addService(ServerInterceptors.intercept(
                     jobManagementService,
                     createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())

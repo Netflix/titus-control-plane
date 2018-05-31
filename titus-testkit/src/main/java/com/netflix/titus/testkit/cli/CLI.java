@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
+import com.netflix.titus.testkit.cli.command.HealthCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentInstanceGetCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentLifecycleUpdateCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentObserveCommand;
@@ -67,6 +68,8 @@ public class CLI {
     }
 
     private static Map<String, CliCommand> COMMANDS = new TreeMap<String, CliCommand>() {{
+        put("health", new HealthCommand());
+
         // Agent management
         put("agentServerGroups", new AgentServerGroupGetCommand());
         put("agentInstances", new AgentInstanceGetCommand());

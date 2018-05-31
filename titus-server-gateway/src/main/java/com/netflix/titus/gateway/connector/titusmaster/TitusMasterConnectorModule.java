@@ -41,6 +41,8 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
+import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -102,6 +104,12 @@ public class TitusMasterConnectorModule extends AbstractModule {
                 .usePlaintext(true)
                 .maxHeaderListSize(65536)
                 .build();
+    }
+
+    @Provides
+    @Singleton
+    HealthStub healthClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return HealthGrpc.newStub(channel);
     }
 
     @Provides

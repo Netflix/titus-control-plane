@@ -22,6 +22,8 @@ import com.netflix.titus.api.endpoint.v2.rest.representation.ServerStatusReprese
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.master.config.CellInfoResolver;
+import com.netflix.titus.master.health.service.DefaultHealthService;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
@@ -39,11 +41,15 @@ import static org.mockito.Mockito.when;
 
 public class ServerStatusResourceTest {
 
+    private static final CellInfoResolver cellInfoResolver = mock(CellInfoResolver.class);
+
     private static final ActivationLifecycle activationLifecycle = mock(ActivationLifecycle.class);
 
     private static final LeaderActivator leaderActivator = mock(LeaderActivator.class);
 
-    private static final ServerStatusResource restService = new ServerStatusResource(activationLifecycle, leaderActivator);
+    private static final ServerStatusResource restService = new ServerStatusResource(
+            new DefaultHealthService(cellInfoResolver, activationLifecycle, leaderActivator)
+    );
 
     @ClassRule
     public static final JaxRsServerResource<ServerStatusResource> jaxRsServer = JaxRsServerResource.newBuilder(restService)
@@ -59,7 +65,8 @@ public class ServerStatusResourceTest {
 
     @Before
     public void setUp() throws Exception {
-        reset(activationLifecycle, leaderActivator);
+        reset(cellInfoResolver, activationLifecycle, leaderActivator);
+        when(cellInfoResolver.getCellName()).thenReturn("cellN");
     }
 
     @Test
