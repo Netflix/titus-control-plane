@@ -1,0 +1,10 @@
+apply plugin: 'application'
+
+mainClassName = 'com.netflix.titus.supplementary.relocation.startup.TaskRelocationMain'
+
+dependencies {
+    compile project(':titus-server-runtime')
+
+    testCompile project(':titus-testkit')
+}
+

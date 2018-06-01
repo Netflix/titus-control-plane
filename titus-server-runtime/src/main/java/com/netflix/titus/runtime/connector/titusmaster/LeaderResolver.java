@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.connector.titusmaster;
+package com.netflix.titus.runtime.connector.titusmaster;
 
 import java.util.Optional;
 

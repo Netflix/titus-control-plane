@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.connector.titusmaster.internal;
+package com.netflix.titus.runtime.connector.titusmaster;
 
 import java.util.Optional;
 
 import com.netflix.titus.common.network.http.EndpointResolver;
-import com.netflix.titus.gateway.connector.titusmaster.Address;
-import com.netflix.titus.gateway.connector.titusmaster.LeaderResolver;
 
 public class LeaderEndpointResolver implements EndpointResolver {
     private final LeaderResolver leaderResolver;

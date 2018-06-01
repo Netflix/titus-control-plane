@@ -18,10 +18,14 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.jobmanager.JobCache;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 
 public class GrpcJobStreamCache implements JobStreamCache {
+
+    private static final Logger logger = LoggerFactory.getLogger(GrpcJobStreamCache.class);
 
     private final JobManagementClient client;
     private final TitusRuntime titusRuntime;
@@ -52,24 +56,29 @@ public class GrpcJobStreamCache implements JobStreamCache {
         private AtomicReference<JobCache> lastJobCacheRef = new AtomicReference<>();
 
         private Observable<CacheEvent> onEvent(JobChangeNotification event) {
-            if (lastJobCacheRef.get() != null) {
-                return processCacheUpdate(event);
-            }
-            if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
-                return buildInitialCache();
-            }
+            try {
+                if (lastJobCacheRef.get() != null) {
+                    return processCacheUpdate(event);
+                }
+                if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
+                    return buildInitialCache();
+                }
 
-            switch (event.getNotificationCase()) {
-                case JOBUPDATE:
-                    if (event.getJobUpdate().getJob().getStatus().getState() != JobStatus.JobState.Finished) {
-                        snapshotEvents.add(event);
-                    }
-                    break;
-                case TASKUPDATE:
-                    if (event.getTaskUpdate().getTask().getStatus().getState() != TaskStatus.TaskState.Finished) {
-                        snapshotEvents.add(event);
-                    }
-                    break;
+                switch (event.getNotificationCase()) {
+                    case JOBUPDATE:
+                        if (event.getJobUpdate().getJob().getStatus().getState() != JobStatus.JobState.Finished) {
+                            snapshotEvents.add(event);
+                        }
+                        break;
+                    case TASKUPDATE:
+                        if (event.getTaskUpdate().getTask().getStatus().getState() != TaskStatus.TaskState.Finished) {
+                            snapshotEvents.add(event);
+                        }
+                        break;
+                }
+            } catch (Exception e) {
+                logger.warn("Unexpected error when handling the job change notification: {}", event, e);
+                return Observable.error(e); // Return error to force the cache reconnect.
             }
             return Observable.empty();
         }
@@ -96,6 +105,8 @@ public class GrpcJobStreamCache implements JobStreamCache {
 
             JobCache initialCache = new JobCache(jobsById, tasksByJobId);
             lastJobCacheRef.set(initialCache);
+
+            logger.info("Job snapshot loaded: jobs={}, tasks={}", initialCache.getJobs().size(), initialCache.getTasks().size());
 
             return Observable.just(new CacheEvent(initialCache, titusRuntime.getClock().wallTime()));
         }
