@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.connector.titusmaster;
+package com.netflix.titus.runtime.connector.titusmaster;
 
 import java.util.Collections;
 import javax.inject.Named;
@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerResourceValidator;
@@ -34,9 +35,6 @@ import com.netflix.titus.common.network.http.internal.okhttp.OkHttpClient;
 import com.netflix.titus.common.network.http.internal.okhttp.PassthroughInterceptor;
 import com.netflix.titus.common.network.http.internal.okhttp.RxOkHttpClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.gateway.connector.titusmaster.internal.ConfigurationLeaderResolver;
-import com.netflix.titus.gateway.connector.titusmaster.internal.LeaderEndpointResolver;
-import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -69,6 +67,12 @@ public class TitusMasterConnectorModule extends AbstractModule {
         bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
     }
 
+    @Provides
+    @Singleton
+    public TitusMasterClientConfiguration getTitusMasterClientConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(TitusMasterClientConfiguration.class);
+    }
+
     @Named(TITUS_MASTER_CLIENT)
     @Provides
     @Singleton
@@ -97,7 +101,7 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Provides
     @Singleton
     @Named(MANAGED_CHANNEL_NAME)
-    Channel managedChannel(TitusGatewayConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
+    Channel managedChannel(TitusMasterClientConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
         return NettyChannelBuilder
                 .forTarget("leader://titusmaster")
                 .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))

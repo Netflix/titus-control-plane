@@ -2,6 +2,9 @@ package com.netflix.titus.runtime.connector.jobmanager.client;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
@@ -31,6 +34,7 @@ import io.grpc.stub.StreamObserver;
 import rx.Completable;
 import rx.Observable;
 
+import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
@@ -39,6 +43,7 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrap
 /**
  * {@link JobManagementClient} implementation that connects to TitusMaster over the GRPC channel.
  */
+@Singleton
 public class GrpcJobManagementClient implements JobManagementClient {
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
@@ -46,9 +51,10 @@ public class GrpcJobManagementClient implements JobManagementClient {
     private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
 
+    @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
-                                   EntitySanitizer entitySanitizer,
+                                   @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                    GrpcClientConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;

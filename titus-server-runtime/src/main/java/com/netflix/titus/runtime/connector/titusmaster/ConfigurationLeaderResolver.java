@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.connector.titusmaster.internal;
+package com.netflix.titus.runtime.connector.titusmaster;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -27,9 +27,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.netflix.titus.gateway.connector.titusmaster.Address;
-import com.netflix.titus.gateway.connector.titusmaster.LeaderResolver;
-import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -47,7 +44,7 @@ public class ConfigurationLeaderResolver implements LeaderResolver {
     private volatile Address leaderAddress;
 
     @Inject
-    public ConfigurationLeaderResolver(TitusGatewayConfiguration configuration) {
+    public ConfigurationLeaderResolver(TitusMasterClientConfiguration configuration) {
         ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("configuration-leader-resolver-%d").build();
         this.executorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
         leaderPublishSubject = PublishSubject.create();

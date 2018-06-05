@@ -8,6 +8,14 @@ include 'titus-api',\
         'titus-server-runtime',\
         'titus-testkit'
 
+['task-relocation'].each {
+    def projectName = "titus-supplementary-component-$it"
+    include projectName
+
+    def extRoot = new File(rootProject.projectDir, "titus-supplementary-component")
+    project(":$projectName").projectDir = new File(extRoot, "$it")
+}
+
 ['aws', 'cassandra', 'cassandra-testkit', 'elasticsearch', 'eureka'].each {
     def projectName = "titus-ext-$it"
     include projectName

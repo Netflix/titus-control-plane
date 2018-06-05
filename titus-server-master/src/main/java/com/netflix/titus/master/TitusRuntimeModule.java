@@ -38,6 +38,7 @@ import com.netflix.titus.common.framework.fit.FitUtil;
 import com.netflix.titus.common.jhiccup.JHiccupModule;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
@@ -149,6 +150,9 @@ public class TitusRuntimeModule extends AbstractModule {
             String requestJson;
             try {
                 requestJson = actionAddRequests.get(Integer.toString(index));
+                if (!StringExt.isNotEmpty(requestJson)) {
+                    return Optional.empty();
+                }
             } catch (Exception e) {
                 logger.error("Cannot find FIT action at index {}; aborting the loading process", index);
                 return Optional.empty();

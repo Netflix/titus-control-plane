@@ -234,6 +234,10 @@ public class JobCache {
     }
 
     private List<Task> updateTask(List<Task> tasks, Task taskToUpdate) {
+        if(tasks == null) {
+            return Collections.singletonList(taskToUpdate);
+        }
+
         List<Task> result = new ArrayList<>();
         tasks.forEach(task -> result.add(task.getId().equals(taskToUpdate.getId()) ? taskToUpdate : task));
         return unmodifiableList(result);

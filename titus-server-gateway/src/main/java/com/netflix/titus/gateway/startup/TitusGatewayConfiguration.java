@@ -21,18 +21,6 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.gateway")
 public interface TitusGatewayConfiguration {
-    @DefaultValue("http")
-    String getMasterScheme();
-
-    @DefaultValue("127.0.0.1")
-    String getMasterIp();
-
-    @DefaultValue("7001")
-    int getMasterHttpPort();
-
-    @DefaultValue("7104")
-    int getMasterGrpcPort();
-
     @DefaultValue("true")
     boolean isProxyErrorLoggingEnabled();
 

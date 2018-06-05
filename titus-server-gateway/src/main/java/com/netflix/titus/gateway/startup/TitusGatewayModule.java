@@ -34,7 +34,7 @@ import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
-import com.netflix.titus.gateway.connector.titusmaster.TitusMasterConnectorModule;
+import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.gateway.endpoint.GrpcModule;
 import com.netflix.titus.gateway.endpoint.JerseyModule;
 import com.netflix.titus.gateway.service.v2.V2ServiceModule;

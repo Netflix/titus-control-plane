@@ -88,9 +88,9 @@ public class EmbeddedTitusGateway {
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
         props.put("titusMaster.v2Enabled", Boolean.toString(builder.v2Enabled));
-        props.put("titus.gateway.masterIp", masterGrpcHost);
-        props.put("titus.gateway.masterGrpcPort", masterGrpcPort);
-        props.put("titus.gateway.masterHttpPort", masterHttpPort);
+        props.put("titus.masterClient.masterIp", masterGrpcHost);
+        props.put("titus.masterClient.masterGrpcPort", masterGrpcPort);
+        props.put("titus.masterClient.masterHttpPort", masterHttpPort);
         props.put("titusGateway.endpoint.grpc.port", grpcPort);
         props.put("governator.jetty.embedded.port", httpPort);
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
