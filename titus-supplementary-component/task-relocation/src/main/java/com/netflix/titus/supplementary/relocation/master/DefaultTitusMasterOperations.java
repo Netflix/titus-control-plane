@@ -5,8 +5,10 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.runtime.connector.jobmanager.JobCache;
-import com.netflix.titus.runtime.connector.jobmanager.JobCacheResolver;
+import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
+import com.netflix.titus.runtime.connector.agent.AgentSnapshot;
+import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
+import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -19,18 +21,23 @@ public class DefaultTitusMasterOperations implements TitusMasterOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultTitusMasterOperations.class);
 
-    private final JobCacheResolver jobCacheResolver;
+    private final JobDataReplicator jobDataReplicator;
 
     private final Subscription subscription;
 
     @Inject
-    public DefaultTitusMasterOperations(JobCacheResolver jobCacheResolver) {
-        this.jobCacheResolver = jobCacheResolver;
+    public DefaultTitusMasterOperations(AgentDataReplicator agentDataReplicator,
+                                        JobDataReplicator jobDataReplicator) {
+        this.jobDataReplicator = jobDataReplicator;
 
         this.subscription = Observable.interval(0, 5, TimeUnit.SECONDS).subscribe(tick -> {
-            JobCache snapshot = jobCacheResolver.getCurrent();
-            logger.info("Job snapshot: jobs={}, tasks={}, latency={}", snapshot.getJobs().size(),
-                    snapshot.getTasks().size(), toTimeUnitString(jobCacheResolver.getStalenessMs()));
+            AgentSnapshot agentSnapshot = agentDataReplicator.getCurrent();
+            logger.info("Agent snapshot: instanceGroups={}, instances={}, latency={}", agentSnapshot.getInstanceGroups().size(),
+                    agentSnapshot.getInstances().size(), toTimeUnitString(agentDataReplicator.getStalenessMs()));
+
+            JobSnapshot jobSnapshot = jobDataReplicator.getCurrent();
+            logger.info("Job snapshot: jobs={}, tasks={}, latency={}", jobSnapshot.getJobs().size(),
+                    jobSnapshot.getTasks().size(), toTimeUnitString(jobDataReplicator.getStalenessMs()));
         });
     }
 

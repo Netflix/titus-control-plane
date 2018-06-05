@@ -34,7 +34,7 @@ import javax.ws.rs.core.UriInfo;
 import com.google.common.base.Strings;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
-import com.netflix.titus.gateway.service.v3.AgentManagementService;
+import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
@@ -61,10 +61,10 @@ import static com.netflix.titus.runtime.endpoint.v3.rest.RestUtil.getFilteringCr
 @Singleton
 public class AgentManagementResource {
 
-    private final AgentManagementService agentManagementService;
+    private final AgentManagementClient agentManagementService;
 
     @Inject
-    public AgentManagementResource(AgentManagementService agentManagementService) {
+    public AgentManagementResource(AgentManagementClient agentManagementService) {
         this.agentManagementService = agentManagementService;
     }
 

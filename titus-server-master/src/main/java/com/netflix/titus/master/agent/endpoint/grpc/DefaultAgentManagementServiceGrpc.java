@@ -174,7 +174,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceOverrideState(InstanceOverrideStateUpdate request, StreamObserver<Empty> responseObserver) {
         InstanceOverrideStatus coreInstanceOverrideStatus = InstanceOverrideStatus.newBuilder()
-                .withState(GrpcAgentModelConverters.toCoreOverrideState(request.getOverrideState()))
+                .withState(GrpcAgentModelConverters.toCoreInstanceOverrideState(request.getOverrideState()))
                 .withDetail(request.getDetail())
                 .withTimestamp(System.currentTimeMillis())
                 .build();

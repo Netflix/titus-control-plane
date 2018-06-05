@@ -1,13 +1,15 @@
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.connector.common.replicator;
 
 import rx.Observable;
 
-public interface JobCacheResolver {
-
+/**
+ * Data replicator from a remote service.
+ */
+public interface DataReplicator<D> {
     /**
-     * Get the latest job cache version.
+     * Get the latest known version of the data.
      */
-    JobCache getCurrent();
+    D getCurrent();
 
     /**
      * Returns the number of milliseconds since the last data refresh time.

@@ -1,4 +1,4 @@
-package com.netflix.titus.runtime.connector.jobmanager.cache;
+package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,49 +15,61 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.runtime.connector.jobmanager.JobCache;
+import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 
-public class GrpcJobStreamCache implements JobStreamCache {
+public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSnapshot> {
 
-    private static final Logger logger = LoggerFactory.getLogger(GrpcJobStreamCache.class);
+    private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
 
     private final JobManagementClient client;
+    private final DataReplicatorMetrics metrics;
     private final TitusRuntime titusRuntime;
     private final Scheduler scheduler;
 
-    public GrpcJobStreamCache(JobManagementClient client, TitusRuntime titusRuntime, Scheduler scheduler) {
+    public GrpcJobReplicatorEventStream(JobManagementClient client,
+                                        DataReplicatorMetrics metrics,
+                                        TitusRuntime titusRuntime,
+                                        Scheduler scheduler) {
         this.client = client;
+        this.metrics = metrics;
         this.titusRuntime = titusRuntime;
         this.scheduler = scheduler;
     }
 
     @Override
-    public Observable<CacheEvent> connect() {
+    public Observable<ReplicatorEvent<JobSnapshot>> connect() {
         return Observable.fromCallable(CacheUpdater::new)
                 .flatMap(cacheUpdater -> client.observeJobs().flatMap(cacheUpdater::onEvent))
                 .compose(ObservableExt.reemiter(
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
-                        cacheEvent -> new CacheEvent(cacheEvent.getCache(), titusRuntime.getClock().wallTime()),
+                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getData(), titusRuntime.getClock().wallTime()),
                         LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
                         scheduler
-                ));
+                ))
+                .doOnNext(event -> metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime()))
+                .doOnSubscribe(metrics::connected)
+                .doOnUnsubscribe(metrics::disconnected)
+                .doOnError(metrics::disconnected)
+                .doOnCompleted(metrics::disconnected);
     }
 
     private class CacheUpdater {
 
         private List<JobChangeNotification> snapshotEvents = new ArrayList<>();
-        private AtomicReference<JobCache> lastJobCacheRef = new AtomicReference<>();
+        private AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
 
-        private Observable<CacheEvent> onEvent(JobChangeNotification event) {
+        private Observable<ReplicatorEvent<JobSnapshot>> onEvent(JobChangeNotification event) {
             try {
-                if (lastJobCacheRef.get() != null) {
+                if (lastJobSnapshotRef.get() != null) {
                     return processCacheUpdate(event);
                 }
                 if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
@@ -83,7 +95,7 @@ public class GrpcJobStreamCache implements JobStreamCache {
             return Observable.empty();
         }
 
-        private Observable<CacheEvent> buildInitialCache() {
+        private Observable<ReplicatorEvent<JobSnapshot>> buildInitialCache() {
             Map<String, Job<?>> jobsById = new HashMap<>();
             Map<String, List<Task>> tasksByJobId = new HashMap<>();
 
@@ -103,32 +115,32 @@ public class GrpcJobStreamCache implements JobStreamCache {
             // No longer needed
             snapshotEvents.clear();
 
-            JobCache initialCache = new JobCache(jobsById, tasksByJobId);
-            lastJobCacheRef.set(initialCache);
+            JobSnapshot initialSnapshot = new JobSnapshot(jobsById, tasksByJobId);
+            lastJobSnapshotRef.set(initialSnapshot);
 
-            logger.info("Job snapshot loaded: jobs={}, tasks={}", initialCache.getJobs().size(), initialCache.getTasks().size());
+            logger.info("Job snapshot loaded: jobs={}, tasks={}", initialSnapshot.getJobs().size(), initialSnapshot.getTasks().size());
 
-            return Observable.just(new CacheEvent(initialCache, titusRuntime.getClock().wallTime()));
+            return Observable.just(new ReplicatorEvent<>(initialSnapshot, titusRuntime.getClock().wallTime()));
         }
 
-        private Observable<CacheEvent> processCacheUpdate(JobChangeNotification event) {
-            JobCache lastCache = lastJobCacheRef.get();
-            Optional<JobCache> newCache;
+        private Observable<ReplicatorEvent<JobSnapshot>> processCacheUpdate(JobChangeNotification event) {
+            JobSnapshot lastSnapshot = lastJobSnapshotRef.get();
+            Optional<JobSnapshot> newSnapshot;
             switch (event.getNotificationCase()) {
                 case JOBUPDATE:
                     Job job = V3GrpcModelConverters.toCoreJob(event.getJobUpdate().getJob());
-                    newCache = lastCache.updateJob(job);
+                    newSnapshot = lastSnapshot.updateJob(job);
                     break;
                 case TASKUPDATE:
                     Task task = V3GrpcModelConverters.toCoreTask(event.getTaskUpdate().getTask());
-                    newCache = lastCache.updateTask(task);
+                    newSnapshot = lastSnapshot.updateTask(task);
                     break;
                 default:
-                    newCache = Optional.empty();
+                    newSnapshot = Optional.empty();
             }
-            if (newCache.isPresent()) {
-                lastJobCacheRef.set(newCache.get());
-                return Observable.just(new CacheEvent(newCache.get(), titusRuntime.getClock().wallTime()));
+            if (newSnapshot.isPresent()) {
+                lastJobSnapshotRef.set(newSnapshot.get());
+                return Observable.just(new ReplicatorEvent<>(newSnapshot.get(), titusRuntime.getClock().wallTime()));
             }
             return Observable.empty();
         }

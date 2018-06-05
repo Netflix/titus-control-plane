@@ -100,6 +100,47 @@ public class GrpcAgentModelConverters {
                 .build();
     }
 
+    public static AgentInstanceGroup toCoreAgentInstanceGroup(com.netflix.titus.grpc.protogen.AgentInstanceGroup grpcAgentInstanceGroup) {
+        return AgentInstanceGroup.newBuilder()
+                .withId(grpcAgentInstanceGroup.getId())
+                .withResourceDimension(toCoreResourceDimension(grpcAgentInstanceGroup.getInstanceResources()))
+                .withInstanceType(grpcAgentInstanceGroup.getInstanceType())
+                .withTier(toCoreTier(grpcAgentInstanceGroup.getTier()))
+                .withMin(grpcAgentInstanceGroup.getMin())
+                .withDesired(grpcAgentInstanceGroup.getDesired())
+                .withCurrent(grpcAgentInstanceGroup.getCurrent())
+                .withMax(grpcAgentInstanceGroup.getMax())
+                .withAutoScaleRule(toCoreAutoScaleRule(grpcAgentInstanceGroup.getAutoScaleRule()))
+                .withLifecycleStatus(toCoreLifecycleStatus(grpcAgentInstanceGroup.getLifecycleStatus()))
+                .withIsLaunchEnabled(grpcAgentInstanceGroup.getIsLaunchEnabled())
+                .withIsTerminateEnabled(grpcAgentInstanceGroup.getIsTerminateEnabled())
+                .withLaunchTimestamp(grpcAgentInstanceGroup.getLaunchTimestamp())
+                .withAttributes(grpcAgentInstanceGroup.getAttributesMap())
+                .build();
+    }
+
+    public static AgentInstance toCoreAgentInstance(com.netflix.titus.grpc.protogen.AgentInstance grpcAgentInstance) {
+        return AgentInstance.newBuilder()
+                .withId(grpcAgentInstance.getId())
+                .withInstanceGroupId(grpcAgentInstance.getInstanceGroupId())
+                .withHostname(grpcAgentInstance.getHostname())
+                .withIpAddress(grpcAgentInstance.getIpAddress())
+                .withDeploymentStatus(toCoreInstanceLifecycleStatus(grpcAgentInstance.getLifecycleStatus()))
+                .withOverrideStatus(toCoreInstanceOverrideStatus(grpcAgentInstance.getOverrideStatus()))
+                .withAttributes(grpcAgentInstance.getAttributesMap())
+                .build();
+    }
+
+    private static ResourceDimension toCoreResourceDimension(com.netflix.titus.grpc.protogen.ResourceDimension grpcResourceDimension) {
+        return ResourceDimension.newBuilder()
+                .withCpus(grpcResourceDimension.getCpu())
+                .withGpu(grpcResourceDimension.getGpu())
+                .withMemoryMB(grpcResourceDimension.getMemoryMB())
+                .withDiskMB(grpcResourceDimension.getDiskMB())
+                .withNetworkMbs(grpcResourceDimension.getNetworkMbps())
+                .build();
+    }
+
     public static AutoScaleRule toCoreAutoScaleRule(com.netflix.titus.grpc.protogen.AutoScaleRule grpcAutoScaleRule) {
         return AutoScaleRule.newBuilder()
                 .withMin(grpcAutoScaleRule.getMin())
@@ -126,7 +167,36 @@ public class GrpcAgentModelConverters {
         return InstanceGroupLifecycleState.Inactive;
     }
 
-    public static InstanceOverrideState toCoreOverrideState(com.netflix.titus.grpc.protogen.InstanceOverrideState overrideState) {
+    public static InstanceGroupLifecycleStatus toCoreLifecycleStatus(com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStatus grpcLifecycleStatus) {
+        return InstanceGroupLifecycleStatus.newBuilder()
+                .withState(toCoreLifecycleState(grpcLifecycleStatus.getState()))
+                .withDetail(grpcLifecycleStatus.getDetail())
+                .withTimestamp(grpcLifecycleStatus.getTimestamp())
+                .build();
+    }
+
+    public static InstanceLifecycleState toCoreInstanceLifecycleState(com.netflix.titus.grpc.protogen.InstanceLifecycleState grpcLifecycleState) {
+        switch (grpcLifecycleState) {
+            case StartInitiated:
+                return InstanceLifecycleState.Launching;
+            case Started:
+                return InstanceLifecycleState.Started;
+            case KillInitiated:
+                return InstanceLifecycleState.KillInitiated;
+            case Stopped:
+                return InstanceLifecycleState.Stopped;
+        }
+        return InstanceLifecycleState.Stopped;
+    }
+
+    public static InstanceLifecycleStatus toCoreInstanceLifecycleStatus(com.netflix.titus.grpc.protogen.InstanceLifecycleStatus grpcLifecycleStatus) {
+        return InstanceLifecycleStatus.newBuilder()
+                .withState(toCoreInstanceLifecycleState(grpcLifecycleStatus.getState()))
+                .withLaunchTimestamp(grpcLifecycleStatus.getLaunchTimestamp())
+                .build();
+    }
+
+    public static InstanceOverrideState toCoreInstanceOverrideState(com.netflix.titus.grpc.protogen.InstanceOverrideState overrideState) {
         switch (overrideState) {
             case NotOverriden:
                 return InstanceOverrideState.None;
@@ -134,6 +204,13 @@ public class GrpcAgentModelConverters {
                 return InstanceOverrideState.Quarantined;
         }
         return InstanceOverrideState.None;
+    }
+
+    public static InstanceOverrideStatus toCoreInstanceOverrideStatus(com.netflix.titus.grpc.protogen.InstanceOverrideStatus grpcOverrideStatus) {
+        return InstanceOverrideStatus.newBuilder()
+                .withState(toCoreInstanceOverrideState(grpcOverrideStatus.getState()))
+                .withDetail(grpcOverrideStatus.getDetail())
+                .build();
     }
 
     public static com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState toGrpcLifecycleState(InstanceGroupLifecycleState state) {

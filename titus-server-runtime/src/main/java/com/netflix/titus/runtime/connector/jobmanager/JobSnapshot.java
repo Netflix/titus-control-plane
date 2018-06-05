@@ -18,9 +18,9 @@ import com.netflix.titus.common.util.tuple.Pair;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
-public class JobCache {
+public class JobSnapshot {
 
-    private static final JobCache EMPTY = new JobCache(Collections.emptyMap(), Collections.emptyMap());
+    private static final JobSnapshot EMPTY = new JobSnapshot(Collections.emptyMap(), Collections.emptyMap());
 
     private final Map<String, Job<?>> jobsById;
     private final Map<String, List<Task>> tasksByJobId;
@@ -29,7 +29,7 @@ public class JobCache {
     private final List<Pair<Job<?>, List<Task>>> allJobsAndTasks;
     private final Map<String, Task> taskById;
 
-    public JobCache(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+    public JobSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
         this.jobsById = jobsById;
 
         Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
@@ -49,7 +49,7 @@ public class JobCache {
         this.taskById = taskById;
     }
 
-    private JobCache(JobCache previousCache, Job<?> updatedJob) {
+    private JobSnapshot(JobSnapshot previousCache, Job<?> updatedJob) {
         Job<?> previousJob = previousCache.jobsById.get(updatedJob.getId());
 
         // We check this condition in the updateJob below.
@@ -114,7 +114,7 @@ public class JobCache {
         }
     }
 
-    private JobCache(JobCache previousCache, Task updatedTask) {
+    private JobSnapshot(JobSnapshot previousCache, Task updatedTask) {
         Task previousTask = previousCache.taskById.get(updatedTask.getId());
 
         // We check these conditions in the updateTask below.
@@ -193,15 +193,15 @@ public class JobCache {
         return Optional.of(Pair.of(job, task));
     }
 
-    public Optional<JobCache> updateJob(Job job) {
+    public Optional<JobSnapshot> updateJob(Job job) {
         Job<?> previous = jobsById.get(job.getId());
         if (previous == null && job.getStatus().getState() == JobState.Finished) {
             return Optional.empty();
         }
-        return Optional.of(new JobCache(this, job));
+        return Optional.of(new JobSnapshot(this, job));
     }
 
-    public Optional<JobCache> updateTask(Task task) {
+    public Optional<JobSnapshot> updateTask(Task task) {
         if (!jobsById.containsKey(task.getJobId())) { // Inconsistent data
             return Optional.empty();
         }
@@ -211,10 +211,10 @@ public class JobCache {
             return Optional.empty();
         }
 
-        return Optional.of(new JobCache(this, task));
+        return Optional.of(new JobSnapshot(this, task));
     }
 
-    public static JobCache empty() {
+    public static JobSnapshot empty() {
         return EMPTY;
     }
 
