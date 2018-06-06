@@ -9,6 +9,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
@@ -39,6 +40,6 @@ public class TaskRelocationModule extends AbstractModule {
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, registry);
+        return new DefaultTitusRuntime(codeInvariants, LoggingSystemAbortListener.getDefault(), registry);
     }
 }

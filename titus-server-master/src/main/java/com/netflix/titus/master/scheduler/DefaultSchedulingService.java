@@ -687,6 +687,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     @Override
     public void initRunningTask(QueuableTask task, String hostname) {
+        logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}",task.getId(), task.getQAttributes(), hostname);
         schedulingService.initializeRunningTask(task, hostname);
         agentResourceCacheUpdater.createOrUpdateAgentResourceCacheForTask(task, hostname);
     }

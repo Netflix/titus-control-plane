@@ -26,8 +26,10 @@ import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
@@ -74,6 +76,7 @@ public final class TitusGatewayModule extends AbstractModule {
     protected void configure() {
         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
         bind(Registry.class).toInstance(new DefaultRegistry());
+        bind(SystemAbortListener.class).to(LoggingSystemAbortListener.class);
 
         install(new ContainerEventBusModule());
 
@@ -104,11 +107,11 @@ public final class TitusGatewayModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(Registry registry) {
+    public TitusRuntime getTitusRuntime(SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, registry);
+        return new DefaultTitusRuntime(codeInvariants, systemAbortListener, registry);
     }
 }

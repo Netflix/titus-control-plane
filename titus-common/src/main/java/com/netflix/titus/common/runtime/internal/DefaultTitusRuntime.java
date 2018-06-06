@@ -27,6 +27,8 @@ import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import com.netflix.titus.common.framework.fit.FitFramework;
+import com.netflix.titus.common.runtime.SystemAbortEvent;
+import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
@@ -36,10 +38,14 @@ import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.time.Clocks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 @Singleton
 public class DefaultTitusRuntime implements TitusRuntime {
+
+    private static final Logger logger = LoggerFactory.getLogger(DefaultTitusRuntime.class);
 
     public static final String FIT_ACTIVATION_PROPERTY = "titus.runtime.fit.enabled";
 
@@ -53,24 +59,31 @@ public class DefaultTitusRuntime implements TitusRuntime {
 
     private final CodePointTracker codePointTracker;
     private final CodeInvariants codeInvariants;
+    private final SystemAbortListener systemAbortListener;
     private final Registry registry;
     private final Clock clock;
     private final FitFramework fitFramework;
 
     @Inject
-    public DefaultTitusRuntime(CodeInvariants codeInvariants, Registry registry) {
+    public DefaultTitusRuntime(CodeInvariants codeInvariants, SystemAbortListener systemAbortListener, Registry registry) {
         this(
                 new SpectatorCodePointTracker(registry),
                 codeInvariants,
+                systemAbortListener,
                 registry,
                 Clocks.system(),
                 "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false"))
         );
     }
 
-    public DefaultTitusRuntime(CodePointTracker codePointTracker, CodeInvariants codeInvariants, Registry registry, Clock clock, boolean isFitEnabled) {
+    public DefaultTitusRuntime(CodePointTracker codePointTracker,
+                               CodeInvariants codeInvariants,
+                               SystemAbortListener systemAbortListener,
+                               Registry registry, Clock clock,
+                               boolean isFitEnabled) {
         this.codePointTracker = codePointTracker;
         this.codeInvariants = codeInvariants;
+        this.systemAbortListener = systemAbortListener;
         this.registry = registry;
         this.clock = clock;
         this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
@@ -131,5 +144,15 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Override
     public FitFramework getFitFramework() {
         return fitFramework;
+    }
+
+    @Override
+    public void beforeAbort(SystemAbortEvent event) {
+        logger.error("System abort requested: {}", event);
+        try {
+            systemAbortListener.onSystemAbortEvent(event);
+        } catch (Exception e) {
+            logger.error("Unexpected exception from the system abort listener", e);
+        }
     }
 }
