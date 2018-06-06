@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.inject.Inject;
@@ -25,7 +24,7 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.protobuf.util.JsonFormat;
-import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.api.Config;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStoreFitAction;
@@ -36,8 +35,10 @@ import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.framework.fit.FitRegistry;
 import com.netflix.titus.common.framework.fit.FitUtil;
 import com.netflix.titus.common.jhiccup.JHiccupModule;
+import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
+import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
@@ -60,19 +61,16 @@ public class TitusRuntimeModule extends AbstractModule {
 
     private static final Logger logger = LoggerFactory.getLogger(TitusRuntimeModule.class);
 
+    public static final String FIT_CONFIGURATION_PREFIX = "titusMaster.runtime.fitActions.";
+
     @Override
     protected void configure() {
         // Framework services
         install(new ContainerEventBusModule());
         install(new JHiccupModule());
 
+        bind(SystemAbortListener.class).to(LoggingSystemAbortListener.class);
         bind(FitActionInitializer.class).asEagerSingleton();
-    }
-
-    @Singleton
-    @Provides
-    public TitusRuntimeConfiguration getTitusRuntimeConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(TitusRuntimeConfiguration.class);
     }
 
     @Singleton
@@ -83,12 +81,12 @@ public class TitusRuntimeModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(Registry registry) {
+    public TitusRuntime getTitusRuntime(SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, registry);
+        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, systemAbortListener, registry);
 
         // Setup FIT component hierarchy
         FitFramework fitFramework = titusRuntime.getFitFramework();
@@ -119,7 +117,7 @@ public class TitusRuntimeModule extends AbstractModule {
     private static class FitActionInitializer {
 
         @Inject
-        public FitActionInitializer(TitusRuntimeConfiguration configuration,
+        public FitActionInitializer(Config config,
                                     TitusRuntime titusRuntime,
                                     VirtualMachineMasterService mustRunAfterDependency) {
             FitFramework fitFramework = titusRuntime.getFitFramework();
@@ -127,7 +125,7 @@ public class TitusRuntimeModule extends AbstractModule {
             // Load FIT actions from configuration.
             int i = 0;
             Optional<Fit.AddAction> next;
-            while ((next = toFitAddAction(configuration.getFitActions(), i)).isPresent()) {
+            while ((next = toFitAddAction(config, i)).isPresent()) {
                 Fit.AddAction request = next.get();
 
                 try {
@@ -146,10 +144,10 @@ public class TitusRuntimeModule extends AbstractModule {
             }
         }
 
-        private Optional<Fit.AddAction> toFitAddAction(Map<String, String> actionAddRequests, int index) {
+        private Optional<Fit.AddAction> toFitAddAction(Config config, int index) {
             String requestJson;
             try {
-                requestJson = actionAddRequests.get(Integer.toString(index));
+                requestJson = config.getString(FIT_CONFIGURATION_PREFIX + index);
                 if (!StringExt.isNotEmpty(requestJson)) {
                     return Optional.empty();
                 }

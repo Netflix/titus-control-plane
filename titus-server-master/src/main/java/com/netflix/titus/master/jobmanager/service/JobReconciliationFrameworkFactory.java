@@ -46,6 +46,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
@@ -89,6 +90,8 @@ import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerB
 public class JobReconciliationFrameworkFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(JobReconciliationFrameworkFactory.class);
+
+    public static final String INCONSISTENT_DATA_FAILURE_ID = V3JobOperations.COMPONENT + ".inconsistentData";
 
     static final String ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.bootstrap.";
 
@@ -166,7 +169,7 @@ public class JobReconciliationFrameworkFactory {
         this.permissiveEntitySanitizer = permissiveEntitySanitizer;
         this.strictEntitySanitizer = strictEntitySanitizer;
         this.optionalScheduler = optionalScheduler;
-        this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, titusRuntime.getRegistry());
+        this.errorCollector = new InitializationErrorCollector(jobManagerConfiguration, titusRuntime);
         this.titusRuntime = titusRuntime;
         this.registry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();

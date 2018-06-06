@@ -403,27 +403,31 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
     @Override
     public void statusUpdate(final SchedulerDriver arg0, TaskStatus taskStatus) {
-        String taskId = taskStatus.getTaskId().getValue();
-        TaskState taskState = taskStatus.getState();
+        try {
+            String taskId = taskStatus.getTaskId().getValue();
+            TaskState taskState = taskStatus.getState();
 
-        TaskStatus effectiveTaskStatus = taskStatusUpdateFitInjection.map(i -> i.afterImmediate("update", taskStatus)).orElse(taskStatus);
+            TaskStatus effectiveTaskStatus = taskStatusUpdateFitInjection.map(i -> i.afterImmediate("update", taskStatus)).orElse(taskStatus);
 
-        if (isReconcilerUpdateForUnknownTask(effectiveTaskStatus)) {
-            mesosStateTracker.unknownTaskStatusUpdate(taskStatus);
-            if (!mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
-                logger.info("Ignoring reconciler triggered task status update: {}", taskId);
-                return;
+            if (isReconcilerUpdateForUnknownTask(effectiveTaskStatus)) {
+                mesosStateTracker.unknownTaskStatusUpdate(taskStatus);
+                if (!mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
+                    logger.info("Ignoring reconciler triggered task status update: {}", taskId);
+                    return;
+                }
+            } else {
+                mesosStateTracker.knownTaskStatusUpdate(taskStatus);
             }
-        } else {
-            mesosStateTracker.knownTaskStatusUpdate(taskStatus);
-        }
 
-        logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, effectiveTaskStatus.getMessage());
+            logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, effectiveTaskStatus.getMessage());
 
-        if (JobFunctions.isV2Task(taskId)) {
-            v2StatusUpdate(effectiveTaskStatus);
-        } else {
-            v3StatusUpdate(effectiveTaskStatus);
+            if (JobFunctions.isV2Task(taskId)) {
+                v2StatusUpdate(effectiveTaskStatus);
+            } else {
+                v3StatusUpdate(effectiveTaskStatus);
+            }
+        } catch (Exception e) {
+            logger.error("Unexpected error when handling the status update: {}", taskStatus, e);
         }
     }
 

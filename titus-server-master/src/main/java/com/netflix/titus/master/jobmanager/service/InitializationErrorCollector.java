@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.runtime.SystemAbortEvent;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +38,7 @@ class InitializationErrorCollector {
     private static final Logger logger = LoggerFactory.getLogger(InitializationErrorCollector.class);
 
     private final JobManagerConfiguration jobManagerConfiguration;
+    private final TitusRuntime titusRuntime;
 
     private final AtomicInteger corruptedJobRecords = new AtomicInteger();
     private final AtomicInteger corruptedTaskRecords = new AtomicInteger();
@@ -60,9 +63,11 @@ class InitializationErrorCollector {
     private final Gauge launchedTasksWithUnidentifiedAgentsGauge;
     private final Gauge eniOverlapsGauge;
 
-    InitializationErrorCollector(JobManagerConfiguration jobManagerConfiguration, Registry registry) {
+    InitializationErrorCollector(JobManagerConfiguration jobManagerConfiguration, TitusRuntime titusRuntime) {
         this.jobManagerConfiguration = jobManagerConfiguration;
+        this.titusRuntime = titusRuntime;
 
+        Registry registry = titusRuntime.getRegistry();
         this.corruptedJobRecordsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "corruptedJobRecords");
         this.corruptedTaskRecordsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "corruptedTaskRecords");
         this.invalidJobsGauge = registry.gauge(JobReconciliationFrameworkFactory.ROOT_METRIC_NAME + "invalidJobs");
@@ -133,15 +138,15 @@ class InitializationErrorCollector {
         if (failOnJobs && failOnTasks) {
             logger.error(jobErrorMessage);
             logger.error(taskErrorMessage);
-            throw new IllegalStateException(jobErrorMessage + ". " + taskErrorMessage);
+            doFail(jobErrorMessage + ". " + taskErrorMessage);
         }
         if (failOnJobs) {
             logger.error(jobErrorMessage);
-            throw new IllegalStateException(jobErrorMessage);
+            doFail(jobErrorMessage);
         }
         if (failOnTasks) {
             logger.error(taskErrorMessage);
-            throw new IllegalStateException(taskErrorMessage);
+            doFail(taskErrorMessage);
         }
 
         if (allFailedJobs > 0) {
@@ -150,6 +155,16 @@ class InitializationErrorCollector {
         if (allFailedTasks > 0) {
             logger.info("Ok to move on although bad task records found: badRecords={}, threshold={}", allFailedTasks, jobManagerConfiguration.getMaxFailedTasks());
         }
+    }
+
+    private void doFail(String reason) {
+        titusRuntime.beforeAbort(SystemAbortEvent.newBuilder()
+                .withFailureId(JobReconciliationFrameworkFactory.INCONSISTENT_DATA_FAILURE_ID)
+                .withFailureType(SystemAbortEvent.FailureType.Nonrecoverable)
+                .withReason(reason)
+                .withTimestamp(titusRuntime.getClock().wallTime())
+                .build());
+        throw new IllegalStateException(reason);
     }
 
     private void writeStateToLog() {
