@@ -428,6 +428,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             }
         } catch (Exception e) {
             logger.error("Unexpected error when handling the status update: {}", taskStatus, e);
+            throw e;
         }
     }
 
