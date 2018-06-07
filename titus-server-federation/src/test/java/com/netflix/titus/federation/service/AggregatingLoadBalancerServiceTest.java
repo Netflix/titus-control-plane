@@ -15,12 +15,7 @@
  */
 package com.netflix.titus.federation.service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -295,8 +290,8 @@ public class AggregatingLoadBalancerServiceTest {
 
     @Test
     public void getJobLoadBalancersNoAssociations() {
-        cellOne.getServiceRegistry().addService(new CellWithNoLoadBalancers());
-        cellTwo.getServiceRegistry().addService(new CellWithNoLoadBalancers());
+        cellOne.getServiceRegistry().addService(new CellWithLoadBalancers(Collections.emptyList()));
+        cellTwo.getServiceRegistry().addService(new CellWithLoadBalancers(Collections.emptyList()));
 
         final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
         resultSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
