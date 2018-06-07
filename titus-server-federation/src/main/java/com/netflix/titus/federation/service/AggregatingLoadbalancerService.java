@@ -100,7 +100,8 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
                 .filter(response -> response.getResult().hasError() || response.getResult().getValue().getLoadBalancersCount() > 0)
                 .reduce(ResponseMerger.emptyResponseMarker(), ResponseMerger.singleValue())
                 .filter(ResponseMerger::isNotEmptyResponseMarker)
-                .flatMap(response -> response.getResult().map(Observable::just).onErrorGet(Observable::error));
+                .flatMap(response -> response.getResult().map(Observable::just).onErrorGet(Observable::error))
+                .switchIfEmpty(Observable.just(GetJobLoadBalancersResult.newBuilder().setJobId(jobId.getId()).build()));
     }
 
     @Override

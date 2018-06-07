@@ -293,6 +293,18 @@ public class AggregatingLoadBalancerServiceTest {
         assertThat(Status.fromThrowable(onErrorEvents.get(0))).isEqualTo(Status.NOT_FOUND);
     }
 
+    @Test
+    public void getJobLoadBalancersNoAssociations() {
+        cellOne.getServiceRegistry().addService(new CellWithNoLoadBalancers());
+        cellTwo.getServiceRegistry().addService(new CellWithNoLoadBalancers());
+
+        final AssertableSubscriber<GetJobLoadBalancersResult> resultSubscriber = service.getLoadBalancers(JobId.newBuilder().setId(JOB_1).build()).test();
+        resultSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
+        resultSubscriber.assertNoErrors().assertCompleted();
+        resultSubscriber.assertValueCount(1);
+        assertThat(resultSubscriber.getOnNextEvents().get(0).getLoadBalancersCount()).isZero();
+    }
+
     private List<JobLoadBalancer> buildJobLoadBalancerList(GetAllLoadBalancersResult getAllLoadBalancersResult) {
         return getAllLoadBalancersResult.getJobLoadBalancersList().stream()
                 .flatMap(jobLoadBalancersResult -> {
