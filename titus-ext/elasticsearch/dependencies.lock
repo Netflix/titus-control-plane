@@ -567,7 +567,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1516,7 +1516,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2465,7 +2465,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3478,7 +3478,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4428,7 +4428,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5388,7 +5388,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6393,7 +6393,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7398,7 +7398,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -8404,7 +8404,7 @@
             ]
         },
         "javax.el:javax.el-api": {
-            "locked": "3.0.1-b04",
+            "locked": "3.0.1-b06",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
