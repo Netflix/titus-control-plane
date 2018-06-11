@@ -24,6 +24,7 @@ import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.exceptions.TruncateException;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.cassandra.executor.AsyncCassandraExecutor;
@@ -41,11 +42,39 @@ public class CassandraUtils {
     public static final int SPLIT = 2;
 
     public static void truncateTable(CommandContext context, String table) {
+        for (int i = 0; i < 3; i++) {
+            if (truncateTableInternal(context, table)) {
+                return;
+            }
+        }
+    }
+
+    private static boolean truncateTableInternal(CommandContext context, String table) {
         PreparedStatement truncateStatement = context.getTargetSession().prepare(
                 "TRUNCATE \"" + table + "\""
         );
-        context.getTargetCassandraExecutor().executeUpdate(truncateStatement.bind()).toBlocking().firstOrDefault(null);
+        try {
+            context.getTargetCassandraExecutor().executeUpdate(truncateStatement.bind()).toBlocking().firstOrDefault(null);
+        } catch (TruncateException e) {
+            // Check if the table is empty
+            logger.info("Couldn't complete the truncate operation. Checking if the table is empty: {}", table);
+            Pair<Object, Object> value = readTwoColumnTable(context.getTargetSession(), table).take(1).toBlocking().firstOrDefault(null);
+            if (value == null) {
+                // Truncate failed, but the table is empty. It is ok to move on.
+                logger.info("Truncate deemed as successful, as the table is empty: {}", table);
+                return true;
+            }
+
+            if (e.getMessage().contains("Cannot achieve consistency level ALL")) {
+                logger.warn("Recoverable truncate operations for table {}. Cause: {}", table, e.getMessage());
+                return false;
+            }
+
+            // Not recoverable error. Re-throw it.
+            throw e;
+        }
         logger.info("Truncated table {}.{}", truncateStatement.getQueryKeyspace(), table);
+        return true;
     }
 
     public static Pair<String, String> resolveColumnNamesInTwoColumnTable(Session sourceSession, String table) {
