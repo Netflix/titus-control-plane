@@ -31,4 +31,10 @@ public interface JobManagerConfiguration {
 
     @DefaultValue("_none_")
     String getNoncompliantClientWhiteList();
+
+    /**
+     * @return the minimum disk size in megabytes that the disk resource dimension should be set to.
+     */
+    @DefaultValue("10000")
+    int getMinDiskSize();
 }

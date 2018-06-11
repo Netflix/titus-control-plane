@@ -9,6 +9,7 @@ import javax.inject.Named;
 import javax.validation.ConstraintViolation;
 
 import com.google.common.base.CharMatcher;
+import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -58,6 +59,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
             }
 
             // TODO Remove once all clients are compliant.
+            jobDescriptor = checkResourceViolations(jobDescriptor);
             sanitized = (T) checkEnvironmentViolations(jobDescriptor);
         }
         return entity == sanitized ? Optional.empty() : Optional.of(sanitized);
@@ -109,6 +111,22 @@ class ExtendedJobSanitizer implements EntitySanitizer {
                 : (noDotInKeyName ? "nonAsciiCharactersInEnvironmentVariable" : "environmentVariableNameWithDot,nonAsciiCharactersInEnvironmentVariable");
 
         return markNonCompliant(jobDescriptor, nonCompliant);
+    }
+
+    private com.netflix.titus.api.jobmanager.model.job.JobDescriptor checkResourceViolations(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+        ContainerResources containerResources = jobDescriptor.getContainer().getContainerResources();
+        int minDiskSize = jobManagerConfiguration.getMinDiskSize();
+        if (containerResources.getDiskMB() >= minDiskSize) {
+            return jobDescriptor;
+        }
+
+        com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> sanitizedJobDescriptor = jobDescriptor.toBuilder()
+                .withContainer(jobDescriptor.getContainer().toBuilder()
+                        .withContainerResources(
+                                containerResources.toBuilder().withDiskMB(minDiskSize).build()
+                        ).build()
+                ).build();
+        return markNonCompliant(sanitizedJobDescriptor, "diskSizeLessThanMin");
     }
 
     private com.netflix.titus.api.jobmanager.model.job.JobDescriptor markNonCompliant(com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor, String nonCompliant) {
