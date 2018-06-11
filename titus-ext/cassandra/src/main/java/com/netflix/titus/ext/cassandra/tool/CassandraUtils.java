@@ -24,6 +24,7 @@ import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.exceptions.TruncateException;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.cassandra.executor.AsyncCassandraExecutor;
@@ -41,11 +42,30 @@ public class CassandraUtils {
     public static final int SPLIT = 2;
 
     public static void truncateTable(CommandContext context, String table) {
+        PreparedStatement truncateStatement = truncateTableInternal(context, table, 1);
+        logger.info("Truncated table {}.{}", truncateStatement.getQueryKeyspace(), table);
+    }
+
+    private static PreparedStatement truncateTableInternal(CommandContext context, String table, int retryCount) {
         PreparedStatement truncateStatement = context.getTargetSession().prepare(
                 "TRUNCATE \"" + table + "\""
         );
-        context.getTargetCassandraExecutor().executeUpdate(truncateStatement.bind()).toBlocking().firstOrDefault(null);
-        logger.info("Truncated table {}.{}", truncateStatement.getQueryKeyspace(), table);
+        try {
+            context.getTargetCassandraExecutor().executeUpdate(truncateStatement.bind()).toBlocking().firstOrDefault(null);
+        } catch (TruncateException e) {
+            if (retryCount > 0 && e.getMessage().contains("Cannot achieve consistency level ALL")) {
+                logger.warn("Retrying failed truncate operations for table {}. Cause: {}", table, e.getMessage());
+                return truncateTableInternal(context, table, retryCount - 1);
+            }
+
+            // Check if table is empty
+            logger.info("Cannot complete truncate operation. Checking if table is empty: {}", table);
+            Pair<Object, Object> value = readTwoColumnTable(context.getTargetSession(), table).take(1).toBlocking().firstOrDefault(null);
+            if (value != null) {
+                throw new IllegalStateException("Could not truncate table: " + table);
+            }
+        }
+        return truncateStatement;
     }
 
     public static Pair<String, String> resolveColumnNamesInTwoColumnTable(Session sourceSession, String table) {
