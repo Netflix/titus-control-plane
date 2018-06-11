@@ -13,6 +13,10 @@ import rx.Observable;
 import rx.Subscription;
 import rx.subjects.PublishSubject;
 
+/**
+ * {@link DataReplicator} implementation that wraps {@link ReplicatorEventStream}. The latter is provided
+ * as a constructor argument by extensions of this class.
+ */
 public abstract class StreamDataReplicator<D> implements DataReplicator<D> {
     private static final Logger logger = LoggerFactory.getLogger(StreamDataReplicator.class);
 

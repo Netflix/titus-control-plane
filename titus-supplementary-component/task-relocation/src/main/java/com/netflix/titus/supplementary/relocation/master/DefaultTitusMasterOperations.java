@@ -32,11 +32,11 @@ public class DefaultTitusMasterOperations implements TitusMasterOperations {
 
         this.subscription = Observable.interval(0, 5, TimeUnit.SECONDS).subscribe(tick -> {
             AgentSnapshot agentSnapshot = agentDataReplicator.getCurrent();
-            logger.info("Agent snapshot: instanceGroups={}, instances={}, latency={}", agentSnapshot.getInstanceGroups().size(),
+            logger.info("Agent snapshot: instanceGroups={}, instances={}, staleness={}", agentSnapshot.getInstanceGroups().size(),
                     agentSnapshot.getInstances().size(), toTimeUnitString(agentDataReplicator.getStalenessMs()));
 
             JobSnapshot jobSnapshot = jobDataReplicator.getCurrent();
-            logger.info("Job snapshot: jobs={}, tasks={}, latency={}", jobSnapshot.getJobs().size(),
+            logger.info("Job snapshot: jobs={}, tasks={}, staleness={}", jobSnapshot.getJobs().size(),
                     jobSnapshot.getTasks().size(), toTimeUnitString(jobDataReplicator.getStalenessMs()));
         });
     }

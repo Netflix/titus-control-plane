@@ -23,14 +23,14 @@ public class AgentSnapshot {
 
     private final Map<String, AgentInstance> instancesById;
     private final List<AgentInstance> instances;
-    private final Map<String, List<AgentInstance>> instancesByGroupId;
+    private final Map<String, List<AgentInstance>> instancesByInstanceGroupId;
 
 
-    public AgentSnapshot(Map<String, AgentInstanceGroup> instanceGroupsById, Map<String, List<AgentInstance>> instancesByGroupId) {
+    public AgentSnapshot(Map<String, AgentInstanceGroup> instanceGroupsById, Map<String, List<AgentInstance>> instancesByInstanceGroupId) {
         this.instanceGroupsById = instanceGroupsById;
         this.instanceGroupList = Collections.unmodifiableList(new ArrayList<>(instanceGroupsById.values()));
-        this.instancesByGroupId = asUnmodifiable(instancesByGroupId);
-        this.instances = toAllInstances(instancesByGroupId);
+        this.instancesByInstanceGroupId = asUnmodifiable(instancesByInstanceGroupId);
+        this.instances = toAllInstances(instancesByInstanceGroupId);
         this.instancesById = toInstanceByIdMap(instances);
     }
 
@@ -39,12 +39,12 @@ public class AgentSnapshot {
             this.instanceGroupsById = unmodifiableMap(copyAndRemove(previous.instanceGroupsById, instanceGroup.getId()));
             this.instancesById = unmodifiableMap(copyAndRemoveByValue(previous.instancesById, instance -> instance.getInstanceGroupId().equals(instanceGroup.getId())));
             this.instances = unmodifiableList(copyAndRemove(previous.instances, instance -> instance.getInstanceGroupId().equals(instanceGroup.getId())));
-            this.instancesByGroupId = unmodifiableMap(copyAndRemove(previous.instancesByGroupId, instanceGroup.getId()));
+            this.instancesByInstanceGroupId = unmodifiableMap(copyAndRemove(previous.instancesByInstanceGroupId, instanceGroup.getId()));
         } else {
             this.instanceGroupsById = unmodifiableMap(copyAndAdd(previous.instanceGroupsById, instanceGroup.getId(), instanceGroup));
             this.instancesById = previous.instancesById;
             this.instances = previous.instances;
-            this.instancesByGroupId = previous.instancesByGroupId;
+            this.instancesByInstanceGroupId = previous.instancesByInstanceGroupId;
         }
 
         this.instanceGroupList = Collections.unmodifiableList(new ArrayList<>(instanceGroupsById.values()));
@@ -58,13 +58,13 @@ public class AgentSnapshot {
             this.instancesById = unmodifiableMap(copyAndRemove(previous.instancesById, instance.getId()));
             this.instances = unmodifiableList(copyAndRemove(previous.instances, i -> i.getId().equals(instance.getId())));
 
-            List<AgentInstance> groupInstances = copyAndRemove(previous.instancesByGroupId.getOrDefault(instance.getInstanceGroupId(), Collections.emptyList()), i -> i.getId().equals(instance.getId()));
-            this.instancesByGroupId = unmodifiableMap(copyAndAdd(previous.instancesByGroupId, instance.getInstanceGroupId(), groupInstances));
+            List<AgentInstance> groupInstances = copyAndRemove(previous.instancesByInstanceGroupId.getOrDefault(instance.getInstanceGroupId(), Collections.emptyList()), i -> i.getId().equals(instance.getId()));
+            this.instancesByInstanceGroupId = unmodifiableMap(copyAndAdd(previous.instancesByInstanceGroupId, instance.getInstanceGroupId(), groupInstances));
         } else {
             this.instancesById = unmodifiableMap(copyAndAdd(previous.instancesById, instance.getId(), instance));
             this.instances = updateInstanceInList(previous.instances, instance);
-            List<AgentInstance> groupInstances = updateInstanceInList(previous.instancesByGroupId.getOrDefault(instance.getId(), Collections.emptyList()), instance);
-            this.instancesByGroupId = unmodifiableMap(copyAndAdd(previous.instancesByGroupId, instance.getInstanceGroupId(), groupInstances));
+            List<AgentInstance> groupInstances = updateInstanceInList(previous.instancesByInstanceGroupId.getOrDefault(instance.getId(), Collections.emptyList()), instance);
+            this.instancesByInstanceGroupId = unmodifiableMap(copyAndAdd(previous.instancesByInstanceGroupId, instance.getInstanceGroupId(), groupInstances));
         }
     }
 
@@ -81,7 +81,7 @@ public class AgentSnapshot {
     }
 
     public List<AgentInstance> getInstances(String instanceGroupId) {
-        return instancesByGroupId.getOrDefault(instanceGroupId, Collections.emptyList());
+        return instancesByInstanceGroupId.getOrDefault(instanceGroupId, Collections.emptyList());
     }
 
     public Optional<AgentInstance> findInstance(String instanceId) {

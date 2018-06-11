@@ -109,7 +109,7 @@ public class GrpcAgentReplicatorEventStream implements ReplicatorEventStream<Age
                 }
             });
 
-            // No longer needed
+            // Clear so the garbage collector can reclaim the memory (we no longer need this data).
             snapshotEvents.clear();
 
             AgentSnapshot initialSnapshot = new AgentSnapshot(instanceGroupsById, instancesByGroupId);
