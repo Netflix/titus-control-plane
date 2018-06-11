@@ -42,30 +42,39 @@ public class CassandraUtils {
     public static final int SPLIT = 2;
 
     public static void truncateTable(CommandContext context, String table) {
-        PreparedStatement truncateStatement = truncateTableInternal(context, table, 1);
-        logger.info("Truncated table {}.{}", truncateStatement.getQueryKeyspace(), table);
+        for (int i = 0; i < 3; i++) {
+            if (truncateTableInternal(context, table)) {
+                return;
+            }
+        }
     }
 
-    private static PreparedStatement truncateTableInternal(CommandContext context, String table, int retryCount) {
+    private static boolean truncateTableInternal(CommandContext context, String table) {
         PreparedStatement truncateStatement = context.getTargetSession().prepare(
                 "TRUNCATE \"" + table + "\""
         );
         try {
             context.getTargetCassandraExecutor().executeUpdate(truncateStatement.bind()).toBlocking().firstOrDefault(null);
         } catch (TruncateException e) {
-            if (retryCount > 0 && e.getMessage().contains("Cannot achieve consistency level ALL")) {
-                logger.warn("Retrying failed truncate operations for table {}. Cause: {}", table, e.getMessage());
-                return truncateTableInternal(context, table, retryCount - 1);
+            // Check if the table is empty
+            logger.info("Couldn't complete the truncate operation. Checking if the table is empty: {}", table);
+            Pair<Object, Object> value = readTwoColumnTable(context.getTargetSession(), table).take(1).toBlocking().firstOrDefault(null);
+            if (value == null) {
+                // Truncate failed, but the table is empty. It is ok to move on.
+                logger.info("Truncate deemed as successful, as the table is empty: {}", table);
+                return true;
             }
 
-            // Check if table is empty
-            logger.info("Cannot complete truncate operation. Checking if table is empty: {}", table);
-            Pair<Object, Object> value = readTwoColumnTable(context.getTargetSession(), table).take(1).toBlocking().firstOrDefault(null);
-            if (value != null) {
-                throw new IllegalStateException("Could not truncate table: " + table);
+            if (e.getMessage().contains("Cannot achieve consistency level ALL")) {
+                logger.warn("Recoverable truncate operations for table {}. Cause: {}", table, e.getMessage());
+                return false;
             }
+
+            // Not recoverable error. Re-throw it.
+            throw e;
         }
-        return truncateStatement;
+        logger.info("Truncated table {}.{}", truncateStatement.getQueryKeyspace(), table);
+        return true;
     }
 
     public static Pair<String, String> resolveColumnNamesInTwoColumnTable(Session sourceSession, String table) {
