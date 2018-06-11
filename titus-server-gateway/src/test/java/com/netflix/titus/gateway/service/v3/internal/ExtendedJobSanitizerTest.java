@@ -48,7 +48,7 @@ public class ExtendedJobSanitizerTest {
                 .map(jd -> jd.but(d -> d.getContainer().but(c -> c.getContainerResources().toBuilder().withDiskMB(diskSize))))
                 .cast(JobDescriptor.class).getValue();
 
-        when(configuration.getMinDiskSize()).thenReturn(MIN_DISK_SIZE);
+        when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
@@ -67,7 +67,7 @@ public class ExtendedJobSanitizerTest {
                 .map(jd -> jd.but(d -> d.getContainer().but(c -> c.getContainerResources().toBuilder().withDiskMB(diskSize))))
                 .cast(JobDescriptor.class).getValue();
 
-        when(configuration.getMinDiskSize()).thenReturn(MIN_DISK_SIZE);
+        when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);

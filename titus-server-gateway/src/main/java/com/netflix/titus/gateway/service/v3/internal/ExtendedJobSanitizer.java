@@ -115,7 +115,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
 
     private com.netflix.titus.api.jobmanager.model.job.JobDescriptor checkResourceViolations(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
         ContainerResources containerResources = jobDescriptor.getContainer().getContainerResources();
-        int minDiskSize = jobManagerConfiguration.getMinDiskSize();
+        int minDiskSize = jobManagerConfiguration.getMinDiskSizeMB();
         if (containerResources.getDiskMB() >= minDiskSize) {
             return jobDescriptor;
         }
