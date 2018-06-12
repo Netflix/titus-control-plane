@@ -42,6 +42,7 @@ import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
 import com.netflix.titus.api.loadbalancer.model.TargetState;
+import com.netflix.titus.api.loadbalancer.service.LoadBalancerException;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -172,8 +173,18 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 .compose(registeredIpsMetrics.asSingle())
                 .flatMapObservable(registeredIps -> updatesFor(loadBalancerId, associations, registeredIps));
 
+        final String reconciliationErrorFormat = "Error while reconciling load balancer {}";
+
         return updatesForLoadBalancer
-                .doOnError(e -> logger.error("Error while reconciling load balancer {}", loadBalancerId, e))
+                .doOnError(e -> {
+                    switch (LoadBalancerException.getLogLevel(e)) {
+                        case DEBUG:
+                            logger.debug(reconciliationErrorFormat, loadBalancerId, e);
+                            break;
+                        default:
+                            logger.error(reconciliationErrorFormat, loadBalancerId, e);
+                    }
+                })
                 .onErrorResumeNext(Observable.empty());
     }
 

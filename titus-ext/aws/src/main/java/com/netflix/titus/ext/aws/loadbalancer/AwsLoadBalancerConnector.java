@@ -22,16 +22,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
-import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
-import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsRequest;
-import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsResult;
-import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetHealthRequest;
-import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetHealthResult;
-import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
-import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
+import com.amazonaws.services.elasticloadbalancingv2.model.*;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.CloudConnectorException;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
+import com.netflix.titus.api.loadbalancer.service.LoadBalancerException;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -166,8 +161,15 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
 
         return asyncResult
                 .observeOn(scheduler)
-                .doOnError(throwable -> {
+                .onErrorResumeNext(throwable -> {
                     connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, throwable, startTime);
+                    // In order to conditionally handle this exception elsewhere without requiring a dependency on AWS
+                    // libraries we wrap this Exception.
+                    if (throwable instanceof TargetGroupNotFoundException) {
+                        throwable = LoadBalancerException.targetGroupNotFound(loadBalancerId, throwable);
+                    }
+
+                    return Single.error(throwable);
                 })
                 .map(result -> {
                     connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, startTime);

@@ -16,24 +16,23 @@
 
 package com.netflix.titus.api.loadbalancer.service;
 
+import org.slf4j.event.Level;
+
 import static java.lang.String.format;
 
 public class LoadBalancerException extends RuntimeException {
 
     public enum ErrorCode {
         JobNotRoutableIp,
-        JobMaxLoadBalancers
+        JobMaxLoadBalancers,
+        TargetGroupNotFound
     }
 
     private final ErrorCode errorCode;
 
-    private LoadBalancerException(ErrorCode errorCode, String message) {
-        this(errorCode, message, null);
-    }
-
-    private LoadBalancerException(ErrorCode errorCode, String message, Throwable cause) {
-        super(message, cause);
-        this.errorCode = errorCode;
+    private LoadBalancerException(Builder builder) {
+        super(builder.message, builder.cause);
+        this.errorCode = builder.errorCode;
     }
 
     public ErrorCode getErrorCode() {
@@ -41,11 +40,55 @@ public class LoadBalancerException extends RuntimeException {
     }
 
     public static LoadBalancerException jobNotRoutableIp(String jobId) {
-        return new LoadBalancerException(ErrorCode.JobNotRoutableIp, format("Job %s does not have a routable IP", jobId));
+        return new Builder(ErrorCode.JobNotRoutableIp, format("Job %s does not have a routable IP", jobId)).build();
     }
 
     public static LoadBalancerException jobMaxLoadBalancers(String jobId, int maxLoadBalancers, int curLoadBalancers) {
-        return new LoadBalancerException(ErrorCode.JobMaxLoadBalancers,
-                format("Job %s already has %d load balancers and maximum is %s", jobId, curLoadBalancers, maxLoadBalancers));
+        return new Builder(
+                ErrorCode.JobMaxLoadBalancers,
+                format(
+                        "Job %s already has %d load balancers and maximum is %s",
+                        jobId, curLoadBalancers, maxLoadBalancers))
+                .build();
+    }
+
+    public static LoadBalancerException targetGroupNotFound(String targetGroupId, Throwable cause) {
+        return new Builder(ErrorCode.TargetGroupNotFound, format("TargetGroup '%s' not found.", targetGroupId))
+                .withCause(cause)
+                .build();
+    }
+
+    public static final class Builder {
+        private final ErrorCode errorCode;
+        private final String message;
+        private Throwable cause;
+
+        private Builder(ErrorCode errorCode, String message) {
+            this.errorCode = errorCode;
+            this.message = message;
+        }
+
+        public Builder withCause(Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
+        public LoadBalancerException build() {
+            return new LoadBalancerException(this);
+        }
+    }
+
+    public static Level getLogLevel(Throwable throwable) {
+        Level level = Level.ERROR;
+
+        if (throwable instanceof LoadBalancerException) {
+            LoadBalancerException loadBalancerException = (LoadBalancerException) throwable;
+            if (loadBalancerException.getErrorCode().equals(ErrorCode.TargetGroupNotFound)) {
+                // TODO: We don't handle out-of-band deletion of TargetGroup, so this is not an exceptional case.
+                level = Level.DEBUG;
+            }
+        }
+
+        return level;
     }
 }
