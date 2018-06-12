@@ -23,7 +23,6 @@ import static java.lang.String.format;
 public class LoadBalancerException extends RuntimeException {
 
     public enum ErrorCode {
-        JobNotRoutableIp,
         JobMaxLoadBalancers,
         TargetGroupNotFound
     }
@@ -37,10 +36,6 @@ public class LoadBalancerException extends RuntimeException {
 
     public ErrorCode getErrorCode() {
         return errorCode;
-    }
-
-    public static LoadBalancerException jobNotRoutableIp(String jobId) {
-        return new Builder(ErrorCode.JobNotRoutableIp, format("Job %s does not have a routable IP", jobId)).build();
     }
 
     public static LoadBalancerException jobMaxLoadBalancers(String jobId, int maxLoadBalancers, int curLoadBalancers) {

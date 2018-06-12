@@ -103,29 +103,6 @@ public class DefaultLoadBalancerJobValidatorTest {
     }
 
     @Test
-    public void testValidateJobAllocateIp() throws Exception {
-        when(jobOperations.getJob(JOB_ID)).thenReturn(Optional.of(Job.<ServiceJobExt>newBuilder()
-                .withId(JOB_ID)
-                .withStatus(JobStatus.newBuilder()
-                        .withState(JobState.Accepted)
-                        .build())
-                .withJobDescriptor(JobDescriptor.<ServiceJobExt>newBuilder()
-                        .withExtensions(ServiceJobExt.newBuilder().build())
-                        .withContainer(Container.newBuilder()
-                                .withImage(Image.newBuilder().build())
-                                .withContainerResources(ContainerResources.newBuilder()
-                                        .withAllocateIP(false)
-                                        .build())
-                                .build())
-
-                        .build())
-                .build()));
-        Throwable thrown = catchThrowable(() -> loadBalancerValidator.validateJobId(JOB_ID));
-        assertThat(thrown).isInstanceOf(LoadBalancerException.class);
-        assertThat(((LoadBalancerException) thrown).getErrorCode()).isEqualTo(LoadBalancerException.ErrorCode.JobNotRoutableIp);
-    }
-
-    @Test
     public void testValidateMaxLoadBalancers() throws Exception {
         when(jobOperations.getJob(JOB_ID)).thenReturn(Optional.of(Job.<ServiceJobExt>newBuilder()
                 .withId(JOB_ID)
