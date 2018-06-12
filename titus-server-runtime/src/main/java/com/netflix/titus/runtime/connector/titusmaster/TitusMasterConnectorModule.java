@@ -39,6 +39,7 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -132,6 +133,12 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     SchedulerServiceStub schedulerClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return SchedulerServiceGrpc.newStub(channel);
+    }
+
+    @Provides
+    @Singleton
+    EvictionServiceGrpc.EvictionServiceStub evictionClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return EvictionServiceGrpc.newStub(channel);
     }
 
     @Provides

@@ -38,7 +38,7 @@ public class JobAsserts {
         return task -> task.getStatus().getState() == expectedState;
     }
 
-    public static Predicate<TaskExecutorHolder> containerWithResources(ContainerResources containerResources) {
+    public static Predicate<TaskExecutorHolder> containerWithResources(ContainerResources containerResources, int diskMbMin) {
         return taskExecutorHolder -> {
             if (taskExecutorHolder.getTaskCPUs() != containerResources.getCpu()) {
                 return false;
@@ -46,7 +46,8 @@ public class JobAsserts {
             if (taskExecutorHolder.getTaskMem() != containerResources.getMemoryMB()) {
                 return false;
             }
-            if (taskExecutorHolder.getTaskDisk() != containerResources.getDiskMB()) {
+            int diskMB = Math.max(containerResources.getDiskMB(), diskMbMin);
+            if (taskExecutorHolder.getTaskDisk() != diskMB) {
                 return false;
             }
             if (taskExecutorHolder.getTaskNetworkMbs() != containerResources.getNetworkMbps()) {

@@ -51,6 +51,7 @@ public class JobsScenarioBuilder extends ExternalResource {
 
     private EmbeddedTitusOperations titusOperations;
     private JobManagementServiceGrpc.JobManagementServiceStub client;
+    private DiagnosticReporter diagnosticReporter;
 
     private final List<JobScenarioBuilder> jobScenarioBuilders = new ArrayList<>();
 
@@ -79,9 +80,11 @@ public class JobsScenarioBuilder extends ExternalResource {
     protected void before() throws Throwable {
         if (titusStackResource != null) {
             this.titusOperations = titusStackResource.getOperations();
+            this.diagnosticReporter = new DiagnosticReporter(titusStackResource.getMaster());
         }
         if (titusMasterResource != null) {
             this.titusOperations = titusMasterResource.getOperations();
+            this.diagnosticReporter = new DiagnosticReporter(titusMasterResource.getMaster());
         }
         this.client = titusOperations.getV3GrpcClient();
         this.jobScenarioBuilders.addAll(loadJobs());
@@ -107,7 +110,7 @@ public class JobsScenarioBuilder extends ExternalResource {
         TestStreamObserver<JobChangeNotification> eventStream = new TestStreamObserver<>();
         client.observeJob(jobId, eventStream);
 
-        JobScenarioBuilder jobScenarioBuilder = new JobScenarioBuilder(titusOperations, this, jobId.getId());
+        JobScenarioBuilder jobScenarioBuilder = new JobScenarioBuilder(titusOperations, this, jobId.getId(), diagnosticReporter);
         jobScenarioBuilders.add(jobScenarioBuilder);
 
         jobScenario.apply(jobScenarioBuilder);
@@ -161,7 +164,7 @@ public class JobsScenarioBuilder extends ExternalResource {
 
         List<JobScenarioBuilder> result = new ArrayList<>();
         queryResult.getItemsList().forEach(job -> {
-            result.add(new JobScenarioBuilder(titusOperations, this, job.getId()));
+            result.add(new JobScenarioBuilder(titusOperations, this, job.getId(), diagnosticReporter));
         });
 
         return result;

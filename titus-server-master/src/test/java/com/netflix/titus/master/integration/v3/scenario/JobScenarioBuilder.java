@@ -79,6 +79,7 @@ public class JobScenarioBuilder {
     private final EmbeddedTitusOperations titusOperations;
     private final JobsScenarioBuilder jobsScenarioBuilder;
     private final String jobId;
+    private final DiagnosticReporter diagnosticReporter;
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
 
@@ -93,11 +94,13 @@ public class JobScenarioBuilder {
 
     public JobScenarioBuilder(EmbeddedTitusOperations titusOperations,
                               JobsScenarioBuilder jobsScenarioBuilder,
-                              String jobId) {
+                              String jobId,
+                              DiagnosticReporter diagnosticReporter) {
         this.client = titusOperations.getV3GrpcClient();
         this.titusOperations = titusOperations;
         this.jobsScenarioBuilder = jobsScenarioBuilder;
         this.jobId = jobId;
+        this.diagnosticReporter = diagnosticReporter;
 
         // FIXME Job is not made immediately visible after it is accepted by reconciliation framework
         rethrow(() -> Thread.sleep(1000));
@@ -410,7 +413,7 @@ public class JobScenarioBuilder {
 
         private TaskHolder() {
             this.taskEventStream = ReplaySubject.create();
-            this.taskScenarioBuilder = new TaskScenarioBuilder(titusOperations, JobScenarioBuilder.this, taskEventStream);
+            this.taskScenarioBuilder = new TaskScenarioBuilder(titusOperations, JobScenarioBuilder.this, taskEventStream, diagnosticReporter);
         }
 
         private TaskScenarioBuilder getTaskScenarioBuilder() {

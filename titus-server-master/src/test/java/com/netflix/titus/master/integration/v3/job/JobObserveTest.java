@@ -66,7 +66,7 @@ public class JobObserveTest extends BaseIntegrationTest {
             .withApplicationName(V2_ENGINE_APP)
             .build();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(1));
+    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(2));
 
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
