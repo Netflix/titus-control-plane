@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.service.v3;
+package com.netflix.titus.runtime.connector.agent;
 
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
@@ -30,7 +30,7 @@ import com.netflix.titus.grpc.protogen.TierUpdate;
 import rx.Completable;
 import rx.Observable;
 
-public interface AgentManagementService {
+public interface AgentManagementClient {
 
     Observable<AgentInstanceGroups> getInstanceGroups();
 

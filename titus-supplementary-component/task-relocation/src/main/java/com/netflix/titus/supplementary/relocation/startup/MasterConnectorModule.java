@@ -5,6 +5,8 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
+import com.netflix.titus.runtime.connector.agent.client.GrpcAgentManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
@@ -16,6 +18,7 @@ public class MasterConnectorModule extends AbstractModule {
     protected void configure() {
         install(new TitusMasterConnectorModule());
         bind(CallMetadataResolver.class).toProvider(SimpleCallMetadataResolverProvider.class);
+        bind(AgentManagementClient.class).to(GrpcAgentManagementClient.class);
         bind(JobManagementClient.class).to(GrpcJobManagementClient.class);
     }
 

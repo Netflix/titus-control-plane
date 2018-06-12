@@ -166,6 +166,19 @@ public final class CollectionsExt {
         return original == null ? null : ImmutableMap.copyOf(original);
     }
 
+    public static <T> List<T> copyAndRemove(List<T> original, Predicate<T> removePredicate) {
+        if (isNullOrEmpty(original)) {
+            return Collections.emptyList();
+        }
+        List<T> result = new ArrayList<>();
+        original.forEach(value -> {
+            if (!removePredicate.test(value)) {
+                result.add(value);
+            }
+        });
+        return result.isEmpty() ? Collections.emptyList() : result;
+    }
+
     public static <T> Set<T> copyAndRemove(Set<T> original, T toRemove) {
         if (original.isEmpty()) {
             return original;

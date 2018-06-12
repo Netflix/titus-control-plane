@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.service.v3.internal;
+package com.netflix.titus.runtime.connector.agent.client;
 
 import java.util.Set;
 import javax.inject.Inject;
@@ -28,7 +28,7 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.gateway.service.v3.AgentManagementService;
+import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
@@ -55,7 +55,7 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimp
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 @Singleton
-public class DefaultAgentManagementService implements AgentManagementService {
+public class GrpcAgentManagementClient implements AgentManagementClient {
 
     private final GrpcClientConfiguration configuration;
     private final AgentManagementServiceStub client;
@@ -63,10 +63,10 @@ public class DefaultAgentManagementService implements AgentManagementService {
     private final EntitySanitizer entitySanitizer;
 
     @Inject
-    public DefaultAgentManagementService(GrpcClientConfiguration configuration,
-                                         AgentManagementServiceStub client,
-                                         CallMetadataResolver callMetadataResolver,
-                                         @Named(AGENT_SANITIZER) EntitySanitizer entitySanitizer) {
+    public GrpcAgentManagementClient(GrpcClientConfiguration configuration,
+                                     AgentManagementServiceStub client,
+                                     CallMetadataResolver callMetadataResolver,
+                                     @Named(AGENT_SANITIZER) EntitySanitizer entitySanitizer) {
         this.configuration = configuration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;

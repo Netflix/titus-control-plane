@@ -20,7 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.gateway.service.v3.AgentManagementService;
+import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
@@ -47,10 +47,10 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultAgentManagementServiceGrpc.class);
 
-    private final AgentManagementService agentManagementService;
+    private final AgentManagementClient agentManagementService;
 
     @Inject
-    public DefaultAgentManagementServiceGrpc(AgentManagementService agentManagementService) {
+    public DefaultAgentManagementServiceGrpc(AgentManagementClient agentManagementService) {
         this.agentManagementService = agentManagementService;
     }
 

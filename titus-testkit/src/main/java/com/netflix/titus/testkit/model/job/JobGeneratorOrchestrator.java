@@ -36,7 +36,7 @@ import rx.subjects.PublishSubject;
 
 public class JobGeneratorOrchestrator {
 
-    private static final JobChangeNotification.Builder GRPC_SNAPSHOT_MARKER = JobChangeNotification.newBuilder().setSnapshotEnd(JobChangeNotification.SnapshotEnd.getDefaultInstance());
+    private static final JobChangeNotification GRPC_SNAPSHOT_MARKER = JobChangeNotification.newBuilder().setSnapshotEnd(JobChangeNotification.SnapshotEnd.getDefaultInstance()).build();
 
     private final TitusRuntime titusRuntime;
 
@@ -199,7 +199,7 @@ public class JobGeneratorOrchestrator {
 
         return ObservableExt.fromCollection(this::getEventSnapshot)
                 .map(event -> V3GrpcModelConverters.toGrpcJobChangeNotification(event, EmptyLogStorageInfo.empty()))
-                .concatWith(Observable.just(GRPC_SNAPSHOT_MARKER.build()))
+                .concatWith(Observable.just(GRPC_SNAPSHOT_MARKER))
                 .concatWith(result);
     }
 
