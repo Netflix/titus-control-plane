@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -28,19 +27,15 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
 
-import static com.netflix.titus.common.util.CollectionsExt.asSet;
+import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.*;
 
 public final class RestUtil {
 
-    private static final Set<String> IGNORED_QUERY_PARAMS = asSet(
-            "debug", "fields", "page", "pagesize", "cursor", "accesstoken"
-    );
-
     public static Page createPage(MultivaluedMap<String, String> map) {
         Page.Builder pageBuilder = Page.newBuilder();
-        pageBuilder.setPageNumber(Integer.parseInt(getFirstOrDefault(map, "page", "0")));
-        pageBuilder.setPageSize(Integer.parseInt(getFirstOrDefault(map, "pageSize", "10")));
-        pageBuilder.setCursor(getFirstOrDefault(map, "cursor", ""));
+        pageBuilder.setPageNumber(Integer.parseInt(getFirstOrDefault(map, PAGE_QUERY_KEY, "0")));
+        pageBuilder.setPageSize(Integer.parseInt(getFirstOrDefault(map, PAGE_SIZE_QUERY_KEY, "10")));
+        pageBuilder.setCursor(getFirstOrDefault(map, CURSOR_QUERY_KEY, ""));
         return pageBuilder.build();
     }
 
@@ -67,7 +62,7 @@ public final class RestUtil {
     }
 
     public static List<String> getFieldsParameter(MultivaluedMap<String, String> queryParameters) {
-        List<String> fields = queryParameters.get("fields");
+        List<String> fields = queryParameters.get(FIELDS_QUERY_KEY);
         if (CollectionsExt.isNullOrEmpty(fields)) {
             return Collections.emptyList();
         }
