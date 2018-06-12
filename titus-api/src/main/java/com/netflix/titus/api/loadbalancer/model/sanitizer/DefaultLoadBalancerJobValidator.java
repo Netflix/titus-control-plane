@@ -65,12 +65,6 @@ public class DefaultLoadBalancerJobValidator implements LoadBalancerJobValidator
             throw JobManagerException.notServiceJob(jobId);
         }
 
-        // Must have routable IP
-        ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
-        if (!containerResources.isAllocateIP()) {
-            throw LoadBalancerException.jobNotRoutableIp(jobId);
-        }
-
         // Job should have less than max current load balancer associations
         int maxLoadBalancers = loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob();
         int numLoadBalancers = loadBalancerStore.getNumLoadBalancersForJob(jobId);
