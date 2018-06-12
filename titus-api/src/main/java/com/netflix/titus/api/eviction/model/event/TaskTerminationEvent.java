@@ -35,7 +35,6 @@ public class TaskTerminationEvent extends EvictionEvent {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(taskId, approved);
     }
 

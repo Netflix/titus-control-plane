@@ -1,6 +1,6 @@
 package com.netflix.titus.api.eviction.model;
 
-import com.netflix.titus.api.model.Reference;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.TokenBucketPolicy;
 
 public class SystemDisruptionBudget {

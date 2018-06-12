@@ -6,6 +6,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceStub;
 import com.netflix.titus.grpc.protogen.ObserverEventRequest;
@@ -40,7 +41,7 @@ public class GrpcEvictionServiceClient implements EvictionServiceClient {
     }
 
     @Override
-    public Observable<SystemDisruptionBudget> getDisruptionBudget(com.netflix.titus.api.model.Reference reference) {
+    public Observable<SystemDisruptionBudget> getDisruptionBudget(Reference reference) {
         return GrpcUtil.<com.netflix.titus.grpc.protogen.SystemDisruptionBudget>createRequestObservable(emitter -> {
                     StreamObserver<com.netflix.titus.grpc.protogen.SystemDisruptionBudget> streamObserver = createSimpleClientResponseObserver(emitter);
                     createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getDisruptionBudget(toGrpcReference(reference), streamObserver);
@@ -50,7 +51,7 @@ public class GrpcEvictionServiceClient implements EvictionServiceClient {
     }
 
     @Override
-    public Observable<EvictionQuota> getEvictionQuota(com.netflix.titus.api.model.Reference reference) {
+    public Observable<EvictionQuota> getEvictionQuota(Reference reference) {
         return GrpcUtil.<com.netflix.titus.grpc.protogen.EvictionQuota>createRequestObservable(emitter -> {
                     StreamObserver<com.netflix.titus.grpc.protogen.EvictionQuota> streamObserver = createSimpleClientResponseObserver(emitter);
                     createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getEvictionQuota(toGrpcReference(reference), streamObserver);

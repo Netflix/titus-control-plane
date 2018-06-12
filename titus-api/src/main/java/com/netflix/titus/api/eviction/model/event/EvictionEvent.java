@@ -2,9 +2,8 @@ package com.netflix.titus.api.eviction.model.event;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
-import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.ApplicationSLA;
-import com.netflix.titus.api.model.Reference;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 

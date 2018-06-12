@@ -12,7 +12,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.eviction.service.EvictionException;
-import com.netflix.titus.api.model.Reference;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
@@ -130,6 +130,8 @@ public class EvictionResource {
                                 case OnCompleted:
                                     return Observable.just(TaskTerminateResponse.newBuilder()
                                             .setAllowed(true)
+                                            .setReasonCode("normal")
+                                            .setReasonMessage("Terminated")
                                             .build()
                                     );
                             }

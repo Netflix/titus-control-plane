@@ -48,7 +48,7 @@ public class DiagnosticReporter {
                 logger.info("Task successfully scheduled: {}", result);
             } else {
                 FailedSchedulingResultEvent failure = (FailedSchedulingResultEvent) result;
-                logger.info("Task scheduling failre: {}", failure);
+                logger.info("Task scheduling failure: {}", failure);
                 reportAllAgentsWithAssignments();
             }
         } else {

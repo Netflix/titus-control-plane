@@ -64,8 +64,7 @@ public interface JobConfiguration {
     int getMemoryMbMax();
 
     @DefaultValue("1024")
-    int
-    getDiskMbMin();
+    int getDiskMbMin();
 
     /**
      * An upper bound on disk (megabytes) a single container may allocate. The actual limit may be lower, as it also depends

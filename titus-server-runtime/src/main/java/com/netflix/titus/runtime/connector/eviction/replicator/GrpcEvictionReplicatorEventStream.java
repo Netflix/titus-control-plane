@@ -14,7 +14,7 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.eviction.model.event.SystemDisruptionBudgetUpdateEvent;
-import com.netflix.titus.api.model.Reference.TierReference;
+import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -92,9 +92,9 @@ public class GrpcEvictionReplicatorEventStream implements ReplicatorEventStream<
         private Observable<ReplicatorEvent<EvictionDataSnapshot>> buildInitialCache() {
             SystemDisruptionBudget globalDisruptionBudget = null;
             EvictionQuota globalEvictionQuota = null;
-            Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudges = new HashMap<>();
+            Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudgets = new HashMap<>();
             Map<Tier, EvictionQuota> tierEvictionQuotas = new HashMap<>();
-            Map<String, SystemDisruptionBudget> capacityGroupSystemDisruptionBudges = new HashMap<>();
+            Map<String, SystemDisruptionBudget> capacityGroupSystemDisruptionBudgets = new HashMap<>();
             Map<String, EvictionQuota> capacityGroupEvictionQuotas = new HashMap<>();
 
             for (EvictionEvent event : snapshotEvents) {
@@ -105,10 +105,10 @@ public class GrpcEvictionReplicatorEventStream implements ReplicatorEventStream<
                             globalDisruptionBudget = budget;
                             break;
                         case Tier:
-                            tierSystemDisruptionBudges.put(((TierReference) budget.getReference()).getTier(), budget);
+                            tierSystemDisruptionBudgets.put(((TierReference) budget.getReference()).getTier(), budget);
                             break;
                         case CapacityGroup:
-                            capacityGroupSystemDisruptionBudges.put(budget.getReference().getName(), budget);
+                            capacityGroupSystemDisruptionBudgets.put(budget.getReference().getName(), budget);
                             break;
                     }
                 } else if (event instanceof EvictionQuotaEvent) {
@@ -132,14 +132,14 @@ public class GrpcEvictionReplicatorEventStream implements ReplicatorEventStream<
 
             checkNotNull(globalDisruptionBudget, "Global disruption budget missing");
             checkNotNull(globalEvictionQuota, "Global eviction quota missing");
-            checkState(tierSystemDisruptionBudges.size() == Tier.values().length, "Tier disruption budgets missing: found=%s", tierSystemDisruptionBudges);
+            checkState(tierSystemDisruptionBudgets.size() == Tier.values().length, "Tier disruption budgets missing: found=%s", tierSystemDisruptionBudgets);
             checkState(tierEvictionQuotas.size() == Tier.values().length, "Tier eviction quotas missing: found=%s", tierEvictionQuotas);
 
 
             EvictionDataSnapshot initialSnapshot = new EvictionDataSnapshot(
                     globalDisruptionBudget,
-                    tierSystemDisruptionBudges,
-                    capacityGroupSystemDisruptionBudges,
+                    tierSystemDisruptionBudgets,
+                    capacityGroupSystemDisruptionBudgets,
                     globalEvictionQuota,
                     tierEvictionQuotas,
                     capacityGroupEvictionQuotas

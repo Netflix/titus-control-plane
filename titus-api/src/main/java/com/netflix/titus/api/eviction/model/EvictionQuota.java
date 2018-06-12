@@ -2,7 +2,7 @@ package com.netflix.titus.api.eviction.model;
 
 import java.util.Objects;
 
-import com.netflix.titus.api.model.Reference;
+import com.netflix.titus.api.model.reference.Reference;
 
 public class EvictionQuota {
 

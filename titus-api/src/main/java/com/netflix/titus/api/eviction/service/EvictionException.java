@@ -3,7 +3,7 @@ package com.netflix.titus.api.eviction.service;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.model.Reference;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.Tier;
 
 public class EvictionException extends RuntimeException {
@@ -17,7 +17,7 @@ public class EvictionException extends RuntimeException {
     }
 
     public static EvictionException taskNotFound(String taskId) {
-        return new EvictionException("Task not found " + taskId);
+        return new EvictionException("Task not found: " + taskId);
     }
 
     public static EvictionException capacityGroupNotFound(String capacityGroupName) {

@@ -30,7 +30,6 @@ public class EvictionQuotaEvent extends EvictionEvent {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(quota);
     }
 

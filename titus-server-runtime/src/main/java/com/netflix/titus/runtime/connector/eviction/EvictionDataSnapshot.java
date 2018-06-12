@@ -5,7 +5,7 @@ import java.util.Optional;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
-import com.netflix.titus.api.model.Reference.TierReference;
+import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.api.model.Tier;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
@@ -13,21 +13,21 @@ import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
 public class EvictionDataSnapshot {
 
     private final SystemDisruptionBudget globalDisruptionBudget;
-    private final Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudges;
-    private final Map<String, SystemDisruptionBudget> capacityGroupSystemDisruptionBudges;
+    private final Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudgets;
+    private final Map<String, SystemDisruptionBudget> capacityGroupSystemDisruptionBudgets;
     private final EvictionQuota globalEvictionQuota;
     private final Map<Tier, EvictionQuota> tierEvictionQuotas;
     private final Map<String, EvictionQuota> capacityGroupEvictionQuotas;
 
     public EvictionDataSnapshot(SystemDisruptionBudget globalDisruptionBudget,
-                                Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudges,
-                                Map<String, SystemDisruptionBudget> capacityGroupSystemDisruptionBudges,
+                                Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudgets,
+                                Map<String, SystemDisruptionBudget> capacityGroupSystemDisruptionBudgets,
                                 EvictionQuota globalEvictionQuota,
                                 Map<Tier, EvictionQuota> tierEvictionQuotas,
                                 Map<String, EvictionQuota> capacityGroupEvictionQuotas) {
         this.globalDisruptionBudget = globalDisruptionBudget;
-        this.tierSystemDisruptionBudges = tierSystemDisruptionBudges;
-        this.capacityGroupSystemDisruptionBudges = capacityGroupSystemDisruptionBudges;
+        this.tierSystemDisruptionBudgets = tierSystemDisruptionBudgets;
+        this.capacityGroupSystemDisruptionBudgets = capacityGroupSystemDisruptionBudgets;
         this.globalEvictionQuota = globalEvictionQuota;
         this.tierEvictionQuotas = tierEvictionQuotas;
         this.capacityGroupEvictionQuotas = capacityGroupEvictionQuotas;
@@ -38,11 +38,11 @@ public class EvictionDataSnapshot {
     }
 
     public SystemDisruptionBudget getTierDisruptionBudget(Tier tier) {
-        return tierSystemDisruptionBudges.get(tier);
+        return tierSystemDisruptionBudgets.get(tier);
     }
 
     public Optional<SystemDisruptionBudget> findCapacityGroupDisruptionBudget(String capacityGroupName) {
-        return Optional.ofNullable(capacityGroupSystemDisruptionBudges.get(capacityGroupName));
+        return Optional.ofNullable(capacityGroupSystemDisruptionBudgets.get(capacityGroupName));
     }
 
     public EvictionQuota getGlobalEvictionQuota() {
@@ -62,8 +62,8 @@ public class EvictionDataSnapshot {
             case Global:
                 return Optional.of(new EvictionDataSnapshot(
                         systemDisruptionBudget,
-                        this.tierSystemDisruptionBudges,
-                        this.capacityGroupSystemDisruptionBudges,
+                        this.tierSystemDisruptionBudgets,
+                        this.capacityGroupSystemDisruptionBudgets,
                         this.globalEvictionQuota,
                         this.tierEvictionQuotas,
                         this.capacityGroupEvictionQuotas
@@ -71,8 +71,8 @@ public class EvictionDataSnapshot {
             case Tier:
                 return Optional.of(new EvictionDataSnapshot(
                         this.globalDisruptionBudget,
-                        copyAndAdd(this.tierSystemDisruptionBudges, ((TierReference) systemDisruptionBudget.getReference()).getTier(), systemDisruptionBudget),
-                        this.capacityGroupSystemDisruptionBudges,
+                        copyAndAdd(this.tierSystemDisruptionBudgets, ((TierReference) systemDisruptionBudget.getReference()).getTier(), systemDisruptionBudget),
+                        this.capacityGroupSystemDisruptionBudgets,
                         this.globalEvictionQuota,
                         this.tierEvictionQuotas,
                         this.capacityGroupEvictionQuotas
@@ -80,8 +80,8 @@ public class EvictionDataSnapshot {
             case CapacityGroup:
                 return Optional.of(new EvictionDataSnapshot(
                         this.globalDisruptionBudget,
-                        this.tierSystemDisruptionBudges,
-                        copyAndAdd(this.capacityGroupSystemDisruptionBudges, systemDisruptionBudget.getReference().getName(), systemDisruptionBudget),
+                        this.tierSystemDisruptionBudgets,
+                        copyAndAdd(this.capacityGroupSystemDisruptionBudgets, systemDisruptionBudget.getReference().getName(), systemDisruptionBudget),
                         this.globalEvictionQuota,
                         this.tierEvictionQuotas,
                         this.capacityGroupEvictionQuotas
@@ -95,8 +95,8 @@ public class EvictionDataSnapshot {
             case Global:
                 return Optional.of(new EvictionDataSnapshot(
                         this.globalDisruptionBudget,
-                        this.tierSystemDisruptionBudges,
-                        this.capacityGroupSystemDisruptionBudges,
+                        this.tierSystemDisruptionBudgets,
+                        this.capacityGroupSystemDisruptionBudgets,
                         quota,
                         this.tierEvictionQuotas,
                         this.capacityGroupEvictionQuotas
@@ -104,8 +104,8 @@ public class EvictionDataSnapshot {
             case Tier:
                 return Optional.of(new EvictionDataSnapshot(
                         this.globalDisruptionBudget,
-                        this.tierSystemDisruptionBudges,
-                        this.capacityGroupSystemDisruptionBudges,
+                        this.tierSystemDisruptionBudgets,
+                        this.capacityGroupSystemDisruptionBudgets,
                         this.globalEvictionQuota,
                         copyAndAdd(this.tierEvictionQuotas, ((TierReference) quota.getReference()).getTier(), quota),
                         this.capacityGroupEvictionQuotas
@@ -113,8 +113,8 @@ public class EvictionDataSnapshot {
             case CapacityGroup:
                 return Optional.of(new EvictionDataSnapshot(
                         this.globalDisruptionBudget,
-                        this.tierSystemDisruptionBudges,
-                        this.capacityGroupSystemDisruptionBudges,
+                        this.tierSystemDisruptionBudgets,
+                        this.capacityGroupSystemDisruptionBudgets,
                         this.globalEvictionQuota,
                         this.tierEvictionQuotas,
                         copyAndAdd(this.capacityGroupEvictionQuotas, quota.getReference().getName(), quota)

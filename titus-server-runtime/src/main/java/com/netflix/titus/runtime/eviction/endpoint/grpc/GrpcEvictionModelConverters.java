@@ -21,7 +21,7 @@ import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverter
 
 public final class GrpcEvictionModelConverters {
 
-    private static final LoadingCache<com.netflix.titus.api.model.Reference, Reference> CORE_TO_GRPC_REFERENCE_CACHE = Caffeine.newBuilder()
+    private static final LoadingCache<com.netflix.titus.api.model.reference.Reference, Reference> CORE_TO_GRPC_REFERENCE_CACHE = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofHours(1))
             .build(GrpcEvictionModelConverters::toGrpcReference);
 
@@ -42,14 +42,14 @@ public final class GrpcEvictionModelConverters {
                 .build();
     }
 
-    public static com.netflix.titus.api.model.Reference toCoreReference(Reference grpcEntity) {
+    public static com.netflix.titus.api.model.reference.Reference toCoreReference(Reference grpcEntity) {
         switch (grpcEntity.getReferenceCase()) {
             case GLOBAL:
-                return com.netflix.titus.api.model.Reference.global();
+                return com.netflix.titus.api.model.reference.Reference.global();
             case TIER:
-                return com.netflix.titus.api.model.Reference.tier(toCoreTier(grpcEntity.getTier()));
+                return com.netflix.titus.api.model.reference.Reference.tier(toCoreTier(grpcEntity.getTier()));
             case CAPACITYGROUP:
-                return com.netflix.titus.api.model.Reference.capacityGroup(grpcEntity.getCapacityGroup());
+                return com.netflix.titus.api.model.reference.Reference.capacityGroup(grpcEntity.getCapacityGroup());
             case JOBID:
             case TASKID:
             case REFERENCE_NOT_SET:
@@ -57,7 +57,7 @@ public final class GrpcEvictionModelConverters {
         throw new IllegalArgumentException("No mapping for: " + grpcEntity);
     }
 
-    public static Reference toGrpcReference(com.netflix.titus.api.model.Reference coreReference) {
+    public static Reference toGrpcReference(com.netflix.titus.api.model.reference.Reference coreReference) {
         switch (coreReference.getLevel()) {
             case Global:
             case Tier:

@@ -42,7 +42,6 @@ public class TokenBucketPolicy {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(capacity, initialNumberOfTokens, refillPolicy);
     }
 

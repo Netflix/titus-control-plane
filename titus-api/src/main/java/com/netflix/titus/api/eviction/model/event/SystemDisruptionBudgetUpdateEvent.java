@@ -30,7 +30,6 @@ public class SystemDisruptionBudgetUpdateEvent extends EvictionEvent {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(systemDisruptionBudget);
     }
 

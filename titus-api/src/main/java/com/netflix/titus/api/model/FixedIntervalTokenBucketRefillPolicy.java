@@ -35,7 +35,6 @@ public class FixedIntervalTokenBucketRefillPolicy extends TokenBucketRefillPolic
 
     @Override
     public int hashCode() {
-
         return Objects.hash(numberOfTokensPerInterval, intervalMs);
     }
 

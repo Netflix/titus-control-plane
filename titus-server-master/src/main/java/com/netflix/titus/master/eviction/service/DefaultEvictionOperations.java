@@ -24,7 +24,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
-import com.netflix.titus.api.model.Reference;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.TokenBucketPolicies;
 import com.netflix.titus.api.model.TokenBucketPolicy;

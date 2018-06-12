@@ -377,7 +377,6 @@ public class EmbeddedTitusMaster {
         return ((EmbeddedVirtualMachineMasterService) injector.getInstance(VirtualMachineMasterService.class)).getSimulatedMesosDriver();
     }
 
-
     public <T> T getInstance(Class<T> type) {
         return injector.getInstance(type);
     }
