@@ -16,7 +16,10 @@ public class LoadBalancerExceptionTest {
 
     @Test
     public void getDefaultLoadBalancerExceptionLogLevelTest() {
-        assertEquals(Level.ERROR, LoadBalancerException.getLogLevel(LoadBalancerException.jobNotRoutableIp("job-id")));
+        assertEquals(
+                Level.ERROR,
+                LoadBalancerException.getLogLevel(
+                        LoadBalancerException.jobMaxLoadBalancers("job-id", 1, 1)));
     }
 
     @Test
