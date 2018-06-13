@@ -234,12 +234,18 @@ public class JobSnapshot {
     }
 
     private List<Task> updateTask(List<Task> tasks, Task taskToUpdate) {
-        if(tasks == null) {
+        if (CollectionsExt.isNullOrEmpty(tasks)) {
             return Collections.singletonList(taskToUpdate);
         }
 
         List<Task> result = new ArrayList<>();
-        tasks.forEach(task -> result.add(task.getId().equals(taskToUpdate.getId()) ? taskToUpdate : task));
+        tasks.forEach(task -> {
+            if (!task.getId().equals(taskToUpdate.getId())) {
+                result.add(task);
+            }
+        });
+        result.add(taskToUpdate);
+
         return unmodifiableList(result);
     }
 

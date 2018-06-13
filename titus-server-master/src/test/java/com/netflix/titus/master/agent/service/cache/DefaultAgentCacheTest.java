@@ -16,14 +16,18 @@
 
 package com.netflix.titus.master.agent.service.cache;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceOverrideState;
+import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
@@ -182,16 +186,30 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testAgentInstanceConfigurationUpdate() throws Exception {
+    public void testAgentInstanceConfigurationUpdate() {
         String instanceId = testConnector.takeInstance(0, 0).getId();
 
+        AgentInstance agentInstance = cache.getAgentInstance(instanceId).toBuilder()
+                .withOverrideStatus(InstanceOverrideStatus.newBuilder()
+                        .withState(InstanceOverrideState.Quarantined)
+                        .build()
+                ).build();
+        Set<AgentInstance> instances = cache.getAgentInstances(agentInstance.getInstanceGroupId());
+
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        cache.updateAgentInstanceStore(cache.getAgentInstance(instanceId)).toObservable().subscribe(testSubscriber);
+        cache.updateAgentInstanceStore(agentInstance).toObservable().subscribe(testSubscriber);
 
         testScheduler.triggerActions();
 
         verify(agentStore, times(1)).storeAgentInstance(any());
         expectInstanceUpdateEvent(eventSubscriber, instanceId);
+
+        // Check data
+        AgentInstance storedInstance = cache.getAgentInstance(instanceId);
+        Set<AgentInstance> storedInstances = cache.getAgentInstances(agentInstance.getInstanceGroupId());
+
+        assertThat(storedInstance.getOverrideStatus().getState()).isEqualTo(InstanceOverrideState.Quarantined);
+        assertThat(storedInstances).hasSize(instances.size());
     }
 
     @Test

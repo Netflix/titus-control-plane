@@ -86,6 +86,12 @@ public final class JobFunctions {
         return jobDescriptor.getExtensions() instanceof ServiceJobExt;
     }
 
+    public static int getJobDesiredSize(Job<?> job) {
+        return isServiceJob(job)
+                ? ((ServiceJobExt) job.getJobDescriptor().getExtensions()).getCapacity().getDesired()
+                : ((BatchJobExt) job.getJobDescriptor().getExtensions()).getSize();
+    }
+
     public static boolean isBatchTask(Task task) {
         return task instanceof BatchJobTask;
     }

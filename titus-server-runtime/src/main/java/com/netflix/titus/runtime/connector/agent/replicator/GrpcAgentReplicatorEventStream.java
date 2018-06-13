@@ -51,8 +51,10 @@ public class GrpcAgentReplicatorEventStream implements ReplicatorEventStream<Age
                         LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
                         scheduler
                 ))
-                .doOnNext(event -> metrics.event( titusRuntime.getClock().wallTime() - event.getLastUpdateTime()))
-                .doOnSubscribe(metrics::connected)
+                .doOnNext(event -> {
+                    metrics.connected();
+                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
+                })
                 .doOnUnsubscribe(metrics::disconnected)
                 .doOnError(metrics::disconnected)
                 .doOnCompleted(metrics::disconnected);

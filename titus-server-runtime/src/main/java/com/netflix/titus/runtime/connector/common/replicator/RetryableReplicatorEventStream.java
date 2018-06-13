@@ -40,6 +40,8 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
     public Observable<ReplicatorEvent<D>> connect() {
         return createDelegateEmittingAtLeastOneItem((ReplicatorEvent<D>) UNINITIALIZED)
                 .onErrorResumeNext(e -> {
+                    metrics.disconnected();
+
                     if (e instanceof DataReplicatorException) {
                         DataReplicatorException cacheException = (DataReplicatorException) e;
                         if (cacheException.getLastCacheEvent().isPresent()) {
@@ -51,8 +53,10 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                     titusRuntime.getCodeInvariants().unexpectedError("Expected DataReplicatorException exception with the latest cache instance", e);
                     return connect();
                 })
-                .doOnNext(event -> metrics.event( titusRuntime.getClock().wallTime() - event.getLastUpdateTime()))
-                .doOnSubscribe(metrics::connected)
+                .doOnNext(event -> {
+                    metrics.connected();
+                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
+                })
                 .doOnUnsubscribe(metrics::disconnected)
                 .doOnError(metrics::disconnected)
                 .doOnCompleted(metrics::disconnected);
