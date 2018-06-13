@@ -27,6 +27,7 @@ import com.netflix.governator.providers.Advises;
 import com.netflix.titus.gateway.endpoint.v2.rest.ApiRewriteFilter;
 import com.netflix.titus.gateway.endpoint.v2.rest.TitusMasterProxyServlet;
 import com.netflix.titus.gateway.endpoint.v3.rest.AgentManagementResource;
+import com.netflix.titus.gateway.eviction.EvictionResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.HealthResource;
 import com.netflix.titus.gateway.endpoint.v3.rest.SchedulerResource;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
@@ -83,6 +84,7 @@ public final class JerseyModule extends JerseyServletModule {
             config.getClasses().add(HealthResource.class);
             config.getClasses().add(AgentManagementResource.class);
             config.getClasses().add(JobManagementResource.class);
+            config.getClasses().add(EvictionResource.class);
             config.getClasses().add(AutoScalingResource.class);
             config.getClasses().add(SchedulerResource.class);
             config.getClasses().add(LoadBalancerResource.class);

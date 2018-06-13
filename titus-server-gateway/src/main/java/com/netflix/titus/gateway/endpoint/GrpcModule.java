@@ -22,12 +22,14 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultAgentManagementServiceGrpc;
-import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultHealthServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.DefaultSchedulerServiceGrpc;
 import com.netflix.titus.gateway.endpoint.v3.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
+import com.netflix.titus.gateway.eviction.EvictionModule;
+import com.netflix.titus.gateway.eviction.GatewayGrpcEvictionService;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceImplBase;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -35,6 +37,7 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.SimpleCallMetadataResolverProvider;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
+import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultHealthServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
 
@@ -42,6 +45,8 @@ public class GrpcModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        install(new EvictionModule());
+
         bind(HealthGrpc.HealthImplBase.class).to(DefaultHealthServiceGrpc.class);
         bind(JobManagementServiceGrpc.JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
         bind(AgentManagementServiceImplBase.class).to(DefaultAgentManagementServiceGrpc.class);

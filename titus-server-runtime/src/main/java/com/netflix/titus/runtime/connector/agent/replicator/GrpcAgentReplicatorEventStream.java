@@ -60,8 +60,8 @@ public class GrpcAgentReplicatorEventStream implements ReplicatorEventStream<Age
 
     private class CacheUpdater {
 
-        private Map<String, AgentChangeEvent> snapshotEvents = new HashMap<>();
-        private AtomicReference<AgentSnapshot> lastAgentSnapshotRef = new AtomicReference<>();
+        private final Map<String, AgentChangeEvent> snapshotEvents = new HashMap<>();
+        private final AtomicReference<AgentSnapshot> lastAgentSnapshotRef = new AtomicReference<>();
 
         private Observable<ReplicatorEvent<AgentSnapshot>> onEvent(AgentChangeEvent event) {
             try {

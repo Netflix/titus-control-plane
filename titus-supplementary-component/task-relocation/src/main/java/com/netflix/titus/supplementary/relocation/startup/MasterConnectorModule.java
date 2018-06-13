@@ -7,6 +7,8 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.client.GrpcAgentManagementClient;
+import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
+import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
@@ -20,6 +22,7 @@ public class MasterConnectorModule extends AbstractModule {
         bind(CallMetadataResolver.class).toProvider(SimpleCallMetadataResolverProvider.class);
         bind(AgentManagementClient.class).to(GrpcAgentManagementClient.class);
         bind(JobManagementClient.class).to(GrpcJobManagementClient.class);
+        bind(EvictionServiceClient.class).to(GrpcEvictionServiceClient.class);
     }
 
     @Provides

@@ -7,6 +7,8 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.agent.AgentSnapshot;
+import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
+import com.netflix.titus.runtime.connector.eviction.EvictionDataSnapshot;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import org.slf4j.Logger;
@@ -21,15 +23,12 @@ public class DefaultTitusMasterOperations implements TitusMasterOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultTitusMasterOperations.class);
 
-    private final JobDataReplicator jobDataReplicator;
-
     private final Subscription subscription;
 
     @Inject
     public DefaultTitusMasterOperations(AgentDataReplicator agentDataReplicator,
-                                        JobDataReplicator jobDataReplicator) {
-        this.jobDataReplicator = jobDataReplicator;
-
+                                        JobDataReplicator jobDataReplicator,
+                                        EvictionDataReplicator evictionDataReplicator) {
         this.subscription = Observable.interval(0, 5, TimeUnit.SECONDS).subscribe(tick -> {
             AgentSnapshot agentSnapshot = agentDataReplicator.getCurrent();
             logger.info("Agent snapshot: instanceGroups={}, instances={}, staleness={}", agentSnapshot.getInstanceGroups().size(),
@@ -38,6 +37,9 @@ public class DefaultTitusMasterOperations implements TitusMasterOperations {
             JobSnapshot jobSnapshot = jobDataReplicator.getCurrent();
             logger.info("Job snapshot: jobs={}, tasks={}, staleness={}", jobSnapshot.getJobs().size(),
                     jobSnapshot.getTasks().size(), toTimeUnitString(jobDataReplicator.getStalenessMs()));
+
+            EvictionDataSnapshot evictionDataSnapshot = evictionDataReplicator.getCurrent();
+            logger.info("Eviction data snapshot: {}", evictionDataSnapshot);
         });
     }
 

@@ -173,6 +173,10 @@ public class EmbeddedTitusGateway {
         return attachCallHeaders(client);
     }
 
+    public <I> I getInstance(Class<I> instanceType) {
+        return injector.getInstance(instanceType);
+    }
+
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
             this.grpcChannel = ManagedChannelBuilder.forAddress("localhost", grpcPort)

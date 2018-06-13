@@ -30,6 +30,8 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceImplBase;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthImplBase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -58,6 +60,7 @@ public class TitusMasterGrpcServer {
     private final HealthImplBase healthService;
     private final JobManagementServiceImplBase jobManagementService;
     private final AgentManagementServiceImplBase agentManagementService;
+    private final EvictionServiceImplBase evictionService;
     private final AutoScalingServiceImplBase appAutoScalingService;
     private final SchedulerServiceImplBase schedulerService;
     private final GrpcEndpointConfiguration config;
@@ -72,6 +75,7 @@ public class TitusMasterGrpcServer {
             HealthImplBase healthService,
             JobManagementServiceImplBase jobManagementService,
             AgentManagementServiceImplBase agentManagementService,
+            EvictionServiceImplBase evictionService,
             AutoScalingServiceImplBase appAutoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             SchedulerServiceImplBase schedulerService,
@@ -80,6 +84,7 @@ public class TitusMasterGrpcServer {
         this.healthService = healthService;
         this.jobManagementService = jobManagementService;
         this.agentManagementService = agentManagementService;
+        this.evictionService = evictionService;
         this.appAutoScalingService = appAutoScalingService;
         this.loadBalancerService = loadBalancerService;
         this.schedulerService = schedulerService;
@@ -100,6 +105,9 @@ public class TitusMasterGrpcServer {
             )).addService(ServerInterceptors.intercept(
                     agentManagementService,
                     createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
+            )).addService(ServerInterceptors.intercept(
+                    evictionService,
+                    createInterceptors(EvictionServiceGrpc.getServiceDescriptor())
             )).addService(ServerInterceptors.intercept(
                     appAutoScalingService,
                     createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())

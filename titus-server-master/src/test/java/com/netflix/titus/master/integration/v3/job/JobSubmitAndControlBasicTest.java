@@ -22,8 +22,10 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.aws.AwsInstanceType;
+import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
@@ -66,9 +68,12 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
+    private JobManagerConfiguration jobConfiguration;
+
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicSetupActivation());
+        this.jobConfiguration = titusStackResource.getGateway().getInstance(JobManagerConfiguration.class);
     }
 
     /**
@@ -79,7 +84,7 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .assertEachContainer(
-                        containerWithResources(ONE_TASK_BATCH_JOB.getContainer().getContainerResources()),
+                        containerWithResources(ONE_TASK_BATCH_JOB.getContainer().getContainerResources(), jobConfiguration.getMinDiskSizeMB()),
                         "Container not assigned the expected amount of resources"
                 )
                 .allTasks(ScenarioTemplates.completeTask())

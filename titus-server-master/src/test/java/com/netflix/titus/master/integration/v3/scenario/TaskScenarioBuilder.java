@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -31,6 +32,8 @@ import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import com.netflix.titus.master.scheduler.SchedulingResultEvent;
+import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
@@ -65,12 +68,21 @@ public class TaskScenarioBuilder {
     private final ExtTestSubscriber<Task> eventStreamSubscriber = new ExtTestSubscriber<>();
     private final Subscription eventStreamSubscription;
 
+    /**
+     * Keep reference to {@link SchedulingService} for diagnostic purposes.
+     */
+    private final DiagnosticReporter diagnosticReporter;
+
     private volatile TaskExecutorHolder taskExecutionHolder;
 
-    public TaskScenarioBuilder(EmbeddedTitusOperations titusOperations, JobScenarioBuilder jobScenarioBuilder, Observable<Task> eventStream) {
+    public TaskScenarioBuilder(EmbeddedTitusOperations titusOperations,
+                               JobScenarioBuilder jobScenarioBuilder,
+                               Observable<Task> eventStream,
+                               DiagnosticReporter diagnosticReporter) {
         this.client = titusOperations.getV3GrpcClient();
         this.jobScenarioBuilder = jobScenarioBuilder;
         this.eventStreamSubscription = eventStream.subscribe(eventStreamSubscriber);
+        this.diagnosticReporter = diagnosticReporter;
         eventStream.take(1).flatMap(task -> {
             String effectiveTaskId = task.getTaskContext().getOrDefault(TASK_ATTRIBUTES_V2_TASK_ID, task.getId());
             return titusOperations.awaitTaskExecutorHolderOf(effectiveTaskId);
@@ -175,7 +187,11 @@ public class TaskScenarioBuilder {
     public TaskScenarioBuilder expectTaskOnAgent() {
         logger.info("[{}] Expecting task {} on agent", discoverActiveTest(), getTask().getId());
 
-        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> taskExecutionHolder != null);
+        try {
+            await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> taskExecutionHolder != null);
+        } catch (Exception e) {
+            diagnosticReporter.reportWhenTaskNotScheduled(getTask().getId());
+        }
         return this;
     }
 

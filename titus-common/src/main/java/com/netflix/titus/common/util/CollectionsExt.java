@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -353,6 +354,14 @@ public final class CollectionsExt {
 
     public static <K, V> MapBuilder<K, V> newHashMap(Map<K, V> original) {
         return newMap(() -> new HashMap<>(original));
+    }
+
+    public static <K, V> Map<K, V> newMapFrom(K[] keys, Function<K, V> valueFun) {
+        Map<K, V> result = new HashMap<>();
+        for(K key: keys) {
+            result.put(key, valueFun.apply(key));
+        }
+        return  result;
     }
 
     public static int[] toPrimitiveArray(Collection<Integer> collection) {
