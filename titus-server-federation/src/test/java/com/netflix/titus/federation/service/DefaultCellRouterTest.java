@@ -27,16 +27,14 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 public class DefaultCellRouterTest {
     private static Logger logger = LoggerFactory.getLogger(DefaultCellRouterTest.class);
 
-    /**
-     * Tests loading cell and routing info from config and that we route to expected cells.
-     */
     @Test
-    public void buildConfigTest() {
+    public void cellRoutingRulesFromConfig() {
         TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
         when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=(app3.*)");
@@ -44,36 +42,40 @@ public class DefaultCellRouterTest {
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
         DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
 
-        Cell cell = cellRouter.routeKey("app3foobar");
-        assertThat(cell.getName().equals("cell2"));
-
-        cell = cellRouter.routeKey("app2foobar");
-        assertThat(cell.getName().equals("cell1"));
-
-        cell = cellRouter.routeKey("other");
-        assertThat(cell.getName().equals("cell1"));
+        assertThat(cellRouter.routeKey("app3foobar").getName()).isEqualTo("cell2");
+        assertThat(cellRouter.routeKey("app2foobar").getName()).isEqualTo("cell1");
+        // if not rules, by default go to the first configured in titus.federation.cells
+        assertThat(cellRouter.routeKey("other").getName()).isEqualTo("cell1");
     }
 
-    /**
-     * Tests that an invalid cell config fails construction
-     */
     @Test
-    public void invalidCellCountTest() {
+    public void cellsWithNoRulesCanExist() {
         TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
         when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*)");
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
 
-        assertThatThrownBy(() -> new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration))
-                .isInstanceOf(CellFederationException.class);
+        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        Cell cell = cellRouter.routeKey("app2foobar");
+        assertThat(cell.getName()).isEqualTo("cell1");
     }
 
-    /**
-     * Tests that an invalid pattern fails construction.
-     */
     @Test
-    public void invalidRoutingPatternTest() {
+    public void rulesWithNonConfiguredCellsAreIgnored() {
+        TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
+        when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
+        when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=(app3.*);cell3=(app4.*)");
+
+        CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
+
+        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        Cell cell = cellRouter.routeKey("app4foobar");
+        assertThat(cell.getName()).isEqualTo("cell1"); // no rules default to first
+    }
+
+    @Test
+    public void invalidInitialRoutingPatternThrowsException() {
         TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
         when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=#)(");
@@ -82,5 +84,30 @@ public class DefaultCellRouterTest {
 
         assertThatThrownBy(() -> new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration))
                 .isInstanceOf(PatternSyntaxException.class);
+    }
+
+    @Test
+    public void rulesCanBeChangedDynamically() {
+        TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
+        when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
+        when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=(app3.*)");
+
+        CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
+        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+
+        assertThat(cellRouter.routeKey("app3foobar").getName()).isEqualTo("cell2");
+        assertThat(cellRouter.routeKey("app2foobar").getName()).isEqualTo("cell1");
+        // if not rules, by default go to the first configured in titus.federation.cells
+        assertThat(cellRouter.routeKey("other").getName()).isEqualTo("cell1");
+
+        // flip rules
+        reset(titusFederationConfiguration);
+        when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
+        when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell2=(app1.*|app2.*);cell1=(app3.*)");
+
+        assertThat(cellRouter.routeKey("app3foobar").getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey("app2foobar").getName()).isEqualTo("cell2");
+        // if not rules, by default go to the first configured in titus.federation.cells
+        assertThat(cellRouter.routeKey("other").getName()).isEqualTo("cell1");
     }
 }

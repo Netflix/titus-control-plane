@@ -20,5 +20,13 @@ import java.util.List;
 import com.netflix.titus.api.federation.model.Cell;
 
 public interface CellInfoResolver {
+    /**
+     * @return cells indexed by their name
+     */
     List<Cell> resolve();
+
+    /**
+     * @return cell to be used when no existing routing rules match
+     */
+    Cell getDefault();
 }
