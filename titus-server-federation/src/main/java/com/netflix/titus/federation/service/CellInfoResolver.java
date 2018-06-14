@@ -21,7 +21,7 @@ import com.netflix.titus.api.federation.model.Cell;
 
 public interface CellInfoResolver {
     /**
-     * @return cells indexed by their name
+     * @return all registered cells
      */
     List<Cell> resolve();
 
