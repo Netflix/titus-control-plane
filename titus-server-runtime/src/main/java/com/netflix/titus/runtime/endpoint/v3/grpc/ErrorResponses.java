@@ -147,7 +147,7 @@ public final class ErrorResponses {
                 case V2EngineTurnedOff:
                     return Status.PERMISSION_DENIED;
                 case JobCreateLimited:
-                    return Status.RESOURCE_EXHAUSTED;
+                    return Status.INVALID_ARGUMENT;
                 case JobNotFound:
                 case TaskNotFound:
                     return Status.NOT_FOUND;
