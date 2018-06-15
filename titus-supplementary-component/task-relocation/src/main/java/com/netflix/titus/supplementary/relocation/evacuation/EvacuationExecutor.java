@@ -15,6 +15,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.model.reference.Reference;
+import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataSnapshot;
@@ -23,6 +24,7 @@ import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Experimental(detail = "Proof of concept", deadline = "09/01/2018")
 class EvacuationExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(EvacuationExecutor.class);
@@ -113,6 +115,9 @@ class EvacuationExecutor {
         Map<String, Long> remainingCapacityGroupQuotas = new HashMap<>();
 
         for (Task task : runningTasks) {
+            if (task.getStatus().getState() == TaskState.KillInitiated) {
+                continue;
+            }
             if (remainingSystemQuota <= 0) {
                 logger.info("Aborting termination process due to lack of the system quota (global or tier)");
                 return;
@@ -205,7 +210,8 @@ class EvacuationExecutor {
     }
 
     static boolean isTaskRunningOnInstance(Task task, String instanceId) {
-        if (task.getStatus().getState() == TaskState.Finished) {
+        TaskState state = task.getStatus().getState();
+        if (state == TaskState.Finished) {
             return false;
         }
 

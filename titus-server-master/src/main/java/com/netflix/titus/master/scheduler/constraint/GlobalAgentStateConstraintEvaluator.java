@@ -15,7 +15,7 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValueOrEmptyString;
 
 /**
- * A constraint that check an agent instance state.
+ * A constraint that checks an agent instance's state.
  */
 @Singleton
 public class GlobalAgentStateConstraintEvaluator implements GlobalConstraintEvaluator {
@@ -42,7 +42,7 @@ public class GlobalAgentStateConstraintEvaluator implements GlobalConstraintEval
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         String instanceId = getAttributeValueOrEmptyString(targetVM, schedulerConfiguration.getInstanceAttributeName());
 
-        // Instance does not contain all the required attributes. This should be validate when we accept the offer not here,
+        // Instance does not contain all the required attributes. This should be validated when we accept the offer not here,
         // hence we let it go.
         if (StringExt.isEmpty(instanceId)) {
             return IN_SERVICE;

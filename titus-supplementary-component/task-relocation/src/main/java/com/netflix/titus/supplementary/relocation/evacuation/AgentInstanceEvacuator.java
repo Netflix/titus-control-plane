@@ -9,6 +9,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceOverrideState;
+import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
@@ -20,6 +21,7 @@ import rx.Observable;
 import rx.Subscription;
 
 @Singleton
+@Experimental(detail="Proof of concept", deadline = "09/01/2018")
 public class AgentInstanceEvacuator {
 
     private static final Logger logger = LoggerFactory.getLogger(AgentInstanceEvacuator.class);
@@ -34,6 +36,7 @@ public class AgentInstanceEvacuator {
     private final JobDataReplicator jobDataReplicator;
     private final EvictionDataReplicator evictionDataReplicator;
     private final EvictionServiceClient evictionServiceClient;
+    private final TitusRuntime titusRuntime;
     private final EvacuationMetrics metrics;
 
     @Inject
@@ -46,6 +49,7 @@ public class AgentInstanceEvacuator {
         this.jobDataReplicator = jobDataReplicator;
         this.evictionDataReplicator = evictionDataReplicator;
         this.evictionServiceClient = evictionServiceClient;
+        this.titusRuntime = titusRuntime;
         this.metrics = new EvacuationMetrics(titusRuntime);
 
         this.subscription = Observable.interval(0, 5, TimeUnit.SECONDS).subscribe(tick -> {
@@ -102,6 +106,7 @@ public class AgentInstanceEvacuator {
 
         AgentInstanceGroup instanceGroup = agentDataReplicator.getCurrent().findInstanceGroup(bestMatch.getInstanceGroupId()).orElse(null);
         if (instanceGroup == null) {
+            titusRuntime.getCodeInvariants().inconsistent("Found agent instance, but not its instance group: %s", bestMatch);
             logger.warn("Found agent instance, but not its instance group: {}", bestMatch);
             return null;
         }
