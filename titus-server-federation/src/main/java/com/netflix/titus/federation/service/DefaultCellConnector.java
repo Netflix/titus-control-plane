@@ -44,13 +44,14 @@ public class DefaultCellConnector implements CellConnector {
         List<Cell> cells = cellInfoResolver.resolve();
 
         if (cells != null && !cells.isEmpty()) {
-            channels = cellInfoResolver.resolve()
-                    .stream()
-                    .collect(Collectors.toMap(cell -> cell,
+            channels = cells.stream()
+                    .collect(Collectors.toMap(
+                            cell -> cell,
                             cell -> NettyChannelBuilder.forTarget(cell.getAddress())
                                     .usePlaintext(true)
                                     .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
-                                    .build()));
+                                    .build()
+                    ));
         } else {
             channels = Collections.emptyMap();
         }

@@ -16,7 +16,9 @@
 package com.netflix.titus.federation.service;
 
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.netflix.titus.api.federation.model.Cell;
 import org.junit.Test;
@@ -44,7 +46,6 @@ public class CellInfoUtilTest {
         assertThat(cells.get(0).getAddress()).isEqualTo("hostName1:7001");
     }
 
-
     @Test
     public void checkEmptyCellSpecifications() {
         String cellsSpec = "";
@@ -53,5 +54,16 @@ public class CellInfoUtilTest {
         assertThat(cells.size()).isEqualTo(0);
     }
 
-
+    @Test
+    public void duplicatedRoutingRulesAreIgnored() {
+        Cell cell = new Cell("cell1", "1");
+        String cellsSpec = "cell1=(app1.*);cell1=(app2.*)";
+        Map<Cell, String> routingRules = CellInfoUtil.extractCellRoutingFromCellSpecification(
+                Collections.singletonList(cell), cellsSpec
+        );
+        assertThat(routingRules).isNotNull();
+        assertThat(routingRules).hasSize(1);
+        // second value got ignored
+        assertThat(routingRules.get(cell)).isEqualTo("(app1.*)");
+    }
 }

@@ -25,15 +25,28 @@ import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 
 @Singleton
 public class DefaultCellInfoResolver implements CellInfoResolver {
-    private final List<Cell> cells;
+    private final TitusFederationConfiguration configuration;
 
     @Inject
-    public DefaultCellInfoResolver(TitusFederationConfiguration appConfig) {
-        cells = CellInfoUtil.extractCellsFromCellSpecification(appConfig.getCells());
+    public DefaultCellInfoResolver(TitusFederationConfiguration configuration) {
+        this.configuration = configuration;
+    }
+
+    /**
+     * @throws IllegalStateException when no cells are configured
+     */
+    @Override
+    public List<Cell> resolve() {
+        String configuredCells = configuration.getCells();
+        List<Cell> cells = CellInfoUtil.extractCellsFromCellSpecification(configuredCells);
+        if (cells.isEmpty()) {
+            throw new IllegalStateException("No valid cells are configured: " + configuredCells);
+        }
+        return cells;
     }
 
     @Override
-    public List<Cell> resolve() {
-        return cells;
+    public Cell getDefault() {
+        return resolve().get(0);
     }
 }

@@ -16,14 +16,13 @@
 
 package com.netflix.titus.common.util;
 
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.common.util.cache.MemoizedFunction;
 import org.slf4j.Logger;
 
 public final class RegExpExt {
@@ -51,25 +50,16 @@ public final class RegExpExt {
     }
 
     private static Function<String, Matcher> dynamicMatcherInternal(Supplier<String> regExpSource, int flags, Consumer<Throwable> onError) {
-        String patternString = regExpSource.get();
-        AtomicReference<Pair<String, Pattern>> lastGoodPattern = new AtomicReference<>(Pair.of(patternString, Pattern.compile(patternString, flags)));
-        return text -> {
-            Pair<String, Pattern> current = lastGoodPattern.get();
-
-            String currentPatternString = current.getLeft();
-            String newPatternString = regExpSource.get();
-
-            if (!currentPatternString.equals(newPatternString)) {
-                try {
-                    Pattern newPattern = Pattern.compile(newPatternString, flags);
-                    lastGoodPattern.set(Pair.of(newPatternString, newPattern));
-                    return newPattern.matcher(text);
-                } catch (Exception e) {
-                    onError.accept(e);
-                }
+        Function<String, Pattern> compilePattern = new MemoizedFunction<>((patternString, lastGoodPattern) -> {
+            try {
+                return Pattern.compile(patternString, flags);
+            } catch (Exception e) {
+                onError.accept(e);
+                // there is nothing that can be done if the first patternString is invalid
+                return lastGoodPattern.orElseThrow(() -> new RuntimeException(e));
             }
+        });
 
-            return current.getRight().matcher(text);
-        };
+        return text -> compilePattern.apply(regExpSource.get()).matcher(text);
     }
 }

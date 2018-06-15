@@ -289,6 +289,13 @@ public final class CollectionsExt {
         return result;
     }
 
+    public static <K, U, V> Map<K, V> mapValues(Map<K, U> source, Function<U, V> valueMapper, Supplier<Map<K, V>> mapSupplier) {
+        return source.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey, entry -> valueMapper.apply(entry.getValue()),
+                (v1, v2) -> v1, mapSupplier
+        ));
+    }
+
     public static <T> Pair<List<T>, List<T>> split(List<T> items, Predicate<T> predicate) {
         List<T> matching = new ArrayList<>();
         List<T> notMatching = new ArrayList<>();
@@ -358,10 +365,10 @@ public final class CollectionsExt {
 
     public static <K, V> Map<K, V> newMapFrom(K[] keys, Function<K, V> valueFun) {
         Map<K, V> result = new HashMap<>();
-        for(K key: keys) {
+        for (K key : keys) {
             result.put(key, valueFun.apply(key));
         }
-        return  result;
+        return result;
     }
 
     public static int[] toPrimitiveArray(Collection<Integer> collection) {
@@ -434,6 +441,13 @@ public final class CollectionsExt {
             }
         }
         return true;
+    }
+
+    /**
+     * Items with the same index key will be discarded (only the first is kept in the result {@link Map}.
+     */
+    public static <T, I> Map<I, T> indexBy(List<T> items, Function<T, I> keyMapper) {
+        return items.stream().collect(Collectors.toMap(keyMapper, Function.identity(), (v1, v2) -> v1));
     }
 
     public static class MapBuilder<K, V> {

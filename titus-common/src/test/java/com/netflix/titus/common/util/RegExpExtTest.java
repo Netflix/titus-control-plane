@@ -16,6 +16,9 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.Test;
@@ -31,5 +34,18 @@ public class RegExpExtTest {
             throw new IllegalStateException(e);
         }).apply(message).matches();
         assertThat(matches).isTrue();
+    }
+
+    @Test
+    public void testDynamicModifications() {
+        String message = "hello\nend";
+        AtomicReference<String> config = new AtomicReference<>(".*hello.*");
+        Function<String, Matcher> matcher = RegExpExt.dynamicMatcher(() -> config.get(), Pattern.DOTALL, e -> {
+            throw new IllegalStateException(e);
+        });
+        assertThat(matcher.apply(message).matches()).isTrue();
+
+        config.set(".*foobar.*");
+        assertThat(matcher.apply(message).matches()).isFalse();
     }
 }
