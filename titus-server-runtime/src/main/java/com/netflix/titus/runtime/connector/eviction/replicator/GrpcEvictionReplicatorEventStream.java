@@ -14,8 +14,8 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.eviction.model.event.SystemDisruptionBudgetUpdateEvent;
-import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
@@ -61,8 +61,10 @@ public class GrpcEvictionReplicatorEventStream implements ReplicatorEventStream<
                         LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
                         scheduler
                 ))
-                .doOnNext(event -> metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime()))
-                .doOnSubscribe(metrics::connected)
+                .doOnNext(event -> {
+                    metrics.connected();
+                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
+                })
                 .doOnUnsubscribe(metrics::disconnected)
                 .doOnError(metrics::disconnected)
                 .doOnCompleted(metrics::disconnected);

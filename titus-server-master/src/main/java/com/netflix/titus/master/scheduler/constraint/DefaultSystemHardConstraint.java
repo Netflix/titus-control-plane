@@ -66,6 +66,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     public void enterActiveMode() {
         this.delegate = new CompositeGlobalConstraintEvaluator(asList(
                 new GlobalInactiveClusterConstraintEvaluator(config, agentManagementService, titusRuntime),
+                new GlobalAgentStateConstraintEvaluator(schedulerConfiguration, agentManagementService),
                 new GlobalAgentClusterConstraint(schedulerConfiguration, agentManagementService, agentStatusMonitor),
                 new GlobalTaskResubmitConstraintEvaluator(),
                 globalTaskLaunchingConstraintEvaluator,

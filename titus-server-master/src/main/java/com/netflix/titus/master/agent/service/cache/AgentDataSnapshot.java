@@ -86,8 +86,11 @@ class AgentDataSnapshot {
         if (previous == null) {
             return this;
         }
+
+        // Order matters. If an item is present in a set, it is not overwritten, so add the updated entity first.
         Set<AgentInstance> instanceSet = new TreeSet<>(AgentInstance.idComparator());
         instanceSet.add(agentInstance);
+        instanceSet.addAll(previous.getRight());
 
         Map<String, Pair<AgentInstanceGroup, Set<AgentInstance>>> newInstanceGroupsById = new HashMap<>(instanceGroupsById);
         newInstanceGroupsById.put(instanceGroupId, Pair.of(previous.getLeft(), instanceSet));

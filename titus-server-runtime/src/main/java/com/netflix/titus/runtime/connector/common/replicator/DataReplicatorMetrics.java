@@ -1,8 +1,11 @@
 package com.netflix.titus.runtime.connector.common.replicator;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.runtime.TitusRuntime;
 
 /**
@@ -14,14 +17,16 @@ public class DataReplicatorMetrics {
 
     private final Registry registry;
 
-    private final Gauge connected;
+    private final AtomicLong connected = new AtomicLong();
     private final Id failuresId;
     private final Gauge staleness;
 
     public DataReplicatorMetrics(String source, TitusRuntime titusRuntime) {
         this.registry = titusRuntime.getRegistry();
 
-        this.connected = registry.gauge(ROOT + "connected", "source", source);
+        // Use PolledMeter as this metric is set infrequently
+        PolledMeter.using(registry).withId(registry.createId(ROOT + "connected", "source", source)).monitorValue(connected);
+
         this.failuresId = registry.createId(ROOT + "failures", "source", source);
         this.staleness = registry.gauge(ROOT + "staleness", "source", source);
     }

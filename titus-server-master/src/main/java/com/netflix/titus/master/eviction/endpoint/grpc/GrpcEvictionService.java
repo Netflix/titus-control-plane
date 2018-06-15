@@ -84,7 +84,15 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
     @Override
     public void terminateTask(TaskTerminateRequest request, StreamObserver<TaskTerminateResponse> responseObserver) {
         evictionOperations.terminateTask(request.getTaskId(), request.getReason()).subscribe(
-                responseObserver::onCompleted,
+                () -> {
+                    responseObserver.onNext(TaskTerminateResponse.newBuilder()
+                            .setAllowed(true)
+                            .setReasonCode("normal")
+                            .setReasonMessage("Terminating")
+                            .build()
+                    );
+                    responseObserver.onCompleted();
+                },
                 responseObserver::onError
         );
     }

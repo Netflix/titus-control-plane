@@ -11,6 +11,7 @@ import com.netflix.titus.api.eviction.model.event.SystemDisruptionBudgetUpdateEv
 import com.netflix.titus.api.eviction.model.event.TaskTerminationEvent;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
 import com.netflix.titus.api.model.TokenBucketRefillPolicy;
+import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.Reference;
@@ -18,12 +19,26 @@ import com.netflix.titus.grpc.protogen.SystemDisruptionBudget;
 import com.netflix.titus.grpc.protogen.TokenBucketPolicy;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcTier;
 
 public final class GrpcEvictionModelConverters {
 
     private static final LoadingCache<com.netflix.titus.api.model.reference.Reference, Reference> CORE_TO_GRPC_REFERENCE_CACHE = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofHours(1))
-            .build(GrpcEvictionModelConverters::toGrpcReference);
+            .build(coreReference -> {
+                switch (coreReference.getLevel()) {
+                    case Global:
+                        return Reference.newBuilder().setGlobal(Reference.Global.getDefaultInstance()).build();
+                    case Tier:
+                        return Reference.newBuilder().setTier(toGrpcTier(((TierReference) coreReference).getTier())).build();
+                    case CapacityGroup:
+                        return Reference.newBuilder().setCapacityGroup(coreReference.getName()).build();
+                    case Job:
+                    case Task:
+                    default:
+                }
+                throw new IllegalArgumentException("not implemented yet");
+            });
 
     private GrpcEvictionModelConverters() {
     }

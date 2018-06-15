@@ -39,7 +39,8 @@ import java.lang.annotation.Target;
         ElementType.METHOD,
         ElementType.TYPE})
 @Documented
-@rx.annotations.Experimental
 public @interface Experimental {
     String detail() default "";
+
+    String deadline();
 }

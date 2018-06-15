@@ -8,7 +8,7 @@ public class TaskRelocationMain {
 
     public static void main(String[] args) throws Exception {
         InjectorBuilder.fromModules(
-                new TaskRelocationModule(),
+                new TaskRelocationMainModule(),
                 new Archaius2JettyModule(),
                 new ArchaiusModule() {
                     @Override
