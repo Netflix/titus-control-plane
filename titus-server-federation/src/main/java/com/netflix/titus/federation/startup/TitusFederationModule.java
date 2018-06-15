@@ -25,9 +25,11 @@ import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.SystemAbortListener;
+import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
+import com.netflix.titus.common.runtime.internal.LoggingSystemLogService;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
@@ -52,6 +54,7 @@ public class TitusFederationModule extends AbstractModule {
     protected void configure() {
         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
         bind(Registry.class).toInstance(new DefaultRegistry());
+        bind(SystemLogService.class).to(LoggingSystemLogService.class);
         bind(SystemAbortListener.class).to(LoggingSystemAbortListener.class);
 
         install(new GovernatorJerseySupportModule());
@@ -76,12 +79,12 @@ public class TitusFederationModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(SystemAbortListener systemAbortListener, Registry registry) {
+    public TitusRuntime getTitusRuntime(SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, systemAbortListener, registry);
+        return new DefaultTitusRuntime(codeInvariants, systemLogService, systemAbortListener, registry);
     }
 
     @Provides

@@ -10,18 +10,13 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
+import com.netflix.titus.common.runtime.internal.LoggingSystemLogService;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
-import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
-import com.netflix.titus.runtime.connector.agent.replicator.DefaultAgentDataReplicator;
-import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
-import com.netflix.titus.runtime.connector.eviction.replicator.DefaultEvictionDataReplicator;
-import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
-import com.netflix.titus.runtime.connector.jobmanager.replicator.DefaultJobDataReplicator;
 import com.netflix.titus.supplementary.relocation.evacuation.AgentInstanceEvacuator;
 
 public class TaskRelocationMainModule extends AbstractModule {
@@ -47,6 +42,6 @@ public class TaskRelocationMainModule extends AbstractModule {
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, LoggingSystemAbortListener.getDefault(), registry);
+        return new DefaultTitusRuntime(codeInvariants, LoggingSystemLogService.getInstance(), LoggingSystemAbortListener.getDefault(), registry);
     }
 }

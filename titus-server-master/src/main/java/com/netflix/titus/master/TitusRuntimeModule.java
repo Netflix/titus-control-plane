@@ -36,9 +36,11 @@ import com.netflix.titus.common.framework.fit.FitRegistry;
 import com.netflix.titus.common.framework.fit.FitUtil;
 import com.netflix.titus.common.jhiccup.JHiccupModule;
 import com.netflix.titus.common.runtime.SystemAbortListener;
+import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
+import com.netflix.titus.common.runtime.internal.LoggingSystemLogService;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
@@ -69,6 +71,7 @@ public class TitusRuntimeModule extends AbstractModule {
         install(new ContainerEventBusModule());
         install(new JHiccupModule());
 
+        bind(SystemLogService.class).to(LoggingSystemLogService.class);
         bind(SystemAbortListener.class).to(LoggingSystemAbortListener.class);
         bind(FitActionInitializer.class).asEagerSingleton();
     }
@@ -81,12 +84,12 @@ public class TitusRuntimeModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(SystemAbortListener systemAbortListener, Registry registry) {
+    public TitusRuntime getTitusRuntime(LoggingSystemLogService loggingSystemLogService, SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, systemAbortListener, registry);
+        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, loggingSystemLogService, systemAbortListener, registry);
 
         // Setup FIT component hierarchy
         FitFramework fitFramework = titusRuntime.getFitFramework();

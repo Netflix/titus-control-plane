@@ -29,6 +29,7 @@ import com.netflix.spectator.api.Tag;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.runtime.SystemAbortEvent;
 import com.netflix.titus.common.runtime.SystemAbortListener;
+import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
@@ -59,16 +60,21 @@ public class DefaultTitusRuntime implements TitusRuntime {
 
     private final CodePointTracker codePointTracker;
     private final CodeInvariants codeInvariants;
+    private final SystemLogService systemLogService;
     private final SystemAbortListener systemAbortListener;
     private final Registry registry;
     private final Clock clock;
     private final FitFramework fitFramework;
 
     @Inject
-    public DefaultTitusRuntime(CodeInvariants codeInvariants, SystemAbortListener systemAbortListener, Registry registry) {
+    public DefaultTitusRuntime(CodeInvariants codeInvariants,
+                               SystemLogService systemLogService,
+                               SystemAbortListener systemAbortListener,
+                               Registry registry) {
         this(
                 new SpectatorCodePointTracker(registry),
                 codeInvariants,
+                systemLogService,
                 systemAbortListener,
                 registry,
                 Clocks.system(),
@@ -78,11 +84,13 @@ public class DefaultTitusRuntime implements TitusRuntime {
 
     public DefaultTitusRuntime(CodePointTracker codePointTracker,
                                CodeInvariants codeInvariants,
+                               SystemLogService systemLogService,
                                SystemAbortListener systemAbortListener,
                                Registry registry, Clock clock,
                                boolean isFitEnabled) {
         this.codePointTracker = codePointTracker;
         this.codeInvariants = codeInvariants;
+        this.systemLogService = systemLogService;
         this.systemAbortListener = systemAbortListener;
         this.registry = registry;
         this.clock = clock;
@@ -134,6 +142,11 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Override
     public CodeInvariants getCodeInvariants() {
         return codeInvariants;
+    }
+
+    @Override
+    public SystemLogService getSystemLogService() {
+        return systemLogService;
     }
 
     @Override
