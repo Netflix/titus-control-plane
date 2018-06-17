@@ -17,6 +17,7 @@
 package com.netflix.titus.common.util.rx;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -36,7 +37,6 @@ import com.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
-import java.util.Iterator;
 import org.slf4j.Logger;
 import rx.BackpressureOverflow;
 import rx.Completable;
