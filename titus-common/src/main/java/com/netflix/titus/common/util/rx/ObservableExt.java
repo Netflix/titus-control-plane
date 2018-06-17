@@ -56,7 +56,7 @@ public class ObservableExt {
      * Wrap {@link Runnable} into observable.
      */
     public static <Void> Observable<Void> fromRunnable(Runnable runnable) {
-        return (Observable<Void>) Observable.fromCallable(() -> {
+        return Observable.<Void>fromCallable(() -> {
             runnable.run();
             return null;
         }).ignoreElements();
