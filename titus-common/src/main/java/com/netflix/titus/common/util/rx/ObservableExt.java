@@ -36,6 +36,7 @@ import com.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
+import java.util.Iterator;
 import org.slf4j.Logger;
 import rx.BackpressureOverflow;
 import rx.Completable;
@@ -91,12 +92,12 @@ public class ObservableExt {
         if (chunks.isEmpty()) {
             return Observable.empty();
         }
-        if (chunks.size() == 1) {
-            return chunks.get(0);
+        final Iterator<Observable<T>> chunkIterator = chunks.iterator();
+        Observable<T> result = chunkIterator.next();
+        while (chunkIterator.hasNext()) {
+            result = result.concatWith(chunkIterator.next().delay(delay, timeUnit, scheduler));
         }
-        return chunks.get(0)
-                .concatWith((Observable<T>) Observable.timer(delay, timeUnit, scheduler).ignoreElements())
-                .concatWith(fromWithDelay(chunks.subList(1, chunks.size()), delay, timeUnit, scheduler));
+        return result;
     }
 
     /**
