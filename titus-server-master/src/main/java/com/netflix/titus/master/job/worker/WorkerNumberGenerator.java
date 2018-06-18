@@ -51,13 +51,13 @@ public class WorkerNumberGenerator {
             currLimit += IncrementStep;
             ((V2JobMetadataWritable) job).setNextWorkerNumberToUse(currLimit);
             jobStore.storeJobNextWorkerNumber(jobId, currLimit);
-            logger.info(jobId + " nextWorkerNumber set to : " + currLimit);
+            logger.info("{} nextWorkerNumber set to : {}", jobId, currLimit);
         } catch (InvalidJobException | IOException e) {
             hasErrored = true;
             throw new RuntimeException("Unexpected: " + e.getMessage());
         } catch (Exception e) {
             hasErrored = true;
-            logger.warn("Unexpected exception locking job metadata object for jobid=" + jobId + ": " + e.getMessage(), e);
+            logger.warn("Unexpected exception locking job metadata object for jobid={}: {}", jobId, e.getMessage(), e);
         }
     }
 

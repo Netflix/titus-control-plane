@@ -246,9 +246,8 @@ public class V2StageMetadataWritable implements V2StageMetadata {
                     if (mwmd.getWorkerNumber() != oldWorker.getWorkerNumber()) {
                         workerByIndexMetadataSet.put(index, mwmd);
                         result = false;
-                        logger.info("Did not replace worker " + oldWorker.getWorkerNumber() + " with " +
-                                newWorker.getWorkerNumber() + " for index " + newWorker.getWorkerIndex() + " of job " +
-                                jobId + ", different worker " + mwmd.getWorkerNumber() + " exists already");
+                        logger.info("Did not replace worker {} with {} for index {} of job {}, different worker {} exists already",
+                                oldWorker.getWorkerNumber(), newWorker.getWorkerNumber(), newWorker.getWorkerIndex(), jobId, mwmd.getWorkerNumber());
                     }
 //                    else
 //                        logger.info("Replaced worker " + oldWorker.getWorkerNumber() + " with " + newWorker.getWorkerNumber() +

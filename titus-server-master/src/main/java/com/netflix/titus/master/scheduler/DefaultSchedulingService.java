@@ -444,7 +444,7 @@ public class DefaultSchedulingService implements SchedulingService {
                         break;
                 }
             } catch (Exception e) {
-                logger.warn("Will continue after exception calling autoscale action observer: " + e.getMessage(), e);
+                logger.warn("Will continue after exception calling autoscale action observer: {}", e.getMessage(), e);
             }
         });
         return scheduler;
@@ -469,7 +469,7 @@ public class DefaultSchedulingService implements SchedulingService {
                             taskScheduler.removeAutoScaleRule(instanceGroupId);
                         }
                     } catch (Exception e) {
-                        logger.warn("Unexpected error updating cluster autoscale rules: " + e.getMessage());
+                        logger.warn("Unexpected error updating cluster autoscale rules: {}", e.getMessage());
                     }
                 }
         );
@@ -531,7 +531,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void checkIfExitOnSchedError(String s) {
         if (schedulerConfiguration.isExitUponFenzoSchedulingErrorEnabled()) {
-            logger.error("Exiting due to fatal error: " + s);
+            logger.error("Exiting due to fatal error: {}", s);
             CountDownLatch latch = new CountDownLatch(3);
             final ObjectMapper mapper = new ObjectMapper();
             try {
@@ -542,14 +542,14 @@ public class DefaultSchedulingService implements SchedulingService {
                 schedulingService.requestResourceStatus(resourceStatus ->
                         printFenzoStateDump(mapper, "resource status", resourceStatus, latch));
             } catch (TaskQueueException e) {
-                logger.error("Couldn't request state dump from Fenzo: " + e.getMessage(), e);
+                logger.error("Couldn't request state dump from Fenzo: {}", e.getMessage(), e);
             }
             try {
                 if (!latch.await(MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS * 3, TimeUnit.MILLISECONDS)) {
                     logger.error("Timeout waiting for Fenzo state dump");
                 }
             } catch (InterruptedException e) {
-                logger.error("Interrupted while waiting for Fenzo state dump: " + e.getMessage(), e);
+                logger.error("Interrupted while waiting for Fenzo state dump: {}", e.getMessage(), e);
             }
             System.exit(3);
         }
@@ -559,7 +559,7 @@ public class DefaultSchedulingService implements SchedulingService {
         try {
             logger.info("Fenzo state dump of " + what + ": " + mapper.writeValueAsString(dump));
         } catch (JsonProcessingException e) {
-            logger.error("Error dumping Fenzo state for " + what + ": " + e.getMessage(), e);
+            logger.error("Error dumping Fenzo state for {}: {}", what, e.getMessage(), e);
         } finally {
             latch.countDown();
         }
@@ -909,7 +909,7 @@ public class DefaultSchedulingService implements SchedulingService {
         for (VirtualMachineCurrentState inactiveVmState : inactiveVmStates) {
             VirtualMachineLease lease = inactiveVmState.getCurrAvailableResources();
             String vmHost = lease.hostname();
-            logger.debug("expiring all leases of inactive vm " + vmHost);
+            logger.debug("expiring all leases of inactive vm {}", vmHost);
             taskScheduler.expireAllLeases(vmHost);
         }
     }

@@ -78,7 +78,7 @@ public class LeaderRedirectingFilter implements Filter {
             }
         } else {
             URI redirectUri = getRedirectUri((HttpServletRequest) request, masterMonitor.getLatestMaster());
-            logger.info("Redirecting to " + redirectUri.toURL().toString());
+            logger.info("Redirecting to {}", redirectUri.toURL());
             httpResponse.sendRedirect(redirectUri.toURL().toString());
         }
     }

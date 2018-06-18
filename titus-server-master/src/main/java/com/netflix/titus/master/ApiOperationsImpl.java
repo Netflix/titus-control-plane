@@ -132,7 +132,7 @@ public class ApiOperationsImpl implements ApiOperations {
         try {
             return store.getCompletedJob(jobId);
         } catch (IOException e) {
-            logger.warn("Unexpected error getting completed job from store: " + e.getMessage(), e);
+            logger.warn("Unexpected error getting completed job from store: {}", e.getMessage(), e);
         }
         return null;
     }
@@ -192,7 +192,7 @@ public class ApiOperationsImpl implements ApiOperations {
         try {
             return store.getArchivedWorkers(jobId);
         } catch (IOException e) {
-            logger.warn("Can't get archived workers for job " + jobId);
+            logger.warn("Can't get archived workers for job {}", jobId);
         }
         return null;
     }
@@ -293,7 +293,7 @@ public class ApiOperationsImpl implements ApiOperations {
                 logger.info("Waiting for getting to ready state");
             }
         } catch (InterruptedException e) {
-            logger.warn("Ignoring interruption waiting for isReady: " + e.getMessage());
+            logger.warn("Ignoring interruption waiting for isReady: {}", e.getMessage());
         }
     }
 

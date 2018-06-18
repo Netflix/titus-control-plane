@@ -152,9 +152,9 @@ public class ServiceJobMgr extends BaseJobMgr {
                             queueTask(w);
                         });
                     } catch (IOException e1) {
-                        logger.error(jobId + ": Unexpected to fail storing new worker"); // ToDo how do we handle storage errors?
+                        logger.error("{}: Unexpected to fail storing new worker", jobId); // ToDo how do we handle storage errors?
                     } catch (InvalidJobException e1) {
-                        logger.error(jobId + ": Unexpected - " + e.getMessage()); // shouldn't happen, we are a valid job
+                        logger.error("{}: Unexpected - {}", jobId, e.getMessage()); // shouldn't happen, we are a valid job
                     }
                 }
             }
@@ -195,7 +195,7 @@ public class ServiceJobMgr extends BaseJobMgr {
                         try {
                             replaceWorker(t);
                         } catch (IOException | InvalidJobException | InvalidJobStateChangeException e) {
-                            logger.error(jobId + ": Error storing new worker for index " + t.getWorkerIndex() + " - " + e.getMessage());
+                            logger.error("{}: Error storing new worker for index {} - {}", jobId, t.getWorkerIndex(), e.getMessage());
                         }
                     }
                     activeCount++;
@@ -222,13 +222,13 @@ public class ServiceJobMgr extends BaseJobMgr {
         if (scalingPolicy == null) {
             logger.warn("Scaling policy not defined for task {}", jobId);
         } else if (scalingPolicy.getDesired() != stageMetadata.getNumWorkers()) {
-            logger.warn(jobId + ": overwriting scalingPolicy.desired=" + scalingPolicy.getDesired() +
-                    " onto current workers count of " + stageMetadata.getNumWorkers());
+            logger.warn("{}: overwriting scalingPolicy.desired={} onto current workers count of {}",
+                    jobId, scalingPolicy.getDesired(), stageMetadata.getNumWorkers());
             try {
                 updateInstanceCounts(scalingPolicy.getMin(), scalingPolicy.getDesired(), scalingPolicy.getMax(),
                         "Master", stageMetadata.getNumWorkers());
             } catch (InvalidJobException e) {
-                logger.warn("Unexpected error setting instance counts per scaling policy: " + e.getMessage());
+                logger.warn("Unexpected error setting instance counts per scaling policy: {}", e.getMessage());
             }
         }
     }
@@ -247,8 +247,8 @@ public class ServiceJobMgr extends BaseJobMgr {
                 resubmitWorker(taskId, "kill requested by: " + user + ", resubmitting");
                 return true;
             } catch (InvalidJobException | InvalidJobStateChangeException e) {
-                logger.warn(jobId + ": couldn't kill task " + taskId + " invoked by user " + user + ": "
-                        + e.getMessage());
+                logger.warn("{}: couldn't kill task {} invoked by user {}: {}",
+                        jobId, taskId, user, e.getMessage());
                 return false;
             }
         }
@@ -323,10 +323,10 @@ public class ServiceJobMgr extends BaseJobMgr {
             updateInstanceCounts(min, desired, max, user, scalingPolicy.getDesired());
             logger.info("Scaling policy updated in {}[ms]", System.currentTimeMillis() - startTime);
         } catch (JobManagerException e) {
-            logger.warn(jobId + ": JobManagerException in updating instance counts - " + e.getMessage(), e);
+            logger.warn("{}: JobManagerException in updating instance counts - {}", jobId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            logger.warn(jobId + ": unexpected exception locking job metadata: " + e.getMessage(), e);
+            logger.warn("{}: unexpected exception locking job metadata: {}", jobId, e.getMessage(), e);
             throw new InvalidJobException(jobId, e);
         }
     }
@@ -352,7 +352,7 @@ public class ServiceJobMgr extends BaseJobMgr {
             }
 
         } catch (Exception e) {
-            logger.warn(jobId + ": unexpected exception locking job metadata: " + e.getMessage(), e);
+            logger.warn("{}: unexpected exception locking job metadata: {}", jobId, e.getMessage(), e);
             throw new InvalidJobException(jobId, e);
         }
     }
@@ -389,7 +389,7 @@ public class ServiceJobMgr extends BaseJobMgr {
             serviceStage.setScalingPolicy(newScalingPolicy);
 
             store.updateJob(jobId, jobMetadata);
-            logger.info(jobId + ": setting instances min=" + effMin + ", max=" + effMax + ", desired=" + effDesired);
+            logger.info("{}: setting instances min={}, max={}, desired={}", jobId, effMin, effMax, effDesired);
 
             auditLogService.submit(
                     new AuditLogEvent(AuditLogEvent.Type.JOB_SCALE_UPDATE, jobId,
@@ -398,11 +398,11 @@ public class ServiceJobMgr extends BaseJobMgr {
 
             return newScalingPolicy;
         } catch (InvalidJobException e) {
-            logger.warn(jobId + ": couldn't create new tasks after setting instance counts: " + e.getMessage(), e);
+            logger.warn("{}: couldn't create new tasks after setting instance counts: {}", jobId, e.getMessage(), e);
             throw new InvalidJobException(jobId,
                     new Exception("Couldn't create new tasks after setting instance counts: " + e.getMessage()));
         } catch (Exception e) {
-            logger.warn(jobId + ": unexpected exception locking job metadata: " + e.getMessage(), e);
+            logger.warn("{}: unexpected exception locking job metadata: {}", jobId, e.getMessage(), e);
             throw new InvalidJobException(jobId, e);
         }
     }
@@ -418,7 +418,7 @@ public class ServiceJobMgr extends BaseJobMgr {
             jobMetadata.setParameters(Parameters.updateInService(jobDefinition.getParameters(), inService));
             store.updateJob(jobId, jobMetadata);
 
-            logger.info(jobId + ": changing inService status to {}", inService);
+            logger.info("{}: changing inService status to {}", jobId, inService);
             auditLogService.submit(
                     new AuditLogEvent(AuditLogEvent.Type.JOB_IN_SERVICE_STATUS_CHANGE, jobId,
                             "inService=" + inService, System.currentTimeMillis()));
@@ -426,11 +426,11 @@ public class ServiceJobMgr extends BaseJobMgr {
             JobState jobState = inService ? JobState.Activated : JobState.Deactivated;
             eventBus.publish(new JobStateChangeEvent<>(jobId, jobState, System.currentTimeMillis(), jobMetadata));
         } catch (InvalidJobException e) {
-            logger.warn(jobId + ": couldn't create new tasks after setting inService status: " + e.getMessage(), e);
+            logger.warn("{}: couldn't create new tasks after setting inService status: {}", jobId, e.getMessage(), e);
             throw new InvalidJobException(jobId,
                     new Exception("Couldn't create new tasks after setting inService status: " + e.getMessage()));
         } catch (Exception e) {
-            logger.warn(jobId + ": unexpected exception locking job metadata: " + e.getMessage(), e);
+            logger.warn("{}: unexpected exception locking job metadata: {}", jobId, e.getMessage(), e);
             throw new InvalidJobException(jobId, e);
         }
     }
@@ -445,8 +445,7 @@ public class ServiceJobMgr extends BaseJobMgr {
                 removeScaledDownWorkers(oldDesired, desired, user);
             }
         } catch (IOException e) {
-            logger.error(jobId + ": unexpected from store during setting desired instances from " + oldDesired +
-                    " to " + desired, e);
+            logger.error("{}: unexpected from store during setting desired instances from {} to {}", jobId, oldDesired, desired, e);
             throw new InvalidJobException("Unexpected error from Store: " + e.getMessage());
         } catch (InvalidJobException e) {
             throw new InvalidJobException(e.getMessage(), e);
@@ -477,14 +476,12 @@ public class ServiceJobMgr extends BaseJobMgr {
                     killWorker(w, user, "scaling down job", false, false);
                 }
                 if (!stage.unsafeRemoveWorker(w.getWorkerIndex(), w.getWorkerNumber())) {
-                    logger.warn(jobId + ": Unexpected to not remove worker index " + i + " when scaling down from " +
-                            oldCount + " to " + newCount);
+                    logger.warn("{}: Unexpected to not remove worker index {} when scaling down from {} to {}", jobId, i, oldCount, newCount);
                 } else {
                     removed.add((V2WorkerMetadataWritable) w);
                 }
             } catch (InvalidJobException e) {
-                logger.warn(jobId + ": Unexpected to not find worker index " + i + " to scale down job from " +
-                        oldCount + " to " + newCount);
+                logger.warn("{}: Unexpected to not find worker index {} to scale down job from {} to {}", jobId, i, oldCount, newCount);
             }
         }
         for (V2WorkerMetadataWritable w : removed) {
@@ -566,7 +563,7 @@ public class ServiceJobMgr extends BaseJobMgr {
             // TODO confirm if this is possible, likely not
             throw new InvalidJobException("Unexpected error: " + e.getMessage(), e);
         } catch (IOException e) {
-            logger.error("Error storing workers of job " + jobId + " - " + e.getMessage(), e);
+            logger.error("Error storing workers of job {} - {}", jobId, e.getMessage(), e);
         }
     }
 

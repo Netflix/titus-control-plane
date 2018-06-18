@@ -134,7 +134,7 @@ public final class V2JobStore {
 
             @Override
             public void onError(Throwable e) {
-                logger.error("Error in job store observable: " + e.getMessage(), e);
+                logger.error("Error in job store observable: {}", e.getMessage(), e);
             }
 
             @Override
@@ -157,7 +157,7 @@ public final class V2JobStore {
                                 try (AutoCloseable ac = job.obtainLock()) {
                                     storageProvider.updateJob(job);
                                 } catch (Exception e) {
-                                    logger.error("Exception storing audit log event job " + job.getJobId(), e);
+                                    logger.error("Exception storing audit log event job {}", job.getJobId(), e);
                                 }
                             }
                             break;
@@ -191,7 +191,7 @@ public final class V2JobStore {
                 terminatedJobsToDelete.add(jobToDelete);
                 return;
             }
-            logger.info("Deleting old job " + jobToDelete.jobId);
+            logger.info("Deleting old job {}", jobToDelete.jobId);
             try {
                 if (jobOps.deleteJob(jobToDelete.jobId)) {
                     activeJobsMap.remove(jobToDelete.jobId);
@@ -288,7 +288,7 @@ public final class V2JobStore {
             return null;
         }
         String jobId = workerRequests.get(0).getJobId();
-        logger.info("Adding " + workerRequests.size() + " workers for job " + jobId);
+        logger.info("Adding {} workers for job {}", workerRequests.size(), jobId);
         V2JobMetadataWritable job = activeJobsMap.get(jobId);
         if (job == null) {
             throw new InvalidJobException(jobId, -1, -1);
@@ -400,8 +400,7 @@ public final class V2JobStore {
      */
     public V2WorkerMetadata replaceTerminatedWorker(WorkerRequest workerRequest, V2WorkerMetadata replacedWorker)
             throws IOException, InvalidJobException, InvalidJobStateChangeException {
-        logger.info("Replacing worker index=" + workerRequest.getWorkerIndex() + " number=" + replacedWorker.getWorkerNumber() +
-                " with number=" + workerRequest.getWorkerNumber());
+        logger.info("Replacing worker index={} number={} with number={}", workerRequest.getWorkerIndex(), replacedWorker.getWorkerNumber(), workerRequest.getWorkerNumber());
         V2JobMetadataWritable job = activeJobsMap.get(workerRequest.getJobId());
         if (job == null) {
             throw new InvalidJobException(workerRequest.getJobId(), workerRequest.getWorkerStage(), workerRequest.getWorkerIndex());
@@ -507,7 +506,7 @@ public final class V2JobStore {
 
     static SchedulingInfo getSchedulingInfo(V2JobMetadata mjmd) {
         int numStages = mjmd.getNumStages();
-        logger.info(mjmd.getJobId() + ": numStages=" + numStages);
+        logger.info("{}: numStages={}", mjmd.getJobId(), numStages);
         Map<Integer, StageSchedulingInfo> stagesMap = new HashMap<>();
 
         // Note that job maintains stage numbers starting with 1, not 0.
@@ -556,7 +555,7 @@ public final class V2JobStore {
                 System.exit(1);
             }
 
-            logger.info("Read " + activeJobsMap.size() + " job records from persistence in " + (System.currentTimeMillis() - st) + " ms");
+            logger.info("Read {} job records from persistence in {} ms", activeJobsMap.size(), System.currentTimeMillis() - st);
             if (jobsInitializer != null) {
                 Map<String, V2JobDefinition> jobDefsMap = new HashMap<>();
                 for (V2JobMetadata mjmd : activeJobsMap.values()) {
@@ -611,7 +610,7 @@ public final class V2JobStore {
                 })
                 .toBlocking()
                 .lastOrDefault(null);
-        logger.info("Read " + count.get() + " archived job records from persistence in " + (System.currentTimeMillis() - start1) + " ms");
+        logger.info("Read {} archived job records from persistence in {} ms", count.get(), System.currentTimeMillis() - start1);
         if (!jobsToArchive.isEmpty()) {
             logger.info("Starting finished jobs migration ({})...", jobsToArchive.size());
             long start2 = System.currentTimeMillis();
@@ -637,14 +636,14 @@ public final class V2JobStore {
                         }
                     }
                 } catch (IOException e) {
-                    logger.error("Error archiving job " + job.getJobId() + ": " + e.getMessage(), e);
+                    logger.error("Error archiving job {}: {}", job.getJobId(), e.getMessage(), e);
                 }
                 left--;
                 if (left % 1000 == 0) {
                     logger.info("Still has {} finished jobs to archive...", left);
                 }
             }
-            logger.info("Moved " + jobsToArchive.size() + " completed jobs to archived storage in " + (System.currentTimeMillis() - start2) + " ms");
+            logger.info("Moved {} completed jobs to archived storage in {} ms", jobsToArchive.size(), System.currentTimeMillis() - start2);
         }
         postInitMillis.set(System.currentTimeMillis() - start1);
         archivedJobsReady.set(true);

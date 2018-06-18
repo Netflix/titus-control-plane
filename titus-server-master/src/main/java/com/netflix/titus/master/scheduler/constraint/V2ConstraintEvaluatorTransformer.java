@@ -57,7 +57,7 @@ public class V2ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
             case ZoneBalance:
                 return Optional.of(new BalancedHostAttrConstraint(s -> activeTasksGetter.get(), zoneAttributeName(), EXPECTED_NUM_ZONES));
             default:
-                logger.error("Unknown job hard constraint " + constraint);
+                logger.error("Unknown job hard constraint {}", constraint);
                 return Optional.empty();
         }
     }
@@ -72,7 +72,7 @@ public class V2ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
             case ZoneBalance:
                 return Optional.of(new BalancedHostAttrConstraint(s -> activeTasksGetter.get(), zoneAttributeName(), EXPECTED_NUM_ZONES).asSoftConstraint());
             default:
-                logger.error("Unknown job soft constraint " + constraint);
+                logger.error("Unknown job soft constraint {}", constraint);
                 return Optional.empty();
         }
     }

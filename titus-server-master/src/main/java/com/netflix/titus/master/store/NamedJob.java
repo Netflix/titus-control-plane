@@ -282,7 +282,7 @@ public class NamedJob {
         try {
             this.sla.validate();
         } catch (InvalidNamedJobException e) {
-            logger.warn(name + ": disabling due to unexpected error validating sla: " + e.getMessage());
+            logger.warn("{}: disabling due to unexpected error validating sla: {}", name, e.getMessage());
             this.disabled = true;
         }
         this.parameters = parameters;
@@ -427,7 +427,7 @@ public class NamedJob {
             this.sla = sla;
             enforceSla();
         } catch (Exception e) { // shouldn't happen, this is only to make obtainlock() happy
-            logger.warn("Unexpected exception setting sla: " + e.getMessage());
+            logger.warn("Unexpected exception setting sla: {}", e.getMessage());
             throw new InvalidNamedJobException("Unexpected error: " + e.getMessage(), e);
         }
     }
@@ -461,7 +461,7 @@ public class NamedJob {
     }
 
     public void init(Collection<V2JobMgrIntf> jobMgrs) {
-        logger.info("Init'ing named job " + name + " with " + (jobMgrs == null ? 0 : jobMgrs.size()) + " jobs");
+        logger.info("Init'ing named job {} with {} jobs", name, jobMgrs == null ? 0 : jobMgrs.size());
         if (jobMgrs == null || jobMgrs.isEmpty()) {
             return;
         }
@@ -481,7 +481,7 @@ public class NamedJob {
         try (AutoCloseable l = obtainLock()) {
             sortedRegisteredJobMgrs.add(m);
         } catch (Exception e) {
-            logger.warn("Unexpected error: " + e.getMessage());
+            logger.warn("Unexpected error: {}", e.getMessage());
         }
     }
 
@@ -528,8 +528,7 @@ public class NamedJob {
             // Manage min by combining the total of both running and registered jobs. This ensures we don't start
             // too many new jobs if previously started ones stay in registered for too long for not successfully starting.
             if (sla != null && !sortedJobMgrs.isEmpty() && (activeJobMgrs.size() + activeRgstrdJobMgrs.size()) < sla.min) {
-                logger.info("Submitting " + (sla.min - activeJobMgrs.size()) + " jobs per sla min of " + sla.min +
-                        " for job name " + name);
+                logger.info("Submitting {} jobs per sla min of {} for job name {}", sla.min - activeJobMgrs.size(), sla.min, name);
                 for (int i = 0; i < sla.min - activeJobMgrs.size(); i++) {
                     V2JobMetadata last = null;
                     if (!sortedJobMgrs.isEmpty()) {
@@ -552,7 +551,7 @@ public class NamedJob {
                         }
                     }
                     if (last == null) {
-                        logger.warn("Can't submit new job to maintain sla for job cluster " + name + ": no previous job to clone");
+                        logger.warn("Can't submit new job to maintain sla for job cluster {}: no previous job to clone", name);
                     } else {
                         submitNewJob(last);
                     }
@@ -591,11 +590,11 @@ public class NamedJob {
                     }
                 }
                 if (killedCount > 0) {
-                    logger.info(name + ": killed " + killedCount + " jobs per sla max of " + sla.max);
+                    logger.info("{}: killed {} jobs per sla max of {}", name, killedCount, sla.max);
                 }
             }
         } catch (Exception e) {
-            logger.error("Unknown error enforcing SLA for " + name + ": " + e.getMessage(), e);
+            logger.error("Unknown error enforcing SLA for {}: {}", name, e.getMessage(), e);
         } // shouldn't happen
         finally {
             removeExpiredCompletedJobs();
@@ -611,7 +610,7 @@ public class NamedJob {
                         storageProvider.removeCompledtedJobForNamedJob(name, j.getJobId());
                         completedJobs.remove(j.getJobId());
                     } catch (IOException e) {
-                        logger.warn("Error removing completed job " + j.getJobId() + ": " + e.getMessage(), e);
+                        logger.warn("Error removing completed job {}: {}", j.getJobId(), e.getMessage(), e);
                     }
                 }
             }
@@ -645,19 +644,19 @@ public class NamedJob {
                         last.getSubscriptionTimeoutSecs(),
                         V2JobStore.getSchedulingInfo(last), sla.min, sla.max, sla.cronSpec, sla.cronPolicy));
             } catch (IllegalArgumentException e) {
-                logger.error("Couldn't submit replacement job for " + name + " - " + e.getMessage(), e);
+                logger.error("Couldn't submit replacement job for {} - {}", name, e.getMessage(), e);
                 return null;
             }
         } catch (Exception e) {
             // shouldn't happen
-            logger.error("Unexpected error obtaining lock: " + e.getMessage(), e);
+            logger.error("Unexpected error obtaining lock: {}", e.getMessage(), e);
             return null;
         }
     }
 
     public void removeJobMgr(V2JobMgrIntf m, String jobId) {
         if (m != null) {
-            logger.info("Removing job " + m.getJobId());
+            logger.info("Removing job {}", m.getJobId());
             try (AutoCloseable l = obtainLock()) {
                 sortedRegisteredJobMgrs.remove(m);
                 sortedJobMgrs.remove(m);

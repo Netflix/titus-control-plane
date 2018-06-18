@@ -61,7 +61,7 @@ public class TitusGateway {
             injector.getInstance(ContainerEventBus.class).submitInOrder(new ContainerEventBus.ContainerStartedEvent());
             injector.awaitTermination();
         } catch (Exception e) {
-            logger.error("Unexpected error: " + e.getMessage(), e);
+            logger.error("Unexpected error: {}", e.getMessage(), e);
             System.exit(2);
         }
     }

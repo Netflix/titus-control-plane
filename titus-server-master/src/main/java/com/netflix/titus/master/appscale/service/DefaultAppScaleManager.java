@@ -160,7 +160,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
                     metrics.reportPolicyStatusTransition(autoScalingPolicy, autoScalingPolicy.getStatus());
                     return autoScalingPolicy.getRefId();
                 })
-                .subscribe(policyRefId -> logger.debug("AutoScalingPolicy loaded - " + policyRefId));
+                .subscribe(policyRefId -> logger.debug("AutoScalingPolicy loaded - {}", policyRefId));
 
 
         // pending policy creation/updates or deletes
@@ -347,7 +347,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     @Override
     public Completable updateAutoScalingPolicy(AutoScalingPolicy autoScalingPolicy) {
-        logger.info("Updating AutoScalingPolicy " + autoScalingPolicy);
+        logger.info("Updating AutoScalingPolicy {}", autoScalingPolicy);
         return appScalePolicyStore.retrievePolicyForRefId(autoScalingPolicy.getRefId())
                 .map(existingPolicy -> AutoScalingPolicy.newBuilder().withAutoScalingPolicy(existingPolicy)
                         .withPolicyConfiguration(autoScalingPolicy.getPolicyConfiguration()).build())
