@@ -195,7 +195,7 @@ public class V2JobStatusMonitor implements AgentStatusMonitor {
             try {
                 instance = agentManagementService.getAgentInstance(instanceId);
             } catch (AgentManagementException e) {
-                logger.warn("Received job status update for agent {} witch is unknown to agent management subsystem", e);
+                logger.warn("Received job status update for agent {} which is unknown to agent management subsystem", instanceId, e);
                 hostErrorMap.remove(instanceId);
                 return Pair.of(Optional.empty(), hostErrorMap);
             }

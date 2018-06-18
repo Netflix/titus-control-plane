@@ -108,7 +108,7 @@ public abstract class PollingStatusMonitor implements AgentStatusMonitor {
         agents.forEach(agent -> {
             String id = agent.getId();
             AgentStatus agentStatus = resolve(agent);
-            logger.debug("[{}] resolved status: ", id, agentStatus);
+            logger.debug("[{}] resolved status: {}", id, agentStatus);
             newInstanceStatuses.put(id, agentStatus);
         });
         return newInstanceStatuses;

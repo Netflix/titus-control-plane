@@ -126,7 +126,7 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
             for (V2TaskMigrationDetails taskMigrationDetails : taskMigrationDetailsCollection) {
                 V2WorkerMetadata workerMetadata = taskMigrationDetails.getWorkerMetadata();
                 if (workerMetadata == null) {
-                    logger.debug("Skipping iteration for jobId: {} because workerMetadata is null");
+                    logger.debug("Skipping iteration for jobId: {} because workerMetadata is null", jobId);
                     continue; // Worker is not active, ignore it
                 }
 

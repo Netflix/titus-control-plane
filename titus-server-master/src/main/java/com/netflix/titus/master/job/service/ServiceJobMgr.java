@@ -214,7 +214,7 @@ public class ServiceJobMgr extends BaseJobMgr {
                 logger.info("Job's {} stage metadata changed", jobId);
                 store.updateStage(stageMetadata);
             } catch (Exception e) {
-                logger.warn("Cannot update stage for job", jobId, e);
+                logger.warn("Cannot update stage for job {}", jobId, e);
             }
         }
 
