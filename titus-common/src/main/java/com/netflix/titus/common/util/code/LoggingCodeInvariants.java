@@ -94,7 +94,7 @@ public class LoggingCodeInvariants extends CodeInvariants {
         if (e == null || e.getMessage() == null) {
             logger.warn(message);
         } else {
-            logger.warn(message + ": " + e.getMessage());
+            logger.warn("{}: {}", message, e.getMessage());
             logger.debug(message, e);
         }
 
