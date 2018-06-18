@@ -111,7 +111,7 @@ public class AgentStoreReaper {
             long removedTimestamp = Long.parseLong(removedTimestampStr);
             return (removedTimestamp + EXPIRED_DATA_RETENTION_PERIOD_MS) <= scheduler.now();
         } catch (Exception e) {
-            logger.warn("Invalid {} value={} found for instance group record {}", ATTR_REMOVED, removedTimestampStr, sg.getId());
+            logger.warn("Invalid " + ATTR_REMOVED + " value={} found for instance group record {}", removedTimestampStr, sg.getId());
             return true;
         }
     }
