@@ -298,7 +298,7 @@ public class DefaultAppScaleManagerTest {
                     targetsUpdated.add(targetUpdated);
                     latch.countDown();
                 },
-                e -> log.error("Error in v2 live stream for scalable target update {}", e),
+                e -> log.error("Error in v2 live stream for scalable target update {}", String.valueOf(e)),
                 () -> log.info("Completed"));
 
         latch.await(60, TimeUnit.SECONDS);

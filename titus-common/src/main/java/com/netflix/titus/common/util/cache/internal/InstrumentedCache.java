@@ -79,7 +79,7 @@ public class InstrumentedCache<K, V> implements com.netflix.titus.common.util.ca
                 next -> {
                     if (next.isPresent()) {
                         Throwable cause = next.get();
-                        logger.error("Unable to update cache metrics with error: {}", cause);
+                        logger.error("Unable to update cache metrics with error: {}", String.valueOf(cause));
                     } else {
                         logger.debug("Successfully updated cache metrics");
                     }
