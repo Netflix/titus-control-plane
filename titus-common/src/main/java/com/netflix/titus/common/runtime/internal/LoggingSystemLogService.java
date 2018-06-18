@@ -1,5 +1,6 @@
 package com.netflix.titus.common.runtime.internal;
 
+import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.SystemLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,13 +11,24 @@ public class LoggingSystemLogService implements SystemLogService {
 
     private static final LoggingSystemLogService INSTANCE = new LoggingSystemLogService();
 
-    @Override
-    public boolean write(Category category, String priority, String component, String message) {
-        logger.warn("[{}] [{}] {}: {}", category, component, priority, message);
-        return true;
-    }
-
     public static LoggingSystemLogService getInstance() {
         return INSTANCE;
+    }
+
+    @Override
+    public boolean write(SystemLogEvent event) {
+        switch (event.getPriority()) {
+            case Info:
+                logger.info("System event: {}", event);
+                break;
+            case Warn:
+                logger.warn("System event: {}", event);
+                break;
+            case Error:
+            case Fatal:
+                logger.error("System event: {}", event);
+                break;
+        }
+        return true;
     }
 }
