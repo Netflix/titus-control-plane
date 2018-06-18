@@ -1,8 +1,11 @@
 package com.netflix.titus.common.runtime;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 
 /**
  * System logger event (see {@link SystemLogService}).
@@ -158,7 +161,6 @@ public class SystemLogEvent {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(category, priority, component, message, tags, context);
     }
 
@@ -172,6 +174,10 @@ public class SystemLogEvent {
                 ", tags=" + tags +
                 ", context=" + context +
                 '}';
+    }
+
+    public Builder toBuilder() {
+        return newBuilder().withCategory(category).withPriority(priority).withComponent(component).withMessage(message).withTags(tags).withContext(context);
     }
 
     public static Builder newBuilder() {
@@ -220,11 +226,18 @@ public class SystemLogEvent {
         }
 
         public Builder but() {
-            return newBuilder().withCategory(category).withPriority(priority).withComponent(component).withMessage(message).withContext(context);
+            return newBuilder().withCategory(category).withPriority(priority).withComponent(component).withMessage(message).withTags(tags).withContext(context);
         }
 
         public SystemLogEvent build() {
-            return new SystemLogEvent(category, priority, component, message, tags, context);
+            return new SystemLogEvent(
+                    getOrDefault(category, Category.Other),
+                    getOrDefault(priority, Priority.Info),
+                    getOrDefault(component, "not_set"),
+                    getOrDefault(message, "not_set"),
+                    getOrDefault(tags, Collections.emptySet()),
+                    getOrDefault(context, Collections.emptyMap())
+            );
         }
     }
 }
