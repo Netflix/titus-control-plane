@@ -106,7 +106,7 @@ public class LoggingCodeInvariants extends CodeInvariants {
             return this;
         }
 
-        logger.warn(message, args);
+        logger.warn(String.format(message, args));
 
         return this;
     }
