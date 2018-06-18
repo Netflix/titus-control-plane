@@ -489,9 +489,7 @@ public class DefaultSchedulingService implements SchedulingService {
                         );
                     } catch (TaskQueueException e) {
                         logger.error(e.getMessage());
-                        if (logger.isDebugEnabled()) {
-                            logger.error(e.getMessage(), e);
-                        }
+                        logger.debug(e.getMessage(), e);
                     }
                 },
                 vmCurrentStatesCheckIntervalMillis, vmCurrentStatesCheckIntervalMillis,
