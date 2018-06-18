@@ -76,7 +76,9 @@ public class LoggingCodeInvariants extends CodeInvariants {
         }
 
         try {
-            logger.warn(String.format(message, args));
+            if (logger.isWarnEnabled()) {
+                logger.warn(String.format(message, args));
+            }
         } catch (Exception e) {
             String errorMessage = message + " (" + e.getMessage() + ')';
             logger.warn(errorMessage);
@@ -106,7 +108,9 @@ public class LoggingCodeInvariants extends CodeInvariants {
             return this;
         }
 
-        logger.warn(String.format(message, args));
+        if (logger.isWarnEnabled()) {
+            logger.warn(String.format(message, args));
+        }
 
         return this;
     }
