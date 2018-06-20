@@ -17,7 +17,7 @@ public class SystemLogEvent {
      */
     public enum Priority {
         /**
-         * Use when system operates normally, to log an information about an important system change. For example
+         * Use when system operates normally, to log information about an important system change. For example
          * becoming a new leader, an important configuration change, etc.
          */
         Info,
@@ -29,14 +29,14 @@ public class SystemLogEvent {
         Warn,
 
         /**
-         * Use when the system ability to make progress with its work is impaired or a major invariant violations are
+         * Use when the system's ability to make progress with its work is impaired or a major invariant violation is
          * discovered. For example, prolonged lack of connectivity with AWS service, corrupted data detected in a
          * core system component, etc.
          */
         Error,
 
         /**
-         * Use for major issues, which may result in an incorrect system behavior or forced system shutdown.
+         * Use for major issues, which may result in incorrect system behavior or forced system shutdown.
          */
         Fatal
     }
@@ -53,7 +53,7 @@ public class SystemLogEvent {
         Transient,
 
         /**
-         * Permanent error. System is not able to recover from it without help from the administrator.
+         * Permanent error. System is not able to recover from it without help from an administrator.
          */
         Permanent,
 
@@ -68,7 +68,7 @@ public class SystemLogEvent {
         InvariantViolation,
 
         /**
-         * Use when none of the existing categories is applicable.
+         * Use when none of the existing categories are applicable.
          */
         Other
     }

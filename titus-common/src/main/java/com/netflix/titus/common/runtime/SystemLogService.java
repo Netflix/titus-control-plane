@@ -15,5 +15,5 @@ public interface SystemLogService {
      * {@link SystemLogService} implementation may choose in the latter case to accept higher priority events over
      * the lower priority ones.
      */
-    boolean write(SystemLogEvent event);
+    boolean submit(SystemLogEvent event);
 }

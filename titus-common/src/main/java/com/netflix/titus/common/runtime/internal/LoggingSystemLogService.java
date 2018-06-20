@@ -16,7 +16,7 @@ public class LoggingSystemLogService implements SystemLogService {
     }
 
     @Override
-    public boolean write(SystemLogEvent event) {
+    public boolean submit(SystemLogEvent event) {
         switch (event.getPriority()) {
             case Info:
                 logger.info("System event: {}", event);
