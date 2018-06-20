@@ -19,6 +19,7 @@ package com.netflix.titus.common.runtime;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
+import com.netflix.titus.common.runtime.internal.LoggingSystemLogService;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodePointTracker;
 import com.netflix.titus.common.util.code.RecordingCodeInvariants;
@@ -34,6 +35,7 @@ public final class TitusRuntimes {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
                 LoggingCodeInvariants.getDefault(),
+                LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 Clocks.system(),
@@ -45,6 +47,7 @@ public final class TitusRuntimes {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
                 new RecordingCodeInvariants(),
+                LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 Clocks.test(),
@@ -56,6 +59,7 @@ public final class TitusRuntimes {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
                 new RecordingCodeInvariants(),
+                LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 Clocks.testScheduler(testScheduler),

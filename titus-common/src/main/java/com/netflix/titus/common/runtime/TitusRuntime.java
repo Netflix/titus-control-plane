@@ -38,6 +38,11 @@ public interface TitusRuntime {
     CodeInvariants getCodeInvariants();
 
     /**
+     * Returns the configured {@link SystemLogService}.
+     */
+    SystemLogService getSystemLogService();
+
+    /**
      * Returns the configured Spectator registry.
      */
     Registry getRegistry();

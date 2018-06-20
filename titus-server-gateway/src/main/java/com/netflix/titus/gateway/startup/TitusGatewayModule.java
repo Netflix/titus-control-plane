@@ -27,22 +27,24 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.SystemAbortListener;
+import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
+import com.netflix.titus.common.runtime.internal.LoggingSystemLogService;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
-import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.gateway.endpoint.GrpcModule;
 import com.netflix.titus.gateway.endpoint.JerseyModule;
 import com.netflix.titus.gateway.service.v2.V2ServiceModule;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
@@ -76,6 +78,7 @@ public final class TitusGatewayModule extends AbstractModule {
     protected void configure() {
         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();
         bind(Registry.class).toInstance(new DefaultRegistry());
+        bind(SystemLogService.class).to(LoggingSystemLogService.class);
         bind(SystemAbortListener.class).to(LoggingSystemAbortListener.class);
 
         install(new ContainerEventBusModule());
@@ -107,11 +110,11 @@ public final class TitusGatewayModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(SystemAbortListener systemAbortListener, Registry registry) {
+    public TitusRuntime getTitusRuntime(SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, systemAbortListener, registry);
+        return new DefaultTitusRuntime(codeInvariants, systemLogService, systemAbortListener, registry);
     }
 }
