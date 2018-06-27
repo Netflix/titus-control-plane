@@ -22,13 +22,55 @@ package com.netflix.titus.common.util.code;
  */
 public abstract class CodeInvariants {
 
+    /**
+     * Registers an expectation that <code>condition</code> is true.
+     * @param condition A boolean that is expected to be true.
+     * @param message For when <code>condition</code> is actually false, a
+     * <a href="https://docs.oracle.com/javase/10/docs/api/java/util/Formatter.html#syntax">format string</a>
+     * which should include information to help debug why <code>condition</code>
+     * is false.
+     * @param args Arguments to the format string.
+     * @return <code>this</code>
+     */
     public abstract CodeInvariants isTrue(boolean condition, String message, Object... args);
 
+    /**
+     * Registers an expectation that <code>value</code> is not null.
+     * @param value A value that is expected to be non-null.
+     * @param message For when <code>value</code> is actually null, a
+     * <a href="https://docs.oracle.com/javase/10/docs/api/java/util/Formatter.html#syntax">format string</a>
+     * which should include information to help debug why <code>value</code> is
+     * null.
+     * @param args Arguments to the format string.
+     * @return <code>this</code>
+     */
     public abstract CodeInvariants notNull(Object value, String message, Object... args);
 
+    /**
+     * Registers an inconsistency.
+     * @param message A <a href="https://docs.oracle.com/javase/10/docs/api/java/util/Formatter.html#syntax">format string</a>
+     * which should include information to help debug the cause of the inconsistency.
+     * @param args Arguments to the format string.
+     * @return <code>this</code>
+     */
     public abstract CodeInvariants inconsistent(String message, Object... args);
 
+    /**
+     * Registers that an unexpected error has occurred.
+     * @param message A message string which should include information to help
+     * debug the cause of the unexpected error.
+     * @param e An exception object, typically the unexpected error that occurred.
+     * @return <code>this</code>
+     */
     public abstract CodeInvariants unexpectedError(String message, Exception e);
 
+    /**
+     * Registers that an unexpected error has occurred.
+     * @param message A <a href="https://docs.oracle.com/javase/10/docs/api/java/util/Formatter.html#syntax">format string</a>
+     * which should include information to help debug the cause of the unexpected
+     * error.
+     * @param args Arguments to the format string.
+     * @return <code>this</code>
+     */
     public abstract CodeInvariants unexpectedError(String message, Object... args);
 }
