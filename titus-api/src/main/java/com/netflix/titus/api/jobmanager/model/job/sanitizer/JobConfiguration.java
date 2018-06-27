@@ -70,7 +70,7 @@ public interface JobConfiguration {
      * An upper bound on disk (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("1000000")
+    @DefaultValue("999000")
     int getDiskMbMax();
 
     @DefaultValue("128")
