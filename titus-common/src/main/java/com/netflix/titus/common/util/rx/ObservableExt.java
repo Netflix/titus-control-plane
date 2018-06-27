@@ -17,6 +17,7 @@
 package com.netflix.titus.common.util.rx;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -56,7 +57,7 @@ public class ObservableExt {
      * Wrap {@link Runnable} into observable.
      */
     public static <Void> Observable<Void> fromRunnable(Runnable runnable) {
-        return (Observable<Void>) Observable.fromCallable(() -> {
+        return Observable.<Void>fromCallable(() -> {
             runnable.run();
             return null;
         }).ignoreElements();
@@ -91,12 +92,12 @@ public class ObservableExt {
         if (chunks.isEmpty()) {
             return Observable.empty();
         }
-        if (chunks.size() == 1) {
-            return chunks.get(0);
+        final Iterator<Observable<T>> chunkIterator = chunks.iterator();
+        Observable<T> result = chunkIterator.next();
+        while (chunkIterator.hasNext()) {
+            result = result.concatWith(chunkIterator.next().delay(delay, timeUnit, scheduler));
         }
-        return chunks.get(0)
-                .concatWith((Observable<T>) Observable.timer(delay, timeUnit, scheduler).ignoreElements())
-                .concatWith(fromWithDelay(chunks.subList(1, chunks.size()), delay, timeUnit, scheduler));
+        return result;
     }
 
     /**
