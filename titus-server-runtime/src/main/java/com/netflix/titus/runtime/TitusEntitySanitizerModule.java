@@ -66,8 +66,8 @@ public class TitusEntitySanitizerModule extends AbstractModule {
                 .withMaxContainerSizeResolver(capacityGroup -> ResourceDimension.newBuilder()
                         .withCpus(jobConfiguration.getCpuMax())
                         .withGpu(jobConfiguration.getGpuMax())
-                        .withMemoryMB(jobConfiguration.getMemoryMbMax())
-                        .withDiskMB(jobConfiguration.getDiskMbMax())
+                        .withMemoryMB(jobConfiguration.getMemoryMegabytesMax())
+                        .withDiskMB(jobConfiguration.getDiskMegabytesMax())
                         .withNetworkMbs(jobConfiguration.getNetworkMbpsMax())
                         .build())
                 .build();

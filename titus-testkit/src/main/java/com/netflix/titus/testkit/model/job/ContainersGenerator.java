@@ -78,7 +78,7 @@ public final class ContainersGenerator {
                 ContainerResources.newBuilder()
                         .withCpu(cpu)
                         .withMemoryMB((int) (cpu * ratio * 1024))
-                        .withDiskMB((int) (cpu * ratio * 2 * 1024))
+                        .withDiskMB((int) (cpu * ratio * 2 * 10_000))
                         .withNetworkMbps((int) (cpu * ratio * 128))
                         .build()
         );

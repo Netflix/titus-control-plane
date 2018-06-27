@@ -29,7 +29,7 @@ public interface CapacityManagementConfiguration {
         @DefaultValue("4096")
         int getMemoryMB();
 
-        @DefaultValue("1024")
+        @DefaultValue("10000")
         int getDiskMB();
 
         @DefaultValue("128")
