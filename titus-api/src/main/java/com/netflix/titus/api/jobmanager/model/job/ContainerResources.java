@@ -39,11 +39,11 @@ public class ContainerResources {
     @Min(value = 0, message = "'gpu'(#{#root}) must be >= 0")
     private final int gpu;
 
-    @FieldSanitizer(adjuster = "T(java.lang.Math).max(@constraints.getMemoryMbMin(), value)")
+    @FieldSanitizer(adjuster = "T(java.lang.Math).max(@constraints.getMemoryMegabytesMin(), value)")
     @Min(value = 1, message = "'memoryMB'(#{#root}) must be > 0")
     private final int memoryMB;
 
-    @FieldSanitizer(adjuster = "T(java.lang.Math).max(@constraints.getDiskMbMin(), value)")
+    @FieldSanitizer(adjuster = "T(java.lang.Math).max(@constraints.getDiskMegabytesMin(), value)")
     @Min(value = 1, message = "'diskMB'(#{#root}) must be > 0")
     private final int diskMB;
 

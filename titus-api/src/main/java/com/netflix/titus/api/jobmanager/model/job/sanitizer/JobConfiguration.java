@@ -54,24 +54,24 @@ public interface JobConfiguration {
     int getGpuMax();
 
     @DefaultValue("512")
-    int getMemoryMbMin();
+    int getMemoryMegabytesMin();
 
     /**
      * An upper bound on memory (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("524288")
-    int getMemoryMbMax();
+    @DefaultValue("472000")
+    int getMemoryMegabytesMax();
 
     @DefaultValue("10000")
-    int getDiskMbMin();
+    int getDiskMegabytesMin();
 
     /**
      * An upper bound on disk (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
     @DefaultValue("999000")
-    int getDiskMbMax();
+    int getDiskMegabytesMax();
 
     @DefaultValue("128")
     int getNetworkMbpsMin();
