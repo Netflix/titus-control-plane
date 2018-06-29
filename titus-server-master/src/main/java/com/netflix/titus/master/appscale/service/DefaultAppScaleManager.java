@@ -419,7 +419,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
             return Completable.complete();
         }
 
-        logger.info("Saving AutoScalePolicyException {}", autoScalePolicyExceptionOpt.get().toString());
+        logger.info("Saving AutoScalePolicyException", autoScalePolicyExceptionOpt.get());
         AutoScalePolicyException autoScalePolicyException = autoScalePolicyExceptionOpt.get();
         if (autoScalePolicyException.getPolicyRefId() != null && !autoScalePolicyException.getPolicyRefId().isEmpty()) {
             metrics.reportErrorForException(autoScalePolicyException);

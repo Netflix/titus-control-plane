@@ -155,7 +155,7 @@ public class LoadBalancerTests {
         try {
             result = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-            logger.error("Exception in getLoadBalancersForJob {}", e.toString());
+            logger.error("Exception in getLoadBalancersForJob", e);
             assert false;
         }
 
@@ -180,7 +180,7 @@ public class LoadBalancerTests {
         try {
             result = getResponse.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-            logger.error("Exception in getAllLoadBalancers {}", e.toString());
+            logger.error("Exception in getAllLoadBalancers", e);
             assert false;
         }
 
