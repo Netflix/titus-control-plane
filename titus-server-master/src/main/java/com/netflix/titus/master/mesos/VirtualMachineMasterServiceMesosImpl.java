@@ -110,7 +110,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         // Set the offer delay to match the scheduling loop interval so that offers are returned at
         // the next scheduling interval.
         offerSecDelayInterval = schedulerConfiguration.getSchedulerIterationIntervalMs() / (double) 1000;
-        logger.info("Using offer second delay of " + offerSecDelayInterval);
+        logger.info("Using offer second delay of {}", offerSecDelayInterval);
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
@@ -173,7 +173,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
                     () -> mesosDriver.declineOffer(lease.getOffer().getId(), (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build())
             );
         } else {
-            logger.warn("Got invalid lease to reject with null offer for host " + lease.hostname());
+            logger.warn("Got invalid lease to reject with null offer for host {}", lease.hostname());
         }
     }
 
@@ -204,7 +204,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         switch (status) {
             case DRIVER_ABORTED:
             case DRIVER_STOPPED:
-                logger.error("Unexpected to see Mesos driver status of " + status + " from kill task request. Committing suicide!");
+                logger.error("Unexpected to see Mesos driver status of {} from kill task request. Committing suicide!", status);
                 System.exit(2);
         }
     }

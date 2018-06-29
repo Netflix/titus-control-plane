@@ -261,7 +261,7 @@ public class NamedJobs {
         return (name, jobMgrs) -> {
             NamedJob job = namedJobsMap.get(name);
             if (job == null) {
-                logger.error("Can't find NamedJob for name=" + name);
+                logger.error("Can't find NamedJob for name={}", name);
             } else {
                 job.init(jobMgrs);
             }
@@ -279,7 +279,7 @@ public class NamedJobs {
             }
             String activeJobId = deleteAllJobs(name, jobIdDeleter);
             if (activeJobId != null) {
-                logger.warn("Active job " + activeJobId + " exists, not deleting named job " + name);
+                logger.warn("Active job {} exists, not deleting named job {}", activeJobId, name);
                 throw new NamedJobDeleteException("Active job exists - " + activeJobId);
             }
             boolean deleted = storageProvider.deleteNamedJob(name);
@@ -291,7 +291,7 @@ public class NamedJobs {
         } catch (NamedJobDeleteException njde) {
             throw njde;
         } catch (Exception e) {
-            logger.error("Error deleting named job " + name + ": " + e.getMessage(), e);
+            logger.error("Error deleting named job {}: {}", name, e.getMessage(), e);
             throw new NamedJobDeleteException("Unknown error deleting named job " + name, e);
         }
     }
@@ -318,7 +318,7 @@ public class NamedJobs {
         } catch (IOException e) {
             throw new InvalidNamedJobException(e.getMessage(), e);
         } catch (Exception e) {
-            logger.warn("Unexpected error locking job " + name + ": " + e.getMessage(), e);
+            logger.warn("Unexpected error locking job {}: {}", name, e.getMessage(), e);
             throw new InvalidNamedJobException("Internal error disabling job " + name, e);
         }
     }
@@ -404,7 +404,7 @@ public class NamedJobs {
                     "user: " + namedJobDefinition.getJobDefinition().getUser() + ", sla: min=" + slaMin + ", max=" +
                             slaMax + "; jar=" + mapper.writeValueAsString(jar), System.currentTimeMillis()));
         } catch (JsonProcessingException e) {
-            logger.warn("Error writing jar object value as json: " + e.getMessage());
+            logger.warn("Error writing jar object value as json: {}", e.getMessage());
         }
         return job;
     }
@@ -566,7 +566,7 @@ public class NamedJobs {
     }
 
     private void logLockError(Exception e) {
-        logger.warn("Unexpected to not get a lock: " + e.getMessage());
+        logger.warn("Unexpected to not get a lock: {}", e.getMessage());
     }
 
     public AutoCloseable lockJobName(String jobName) {

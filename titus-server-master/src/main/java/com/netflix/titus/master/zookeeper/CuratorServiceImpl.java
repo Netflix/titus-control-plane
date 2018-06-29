@@ -94,7 +94,7 @@ public class CuratorServiceImpl implements CuratorService {
             curator.close();
         } catch (Exception e) {
             // A shutdown failure should not affect the subsequent shutdowns, so we just warn here
-            LOG.warn("Failed to shut down the curator service: " + e.getMessage(), e);
+            LOG.warn("Failed to shut down the curator service: {}", e.getMessage(), e);
         }
     }
 

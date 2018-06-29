@@ -44,12 +44,12 @@ public class AuditEventLogger {
 
                     @Override
                     public void onError(Throwable e) {
-                        logger.error("Error in Audit long observable: " + e.getMessage(), e);
+                        logger.error("Error in Audit long observable: {}", e.getMessage(), e);
                     }
 
                     @Override
                     public void onNext(AuditLogEvent event) {
-                        logger.info("Audit log: event type: " + event.getType() + ", operand: " + event.getOperand() + ", data: " + event.getData());
+                        logger.info("Audit log: event type: {}, operand: {}, data: {}", event.getType(), event.getOperand(), event.getData());
                     }
                 }
         );

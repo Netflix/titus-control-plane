@@ -96,7 +96,7 @@ public class DefaultLeaderElector implements LeaderElector {
         try {
             leaderLatch.close();
         } catch (IOException e) {
-            logger.warn("Failed to close the leader latch: " + e.getMessage(), e);
+            logger.warn("Failed to close the leader latch: {}", e.getMessage(), e);
         } finally {
             started = false;
         }

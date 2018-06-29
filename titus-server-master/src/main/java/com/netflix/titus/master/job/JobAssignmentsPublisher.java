@@ -55,13 +55,13 @@ class JobAssignmentsPublisher {
         if (jobSchedulingObserver != null) {
             behaviorSubject = BehaviorSubject.create(
                     new JobSchedulingInfo(jobId, new HashMap<Integer, WorkerAssignments>()));
-            logger.debug("Added behavior subject of job " + jobId + " to schedulingObserver");
+            logger.debug("Added behavior subject of job {} to schedulingObserver", jobId);
             jobSchedulingObserver.onNext(this.behaviorSubject);
             statusObservable
                     .onErrorResumeNext(new Func1<Throwable, Observable<? extends Status>>() {
                         @Override
                         public Observable<? extends Status> call(Throwable throwable) {
-                            logger.warn("Couldn't send status to assignmentChangeObservers: " + throwable.getMessage());
+                            logger.warn("Couldn't send status to assignmentChangeObservers: {}", throwable.getMessage());
                             return Observable.empty();
                         }
                     })
@@ -105,12 +105,12 @@ class JobAssignmentsPublisher {
             try {
                 mwmd = JobMgrUtils.getArchivedWorker(store, jobId, status.getWorkerNumber());
                 if (mwmd == null) {
-                    logger.warn("Unexpected to not find worker " + status.getWorkerNumber() + " for job " + jobId + ", state=" + status.getState());
+                    logger.warn("Unexpected to not find worker {} for job {}, state={}", status.getWorkerNumber(), jobId, status.getState());
                 } else {
-                    logger.warn("Skipping setting assignments for archived worker, state=" + status.getState());
+                    logger.warn("Skipping setting assignments for archived worker, state={}", status.getState());
                 }
             } catch (IOException e1) {
-                logger.warn("Can't get archive worker number " + status.getWorkerNumber() + " for job " + jobId, e1);
+                logger.warn("Can't get archive worker number {} for job {}", status.getWorkerNumber(), jobId, e1);
             }
             return;
         }

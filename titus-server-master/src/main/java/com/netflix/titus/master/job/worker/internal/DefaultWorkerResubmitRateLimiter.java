@@ -99,7 +99,7 @@ public class DefaultWorkerResubmitRateLimiter implements WorkerResubmitRateLimit
                     try {
                         resubmitIntervalSecs[i] = Long.parseLong(s);
                     } catch (NumberFormatException e) {
-                        logger.warn("Invalid number for resubmit interval " + s + ": using default " + defaultResubmissionIntervalSecs);
+                        logger.warn("Invalid number for resubmit interval {}: using default " + defaultResubmissionIntervalSecs, s);
                         resubmitIntervalSecs[i] = defaultResubmissionIntervalSecs;
                     }
                 }

@@ -83,7 +83,7 @@ public class TitusMaster {
             injector.awaitTermination();
         } catch (Exception e) {
             // unexpected to get a RuntimeException, will exit
-            logger.error("Unexpected error: " + e.getMessage(), e);
+            logger.error("Unexpected error: {}", e.getMessage(), e);
             System.exit(2);
         }
     }

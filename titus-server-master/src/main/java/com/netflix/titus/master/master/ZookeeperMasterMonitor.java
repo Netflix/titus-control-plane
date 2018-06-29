@@ -81,7 +81,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
                                     .getData()
                                     .inBackground((client, event) -> {
                                         MasterDescription description = ObjectMappers.defaultMapper().readValue(event.getData(), MasterDescription.class);
-                                        logger.info("New master retrieved: " + description);
+                                        logger.info("New master retrieved: {}", description);
                                         latestMaster.set(description);
                                         masterSubject.onNext(description);
 
@@ -91,7 +91,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
                     .forPath(masterPath);
 
         } catch (Exception e) {
-            logger.error("Failed to retrieve updated master information: " + e.getMessage(), e);
+            logger.error("Failed to retrieve updated master information: {}", e.getMessage(), e);
         }
     }
 

@@ -75,7 +75,7 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
             case "host":
             case "servergroup":
         }
-        logger.error("Unknown or not supported job hard constraint: %s", name);
+        logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();
     }
 
@@ -95,7 +95,7 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
             case "host":
             case "servergroup":
         }
-        logger.error("Unknown or not supported job hard constraint: %s", name);
+        logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();
     }
 }

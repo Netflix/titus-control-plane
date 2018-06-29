@@ -122,7 +122,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
 
             @Override
             public void onError(Throwable e) {
-                logger.error("Unknown error from vmTaskStatusObservable - " + e.getLocalizedMessage());
+                logger.error("Unknown error from vmTaskStatusObservable - {}", e.getLocalizedMessage());
             }
 
             @Override
@@ -262,8 +262,7 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
         if (!shutdownFlag.get()) {
             V2JobMgrIntf jobMgr = stateToMonitor.jobMgr;
             if (jobMgr == null) {
-                logger.warn("Can't find jobMgr to handle stuck worker for " + stateToMonitor +
-                        ", has null jobMgr, ignoring...");
+                logger.warn("Can't find jobMgr to handle stuck worker for {}, has null jobMgr, ignoring...", stateToMonitor);
             } else {
                 jobMgr.handleTaskStuckInState(stateToMonitor.taskId, stateToMonitor.state);
             }

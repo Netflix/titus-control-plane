@@ -242,7 +242,7 @@ public class TaskScenarioBuilder {
     }
 
     public TaskScenarioBuilder assertTask(Predicate<Task> predicate, String message) {
-        logger.info("[{}] Asserting task {}...", discoverActiveTest());
+        logger.info("[{}] Asserting task {}...", discoverActiveTest(), message);
 
         Preconditions.checkArgument(predicate.test(getTask()), message);
         return this;

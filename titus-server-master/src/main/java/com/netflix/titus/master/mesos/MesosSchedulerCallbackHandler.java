@@ -306,7 +306,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             }
         } catch (Exception e) {
             // we don't want to throw errors lest periodically scheduled reconciliation be cancelled
-            logger.error("Unexpected error (continuing): " + e.getMessage(), e);
+            logger.error("Unexpected error (continuing): {}", e.getMessage(), e);
         }
     }
 
@@ -367,13 +367,13 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                     () -> driver.reconcileTasks(tasksToInitialize)
             );
             numReconcileTasks.increment();
-            logger.info("Sent request to reconcile " + tasksToInitialize.size() + " tasks, status=" + status);
-            logger.info("Last offer received " + (System.currentTimeMillis() - lastOfferReceivedAt.get()) / 1000 + " secs ago");
-            logger.info("Last valid offer received " + (System.currentTimeMillis() - lastValidOfferReceivedAt.get()) / 1000 + " secs ago");
+            logger.info("Sent request to reconcile {} tasks, status={}", tasksToInitialize.size(), status);
+            logger.info("Last offer received {} secs ago", (System.currentTimeMillis() - lastOfferReceivedAt.get()) / 1000);
+            logger.info("Last valid offer received {} secs ago", (System.currentTimeMillis() - lastValidOfferReceivedAt.get()) / 1000);
             switch (status) {
                 case DRIVER_ABORTED:
                 case DRIVER_STOPPED:
-                    logger.error("Unexpected to see Mesos driver status of " + status + " from reconcile request. Committing suicide!");
+                    logger.error("Unexpected to see Mesos driver status of {} from reconcile request. Committing suicide!", status);
                     System.exit(2);
             }
         }
@@ -386,12 +386,12 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         );
         numReconcileTasks.increment();
         logger.info("Sent request to reconcile all tasks known to Mesos");
-        logger.info("Last offer received " + (System.currentTimeMillis() - lastOfferReceivedAt.get()) / 1000 + " secs ago");
-        logger.info("Last valid offer received " + (System.currentTimeMillis() - lastValidOfferReceivedAt.get()) / 1000 + " secs ago");
+        logger.info("Last offer received {} secs ago", (System.currentTimeMillis() - lastOfferReceivedAt.get()) / 1000);
+        logger.info("Last valid offer received {} secs ago", (System.currentTimeMillis() - lastValidOfferReceivedAt.get()) / 1000);
         switch (status) {
             case DRIVER_ABORTED:
             case DRIVER_STOPPED:
-                logger.error("Unexpected to see Mesos driver status of " + status + " from reconcile request (all tasks). Committing suicide!");
+                logger.error("Unexpected to see Mesos driver status of {} from reconcile request (all tasks). Committing suicide!", status);
                 System.exit(2);
         }
     }
@@ -508,7 +508,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 state = V2JobState.StartInitiated;
                 break;
             default:
-                logger.warn("Unexpected Mesos task state " + effectiveState);
+                logger.warn("Unexpected Mesos task state {}", effectiveState);
                 return;
         }
         String data = "";
@@ -597,7 +597,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
                 break;
             default:
-                logger.warn("Unexpected Mesos task state " + effectiveState);
+                logger.warn("Unexpected Mesos task state {}", effectiveState);
                 return;
         }
 

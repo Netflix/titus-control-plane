@@ -158,7 +158,7 @@ class LoadBalancerEngine {
 
         return Completable.mergeDelayError(registerAll, deregisterAll)
                 .andThen(Observable.just(batch))
-                .doOnError(e -> logger.error("Error processing batch " + batch, e))
+                .doOnError(e -> logger.error("Error processing batch {}", batch, e))
                 .onErrorResumeNext(Observable.empty());
     }
 
@@ -196,10 +196,10 @@ class LoadBalancerEngine {
         return jobLoadBalancers -> jobLoadBalancers
                 .filter(jobLoadBalancer -> jobOperations.getJob(jobLoadBalancer.getJobId()).isPresent())
                 .flatMap(jobLoadBalancer -> Observable.from(jobOperations.targetsForJob(jobLoadBalancer))
-                        .doOnError(e -> logger.error("Error loading targets for jobId " + jobLoadBalancer.getJobId(), e))
+                        .doOnError(e -> logger.error("Error loading targets for jobId {}", jobLoadBalancer.getJobId(), e))
                         .onErrorResumeNext(Observable.empty()))
                 .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, state)))
-                .doOnError(e -> logger.error("Error fetching targets to " + state.toString(), e))
+                .doOnError(e -> logger.error("Error fetching targets to {}", state, e))
                 .retry();
     }
 

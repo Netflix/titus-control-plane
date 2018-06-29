@@ -310,7 +310,7 @@ public class RateLimitedBatcher<T extends Batchable<?>, I> implements Observable
                 downstream.onNext(next);
             } catch (Throwable ex) {
                 Exceptions.throwIfFatal(ex);
-                logger.error("onNext failed, ignoring batch " + next.getIndex().toString(), ex);
+                logger.error("onNext failed, ignoring batch {}", next.getIndex(), ex);
             }
         }
 

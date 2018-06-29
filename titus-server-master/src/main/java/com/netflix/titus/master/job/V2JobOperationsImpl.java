@@ -188,7 +188,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
             removeJobIdRef(jobId);
             return true;
         } catch (InvalidJobException e) {
-            logger.error("Can't delete job " + jobId + " - " + e.getMessage(), e);
+            logger.error("Can't delete job {} - {}", jobId, e.getMessage(), e);
             return false;
         }
     }
@@ -388,7 +388,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
                     }
                 }
             } catch (Exception e) {
-                logger.warn("Error enforcing job sla: " + e.getMessage(), e);
+                logger.warn("Error enforcing job sla: {}", e.getMessage(), e);
                 jobSlaEnforcerErrors.increment();
             }
             jobSlaEnforcerMillis.increment(System.currentTimeMillis() - now);

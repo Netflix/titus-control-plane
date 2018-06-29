@@ -308,7 +308,7 @@ public class RxNettyRestClient implements RxRestClient {
         HttpMethod method = httpRequest.getMethod();
         String reqSignature = RxRestClientUtil.requestSignature(method.toString(), httpRequest.getAbsoluteUri());
 
-        logger.debug("REST call {} failed with error {}", reqSignature, error);
+        logger.debug("REST call {} failed with error", reqSignature, error);
 
         Id id = rxClientMetric.createMethodId(method);
         if (id != null) {

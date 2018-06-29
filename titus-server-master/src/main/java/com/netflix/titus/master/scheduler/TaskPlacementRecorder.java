@@ -126,12 +126,11 @@ class TaskPlacementRecorder {
                 );
                 return Optional.of(taskInfo);
             } catch (InvalidJobStateChangeException | InvalidJobException e) {
-                logger.warn("Not launching task due to error setting state to launched for " + task.getId() + " - " +
-                        e.getMessage());
+                logger.warn("Not launching task due to error setting state to launched for {} - {}", task.getId(), e.getMessage());
             } catch (Exception e) {
                 // unexpected error creating task info
                 String msg = "fatal error creating taskInfo for " + task.getId() + ": " + e.getMessage();
-                logger.warn("Killing job " + jobMgr.getJobId() + ": " + msg, e);
+                logger.warn("Killing job {}: {}", jobMgr.getJobId(), msg, e);
                 jobMgr.killJob("SYSTEM", msg);
             }
         } else {

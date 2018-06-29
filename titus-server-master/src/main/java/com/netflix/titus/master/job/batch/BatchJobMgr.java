@@ -164,7 +164,7 @@ public class BatchJobMgr extends BaseJobMgr {
                 // TODO confirm if this is possible, likely not
                 throw new InvalidJobException("Unexpected error: " + e.getMessage(), e);
             } catch (IOException e) {
-                logger.error("Error storing workers of job " + jobId + " - " + e.getMessage(), e);
+                logger.error("Error storing workers of job {} - {}", jobId, e.getMessage(), e);
             }
             beg = en;
         }
@@ -183,8 +183,8 @@ public class BatchJobMgr extends BaseJobMgr {
                     .filter(t -> t.getState() == V2JobState.Started)
                     .forEach(t -> {
                         if ((now - t.getStartedAt()) > limit) {
-                            logger.info(jobId + ": " + getTaskStringPrefix(t.getWorkerIndex(), t.getWorkerNumber()) +
-                                    " killing - reached runtime limit of " + jobMetadata.getSla().getRuntimeLimitSecs() + " secs");
+                            logger.info("{}: {} killing - reached runtime limit of {} secs",
+                                    jobId, getTaskStringPrefix(t.getWorkerIndex(), t.getWorkerNumber()), jobMetadata.getSla().getRuntimeLimitSecs());
                             killWorker(t, this.getClass().getSimpleName(), "runtime limit reached", true, false);
                         }
                     });

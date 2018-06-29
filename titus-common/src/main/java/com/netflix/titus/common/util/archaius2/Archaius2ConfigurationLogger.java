@@ -49,13 +49,13 @@ public class Archaius2ConfigurationLogger {
 
         @Override
         public Void visitKey(String key, Object value) {
-            logger.info(prefix + key + " = " + value);
+            logger.info("{}{} = {}", prefix, key, value);
             return null;
         }
 
         @Override
         public Void visitChild(String name, Config child) {
-            logger.info(prefix + "Config: " + name);
+            logger.info("{}Config: {}", prefix, name);
             prefix += "  ";
             child.accept(this);
             prefix = prefix.substring(0, prefix.length() - 2);

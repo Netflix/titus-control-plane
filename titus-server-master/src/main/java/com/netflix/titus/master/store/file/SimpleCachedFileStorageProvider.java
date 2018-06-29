@@ -66,7 +66,7 @@ public class SimpleCachedFileStorageProvider implements V2StorageProvider {
     private final ObjectMapper mapper = new ObjectMapper();
 
     public SimpleCachedFileStorageProvider() {
-        logger.debug(SimpleCachedFileStorageProvider.class.getName() + " created");
+        logger.debug("{} created", SimpleCachedFileStorageProvider.class.getName());
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -109,8 +109,8 @@ public class SimpleCachedFileStorageProvider implements V2StorageProvider {
                 try {
                     job.addWorkerMedata(worker.getStageNum(), worker, null);
                 } catch (InvalidJobException e) {
-                    logger.warn("Unexpected error adding worker index=" + worker.getWorkerIndex() + ", number=" +
-                            worker.getWorkerNumber() + " for job " + jobId + ": " + e.getMessage(), e);
+                    logger.warn("Unexpected error adding worker index={}, number={} for job {}: {}",
+                            worker.getWorkerIndex(), worker.getWorkerNumber(), jobId, e.getMessage(), e);
                 }
             }
         }
@@ -280,7 +280,7 @@ public class SimpleCachedFileStorageProvider implements V2StorageProvider {
                 }
                 retList.add(mjmd);
             } catch (IOException e) {
-                logger.error("Error reading job metadata - " + e.getMessage());
+                logger.error("Error reading job metadata - {}", e.getMessage());
             } catch (InvalidJobException e) {
                 // shouldn't happen
                 logger.warn(e.getMessage());
@@ -289,11 +289,11 @@ public class SimpleCachedFileStorageProvider implements V2StorageProvider {
         if (_debug) {
             // print all jobs read
             for (V2JobMetadata mjmd : retList) {
-                logger.info("  JOB " + mjmd.getJobId());
+                logger.info("  JOB {}", mjmd.getJobId());
                 for (V2StageMetadata msmd : mjmd.getStageMetadata()) {
-                    logger.info("      Stage " + msmd.getStageNum() + " of " + msmd.getNumStages());
+                    logger.info("      Stage {} of {}", msmd.getStageNum(), msmd.getNumStages());
                     for (V2WorkerMetadata mwmd : msmd.getWorkerByIndexMetadataSet()) {
-                        logger.info("        " + mwmd);
+                        logger.info("        {}", mwmd);
                     }
                 }
             }
@@ -390,7 +390,7 @@ public class SimpleCachedFileStorageProvider implements V2StorageProvider {
         for (File stageFile : spoolDir.listFiles((dir, name) -> {
             return name.startsWith("Stage-" + id + "-");
         })) {
-            logger.info("Reading stage file " + stageFile.getName());
+            logger.info("Reading stage file {}", stageFile.getName());
             try (FileInputStream fis = new FileInputStream(stageFile)) {
                 stageList.add(mapper.readValue(fis, V2StageMetadataWritable.class));
             }
@@ -403,7 +403,7 @@ public class SimpleCachedFileStorageProvider implements V2StorageProvider {
         for (File workerFile : spoolDir.listFiles((dir, name) -> {
             return name.startsWith("Worker-" + id + "-");
         })) {
-            logger.info("Reading worker file " + workerFile.getName());
+            logger.info("Reading worker file {}", workerFile.getName());
             try (FileInputStream fis = new FileInputStream(workerFile)) {
                 workerList.add(mapper.readValue(fis, V2WorkerMetadataWritable.class));
             } catch (IOException e) {
@@ -455,7 +455,7 @@ public class SimpleCachedFileStorageProvider implements V2StorageProvider {
     @Override
     public void storeNewNamedJob(NamedJob namedJob) throws JobNameAlreadyExistsException, IOException {
         File tmpFile = new File(NAMED_JOBS_DIR + "/" + namedJob.getName());
-        logger.info("Storing named job " + namedJob.getName() + " to file " + tmpFile.getAbsolutePath());
+        logger.info("Storing named job {} to file {}", namedJob.getName(), tmpFile.getAbsolutePath());
         if (!tmpFile.createNewFile()) {
             throw new JobNameAlreadyExistsException(namedJob.getName());
         }

@@ -114,7 +114,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     @Test(timeout = 30_000)
     public void submitBatchJobStuckInLaunched() throws Exception {
         Observable<Status> checkStatusObservable = titusMaster.getWorkerStateMonitor().getAllStatusObservable().flatMap(status -> {
-            logger.info(String.format("status %s-%s-%s - %s (%s)", status.getJobId(), status.getWorkerIndex(), status.getWorkerNumber(), status.getState(), status.getReason()));
+            logger.info("status {}-{}-{} - {} ({})", status.getJobId(), status.getWorkerIndex(), status.getWorkerNumber(), status.getState(), status.getReason());
             if (status.getState() == V2JobState.Failed) {
                 assertThat(status.getReason()).isEqualTo(JobCompletedReason.Lost);
             }
@@ -225,7 +225,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
     @Test(timeout = 30_000)
     public void submitServiceJobStuckInLaunched() throws Exception {
         Observable<Status> checkStatusObservable = titusMaster.getWorkerStateMonitor().getAllStatusObservable().flatMap(status -> {
-            logger.info(String.format("status %s-%s-%s - %s (%s)", status.getJobId(), status.getWorkerIndex(), status.getWorkerNumber(), status.getState(), status.getReason()));
+            logger.info("status {}-{}-{} - {} ({})", status.getJobId(), status.getWorkerIndex(), status.getWorkerNumber(), status.getState(), status.getReason());
             if (status.getState() == V2JobState.Failed) {
                 assertThat(status.getReason()).isEqualTo(JobCompletedReason.Lost);
             }
