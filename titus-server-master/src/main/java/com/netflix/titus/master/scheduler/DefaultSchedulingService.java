@@ -555,9 +555,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void printFenzoStateDump(ObjectMapper mapper, String what, Object dump, CountDownLatch latch) {
         try {
-            if (logger.isInfoEnabled()) {
-                logger.info("Fenzo state dump of " + what + ": " + mapper.writeValueAsString(dump));
-            }
+            logger.info("Fenzo state dump of " + what + ": " + mapper.writeValueAsString(dump));
         } catch (JsonProcessingException e) {
             logger.error("Error dumping Fenzo state for {}: {}", what, e.getMessage(), e);
         } finally {
