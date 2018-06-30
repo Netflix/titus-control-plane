@@ -249,7 +249,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         // set scalars other than cpus, mem, disk
         final Map<String, Double> scalars = fenzoTask.getScalarRequests();
         if (scalars != null && !scalars.isEmpty()) {
-            for (Map.Entry<String, Double> entry: scalars.entrySet()) {
+            for (Map.Entry<String, Double> entry : scalars.entrySet()) {
                 if (!Container.PRIMARY_RESOURCES.contains(entry.getKey())) { // Already set above
                     builder.addResources(Protos.Resource.newBuilder()
                             .setName(entry.getKey())
