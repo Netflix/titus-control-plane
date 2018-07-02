@@ -26,7 +26,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.primitives.Ints;
-import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -38,12 +37,13 @@ import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.job.worker.WorkerRequest;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
-import io.titanframework.messages.TitanProtos;
+import io.titanframework.messages.TitanProtos.ContainerInfo;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
 import org.apache.mesos.Protos;
 
@@ -71,16 +71,13 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
 
     private final MasterConfiguration masterConfiguration;
     private final MesosConfiguration mesosConfiguration;
-    private final Config config;
     private final String iamArnPrefix;
 
     @Inject
     public DefaultV3TaskInfoFactory(MasterConfiguration masterConfiguration,
-                                    MesosConfiguration mesosConfiguration,
-                                    Config config) {
+                                    MesosConfiguration mesosConfiguration) {
         this.masterConfiguration = masterConfiguration;
         this.mesosConfiguration = mesosConfiguration;
-        this.config = config;
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
         this.iamArnPrefix = ARN_PREFIX + accountId + ARN_SUFFIX;
@@ -98,27 +95,25 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         String taskId = task.getId();
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
         Protos.ExecutorInfo executorInfo = newExecutorInfo(task, attributesMap, executorUriOverrideOpt);
-        Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID);
-        taskInfoBuilder = setupPrimaryResources(taskInfoBuilder, fenzoTask);
-
-        TitanProtos.ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask);
+        Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID, fenzoTask);
+        ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask);
         taskInfoBuilder.setData(containerInfoBuilder.build().toByteString());
         return taskInfoBuilder.build();
     }
 
-    private TitanProtos.ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask) {
-        TitanProtos.ContainerInfo.Builder containerInfoBuilder = TitanProtos.ContainerInfo.newBuilder();
+    private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask) {
+        ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         Container container = job.getJobDescriptor().getContainer();
         Map<String, String> containerAttributes = container.getAttributes();
         ContainerResources containerResources = container.getContainerResources();
         SecurityProfile v3SecurityProfile = container.getSecurityProfile();
 
-        // Docker Values (Image and Entrypoint)
+        // Docker Values (Image, entrypoint, and command)
         Image image = container.getImage();
         containerInfoBuilder.setImageName(image.getName());
         applyNotNull(image.getDigest(), containerInfoBuilder::setImageDigest);
         applyNotNull(image.getTag(), containerInfoBuilder::setVersion);
-        containerInfoBuilder.setEntrypointStr(StringExt.concatenate(container.getEntryPoint(), " "));
+        setEntryPointCommand(containerInfoBuilder, container);
 
         // Netflix Values
         // Configure Netflix Metadata
@@ -134,7 +129,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         String metatronAppMetadata = v3SecurityProfile.getAttributes().get(WorkerRequest.V2_NETFLIX_APP_METADATA);
         String metatronAppSignature = v3SecurityProfile.getAttributes().get(WorkerRequest.V2_NETFLIX_APP_METADATA_SIG);
         if (metatronAppMetadata != null && metatronAppSignature != null) {
-            TitanProtos.ContainerInfo.MetatronCreds.Builder metatronBuilder = TitanProtos.ContainerInfo.MetatronCreds.newBuilder()
+            ContainerInfo.MetatronCreds.Builder metatronBuilder = ContainerInfo.MetatronCreds.newBuilder()
                     .setAppMetadata(metatronAppMetadata)
                     .setMetadataSig(metatronAppSignature);
             containerInfoBuilder.setMetatronCreds(metatronBuilder.build());
@@ -194,7 +189,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         List<String> securityGroups = v3SecurityProfile.getSecurityGroups();
         final TaskRequest.AssignedResources assignedResources = fenzoTask.getAssignedResources();
         String eniLabel = assignedResources == null ? "0" : "" + assignedResources.getConsumedNamedResources().get(0).getIndex();
-        TitanProtos.ContainerInfo.NetworkConfigInfo.Builder networkConfigInfoBuilder = TitanProtos.ContainerInfo.NetworkConfigInfo.newBuilder()
+        ContainerInfo.NetworkConfigInfo.Builder networkConfigInfoBuilder = ContainerInfo.NetworkConfigInfo.newBuilder()
                 .setEniLabel(eniLabel)
                 .setEniLablel(eniLabel)
                 .addAllSecurityGroups(securityGroups)
@@ -211,16 +206,29 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         return containerInfoBuilder;
     }
 
-    private Protos.TaskInfo.Builder newTaskInfoBuilder(Protos.TaskID taskId, Protos.ExecutorInfo executorInfo, Protos.SlaveID slaveID) {
-        return Protos.TaskInfo.newBuilder()
+    private void setEntryPointCommand(ContainerInfo.Builder containerInfoBuilder, Container container) {
+        if (CollectionsExt.isNullOrEmpty(container.getCommand())) {
+            // fallback to the old behavior when no command is set to avoid breaking existing jobs relying on shell
+            // parsing and word splitting being done by the executor for flat string entrypoints
+            containerInfoBuilder.setEntrypointStr(StringExt.concatenate(container.getEntryPoint(), " "));
+            return;
+        }
+        containerInfoBuilder.setProcess(ContainerInfo.Process.newBuilder()
+                .addAllEntrypoint(container.getEntryPoint())
+                .addAllCommand(container.getCommand())
+        );
+    }
+
+    private Protos.TaskInfo.Builder newTaskInfoBuilder(Protos.TaskID taskId,
+                                                       Protos.ExecutorInfo executorInfo,
+                                                       Protos.SlaveID slaveID,
+                                                       TitusQueuableTask<Job, Task> fenzoTask) {
+
+        Protos.TaskInfo.Builder builder = Protos.TaskInfo.newBuilder()
                 .setTaskId(taskId)
                 .setName(taskId.getValue())
                 .setExecutor(executorInfo)
-                .setSlaveId(slaveID);
-    }
-
-    private Protos.TaskInfo.Builder setupPrimaryResources(Protos.TaskInfo.Builder builder, TitusQueuableTask<Job, Task> fenzoTask) {
-        builder
+                .setSlaveId(slaveID)
                 .addResources(Protos.Resource.newBuilder()
                         .setName("cpus")
                         .setType(Protos.Value.Type.SCALAR)

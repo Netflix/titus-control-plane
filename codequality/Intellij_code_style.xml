@@ -1,4 +1,4 @@
-<code_scheme name="Titus">
+<code_scheme name="Titus" version="173">
   <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
   <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
   <option name="IMPORT_LAYOUT_TABLE">
@@ -11,6 +11,21 @@
       <package name="" withSubpackages="true" static="true" />
     </value>
   </option>
+  <JavaCodeStyleSettings>
+    <option name="SPACE_BEFORE_COLON_IN_FOREACH" value="true" />
+    <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
+    <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
+    <option name="IMPORT_LAYOUT_TABLE">
+      <value>
+        <package name="java" withSubpackages="true" static="false" />
+        <package name="javax" withSubpackages="true" static="false" />
+        <emptyLine />
+        <package name="" withSubpackages="true" static="false" />
+        <emptyLine />
+        <package name="" withSubpackages="true" static="true" />
+      </value>
+    </option>
+  </JavaCodeStyleSettings>
   <codeStyleSettings language="JAVA">
     <option name="IF_BRACE_FORCE" value="3" />
     <option name="DOWHILE_BRACE_FORCE" value="3" />

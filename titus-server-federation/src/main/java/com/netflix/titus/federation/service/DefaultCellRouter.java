@@ -46,7 +46,7 @@ public class DefaultCellRouter implements CellRouter {
         this.federationConfiguration = federationConfiguration;
 
         compileRoutingPatterns = new MemoizedFunction<>((spec, lastCompiledPatterns) -> {
-            logger.info("Detected new routing rules, compiling them");
+            logger.info("Detected new routing rules, compiling them: {}", spec);
             List<Cell> cells = cellInfoResolver.resolve();
             Map<Cell, String> cellRoutingRules = CellInfoUtil.extractCellRoutingFromCellSpecification(cells, spec);
             try {
