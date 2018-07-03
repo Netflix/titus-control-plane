@@ -19,6 +19,7 @@ package com.netflix.titus.federation.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,6 +91,7 @@ public class AggregatingJobManagementClientTest {
     private static final JobStatus KILL_INITIATED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.KillInitiated).build();
     private static final JobStatus FINISHED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Finished).build();
     private static final int TASKS_IN_GENERATED_JOBS = 10;
+    private static final long GRPC_REQUEST_TIMEOUT_MS = 1_000L;
 
     @Rule
     public final GrpcServerRule cellOne = new GrpcServerRule().directExecutor();
@@ -110,8 +112,8 @@ public class AggregatingJobManagementClientTest {
     public void setUp() {
         stackName = UUID.randomUUID().toString();
 
-        GrpcConfiguration grpcClientConfiguration = mock(GrpcConfiguration.class);
-        when(grpcClientConfiguration.getRequestTimeoutMs()).thenReturn(1000L);
+        GrpcConfiguration grpcConfiguration = mock(GrpcConfiguration.class);
+        when(grpcConfiguration.getRequestTimeoutMs()).thenReturn(GRPC_REQUEST_TIMEOUT_MS);
 
         TitusFederationConfiguration titusFederationConfiguration = mock(TitusFederationConfiguration.class);
         when(titusFederationConfiguration.getStack()).thenReturn(stackName);
@@ -138,13 +140,13 @@ public class AggregatingJobManagementClientTest {
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
         final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
         service = new AggregatingJobManagementClient(
-                grpcClientConfiguration,
+                grpcConfiguration,
                 titusFederationConfiguration,
                 connector,
                 cellRouter,
                 anonymousCallMetadataResolver,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration, anonymousCallMetadataResolver)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration, anonymousCallMetadataResolver)
         );
 
         clock = Clocks.test();
@@ -736,6 +738,42 @@ public class AggregatingJobManagementClientTest {
         assertThat(subscriber1.getOnErrorEvents()).isEmpty();
         assertThat(subscriber1.isUnsubscribed()).isTrue();
         assertThat(subscriber1.getCompletions()).isEqualTo(1);
+    }
+
+    @Test
+    public void observeJobDoesNotSetDeadlines() throws InterruptedException {
+        String cellOneJobId = UUID.randomUUID().toString();
+        String cellTwoJobId = UUID.randomUUID().toString();
+        cellOne.getServiceRegistry().addService(new CellWithJobStream(cellOneJobId, cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithJobStream(cellTwoJobId, cellTwoUpdates.serialize()));
+
+        List<AssertableSubscriber<JobChangeNotification>> subscribers = new LinkedList<>();
+        subscribers.add(service.observeJob(cellOneJobId).test());
+        subscribers.add(service.observeJob(cellTwoJobId).test());
+
+        // TODO: make it easier to extract the Deadline for each cell call
+        Thread.sleep(2 * GRPC_REQUEST_TIMEOUT_MS);
+
+        for (AssertableSubscriber<JobChangeNotification> subscriber : subscribers) {
+            subscriber.assertNoErrors();
+            subscriber.assertNotCompleted();
+            assertThat(subscriber.isUnsubscribed()).isFalse();
+        }
+    }
+
+    @Test
+    public void observeJobsDoesNotSetDeadlines() throws InterruptedException {
+        cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
+        cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
+
+        AssertableSubscriber<JobChangeNotification> subscriber = service.observeJobs().test();
+
+        // TODO: make it easier to extract the Deadline for each cell call
+        Thread.sleep(2 * GRPC_REQUEST_TIMEOUT_MS);
+
+        subscriber.assertNoErrors();
+        subscriber.assertNotCompleted();
+        assertThat(subscriber.isUnsubscribed()).isFalse();
     }
 
     @Test

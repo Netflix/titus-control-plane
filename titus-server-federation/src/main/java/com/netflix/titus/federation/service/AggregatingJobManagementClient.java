@@ -240,7 +240,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
     public Observable<JobChangeNotification> observeJob(String jobId) {
         JobId request = JobId.newBuilder().setId(jobId).build();
         return jobManagementServiceHelper.findJobInAllCells(jobId)
-                .flatMap(response -> singleCellCall(response.getCell(),
+                .flatMap(response -> singleCellCallWithNoDeadline(response.getCell(),
                         (client, streamObserver) -> client.observeJob(request, streamObserver))
                 );
     }
@@ -423,6 +423,11 @@ public class AggregatingJobManagementClient implements JobManagementClient {
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
         return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
                 (client, streamObserver) -> clientCall.accept(wrap(client), streamObserver));
+    }
+
+    private <T> Observable<T> singleCellCallWithNoDeadline(Cell cell, ClientCall<T> clientCall) {
+        return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
+                (client, streamObserver) -> clientCall.accept(wrapWithNoDeadline(client), streamObserver));
     }
 
     private interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {
