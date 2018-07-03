@@ -117,7 +117,7 @@ public final class ContainersGenerator {
 
     private static DataGenerator<Triple<List<String>, List<String>, Map<String, String>>> executable() {
         DataGenerator<Pair<List<String>, List<String>>> entryPointAndCommands = DataGenerator.zip(
-                items(asList("sleep 100"), asList("echo 'Hello'")),
+                items(asList("/bin/sh", "-c"), asList("echo 'Hello'")),
                 items(Collections.<String>emptyList(), Collections.<String>emptyList())
         );
         DataGenerator<Map<String, String>> envs = items(

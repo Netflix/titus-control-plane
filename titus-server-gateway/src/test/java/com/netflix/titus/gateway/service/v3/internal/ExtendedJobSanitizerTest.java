@@ -16,6 +16,10 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -46,7 +50,7 @@ public class ExtendedJobSanitizerTest {
         int diskSize = 100;
         JobDescriptor jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.but(d -> d.getContainer().but(c -> c.getContainerResources().toBuilder().withDiskMB(diskSize))))
-                .cast(JobDescriptor.class).getValue();
+                .getValue();
 
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
@@ -65,7 +69,7 @@ public class ExtendedJobSanitizerTest {
         int diskSize = 11_000;
         JobDescriptor jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.but(d -> d.getContainer().but(c -> c.getContainerResources().toBuilder().withDiskMB(diskSize))))
-                .cast(JobDescriptor.class).getValue();
+                .getValue();
 
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
@@ -73,5 +77,48 @@ public class ExtendedJobSanitizerTest {
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
         Optional<JobDescriptor> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitizedJobDescriptorOpt).isEmpty();
+    }
+
+    @Test
+    public void testFlatStringEntryPoint() {
+        JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.but(d -> d.getContainer().toBuilder()
+                        .withEntryPoint(Collections.singletonList("/bin/sh -c \"sleep 10\""))))
+                .getValue();
+
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
+        assertThat(sanitized).isPresent();
+        Map<String, String> attributes = sanitized.get().getAttributes();
+        assertThat(attributes).containsKey("titus.noncompliant");
+        List<String> problems = Arrays.asList(attributes.get("titus.noncompliant").split(","));
+        assertThat(problems).contains("entryPointBinaryWithSpaces");
+    }
+
+    @Test
+    public void testValidEntryPoint() {
+        JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.but(d -> d.getContainer().toBuilder()
+                        .withEntryPoint(Arrays.asList("/bin/sh", "-c", "sleep 10"))))
+                .getValue();
+
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
+        assertThat(sanitized).isNotPresent();
+    }
+
+    @Test
+    public void testJobsWithCommandAreNotMarkedNonCompliant() {
+        // ... because they never relied on shell parsing
+
+        JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.but(d -> d.getContainer().toBuilder()
+                        .withEntryPoint(Collections.singletonList("a binary with spaces"))
+                        .withCommand(Arrays.asList("some", "arguments"))))
+                .getValue();
+
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
+        assertThat(sanitized).isNotPresent();
     }
 }
