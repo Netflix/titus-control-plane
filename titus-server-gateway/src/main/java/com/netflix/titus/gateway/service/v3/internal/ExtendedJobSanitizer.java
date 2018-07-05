@@ -1,15 +1,19 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.inject.Named;
 import javax.validation.ConstraintViolation;
 
 import com.google.common.base.CharMatcher;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -28,6 +32,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
     private static final Logger logger = LoggerFactory.getLogger(ExtendedJobSanitizer.class);
 
     private static final String TITUS_NON_COMPLIANT = "titus.noncompliant";
+    private static final Predicate<String> CONTAINS_SPACES = Pattern.compile(".*\\s+.*").asPredicate();
 
     private final JobManagerConfiguration jobManagerConfiguration;
     private final EntitySanitizer entitySanitizer;
@@ -59,6 +64,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
             }
 
             // TODO Remove once all clients are compliant.
+            jobDescriptor = checkEntryPointViolations(jobDescriptor);
             jobDescriptor = checkResourceViolations(jobDescriptor);
             sanitized = (T) checkEnvironmentViolations(jobDescriptor);
         }
@@ -91,6 +97,24 @@ class ExtendedJobSanitizer implements EntitySanitizer {
                         .withSecurityProfile(builder.build()).build()
                 ).build();
         return markNonCompliant(sanitizedJobDescriptor, nonCompliant);
+    }
+
+    /**
+     * Jobs with entry point binaries containing spaces are likely relying on the legacy shell parsing being done by
+     * titus-executor, and are submitting entry points as a flat string, instead of breaking it onto a list of
+     * arguments.
+     * <p>
+     * Jobs that have a <tt>command</tt> set will fall on the "new" code path that does not do any shell parsing, and do
+     * not need to be checked.
+     */
+    private JobDescriptor checkEntryPointViolations(JobDescriptor jobDescriptor) {
+        List<String> entryPoint = jobDescriptor.getContainer().getEntryPoint();
+        List<String> command = jobDescriptor.getContainer().getCommand();
+        if (!CollectionsExt.isNullOrEmpty(entryPoint) && CollectionsExt.isNullOrEmpty(command) &&
+                CONTAINS_SPACES.test(entryPoint.get(0))) {
+            return markNonCompliant(jobDescriptor, "entryPointBinaryWithSpaces");
+        }
+        return jobDescriptor;
     }
 
     private com.netflix.titus.api.jobmanager.model.job.JobDescriptor checkEnvironmentViolations(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
