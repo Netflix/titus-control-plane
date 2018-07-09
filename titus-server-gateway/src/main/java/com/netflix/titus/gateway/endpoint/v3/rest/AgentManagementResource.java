@@ -85,7 +85,7 @@ public class AgentManagementResource {
     @GET
     @ApiOperation("Get an agent instance with the given id")
     @Path("/instances/{id}")
-    public AgentInstance getAgentInstance(String id) {
+    public AgentInstance getAgentInstance(@PathParam("id") String id) {
         return Responses.fromSingleValueObservable(agentManagementService.getAgentInstance(id));
     }
 

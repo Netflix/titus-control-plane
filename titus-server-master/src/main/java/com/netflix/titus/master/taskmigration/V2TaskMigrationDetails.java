@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.model.MigrationPolicy;
+import com.netflix.titus.api.model.SelfManagedMigrationPolicy;
 import com.netflix.titus.api.model.v2.V2JobDefinition;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.WorkerNaming;
@@ -176,6 +177,11 @@ public class V2TaskMigrationDetails implements TaskMigrationDetails {
 
     public void setMigrationDeadline(long migrationDeadline) {
         jobManager.setMigrationDeadline(getId(), migrationDeadline);
+    }
+
+    @Override
+    public boolean isSelfManaged() {
+        return getMigrationPolicy() instanceof SelfManagedMigrationPolicy;
     }
 
     @Override

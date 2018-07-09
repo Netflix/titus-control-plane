@@ -27,6 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
+import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
@@ -145,6 +146,15 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                 }, Trigger.TaskMigration, "Updating migration details").await(30_000, TimeUnit.MILLISECONDS);
             }
         }
+    }
+
+    @Override
+    public boolean isSelfManaged() {
+        if (isService()) {
+            ServiceJobExt extensions = (ServiceJobExt) getJobDescriptor().getExtensions();
+            return (extensions.getMigrationPolicy() instanceof SelfManagedMigrationPolicy);
+        }
+        return false;
     }
 
     @Override
