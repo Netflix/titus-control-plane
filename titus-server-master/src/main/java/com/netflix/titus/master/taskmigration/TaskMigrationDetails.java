@@ -47,5 +47,7 @@ public interface TaskMigrationDetails {
 
     void setMigrationDeadline(long migrationDeadline);
 
+    boolean isSelfManaged();
+
     String getHostInstanceId();
 }
