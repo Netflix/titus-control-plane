@@ -92,6 +92,11 @@ public class CassandraJobStoreTest {
         public int getConcurrencyLimit() {
             return 10;
         }
+
+        @Override
+        public boolean isTracingEnabled() {
+            return false;
+        }
     };
 
     @Test

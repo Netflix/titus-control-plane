@@ -21,6 +21,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
+import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobAsserts;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
@@ -53,7 +54,7 @@ public class V3JobSchedulingTest extends BaseIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud();
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.twoPartitionsPerTierStackActivation());
     }
 
     /**

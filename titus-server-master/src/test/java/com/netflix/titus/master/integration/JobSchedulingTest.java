@@ -90,7 +90,7 @@ public class JobSchedulingTest extends BaseIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        scenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicSetupActivation());
+        scenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
 
         titusMaster = titusMasterResource.getMaster();
 

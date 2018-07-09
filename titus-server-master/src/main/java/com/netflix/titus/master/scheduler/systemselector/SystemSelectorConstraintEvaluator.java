@@ -28,7 +28,7 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.scheduler.model.Match;
 import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-import com.netflix.titus.master.scheduler.constraint.GlobalConstraintEvaluator;
+import com.netflix.titus.master.scheduler.constraint.SystemConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,9 +38,11 @@ import static com.netflix.titus.master.scheduler.systemselector.SystemSelectorFu
  *
  */
 @Singleton
-public class SystemSelectorConstraintEvaluator implements GlobalConstraintEvaluator {
+public class SystemSelectorConstraintEvaluator implements SystemConstraint {
 
     private static final Logger logger = LoggerFactory.getLogger(SystemSelectorConstraintEvaluator.class);
+    private static final Result VALID = new Result(true, null);
+    private static final Result INVALID = new Result(false, "Failed to match expression");
 
     private final SchedulerConfiguration schedulerConfiguration;
     private final SystemSelectorService systemSelectorService;
@@ -86,14 +88,14 @@ public class SystemSelectorConstraintEvaluator implements GlobalConstraintEvalua
                     logger.debug("Evaluated match expression: {} for taskRequest: {} on targetVM: {} with result: {}",
                             matchExpression, taskRequest, targetVM, matchResult);
                 } catch (SchedulerException e) {
-                    return new Result(true, "");
+                    return VALID;
                 }
                 if (!matchResult) {
-                    return new Result(false, "Failed to match expression: " + matchExpression);
+                    return INVALID;
                 }
             }
 
         }
-        return new Result(true, "");
+        return VALID;
     }
 }

@@ -567,7 +567,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void schedulingResultsHandler(SchedulingResult schedulingResult) {
-        logger.info("Task placement results: taskAndAgentEvaluations={}, executionTimeMs={}",
+        logger.debug("Task placement results: taskAndAgentEvaluations={}, executionTimeMs={}",
                 schedulingResult.getNumAllocations(), schedulingResult.getRuntime());
         long callbackStart = titusRuntime.getClock().wallTime();
         totalSchedulingIterationMesosLatency.set(0);
@@ -688,7 +688,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     @Override
     public void initRunningTask(QueuableTask task, String hostname) {
-        logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}",task.getId(), task.getQAttributes(), hostname);
+        logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}", task.getId(), task.getQAttributes(), hostname);
         schedulingService.initializeRunningTask(task, hostname);
         agentResourceCacheUpdater.createOrUpdateAgentResourceCacheForTask(task, hostname);
     }

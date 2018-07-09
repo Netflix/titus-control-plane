@@ -19,5 +19,5 @@ package com.netflix.titus.master.scheduler.constraint;
 /**
  * The system hard constraint that is applied to all tasks in the system.
  */
-public interface SystemHardConstraint extends GlobalConstraintEvaluator {
+public interface SystemHardConstraint extends SystemConstraint {
 }

@@ -90,6 +90,11 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
+    public Optional<AgentInstanceGroup> findInstanceGroup(String instanceGroupId) {
+        return agentCache.findInstanceGroup(instanceGroupId);
+    }
+
+    @Override
     public AgentInstance getAgentInstance(String instanceId) {
         return agentCache.getAgentInstance(instanceId);
     }

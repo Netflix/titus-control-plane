@@ -20,6 +20,7 @@ public final class TaskAttributes {
     /*
      * Agent attributes.
      */
+    public static final String TASK_ATTRIBUTES_AGENT_ID = "agent.id";
     public static final String TASK_ATTRIBUTES_AGENT_REGION = "agent.region";
     public static final String TASK_ATTRIBUTES_AGENT_ZONE = "agent.zone";
     public static final String TASK_ATTRIBUTES_AGENT_HOST = "agent.host";

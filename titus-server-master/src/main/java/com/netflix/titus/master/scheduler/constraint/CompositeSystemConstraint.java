@@ -25,12 +25,12 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 
-public class CompositeGlobalConstraintEvaluator implements GlobalConstraintEvaluator {
+public class CompositeSystemConstraint implements SystemConstraint {
 
-    private final List<GlobalConstraintEvaluator> evaluators;
+    private final List<SystemConstraint> evaluators;
     private final String name;
 
-    public CompositeGlobalConstraintEvaluator(List<GlobalConstraintEvaluator> evaluators) {
+    public CompositeSystemConstraint(List<SystemConstraint> evaluators) {
         Preconditions.checkArgument(!evaluators.isEmpty());
 
         this.evaluators = evaluators;
@@ -40,7 +40,7 @@ public class CompositeGlobalConstraintEvaluator implements GlobalConstraintEvalu
 
     @Override
     public void prepare() {
-        evaluators.forEach(GlobalConstraintEvaluator::prepare);
+        evaluators.forEach(SystemConstraint::prepare);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class CompositeGlobalConstraintEvaluator implements GlobalConstraintEvalu
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         Result result = null;
-        for (GlobalConstraintEvaluator evaluator : evaluators) {
+        for (SystemConstraint evaluator : evaluators) {
             result = evaluator.evaluate(taskRequest, targetVM, taskTrackerState);
             if (!result.isSuccessful()) {
                 return result;
