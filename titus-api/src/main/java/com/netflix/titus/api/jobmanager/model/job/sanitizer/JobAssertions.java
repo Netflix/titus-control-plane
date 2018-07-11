@@ -45,8 +45,16 @@ public class JobAssertions {
 
     private static final Pattern SG_PATTERN = Pattern.compile("sg-.*");
     private static final Pattern IMAGE_NAME_PATTERN = Pattern.compile("[a-zA-Z0-9\\.\\\\/_-]+");
-    private static final Pattern IMAGE_DIGEST_PATTERN = Pattern.compile("^sha256:[0-9].+");
     private static final Pattern IMAGE_TAG_PATTERN = Pattern.compile("[a-zA-Z0-9\\._-]+");
+
+    // Based on https://github.com/docker/distribution/blob/master/reference/reference.go
+    private static final String DIGEST_ALGORITHM_SEPARATOR = "[+.-_]";
+    private static final String DIGEST_ALGORITHM_COMPONENT = "[A-Za-z][A-Za-z0-9]*";
+    private static final String DIGEST_ALGORITHM = String.format("%s[%s%s]*", DIGEST_ALGORITHM_COMPONENT, DIGEST_ALGORITHM_SEPARATOR, DIGEST_ALGORITHM_COMPONENT);
+    private static final String DIGEST_HEX = "[0-9a-fA-F]{32,}";
+    private static final String DIGEST = String.format("%s:%s", DIGEST_ALGORITHM, DIGEST_HEX);
+
+    private static final Pattern IMAGE_DIGEST_PATTERN = Pattern.compile(DIGEST);
 
     private final Function<String, ResourceDimension> maxContainerSizeResolver;
 
@@ -64,7 +72,7 @@ public class JobAssertions {
     }
 
     public boolean areEnvironmentVariablesNotTooLarge(Map<String, String> environment) {
-        if(CollectionsExt.isNullOrEmpty(environment)) {
+        if (CollectionsExt.isNullOrEmpty(environment)) {
             return true;
         }
 
@@ -94,11 +102,11 @@ public class JobAssertions {
         boolean validTag = !Strings.isNullOrEmpty(image.getTag()) && IMAGE_TAG_PATTERN.matcher(image.getTag()).matches();
 
         if (!validDigest && !validTag) {
-            violations.put("", "must specify a valid digest or tag");
+            violations.put("noValidImageDigestOrTag", "must specify a valid digest or tag");
         }
 
         if (validDigest && validTag) {
-            violations.put("", "must specify only a valid digest or tag and not both");
+            violations.put("bothImageDigestAndTagDefined", "must specify only a valid digest or tag and not both");
         }
 
         return violations;
