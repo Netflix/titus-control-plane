@@ -167,7 +167,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         submitBadJob(
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setImage(Image.getDefaultInstance())).build(),
                 "container.image.name",
-                "container.image"
+                "container.image.noValidImageDigestOrTag"
         );
     }
 
@@ -182,7 +182,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         submitBadJob(
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setImage(badImage)).build(),
                 "container.image.name",
-                "container.image"
+                "container.image.noValidImageDigestOrTag"
         );
     }
 
