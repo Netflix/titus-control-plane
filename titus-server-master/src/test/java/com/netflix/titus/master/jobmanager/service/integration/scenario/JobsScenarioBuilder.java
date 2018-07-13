@@ -32,6 +32,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
+import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -77,7 +78,7 @@ public class JobsScenarioBuilder {
     private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
     private final StubbedJobStore jobStore = new StubbedJobStore();
 
-    private final DefaultV3JobOperations jobOperations;
+    private DefaultV3JobOperations jobOperations;
 
     private final ExtTestSubscriber<Pair<StoreEvent, ?>> storeEvents = new ExtTestSubscriber<>();
 
@@ -98,6 +99,10 @@ public class JobsScenarioBuilder {
 
         jobStore.events().subscribe(storeEvents);
 
+        this.jobOperations = createAndActivateV3JobOperations();
+    }
+
+    private DefaultV3JobOperations createAndActivateV3JobOperations() {
         SystemSoftConstraint systemSoftConstraint = new SystemSoftConstraint() {
             @Override
             public String getName() {
@@ -145,7 +150,8 @@ public class JobsScenarioBuilder {
                 titusRuntime,
                 testScheduler
         );
-        this.jobOperations = new DefaultV3JobOperations(
+
+        DefaultV3JobOperations v3JobOperations = new DefaultV3JobOperations(
                 configuration,
                 jobStore,
                 vmService,
@@ -166,11 +172,33 @@ public class JobsScenarioBuilder {
                 ),
                 titusRuntime
         );
-        jobOperations.enterActiveMode();
+        v3JobOperations.enterActiveMode();
+
+        return v3JobOperations;
     }
 
     public TitusRuntime getTitusRuntime() {
         return titusRuntime;
+    }
+
+    public JobsScenarioBuilder reboot() {
+        this.jobOperations.shutdown();
+        this.jobScenarioBuilders.clear();
+
+        this.jobOperations = createAndActivateV3JobOperations();
+
+        jobOperations.getJobs().forEach(job -> {
+            JobScenarioBuilder.EventHolder<JobManagerEvent<?>> jobEventsSubscriber = new JobScenarioBuilder.EventHolder<>(jobStore);
+            JobScenarioBuilder.EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber = new JobScenarioBuilder.EventHolder<>(jobStore);
+
+            jobOperations.observeJob(job.getId()).subscribe(jobEventsSubscriber);
+            jobStore.events(job.getId()).subscribe(storeEventsSubscriber);
+
+            JobScenarioBuilder<?> jobScenarioBuilder = new JobScenarioBuilder<>(job.getId(), jobEventsSubscriber, storeEventsSubscriber, jobOperations, schedulingService, jobStore, vmService, titusRuntime, testScheduler);
+            jobScenarioBuilders.add(jobScenarioBuilder);
+        });
+
+        return this;
     }
 
     public JobsScenarioBuilder trigger() {
@@ -185,6 +213,15 @@ public class JobsScenarioBuilder {
 
     public <E extends JobDescriptorExt> JobScenarioBuilder<E> getJobScenario(int idx) {
         return (JobScenarioBuilder<E>) jobScenarioBuilders.get(idx);
+    }
+
+    public <E extends JobDescriptorExt> JobsScenarioBuilder inJob(int idx, Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> jobScenario) {
+        JobScenarioBuilder<E> jobScenarioBuilder = getJobScenario(idx);
+        if (jobScenarioBuilder == null) {
+            throw new IllegalArgumentException(String.format("No job with index %s registered", idx));
+        }
+        jobScenario.apply(jobScenarioBuilder);
+        return this;
     }
 
     public <E extends JobDescriptorExt> JobsScenarioBuilder scheduleJob(JobDescriptor<E> jobDescriptor,
@@ -214,7 +251,14 @@ public class JobsScenarioBuilder {
         return new JobSanitizerBuilder()
                 .withVerifierMode(verifierMode)
                 .withJobConstrainstConfiguration(jobSanitizerConfiguration)
-                .withMaxContainerSizeResolver(instanceType -> null)
+                .withMaxContainerSizeResolver(instanceType -> ResourceDimension.newBuilder()
+                        .withCpus(64)
+                        .withGpu(8)
+                        .withMemoryMB(256 * 1024)
+                        .withDiskMB(1024 * 1024)
+                        .withNetworkMbs(10 * 1024)
+                        .build()
+                )
                 .build();
     }
 }

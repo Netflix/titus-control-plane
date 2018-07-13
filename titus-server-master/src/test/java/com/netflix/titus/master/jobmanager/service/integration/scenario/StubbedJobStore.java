@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
@@ -55,6 +57,8 @@ class StubbedJobStore implements JobStore {
         TaskUpdated,
     }
 
+    private boolean broken;
+
     private final PublishSubject<Pair<StoreEvent, ?>> eventSubject = PublishSubject.create();
 
     private final ConcurrentMap<String, Job<?>> jobs = new ConcurrentHashMap<>();
@@ -64,6 +68,10 @@ class StubbedJobStore implements JobStore {
     private final ConcurrentMap<String, Task> archivedTasks = new ConcurrentHashMap<>();
 
     private final ConcurrentMap<String, ServiceTaskIndex> jobToServiceTaskIndex = new ConcurrentHashMap<>();
+
+    public void setBroken(boolean broken) {
+        this.broken = broken;
+    }
 
     public Observable<Pair<StoreEvent, ?>> events() {
         return eventSubject;
@@ -194,128 +202,157 @@ class StubbedJobStore implements JobStore {
 
     @Override
     public Observable<Pair<List<Job<?>>, Integer>> retrieveJobs() {
-        return Observable.just(Pair.of(new ArrayList<>(jobs.values()), 0));
+        return beforeObservable(() -> Observable.just(Pair.of(new ArrayList<>(jobs.values()), 0)));
     }
 
     @Override
     public Observable<Job<?>> retrieveJob(String jobId) {
-        Callable<Job<?>> jobCallable = () -> jobs.get(jobId);
-        return Observable.fromCallable(jobCallable).filter(Objects::nonNull);
+        return beforeObservable(() -> {
+            Callable<Job<?>> jobCallable = () -> jobs.get(jobId);
+            return Observable.fromCallable(jobCallable).filter(Objects::nonNull);
+        });
     }
 
     @Override
     public Completable storeJob(Job job) {
-        return Completable.fromAction(() -> {
-            jobs.put(job.getId(), job);
-            if (isServiceJob(job)) {
-                jobToServiceTaskIndex.put(job.getId(), new ServiceTaskIndex());
-            }
-            eventSubject.onNext(Pair.of(StoreEvent.JobAdded, job));
-        });
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    jobs.put(job.getId(), job);
+                    if (isServiceJob(job)) {
+                        jobToServiceTaskIndex.put(job.getId(), new ServiceTaskIndex());
+                    }
+                    eventSubject.onNext(Pair.of(StoreEvent.JobAdded, job));
+                }));
     }
 
     @Override
     public Completable updateJob(Job job) {
-        return Completable.fromAction(() -> {
-            jobs.put(job.getId(), job);
-            eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, job));
-        });
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    jobs.put(job.getId(), job);
+                    eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, job));
+                }));
     }
 
     @Override
     public Completable deleteJob(Job job) {
-        return Completable.fromAction(() -> {
-            Job<?> removedJob = jobs.remove(job.getId());
-            if (removedJob != null) {
-                // We sort tasks by index, to make events more predictable for easier evaluation in test code.
-                tasks.values().stream()
-                        .sorted(Comparator.comparingInt(task2 -> getIndex(task2.getId())))
-                        .filter(task -> task.getJobId().equals(job.getId()))
-                        .forEach(task -> {
-                            tasks.remove(task.getId());
-                            archivedTasks.put(task.getId(), task);
-                            eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
-                        });
-                archivedJobs.put(removedJob.getId(), removedJob);
-                eventSubject.onNext(Pair.of(StoreEvent.JobRemoved, job));
-            }
-        });
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    Job<?> removedJob = jobs.remove(job.getId());
+                    if (removedJob != null) {
+                        // We sort tasks by index, to make events more predictable for easier evaluation in test code.
+                        tasks.values().stream()
+                                .sorted(Comparator.comparingInt(task2 -> getIndex(task2.getId())))
+                                .filter(task -> task.getJobId().equals(job.getId()))
+                                .forEach(task -> {
+                                    tasks.remove(task.getId());
+                                    archivedTasks.put(task.getId(), task);
+                                    eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
+                                });
+                        archivedJobs.put(removedJob.getId(), removedJob);
+                        eventSubject.onNext(Pair.of(StoreEvent.JobRemoved, job));
+                    }
+                }));
     }
 
     @Override
     public Observable<Pair<List<Task>, Integer>> retrieveTasksForJob(String jobId) {
-        return ObservableExt.fromCallable(() -> {
-                    List<Task> jobTasks = tasks.values().stream().filter(t -> t.getJobId().equals(jobId)).collect(Collectors.toList());
-                    return Collections.singletonList(Pair.of(jobTasks, 0));
-                }
-        );
+        return beforeObservable(() ->
+                ObservableExt.fromCallable(() -> {
+                            List<Task> jobTasks = tasks.values().stream().filter(t -> t.getJobId().equals(jobId)).collect(Collectors.toList());
+                            return Collections.singletonList(Pair.of(jobTasks, 0));
+                        }
+                ));
     }
 
     @Override
     public Observable<Task> retrieveTask(String taskId) {
-        return Observable.fromCallable(() -> tasks.get(taskId)).filter(Objects::nonNull);
+        return beforeObservable(() ->
+                Observable.fromCallable(() -> tasks.get(taskId)).filter(Objects::nonNull)
+        );
     }
 
     @Override
     public Completable storeTask(Task task) {
-        return Completable.fromAction(() -> {
-            Job<?> job = jobs.get(task.getJobId());
-            if (job != null) {
-                tasks.put(task.getId(), task);
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    Job<?> job = jobs.get(task.getJobId());
+                    if (job != null) {
+                        tasks.put(task.getId(), task);
 
-                if (isServiceJob(job)) {
-                    jobToServiceTaskIndex.get(job.getId()).addTask(task);
-                }
+                        if (isServiceJob(job)) {
+                            jobToServiceTaskIndex.get(job.getId()).addTask(task);
+                        }
 
-                eventSubject.onNext(Pair.of(StoreEvent.TaskAdded, task));
-            } else {
-                throw new IllegalStateException("Adding task for unknown job " + task.getJobId());
-            }
-        });
+                        eventSubject.onNext(Pair.of(StoreEvent.TaskAdded, task));
+                    } else {
+                        throw new IllegalStateException("Adding task for unknown job " + task.getJobId());
+                    }
+                }));
     }
 
     @Override
     public Completable updateTask(Task task) {
-        return Completable.fromAction(() -> {
-            if (jobs.get(task.getJobId()) != null) {
-                tasks.put(task.getId(), task);
-                eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, task));
-            } else {
-                throw new IllegalStateException("Adding task for unknown job " + task.getJobId());
-            }
-        });
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    if (jobs.get(task.getJobId()) != null) {
+                        tasks.put(task.getId(), task);
+                        eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, task));
+                    } else {
+                        throw new IllegalStateException("Adding task for unknown job " + task.getJobId());
+                    }
+                }));
     }
 
     @Override
     public Completable replaceTask(Task oldTask, Task newTask) {
-        return storeTask(newTask).concatWith(deleteTask(oldTask));
+        return beforeCompletable(() ->
+                storeTask(newTask).concatWith(deleteTask(oldTask))
+        );
     }
 
     @Override
     public Completable deleteTask(Task task) {
-        return Completable.fromAction(() -> {
-            Task removedTask = tasks.remove(task.getId());
-            if (removedTask != null) {
-                archivedTasks.put(removedTask.getId(), removedTask);
-                eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
-            }
-        });
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    Task removedTask = tasks.remove(task.getId());
+                    if (removedTask != null) {
+                        archivedTasks.put(removedTask.getId(), removedTask);
+                        eventSubject.onNext(Pair.of(StoreEvent.TaskRemoved, task));
+                    }
+                }));
     }
 
     @Override
     public Observable<Task> retrieveArchivedTask(String taskId) {
-        return Observable.fromCallable(() -> archivedTasks.get(taskId)).filter(Objects::nonNull);
+        return beforeObservable(() -> Observable.fromCallable(() -> archivedTasks.get(taskId)).filter(Objects::nonNull));
     }
 
     @Override
     public Observable<Job<?>> retrieveArchivedJob(String jobId) {
-        Callable<Job<?>> jobCallable = () -> archivedJobs.get(jobId);
-        return Observable.fromCallable(jobCallable).filter(Objects::nonNull);
+        return beforeObservable(() -> {
+            Callable<Job<?>> jobCallable = () -> archivedJobs.get(jobId);
+            return Observable.fromCallable(jobCallable).filter(Objects::nonNull);
+        });
     }
 
     @Override
     public Observable<Task> retrieveArchivedTasksForJob(String jobId) {
         throw new IllegalStateException("not implemented yet");
+    }
+
+    private Completable beforeCompletable(Supplier<Completable> action) {
+        if (broken) {
+            return Completable.error(new IOException("Store is broken"));
+        }
+        return action.get();
+    }
+
+    private <R> Observable<R> beforeObservable(Supplier<Observable<R>> action) {
+        if (broken) {
+            return Observable.error(new IOException("Store is broken"));
+        }
+        return action.get();
     }
 
     /**
