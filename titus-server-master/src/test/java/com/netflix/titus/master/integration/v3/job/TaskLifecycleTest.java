@@ -87,12 +87,12 @@ public class TaskLifecycleTest extends BaseIntegrationTest {
         testTaskStuckInState(newJob("submitServiceJobStuckInLaunched"), TaskState.Launched);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void submitServiceTaskStuckInStartInitiated() throws Exception {
         testTaskStuckInState(newJob("submitServiceJobStuckInStartInitiated"), TaskState.StartInitiated);
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void submitServiceJobStuckInKillInitiated() throws Exception {
         jobsScenarioBuilder.schedule(newJob("submitServiceJobStuckInKillInitiated"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startJobAndMoveTasksToKillInitiated(true))

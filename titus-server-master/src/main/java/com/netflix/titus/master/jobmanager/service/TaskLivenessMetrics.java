@@ -36,13 +36,10 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.StringExt;
@@ -50,9 +47,8 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.histogram.Histogram;
 import com.netflix.titus.common.util.histogram.HistogramDescriptor;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,8 +66,9 @@ public class TaskLivenessMetrics {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskLivenessMetrics.class);
 
-    private static final String ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskLiveness.";
-    private static final String TASK_METRIC_NAME = ROOT_METRIC_NAME + "duration";
+    private static final String TASK_IN_STATE_ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskLiveness.";
+    private static final String TASK_IN_STATE_METRIC_NAME = TASK_IN_STATE_ROOT_METRIC_NAME + "duration";
+    private static final String TASK_STATE_CHANGE_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskStateUpdates";
 
     private static final List<String> TRACKED_STATES = Arrays.asList(
             TaskState.Accepted.name(),
@@ -96,23 +93,21 @@ public class TaskLivenessMetrics {
     );
 
     private final ApplicationSlaManagementService applicationSlaManagementService;
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private final JobManagerConfiguration configuration;
     private final Registry registry;
 
     private final Map<String, Map<String, List<Gauge>>> capacityGroupsMetrics = new HashMap<>();
 
-    private Subscription subscription;
+    private Subscription taskLivenessRefreshSubscription;
+    private Subscription taskStateUpdateSubscription;
 
     @Inject
     public TaskLivenessMetrics(ApplicationSlaManagementService applicationSlaManagementService,
-                               V2JobOperations v2JobOperations,
                                V3JobOperations v3JobOperations,
                                JobManagerConfiguration configuration,
                                Registry registry) {
         this.applicationSlaManagementService = applicationSlaManagementService;
-        this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.configuration = configuration;
         this.registry = registry;
@@ -121,8 +116,19 @@ public class TaskLivenessMetrics {
     @Activator
     public void enterActiveMode() {
         long intervalMs = Math.max(1_000, configuration.getTaskLivenessPollerIntervalMs());
-        this.subscription = ObservableExt.schedule(
-                ROOT_METRIC_NAME + "scheduler", registry, "TaskLivenessRefreshAction",
+
+        this.taskStateUpdateSubscription = v3JobOperations.observeJobs().subscribe(
+                event -> {
+                    if (event instanceof TaskUpdateEvent) {
+                        updateTaskMetrics((TaskUpdateEvent) event);
+                    }
+                },
+                e -> logger.error("Event stream terminated with an error", e),
+                () -> logger.info("Event stream completed")
+        );
+
+        this.taskLivenessRefreshSubscription = ObservableExt.schedule(
+                TASK_IN_STATE_ROOT_METRIC_NAME + "scheduler", registry, "TaskLivenessRefreshAction",
                 Completable.fromAction(this::refresh), intervalMs, intervalMs, TimeUnit.MILLISECONDS, Schedulers.computation()
         ).subscribe(result ->
                 result.ifPresent(error -> logger.warn("Task liveness metrics refresh error", error))
@@ -131,7 +137,18 @@ public class TaskLivenessMetrics {
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(subscription);
+        ObservableExt.safeUnsubscribe(taskStateUpdateSubscription, taskLivenessRefreshSubscription);
+    }
+
+    private void updateTaskMetrics(TaskUpdateEvent event) {
+        Pair<Tier, String> assignment = JobManagerUtil.getTierAssignment(event.getCurrentJob(), applicationSlaManagementService);
+        Task task = event.getCurrentTask();
+        registry.counter(
+                TASK_STATE_CHANGE_METRIC_NAME,
+                "tier", assignment.getLeft().name(),
+                "capacityGroup", assignment.getRight(),
+                "state", task.getStatus().getState().name()
+        ).increment();
     }
 
     private void refresh() {
@@ -151,7 +168,7 @@ public class TaskLivenessMetrics {
     private void updateCapacityGroupCounters(Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms, Map<String, Tier> tierMap) {
         capacityGroupsHistograms.forEach((capacityGroup, histograms) -> {
             Id baseId = registry.createId(
-                    TASK_METRIC_NAME,
+                    TASK_IN_STATE_METRIC_NAME,
                     "tier", tierMap.get(capacityGroup).name(),
                     "capacityGroup", capacityGroup
             );
@@ -212,30 +229,11 @@ public class TaskLivenessMetrics {
      */
     private Map<String, Map<String, Histogram.Builder>> buildCapacityGroupsHistograms(Set<String> capacityGroups) {
         Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms = newCapacityHistograms(capacityGroups);
-        v2JobOperations.getAllJobMgrs()
-                .forEach(jmgr -> resolveCapacityGroup(jmgr, capacityGroupsHistograms).ifPresent(capacityGroup ->
-                        buildCapacityGroupHistogram(jmgr, capacityGroup, capacityGroupsHistograms)
-                ));
         v3JobOperations.getJobs()
                 .forEach(job -> resolveCapacityGroup(job, capacityGroupsHistograms).ifPresent(capacityGroup ->
                         buildCapacityGroupHistogram(job, capacityGroup, capacityGroupsHistograms)
                 ));
         return capacityGroupsHistograms;
-    }
-
-    private void buildCapacityGroupHistogram(V2JobMgrIntf jmgr, String capacityGroup, Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms) {
-        // 'capacityGroupsHistograms' is pre-initialized, but to avoid race condition we make extra check here.
-        Map<String, Histogram.Builder> capacityGroupHistograms = capacityGroupsHistograms.computeIfAbsent(capacityGroup, k -> new HashMap<>());
-        jmgr.getWorkers().forEach(worker -> {
-            long timestamp = getTimestamp(worker);
-            if (timestamp > 0) {
-                long durationMs = System.currentTimeMillis() - timestamp;
-                capacityGroupHistograms.computeIfAbsent(
-                        V2JobState.toV3TaskState(worker.getState()).name(),
-                        name -> Histogram.newBuilder(HISTOGRAM_DESCRIPTOR)
-                ).increment(durationMs);
-            }
-        });
     }
 
     private void buildCapacityGroupHistogram(Job<?> job, String capacityGroup, Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms) {
@@ -260,21 +258,6 @@ public class TaskLivenessMetrics {
         });
     }
 
-    private Optional<String> resolveCapacityGroup(V2JobMgrIntf jmgr, Map<String, Map<String, Histogram.Builder>> capacityHistograms) {
-        V2JobMetadata jobMetadata = jmgr.getJobMetadata();
-        if (jobMetadata == null) {
-            return Optional.empty();
-        }
-        String capacityGroup = Parameters.getCapacityGroup(jobMetadata.getParameters());
-        if (capacityGroup == null) {
-            capacityGroup = Parameters.getAppName(jobMetadata.getParameters());
-        }
-        if (capacityGroup == null) {
-            return Optional.of(ApplicationSlaManagementService.DEFAULT_APPLICATION);
-        }
-        return Optional.of(capacityHistograms.containsKey(capacityGroup) ? capacityGroup : ApplicationSlaManagementService.DEFAULT_APPLICATION);
-    }
-
     private Optional<String> resolveCapacityGroup(Job<?> job, Map<String, Map<String, Histogram.Builder>> capacityHistograms) {
         String capacityGroup = job.getJobDescriptor().getCapacityGroup();
         if (StringExt.isEmpty(capacityGroup)) {
@@ -293,30 +276,5 @@ public class TaskLivenessMetrics {
 
     private Map<String, Map<String, Histogram.Builder>> newCapacityHistograms(Set<String> capacityGroups) {
         return capacityGroups.stream().collect(Collectors.toMap(name -> name, name -> new HashMap<>()));
-    }
-
-    private long getTimestamp(V2WorkerMetadata worker) {
-        V2JobState state = worker.getState();
-        long timestamp;
-        switch (state) {
-            case Accepted:
-                timestamp = worker.getAcceptedAt();
-                break;
-            case Launched:
-                timestamp = worker.getLaunchedAt();
-                break;
-            case StartInitiated:
-                timestamp = worker.getStartingAt();
-                break;
-            case Started:
-                timestamp = worker.getStartedAt();
-                break;
-            case Failed:
-            case Completed:
-            case Noop:
-            default:
-                timestamp = -1;
-        }
-        return timestamp;
     }
 }

@@ -81,7 +81,7 @@ public class DefaultReconciliationEngine<EVENT> implements InternalReconciliatio
         this.eventObservable = ObservableExt.protectFromMissingExceptionHandlers(eventSubject, logger);
         this.modelHolder = new ModelHolder(bootstrapModel, bootstrapModel, bootstrapModel);
         this.firstTrigger = newlyCreated;
-        this.metrics = new ReconciliationEngineMetrics<>(bootstrapModel.getId(), extraChangeActionTags, extraModelActionTags, titusRuntime.getRegistry(), clock);
+        this.metrics = new ReconciliationEngineMetrics<>(extraChangeActionTags, extraModelActionTags, titusRuntime.getRegistry(), clock);
         indexEntityHolder(bootstrapModel);
     }
 

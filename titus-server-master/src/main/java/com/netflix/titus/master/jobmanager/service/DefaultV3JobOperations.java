@@ -89,8 +89,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
     private Subscription transactionLoggerSubscription;
-
-    private final V3JobMetricsCollector jobMetricsCollector;
+    private Subscription reconcilerEventSubscription;
 
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
@@ -102,7 +101,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
-        this.jobMetricsCollector = new V3JobMetricsCollector(titusRuntime.getRegistry());
         this.titusRuntime = titusRuntime;
     }
 
@@ -111,22 +109,12 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.reconciliationFramework = jobReconciliationFrameworkFactory.newInstance();
         this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework);
 
-        reconciliationFramework.orderedView(IndexKind.StatusCreationTime).forEach(jobHolder -> {
-            Job<?> job = jobHolder.getEntity();
-            jobHolder.getChildren().forEach(taskHolder -> jobMetricsCollector.updateTaskMetrics(job, taskHolder.getEntity()));
-        });
-
         // Remove finished jobs from the reconciliation framework.
-        reconciliationFramework.events().subscribe(
+        this.reconcilerEventSubscription = reconciliationFramework.events().subscribe(
                 event -> {
                     if (event instanceof JobModelReconcilerEvent.JobModelUpdateReconcilerEvent) {
                         JobModelReconcilerEvent.JobModelUpdateReconcilerEvent jobUpdateEvent = (JobModelReconcilerEvent.JobModelUpdateReconcilerEvent) event;
-                        EntityHolder changedEntityHolder = jobUpdateEvent.getChangedEntityHolder();
-                        if (handleJobCompletedEvent(changedEntityHolder)) {
-                            jobMetricsCollector.removeJob(changedEntityHolder.getId());
-                        } else {
-                            jobMetricsCollector.updateTaskMetrics(jobUpdateEvent);
-                        }
+                        handleJobCompletedEvent(jobUpdateEvent.getChangedEntityHolder());
                     }
                 },
                 e -> logger.error("Event stream terminated with an error", e),
@@ -158,7 +146,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(transactionLoggerSubscription);
+        ObservableExt.safeUnsubscribe(transactionLoggerSubscription, reconcilerEventSubscription);
         if (reconciliationFramework != null) {
             reconciliationFramework.stop(RECONCILER_SHUTDOWN_TIMEOUT_MS);
         }
