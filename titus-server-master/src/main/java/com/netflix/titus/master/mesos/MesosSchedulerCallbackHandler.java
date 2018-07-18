@@ -438,15 +438,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         }
 
         String taskId = taskStatus.getTaskId().getValue();
-        boolean known = isKnown(taskId);
-
-        registry.counter(
-                MetricConstants.METRIC_MESOS + "reconcilerUpdates",
-                "taskId", taskId,
-                "known", Boolean.toString(known)
-        ).increment();
-
-        return !known;
+        return !isKnown(taskId);
     }
 
     private boolean isKnown(String taskId) {

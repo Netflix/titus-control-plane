@@ -44,14 +44,12 @@ public class VMOperationsImpl implements VMOperations {
 
     private Func0<List<JobsOnVMStatus>> jobsGetterFunc = null;
     private final ConcurrentMap<String, List<VirtualMachineCurrentState>> vmStatesMap;
-    private final AgentResourceAllocationMetrics agentResourceAllocationMetrics;
     private final AgentManagementService agentManagementService;
 
     @Inject
     public VMOperationsImpl(AgentManagementService agentManagementService, TitusRuntime runtime) {
         this.agentManagementService = agentManagementService;
         this.vmStatesMap = new ConcurrentHashMap<>();
-        this.agentResourceAllocationMetrics = new AgentResourceAllocationMetrics(agentManagementService, runtime);
     }
 
     @Override
@@ -80,7 +78,6 @@ public class VMOperationsImpl implements VMOperations {
     @Override
     public void setAgentInfos(List<VirtualMachineCurrentState> vmStates) {
         vmStatesMap.put("0", vmStates);
-        agentResourceAllocationMetrics.update(vmStates);
     }
 
     @Override

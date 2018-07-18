@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
@@ -53,8 +52,7 @@ class ReconciliationEngineMetrics<EVENT> {
     private final AtomicLong pendingChangeActions = new AtomicLong();
     private final Gauge changeActionQueueSize;
 
-    ReconciliationEngineMetrics(String rootHolderId,
-                                Function<ChangeAction, List<Tag>> extraChangeActionTags,
+    ReconciliationEngineMetrics(Function<ChangeAction, List<Tag>> extraChangeActionTags,
                                 Function<EVENT, List<Tag>> extraModelActionTags,
                                 Registry registry,
                                 Clock clock) {
@@ -63,7 +61,7 @@ class ReconciliationEngineMetrics<EVENT> {
         this.registry = registry;
         this.clock = clock;
 
-        List<Tag> commonTags = Collections.singletonList(new BasicTag("rootHolderId", rootHolderId));
+        List<Tag> commonTags = Collections.emptyList();
         this.evaluationId = registry.createId(EVALUATIONS, commonTags);
         this.startedChangeActionsId = registry.createId(STARTED_CHANGE_ACTIONS, commonTags);
         this.finishedChangeActionId = registry.createId(FINISHED_CHANGE_ACTIONS, commonTags);
