@@ -68,6 +68,11 @@ public class TestStoreLoadCommand implements Command {
         public int getConcurrencyLimit() {
             return MAX_RETRIEVE_TASK_CONCURRENCY;
         }
+
+        @Override
+        public boolean isTracingEnabled() {
+            return false;
+        }
     };
 
     @Override
