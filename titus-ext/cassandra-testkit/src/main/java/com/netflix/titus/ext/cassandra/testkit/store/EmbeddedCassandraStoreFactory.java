@@ -65,6 +65,11 @@ public class EmbeddedCassandraStoreFactory {
         public int getConcurrencyLimit() {
             return 10;
         }
+
+        @Override
+        public boolean isTracingEnabled() {
+            return false;
+        }
     };
 
     private final Session session;

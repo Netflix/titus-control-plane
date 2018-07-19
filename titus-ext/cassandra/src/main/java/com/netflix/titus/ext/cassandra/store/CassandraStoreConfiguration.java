@@ -41,4 +41,10 @@ public interface CassandraStoreConfiguration {
      */
     @DefaultValue("10")
     int getConcurrencyLimit();
+
+    /**
+     * @return whether or not each query should have tracing enabled.
+     */
+    @DefaultValue("false")
+    boolean isTracingEnabled();
 }

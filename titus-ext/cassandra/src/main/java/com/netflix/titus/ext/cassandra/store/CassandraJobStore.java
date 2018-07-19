@@ -30,6 +30,7 @@ import javax.inject.Singleton;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.QueryTrace;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -577,15 +578,23 @@ public class CassandraJobStore implements JobStore {
     private Observable<ResultSet> execute(Statement statement) {
         return Observable.<ResultSet>create(
                 emitter -> {
-                    ListenableFuture resultSetFuture = fitDriverInjection
+                    boolean tracingEnabled = configuration.isTracingEnabled();
+                    Statement modifiedStatement = tracingEnabled ? statement.enableTracing() : statement;
+                    ListenableFuture<ResultSet> resultSetFuture = fitDriverInjection
                             .map(injection -> injection.aroundListenableFuture(
-                                    "executeAsync", () -> session.executeAsync(statement))
+                                    "executeAsync", () -> session.executeAsync(modifiedStatement))
                             )
-                            .orElseGet(() -> session.executeAsync(statement));
+                            .orElseGet(() -> session.executeAsync(modifiedStatement));
 
                     Futures.addCallback(resultSetFuture, new FutureCallback<ResultSet>() {
                         @Override
                         public void onSuccess(@Nullable ResultSet result) {
+                            if (result != null && tracingEnabled) {
+                                QueryTrace queryTrace = result.getExecutionInfo().getQueryTrace();
+                                if (queryTrace != null) {
+                                    logger.info("Executed statement with traceId: {}", queryTrace.getTraceId());
+                                }
+                            }
                             emitter.onNext(result);
                             emitter.onCompleted();
                         }

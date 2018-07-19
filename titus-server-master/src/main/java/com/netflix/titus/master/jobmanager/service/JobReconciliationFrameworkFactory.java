@@ -356,8 +356,7 @@ public class JobReconciliationFrameworkFactory {
                 List<Job<?>> retrievedJobs = retrievedJobsAndErrors.getLeft();
                 List<Observable<Pair<Job, Pair<List<Task>, Integer>>>> retrieveTasksObservables = new ArrayList<>();
                 for (Job job : retrievedJobs) {
-
-                    // TODO Finished jobs that were not archived immediately should be moved by background archive process
+                    // TODO Finished jobs that were not archived immediately should be archived by background archive process
                     if (job.getStatus().getState() == JobState.Finished) {
                         logger.info("Not loading finished job: {}", job.getId());
                         continue;
@@ -381,6 +380,14 @@ public class JobReconciliationFrameworkFactory {
             int taskCount = jobTasksPairs.stream().map(p -> p.getRight().getLeft().size()).reduce(0, (a, v) -> a + v);
             loadedJobs.set(jobTasksPairs.size());
             loadedTasks.set(taskCount);
+
+            for (Pair<Job, Pair<List<Task>, Integer>> jobTaskPair : jobTasksPairs) {
+                Job job = jobTaskPair.getLeft();
+                List<Task> tasks = jobTaskPair.getRight().getLeft();
+                List<String> taskStrings = tasks.stream().map(t -> String.format("<%s,%s>", t.getId(), t.getStatus().getState())).collect(Collectors.toList());
+                logger.info("Loaded job: {} with tasks: {}", job.getId(), taskStrings);
+            }
+
             logger.info("{} jobs and {} tasks loaded from store in {}ms", jobTasksPairs.size(), taskCount, clock.wallTime() - startTime);
         } catch (Exception e) {
             logger.error("Failed to load jobs from the store during initialization:", e);
