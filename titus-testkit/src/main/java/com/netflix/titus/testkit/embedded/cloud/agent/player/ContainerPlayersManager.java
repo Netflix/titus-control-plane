@@ -66,7 +66,7 @@ public class ContainerPlayersManager {
     public boolean play(TaskExecutorHolder taskHolder) {
         JobPlayer jobPlayer = jobPlayers.get(taskHolder.getJobId());
         if (jobPlayer == null) {
-            List<Pair<ContainerSelector, ContainerRules>> parseResult = PlayerParser.parse(taskHolder.getEnv());
+            List<Pair<RuleSelector, ContainerRules>> parseResult = PlayerParser.parse(taskHolder.getEnv());
             if (parseResult.isEmpty()) {
                 return false;
             }

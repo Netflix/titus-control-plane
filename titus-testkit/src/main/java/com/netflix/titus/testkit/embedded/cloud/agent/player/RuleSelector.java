@@ -16,18 +16,22 @@
 
 package com.netflix.titus.testkit.embedded.cloud.agent.player;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import com.netflix.titus.common.util.NumberSequence;
 
-class ContainerSelector {
+class RuleSelector {
 
     private final NumberSequence slots;
     private final NumberSequence resubmits;
+    private final Set<String> instanceIds;
 
-    ContainerSelector(NumberSequence slots, NumberSequence resubmits) {
+    RuleSelector(NumberSequence slots, NumberSequence resubmits, Set<String> instanceIds) {
         this.slots = slots;
         this.resubmits = resubmits;
+        this.instanceIds = instanceIds;
     }
 
     public NumberSequence getSlots() {
@@ -38,6 +42,10 @@ class ContainerSelector {
         return resubmits;
     }
 
+    public Set<String> getInstanceIds() {
+        return instanceIds;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -46,22 +54,23 @@ class ContainerSelector {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ContainerSelector selector = (ContainerSelector) o;
-        return Objects.equals(slots, selector.slots) &&
-                Objects.equals(resubmits, selector.resubmits);
+        RuleSelector that = (RuleSelector) o;
+        return Objects.equals(slots, that.slots) &&
+                Objects.equals(resubmits, that.resubmits) &&
+                Objects.equals(instanceIds, that.instanceIds);
     }
 
     @Override
     public int hashCode() {
-
-        return Objects.hash(slots, resubmits);
+        return Objects.hash(slots, resubmits, instanceIds);
     }
 
     @Override
     public String toString() {
-        return "ContainerSelector{" +
+        return "RuleSelector{" +
                 "slots=" + slots +
                 ", resubmits=" + resubmits +
+                ", instanceIds=" + instanceIds +
                 '}';
     }
 
@@ -69,8 +78,8 @@ class ContainerSelector {
         return new Builder();
     }
 
-    public static ContainerSelector everything() {
-        return ContainerSelector.newBuilder().build();
+    public static RuleSelector everything() {
+        return RuleSelector.newBuilder().build();
     }
 
     public static final class Builder {
@@ -79,6 +88,8 @@ class ContainerSelector {
 
         private NumberSequence resubmits;
         private int resubmitStep = 1;
+
+        private Set<String> instanceIds = new HashSet<>();
 
         private Builder() {
         }
@@ -103,14 +114,21 @@ class ContainerSelector {
             return this;
         }
 
-        public ContainerSelector build() {
+        public Builder withInstances(String... instanceIds) {
+            for (String instanceId : instanceIds) {
+                this.instanceIds.add(instanceId);
+            }
+            return this;
+        }
+
+        public RuleSelector build() {
             if (slots == null) {
                 slots = NumberSequence.from(0);
             }
             if (resubmits == null) {
                 resubmits = NumberSequence.from(0);
             }
-            return new ContainerSelector(slots.step(slotStep), resubmits.step(resubmitStep));
+            return new RuleSelector(slots.step(slotStep), resubmits.step(resubmitStep), instanceIds);
         }
     }
 }

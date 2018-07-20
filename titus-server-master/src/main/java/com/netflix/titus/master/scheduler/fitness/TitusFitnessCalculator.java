@@ -35,6 +35,7 @@ import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFuncti
 public class TitusFitnessCalculator implements VMTaskFitnessCalculator {
 
     private final SchedulerConfiguration configuration;
+    private final AgentManagementFitnessCalculator agentManagementFitnessCalculator;
     private final VMTaskFitnessCalculator criticalServiceJobSpreader;
     private final VMTaskFitnessCalculator criticalServiceJobBinPacker;
     private final VMTaskFitnessCalculator defaultFitnessCalculator;
@@ -42,8 +43,11 @@ public class TitusFitnessCalculator implements VMTaskFitnessCalculator {
     public static final com.netflix.fenzo.functions.Func1<Double, Boolean> fitnessGoodEnoughFunction =
             f -> f > 0.9;
 
-    public TitusFitnessCalculator(SchedulerConfiguration configuration, AgentResourceCache agentResourceCache) {
+    public TitusFitnessCalculator(SchedulerConfiguration configuration,
+                                  AgentManagementFitnessCalculator agentManagementFitnessCalculator,
+                                  AgentResourceCache agentResourceCache) {
         this.configuration = configuration;
+        this.agentManagementFitnessCalculator = agentManagementFitnessCalculator;
         this.criticalServiceJobSpreader = criticalServiceJobSpreader();
         this.criticalServiceJobBinPacker = criticalServiceJobBinPacker(agentResourceCache);
         this.defaultFitnessCalculator = defaultFitnessCalculator(agentResourceCache);
@@ -68,28 +72,31 @@ public class TitusFitnessCalculator implements VMTaskFitnessCalculator {
 
     private VMTaskFitnessCalculator criticalServiceJobSpreader() {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
-        calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.1));
-        calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.1));
-        calculators.add(new WeightedFitnessCalculator(new ImageSpreadingFitnessCalculator(), 0.2));
-        calculators.add(new WeightedFitnessCalculator(new SecurityGroupSpreadingFitnessCalculator(), 0.6));
+        calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.05));
+        calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.05));
+        calculators.add(new WeightedFitnessCalculator(new ImageSpreadingFitnessCalculator(), 0.1));
+        calculators.add(new WeightedFitnessCalculator(new SecurityGroupSpreadingFitnessCalculator(), 0.3));
+        calculators.add(new WeightedFitnessCalculator(agentManagementFitnessCalculator, 0.5));
         return new WeightedAverageFitnessCalculator(calculators);
     }
 
     private VMTaskFitnessCalculator criticalServiceJobBinPacker(AgentResourceCache agentResourceCache) {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
-        calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.1));
-        calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.2));
-        calculators.add(new WeightedFitnessCalculator(new CachedImageFitnessCalculator(agentResourceCache), 0.3));
-        calculators.add(new WeightedFitnessCalculator(new CachedSecurityGroupFitnessCalculator(agentResourceCache), 0.4));
+        calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.05));
+        calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.1));
+        calculators.add(new WeightedFitnessCalculator(new CachedImageFitnessCalculator(agentResourceCache), 0.15));
+        calculators.add(new WeightedFitnessCalculator(new CachedSecurityGroupFitnessCalculator(agentResourceCache), 0.2));
+        calculators.add(new WeightedFitnessCalculator(agentManagementFitnessCalculator, 0.5));
         return new WeightedAverageFitnessCalculator(calculators);
     }
 
     private VMTaskFitnessCalculator defaultFitnessCalculator(AgentResourceCache agentResourceCache) {
         List<WeightedFitnessCalculator> calculators = new ArrayList<>();
-        calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.2));
-        calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.2));
-        calculators.add(new WeightedFitnessCalculator(new CachedImageFitnessCalculator(agentResourceCache), 0.3));
-        calculators.add(new WeightedFitnessCalculator(new CachedSecurityGroupFitnessCalculator(agentResourceCache), 0.3));
+        calculators.add(new WeightedFitnessCalculator(BinPackingFitnessCalculators.cpuMemBinPacker, 0.1));
+        calculators.add(new WeightedFitnessCalculator(new JobTypeFitnessCalculator(), 0.1));
+        calculators.add(new WeightedFitnessCalculator(new CachedImageFitnessCalculator(agentResourceCache), 0.15));
+        calculators.add(new WeightedFitnessCalculator(new CachedSecurityGroupFitnessCalculator(agentResourceCache), 0.15));
+        calculators.add(new WeightedFitnessCalculator(agentManagementFitnessCalculator, 0.5));
         return new WeightedAverageFitnessCalculator(calculators);
     }
 }

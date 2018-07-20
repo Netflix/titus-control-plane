@@ -129,4 +129,10 @@ public interface SchedulerConfiguration {
      */
     @DefaultValue("300000")
     long getPreferredNetworkInterfaceDelayMs();
+
+    /**
+     * Amount of time to keep information about task execution failures on an agent.
+     */
+    @DefaultValue("300000")
+    long getContainerFailureTrackingRetentionMs();
 }
