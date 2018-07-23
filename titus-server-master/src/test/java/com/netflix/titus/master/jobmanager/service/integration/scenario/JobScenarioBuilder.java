@@ -101,11 +101,6 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         vmService.events().filter(pair -> jobOperations.findTaskById(pair.getRight()).isPresent()).subscribe(mesosEventsSubscriber);
     }
 
-    public JobScenarioBuilder<E> trigger() {
-        testScheduler.triggerActions();
-        return this;
-    }
-
     public JobScenarioBuilder<E> advance() {
         testScheduler.advanceTimeBy(RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
@@ -311,6 +306,12 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return taskUpdateEvent;
     }
 
+    public JobScenarioBuilder<E> expectTaskEvent(int taskIdx, int resubmit, Consumer<TaskUpdateEvent> validator) {
+        TaskUpdateEvent event = expectTaskEvent(taskIdx, resubmit);
+        validator.accept(event);
+        return this;
+    }
+
     public JobScenarioBuilder<E> expectTaskStateChangeEvent(int taskIdx, int resubmit, TaskState taskState) {
         return expectTaskStateChangeEvent(taskIdx, resubmit, taskState, TaskStatus.REASON_NORMAL);
     }
@@ -475,6 +476,16 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> triggerMesosFinishedEvent(int taskIdx, int resubmit, int errorCode, String reasonCode) {
         return triggerMesosEvent(taskIdx, resubmit, TaskState.Finished, reasonCode, errorCode);
+    }
+
+    public JobScenarioBuilder<E> breakStore() {
+        jobStore.setBroken(true);
+        return this;
+    }
+
+    public JobScenarioBuilder<E> enableStore() {
+        jobStore.setBroken(false);
+        return this;
     }
 
     private Task expectTaskEvent(int taskIdx, int resubmit, StoreEvent eventType) {
