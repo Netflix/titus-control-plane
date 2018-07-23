@@ -11,11 +11,15 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 
 /**
- * Simple, concurrent time series data collector.
+ * Simple, concurrent time series data collector. Each data point consists of a value and a timestamp. The amount
+ * of data to keep is controlled by a retention time. Data older than the retention time period are removed from
+ * the data set. The class provides an aggregate of all currently held values. The raw values can be adjusted
+ * by the user provided adjuster function. For example, the values can be weighted based on how old they are.
  */
 public class TimeSeriesData {
 
-    private static final Pair<Double, Long> CLEANUP_MARKER = Pair.of(0.0, 0L);
+    private static final Pair<Double, Long> CLEANUP_MARKER = Pair.of(-1.0, 0L);
+    private static final Pair<Double, Long> NOTHING = Pair.of(0.0, 0L);
 
     private final long retentionMs;
     private final long stepMs;
@@ -27,9 +31,15 @@ public class TimeSeriesData {
     private final ConcurrentLinkedDeque<Pair<Double, Long>> data = new ConcurrentLinkedDeque<>();
     private final AtomicReference<Pair<Double, Long>> lastAggregate;
 
-    private final Pair<Double, Long> nothing;
     private final AtomicInteger wipMarker = new AtomicInteger();
 
+    /**
+     * Constructor.
+     *
+     * @param retentionMs data retention time (data older than that are removed from the data set)
+     * @param stepMs      computation accuracy with respect to time (important when the adjuster function uses elapsed time in the formula)
+     * @param adjuster    a value adjuster function, taking as an argument the value itself, and the amount of time from its creation
+     */
     public TimeSeriesData(long retentionMs,
                           long stepMs,
                           BiFunction<Double, Long, Double> adjuster,
@@ -39,8 +49,7 @@ public class TimeSeriesData {
         this.adjuster = adjuster;
         this.clock = clock;
 
-        this.nothing = Pair.of(0.0, 0L);
-        this.lastAggregate = new AtomicReference<>(nothing);
+        this.lastAggregate = new AtomicReference<>(NOTHING);
     }
 
     public void add(double value, long timestamp) {
@@ -65,47 +74,52 @@ public class TimeSeriesData {
 
         long now = clock.wallTime();
         if (now - lastAggregate.get().getRight() >= stepMs) {
-            process(now);
+            if (!process(now)) {
+                return computeAggregatedValue(now).getLeft();
+            }
         }
         return lastAggregate.get().getLeft();
     }
 
-    private void process(long now) {
-        if (wipMarker.getAndIncrement() == 0) {
-            do {
-                boolean changed = false;
+    private boolean process(long now) {
+        if (wipMarker.getAndIncrement() != 0) {
+            return false;
+        }
+        do {
+            boolean changed = false;
 
-                // Remove expired entries
-                long expiredTimestamp = now - retentionMs;
-                for (Pair<Double, Long> next; (next = data.peek()) != null && next.getRight() <= expiredTimestamp; ) {
-                    data.poll();
+            // Remove expired entries
+            long expiredTimestamp = now - retentionMs;
+            for (Pair<Double, Long> next; (next = data.peek()) != null && next.getRight() <= expiredTimestamp; ) {
+                data.poll();
+                changed = true;
+            }
+
+            // Add new entries
+            Pair<Double, Long> offer;
+            while ((offer = offers.poll()) != null) {
+                long latest = data.isEmpty() ? 0 : data.getLast().getRight();
+                if (offer == CLEANUP_MARKER) {
+                    data.clear();
+                    changed = true;
+                } else if (offer.getRight() >= latest) {
+                    data.add(offer);
                     changed = true;
                 }
+            }
 
-                // Add new entries
-                Pair<Double, Long> offer;
-                while ((offer = offers.poll()) != null) {
-                    long latest = data.isEmpty() ? 0 : data.getLast().getRight();
-                    if (offer == CLEANUP_MARKER) {
-                        data.clear();
-                        changed = true;
-                    } else if (offer.getRight() >= latest) {
-                        data.add(offer);
-                        changed = true;
-                    }
-                }
+            // Recompute the aggregated value if needed
+            if (changed || now - lastAggregate.get().getRight() >= stepMs) {
+                lastAggregate.set(computeAggregatedValue(now));
+            }
+        } while (wipMarker.decrementAndGet() != 0);
 
-                // Recompute the aggregated value if needed
-                if (changed || now - lastAggregate.get().getRight() >= stepMs) {
-                    lastAggregate.set(computeAggregatedValue(now));
-                }
-            } while (wipMarker.decrementAndGet() != 0);
-        }
+        return true;
     }
 
     private Pair<Double, Long> computeAggregatedValue(long now) {
         if (data.isEmpty()) {
-            return nothing;
+            return NOTHING;
         }
 
         double sum = 0;

@@ -32,6 +32,38 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
 
     private static final Logger logger = LoggerFactory.getLogger(ContainerFailureBasedAgentQualityTracker.class);
 
+    private static final int UNDEFINED = -1;
+
+    /*
+     * Error weights. Each weight is a value between 0.1 and 0.5, or 0 if an error should be ignored.
+     * This constraint is due to the accumulative effect. We do not want to overreact on a single failure.
+     */
+
+    /**
+     * A container loss before it is started may indicate potential agent issue. We give it a middle score value.
+     */
+    private static final double LOST_BEFORE_STARTED_WEIGHT = 0.3;
+
+    /**
+     * A container loss after it was started is less likely to be an agent issue. We give it the lowest score.
+     */
+    private static final double LOST_AFTER_STARTED_WEIGHT = 0.1;
+
+    /**
+     * A container starting error due to an agent local problems. We give it a highest score.
+     */
+    private static final double LOCAL_STARTING_ERROR_WEIGHT = 0.5;
+
+    /**
+     * Not agent related issue us not counted as an error.
+     */
+    private static final double SYSTEM_STARTING_ERROR_WEIGHT = 0;
+
+    /**
+     * A container crash may indicate the underlying agent degradation. We give it a middle score value.
+     */
+    private static final double CONTAINER_CRASH_WEIGHT = 0.3;
+
     private final ConcurrentMap<String, PlacementHistory> agentsPlacementHistory = new ConcurrentHashMap<>();
 
     private final SchedulerConfiguration configuration;
@@ -80,7 +112,7 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
     public double qualityOf(String agentHostName) {
         PlacementHistory history = agentsPlacementHistory.get(agentHostName);
         if (history == null) {
-            return -1;
+            return UNDEFINED;
         }
         return history.quality();
     }
@@ -155,7 +187,7 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
                 errorKind = ErrorKind.ContainerCrash;
                 break;
             case TaskStatus.REASON_TASK_LOST:
-                errorKind = isStartedTask(task) ? ErrorKind.LostAfterStarted : ErrorKind.LostBeforeStarted;
+                errorKind = JobFunctions.everStarted(task) ? ErrorKind.LostAfterStarted : ErrorKind.LostBeforeStarted;
                 break;
             case TaskStatus.REASON_STUCK_IN_STATE:
             case TaskStatus.REASON_LOCAL_SYSTEM_ERROR:
@@ -174,13 +206,13 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
     }
 
     private PlacementHistory tryGetOrCreatePlacementHistory(Task task) {
-        String hostId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-        if (hostId == null) {
+        String hostname = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+        if (hostname == null) {
             invariants.inconsistent("Task without host name assigned: taskId=%s", task.getId());
             return null;
         }
 
-        PlacementHistory placement = agentsPlacementHistory.get(hostId);
+        PlacementHistory placement = agentsPlacementHistory.get(hostname);
         if (placement == null) {
             String instanceId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
             if (instanceId == null) {
@@ -193,15 +225,30 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
         return placement;
     }
 
-    private boolean isStartedTask(Task task) {
-        return JobFunctions.findTaskStatus(task, TaskState.Started).isPresent();
-    }
-
     private enum ErrorKind {
-        LostAfterStarted,
+        /**
+         * A task was lost before it was started (states {@link TaskState#Accepted}, {@link TaskState#Launched}, {@link TaskState#StartInitiated}).
+         */
         LostBeforeStarted,
+
+        /**
+         * A task was lost after it was start (states {@link TaskState#Started}, {@link TaskState#KillInitiated}).
+         */
+        LostAfterStarted,
+
+        /**
+         * A task failed to start on an agent, due to the agent's local issues.
+         */
         LocalStartingError,
+
+        /**
+         * A task failed to start on an agent, due to external to the agent system issues (AWS API rate limiting, network partitioning, etc).
+         */
         SystemStartingError,
+
+        /**
+         * A running container crashed due to an agent internal issues.
+         */
         ContainerCrash
     }
 
@@ -238,20 +285,20 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
         private void onTaskFailure(ErrorKind errorKind) {
             double weight;
             switch (errorKind) {
-                case LostAfterStarted:
-                    weight = 0.1;
-                    break;
                 case LostBeforeStarted:
-                    weight = 0.3;
+                    weight = LOST_BEFORE_STARTED_WEIGHT;
+                    break;
+                case LostAfterStarted:
+                    weight = LOST_AFTER_STARTED_WEIGHT;
                     break;
                 case LocalStartingError:
-                    weight = 0.5;
+                    weight = LOCAL_STARTING_ERROR_WEIGHT;
                     break;
                 case SystemStartingError:
-                    weight = 0.2;
+                    weight = SYSTEM_STARTING_ERROR_WEIGHT;
                     break;
                 case ContainerCrash:
-                    weight = 0.3;
+                    weight = CONTAINER_CRASH_WEIGHT;
                     break;
                 default:
                     return;
