@@ -50,17 +50,17 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
     private static final double LOST_AFTER_STARTED_WEIGHT = 0.1;
 
     /**
-     * A container starting error due to an agent local problems. We give it a highest score.
+     * A container starting error due to agent local problems. We give it a highest score.
      */
     private static final double LOCAL_STARTING_ERROR_WEIGHT = 0.5;
 
     /**
-     * Not agent related issue us not counted as an error.
+     * Issue not related to agent; not counted as error.
      */
     private static final double SYSTEM_STARTING_ERROR_WEIGHT = 0;
 
     /**
-     * A container crash may indicate the underlying agent degradation. We give it a middle score value.
+     * A container crash may indicate underlying agent degradation. We give it a middle score value.
      */
     private static final double CONTAINER_CRASH_WEIGHT = 0.3;
 
