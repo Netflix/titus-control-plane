@@ -72,6 +72,7 @@ public final class SchedulerModule extends AbstractModule {
         bind(SystemSoftConstraint.class).to(DefaultSystemSoftConstraint.class);
         bind(SystemHardConstraint.class).to(DefaultSystemHardConstraint.class);
 
+        bind(AgentQualityTracker.class).to(ContainerFailureBasedAgentQualityTracker.class);
         bind(V2_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE).to(V2ConstraintEvaluatorTransformer.class);
         bind(V3_CONSTRAINT_EVALUATOR_TRANSFORMER_TYPE).to(V3ConstraintEvaluatorTransformer.class);
 

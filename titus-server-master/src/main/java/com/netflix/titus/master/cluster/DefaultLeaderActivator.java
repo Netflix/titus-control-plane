@@ -33,6 +33,8 @@ import com.netflix.titus.common.util.guice.ContainerEventBus.ContainerEventListe
 import com.netflix.titus.common.util.guice.ContainerEventBus.ContainerStartedEvent;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.MetricConstants;
+import com.netflix.titus.master.scheduler.AgentQualityTracker;
+import com.netflix.titus.master.scheduler.ContainerFailureBasedAgentQualityTracker;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -197,6 +199,9 @@ public class DefaultLeaderActivator implements LeaderActivator, ContainerEventLi
         try {
             try {
                 activationLifecycle.activate();
+
+                // FIXME Circular dependencies forces are to postpone the activation process.
+                ((ContainerFailureBasedAgentQualityTracker)injector.getInstance(AgentQualityTracker.class)).start();
                 injector.getInstance(SchedulingService.class).startScheduling();
             } catch (Exception e) {
                 stopBeingLeader();

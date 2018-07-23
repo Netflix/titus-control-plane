@@ -30,7 +30,7 @@ class JobPlayer {
 
     private static final long EXPIRY_TIME_MS = 600_000;
 
-    private final List<Pair<ContainerSelector, ContainerRules>> rules;
+    private final List<Pair<RuleSelector, ContainerRules>> rules;
     private final Scheduler scheduler;
 
     private final ConcurrentMap<String, ContainerPlayer> players = new ConcurrentHashMap<>();
@@ -39,7 +39,7 @@ class JobPlayer {
 
     private long lastUpdateTimestamp;
 
-    JobPlayer(List<Pair<ContainerSelector, ContainerRules>> rules, Scheduler scheduler) {
+    JobPlayer(List<Pair<RuleSelector, ContainerRules>> rules, Scheduler scheduler) {
         this.rules = rules;
         this.scheduler = scheduler;
         this.lastUpdateTimestamp = scheduler.now();
@@ -61,15 +61,17 @@ class JobPlayer {
     void play(TaskExecutorHolder taskHolder) {
         int index = findIndexOf(taskHolder);
         int resubmit = findResubmitOf(taskHolder);
-        for (Pair<ContainerSelector, ContainerRules> rule : rules) {
-            if (matches(rule.getLeft(), index, resubmit)) {
+        for (Pair<RuleSelector, ContainerRules> rule : rules) {
+            if (matches(rule.getLeft(), index, resubmit, taskHolder.getAgent().getId())) {
                 players.put(taskHolder.getTaskId(), new ContainerPlayer(taskHolder, rule.getRight(), scheduler));
             }
         }
     }
 
-    private boolean matches(ContainerSelector selector, int taskIndex, int taskResubmit) {
-        return selector.getSlots().matches(taskIndex) && selector.getResubmits().matches(taskResubmit);
+    private boolean matches(RuleSelector selector, int taskIndex, int taskResubmit, String agentId) {
+        return selector.getSlots().matches(taskIndex)
+                && selector.getResubmits().matches(taskResubmit)
+                && (selector.getInstanceIds().isEmpty() || selector.getInstanceIds().contains(agentId));
     }
 
     private int findIndexOf(TaskExecutorHolder taskHolder) {

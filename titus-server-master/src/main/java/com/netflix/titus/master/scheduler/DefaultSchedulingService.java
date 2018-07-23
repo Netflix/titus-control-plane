@@ -98,6 +98,7 @@ import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransfor
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.scheduler.constraint.TaskCache;
+import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculator;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
@@ -215,6 +216,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
                                     Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
+                                    AgentManagementFitnessCalculator agentManagementFitnessCalculator,
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     RxEventBus rxEventBus,
@@ -225,7 +227,7 @@ public class DefaultSchedulingService implements SchedulingService {
                 systemSoftConstraint, systemHardConstraint, taskCache, v2ConstraintEvaluatorTransformer,
                 Schedulers.computation(),
                 tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
-                preferentialNamedConsumableResourceEvaluator,
+                preferentialNamedConsumableResourceEvaluator, agentManagementFitnessCalculator,
                 taskMigrator, titusRuntime, rxEventBus, agentResourceCache, config
         );
     }
@@ -249,6 +251,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
                                     Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
+                                    AgentManagementFitnessCalculator agentManagementFitnessCalculator,
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     RxEventBus rxEventBus,
@@ -287,7 +290,7 @@ public class DefaultSchedulingService implements SchedulingService {
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
                 .withLeaseRejectAction(virtualMachineService::rejectLease)
                 .withLeaseOfferExpirySecs(masterConfiguration.getMesosLeaseOfferExpirySecs())
-                .withFitnessCalculator(new TitusFitnessCalculator(schedulerConfiguration, agentResourceCache))
+                .withFitnessCalculator(new TitusFitnessCalculator(schedulerConfiguration, agentManagementFitnessCalculator, agentResourceCache))
                 .withFitnessGoodEnoughFunction(TitusFitnessCalculator.fitnessGoodEnoughFunction)
                 .withAutoScaleByAttributeName(masterConfiguration.getAutoscaleByAttributeName())
                 .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
@@ -688,7 +691,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     @Override
     public void initRunningTask(QueuableTask task, String hostname) {
-        logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}",task.getId(), task.getQAttributes(), hostname);
+        logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}", task.getId(), task.getQAttributes(), hostname);
         schedulingService.initializeRunningTask(task, hostname);
         agentResourceCacheUpdater.createOrUpdateAgentResourceCacheForTask(task, hostname);
     }
