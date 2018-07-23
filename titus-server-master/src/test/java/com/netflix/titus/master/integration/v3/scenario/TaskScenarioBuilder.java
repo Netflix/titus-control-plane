@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -32,7 +31,6 @@ import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
@@ -47,7 +45,6 @@ import rx.Observable;
 import rx.Subscription;
 
 import static com.jayway.awaitility.Awaitility.await;
-import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_V2_TASK_ID;
 import static com.netflix.titus.common.util.ExceptionExt.rethrow;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.TIMEOUT_MS;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.discoverActiveTest;
@@ -83,10 +80,9 @@ public class TaskScenarioBuilder {
         this.jobScenarioBuilder = jobScenarioBuilder;
         this.eventStreamSubscription = eventStream.subscribe(eventStreamSubscriber);
         this.diagnosticReporter = diagnosticReporter;
-        eventStream.take(1).flatMap(task -> {
-            String effectiveTaskId = task.getTaskContext().getOrDefault(TASK_ATTRIBUTES_V2_TASK_ID, task.getId());
-            return titusOperations.awaitTaskExecutorHolderOf(effectiveTaskId);
-        }).subscribe(holder -> {
+        eventStream.take(1).flatMap(task ->
+                titusOperations.awaitTaskExecutorHolderOf(task.getId())
+        ).subscribe(holder -> {
             taskExecutionHolder = holder;
             logger.info("TaskExecutorHolder set for task {}", holder.getTaskId());
         });

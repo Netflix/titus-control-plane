@@ -26,7 +26,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Triple;
 import com.netflix.titus.grpc.protogen.Job;
@@ -56,7 +55,8 @@ import org.junit.rules.RuleChain;
 import static com.netflix.titus.master.integration.v3.job.CellAssertions.assertCellInfo;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
-import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -69,8 +69,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     private static final String V3_ENGINE_APP = TitusStackResource.V3_ENGINE_APP_PREFIX + 1;
     private static final String V3_ENGINE_APP2 = TitusStackResource.V3_ENGINE_APP_PREFIX + 2;
-    private static final String V2_ENGINE_APP = "myV2App";
-    private static final String V2_ENGINE_APP2 = "myV2App2";
 
     private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(5));
 
@@ -83,7 +81,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
-
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicSetupActivation());
@@ -91,18 +88,8 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testFindJobAndTaskByJobIdsV2() throws Exception {
-        testFindJobAndTaskByJobIds(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testFindJobAndTaskByJobIdsV3() throws Exception {
-        testFindJobAndTaskByJobIds(false);
-    }
-
-    private void testFindJobAndTaskByJobIds(boolean v2Mode) throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(v2Mode).build();
-        jobsScenarioBuilder.schedule(jobDescriptor, 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
 
         String job0 = jobsScenarioBuilder.takeJob(0).getJobId();
         String job2 = jobsScenarioBuilder.takeJob(2).getJobId();
@@ -118,19 +105,8 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testFindJobAndTaskByTaskIdsV2() throws Exception {
-        testFindJobAndTaskByTaskIds(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testFindJobAndTaskByTaskIdsV3() throws Exception {
-        testFindJobAndTaskByTaskIds(false);
-    }
-
-    private void testFindJobAndTaskByTaskIds(boolean v2Mode) throws Exception {
-        String appName = v2Mode ? V2_ENGINE_APP : V3_ENGINE_APP;
-        JobDescriptor<BatchJobExt> jobDescriptor = batchJobDescriptors().getValue().toBuilder().withApplicationName(appName).build();
-        jobsScenarioBuilder.schedule(jobDescriptor, 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
 
         String task0 = jobsScenarioBuilder.takeJob(0).getTaskByIndex(0).getTask().getId();
         String task2 = jobsScenarioBuilder.takeJob(2).getTaskByIndex(0).getTask().getId();
@@ -146,18 +122,9 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 60_000)
-    public void testFindArchivedTasksByTaskIdsV2() throws Exception {
-        testFindArchivedTasksByTaskIds(true);
-    }
-
-    @Test(timeout = 60_000)
     public void testFindArchivedTasksByTaskIdsV3() throws Exception {
-        testFindArchivedTasksByTaskIds(false);
-    }
-
-    private void testFindArchivedTasksByTaskIds(boolean v2Mode) throws Exception {
         int numberOfTasks = 5;
-        JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(v2Mode).build()
+        JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor()
                 .but(jd -> jd.getExtensions().toBuilder().withSize(numberOfTasks).build());
 
         jobsScenarioBuilder.schedule(jobDescriptor, 1, jobScenarioBuilder -> jobScenarioBuilder
@@ -173,21 +140,9 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByJobTypeV2() throws Exception {
-        testSearchByJobType(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByJobTypeV3() throws Exception {
-        testSearchByJobType(false);
-    }
-
-    private void testSearchByJobType(boolean v2Mode) throws Exception {
-        String appName = v2Mode ? V2_ENGINE_APP : V3_ENGINE_APP;
-        JobDescriptor<BatchJobExt> batchDescriptor = batchJobDescriptors().getValue().toBuilder().withApplicationName(appName).build();
-        JobDescriptor<ServiceJobExt> serviceDescriptor = serviceJobDescriptors().getValue().toBuilder().withApplicationName(appName).build();
-        jobsScenarioBuilder.schedule(batchDescriptor, 1, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
-        jobsScenarioBuilder.schedule(serviceDescriptor, 1, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), 1, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
+        jobsScenarioBuilder.schedule(oneTaskServiceJobDescriptor(), 1, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
 
         String batchJobId = jobsScenarioBuilder.takeJob(0).getJobId();
         String batchTaskId = jobsScenarioBuilder.takeJob(0).getTaskByIndex(0).getTask().getId();
@@ -269,31 +224,16 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByTaskStateV2() throws Exception {
-        testSearchByTaskState(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByTaskStateV3() throws Exception {
-        testSearchByTaskState(false);
-    }
-
-    private void testSearchByTaskState(boolean v2Mode) throws Exception {
-        String appName = v2Mode ? V2_ENGINE_APP : V3_ENGINE_APP;
-        JobDescriptor<BatchJobExt> jobDescriptor = batchJobDescriptors().getValue().toBuilder().withApplicationName(appName).build();
-        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Launched)));
-        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.StartInitiated)));
-        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Started)));
-        if (!v2Mode) {
-            jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJobAndMoveTasksToKillInitiated(true)));
-        }
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Launched)));
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.StartInitiated)));
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Started)));
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJobAndMoveTasksToKillInitiated(true)));
 
         testSearchByTaskState("Launched", jobsScenarioBuilder.takeJobId(0), jobsScenarioBuilder.takeTaskId(0, 0));
         testSearchByTaskState("StartInitiated", jobsScenarioBuilder.takeJobId(1), jobsScenarioBuilder.takeTaskId(1, 0));
         testSearchByTaskState("Started", jobsScenarioBuilder.takeJobId(2), jobsScenarioBuilder.takeTaskId(2, 0));
-        if (!v2Mode) {
-            testSearchByTaskState("KillInitiated", jobsScenarioBuilder.takeJobId(3), jobsScenarioBuilder.takeTaskId(3, 0));
-        }
+        testSearchByTaskState("KillInitiated", jobsScenarioBuilder.takeJobId(3), jobsScenarioBuilder.takeTaskId(3, 0));
     }
 
     private void testSearchByTaskState(String taskState, String expectedJobId, String expectedTaskId) {
@@ -310,30 +250,14 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByOwnerV2() throws Exception {
-        testSearchByOwner(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByOwnerV3() throws Exception {
-        testSearchByOwner(false);
-    }
-
-    private void testSearchByOwner(boolean v2Mode) throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor1 = baseBatchJobDescriptor(v2Mode).withOwner(
+        JobDescriptor<BatchJobExt> jobDescriptor1 = oneTaskBatchJobDescriptor().toBuilder().withOwner(
                 JobModel.newOwner().withTeamEmail("user1@netflix.com").build()
         ).build();
-        JobDescriptor<BatchJobExt> jobDescriptor2 = baseBatchJobDescriptor(v2Mode).withOwner(
+        JobDescriptor<BatchJobExt> jobDescriptor2 = oneTaskBatchJobDescriptor().toBuilder().withOwner(
                 JobModel.newOwner().withTeamEmail("user2@netflix.com").build()
         ).build();
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "owner", "user1@netflix.com", "user2@netflix.com");
-    }
-
-    @Test(timeout = 30_000)
-    public void testSearchByAppNameV2() throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor1 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP).build();
-        JobDescriptor<BatchJobExt> jobDescriptor2 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP2).build();
-        testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "appName", V2_ENGINE_APP, V2_ENGINE_APP2);
     }
 
     @Test(timeout = 30_000)
@@ -344,13 +268,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByApplicationNameV2() throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor1 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP).build();
-        JobDescriptor<BatchJobExt> jobDescriptor2 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V2_ENGINE_APP2).build();
-        testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "applicationName", V2_ENGINE_APP, V2_ENGINE_APP2);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByApplicationNameV3() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor1 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP).build();
         JobDescriptor<BatchJobExt> jobDescriptor2 = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP2).build();
@@ -358,40 +275,22 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByCapacityGroupV2() throws Exception {
-        testSearchByCapacityGroup(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByCapacityGroupV3() throws Exception {
-        testSearchByCapacityGroup(false);
-    }
-
-    private void testSearchByCapacityGroup(boolean v2Mode) throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor1 = baseBatchJobDescriptor(v2Mode).withCapacityGroup("capacity1").build();
-        JobDescriptor<BatchJobExt> jobDescriptor2 = baseBatchJobDescriptor(v2Mode).withCapacityGroup("capacity2").build();
+        JobDescriptor<BatchJobExt> jobDescriptor1 = oneTaskBatchJobDescriptor().toBuilder().withCapacityGroup("capacity1").build();
+        JobDescriptor<BatchJobExt> jobDescriptor2 = oneTaskBatchJobDescriptor().toBuilder().withCapacityGroup("capacity2").build();
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2, "capacityGroup", "capacity1", "capacity2");
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByJobGroupInfoV2() throws Exception {
-        testSearchByJobGroupInfo(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByJobGroupInfoV3() throws Exception {
-        testSearchByJobGroupInfo(false);
-    }
-
-    private void testSearchByJobGroupInfo(boolean v2Mode) throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor1 = baseBatchJobDescriptor(v2Mode)
+        JobDescriptor<BatchJobExt> jobDescriptor1 = oneTaskBatchJobDescriptor().toBuilder()
                 .withJobGroupInfo(JobModel.newJobGroupInfo()
                         .withStack("stack1")
                         .withDetail("detail1")
                         .withSequence("001")
                         .build())
                 .build();
-        JobDescriptor<BatchJobExt> jobDescriptor2 = baseBatchJobDescriptor(v2Mode)
+        JobDescriptor<BatchJobExt> jobDescriptor2 = oneTaskBatchJobDescriptor().toBuilder()
                 .withJobGroupInfo(JobModel.newJobGroupInfo()
                         .withStack("stack2")
                         .withDetail("detail2")
@@ -408,21 +307,11 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByImageV2() throws Exception {
-        testSearchByImage(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByImageV3() throws Exception {
-        testSearchByImage(false);
-    }
-
-    private void testSearchByImage(boolean v2Mode) throws Exception {
-        JobDescriptor<BatchJobExt> batch = baseBatchJobDescriptor(v2Mode).build();
-        JobDescriptor<BatchJobExt> jobDescriptor1 = batch.but(j -> j.getContainer().toBuilder().withImage(
+        JobDescriptor<BatchJobExt> jobDescriptor1 = oneTaskBatchJobDescriptor().but(j -> j.getContainer().toBuilder().withImage(
                 JobModel.newImage().withName("image1").withTag("tag1").build()
         ));
-        JobDescriptor<BatchJobExt> jobDescriptor2 = batch.but(j -> j.getContainer().toBuilder().withImage(
+        JobDescriptor<BatchJobExt> jobDescriptor2 = oneTaskBatchJobDescriptor().but(j -> j.getContainer().toBuilder().withImage(
                 JobModel.newImage().withName("image2").withTag("tag2").build()
         ));
         testSearchByAttributeValue(jobDescriptor1, jobDescriptor2,
@@ -432,18 +321,9 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByJobDescriptorAttributesV2() throws Exception {
-        testSearchByJobDescriptorAttributes(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByJobDescriptorAttributesV3() throws Exception {
-        testSearchByJobDescriptorAttributes(false);
-    }
-
-    private void testSearchByJobDescriptorAttributes(boolean v2Mode) throws Exception {
         for (int i = 0; i < 3; i++) {
-            JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(v2Mode)
+            JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor().toBuilder()
                     .withAttributes(CollectionsExt.asMap(
                             String.format("job%d.key1", i), "value1",
                             String.format("job%d.key2", i), "value2"
@@ -511,22 +391,12 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testSearchByCellV2() throws Exception {
-        testSearchByCell(true);
-    }
-
-    @Test(timeout = 30_000)
     public void testSearchByCellV3() throws Exception {
-        testSearchByCell(false);
-    }
-
-    private void testSearchByCell(boolean v2Mode) throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(v2Mode).build();
         final int numberOfJobs = 3;
         String[] expectedJobIds = new String[numberOfJobs];
         String[] expectedTaskIds = new String[numberOfJobs];
         for (int i = 0; i < numberOfJobs; i++) {
-            jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
+            jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob()));
             expectedJobIds[i] = jobsScenarioBuilder.takeJob(i).getJobId();
             expectedTaskIds[i] = jobsScenarioBuilder.takeJob(i).getTaskByIndex(0).getTask().getId();
         }
@@ -656,9 +526,9 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testPagination() throws Exception {
-        // Create a mix of V2/V3 jobs.
-        jobsScenarioBuilder.schedule(baseBatchJobDescriptor(true).build(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Started)));
-        jobsScenarioBuilder.schedule(baseBatchJobDescriptor(false).build(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Started)));
+        // Create a mix of batch and service jobs.
+        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Started)));
+        jobsScenarioBuilder.schedule(oneTaskServiceJobDescriptor(), 3, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startJob(TaskStatus.TaskState.Started)));
 
         Page firstPageOf5 = Page.newBuilder().setPageNumber(0).setPageSize(5).build();
         Page secondPageOf5 = Page.newBuilder().setPageNumber(1).setPageSize(5).build();
@@ -701,7 +571,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testFieldsFiltering() throws Exception {
-        JobDescriptor<BatchJobExt> jobDescriptor = baseBatchJobDescriptor(false)
+        JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor().toBuilder()
                 .withAttributes(ImmutableMap.of("keyA", "valueA", "keyB", "valueB"))
                 .build();
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startTasks()));
@@ -730,11 +600,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(foundTasks.get(0).getStatus().getReasonMessage()).isNotEmpty();
         assertThat(foundTasks.get(0).getStatusHistoryList()).isNotEmpty();
         assertThat(foundTasks.get(0).getTaskContextMap()).isEmpty();
-    }
-
-    private JobDescriptor.Builder<BatchJobExt> baseBatchJobDescriptor(boolean v2Mode) {
-        String appName = v2Mode ? V2_ENGINE_APP : V3_ENGINE_APP;
-        return batchJobDescriptors().getValue().toBuilder().withApplicationName(appName);
     }
 
     private void assertContainsJobs(JobQueryResult queryResult, String... jobIds) {

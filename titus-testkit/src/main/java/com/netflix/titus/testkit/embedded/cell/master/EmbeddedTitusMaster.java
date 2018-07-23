@@ -17,7 +17,6 @@
 package com.netflix.titus.testkit.embedded.cell.master;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -168,7 +167,7 @@ public class EmbeddedTitusMaster {
         embeddedProperties.put("governator.jetty.embedded.port", apiPort);
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         embeddedProperties.put("titus.master.cellName", cellName);
-        embeddedProperties.put("titusMaster.v2Enabled", Boolean.toString(builder.v2Enabled));
+        embeddedProperties.put("titusMaster.v2Enabled", "false");
         config.setProperties(embeddedProperties);
 
         if (builder.remoteCloud == null) {
@@ -264,7 +263,7 @@ public class EmbeddedTitusMaster {
         if (enableREST) {
             // Since jetty API server is run on a separate thread, it may not be ready yet
             // We do not have better way, but call it until it replies.
-            getClient().findAllJobs().retryWhen(attempts -> {
+            getClient().findAllApplicationSLA().retryWhen(attempts -> {
                         return attempts.zipWith(Observable.range(1, 5), (n, i) -> i).flatMap(i -> {
                             return Observable.timer(i, TimeUnit.SECONDS);
                         });
@@ -394,11 +393,17 @@ public class EmbeddedTitusMaster {
     }
 
     public Observable<TaskExecutorHolder> awaitTaskExecutorHolderOf(String taskId) {
-        return observeLaunchedTasks().compose(ObservableExt.head(() -> simulatedCloud.getAgentInstanceGroups().stream()
-                .flatMap(c -> c.getAgents().stream())
-                .flatMap(a -> a.findTaskById(taskId).map(Collections::singletonList).orElse(Collections.emptyList()).stream())
-                .limit(1)
-                .collect(Collectors.toList())));
+        return observeLaunchedTasks()
+                .compose(ObservableExt.head(() ->
+                        simulatedCloud.getAgentInstanceGroups().stream()
+                                .flatMap(c -> c.getAgents().stream())
+                                .flatMap(a -> a.getAllTasks().stream())
+                                .filter(th -> th.getTaskId().equals(taskId))
+                                .limit(1)
+                                .collect(Collectors.toList())
+                ))
+                .filter(th -> th.getTaskId().equals(taskId))
+                .limit(1);
     }
 
     public String getCellName() {
@@ -455,17 +460,9 @@ public class EmbeddedTitusMaster {
         private SimulatedCloud simulatedCloud;
         private Pair<String, Integer> remoteCloud;
 
-        // Enable V2 engine by default
-        private boolean v2Enabled = true;
-
         public Builder() {
             props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
             props.put("titusMaster.job.configuration.defaultIamRole", "iam-12345");
-        }
-
-        public Builder withV2Engine(boolean v2Enabled) {
-            this.v2Enabled = v2Enabled;
-            return this;
         }
 
         public Builder withCellName(String cellName) {

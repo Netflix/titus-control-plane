@@ -212,8 +212,8 @@ public class TaskExecutorHolder {
                             true,
                             containerIp,
                             containerIp,
-                            eniID,
-                            "resourceID_simulated"
+                            "simulatedENI-" + eniID,
+                            "resource-eni-" + eniID
                     )
             );
             try {

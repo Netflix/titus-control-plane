@@ -72,18 +72,13 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicSetupActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
-        JobDescriptor<ServiceJobExt> v2App = JobDescriptorGenerator.oneTaskServiceJobDescriptor()
-                .but(jd -> jd.toBuilder().withApplicationName(TitusStackResource.V2_ENGINE_APP_PREFIX).build())
+        JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor()
                 .but(jd -> jd.getExtensions().toBuilder().withCapacity(
                         Capacity.newBuilder().withMin(0).withDesired(TASKS_PER_JOB).withMax(TASKS_PER_JOB).build()
                 ).build());
 
-        JobDescriptor<ServiceJobExt> v3App = v2App.but(jd ->
-                jd.toBuilder().withApplicationName(TitusStackResource.V3_ENGINE_APP_PREFIX).build()
-        );
-
-        jobsScenarioBuilder.schedule(v2App, JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
-        jobsScenarioBuilder.schedule(v3App, JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
+        jobsScenarioBuilder.schedule(jobDescriptor.toBuilder().withApplicationName("app1").build(), JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
+        jobsScenarioBuilder.schedule(jobDescriptor.toBuilder().withApplicationName("app2").build(), JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
 
         allJobsInOrder = client.findJobs(JobQuery.newBuilder().setPage(Page.newBuilder().setPageSize(Integer.MAX_VALUE / 2)).build()).getItemsList();
         assertThat(allJobsInOrder).hasSize(2 * JOBS_PER_ENGINE);

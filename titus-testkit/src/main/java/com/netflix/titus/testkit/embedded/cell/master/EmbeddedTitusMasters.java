@@ -17,7 +17,6 @@
 package com.netflix.titus.testkit.embedded.cell.master;
 
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
-import com.netflix.titus.testkit.junit.master.TitusStackResource;
 
 /**
  * A collection of preconfigured {@link EmbeddedTitusMaster} instances with different configuration tuning targets.
@@ -32,7 +31,7 @@ public final class EmbeddedTitusMasters {
                 .withSimulatedCloud(simulatedCloud)
                 .withProperty("titus.agent.cacheRefreshIntervalMs", "500")
                 .withProperty("titus.agent.fullCacheRefreshIntervalMs", "500")
-                .withProperty("titus.master.grpcServer.v3EnabledApps", String.format("(%s.*)", TitusStackResource.V3_ENGINE_APP_PREFIX))
+                .withProperty("titus.master.grpcServer.v3EnabledApps", ".*")
                 .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
                 .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
                 .withProperty("titus.master.grpcServer.shutdownTimeoutMs", "0")
