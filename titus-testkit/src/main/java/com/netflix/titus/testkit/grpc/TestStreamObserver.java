@@ -153,6 +153,15 @@ public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
         }
     }
 
+    public void awaitDone(long timeout, TimeUnit timeUnit) throws InterruptedException {
+        if(!terminatedLatch.await(timeout, timeUnit)) {
+            throw new IllegalStateException("GRPC request not completed in time");
+        }
+        if (hasError()) {
+            throw new IllegalStateException("GRPC stream terminated with an error", error);
+        }
+    }
+
     @Override
     public boolean isReady() {
         return true;

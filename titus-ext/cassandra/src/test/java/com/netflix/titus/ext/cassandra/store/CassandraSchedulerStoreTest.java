@@ -23,7 +23,7 @@ import com.netflix.titus.api.scheduler.model.SystemSelector;
 import com.netflix.titus.api.scheduler.store.SchedulerStore;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
 import com.netflix.titus.testkit.model.scheduler.SchedulerGenerator;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
@@ -35,7 +35,7 @@ import org.junit.experimental.categories.Category;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-@Category(IntegrationTest.class)
+@Category(IntegrationNotParallelizableTest.class)
 public class CassandraSchedulerStoreTest {
 
     private static final long STARTUP_TIMEOUT = 30_000L;

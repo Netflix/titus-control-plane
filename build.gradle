@@ -130,7 +130,7 @@ subprojects {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 
         useJUnit {
-            excludeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
+            excludeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest', 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest'
         }
 
         reports {
@@ -140,8 +140,21 @@ subprojects {
     }
 
     task integrationTest(type: Test) {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
         useJUnit {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
+        }
+
+        reports {
+            junitXml.enabled = true
+            html.enabled = true
+        }
+    }
+
+    task integrationNotParallelizableTest(type: Test) {
+        useJUnit {
+            includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest'
         }
 
         reports {
@@ -153,7 +166,9 @@ subprojects {
     task testAll {
         dependsOn 'test'
         dependsOn 'integrationTest'
+        dependsOn 'integrationNotParallelizableTest'
         tasks.findByName('integrationTest').mustRunAfter 'test'
+        tasks.findByName('integrationNotParallelizableTest').mustRunAfter 'integrationTest'
     }
 }
 

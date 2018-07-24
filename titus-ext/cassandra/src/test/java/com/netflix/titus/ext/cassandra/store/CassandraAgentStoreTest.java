@@ -23,7 +23,7 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
 import com.netflix.titus.testkit.model.agent.AgentGenerator;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
@@ -37,7 +37,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-@Category(IntegrationTest.class)
+@Category(IntegrationNotParallelizableTest.class)
 public class CassandraAgentStoreTest {
 
     private static final long STARTUP_TIMEOUT = 30_000L;

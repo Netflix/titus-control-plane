@@ -30,10 +30,10 @@ import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
-import com.netflix.titus.testkit.embedded.cell.EmbeddedCellTitusOperations;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
-import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedCellTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -135,7 +135,9 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
     public InstanceGroupsScenarioBuilder synchronizeWithCloud() {
         logger.info("Synchronizing all agent instance groups with the cloud...");
         Stopwatch timer = Stopwatch.createStarted();
-        Throwable error = Observable.just(true).concatWith(eventStreamObserver.toObservable().map(e -> true))
+        Throwable error = Observable.interval(10, TimeUnit.MILLISECONDS)
+                .map(tick -> true)
+                .mergeWith(eventStreamObserver.toObservable().map(e -> true))
                 .takeUntil(tick -> isSynchronizedWithCloud())
                 .toCompletable()
                 .timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS)
