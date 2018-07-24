@@ -168,6 +168,7 @@ subprojects {
         dependsOn 'integrationTest'
         dependsOn 'integrationNotParallelizableTest'
         tasks.findByName('integrationTest').mustRunAfter 'test'
+        tasks.findByName('integrationNotParallelizableTest').mustRunAfter 'integrationTest'
     }
 }
 
