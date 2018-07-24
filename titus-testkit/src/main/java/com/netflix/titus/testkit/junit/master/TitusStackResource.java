@@ -30,7 +30,6 @@ import org.junit.rules.ExternalResource;
 
 public class TitusStackResource extends ExternalResource {
 
-    public static String V2_ENGINE_APP_PREFIX = "v2App";
     public static String V3_ENGINE_APP_PREFIX = "v3App";
 
     private final List<EmbeddedTitusCell> embeddedTitusCells;

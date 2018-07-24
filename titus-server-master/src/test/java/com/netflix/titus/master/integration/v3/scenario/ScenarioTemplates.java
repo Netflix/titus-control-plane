@@ -93,15 +93,6 @@ public class ScenarioTemplates {
                 .expectStateUpdates(TaskState.StartInitiated, TaskState.Started);
     }
 
-    /**
-     * V2 engine emits fewer events when task is created/scheduled, so we have to handle this case separately.
-     */
-    public static Function<JobScenarioBuilder, JobScenarioBuilder> startV2Tasks() {
-        return jobScenarioBuilder -> jobScenarioBuilder
-                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.transitionTo(TaskState.StartInitiated, TaskState.Started))
-                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Started));
-    }
-
     public static Function<JobScenarioBuilder, JobScenarioBuilder> killJob() {
         return jobScenarioBuilder -> jobScenarioBuilder
                 .killJob()
@@ -111,28 +102,12 @@ public class ScenarioTemplates {
                 .expectJobEventStreamCompletes();
     }
 
-    public static Function<JobScenarioBuilder, JobScenarioBuilder> killV2Job() {
-        return jobScenarioBuilder -> jobScenarioBuilder
-                .killJob()
-                .expectJobUpdateEvent(job -> job.getStatus().getState() == JobState.Finished, "Expected state: " + JobState.Finished)
-                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.Finished))
-                .expectJobEventStreamCompletes();
-    }
-
     public static Function<JobScenarioBuilder, JobScenarioBuilder> startTasksInNewJob() {
         return jobScenarioBuilder -> jobScenarioBuilder
                 .template(jobAccepted())
                 .expectAllTasksCreated()
                 .allTasks(TaskScenarioBuilder::expectTaskOnAgent)
                 .template(startTasks());
-    }
-
-    public static Function<JobScenarioBuilder, JobScenarioBuilder> startV2TasksInNewJob() {
-        return jobScenarioBuilder -> jobScenarioBuilder
-                .template(jobAccepted())
-                .expectAllTasksCreated()
-                .allTasks(TaskScenarioBuilder::expectTaskOnAgent)
-                .template(startV2Tasks());
     }
 
     public static Function<TaskScenarioBuilder, TaskScenarioBuilder> moveToState(TaskState taskState) {
@@ -153,12 +128,6 @@ public class ScenarioTemplates {
                 .transitionUntil(lockedState)
                 .expectStateUpdateSkipOther(lockedState)
                 .expectStateUpdates(TaskState.KillInitiated, TaskState.Finished);
-    }
-
-    public static Function<TaskScenarioBuilder, TaskScenarioBuilder> terminateAndShrinkV2() {
-        return taskScenarioBuilder -> taskScenarioBuilder
-                .killTaskAndShrink()
-                .expectStateUpdateSkipOther(TaskState.Finished);
     }
 
     public static Function<TaskScenarioBuilder, TaskScenarioBuilder> terminateAndShrinkV3() {

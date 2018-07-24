@@ -16,15 +16,12 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.ScenarioUtil;
 import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -35,6 +32,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.twoPartitionsPerTierCell;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 @Category(IntegrationTest.class)
 public class TaskMigrationTest extends BaseIntegrationTest {
@@ -49,26 +47,17 @@ public class TaskMigrationTest extends BaseIntegrationTest {
     public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void setUp() {
         instanceGroupsScenarioBuilder.synchronizeWithCloud();
     }
 
     @Test(timeout = 30_000)
-    public void migrateV2ServiceJob() throws Exception {
-        testMigration(true);
-    }
-
-    @Test(timeout = 30_000)
     public void migrateV3ServiceJob() throws Exception {
-        testMigration(false);
-    }
-
-    private void testMigration(boolean v2Mode) throws Exception {
         instanceGroupsScenarioBuilder.template(InstanceGroupScenarioTemplates.activate("flex1")).template(InstanceGroupScenarioTemplates.evacuate("flex2"));
-        JobDescriptor<ServiceJobExt> jobDescriptor = ScenarioUtil.baseServiceJobDescriptor(v2Mode).build();
-        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+
+        jobsScenarioBuilder.schedule(oneTaskServiceJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder
                 // Run task on instance group 'flex1'
-                .template(ScenarioTemplates.startV2TasksInNewJob())
+                .template(ScenarioTemplates.startTasksInNewJob())
                 .assertEachTask(task -> task.getTaskContext().get("agent.itype").equals("m3.2xlarge"), "Task should be on instance group flex1")
                 // Migrate to instance group 'flex2'
                 .andThen(() -> instanceGroupsScenarioBuilder.template(InstanceGroupScenarioTemplates.evacuate("flex1")).template(InstanceGroupScenarioTemplates.activate("flex2")))

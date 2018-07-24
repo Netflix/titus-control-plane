@@ -109,7 +109,12 @@ public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSn
                         break;
                     case TASKUPDATE:
                         com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
-                        tasksByJobId.computeIfAbsent(task.getJobId(), j -> new ArrayList<>()).add(V3GrpcModelConverters.toCoreTask(task));
+                        Job<?> taskJob = jobsById.get(task.getJobId());
+                        if (taskJob != null) {
+                            tasksByJobId.computeIfAbsent(task.getJobId(), j -> new ArrayList<>()).add(V3GrpcModelConverters.toCoreTask(taskJob, task));
+                        } else {
+                            titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                        }
                         break;
                 }
             });
@@ -134,8 +139,14 @@ public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSn
                     newSnapshot = lastSnapshot.updateJob(job);
                     break;
                 case TASKUPDATE:
-                    Task task = V3GrpcModelConverters.toCoreTask(event.getTaskUpdate().getTask());
-                    newSnapshot = lastSnapshot.updateTask(task);
+                    com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
+                    Job<?> taskJob = lastSnapshot.getJobs().stream().filter(j -> j.getId().equals(task.getJobId())).findFirst().orElse(null);
+                    if (taskJob != null) {
+                        newSnapshot = lastSnapshot.updateTask(V3GrpcModelConverters.toCoreTask(taskJob, task));
+                    } else {
+                        titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                        newSnapshot = Optional.empty();
+                    }
                     break;
                 default:
                     newSnapshot = Optional.empty();

@@ -40,6 +40,7 @@ import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -54,6 +55,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryP
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.BatchJobSpec;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Constraints;
@@ -65,6 +67,7 @@ import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
@@ -264,7 +267,7 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
-    public static Task toCoreTask(com.netflix.titus.grpc.protogen.Task grpcTask) {
+    public static Task toCoreTask(Job<?> job, com.netflix.titus.grpc.protogen.Task grpcTask) {
         Map<String, String> taskContext = grpcTask.getTaskContextMap();
 
         String originalId = Preconditions.checkNotNull(
@@ -272,30 +275,51 @@ public final class V3GrpcModelConverters {
         );
         String resubmitOf = taskContext.get(TASK_ATTRIBUTES_TASK_RESUBMIT_OF);
         int taskResubmitNumber = Integer.parseInt(taskContext.get(TASK_ATTRIBUTES_RESUBMIT_NUMBER));
+        int systemResubmitNumber = Integer.parseInt(grpcTask.getTaskContextMap().getOrDefault(TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER, "0"));
 
         String taskIndexStr = taskContext.get(TASK_ATTRIBUTES_TASK_INDEX);
-        if (taskIndexStr != null) { // Batch job
-            return JobModel.newBatchJobTask()
-                    .withId(grpcTask.getId())
-                    .withJobId(grpcTask.getJobId())
-                    .withIndex(Integer.parseInt(taskIndexStr))
-                    .withStatus(toCoreTaskStatus(grpcTask.getStatus()))
-                    .withResubmitNumber(taskResubmitNumber)
-                    .withOriginalId(originalId)
-                    .withResubmitOf(resubmitOf)
-                    .withTaskContext(taskContext)
-                    .build();
-        } else { // Must be service job
-            return JobModel.newServiceJobTask()
-                    .withId(grpcTask.getId())
-                    .withJobId(grpcTask.getJobId())
-                    .withStatus(toCoreTaskStatus(grpcTask.getStatus()))
-                    .withResubmitNumber(taskResubmitNumber)
-                    .withOriginalId(originalId)
-                    .withResubmitOf(resubmitOf)
-                    .withTaskContext(taskContext)
-                    .build();
+
+        // Based on presence of the task index, we decide if it is batch or service task.
+        boolean isBatchTask = taskIndexStr != null;
+        Task.TaskBuilder<?, ?> builder = isBatchTask ? JobModel.newBatchJobTask() : JobModel.newServiceJobTask();
+        builder.withId(grpcTask.getId())
+                .withJobId(grpcTask.getJobId())
+                .withStatus(toCoreTaskStatus(grpcTask.getStatus()))
+                .withStatusHistory(grpcTask.getStatusHistoryList().stream().map(V3GrpcModelConverters::toCoreTaskStatus).collect(Collectors.toList()))
+                .withResubmitNumber(taskResubmitNumber)
+                .withOriginalId(originalId)
+                .withResubmitOf(resubmitOf)
+                .withTwoLevelResources(toCoreTwoLevelResources(job, grpcTask))
+                .withSystemResubmitNumber(systemResubmitNumber)
+                .withTaskContext(taskContext)
+        ;
+
+        if (isBatchTask) { // Batch job
+            ((BatchJobTask.Builder) builder).withIndex(Integer.parseInt(taskIndexStr));
         }
+
+        return builder.build();
+    }
+
+    /**
+     * We do not expose the {@link TwoLevelResource} data outside Titus, so we try to reconstruct this information
+     * from the GRPC model.
+     */
+    private static List<TwoLevelResource> toCoreTwoLevelResources(Job<?> job, com.netflix.titus.grpc.protogen.Task grpcTask) {
+        Map<String, String> context = grpcTask.getTaskContextMap();
+
+        String eniIndex = context.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX);
+        if (eniIndex == null) {
+            return Collections.emptyList();
+        }
+
+        TwoLevelResource resource = TwoLevelResource.newBuilder()
+                .withIndex(Integer.parseInt(eniIndex))
+                .withName("ENIs")
+                .withValue(StringExt.concatenate(job.getJobDescriptor().getContainer().getSecurityProfile().getSecurityGroups(), ":"))
+                .build();
+
+        return Collections.singletonList(resource);
     }
 
     public static TaskStatus toCoreTaskStatus(com.netflix.titus.grpc.protogen.TaskStatus grpcStatus) {
