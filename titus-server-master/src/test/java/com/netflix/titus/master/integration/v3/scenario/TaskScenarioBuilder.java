@@ -116,7 +116,7 @@ public class TaskScenarioBuilder {
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
         client.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).build(), responseObserver);
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
@@ -129,7 +129,7 @@ public class TaskScenarioBuilder {
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
         client.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build(), responseObserver);
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
@@ -187,6 +187,7 @@ public class TaskScenarioBuilder {
             await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> taskExecutionHolder != null);
         } catch (Exception e) {
             diagnosticReporter.reportWhenTaskNotScheduled(getTask().getId());
+            throw e;
         }
         return this;
     }

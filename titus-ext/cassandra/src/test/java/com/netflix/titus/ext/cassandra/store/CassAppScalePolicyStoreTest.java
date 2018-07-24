@@ -40,7 +40,7 @@ import com.netflix.titus.api.appscale.model.StepAdjustment;
 import com.netflix.titus.api.appscale.model.StepAdjustmentType;
 import com.netflix.titus.api.appscale.model.StepScalingPolicyConfiguration;
 import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
 import org.assertj.core.api.Assertions;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
@@ -51,7 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-@Category(IntegrationTest.class)
+@Category(IntegrationNotParallelizableTest.class)
 public class CassAppScalePolicyStoreTest {
     private static Logger log = LoggerFactory.getLogger(CassAppScalePolicyStoreTest.class);
 

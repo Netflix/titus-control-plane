@@ -220,7 +220,7 @@ public class JobScenarioBuilder {
                 JobCapacityUpdate.newBuilder().setJobId(jobId).setCapacity(toGrpcCapacity(capacity)).build(),
                 responseObserver
         );
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
@@ -237,7 +237,7 @@ public class JobScenarioBuilder {
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
         client.updateJobStatus(JobStatusUpdate.newBuilder().setId(jobId).setEnableStatus(enabled).build(), responseObserver);
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
@@ -254,7 +254,7 @@ public class JobScenarioBuilder {
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
         client.killJob(JobId.newBuilder().setId(jobId).build(), responseObserver);
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Job {} killed in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
