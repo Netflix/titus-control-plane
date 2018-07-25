@@ -16,7 +16,7 @@
 
 package com.netflix.titus.master.store;
 
-import com.netflix.titus.master.Status;
+import com.netflix.titus.master.mesos.model.Status;
 import rx.Observable;
 
 /**

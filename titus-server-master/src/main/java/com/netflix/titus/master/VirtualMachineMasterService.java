@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
-import com.netflix.titus.master.mesos.ContainerEvent;
+import com.netflix.titus.master.mesos.model.ContainerEvent;
 import org.apache.mesos.Protos;
 import rx.Observable;
 

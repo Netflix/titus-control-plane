@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.store.v2.InvalidJobException;
-import com.netflix.titus.master.Status;
+import com.netflix.titus.master.mesos.model.Status;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.store.InvalidJobStateChangeException;
 import com.netflix.titus.master.store.V2JobStore;

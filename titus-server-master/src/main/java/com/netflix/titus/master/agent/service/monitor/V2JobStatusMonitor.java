@@ -37,7 +37,7 @@ import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.Status;
+import com.netflix.titus.master.mesos.model.Status;
 import com.netflix.titus.master.job.worker.WorkerStateMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

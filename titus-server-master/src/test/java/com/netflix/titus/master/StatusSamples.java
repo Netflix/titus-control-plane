@@ -21,6 +21,7 @@ import java.util.List;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
+import com.netflix.titus.master.mesos.model.Status;
 import com.netflix.titus.testkit.model.agent.AgentGenerator;
 
 /**

@@ -17,6 +17,9 @@ import com.netflix.titus.master.scheduler.SchedulingResultEvent.FailedScheduling
 import com.netflix.titus.master.scheduler.SchedulingResultEvent.SuccessfulSchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
+import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
+import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,14 +30,36 @@ public class DiagnosticReporter {
 
     private static final Logger logger = LoggerFactory.getLogger(DiagnosticReporter.class);
 
+    private final SimulatedCloud simulatedCloud;
     private final AgentManagementService agentManagement;
     private final V3JobOperations jobOperations;
     private final SchedulingService schedulingService;
 
-    public DiagnosticReporter(EmbeddedTitusMaster titusMasterInjector) {
-        this.agentManagement = titusMasterInjector.getInstance(AgentManagementService.class);
-        this.jobOperations = titusMasterInjector.getInstance(V3JobOperations.class);
-        this.schedulingService = titusMasterInjector.getInstance(SchedulingService.class);
+    public DiagnosticReporter(EmbeddedTitusMaster titusMaster) {
+        this.simulatedCloud = titusMaster.getSimulatedCloud();
+        this.agentManagement = titusMaster.getInstance(AgentManagementService.class);
+        this.jobOperations = titusMaster.getInstance(V3JobOperations.class);
+        this.schedulingService = titusMaster.getInstance(SchedulingService.class);
+    }
+
+    public void reportAgentsInTheCloud() {
+        logger.info("Reporting all agent instances running in the cloud:");
+        for (SimulatedTitusAgentCluster instanceGroup : simulatedCloud.getAgentInstanceGroups()) {
+            logger.info("Simulated agent instance group: id={}", instanceGroup.getName());
+            for (SimulatedTitusAgent agent : instanceGroup.getAgents()) {
+                logger.info("    {}: hostname={}", agent.getId(), agent.getHostName());
+            }
+        }
+    }
+
+    public void reportAllAgentsWithAssignments() {
+        logger.info("Reporting all agent known to Titus:");
+        for (AgentInstanceGroup instanceGroup : agentManagement.getInstanceGroups()) {
+            logger.info("Agent instance group: id={}, tier={}, state={}", instanceGroup.getId(), instanceGroup.getTier(), instanceGroup.getLifecycleStatus());
+            for (AgentInstance instance : agentManagement.getAgentInstances(instanceGroup.getId())) {
+                logger.info("    {}: status={}, tasks={}", instance.getId(), instance.getLifecycleStatus(), getRunningTasksOn(instance));
+            }
+        }
     }
 
     public void reportWhenTaskNotScheduled(String taskId) {
@@ -53,15 +78,6 @@ public class DiagnosticReporter {
             }
         } else {
             logger.info("Task not found in the scheduler: {}", task.getId());
-        }
-    }
-
-    private void reportAllAgentsWithAssignments() {
-        for (AgentInstanceGroup instanceGroup : agentManagement.getInstanceGroups()) {
-            logger.info("Agent instance group: id={}, tier={}, state={}", instanceGroup.getId(), instanceGroup.getTier(), instanceGroup.getLifecycleStatus());
-            for (AgentInstance instance : agentManagement.getAgentInstances(instanceGroup.getId())) {
-                logger.info("    {}: status={}, tasks={}", instance.getId(), instance.getLifecycleStatus(), getRunningTasksOn(instance));
-            }
         }
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master;
+package com.netflix.titus.master.mesos.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
 import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.master.mesos.ContainerEvent;
 
 public class Status implements ContainerEvent {
 

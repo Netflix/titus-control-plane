@@ -23,7 +23,7 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.Status;
+import com.netflix.titus.master.mesos.model.Status;
 import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

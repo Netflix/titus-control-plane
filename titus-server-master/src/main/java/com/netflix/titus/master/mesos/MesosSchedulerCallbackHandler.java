@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.mesos;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,31 +33,31 @@ import java.util.stream.Collectors;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.util.JsonFormat;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.JobCompletedReason;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.WorkerNaming;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.Status;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.mesos.model.ContainerEvent;
+import com.netflix.titus.master.mesos.model.ContainerStatus;
+import com.netflix.titus.master.mesos.model.NetworkConfigurationUpdate;
+import com.netflix.titus.master.mesos.model.V3ContainerEvent;
+import com.netflix.titus.protogen.ContainerStatusUpdate;
+import com.netflix.titus.protogen.NetworkConfiguration;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.ExecutorID;
 import org.apache.mesos.Protos.FrameworkID;
@@ -91,7 +92,6 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private Observer<String> vmLeaseRescindedObserver;
     private Observer<ContainerEvent> vmTaskStatusObserver;
     private static final Logger logger = LoggerFactory.getLogger(MesosSchedulerCallbackHandler.class);
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private volatile ScheduledFuture reconcilerFuture = null;
     private final MasterConfiguration config;
@@ -136,7 +136,6 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             Action1<List<? extends VirtualMachineLease>> leaseHandler,
             Observer<String> vmLeaseRescindedObserver,
             Observer<ContainerEvent> vmTaskStatusObserver,
-            V2JobOperations v2JobOperations,
             V3JobOperations v3JobOperations,
             Optional<FitInjection> taskStatusUpdateFitInjection,
             MasterConfiguration config,
@@ -145,7 +144,6 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         this.leaseHandler = leaseHandler;
         this.vmLeaseRescindedObserver = vmLeaseRescindedObserver;
         this.vmTaskStatusObserver = vmTaskStatusObserver;
-        this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.taskStatusUpdateFitInjection = taskStatusUpdateFitInjection;
         this.config = config;
@@ -313,29 +311,6 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private void reconcileTasksKnownToUs(SchedulerDriver driver) {
         final List<TaskStatus> tasksToInitialize = new ArrayList<>();
 
-        List<V2WorkerMetadata> runningWorkers = new ArrayList<>();
-        v2JobOperations.getAllJobMgrs().forEach(m -> {
-                    List<V2WorkerMetadata> tasks = m.getWorkers().stream()
-                            .filter(t -> t.getState() == V2JobState.Started)
-                            .collect(Collectors.toList());
-                    runningWorkers.addAll(tasks);
-                }
-        );
-        for (V2WorkerMetadata mwmd : runningWorkers) {
-            tasksToInitialize.add(TaskStatus.newBuilder()
-                    .setTaskId(
-                            Protos.TaskID.newBuilder()
-                                    .setValue(
-                                            WorkerNaming.getWorkerName(
-                                                    mwmd.getJobId(),
-                                                    mwmd.getWorkerIndex(),
-                                                    mwmd.getWorkerNumber()))
-                                    .build())
-                    .setState(TaskState.TASK_RUNNING)
-                    .setSlaveId(SlaveID.newBuilder().setValue(mwmd.getSlaveID()).build())
-                    .build()
-            );
-        }
         for (Task task : v3JobOperations.getTasks()) {
             com.netflix.titus.api.jobmanager.model.job.TaskState taskState = task.getStatus().getState();
             TaskState mesosState;
@@ -421,11 +396,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
             logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, effectiveTaskStatus.getMessage());
 
-            if (JobFunctions.isV2Task(taskId)) {
-                v2StatusUpdate(effectiveTaskStatus);
-            } else {
-                v3StatusUpdate(effectiveTaskStatus);
-            }
+            v3StatusUpdate(effectiveTaskStatus);
         } catch (Exception e) {
             logger.error("Unexpected error when handling the status update: {}", taskStatus, e);
             throw e;
@@ -442,80 +413,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     private boolean isKnown(String taskId) {
-        // V3 engine
-        if (!JobFunctions.isV2Task(taskId)) {
-            return v3JobOperations.findTaskById(taskId).isPresent();
-        }
-
-        // V2 engine
-        for (V2JobMgrIntf jmgr : v2JobOperations.getAllJobMgrs()) {
-            V2JobMetadata jobMetadata = jmgr.getJobMetadata();
-            if (jobMetadata != null) {
-                try {
-                    for (V2WorkerMetadata worker : jmgr.getWorkers()) {
-                        if (taskId.equals(WorkerNaming.getTaskId(worker))) {
-                            return true;
-                        }
-                    }
-                } catch (Exception ignore) {
-                    logger.debug("Error during searching through V2 tasks of job: {}", jobMetadata.getJobId());
-                }
-            }
-        }
-        return false;
-    }
-
-    private void v2StatusUpdate(TaskStatus taskStatus) {
-        String taskId = taskStatus.getTaskId().getValue();
-        TaskState taskState = taskStatus.getState();
-
-        TaskState previous = lastStatusUpdate.getIfPresent(taskId);
-        TaskState effectiveState = getEffectiveState(taskId, taskState, previous);
-
-        V2JobState state;
-        JobCompletedReason reason = JobCompletedReason.Normal;
-        switch (effectiveState) {
-            case TASK_FAILED:
-                state = V2JobState.Failed;
-                reason = JobCompletedReason.Failed;
-                break;
-            case TASK_LOST:
-                state = V2JobState.Failed;
-                reason = JobCompletedReason.Lost;
-                break;
-            case TASK_KILLED:
-                state = V2JobState.Failed;
-                reason = JobCompletedReason.Killed;
-                break;
-            case TASK_FINISHED:
-                state = V2JobState.Completed;
-                break;
-            case TASK_RUNNING:
-                state = V2JobState.Started;
-                break;
-            case TASK_STAGING:
-                state = V2JobState.Launched;
-                break;
-            case TASK_STARTING:
-                state = V2JobState.StartInitiated;
-                break;
-            default:
-                logger.warn("Unexpected Mesos task state {}", effectiveState);
-                return;
-        }
-        String data = "";
-        if (taskStatus.getData() != null) {
-            data = new String(taskStatus.getData().toByteArray());
-            logMesosCallbackDebug("Mesos status object data: %s", data);
-        }
-        WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
-        Status status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
-                taskStatus.getMessage(), data, state);
-        status.setReason(reason);
-
-        logger.debug("Publishing task status: {}", status);
-
-        vmTaskStatusObserver.onNext(status);
+        return v3JobOperations.findTaskById(taskId).isPresent();
     }
 
     private void v3StatusUpdate(TaskStatus taskStatus) {
@@ -608,14 +506,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             }
         }
 
-        Optional<TitusExecutorDetails> details;
-        if (taskStatus.getData() != null) {
-            String data = new String(taskStatus.getData().toByteArray());
-            logMesosCallbackDebug("Mesos status object data: %s", data);
-            details = JobManagerUtil.parseDetails(data);
-        } else {
-            details = Optional.empty();
-        }
+        List<ContainerStatus> containerStatuses = parseData(taskStatus);
 
         V3ContainerEvent event = new V3ContainerEvent(
                 taskId,
@@ -623,11 +514,105 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 reasonCode,
                 taskStatus.getMessage(),
                 System.currentTimeMillis(),
-                details
+                containerStatuses
         );
 
         logger.debug("Publishing task status: {}", event);
         vmTaskStatusObserver.onNext(event);
+    }
+
+    private List<ContainerStatus> parseData(TaskStatus taskStatus) {
+        ByteString data = taskStatus.getData();
+        if (data == null || data.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String taskId = taskStatus.getTaskId().getValue();
+        String jsonString = new String(taskStatus.getData().toByteArray());
+        logMesosCallbackDebug("Mesos status object data: taskId=%s, data=%s", taskId, jsonString);
+
+        Either<List<ContainerStatus>, Throwable> containerStatuses = tryParseContainerStatuses(taskId, jsonString);
+        if (containerStatuses.hasValue()) {
+            return containerStatuses.getValue();
+        }
+
+        Either<List<ContainerStatus>, Throwable> legacy = tryParseLegacy(taskId, jsonString);
+        if (legacy.hasValue()) {
+            return legacy.getValue();
+        }
+
+        logger.error("Invalid TaskStatus data received from agent; ignoring it: taskId={}, legacyParserError={}, parserError={}",
+                taskId, legacy.getError(), containerStatuses.getError()
+        );
+        return Collections.emptyList();
+    }
+
+    private Either<List<ContainerStatus>, Throwable> tryParseContainerStatuses(String taskId, String jsonString) {
+        List<com.netflix.titus.protogen.ContainerStatus> updates;
+        try {
+            ContainerStatusUpdate.Builder builder = ContainerStatusUpdate.newBuilder();
+            JsonFormat.parser().merge(jsonString, builder);
+            updates = builder.build().getUpdatesList();
+        } catch (Exception e) {
+            return Either.ofError(e);
+        }
+
+        if (updates.isEmpty()) {
+            return Either.ofValue(Collections.emptyList());
+        }
+
+        NetworkConfigurationUpdate networkConfigurationUpdate = null;
+        for (com.netflix.titus.protogen.ContainerStatus update : updates) {
+            switch (update.getDataCase()) {
+                case NETWORKCONFIGURATION:
+                    NetworkConfiguration networkUpdate = update.getNetworkConfiguration();
+                    if (StringExt.isEmpty(networkUpdate.getIpAddress())) {
+                        logger.error("NetworkConfiguration does not contain the IP address; ignoring the network update part: taskId={}, data={}",
+                                taskId, jsonString
+                        );
+                    } else {
+                        networkConfigurationUpdate = NetworkConfigurationUpdate.newBuilder()
+                                .withIpAddress(networkUpdate.getIpAddress())
+                                .withEniId(StringExt.isEmpty(networkUpdate.getEniId()) ? "eni-undefined" : networkUpdate.getEniId())
+                                .build();
+                    }
+                    break;
+                default:
+                    logger.warn("Unrecognized update type: taskId={}, updateType={}, data={}", taskId, update.getDataCase(), jsonString);
+            }
+        }
+
+        return networkConfigurationUpdate == null
+                ? Either.ofValue(Collections.emptyList())
+                : Either.ofValue(Collections.singletonList(networkConfigurationUpdate));
+    }
+
+    private Either<List<ContainerStatus>, Throwable> tryParseLegacy(String taskId, String jsonString) {
+        return JobManagerUtil.parseDetails(jsonString)
+                .map(value -> {
+                    TitusExecutorDetails.NetworkConfiguration networkConfiguration = value.getNetworkConfiguration();
+                    if (networkConfiguration == null) {
+                        logger.error("NetworkConfiguration value missing; ignoring the data section: taskId={}, data={}",
+                                taskId, jsonString
+                        );
+                        return Either.<List<ContainerStatus>, Throwable>ofValue(Collections.emptyList());
+                    }
+
+                    if (StringExt.isEmpty(networkConfiguration.getIpAddress())) {
+                        logger.error("NetworkConfiguration does not contain the IP address; ignoring the data section: taskId={}, data={}",
+                                taskId, jsonString
+                        );
+                        return Either.<List<ContainerStatus>, Throwable>ofValue(Collections.emptyList());
+                    }
+
+                    return Either.<List<ContainerStatus>, Throwable>ofValue(Collections.singletonList(
+                            NetworkConfigurationUpdate.newBuilder()
+                                    .withIpAddress(networkConfiguration.getIpAddress())
+                                    .withEniId(StringExt.isEmpty(networkConfiguration.getEniID()) ? "eni-undefined" : networkConfiguration.getEniID())
+                                    .build()
+                    ));
+                })
+                .orElseGet(() -> Either.ofError(new IOException("Not TitusExecutorDetails JSON value: " + jsonString)));
     }
 
     private TaskState getEffectiveState(String taskId, TaskState taskState, TaskState previous) {

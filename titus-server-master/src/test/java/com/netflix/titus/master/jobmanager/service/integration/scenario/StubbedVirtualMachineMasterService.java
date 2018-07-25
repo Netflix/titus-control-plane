@@ -21,16 +21,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
-import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.ContainerEvent;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.model.ContainerEvent;
+import com.netflix.titus.master.mesos.model.NetworkConfigurationUpdate;
 import org.apache.mesos.Protos;
 import rx.Observable;
 import rx.subjects.PublishSubject;
@@ -43,20 +40,11 @@ class StubbedVirtualMachineMasterService implements VirtualMachineMasterService 
 
     private final PublishSubject<Pair<MesosEvent, String>> eventSubject = PublishSubject.create();
 
-    String toString(TitusExecutorDetails executorDetails) {
-        try {
-            return ObjectMappers.defaultMapper().writeValueAsString(executorDetails);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    TitusExecutorDetails buildExecutorDetails(String id) {
-        return new TitusExecutorDetails(
-                CollectionsExt.asMap("nfvpc", "1.2.3.4"),
-                new TitusExecutorDetails.NetworkConfiguration(
-                        true, "1.2.3.4", "1.1.1.1", "eni-12345", "eni-resource-1"
-                ));
+    NetworkConfigurationUpdate buildNetworkConfigurationUpdate(String id) {
+        return NetworkConfigurationUpdate.newBuilder()
+                .withIpAddress("1.2.3.4")
+                .withEniId("eni-12345")
+                .build();
     }
 
     VirtualMachineLease buildLease(String taskId) {

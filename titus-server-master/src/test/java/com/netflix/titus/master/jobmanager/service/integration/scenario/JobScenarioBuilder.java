@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +54,7 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.model.ContainerStatus;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.Subscriber;
 import rx.schedulers.TestScheduler;
@@ -519,9 +520,9 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         }
 
         AtomicBoolean done = new AtomicBoolean();
-        Optional<TitusExecutorDetails> data = taskState == TaskState.StartInitiated
-                ? Optional.of(vmService.buildExecutorDetails(task.getId()))
-                : Optional.empty();
+        List<ContainerStatus> data = taskState == TaskState.StartInitiated
+                ? Collections.singletonList(vmService.buildNetworkConfigurationUpdate(task.getId()))
+                : Collections.emptyList();
 
         TaskStatus taskStatus = JobModel.newTaskStatus()
                 .withState(taskState)

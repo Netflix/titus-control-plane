@@ -23,7 +23,7 @@ import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
-import com.netflix.titus.master.Status;
+import com.netflix.titus.master.mesos.model.Status;
 import com.netflix.titus.master.StatusSamples;
 import com.netflix.titus.master.job.worker.WorkerStateMonitor;
 import org.junit.After;

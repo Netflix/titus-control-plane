@@ -30,7 +30,7 @@ import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.api.store.v2.V2StageMetadata;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.master.JobSchedulingInfo;
-import com.netflix.titus.master.Status;
+import com.netflix.titus.master.mesos.model.Status;
 import com.netflix.titus.master.store.V2JobMetadataWritable;
 import com.netflix.titus.master.store.V2JobStore;
 import org.slf4j.Logger;

@@ -63,7 +63,7 @@ import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.JobSchedulingInfo;
-import com.netflix.titus.master.Status;
+import com.netflix.titus.master.mesos.model.Status;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.job.worker.WorkerNumberGenerator;

@@ -54,6 +54,7 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
 
     private EmbeddedTitusMaster titusMaster;
     private EmbeddedTitusOperations titusOperations;
+    private DiagnosticReporter diagnosticReporter;
 
     private final TestStreamObserver<AgentChangeEvent> eventStreamObserver = new TestStreamObserver<>();
 
@@ -83,14 +84,15 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
+    protected void before() {
         if (titusStackResource != null) {
             titusMaster = titusStackResource.getMaster();
             titusOperations = titusStackResource.getOperations();
-        }
-        if (titusMasterResource != null) {
+            diagnosticReporter = new DiagnosticReporter(titusStackResource.getMaster());
+        } else if (titusMasterResource != null) {
             titusMaster = titusMasterResource.getMaster();
             titusOperations = titusMasterResource.getOperations();
+            diagnosticReporter = new DiagnosticReporter(titusMasterResource.getMaster());
         }
         titusOperations.getSimulatedCloud().getAgentInstanceGroups().forEach(g ->
                 instanceGroupScenarioBuilders.put(
@@ -142,11 +144,14 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
                 .toCompletable()
                 .timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .get();
-        logger.info("All agent instance group synchronization with the cloud completed in {}ms", timer.elapsed(TimeUnit.MILLISECONDS));
 
         if (error != null) {
+            diagnosticReporter.reportAgentsInTheCloud();
+            diagnosticReporter.reportAllAgentsWithAssignments();
             throw new IllegalStateException(error);
         }
+
+        logger.info("All agent instance group synchronization with the cloud completed in {}ms", timer.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
