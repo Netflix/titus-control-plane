@@ -53,7 +53,10 @@ public class GrpcEvictionReplicatorEventStream implements ReplicatorEventStream<
     @Override
     public Observable<ReplicatorEvent<EvictionDataSnapshot>> connect() {
         return Observable.fromCallable(CacheUpdater::new)
-                .flatMap(cacheUpdater -> client.observeEvents(true).flatMap(cacheUpdater::onEvent))
+                .flatMap(cacheUpdater -> {
+                    logger.info("Connecting to the eviction event stream...");
+                    return client.observeEvents(true).flatMap(cacheUpdater::onEvent);
+                })
                 .compose(ObservableExt.reemiter(
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
@@ -66,7 +69,10 @@ public class GrpcEvictionReplicatorEventStream implements ReplicatorEventStream<
                     metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
                 })
                 .doOnUnsubscribe(metrics::disconnected)
-                .doOnError(metrics::disconnected)
+                .doOnError(error -> {
+                    logger.warn("Connection to the eviction event stream terminated with an error: {}", error.getMessage(), error);
+                    metrics.disconnected(error);
+                })
                 .doOnCompleted(metrics::disconnected);
     }
 

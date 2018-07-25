@@ -43,7 +43,10 @@ public class GrpcAgentReplicatorEventStream implements ReplicatorEventStream<Age
     @Override
     public Observable<ReplicatorEvent<AgentSnapshot>> connect() {
         return Observable.fromCallable(CacheUpdater::new)
-                .flatMap(cacheUpdater -> client.observeAgents().flatMap(cacheUpdater::onEvent))
+                .flatMap(cacheUpdater -> {
+                    logger.info("Connecting to the agent event stream...");
+                    return client.observeAgents().flatMap(cacheUpdater::onEvent);
+                })
                 .compose(ObservableExt.reemiter(
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
@@ -56,7 +59,10 @@ public class GrpcAgentReplicatorEventStream implements ReplicatorEventStream<Age
                     metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
                 })
                 .doOnUnsubscribe(metrics::disconnected)
-                .doOnError(metrics::disconnected)
+                .doOnError(error -> {
+                    logger.warn("Connection to the agent event stream terminated with an error: {}", error.getMessage(), error);
+                    metrics.disconnected(error);
+                })
                 .doOnCompleted(metrics::disconnected);
     }
 

@@ -47,7 +47,10 @@ public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSn
     @Override
     public Observable<ReplicatorEvent<JobSnapshot>> connect() {
         return Observable.fromCallable(CacheUpdater::new)
-                .flatMap(cacheUpdater -> client.observeJobs().flatMap(cacheUpdater::onEvent))
+                .flatMap(cacheUpdater -> {
+                    logger.info("Connecting to the job event stream...");
+                    return client.observeJobs().flatMap(cacheUpdater::onEvent);
+                })
                 .compose(ObservableExt.reemiter(
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
@@ -60,7 +63,10 @@ public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSn
                     metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
                 })
                 .doOnUnsubscribe(metrics::disconnected)
-                .doOnError(metrics::disconnected)
+                .doOnError(error -> {
+                    logger.warn("Connection to the job event stream terminated with an error: {}", error.getMessage(), error);
+                    metrics.disconnected(error);
+                })
                 .doOnCompleted(metrics::disconnected);
     }
 
