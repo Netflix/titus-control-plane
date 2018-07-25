@@ -5,65 +5,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.AgentSnapshot;
+import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 
-public class GrpcAgentReplicatorEventStream implements ReplicatorEventStream<AgentSnapshot> {
+public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStream<AgentSnapshot> {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcAgentReplicatorEventStream.class);
 
     private final AgentManagementClient client;
-    private final DataReplicatorMetrics metrics;
-    private final TitusRuntime titusRuntime;
-    private final Scheduler scheduler;
 
     public GrpcAgentReplicatorEventStream(AgentManagementClient client,
                                           DataReplicatorMetrics metrics,
                                           TitusRuntime titusRuntime,
                                           Scheduler scheduler) {
+        super(metrics, titusRuntime, scheduler);
         this.client = client;
-        this.metrics = metrics;
-        this.titusRuntime = titusRuntime;
-        this.scheduler = scheduler;
     }
 
     @Override
-    public Observable<ReplicatorEvent<AgentSnapshot>> connect() {
+    protected Observable<ReplicatorEvent<AgentSnapshot>> newConnection() {
         return Observable.fromCallable(CacheUpdater::new)
                 .flatMap(cacheUpdater -> {
                     logger.info("Connecting to the agent event stream...");
                     return client.observeAgents().flatMap(cacheUpdater::onEvent);
-                })
-                .compose(ObservableExt.reemiter(
-                        // If there are no events in the stream, we will periodically emit the last cache instance
-                        // with the updated cache update timestamp, so it does not look stale.
-                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getData(), titusRuntime.getClock().wallTime()),
-                        LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
-                        scheduler
-                ))
-                .doOnNext(event -> {
-                    metrics.connected();
-                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
-                })
-                .doOnUnsubscribe(metrics::disconnected)
-                .doOnError(error -> {
-                    logger.warn("Connection to the agent event stream terminated with an error: {}", error.getMessage(), error);
-                    metrics.disconnected(error);
-                })
-                .doOnCompleted(metrics::disconnected);
+                });
     }
 
     private class CacheUpdater {

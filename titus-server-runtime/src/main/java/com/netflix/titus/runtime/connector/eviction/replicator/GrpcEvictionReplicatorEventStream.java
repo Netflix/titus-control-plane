@@ -18,6 +18,7 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataSnapshot;
@@ -30,50 +31,27 @@ import rx.Scheduler;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-public class GrpcEvictionReplicatorEventStream implements ReplicatorEventStream<EvictionDataSnapshot> {
+public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventStream<EvictionDataSnapshot> {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcEvictionReplicatorEventStream.class);
 
     private final EvictionServiceClient client;
-    private final DataReplicatorMetrics metrics;
-    private final TitusRuntime titusRuntime;
-    private final Scheduler scheduler;
 
     public GrpcEvictionReplicatorEventStream(EvictionServiceClient client,
                                              DataReplicatorMetrics metrics,
                                              TitusRuntime titusRuntime,
                                              Scheduler scheduler) {
-
+        super(metrics, titusRuntime, scheduler);
         this.client = client;
-        this.metrics = metrics;
-        this.titusRuntime = titusRuntime;
-        this.scheduler = scheduler;
     }
 
     @Override
-    public Observable<ReplicatorEvent<EvictionDataSnapshot>> connect() {
+    protected Observable<ReplicatorEvent<EvictionDataSnapshot>> newConnection() {
         return Observable.fromCallable(CacheUpdater::new)
                 .flatMap(cacheUpdater -> {
                     logger.info("Connecting to the eviction event stream...");
                     return client.observeEvents(true).flatMap(cacheUpdater::onEvent);
-                })
-                .compose(ObservableExt.reemiter(
-                        // If there are no events in the stream, we will periodically emit the last cache instance
-                        // with the updated cache update timestamp, so it does not look stale.
-                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getData(), titusRuntime.getClock().wallTime()),
-                        LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
-                        scheduler
-                ))
-                .doOnNext(event -> {
-                    metrics.connected();
-                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
-                })
-                .doOnUnsubscribe(metrics::disconnected)
-                .doOnError(error -> {
-                    logger.warn("Connection to the eviction event stream terminated with an error: {}", error.getMessage(), error);
-                    metrics.disconnected(error);
-                })
-                .doOnCompleted(metrics::disconnected);
+                });
     }
 
     private class CacheUpdater {
