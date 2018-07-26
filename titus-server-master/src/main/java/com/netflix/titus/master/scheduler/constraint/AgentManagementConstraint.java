@@ -81,12 +81,12 @@ public class AgentManagementConstraint implements SystemConstraint {
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         Result instanceGroupEvaluationResult = evaluateInstanceGroup(taskRequest, targetVM);
-        if (instanceGroupEvaluationResult != null) {
+        if (instanceGroupEvaluationResult != TRUE_RESULT) {
             return instanceGroupEvaluationResult;
         }
 
         Result InstanceEvaluationResult = evaluateInstance(targetVM);
-        if (InstanceEvaluationResult != null) {
+        if (InstanceEvaluationResult != TRUE_RESULT) {
             return InstanceEvaluationResult;
         }
 
@@ -128,7 +128,7 @@ public class AgentManagementConstraint implements SystemConstraint {
             return INSTANCE_GROUP_CANNOT_RUN_NON_GPU_TASKS;
         }
 
-        return null;
+        return TRUE_RESULT;
     }
 
     private Result evaluateInstance(VirtualMachineCurrentState targetVM) {
@@ -157,7 +157,7 @@ public class AgentManagementConstraint implements SystemConstraint {
             return INSTANCE_UNHEALTHY;
         }
 
-        return null;
+        return TRUE_RESULT;
     }
 
     private Tier getTier(QueuableTask queuableTask) {

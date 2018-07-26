@@ -179,28 +179,28 @@ public class ClusterAgentRemover {
             }
 
             long maxTokensToTake = Math.min(TOKEN_BUCKET_CAPACITY, totalEligibleAgentsToRemove);
-            Optional<Pair<Long, ImmutableTokenBucket>> takeOpt = ClusterAgentRemover.this.lastTokenBucket.tryTake(1, maxTokensToTake);
+            Optional<Pair<Long, ImmutableTokenBucket>> takeOpt = this.lastTokenBucket.tryTake(1, maxTokensToTake);
             if (takeOpt.isPresent()) {
                 Pair<Long, ImmutableTokenBucket> takePair = takeOpt.get();
-                ClusterAgentRemover.this.lastTokenBucket = takePair.getRight();
-                int tokensAvailable = Math.toIntExact(takePair.getLeft());
-                int tokensUsed = 0;
+                this.lastTokenBucket = takePair.getRight();
+                long tokensAvailable = takePair.getLeft();
+                long tokensUsed = 0;
 
                 logger.debug("Attempting to terminate {} agent instances", tokensAvailable);
                 List<Observable<List<Either<Boolean, Throwable>>>> terminateAgentObservables = new ArrayList<>();
                 for (Map.Entry<AgentInstanceGroup, List<AgentInstance>> entry : eligibleAgentInstancesPerInstanceGroup.entrySet()) {
-                    int tokensRemaining = tokensAvailable - tokensUsed;
+                    long tokensRemaining = tokensAvailable - tokensUsed;
                     if (tokensRemaining <= 0) {
                         break;
                     }
-                    String instanceGroupId = entry.getKey().getId();
                     List<AgentInstance> agentInstances = entry.getValue();
-                    List<AgentInstance> agentInstancesToTerminate = agentInstances.size() > tokensAvailable ? agentInstances.subList(0, tokensRemaining) : agentInstances;
-                    List<String> agentInstanceIdsToTerminate = agentInstancesToTerminate.stream().map(AgentInstance::getId).collect(Collectors.toList());
-                    if (agentInstanceIdsToTerminate.isEmpty()) {
+                    if (agentInstances.isEmpty()) {
                         continue;
                     }
-                    logger.info("Terminating agent instances: {} for instance group: {}", agentInstanceIdsToTerminate, instanceGroupId);
+                    String instanceGroupId = entry.getKey().getId();
+                    List<AgentInstance> agentInstancesToTerminate = agentInstances.size() > tokensAvailable ? agentInstances.subList(0, (int) tokensRemaining) : agentInstances;
+                    List<String> agentInstanceIdsToTerminate = agentInstancesToTerminate.stream().map(AgentInstance::getId).collect(Collectors.toList());
+                    logger.info("Terminating in instance group: {} agent instances: {}", instanceGroupId, agentInstanceIdsToTerminate);
                     terminateAgentObservables.add(createTerminateAction(instanceGroupId, agentInstanceIdsToTerminate));
                     tokensUsed += agentInstanceIdsToTerminate.size();
                 }
@@ -225,7 +225,9 @@ public class ClusterAgentRemover {
         return agentManagementService.terminateAgents(instanceGroupId, terminateIds, true)
                 .doOnNext(result -> {
                     if (result.size() != terminateIds.size()) {
-                        logger.warn("Result collection size does not match size of the terminate id collection: size({}) != size({})", result, terminateIds);
+                        titusRuntime.getCodeInvariants()
+                                .inconsistent("Result collection size for instance group: %s does not match size of the terminate id collection: size(%s) != size(%s)",
+                                        instanceGroupId, result, terminateIds);
                         return;
                     }
                     List<String> terminatedOk = new ArrayList<>();
@@ -242,7 +244,6 @@ public class ClusterAgentRemover {
                         } else {
                             errors.put(instanceId, resultItem.getError().getMessage());
                         }
-                        agentInstancesBeingTerminated.invalidate(instanceId);
                     }
                     if (!terminatedOk.isEmpty()) {
                         logger.info("Successfully terminated instances of the instance group {}: {}", instanceGroupId, terminatedOk);
