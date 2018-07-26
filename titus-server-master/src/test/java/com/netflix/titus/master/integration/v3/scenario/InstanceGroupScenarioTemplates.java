@@ -27,11 +27,22 @@ public class InstanceGroupScenarioTemplates {
     /**
      * Instance groups activation template for {@link SimulatedClouds#basicCloud(int)} setup.
      */
-    public static Consumer<InstanceGroupsScenarioBuilder> basicSetupActivation() {
+    public static Consumer<InstanceGroupsScenarioBuilder> basicCloudActivation() {
         return scenarioBuilder -> scenarioBuilder
                 .apply("critical1", g -> g.tier(Tier.Critical).lifecycleState(InstanceGroupLifecycleState.Active))
                 .apply("flex1", g -> g.tier(Tier.Flex).lifecycleState(InstanceGroupLifecycleState.Active))
                 .apply("flexGpu", g -> g.tier(Tier.Flex).lifecycleState(InstanceGroupLifecycleState.Active));
+    }
+
+    /**
+     * Instance groups activation template for {@link SimulatedClouds#twoPartitionsPerTierStack(int)} setup.
+     */
+    public static Consumer<InstanceGroupsScenarioBuilder> twoPartitionsPerTierStackActivation() {
+        return scenarioBuilder -> scenarioBuilder
+                .apply("critical1", g -> g.tier(Tier.Critical).lifecycleState(InstanceGroupLifecycleState.Active))
+                .apply("critical2", g -> g.tier(Tier.Critical).lifecycleState(InstanceGroupLifecycleState.Active))
+                .apply("flex1", g -> g.tier(Tier.Flex).lifecycleState(InstanceGroupLifecycleState.Active))
+                .apply("flex2", g -> g.tier(Tier.Flex).lifecycleState(InstanceGroupLifecycleState.Active));
     }
 
     public static Consumer<InstanceGroupsScenarioBuilder> activate(String... instanceGroups) {

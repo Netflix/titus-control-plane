@@ -25,7 +25,7 @@ import com.netflix.fenzo.ScaleDownConstraintEvaluator;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.plugins.BalancedScaleDownConstraintEvaluator;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.scheduler.constraint.LeaseAttributes;
+import com.netflix.titus.master.scheduler.SchedulerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +63,6 @@ public class ZoneBalancedClusterScaleDownConstraintEvaluator implements ScaleDow
     }
 
     private String keyExtractor(VirtualMachineLease lease) {
-        return LeaseAttributes.getOrDefault(lease, zoneKeyName, UNKNOWN_ZONE);
+        return SchedulerUtils.getAttributeValueOrDefault(lease, zoneKeyName, UNKNOWN_ZONE);
     }
 }

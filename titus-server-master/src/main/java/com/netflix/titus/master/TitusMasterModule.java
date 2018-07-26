@@ -30,6 +30,7 @@ import com.netflix.titus.master.cluster.DefaultLeaderActivator;
 import com.netflix.titus.master.cluster.DefaultLeaderElector;
 import com.netflix.titus.master.cluster.LeaderActivator;
 import com.netflix.titus.master.cluster.LeaderElector;
+import com.netflix.titus.master.clusteroperations.ClusterOperationsModule;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.config.ConfigurableCellInfoResolver;
 import com.netflix.titus.master.config.MasterConfiguration;
@@ -98,6 +99,7 @@ public class TitusMasterModule extends AbstractModule {
         // Service
         install(new AuditModule());
         install(new AgentModule());
+        install(new ClusterOperationsModule());
         install(new SchedulerModule());
         install(new JobModule());
         install(new V3JobManagerModule());

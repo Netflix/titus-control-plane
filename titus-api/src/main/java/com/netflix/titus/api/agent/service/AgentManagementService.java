@@ -49,6 +49,11 @@ public interface AgentManagementService {
     AgentInstanceGroup getInstanceGroup(String instanceGroupId);
 
     /**
+     * Find an instance group by id.
+     */
+    Optional<AgentInstanceGroup> findInstanceGroup(String instanceGroupId);
+
+    /**
      * Get all agents belonging to the given instance group.
      *
      * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the instance group is not found

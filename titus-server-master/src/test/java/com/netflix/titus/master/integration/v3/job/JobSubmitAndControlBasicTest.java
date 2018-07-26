@@ -22,7 +22,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
@@ -72,7 +71,7 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicSetupActivation());
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.jobConfiguration = titusStackResource.getGateway().getInstance(JobManagerConfiguration.class);
     }
 

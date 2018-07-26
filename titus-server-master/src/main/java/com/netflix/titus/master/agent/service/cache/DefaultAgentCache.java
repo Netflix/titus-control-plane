@@ -187,6 +187,11 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     @Override
+    public Optional<AgentInstanceGroup> findInstanceGroup(String instanceGroupId) {
+        return Optional.ofNullable(dataSnapshot.getInstanceGroup(instanceGroupId));
+    }
+
+    @Override
     public Set<AgentInstance> getAgentInstances(String instanceGroupId) {
         return AgentManagementException.checkInstanceGroupFound(dataSnapshot.getInstances(instanceGroupId), instanceGroupId);
     }

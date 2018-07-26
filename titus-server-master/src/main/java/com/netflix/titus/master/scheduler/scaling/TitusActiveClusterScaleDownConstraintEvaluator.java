@@ -26,24 +26,23 @@ import javax.inject.Singleton;
 
 import com.netflix.fenzo.ScaleDownOrderEvaluator;
 import com.netflix.fenzo.VirtualMachineLease;
-import com.netflix.fenzo.plugins.InactiveClusterScaleDownConstraintEvaluator;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-import com.netflix.titus.master.scheduler.constraint.LeaseAttributes;
+import com.netflix.titus.master.scheduler.SchedulerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.agent.service.AgentManagementFunctions.observeActiveInstanceGroupIds;
 
 @Singleton
-public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDownOrderEvaluator {
-    private static final Logger logger = LoggerFactory.getLogger(TitusInactiveClusterScaleDownConstraintEvaluator.class);
+//TODO remove this class once autoscaling logic moves out of Fenzo
+public class TitusActiveClusterScaleDownConstraintEvaluator implements ScaleDownOrderEvaluator {
+    private static final Logger logger = LoggerFactory.getLogger(TitusActiveClusterScaleDownConstraintEvaluator.class);
     private static final List<Set<VirtualMachineLease>> EMPTY_RESULT = Collections.singletonList(Collections.emptySet());
 
-    private final InactiveClusterScaleDownConstraintEvaluator delegate;
     private final String serverGroupAttrName;
 
     private final SchedulerConfiguration schedulerConfiguration;
@@ -53,7 +52,7 @@ public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDo
     private volatile Set<String> activeInstanceGroups = Collections.emptySet();
 
     @Inject
-    public TitusInactiveClusterScaleDownConstraintEvaluator(
+    public TitusActiveClusterScaleDownConstraintEvaluator(
             MasterConfiguration config,
             SchedulerConfiguration schedulerConfiguration,
             AgentManagementService agentManagementService,
@@ -61,7 +60,6 @@ public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDo
         this.schedulerConfiguration = schedulerConfiguration;
         this.agentManagementService = agentManagementService;
         this.titusRuntime = titusRuntime;
-        this.delegate = new InactiveClusterScaleDownConstraintEvaluator(this::isInactive);
         this.serverGroupAttrName = config.getActiveSlaveAttributeName();
     }
 
@@ -75,15 +73,21 @@ public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDo
         if (!schedulerConfiguration.isFenzoDownScalingEnabled()) {
             return EMPTY_RESULT;
         }
-        List<Set<VirtualMachineLease>> result = delegate.evaluate(candidates);
+        Set<VirtualMachineLease> activeCandidates = new HashSet<>();
+        for (VirtualMachineLease candidate : candidates) {
+            if (!isInactive(candidate)) {
+                activeCandidates.add(candidate);
+            }
+        }
+        List<Set<VirtualMachineLease>> result = Collections.singletonList(activeCandidates);
         if (logger.isDebugEnabled()) {
-            logger.debug("Inactive and active sets: {}", ScaleDownUtils.toCompactString(result));
+            logger.debug("Active sets: {}", ScaleDownUtils.toCompactString(result));
         }
         return result;
     }
 
     private void updateActiveInstanceGroups(List<String> activeInstanceGroups) {
-        logger.info("Updating TitusInactiveClusterScaleDownConstraintEvaluator active instance group list to: {}", activeInstanceGroups);
+        logger.info("Updating TitusActiveClusterScaleDownConstraintEvaluator active instance group list to: {}", activeInstanceGroups);
         this.activeInstanceGroups = activeInstanceGroups == null ? Collections.emptySet() : new HashSet<>(activeInstanceGroups);
     }
 
@@ -91,7 +95,7 @@ public class TitusInactiveClusterScaleDownConstraintEvaluator implements ScaleDo
         if (activeInstanceGroups.isEmpty()) {
             return false;
         }
-        String serverGroupName = LeaseAttributes.getOrDefault(lease, serverGroupAttrName, null);
+        String serverGroupName = SchedulerUtils.getAttributeValueOrDefault(lease, serverGroupAttrName, null);
         return serverGroupName != null && !activeInstanceGroups.contains(serverGroupName);
     }
 }

@@ -30,6 +30,8 @@ public interface AgentCache {
 
     AgentInstanceGroup getInstanceGroup(String instanceGroupId);
 
+    Optional<AgentInstanceGroup> findInstanceGroup(String instanceGroupId);
+
     Set<AgentInstance> getAgentInstances(String instanceGroupId);
 
     AgentInstance getAgentInstance(String instanceId);

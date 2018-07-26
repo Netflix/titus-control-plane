@@ -11,8 +11,8 @@ import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 public class V3ZoneBalancedFitnessCalculator implements VMTaskFitnessCalculator {
 
-    private final double NOT_MATCHING = 0.01;
-    private final double MATCHING = 1.0;
+    private static final double NOT_MATCHING = 0.01;
+    private static final double MATCHING = 1.0;
 
     private final TaskCache taskCache;
     private final int expectedValues;

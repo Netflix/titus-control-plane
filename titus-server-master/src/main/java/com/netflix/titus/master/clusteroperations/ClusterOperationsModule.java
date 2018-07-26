@@ -14,14 +14,25 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.scheduler.constraint;
+package com.netflix.titus.master.clusteroperations;
 
-import com.netflix.fenzo.ConstraintEvaluator;
+import javax.inject.Singleton;
 
-/**
- * Defines behavior for global constraint evaluators
- */
-public interface GlobalConstraintEvaluator extends ConstraintEvaluator {
-    default void prepare() {
+import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
+
+
+public final class ClusterOperationsModule extends AbstractModule {
+
+    @Override
+    protected void configure() {
+        bind(ClusterAgentRemover.class).asEagerSingleton();
+    }
+
+    @Provides
+    @Singleton
+    public ClusterOperationsConfiguration getClusterOperationsConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(ClusterOperationsConfiguration.class);
     }
 }

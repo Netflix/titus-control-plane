@@ -16,20 +16,12 @@
 
 package com.netflix.titus.master.scheduler.constraint;
 
-import com.netflix.fenzo.VirtualMachineLease;
-import com.netflix.titus.common.util.StringExt;
-import org.apache.mesos.Protos;
+import com.netflix.fenzo.ConstraintEvaluator;
 
-public class LeaseAttributes {
-    public static String getOrDefault(VirtualMachineLease lease, String attrName, String defaultValue) {
-        if (lease.getAttributeMap() == null) {
-            return defaultValue;
-        }
-        Protos.Attribute attr = lease.getAttributeMap().get(attrName);
-        if (attr == null || attr.getText() == null) {
-            return defaultValue;
-        }
-        String attrValue = StringExt.safeTrim(attr.getText().getValue());
-        return attrValue.isEmpty() ? defaultValue : attrValue;
+/**
+ * Defines behavior for all system constraints
+ */
+public interface SystemConstraint extends ConstraintEvaluator {
+    default void prepare() {
     }
 }

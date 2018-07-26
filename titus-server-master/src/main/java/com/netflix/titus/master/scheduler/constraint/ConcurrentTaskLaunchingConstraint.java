@@ -36,10 +36,10 @@ import com.netflix.titus.master.scheduler.ScheduledRequest;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 
 /**
- * A global constraint evaluator that prevents launching a task on a node that already has a task launching.
+ * A system constraint that prevents launching a task on an agent that already has a task launching.
  */
 @Singleton
-public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintEvaluator {
+public class ConcurrentTaskLaunchingConstraint implements SystemConstraint {
 
     private static final Result VALID = new Result(true, null);
     private static final Result INVALID = new Result(false, "The agent has a task already launching");
@@ -50,8 +50,8 @@ public class GlobalTaskLaunchingConstraintEvaluator implements GlobalConstraintE
     private final AtomicReference<Map<String, Task>> taskIdMapRef = new AtomicReference<>(Collections.emptyMap());
 
     @Inject
-    public GlobalTaskLaunchingConstraintEvaluator(SchedulerConfiguration schedulerConfiguration,
-                                                  V3JobOperations v3JobOperations) {
+    public ConcurrentTaskLaunchingConstraint(SchedulerConfiguration schedulerConfiguration,
+                                             V3JobOperations v3JobOperations) {
         this.schedulerConfiguration = schedulerConfiguration;
         this.v3JobOperations = v3JobOperations;
     }

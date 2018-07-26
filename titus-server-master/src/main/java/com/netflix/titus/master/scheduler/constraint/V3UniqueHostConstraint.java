@@ -45,9 +45,7 @@ public class V3UniqueHostConstraint implements ConstraintEvaluator {
     private boolean check(String jobId, TaskRequest running) {
         if (running instanceof V3QueueableTask) {
             V3QueueableTask v3FenzoRunningTask = (V3QueueableTask) running;
-            if (v3FenzoRunningTask.getJob().getId().equals(jobId)) {
-                return true;
-            }
+            return v3FenzoRunningTask.getJob().getId().equals(jobId);
         }
         return false;
     }

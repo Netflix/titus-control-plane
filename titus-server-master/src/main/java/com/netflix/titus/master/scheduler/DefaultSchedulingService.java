@@ -570,7 +570,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void schedulingResultsHandler(SchedulingResult schedulingResult) {
-        logger.info("Task placement results: taskAndAgentEvaluations={}, executionTimeMs={}",
+        logger.debug("Task placement results: taskAndAgentEvaluations={}, executionTimeMs={}",
                 schedulingResult.getNumAllocations(), schedulingResult.getRuntime());
         long callbackStart = titusRuntime.getClock().wallTime();
         totalSchedulingIterationMesosLatency.set(0);

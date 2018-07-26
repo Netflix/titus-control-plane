@@ -65,7 +65,7 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicSetupActivation());
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
 
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
