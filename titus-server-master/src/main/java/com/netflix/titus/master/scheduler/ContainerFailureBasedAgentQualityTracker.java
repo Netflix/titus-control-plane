@@ -220,7 +220,9 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
                 return null;
             }
             placement = agentManagementService.findAgentInstance(instanceId).map(PlacementHistory::new).orElse(null);
-            agentsPlacementHistory.put(hostname, placement);
+            if (placement != null) {
+                agentsPlacementHistory.put(hostname, placement);
+            }
         }
 
         return placement;
