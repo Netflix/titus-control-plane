@@ -34,12 +34,13 @@ public class DefaultImmutableTokenBucketTest {
 
     private static final int BUCKET_SIZE = 5;
     private static final int REFILL_INTERVAL_MS = 100;
+    private static final int REFILL_BATCH = 2;
 
     private final TestClock testClock = Clocks.test();
 
     private final ImmutableTokenBucket tokenBucket = tokenBucket(
             BUCKET_SIZE,
-            refillAtFixedInterval(1, REFILL_INTERVAL_MS, TimeUnit.MILLISECONDS, testClock)
+            refillAtFixedInterval(REFILL_BATCH, REFILL_INTERVAL_MS, TimeUnit.MILLISECONDS, testClock)
     );
 
     @Test
@@ -52,8 +53,9 @@ public class DefaultImmutableTokenBucketTest {
 
         // Advance time to refill the bucket
         testClock.advanceTime(REFILL_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        next = doTryTake(next);
-        assertThat(next.tryTake()).isEmpty();
+        Pair<Long, ImmutableTokenBucket> pair = doTryTake(next, REFILL_BATCH, REFILL_BATCH);
+        assertThat(pair.getLeft()).isEqualTo(REFILL_BATCH);
+        assertThat(pair.getRight().tryTake()).isEmpty();
     }
 
     @Test
@@ -76,7 +78,7 @@ public class DefaultImmutableTokenBucketTest {
 
     private Pair<Long, ImmutableTokenBucket> doTryTake(ImmutableTokenBucket next, int min, int max) {
         Pair<Long, ImmutableTokenBucket> pair = next.tryTake(min, max).orElse(null);
-        assertThat(next).describedAs("Expected more tokens in the bucket").isNotNull();
+        assertThat(pair).describedAs("Expected more tokens in the bucket").isNotNull();
         return pair;
     }
 }

@@ -51,6 +51,6 @@ public class ImmutableFixedIntervalRefillStrategy implements ImmutableRefillStra
 
     private long getRefills() {
         long elapsed = clock.nanoTime() - startTimeNs;
-        return elapsed / intervalNs;
+        return numberOfTokensPerInterval * (elapsed / intervalNs);
     }
 }
