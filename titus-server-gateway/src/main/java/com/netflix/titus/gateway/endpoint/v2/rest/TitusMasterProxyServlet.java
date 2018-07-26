@@ -24,7 +24,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -37,8 +36,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.UriBuilder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import com.netflix.spectator.api.Id;
@@ -51,11 +48,10 @@ import com.netflix.titus.common.network.http.RequestBody;
 import com.netflix.titus.common.network.http.Response;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.gateway.MetricConstants;
+import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import com.netflix.titus.runtime.connector.titusmaster.Address;
 import com.netflix.titus.runtime.connector.titusmaster.LeaderResolver;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
-import com.netflix.titus.gateway.service.v2.LogUrlService;
-import com.netflix.titus.gateway.startup.TitusGatewayConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,8 +67,6 @@ public class TitusMasterProxyServlet extends HttpServlet {
             "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade");
 
     private static final int MAX_BYTES_TO_BUFFER = 32_000;
-    private static final String JOB = "JOB";
-    private static final String TASK = "TASK";
 
     private static final String TITUS_HEADER_CALLER_HOST_ADDRESS = "X-Titus-CallerHostAddress";
 
@@ -80,22 +74,17 @@ public class TitusMasterProxyServlet extends HttpServlet {
     private final Registry registry;
     private final HttpClient httpClient;
     private final LeaderResolver leaderResolver;
-    private final LogUrlService logUrlService;
-    private final ObjectMapper objectMapper;
     private final Id baseId;
 
     @Inject
     public TitusMasterProxyServlet(TitusGatewayConfiguration configuration,
                                    Registry registry,
                                    @Named(TitusMasterConnectorModule.TITUS_MASTER_CLIENT) HttpClient httpClient,
-                                   LeaderResolver leaderResolver,
-                                   LogUrlService logUrlService) {
+                                   LeaderResolver leaderResolver) {
         this.configuration = configuration;
         this.registry = registry;
         this.httpClient = httpClient;
         this.leaderResolver = leaderResolver;
-        this.logUrlService = logUrlService;
-        this.objectMapper = new ObjectMapper();
         this.baseId = registry.createId(MetricConstants.METRIC_PROXY + "request");
     }
 
@@ -135,10 +124,6 @@ public class TitusMasterProxyServlet extends HttpServlet {
     }
 
     private void proxyRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (!isAccessAllowed(request, response)) {
-            return;
-        }
-
         final long start = registry.clock().wallTime();
         try {
             doProxyRequest(request, response);
@@ -165,32 +150,8 @@ public class TitusMasterProxyServlet extends HttpServlet {
         String method = request.getMethod();
         String remoteIp = request.getRemoteAddr();
         URI requestUri = getServletRequestUri(request);
-        String requestUriPath = requestUri.getPath();
         InputStream requestInputStream = configuration.isProxyErrorLoggingEnabled()
                 ? new ByteCopyInputStream(request.getInputStream(), MAX_BYTES_TO_BUFFER) : request.getInputStream();
-
-        if (method.equals(Methods.GET) && requestUriPath.contains("/logs/download/")) {
-            handleLogsDownloadRequest(request, response);
-            return;
-        }
-
-        if (method.equals(Methods.POST)) {
-            if (requestUriPath.contains("/jobs/terminate/") || requestUriPath.contains("/jobs/kill/")) {
-                String jobId = extractIdFromRequestUri(request.getRequestURI());
-                if (!Strings.isNullOrEmpty(jobId)) {
-                    handleKillRequest(JOB, jobId, titusMasterUri, request, response);
-                    return;
-                }
-            }
-
-            if (requestUriPath.contains("/tasks/terminate/") || requestUriPath.contains("/tasks/kill/")) {
-                String taskId = extractIdFromRequestUri(request.getRequestURI());
-                if (!Strings.isNullOrEmpty(taskId)) {
-                    handleKillRequest(TASK, taskId, titusMasterUri, request, response);
-                    return;
-                }
-            }
-        }
 
         URI clientRequestUri = constructProxyUri(requestUri, titusMasterUri);
         Headers clientHeaders = getAllHeaders(request);
@@ -321,91 +282,6 @@ public class TitusMasterProxyServlet extends HttpServlet {
         return uriBuilder.build();
     }
 
-    private void handleLogsDownloadRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String requestUri = request.getRequestURI();
-        final String taskId = extractIdFromRequestUri(requestUri);
-        if (taskId.isEmpty()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            String message = "A taskId was not specified in the uri: " + requestUri;
-            response.getWriter().write(message);
-        } else {
-            Map<String, String> logUrls = logUrlService.getLogUrls(taskId);
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setHeader("Content-Type", "application/json");
-            response.getWriter().write(objectMapper.writeValueAsString(logUrls));
-        }
-    }
-
-    private void handleKillRequest(String entity, String id, String titusMasterUri, HttpServletRequest request, HttpServletResponse response) throws IOException, URISyntaxException {
-
-        String method = request.getMethod();
-        Headers headers = getAllHeaders(request);
-        String remoteIp = request.getRemoteAddr();
-        URI requestUri = getServletRequestUri(request);
-
-        logger.info("[PROXY {} KILL REQUEST] {} {} {} {}", entity, method, requestUri, remoteIp, headers);
-
-        String path = "";
-        String content = "";
-        if (entity.equals(JOB)) {
-            path = "/api/v2/jobs/kill";
-            content = String.format("{\"jobId\": \"%s\"}", id);
-        } else if (entity.equals(TASK)) {
-            path = "/api/v2/tasks/kill";
-            content = String.format("{\"taskId\": \"%s\"}", id);
-        }
-
-        UriBuilder uriBuilder = UriBuilder.fromUri(titusMasterUri)
-                .replacePath(path);
-
-        URI clientRequestUri = uriBuilder.build();
-        Response clientResponse = null;
-        headers.set("Content-Type", "application/json");
-
-        try {
-            Request clientRequest = new Request.Builder()
-                    .url(clientRequestUri.toString())
-                    .method(method)
-                    .headers(headers)
-                    .body(RequestBody.create(content))
-                    .build();
-
-            clientResponse = httpClient.execute(clientRequest);
-            response.setStatus(clientResponse.getStatusCode().getCode());
-            Headers clientResponseHeaders = clientResponse.getHeaders();
-            clientResponseHeaders.names().forEach(name -> {
-                if (!IGNORED_RESPONSE_HEADERS.contains(name.toLowerCase())) {
-                    clientResponseHeaders.values(name).forEach(value -> response.addHeader(name, value));
-                }
-            });
-            String responseMessage = "";
-            if (entity.equals("job")) {
-                responseMessage = "The termination request has been accepted and the task will be put to terminating state.";
-            } else if (entity.equals("task")) {
-                responseMessage = String.format("[\"%s Killed\"]", id);
-            }
-
-            if (clientResponse.isSuccessful()) {
-                response.getWriter().write(responseMessage);
-            }
-
-            logger.info("[PROXY {} KILL RESPONSE] {} {} {} {} {}", entity, clientResponse.getStatusCode().getCode(), method, clientRequestUri,
-                    clientResponseHeaders, responseMessage);
-        } finally {
-            if (clientResponse != null && clientResponse.hasBody()) {
-                clientResponse.getBody().close();
-            }
-        }
-    }
-
-    private String extractIdFromRequestUri(String requestUri) {
-        final String[] parts = requestUri.split("/");
-        if (parts.length > 0) {
-            return parts[parts.length - 1];
-        }
-        return "";
-    }
-
     private Id createId(String method, int statusCode) {
         String status = (statusCode / 100) + "xx";
 
@@ -413,21 +289,6 @@ public class TitusMasterProxyServlet extends HttpServlet {
                 .withTag("method", method)
                 .withTag("status", status)
                 .withTag("statusCode", String.valueOf(statusCode));
-    }
-
-    private boolean isAccessAllowed(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (configuration.isV2Enabled()) {
-            return true;
-        }
-
-        String path = request.getPathInfo();
-        if (!path.contains("/jobs") && !path.contains("/tasks")) {
-            return true;
-        }
-
-        response.setStatus(403);
-        response.getOutputStream().print("V2 Engine is turned off");
-        return false;
     }
 
     /**

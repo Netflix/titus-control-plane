@@ -218,29 +218,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
 
     @Override
     public String submit(V2JobDefinition jobDefinition) throws IllegalArgumentException {
-        if (!masterConfiguration.isV2Enabled()) {
-            throw new IllegalStateException("The V2 engine is deprecated, and should not be used anymore. Please, use the V3 engine instead");
-        }
-
-        awaitReady();
-
-        JobType jobType = getJobType(jobDefinition);
-        if (jobType == null) {
-            throw new IllegalStateException("Job type not defined for job definition: " + jobDefinition);
-        }
-        V2JobMgrIntf jobMgr;
-        jobMgr = createNewJobMgr(jobDefinition, jobType);
-        addJobIdRef(jobMgr.getJobId(), jobMgr);
-        namedJobs.getJobByName(jobDefinition.getName()).registerJobMgr(jobMgr);
-        jobMgr.setTaskKillAction(tid -> vmService.killTask(tid));
-        jobCreationPublishSubject.onNext(jobMgr);
-
-        jobMgr.postInitializeNewJob();
-
-        auditLogService.submit(new AuditLogEvent(AuditLogEvent.Type.JOB_SUBMIT, jobMgr.getJobId(), "user=" +
-                jobDefinition.getUser(), System.currentTimeMillis()));
-
-        return jobMgr.getJobId();
+        throw new IllegalStateException("The V2 engine is deprecated, and should not be used anymore. Please, use the V3 engine instead");
     }
 
     private JobType getJobType(V2JobDefinition jobDefinition) {

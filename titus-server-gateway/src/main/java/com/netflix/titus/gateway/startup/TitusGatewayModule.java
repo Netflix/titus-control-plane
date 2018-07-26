@@ -40,7 +40,6 @@ import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.gateway.endpoint.GrpcModule;
 import com.netflix.titus.gateway.endpoint.JerseyModule;
-import com.netflix.titus.gateway.service.v2.V2ServiceModule;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
@@ -96,7 +95,6 @@ public final class TitusGatewayModule extends AbstractModule {
         install(new TitusMasterConnectorModule());
 
         bind(V3_LOG_STORAGE_INFO).toInstance(EmptyLogStorageInfo.INSTANCE);
-        install(new V2ServiceModule());
         install(new V3ServiceModule());
 
         install(new StoreModule());

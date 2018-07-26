@@ -296,6 +296,24 @@ public final class CollectionsExt {
         ));
     }
 
+    public static <T> Set<T> xor(Set<T>... sets) {
+        if (sets.length == 0) {
+            return Collections.emptySet();
+        }
+        if (sets.length == 1) {
+            return sets[0];
+        }
+        Set<T> result = new HashSet<>(sets[0]);
+        Set<T> all = new HashSet<>(sets[0]);
+        for (int i = 1; i < sets.length; i++) {
+            Set<T> current = sets[i];
+            result.removeAll(current);
+            result.addAll(copyAndRemove(current, all));
+            all.addAll(current);
+        }
+        return result;
+    }
+
     public static <T> Pair<List<T>, List<T>> split(List<T> items, Predicate<T> predicate) {
         List<T> matching = new ArrayList<>();
         List<T> notMatching = new ArrayList<>();

@@ -24,12 +24,10 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
-import com.netflix.titus.gateway.endpoint.v2.rest.ApiRewriteFilter;
 import com.netflix.titus.gateway.endpoint.v2.rest.TitusMasterProxyServlet;
 import com.netflix.titus.gateway.endpoint.v3.rest.AgentManagementResource;
-import com.netflix.titus.gateway.eviction.EvictionResource;
-import com.netflix.titus.runtime.endpoint.v3.rest.HealthResource;
 import com.netflix.titus.gateway.endpoint.v3.rest.SchedulerResource;
+import com.netflix.titus.gateway.eviction.EvictionResource;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
@@ -37,6 +35,7 @@ import com.netflix.titus.runtime.endpoint.common.rest.filter.CallerContextFilter
 import com.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
 import com.netflix.titus.runtime.endpoint.metadata.SimpleHttpCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingResource;
+import com.netflix.titus.runtime.endpoint.v3.rest.HealthResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.JobManagementResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.LoadBalancerResource;
 import com.sun.jersey.api.core.DefaultResourceConfig;
@@ -48,9 +47,6 @@ import com.sun.jersey.guice.JerseyServletModule;
 public final class JerseyModule extends JerseyServletModule {
     @Override
     protected void configureServlets() {
-        // Set up rewrite filter to modify urls into the v2 api
-        filter("/*").through(ApiRewriteFilter.class);
-
         // Store HTTP servlet request data in thread local variable
         filter("/api/v3/*").through(CallerContextFilter.class);
 

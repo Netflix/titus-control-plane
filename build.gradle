@@ -146,6 +146,11 @@ subprojects {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
         }
 
+        testLogging {
+            outputs.upToDateWhen {false}
+            showExceptions = true
+        }
+
         reports {
             junitXml.enabled = true
             html.enabled = true
@@ -155,6 +160,11 @@ subprojects {
     task integrationNotParallelizableTest(type: Test) {
         useJUnit {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest'
+        }
+
+        testLogging {
+            outputs.upToDateWhen {false}
+            showExceptions = true
         }
 
         reports {
