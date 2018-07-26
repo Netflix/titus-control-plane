@@ -7,16 +7,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.functions.Func1;
 
 public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<D> {
 
-    private static final ReplicatorEvent<Object> UNINITIALIZED = new ReplicatorEvent<>(JobSnapshot.empty(), 0);
+    private static final Logger logger = LoggerFactory.getLogger(RetryableReplicatorEventStream.class);
 
-    // As this is a generic implementation, we have a single event type.
-    private static final String UPDATE_FROM_DELEGATE = "updateFromDelegate";
+    private static final ReplicatorEvent<Object> UNINITIALIZED = new ReplicatorEvent<>(JobSnapshot.empty(), 0);
 
     static final long INITIAL_RETRY_DELAY_MS = 500;
     static final long MAX_RETRY_DELAY_MS = 2_000;
@@ -45,6 +46,8 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                     if (e instanceof DataReplicatorException) {
                         DataReplicatorException cacheException = (DataReplicatorException) e;
                         if (cacheException.getLastCacheEvent().isPresent()) {
+                            logger.info("Reconnecting after error: {}", e.getMessage());
+                            logger.debug("Stack trace", e);
                             return createDelegateEmittingAtLeastOneItem((ReplicatorEvent<D>) cacheException.getLastCacheEvent().get());
                         }
                     }
