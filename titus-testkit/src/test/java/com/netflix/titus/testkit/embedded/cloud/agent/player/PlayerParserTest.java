@@ -32,14 +32,15 @@ public class PlayerParserTest {
 
     @Test
     public void testSingleRule() {
-        Either<List<Pair<ContainerSelector, ContainerRules>>, String> parsed = PlayerParser.parseInternal(ImmutableMap.of(
-                "TASK_LIFECYCLE_1", "selector: slots=5.. slotStep=2 resubmits=1..10 resubmitStep=3; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s"
+        Either<List<Pair<RuleSelector, ContainerRules>>, String> parsed = PlayerParser.parseInternal(ImmutableMap.of(
+                "TASK_LIFECYCLE_1", "selector: slots=5.. slotStep=2 resubmits=1..10 resubmitStep=3 instances=flex1,flex2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s"
         ));
         assertThat(parsed.hasValue()).isTrue();
 
-        ContainerSelector selector = parsed.getValue().get(0).getLeft();
+        RuleSelector selector = parsed.getValue().get(0).getLeft();
         expectSequenceStartingWith(selector.getSlots(), 5L, 7L);
         expectSequenceStartingWith(selector.getResubmits(), 1L, 4L, 7L);
+        assertThat(selector.getInstanceIds()).contains("flex1", "flex2");
 
         ContainerRules containerRules = parsed.getValue().get(0).getRight();
         assertThat(containerRules.getTaskStateRules()).hasSize(4);

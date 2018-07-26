@@ -5,18 +5,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -25,43 +23,27 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 
-public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSnapshot> {
+public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<JobSnapshot> {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
 
     private final JobManagementClient client;
-    private final DataReplicatorMetrics metrics;
-    private final TitusRuntime titusRuntime;
-    private final Scheduler scheduler;
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
+        super(metrics, titusRuntime, scheduler);
         this.client = client;
-        this.metrics = metrics;
-        this.titusRuntime = titusRuntime;
-        this.scheduler = scheduler;
     }
 
     @Override
-    public Observable<ReplicatorEvent<JobSnapshot>> connect() {
+    protected Observable<ReplicatorEvent<JobSnapshot>> newConnection() {
         return Observable.fromCallable(CacheUpdater::new)
-                .flatMap(cacheUpdater -> client.observeJobs().flatMap(cacheUpdater::onEvent))
-                .compose(ObservableExt.reemiter(
-                        // If there are no events in the stream, we will periodically emit the last cache instance
-                        // with the updated cache update timestamp, so it does not look stale.
-                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getData(), titusRuntime.getClock().wallTime()),
-                        LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
-                        scheduler
-                ))
-                .doOnNext(event -> {
-                    metrics.connected();
-                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
-                })
-                .doOnUnsubscribe(metrics::disconnected)
-                .doOnError(metrics::disconnected)
-                .doOnCompleted(metrics::disconnected);
+                .flatMap(cacheUpdater -> {
+                    logger.info("Connecting to the job event stream...");
+                    return client.observeJobs().flatMap(cacheUpdater::onEvent);
+                });
     }
 
     private class CacheUpdater {
@@ -109,7 +91,12 @@ public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSn
                         break;
                     case TASKUPDATE:
                         com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
-                        tasksByJobId.computeIfAbsent(task.getJobId(), j -> new ArrayList<>()).add(V3GrpcModelConverters.toCoreTask(task));
+                        Job<?> taskJob = jobsById.get(task.getJobId());
+                        if (taskJob != null) {
+                            tasksByJobId.computeIfAbsent(task.getJobId(), j -> new ArrayList<>()).add(V3GrpcModelConverters.toCoreTask(taskJob, task));
+                        } else {
+                            titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                        }
                         break;
                 }
             });
@@ -134,8 +121,14 @@ public class GrpcJobReplicatorEventStream implements ReplicatorEventStream<JobSn
                     newSnapshot = lastSnapshot.updateJob(job);
                     break;
                 case TASKUPDATE:
-                    Task task = V3GrpcModelConverters.toCoreTask(event.getTaskUpdate().getTask());
-                    newSnapshot = lastSnapshot.updateTask(task);
+                    com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
+                    Job<?> taskJob = lastSnapshot.getJobs().stream().filter(j -> j.getId().equals(task.getJobId())).findFirst().orElse(null);
+                    if (taskJob != null) {
+                        newSnapshot = lastSnapshot.updateTask(V3GrpcModelConverters.toCoreTask(taskJob, task));
+                    } else {
+                        titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                        newSnapshot = Optional.empty();
+                    }
                     break;
                 default:
                     newSnapshot = Optional.empty();

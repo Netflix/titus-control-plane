@@ -16,12 +16,9 @@
 
 package com.netflix.titus.testkit.client;
 
+import java.util.List;
+
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
-import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
-import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskInfo;
-import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
-import com.netflix.titus.master.endpoint.v2.rest.representation.JobSetInstanceCountsCmd;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import rx.Observable;
 
@@ -33,40 +30,10 @@ import rx.Observable;
 public interface TitusMasterClient {
 
     /*
-     * Job management.
-     */
-
-    Observable<String> submitJob(TitusJobSpec jobSpec);
-
-    Observable<TitusJobInfo> findJobs(TitusTaskState... taskStates);
-
-    Observable<TitusJobInfo> findAllJobs();
-
-    Observable<TitusJobInfo> findJob(String jobId, boolean includeArchived);
-
-    Observable<TitusJobInfo> findJob(String jobId, TitusTaskState... taskStates);
-
-    Observable<TitusTaskInfo> findTask(String taskId, boolean includeArchived);
-
-    Observable<Void> killJob(String jobId);
-
-    Observable<Void> killTask(String taskId);
-
-    Observable<Void> killTaskAndShrink(String taskId);
-
-    Observable<Void> setInstanceCount(JobSetInstanceCountsCmd cmd);
-
-    /*
      * Capacity group management.
      */
 
     Observable<String> addApplicationSLA(ApplicationSlaRepresentation applicationSLA);
 
-    Observable<ApplicationSlaRepresentation> findAllApplicationSLA();
-
-    Observable<ApplicationSlaRepresentation> findApplicationSLA(String name);
-
-    Observable<Void> updateApplicationSLA(ApplicationSlaRepresentation applicationSLA);
-
-    Observable<Void> deleteApplicationSLA(String name);
+    Observable<List<ApplicationSlaRepresentation>> findAllApplicationSLA();
 }

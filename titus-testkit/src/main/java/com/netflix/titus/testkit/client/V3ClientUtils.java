@@ -51,8 +51,10 @@ public class V3ClientUtils {
         }
 
         // Task update
-        Task task = V3GrpcModelConverters.toCoreTask(event.getTaskUpdate().getTask());
-        Job<?> job = (Job<?>) state.get(task.getJobId());
+        com.netflix.titus.grpc.protogen.Task grpcTask = event.getTaskUpdate().getTask();
+        Job<?> job = (Job<?>) state.get(grpcTask.getJobId());
+
+        Task task = V3GrpcModelConverters.toCoreTask(job, grpcTask);
 
         Object previous = state.get(task.getId());
         state.put(task.getId(), task);

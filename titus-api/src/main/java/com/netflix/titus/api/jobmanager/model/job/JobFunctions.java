@@ -100,6 +100,13 @@ public final class JobFunctions {
         return task instanceof ServiceJobTask;
     }
 
+    /**
+     * @return true if the task is or was at some point in time in the started state.
+     */
+    public static boolean everStarted(Task task) {
+        return findTaskStatus(task, TaskState.Started).isPresent();
+    }
+
     public static Job changeJobStatus(Job job, JobState jobState, String reasonCode) {
         JobStatus newStatus = JobModel.newJobStatus()
                 .withState(jobState)

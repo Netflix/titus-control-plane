@@ -26,6 +26,7 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.master.scheduler.AgentQualityTracker;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,18 +38,24 @@ import org.slf4j.LoggerFactory;
 public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator {
 
     private static final Logger logger = LoggerFactory.getLogger(AgentManagementFitnessCalculator.class);
+
     private static final double ACTIVE_INSTANCE_GROUP_SCORE = 1.0;
     private static final double PHASED_OUT_INSTANCE_GROUP_SCORE = 0.5;
     private static final double NOT_ACTIVE_INSTANCE_GROUP_SCORE = 0.01;
 
+    private static final double QUALITY_OF_UNKNOWN_AGENT = 0.5;
+
     private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
+    private final AgentQualityTracker agentQualityTracker;
 
     @Inject
     public AgentManagementFitnessCalculator(SchedulerConfiguration schedulerConfiguration,
-                                            AgentManagementService agentManagementService) {
+                                            AgentManagementService agentManagementService,
+                                            AgentQualityTracker agentQualityTracker) {
         this.schedulerConfiguration = schedulerConfiguration;
         this.agentManagementService = agentManagementService;
+        this.agentQualityTracker = agentQualityTracker;
     }
 
     @Override
@@ -66,10 +73,16 @@ public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator
             logger.debug("Ignoring instanceGroupId: {} because it was not found in agent management", instanceGroupId, e);
         }
         if (instanceGroup != null) {
+            double quality = Math.min(1.0, agentQualityTracker.qualityOf(targetVM.getHostname()));
+            if (quality <= 0) {
+                // If we have no information about the agent, we have to assume something.
+                quality = QUALITY_OF_UNKNOWN_AGENT;
+            }
+
             if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active) {
-                return ACTIVE_INSTANCE_GROUP_SCORE;
+                return quality * ACTIVE_INSTANCE_GROUP_SCORE;
             } else if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut) {
-                return PHASED_OUT_INSTANCE_GROUP_SCORE;
+                return quality * PHASED_OUT_INSTANCE_GROUP_SCORE;
             }
         }
 

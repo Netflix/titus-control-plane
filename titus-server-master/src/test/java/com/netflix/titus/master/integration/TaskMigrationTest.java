@@ -59,7 +59,7 @@ public class TaskMigrationTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud();
     }
 
-    @Test(timeout = 30_000)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void doNotMigrateBatchJob() throws Exception {
         instanceGroupsScenarioBuilder.template(InstanceGroupScenarioTemplates.activate("flex1"));
 
@@ -79,12 +79,13 @@ public class TaskMigrationTest extends BaseIntegrationTest {
         );
     }
 
-    @Test(timeout = 30_000)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void migrateServiceJob() throws Exception {
         instanceGroupsScenarioBuilder.template(InstanceGroupScenarioTemplates.activate("flex1"));
 
         jobsScenarioBuilder.schedule(oneTaskServiceJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startJob(TaskStatus.TaskState.Started))
+                .assertEachTask(task -> task.getTaskContext().get("agent.asg").equals("flex1"), "Task should be on instance group flex1")
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
                         .expectInstanceType(AwsInstanceType.M3_2XLARGE)
                         .andThen(() -> {
@@ -97,10 +98,12 @@ public class TaskMigrationTest extends BaseIntegrationTest {
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
                         .assertTask(task -> task.getResubmitNumber() == 1, "Task not resubmitted")
                 )
+                .template(ScenarioTemplates.startTasks())
+                .assertEachTask(task -> task.getTaskContext().get("agent.asg").equals("flex2"), "Task should be on instance group flex2")
         );
     }
 
-    @Test(timeout = 30_000)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void migrateServiceJobAndVerifyThatOnlyOneTaskIsMigratedFirst() throws Exception {
         JobDescriptor<ServiceJobExt> twoTaskJob = oneTaskServiceJobDescriptor().but(jd ->
                 jd.getExtensions().toBuilder().withCapacity(

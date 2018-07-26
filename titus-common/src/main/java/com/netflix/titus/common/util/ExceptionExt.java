@@ -18,6 +18,7 @@ package com.netflix.titus.common.util;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -68,6 +69,19 @@ public class ExceptionExt {
         try {
             func.run();
         } catch (Throwable e) {
+            rethrow(e);
+        }
+    }
+
+    public static void rethrow(RunnableWithExceptions func, Consumer<Throwable> onErrorHandler) {
+        try {
+            func.run();
+        } catch (Throwable e) {
+            try {
+                onErrorHandler.accept(e);
+            } catch (Exception e2) {
+                // Ignore
+            }
             rethrow(e);
         }
     }

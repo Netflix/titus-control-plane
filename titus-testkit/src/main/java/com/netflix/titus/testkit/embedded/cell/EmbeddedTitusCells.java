@@ -39,20 +39,6 @@ public class EmbeddedTitusCells {
                 .build();
     }
 
-    public static EmbeddedTitusCell basicV3OnlyCell(String cellName, int desired) {
-        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(desired);
-
-        return EmbeddedTitusCell.aTitusCell()
-                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
-                        .withCellName(cellName)
-                        .withProperty("titus.master.grpcServer.v3EnabledApps", ".*")
-                        .withV2Engine(false)
-                        .build()
-                )
-                .withDefaultGateway()
-                .build();
-    }
-
     public static EmbeddedTitusCell twoPartitionsPerTierCell(int desired) {
         SimulatedCloud simulatedCloud = SimulatedClouds.twoPartitionsPerTierStack(desired);
 

@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * {@code TASK_LIFECYCLE_2=selector: slots=1.. slotStep=2; launched: delay=2s; startInitiated: action=finish titusReasonCode=failed failureMessage='rate limited'}<br>
  * <p>or:<br/>
  * {@code TASK_LIFECYCLE_1=selector: resubmits=0,1 slots=0.. slotStep=2; launched: delay=2s; startInitiated: action=forget}<br>
- * {@code TASK_LIFECYCLE_2=selector: resubmits=2..; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
+ * {@code TASK_LIFECYCLE_2=selector: resubmits=2.. instances=flex1,flex2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
  */
 class PlayerParser {
 
@@ -55,7 +55,7 @@ class PlayerParser {
 
     static final String KEY_PREFIX = "TASK_LIFECYCLE_";
 
-    static List<Pair<ContainerSelector, ContainerRules>> parse(Map<String, String> env) {
+    static List<Pair<RuleSelector, ContainerRules>> parse(Map<String, String> env) {
         try {
             return parseInternal(env).onErrorGet(PlayerParser::crash);
         } catch (Exception e) {
@@ -64,8 +64,8 @@ class PlayerParser {
         }
     }
 
-    static Either<List<Pair<ContainerSelector, ContainerRules>>, String> parseInternal(Map<String, String> env) {
-        SortedMap<Integer, Pair<ContainerSelector, ContainerRules>> result = new TreeMap<>(Integer::compareTo);
+    static Either<List<Pair<RuleSelector, ContainerRules>>, String> parseInternal(Map<String, String> env) {
+        SortedMap<Integer, Pair<RuleSelector, ContainerRules>> result = new TreeMap<>(Integer::compareTo);
 
         for (Map.Entry<String, String> entry : env.entrySet()) {
             String key = entry.getKey();
@@ -79,7 +79,7 @@ class PlayerParser {
             if (!index.isPresent()) {
                 return Either.ofError(String.format("Invalid index %s in task lifecycle entry: %s=%s", key, key, value));
             }
-            Either<Pair<ContainerSelector, ContainerRules>, String> parsedValue = parseLine(index.get(), value);
+            Either<Pair<RuleSelector, ContainerRules>, String> parsedValue = parseLine(index.get(), value);
             if (parsedValue.hasError()) {
                 return Either.ofError(String.format("%s in task lifecycle entry: %s=%s", parsedValue.getError(), key, value));
             }
@@ -98,8 +98,8 @@ class PlayerParser {
         return Optional.empty();
     }
 
-    private static Either<Pair<ContainerSelector, ContainerRules>, String> parseLine(int index, String value) {
-        ContainerSelector selector = null;
+    private static Either<Pair<RuleSelector, ContainerRules>, String> parseLine(int index, String value) {
+        RuleSelector selector = null;
         Map<SimulatedTaskState, ContainerStateRule> stateRules = new HashMap<>();
 
         for (String part : value.split("\\s*;\\s*")) {
@@ -117,7 +117,7 @@ class PlayerParser {
                 parameters.put(matcher.group(1).trim(), matcher.group(2).trim());
             }
             if (partName.equals("selector")) {
-                Either<ContainerSelector, String> selectorResult = parseSelectorEntry(parameters);
+                Either<RuleSelector, String> selectorResult = parseSelectorEntry(parameters);
                 if (selectorResult.hasError()) {
                     return Either.ofError(selectorResult.getError());
                 }
@@ -132,7 +132,7 @@ class PlayerParser {
         }
 
         if (selector == null) {
-            selector = ContainerSelector.everything();
+            selector = RuleSelector.everything();
         }
         if (stateRules.isEmpty()) {
             return Either.ofError(String.format("Task lifecycle with incomplete state rules: %s=%s", index, value));
@@ -155,8 +155,8 @@ class PlayerParser {
         throw new IllegalStateException("Unknown task state: " + partName);
     }
 
-    private static Either<ContainerSelector, String> parseSelectorEntry(Map<String, String> parameters) {
-        ContainerSelector.Builder builder = ContainerSelector.newBuilder();
+    private static Either<RuleSelector, String> parseSelectorEntry(Map<String, String> parameters) {
+        RuleSelector.Builder builder = RuleSelector.newBuilder();
 
         for (Map.Entry<String, String> entry : parameters.entrySet()) {
             String name = entry.getKey();
@@ -189,6 +189,9 @@ class PlayerParser {
                     } catch (NumberFormatException e) {
                         return Either.ofError(String.format("Invalid resubmit step '%s'", value));
                     }
+                    break;
+                case "instances":
+                    builder.withInstances(value.split("\\s*,\\s*"));
                     break;
                 default:
                     return Either.ofError(String.format("Invalid parameter name '%s'", name));
@@ -235,10 +238,10 @@ class PlayerParser {
         return Either.ofValue(builder.build());
     }
 
-    private static List<Pair<ContainerSelector, ContainerRules>> crash(String reasonMessage) {
+    private static List<Pair<RuleSelector, ContainerRules>> crash(String reasonMessage) {
         return Collections.singletonList(
                 Pair.of(
-                        ContainerSelector.everything(),
+                        RuleSelector.everything(),
                         new ContainerRules(Collections.singletonMap(
                                 SimulatedTaskState.Launched,
                                 ContainerStateRule.newBuilder()

@@ -71,7 +71,7 @@ class StubbedSchedulingService implements SchedulingService {
 
     @Override
     public void initRunningTask(QueuableTask task, String hostname) {
-        throw new IllegalStateException("not implemented yet");
+        queuableTasks.put(task.getId(), task);
     }
 
     @Override

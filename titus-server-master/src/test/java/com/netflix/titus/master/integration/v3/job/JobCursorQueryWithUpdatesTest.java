@@ -70,18 +70,13 @@ public class JobCursorQueryWithUpdatesTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
-        JobDescriptor<ServiceJobExt> v2App = JobDescriptorGenerator.oneTaskServiceJobDescriptor()
-                .but(jd -> jd.toBuilder().withApplicationName(TitusStackResource.V2_ENGINE_APP_PREFIX).build())
+        JobDescriptor<ServiceJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskServiceJobDescriptor()
                 .but(jd -> jd.getExtensions().toBuilder().withCapacity(
                         Capacity.newBuilder().withMin(0).withDesired(TASKS_PER_JOB).withMax(TASKS_PER_JOB).build()
                 ).build());
 
-        JobDescriptor<ServiceJobExt> v3App = v2App.but(jd ->
-                jd.toBuilder().withApplicationName(TitusStackResource.V3_ENGINE_APP_PREFIX).build()
-        );
-
-        jobsScenarioBuilder.schedule(v2App, JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
-        jobsScenarioBuilder.schedule(v3App, JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
+        jobsScenarioBuilder.schedule(jobDescriptor.toBuilder().withApplicationName("app1").build(), JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
+        jobsScenarioBuilder.schedule(jobDescriptor.toBuilder().withApplicationName("app2").build(), JOBS_PER_ENGINE, ScenarioTemplates.startTasksInNewJob());
 
         this.allJobsInOrder = client.findJobs(JobQuery.newBuilder().setPage(Page.newBuilder().setPageSize(Integer.MAX_VALUE / 2)).build()).getItemsList();
         assertThat(allJobsInOrder).hasSize(2 * JOBS_PER_ENGINE);
@@ -99,21 +94,16 @@ public class JobCursorQueryWithUpdatesTest extends BaseIntegrationTest {
         assertThat(result0.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(0, 2));
 
         // Remove item at the cursor position
-        jobsScenarioBuilder.takeJob(result0.getItems(1).getId())
-                .onV2Template(ScenarioTemplates.killV2Job())
-                .onV3Template(ScenarioTemplates.killJob());
+        jobsScenarioBuilder.takeJob(result0.getItems(1).getId()).template(ScenarioTemplates.killJob());
+
         JobQueryResult result1 = client.findJobs(JobQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(2).setCursor(result0.getPagination().getCursor())).build()
         );
         assertThat(result1.getItemsList()).containsExactlyElementsOf(allJobsInOrder.subList(2, 4));
 
         // Remove last items
-        jobsScenarioBuilder.takeJob(allJobsInOrder.get(4).getId())
-                .onV2Template(ScenarioTemplates.killV2Job())
-                .onV3Template(ScenarioTemplates.killJob());
-        jobsScenarioBuilder.takeJob(allJobsInOrder.get(5).getId())
-                .onV2Template(ScenarioTemplates.killV2Job())
-                .onV3Template(ScenarioTemplates.killJob());
+        jobsScenarioBuilder.takeJob(allJobsInOrder.get(4).getId()).template(ScenarioTemplates.killJob());
+        jobsScenarioBuilder.takeJob(allJobsInOrder.get(5).getId()).template(ScenarioTemplates.killJob());
 
         JobQueryResult result2 = client.findJobs(JobQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(2).setCursor(result1.getPagination().getCursor())).build()
@@ -131,8 +121,7 @@ public class JobCursorQueryWithUpdatesTest extends BaseIntegrationTest {
 
         // Remove item at the cursor position
         jobsScenarioBuilder.takeJob(result0.getItems(3).getJobId())
-                .onV2Template(jb -> jb.getTask(result0.getItems(3).getId()).template(ScenarioTemplates.terminateAndShrinkV2()).toJob())
-                .onV3Template(jb -> jb.getTask(result0.getItems(3).getId()).template(ScenarioTemplates.terminateAndShrinkV3()).toJob());
+                .getTask(result0.getItems(3).getId()).template(ScenarioTemplates.terminateAndShrinkV3());
         TaskQueryResult result1 = client.findTasks(TaskQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(4).setCursor(result0.getPagination().getCursor())).build()
         );
@@ -140,11 +129,9 @@ public class JobCursorQueryWithUpdatesTest extends BaseIntegrationTest {
 
         // Remove last items
         jobsScenarioBuilder.takeJob(allTasksInOrder.get(10).getJobId())
-                .onV2Template(jb -> jb.getTask(allTasksInOrder.get(10).getId()).template(ScenarioTemplates.terminateAndShrinkV2()).toJob())
-                .onV3Template(jb -> jb.getTask(allTasksInOrder.get(10).getId()).template(ScenarioTemplates.terminateAndShrinkV3()).toJob());
+                .getTask(allTasksInOrder.get(10).getId()).template(ScenarioTemplates.terminateAndShrinkV3());
         jobsScenarioBuilder.takeJob(allTasksInOrder.get(11).getJobId())
-                .onV2Template(jb -> jb.getTask(allTasksInOrder.get(11).getId()).template(ScenarioTemplates.terminateAndShrinkV2()).toJob())
-                .onV3Template(jb -> jb.getTask(allTasksInOrder.get(11).getId()).template(ScenarioTemplates.terminateAndShrinkV3()).toJob());
+                .getTask(allTasksInOrder.get(11).getId()).template(ScenarioTemplates.terminateAndShrinkV3());
 
         TaskQueryResult result2 = client.findTasks(TaskQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(2).setCursor(result1.getPagination().getCursor())).build()

@@ -38,7 +38,7 @@ import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.cassandraunit.CassandraCQLUnit;
@@ -51,7 +51,7 @@ import rx.Observable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Category(IntegrationTest.class)
+@Category(IntegrationNotParallelizableTest.class)
 public class CassandraJobStoreTest {
 
     private static final long STARTUP_TIMEOUT_MS = 30_000L;

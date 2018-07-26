@@ -299,18 +299,6 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     }
 
     @Test
-    public void testSubmitJobsWithIdenticalJobGroupIdentityOnV2Engine() throws Exception {
-        JobDescriptor jobDescriptor = toGrpcJobDescriptor(JobDescriptorGenerator.oneTaskServiceJobDescriptor());
-        try {
-            client.createJob(jobDescriptor).getId();
-            client.createJob(jobDescriptor).getId();
-            fail("Expected test to fail");
-        } catch (StatusRuntimeException e) {
-            assertThat(e.getMessage()).containsPattern(Pattern.compile("job with group sequence.*exists"));
-        }
-    }
-
-    @Test
     public void testSubmitJobsWithIdenticalJobGroupIdentityOnV3Engine() throws Exception {
         JobDescriptor jobDescriptor = toGrpcJobDescriptor(JobDescriptorGenerator.oneTaskServiceJobDescriptor()
                 .but(jd -> jd.toBuilder().withApplicationName("v3App").build())

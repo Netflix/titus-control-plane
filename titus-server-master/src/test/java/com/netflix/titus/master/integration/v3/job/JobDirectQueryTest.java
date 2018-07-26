@@ -16,7 +16,7 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
-import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -27,7 +27,6 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
-import com.netflix.titus.master.integration.v3.scenario.ScenarioUtil;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -38,11 +37,12 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class JobDirectQueryTest extends BaseIntegrationTest {
-    private static final String NON_EXISTING_V2_ID = "Titus-non_existing_id";
     private static final String NON_EXISTING_V3_ID = "non_existing_id";
 
     private static final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
@@ -56,15 +56,11 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
 
     private static JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
-    private static String v2BatchJobId;
-    private static String v2BatchTaskId;
     private static String v3BatchJobId;
     private static String v3BatchTaskId;
     private static String v3ArchivedBatchJobId;
     private static String v3ArchivedBatchTaskId;
 
-    private static String v2ServiceJobId;
-    private static String v2ServiceTaskId;
     private static String v3ServiceJobId;
 
     @BeforeClass
@@ -75,45 +71,28 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
 
         // Batch Jobs
         jobsScenarioBuilder.schedule(
-                ScenarioUtil.baseBatchJobDescriptor(true).build(),
-                jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startV2TasksInNewJob())
-        );
-        jobsScenarioBuilder.schedule(
-                ScenarioUtil.baseBatchJobDescriptor(false).build(),
+                oneTaskBatchJobDescriptor(),
                 jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startTasksInNewJob())
         );
         jobsScenarioBuilder.schedule(
-                ScenarioUtil.baseBatchJobDescriptor(false).build(),
+                oneTaskBatchJobDescriptor(),
                 jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startTasksInNewJob())
                         .allTasks(ScenarioTemplates.completeTask())
-                        .killJob()
+                        .expectJobUpdateEvent(job -> job.getStatus().getState() == JobState.Finished, "Expected job to finish")
         );
 
         //Service Jobs
         jobsScenarioBuilder.schedule(
-                ScenarioUtil.baseServiceJobDescriptor(true).build(),
-                jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startV2TasksInNewJob())
-        );
-        jobsScenarioBuilder.schedule(
-                ScenarioUtil.baseServiceJobDescriptor(false).build(),
+                oneTaskServiceJobDescriptor(),
                 jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startTasksInNewJob())
         );
 
-        v2BatchJobId = jobsScenarioBuilder.takeJobId(0);
-        v2BatchTaskId = jobsScenarioBuilder.takeTaskId(0, 0);
-        v3BatchJobId = jobsScenarioBuilder.takeJobId(1);
-        v3BatchTaskId = jobsScenarioBuilder.takeTaskId(1, 0);
-        v3ArchivedBatchJobId = jobsScenarioBuilder.takeJobId(2);
-        v3ArchivedBatchTaskId = jobsScenarioBuilder.takeTaskId(2, 0);
+        v3BatchJobId = jobsScenarioBuilder.takeJobId(0);
+        v3BatchTaskId = jobsScenarioBuilder.takeTaskId(0, 0);
+        v3ArchivedBatchJobId = jobsScenarioBuilder.takeJobId(1);
+        v3ArchivedBatchTaskId = jobsScenarioBuilder.takeTaskId(1, 0);
 
-        v2ServiceJobId = jobsScenarioBuilder.takeJobId(3);
-        v2ServiceTaskId = jobsScenarioBuilder.takeTaskId(3, 0);
-        v3ServiceJobId = jobsScenarioBuilder.takeJobId(4);
-    }
-
-    @Test(timeout = 30_000)
-    public void testFindBatchJobByIdV2() throws Exception {
-        testFindBatchJob(v2BatchJobId);
+        v3ServiceJobId = jobsScenarioBuilder.takeJobId(2);
     }
 
     @Test(timeout = 30_000)
@@ -133,11 +112,6 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testFindServiceJobByIdV2() throws Exception {
-        testFindServiceJob(v2ServiceJobId);
-    }
-
-    @Test(timeout = 30_000)
     public void testFindServiceJobByIdV3() throws Exception {
         testFindServiceJob(v3ServiceJobId);
     }
@@ -150,42 +124,11 @@ public class JobDirectQueryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    public void testFindNonExistingJobByIdV2() throws Exception {
-        try {
-            client.findJob(JobId.newBuilder().setId(NON_EXISTING_V2_ID).build());
-        } catch (Exception e) {
-            assertThat(e.getMessage()).contains(NON_EXISTING_V2_ID);
-        }
-    }
-
-    @Test(timeout = 30_000)
     public void testFindNonExistingJobByIdV3() throws Exception {
         try {
             client.findJob(JobId.newBuilder().setId(NON_EXISTING_V3_ID).build());
         } catch (Exception e) {
             assertThat(e.getMessage()).contains(NON_EXISTING_V3_ID);
-        }
-    }
-
-    @Test(timeout = 30_000)
-    public void testFindBatchTaskByIdV2() throws Exception {
-        Task task = client.findTask(TaskId.newBuilder().setId(v2BatchTaskId).build());
-        assertThat(task.getId()).isEqualTo(v2BatchTaskId);
-    }
-
-    @Test(timeout = 30_000)
-    public void testFindServiceTaskByIdV2() throws Exception {
-        Task task = client.findTask(TaskId.newBuilder().setId(v2ServiceTaskId).build());
-        assertThat(task.getId()).isEqualTo(v2ServiceTaskId);
-        assertThat(task.getTaskContextMap().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)).isNotEmpty();
-    }
-
-    @Test(timeout = 30_000)
-    public void testFindNonExistingTaskByIdV2() throws Exception {
-        try {
-            client.findTask(TaskId.newBuilder().setId(NON_EXISTING_V2_ID).build());
-        } catch (Exception e) {
-            assertThat(e.getMessage()).contains(NON_EXISTING_V2_ID);
         }
     }
 

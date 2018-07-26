@@ -1,4 +1,5 @@
 FROM openjdk:8 as builder
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
 ## install gradle
 COPY gradlew gradle.properties /usr/src/titus-control-plane/
 COPY gradle /usr/src/titus-control-plane/gradle/

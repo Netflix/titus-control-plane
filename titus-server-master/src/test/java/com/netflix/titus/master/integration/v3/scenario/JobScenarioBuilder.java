@@ -37,7 +37,6 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -118,7 +117,7 @@ public class JobScenarioBuilder {
                 .map(event -> event.getTaskUpdate().getTask())
                 .subscribe(
                         grpcTask -> {
-                            Task coreTask = V3GrpcModelConverters.toCoreTask(grpcTask);
+                            Task coreTask = V3GrpcModelConverters.toCoreTask(getJob(), grpcTask);
                             String taskId = coreTask.getId();
                             TaskHolder taskHolder = taskHolders.get(taskId);
                             if (taskHolder == null) {
@@ -186,14 +185,6 @@ public class JobScenarioBuilder {
         return templateFun.apply(this);
     }
 
-    public JobScenarioBuilder onV2Template(Function<JobScenarioBuilder, JobScenarioBuilder> templateFun) {
-        return !JobFunctions.isV2JobId(jobId) ? this : templateFun.apply(this);
-    }
-
-    public JobScenarioBuilder onV3Template(Function<JobScenarioBuilder, JobScenarioBuilder> templateFun) {
-        return JobFunctions.isV2JobId(jobId) ? this : templateFun.apply(this);
-    }
-
     public JobScenarioBuilder allTasks(Function<TaskScenarioBuilder, TaskScenarioBuilder> taskActions) {
         return inTasks(t -> true, taskActions);
     }
@@ -229,7 +220,7 @@ public class JobScenarioBuilder {
                 JobCapacityUpdate.newBuilder().setJobId(jobId).setCapacity(toGrpcCapacity(capacity)).build(),
                 responseObserver
         );
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
@@ -246,7 +237,7 @@ public class JobScenarioBuilder {
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
         client.updateJobStatus(JobStatusUpdate.newBuilder().setId(jobId).setEnableStatus(enabled).build(), responseObserver);
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
@@ -263,7 +254,7 @@ public class JobScenarioBuilder {
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
         client.killJob(JobId.newBuilder().setId(jobId).build(), responseObserver);
-        rethrow(responseObserver::awaitDone);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Job {} killed in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;

@@ -33,7 +33,7 @@ import com.datastax.driver.core.Session;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.Rule;
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 
-@Category(IntegrationTest.class)
+@Category(IntegrationNotParallelizableTest.class)
 public class CassandraLoadBalancerStoreTest {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStoreTest.class);
 
