@@ -216,6 +216,10 @@ public class DefaultAutoScaleController implements AutoScaleController {
             logger.warn("Instance group {} is in Inactive state, in which instances cannot be terminated", instanceGroupName);
             return false;
         }
+        if (currentState == InstanceGroupLifecycleState.Removable) {
+            logger.warn("Instance group {} is in Removable state and should be removed by ClusterAgentRemover", instanceGroupName);
+            return false;
+        }
         return true;
     }
 

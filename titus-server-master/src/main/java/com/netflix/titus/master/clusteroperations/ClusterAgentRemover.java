@@ -90,7 +90,7 @@ public class ClusterAgentRemover {
                                ClusterOperationsConfiguration configuration,
                                AgentManagementService agentManagementService,
                                V3JobOperations v3JobOperations) {
-        this(titusRuntime, configuration, agentManagementService, v3JobOperations, Schedulers.computation());
+        this(titusRuntime, configuration, agentManagementService, v3JobOperations, Schedulers.newThread());
     }
 
     public ClusterAgentRemover(TitusRuntime titusRuntime,
@@ -200,7 +200,7 @@ public class ClusterAgentRemover {
                     String instanceGroupId = entry.getKey().getId();
                     List<AgentInstance> agentInstancesToTerminate = agentInstances.size() > tokensAvailable ? agentInstances.subList(0, (int) tokensRemaining) : agentInstances;
                     List<String> agentInstanceIdsToTerminate = agentInstancesToTerminate.stream().map(AgentInstance::getId).collect(Collectors.toList());
-                    logger.info("Terminating in instance group: {} agent instances: {}", instanceGroupId, agentInstanceIdsToTerminate);
+                    logger.info("Terminating in instance group: {} agent instances({}): {}", instanceGroupId, agentInstanceIdsToTerminate.size(), agentInstanceIdsToTerminate);
                     terminateAgentObservables.add(createTerminateAction(instanceGroupId, agentInstanceIdsToTerminate));
                     tokensUsed += agentInstanceIdsToTerminate.size();
                 }
