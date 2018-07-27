@@ -19,10 +19,10 @@ package com.netflix.titus.master.jobmanager.service;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,6 +50,8 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.model.ContainerStatus;
+import com.netflix.titus.master.mesos.model.NetworkConfigurationUpdate;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import org.apache.mesos.Protos;
 
@@ -95,15 +97,20 @@ public final class JobManagerUtil {
         return Pair.of(applicationSLA.getTier(), capacityGroup);
     }
 
-    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, Optional<TitusExecutorDetails> detailsOpt, TitusRuntime titusRuntime) {
+    public static Function<Task, Optional<Task>> newMesosTaskStateUpdater(TaskStatus newTaskStatus, List<ContainerStatus> containerUpdates, TitusRuntime titusRuntime) {
         return oldTask -> {
             TaskState oldState = oldTask.getStatus().getState();
             TaskState newState = newTaskStatus.getState();
 
+            Optional<NetworkConfigurationUpdate> networkConfigurationUpdate = containerUpdates.stream()
+                    .filter(u -> u instanceof NetworkConfigurationUpdate)
+                    .map(u -> (NetworkConfigurationUpdate) u)
+                    .findFirst();
+
             // De-duplicate task status updates. 'Launched' state is reported from two places, so we get
             // 'Launched' state update twice. For other states there may be multiple updates, each with different reason.
             // For example in 'StartInitiated', multiple updates are send reporting progress of a container setup.
-            if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus()) && !detailsOpt.isPresent()) {
+            if (TaskStatus.areEquivalent(newTaskStatus, oldTask.getStatus()) && !networkConfigurationUpdate.isPresent()) {
                 return Optional.empty();
             }
             if (newState == oldState && newState == TaskState.Launched) {
@@ -116,20 +123,21 @@ public final class JobManagerUtil {
             }
 
             final Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
-            Task newTaskWithPlacementData = detailsOpt.map(details -> {
-                if (details.getNetworkConfiguration() != null) {
 
-                    Map<String, String> newContext = new HashMap<>(newTask.getTaskContext());
-                    BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
+            Task newTaskWithPlacementData = networkConfigurationUpdate.map(details -> {
+                Map<String, String> newContext = new HashMap<>(newTask.getTaskContext());
+                newContext.put(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, details.getIpAddress());
+                newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, details.getEniId());
 
-                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, details.getNetworkConfiguration().getIpAddress());
-                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, details.getNetworkConfiguration().getEniID());
-                    parseEniResourceId(details.getNetworkConfiguration().getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
-
-                    return newTask.toBuilder().addAllToTaskContext(newContext).build();
+                if (!newTask.getTwoLevelResources().isEmpty()) {
+                    newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, Integer.toString(newTask.getTwoLevelResources().get(0).getIndex()));
                 }
-                return newTask;
+
+                // Local variable required due to issues with the type inference.
+                Task newTaskWithNetworkInfo = newTask.toBuilder().addAllToTaskContext(newContext).build();
+                return newTaskWithNetworkInfo;
             }).orElse(newTask);
+
             return Optional.of(newTaskWithPlacementData);
         };
     }

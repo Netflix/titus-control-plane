@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos;
+package com.netflix.titus.master.mesos.model;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 
@@ -28,20 +28,20 @@ public class V3ContainerEvent implements ContainerEvent {
     private final String reasonCode;
     private final String reasonMessage;
     private final long timestamp;
-    private final Optional<TitusExecutorDetails> titusExecutorDetails;
+    private final List<ContainerStatus> containerStatuses;
 
     public V3ContainerEvent(String taskId,
                             TaskState taskState,
                             String reasonCode,
                             String reasonMessage,
                             long timestamp,
-                            Optional<TitusExecutorDetails> titusExecutorDetails) {
+                            List<ContainerStatus> containerStatuses) {
         this.taskId = taskId;
         this.taskState = taskState;
         this.reasonCode = reasonCode;
         this.reasonMessage = reasonMessage;
         this.timestamp = timestamp;
-        this.titusExecutorDetails = titusExecutorDetails;
+        this.containerStatuses = containerStatuses;
     }
 
     public String getTaskId() {
@@ -64,8 +64,8 @@ public class V3ContainerEvent implements ContainerEvent {
         return timestamp;
     }
 
-    public Optional<TitusExecutorDetails> getTitusExecutorDetails() {
-        return titusExecutorDetails;
+    public List<ContainerStatus> getContainerStatuses() {
+        return containerStatuses;
     }
 
     @Override
@@ -82,12 +82,12 @@ public class V3ContainerEvent implements ContainerEvent {
                 taskState == that.taskState &&
                 Objects.equals(reasonCode, that.reasonCode) &&
                 Objects.equals(reasonMessage, that.reasonMessage) &&
-                Objects.equals(titusExecutorDetails, that.titusExecutorDetails);
+                Objects.equals(containerStatuses, that.containerStatuses);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, taskState, reasonCode, reasonMessage, timestamp, titusExecutorDetails);
+        return Objects.hash(taskId, taskState, reasonCode, reasonMessage, timestamp, containerStatuses);
     }
 
     @Override
@@ -98,7 +98,7 @@ public class V3ContainerEvent implements ContainerEvent {
                 ", reasonCode='" + reasonCode + '\'' +
                 ", reasonMessage='" + reasonMessage + '\'' +
                 ", timestamp=" + timestamp +
-                ", titusExecutorDetails=" + titusExecutorDetails +
+                ", containerStatuses=" + containerStatuses +
                 '}';
     }
 }

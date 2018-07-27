@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos;
+package com.netflix.titus.master.mesos.model;
 
 public interface ContainerEvent {
 }
