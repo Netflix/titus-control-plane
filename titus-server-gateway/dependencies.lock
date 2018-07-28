@@ -4423,7 +4423,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.19.1",
+            "locked": "2.20.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
@@ -5714,7 +5714,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.19.1",
+            "locked": "2.20.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
@@ -7005,7 +7005,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.19.1",
+            "locked": "2.20.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
@@ -8297,7 +8297,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.19.1",
+            "locked": "2.20.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
