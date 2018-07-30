@@ -17,25 +17,18 @@
 package com.netflix.titus.master.endpoint.v2;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 
 import com.google.common.base.Preconditions;
-import com.netflix.fenzo.queues.QueuableTask;
-import com.netflix.fenzo.queues.TaskQueue;
 import com.netflix.titus.api.endpoint.v2.rest.representation.AuditLog;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TaskInfo;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobInfo;
@@ -52,7 +45,6 @@ import com.netflix.titus.api.model.v2.V2JobDurationType;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.api.model.v2.parameter.Parameter;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import com.netflix.titus.api.store.v2.InvalidJobException;
@@ -67,7 +59,6 @@ import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.TitusServiceGateway;
 import com.netflix.titus.master.endpoint.common.CellDecorator;
 import com.netflix.titus.master.endpoint.common.ContextResolver;
-import com.netflix.titus.master.endpoint.common.SchedulerUtil;
 import com.netflix.titus.master.endpoint.common.TaskSummary;
 import com.netflix.titus.master.endpoint.common.TitusServiceGatewayUtil;
 import com.netflix.titus.master.endpoint.v2.rest.RestConfig;
@@ -357,38 +348,7 @@ public class V2LegacyTitusServiceGateway extends V2EngineTitusServiceGateway<
 
     @Override
     public Observable<List<TaskSummary>> getTaskSummary() {
-        return TitusServiceGatewayUtil.newObservable(subscriber -> {
-            final Map<TaskQueue.TaskState, Collection<QueuableTask>> tasksMap =
-                    SchedulerUtil.blockAndGetTasksFromQueue(schedulingService);
-            if (tasksMap == null) {
-                throw new WebApplicationException(new TimeoutException("Timed out waiting for queue list"), Response.Status.INTERNAL_SERVER_ERROR);
-            }
-
-            Map<String, Map<TaskQueue.TaskState, Integer>> result = new HashMap<>();
-            for (TaskQueue.TaskState s : TaskQueue.TaskState.values()) {
-                if (tasksMap.get(s) != null) {
-                    for (QueuableTask t : tasksMap.get(s)) {
-                        final V2JobMetadata jobMetadata = getJobMetadata(t.getId());
-                        if (jobMetadata != null) {
-                            String appName = Parameters.getAppName(jobMetadata.getParameters());
-                            if (appName == null) {
-                                appName = "NULL";
-                            }
-                            result.putIfAbsent(appName, new HashMap<>());
-                            final Map<TaskQueue.TaskState, Integer> stateIntegerMap = result.get(appName);
-                            stateIntegerMap.putIfAbsent(s, 0);
-                            stateIntegerMap.put(s, stateIntegerMap.get(s) + 1);
-                        }
-                    }
-                }
-            }
-            List<TaskSummary> summaries = new LinkedList<>();
-            for (Map.Entry<String, Map<TaskQueue.TaskState, Integer>> entry : result.entrySet()) {
-                summaries.add(new TaskSummary(entry.getKey(), entry.getValue()));
-            }
-            subscriber.onNext(summaries);
-            subscriber.onCompleted();
-        });
+        return Observable.empty();
     }
 
     private V2JobMetadata getJobMetadata(String taskId) {

@@ -76,7 +76,6 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
@@ -94,9 +93,7 @@ import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
-import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.scheduler.constraint.TaskCache;
 import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculator;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
@@ -123,6 +120,10 @@ public class DefaultSchedulingService implements SchedulingService {
     private static final String METRIC_SLA_UPDATES = METRIC_SCHEDULING_SERVICE + "slaUpdates";
     private static final String METRIC_SCHEDULING_ITERATION_LATENCY = METRIC_SCHEDULING_SERVICE + "schedulingIterationLatency";
     private static final long vmCurrentStatesCheckIntervalMillis = 10_000L;
+
+    // Choose this max delay between scheduling iterations with care. Making it too short makes scheduler do unnecessary
+    // work when assignments are not possible. On the other hand, making it too long will delay other aspects such as
+    // triggerring autoscale actions, expiring mesos offers, etc.
     private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
 
     private final VirtualMachineMasterService virtualMachineService;
@@ -136,11 +137,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
     private Subscription slaUpdateSubscription;
-    // Choose this max delay between scheduling iterations with care. Making it too short makes scheduler do unnecessary
-    // work when assignments are not possible. On the other hand, making it too long will delay other aspects such as
-    // triggerring autoscale actions, expiring mesos offers, etc.
 
-    private final ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer;
     private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
     private final Gauge totalTasksPerIterationGauge;
@@ -177,7 +174,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final AtomicLong totalSchedulingIterationMesosLatency;
 
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
-    private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
     private final TaskPlacementRecorder taskPlacementRecorder;
     private final Scheduler threadScheduler;
@@ -207,10 +203,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     final VirtualMachineMasterService virtualMachineService,
                                     MasterConfiguration masterConfiguration,
                                     SchedulerConfiguration schedulerConfiguration,
-                                    SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
                                     TaskCache taskCache,
-                                    ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
                                     ScaleDownOrderEvaluator scaleDownOrderEvaluator,
@@ -224,7 +218,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Config config) {
         this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
                 virtualMachineService, masterConfiguration, schedulerConfiguration,
-                systemSoftConstraint, systemHardConstraint, taskCache, v2ConstraintEvaluatorTransformer,
+                systemHardConstraint, taskCache,
                 Schedulers.computation(),
                 tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
                 preferentialNamedConsumableResourceEvaluator, agentManagementFitnessCalculator,
@@ -241,10 +235,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     final VirtualMachineMasterService virtualMachineService,
                                     MasterConfiguration masterConfiguration,
                                     SchedulerConfiguration schedulerConfiguration,
-                                    SystemSoftConstraint systemSoftConstraint,
                                     SystemHardConstraint systemHardConstraint,
                                     TaskCache taskCache,
-                                    ConstraintEvaluatorTransformer<JobConstraints> v2ConstraintEvaluatorTransformer,
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
@@ -265,14 +257,12 @@ public class DefaultSchedulingService implements SchedulingService {
         this.virtualMachineService = virtualMachineService;
         this.masterConfiguration = masterConfiguration;
         this.schedulerConfiguration = schedulerConfiguration;
-        this.v2ConstraintEvaluatorTransformer = v2ConstraintEvaluatorTransformer;
         this.threadScheduler = threadScheduler;
         this.tierSlaUpdater = tierSlaUpdater;
         this.registry = registry;
         this.taskMigrator = taskMigrator;
         this.titusRuntime = titusRuntime;
         this.agentResourceCache = agentResourceCache;
-        this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
 
@@ -355,21 +345,6 @@ public class DefaultSchedulingService implements SchedulingService {
             builder.withOptimizingShortfallEvaluator();
         }
         return builder.build();
-    }
-
-    @Override
-    public SystemSoftConstraint getSystemSoftConstraint() {
-        return systemSoftConstraint;
-    }
-
-    @Override
-    public SystemHardConstraint getSystemHardConstraint() {
-        return systemHardConstraint;
-    }
-
-    @Override
-    public ConstraintEvaluatorTransformer<JobConstraints> getV2ConstraintEvaluatorTransformer() {
-        return v2ConstraintEvaluatorTransformer;
     }
 
     private void setupVmOps(final String attrName) {
@@ -498,25 +473,6 @@ public class DefaultSchedulingService implements SchedulingService {
                 vmCurrentStatesCheckIntervalMillis, vmCurrentStatesCheckIntervalMillis,
                 TimeUnit.MILLISECONDS
         );
-    }
-
-    @Override
-    public void registerTaskQListAction(
-            com.netflix.fenzo.functions.Action1<Map<TaskQueue.TaskState, Collection<QueuableTask>>> action
-    ) throws IllegalStateException {
-        try {
-            schedulingService.requestAllTasks(action);
-        } catch (TaskQueueException e) {
-            throw new IllegalStateException(e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public void registerTaskFailuresAction(String taskId, Action1<List<TaskAssignmentResult>> action
-    ) throws IllegalStateException {
-        if (!taskFailuresActions.offer(Collections.singletonMap(taskId, action))) {
-            throw new IllegalStateException("Too many concurrent requests");
-        }
     }
 
     private void preSchedulingHook() {
@@ -690,7 +646,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public void initRunningTask(QueuableTask task, String hostname) {
+    public void addRunningTask(QueuableTask task, String hostname) {
         logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}", task.getId(), task.getQAttributes(), hostname);
         schedulingService.initializeRunningTask(task, hostname);
         agentResourceCacheUpdater.createOrUpdateAgentResourceCacheForTask(task, hostname);
@@ -723,7 +679,6 @@ public class DefaultSchedulingService implements SchedulingService {
      * FIXME Due to circular dependencies, we cannot depend on the activation framework to do the initialization in the right order.
      * To fix this problem we have to redesign our APIs.
      */
-    @Override
     public void startScheduling() {
         if (schedulerConfiguration.isSchedulerEnabled()) {
             logger.info("Starting the scheduling service");
@@ -734,10 +689,6 @@ public class DefaultSchedulingService implements SchedulingService {
 
         setupVmStatesUpdate();
         agentResourceCacheUpdater.start();
-    }
-
-    public List<VirtualMachineCurrentState> getVmCurrentStates() {
-        return vmCurrentStatesMap.get(0);
     }
 
     public Optional<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
@@ -927,8 +878,4 @@ public class DefaultSchedulingService implements SchedulingService {
         agentResourceCache.shutdown();
     }
 
-    @Override
-    public TaskScheduler getTaskScheduler() {
-        return taskScheduler;
-    }
 }

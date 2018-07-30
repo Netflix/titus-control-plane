@@ -16,43 +16,20 @@
 
 package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
-import com.netflix.fenzo.TaskAssignmentResult;
-import com.netflix.fenzo.TaskScheduler;
-import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
-import com.netflix.fenzo.queues.TaskQueue;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
-import com.netflix.titus.master.scheduler.constraint.V2ConstraintEvaluatorTransformer;
 import rx.Observable;
 
 class StubbedSchedulingService implements SchedulingService {
 
     private final Map<String, QueuableTask> queuableTasks = new HashMap<>();
-
-    @Override
-    public void startScheduling() {
-    }
-
-    @Override
-    public TaskScheduler getTaskScheduler() {
-        return null;
-    }
-
-    @Override
-    public List<VirtualMachineCurrentState> getVmCurrentStates() {
-        throw new UnsupportedOperationException("not implemented");
-    }
 
     public HashMap<String, QueuableTask> getQueuableTasks() {
         return new HashMap<>(queuableTasks);
@@ -70,31 +47,8 @@ class StubbedSchedulingService implements SchedulingService {
     }
 
     @Override
-    public void initRunningTask(QueuableTask task, String hostname) {
+    public void addRunningTask(QueuableTask task, String hostname) {
         queuableTasks.put(task.getId(), task);
-    }
-
-    @Override
-    public SystemSoftConstraint getSystemSoftConstraint() {
-        return null;
-    }
-
-    @Override
-    public SystemHardConstraint getSystemHardConstraint() {
-        return null;
-    }
-
-    @Override
-    public V2ConstraintEvaluatorTransformer getV2ConstraintEvaluatorTransformer() {
-        return null;
-    }
-
-    @Override
-    public void registerTaskQListAction(com.netflix.fenzo.functions.Action1<Map<TaskQueue.TaskState, Collection<QueuableTask>>> action) throws IllegalStateException {
-    }
-
-    @Override
-    public void registerTaskFailuresAction(String taskId, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> action) throws IllegalStateException {
     }
 
     @Override
