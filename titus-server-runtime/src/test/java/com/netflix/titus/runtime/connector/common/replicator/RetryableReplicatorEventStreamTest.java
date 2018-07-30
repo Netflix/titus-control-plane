@@ -77,9 +77,18 @@ public class RetryableReplicatorEventStreamTest {
         testScheduler.advanceTimeBy(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS, TimeUnit.MILLISECONDS);
         assertThat(cacheEventSubscriber.takeNext()).isNull();
 
-        // Recover again
+        // Recover
         eventSubject.onNext(new ReplicatorEvent<>("event2", 2));
         assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(2);
+
+        // Fail again
+        eventSubject.onError(new RuntimeException("simulated error"));
+        testScheduler.advanceTimeBy(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS, TimeUnit.MILLISECONDS);
+        assertThat(cacheEventSubscriber.takeNext()).isNull();
+
+        // Recover again
+        eventSubject.onNext(new ReplicatorEvent<>("event3", 3));
+        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(3);
     }
 
     @Test

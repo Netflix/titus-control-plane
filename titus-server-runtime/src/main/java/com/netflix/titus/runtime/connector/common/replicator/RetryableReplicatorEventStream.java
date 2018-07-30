@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
-import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -17,7 +16,7 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
 
     private static final Logger logger = LoggerFactory.getLogger(RetryableReplicatorEventStream.class);
 
-    private static final ReplicatorEvent<Object> UNINITIALIZED = new ReplicatorEvent<>(JobSnapshot.empty(), 0);
+    private static final ReplicatorEvent<Object> UNINITIALIZED = new ReplicatorEvent<>(new Object(), 0);
 
     static final long INITIAL_RETRY_DELAY_MS = 500;
     static final long MAX_RETRY_DELAY_MS = 2_000;
@@ -39,7 +38,11 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
 
     @Override
     public Observable<ReplicatorEvent<D>> connect() {
-        return createDelegateEmittingAtLeastOneItem((ReplicatorEvent<D>) UNINITIALIZED)
+        return connectInternal((ReplicatorEvent<D>) UNINITIALIZED);
+    }
+
+    private Observable<ReplicatorEvent<D>> connectInternal(ReplicatorEvent<D> lastReplicatorEvent) {
+        return createDelegateEmittingAtLeastOneItem(lastReplicatorEvent)
                 .onErrorResumeNext(e -> {
                     metrics.disconnected();
 
@@ -48,7 +51,7 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                         if (cacheException.getLastCacheEvent().isPresent()) {
                             logger.info("Reconnecting after error: {}", e.getMessage());
                             logger.debug("Stack trace", e);
-                            return createDelegateEmittingAtLeastOneItem((ReplicatorEvent<D>) cacheException.getLastCacheEvent().get());
+                            return connectInternal((ReplicatorEvent<D>) cacheException.getLastCacheEvent().get());
                         }
                     }
 
@@ -61,7 +64,12 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                     metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
                 })
                 .doOnUnsubscribe(metrics::disconnected)
-                .doOnError(metrics::disconnected)
+                .doOnError(error -> {
+                    // Because we always retry, we should never reach this point.
+                    logger.warn("Retryable stream terminated with an error", new IllegalStateException(error)); // Record current stack trace if that happens
+                    titusRuntime.getCodeInvariants().unexpectedError("Retryable stream terminated with an error", error.getMessage());
+                    metrics.disconnected(error);
+                })
                 .doOnCompleted(metrics::disconnected);
     }
 
