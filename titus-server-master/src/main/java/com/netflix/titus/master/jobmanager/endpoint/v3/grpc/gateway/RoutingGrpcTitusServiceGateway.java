@@ -39,13 +39,11 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.RegExpExt;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.grpc.protogen.JobGroupInfo;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.config.CellInfoResolver;
@@ -133,13 +131,8 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
         }
 
         final JobDescriptor withCellInfo = cellDecorator.ensureCellInfo(jobDescriptor);
-        boolean v3Enabled = isV3Enabled(withCellInfo);
 
-        if (!v3Enabled && !masterConfiguration.isV2Enabled()) {
-            return Observable.error(JobManagerException.v2EngineOff());
-        }
-
-        return v3Enabled ? v3EngineGateway.createJob(withCellInfo) : v2EngineGateway.createJob(withCellInfo);
+        return v3EngineGateway.createJob(withCellInfo);
     }
 
     private Tier findTier(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
@@ -279,28 +272,5 @@ public class RoutingGrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     @Override
     public Observable<JobChangeNotification> observeJob(String jobId) {
         return JobFunctions.isV2JobId(jobId) ? v2EngineGateway.observeJob(jobId) : v3EngineGateway.observeJob(jobId);
-    }
-
-    private boolean isV3Enabled(JobDescriptor jobDescriptor) {
-        String jobGroupId = buildJobGroupId(jobDescriptor);
-        boolean inAppWhiteList = whiteListJobClusterInfoMatcher.apply(jobGroupId).matches();
-        boolean inAppBlackList = blackListJobClusterInfoMatcher.apply(jobGroupId).matches();
-
-        if (!inAppWhiteList || inAppBlackList) {
-            return false;
-        }
-
-        String imageName = jobDescriptor.getContainer().getImage().getName();
-        if (StringExt.isEmpty(imageName)) {
-            // Lack of name, implies that the digest is set, which is supported only in V3 engine
-            return true;
-        }
-
-        return !blackListImageMatcher.apply(imageName).matches();
-    }
-
-    private String buildJobGroupId(JobDescriptor jobDescriptor) {
-        JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
-        return jobDescriptor.getApplicationName() + '-' + jobGroupInfo.getStack() + '-' + jobGroupInfo.getDetail() + '-' + jobGroupInfo.getSequence();
     }
 }

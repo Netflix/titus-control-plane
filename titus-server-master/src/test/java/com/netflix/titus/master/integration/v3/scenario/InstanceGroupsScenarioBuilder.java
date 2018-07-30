@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
+import static com.netflix.titus.common.util.CollectionsExt.xor;
 import static com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioBuilder.TIMEOUT_MS;
 import static com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster.aTitusAgentCluster;
 
@@ -51,6 +52,7 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
 
     private final TitusStackResource titusStackResource;
     private final TitusMasterResource titusMasterResource;
+    private DiagnosticReporter diagnosticReporter;
 
     private EmbeddedTitusMaster titusMaster;
     private EmbeddedTitusOperations titusOperations;
@@ -87,10 +89,12 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
         if (titusStackResource != null) {
             titusMaster = titusStackResource.getMaster();
             titusOperations = titusStackResource.getOperations();
+            diagnosticReporter = new DiagnosticReporter(titusStackResource.getMaster());
         }
         if (titusMasterResource != null) {
             titusMaster = titusMasterResource.getMaster();
             titusOperations = titusMasterResource.getOperations();
+            diagnosticReporter = new DiagnosticReporter(titusMasterResource.getMaster());
         }
         titusOperations.getSimulatedCloud().getAgentInstanceGroups().forEach(g ->
                 instanceGroupScenarioBuilders.put(
@@ -138,13 +142,18 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
         Throwable error = Observable.interval(10, TimeUnit.MILLISECONDS)
                 .map(tick -> true)
                 .mergeWith(eventStreamObserver.toObservable().map(e -> true))
-                .takeUntil(tick -> isSynchronizedWithCloud())
+                .takeUntil(tick -> {
+                    boolean withDetailTrace = (timer.elapsed(TimeUnit.MILLISECONDS) % 1000) < 20;
+                    return isSynchronizedWithCloud(withDetailTrace);
+                })
                 .toCompletable()
                 .timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .get();
         logger.info("All agent instance group synchronization with the cloud completed in {}ms", timer.elapsed(TimeUnit.MILLISECONDS));
 
         if (error != null) {
+            diagnosticReporter.reportAgentsInTheCloud();
+            diagnosticReporter.reportAllAgentsWithAssignments();
             throw new IllegalStateException(error);
         }
         return this;
@@ -178,15 +187,32 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
         throw new IllegalArgumentException("Cannot handle event " + event);
     }
 
-    private boolean isSynchronizedWithCloud() {
+    private boolean isSynchronizedWithCloud(boolean withDetailTrace) {
         List<SimulatedTitusAgentCluster> simulatedAgentClusters = titusMaster.getSimulatedCloud().getAgentInstanceGroups();
+        Set<String> simulatedAgentNames = simulatedAgentClusters.stream().map(SimulatedTitusAgentCluster::getName).collect(Collectors.toSet());
+        Set<String> knownInstanceGroupNames = instanceGroupScenarioBuilders.keySet();
+
         if (instanceGroupScenarioBuilders.size() != simulatedAgentClusters.size()) {
+            logger.info("Not synchronized with cloud yet: knownInstanceGroupNames={}, simulatedAgentNames={}", knownInstanceGroupNames, simulatedAgentNames);
+            if (withDetailTrace) {
+                reportCloudAndMasterState();
+            }
             return false;
         }
-        Set<String> clusterNames = simulatedAgentClusters.stream().map(SimulatedTitusAgentCluster::getName).collect(Collectors.toSet());
-        if (!clusterNames.containsAll(instanceGroupScenarioBuilders.keySet())) {
+        if (!simulatedAgentNames.containsAll(knownInstanceGroupNames)) {
+            logger.info("Instance groups different in the cloud and TitusMaster: diff={}, knownInstanceGroupNames={}, simulatedAgentNames={}",
+                    xor(simulatedAgentNames, knownInstanceGroupNames), knownInstanceGroupNames, simulatedAgentNames
+            );
+            if (withDetailTrace) {
+                reportCloudAndMasterState();
+            }
             return false;
         }
         return instanceGroupScenarioBuilders.values().stream().allMatch(InstanceGroupScenarioBuilder::isSynchronizedWithCloud);
+    }
+
+    private void reportCloudAndMasterState() {
+        diagnosticReporter.reportAgentsInTheCloud();
+        diagnosticReporter.reportAllAgentsWithAssignments();
     }
 }

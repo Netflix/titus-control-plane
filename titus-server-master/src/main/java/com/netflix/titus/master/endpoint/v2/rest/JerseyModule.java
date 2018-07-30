@@ -87,13 +87,9 @@ public final class JerseyModule extends JerseyServletModule {
             // V2 resources
             config.getClasses().add(SchedulerResource.class);
             config.getClasses().add(VmManagementResource.class);
-            config.getClasses().add(LogsResource.class);
             config.getClasses().add(ApplicationSlaManagementResource.class);
             config.getClasses().add(ResourceConsumptionResource.class);
 
-            if (configuration.isV2Enabled()) {
-                config.getClasses().add(JobManagementResource.class);
-            }
             return config;
         };
     }
