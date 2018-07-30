@@ -24,20 +24,26 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.inject.Injector;
+import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.ConsumeResult;
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.fenzo.TaskTrackerState;
+import com.netflix.fenzo.VMTaskFitnessCalculator;
+import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.audit.model.AuditLogEvent;
@@ -47,6 +53,7 @@ import com.netflix.titus.api.model.event.JobStateChangeEvent;
 import com.netflix.titus.api.model.event.JobStateChangeEvent.JobState;
 import com.netflix.titus.api.model.event.TaskStateChangeEvent;
 import com.netflix.titus.api.model.v2.JobCompletedReason;
+import com.netflix.titus.api.model.v2.JobConstraints;
 import com.netflix.titus.api.model.v2.ServiceJobProcesses;
 import com.netflix.titus.api.model.v2.V2JobDefinition;
 import com.netflix.titus.api.model.v2.V2JobState;
@@ -73,6 +80,9 @@ import com.netflix.titus.master.mesos.TitusTaskInfoCreator;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.ScheduledRequest;
 import com.netflix.titus.master.scheduler.SchedulingService;
+import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
+import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
+import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.store.InvalidJobStateChangeException;
 import com.netflix.titus.master.store.JobAlreadyExistsException;
@@ -728,8 +738,40 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
     }
 
     private ScheduledRequest createRequest(V2JobMgrIntf jobMgr, V2WorkerMetadata mwmdr, WorkerRequest req) {
-        return new ScheduledRequest(jobMgr, mwmdr, req, config, schedulingService.getV2ConstraintEvaluatorTransformer(),
-                schedulingService.getSystemSoftConstraint(), schedulingService.getSystemHardConstraint(), applicationSlaManagementService);
+        return new ScheduledRequest(jobMgr, mwmdr, req, config,
+                new ConstraintEvaluatorTransformer<JobConstraints>() {
+                    @Override
+                    public Optional<ConstraintEvaluator> hardConstraint(JobConstraints jobConstraints, Supplier<Set<String>> activeTasksGetter) {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<VMTaskFitnessCalculator> softConstraint(JobConstraints jobConstraints, Supplier<Set<String>> activeTasksGetter) {
+                        return Optional.empty();
+                    }
+                },
+                new SystemSoftConstraint() {
+                    @Override
+                    public String getName() {
+                        return "empty";
+                    }
+
+                    @Override
+                    public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
+                        return 1.0;
+                    }
+                },
+                new SystemHardConstraint() {
+                    @Override
+                    public String getName() {
+                        return "empty";
+                    }
+
+                    @Override
+                    public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
+                        return new Result(true, "");
+                    }
+                }, applicationSlaManagementService);
     }
 
     @Override
@@ -891,7 +933,7 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                     if (t.getTwoLevelResources() != null) {
                         workerRequest.setTwoLevelResource(t.getTwoLevelResources());
                     }
-                    schedulingService.initRunningTask(
+                    schedulingService.addRunningTask(
                             createRequest(this, t, workerRequest),
                             t.getSlave()
                     );

@@ -33,7 +33,6 @@ import com.google.inject.util.Modules;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
-import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
@@ -73,13 +72,10 @@ import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.cluster.LeaderActivator;
 import com.netflix.titus.master.cluster.LeaderElector;
-import com.netflix.titus.master.endpoint.common.SchedulerUtil;
-import com.netflix.titus.master.job.worker.WorkerStateMonitor;
 import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
 import com.netflix.titus.master.master.MasterDescription;
 import com.netflix.titus.master.master.MasterMonitor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.store.V2StorageProvider;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -378,14 +374,6 @@ public class EmbeddedTitusMaster {
 
     public <T> T getInstance(Class<T> type) {
         return injector.getInstance(type);
-    }
-
-    public List<TaskAssignmentResult> reportForTask(String taskId) {
-        return SchedulerUtil.blockAndGetTaskAssignmentFailures(injector.getInstance(SchedulingService.class), taskId);
-    }
-
-    public WorkerStateMonitor getWorkerStateMonitor() {
-        return workerStateMonitor;
     }
 
     public static Builder aTitusMaster() {

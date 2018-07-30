@@ -16,21 +16,10 @@
 
 package com.netflix.titus.master.scheduler;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-import com.netflix.fenzo.TaskAssignmentResult;
-import com.netflix.fenzo.TaskScheduler;
-import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
-import com.netflix.fenzo.queues.TaskQueue;
-import com.netflix.titus.api.model.v2.JobConstraints;
-import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
-import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import rx.Observable;
 
 /**
@@ -40,55 +29,22 @@ public interface SchedulingService {
     String COMPONENT = "scheduler";
 
     /**
-     * FIXME Starting the scheduler explicitly is a workaround needed because of the circular dependencies between components.
+     * Adds a running task to the scheduler. This method is used to restore the scheduler state after system failover.
      */
-    void startScheduling();
+    void addRunningTask(QueuableTask task, String hostname);
 
-    TaskScheduler getTaskScheduler();
-
-    List<VirtualMachineCurrentState> getVmCurrentStates();
-
+    /**
+     * Adds a new, not scheduled yet, task to the scheduler.
+     */
     void addTask(QueuableTask queuableTask);
 
+    /**
+     * Removes a task from the scheduler.
+     * <p>
+     * FIXME To remove a task, it should be enough to pass the task id. The other arguments represent an internal state of the scheduling component itself.
+     */
+    @Deprecated
     void removeTask(String taskid, QAttributes qAttributes, String hostname);
-
-    void initRunningTask(QueuableTask task, String hostname);
-
-    SystemSoftConstraint getSystemSoftConstraint();
-
-    SystemHardConstraint getSystemHardConstraint();
-
-    ConstraintEvaluatorTransformer<JobConstraints> getV2ConstraintEvaluatorTransformer();
-
-    /**
-     * Register an action to receive list of tasks in Fenzo. The action is called when results from the latest
-     * scheduling iteration are available. Although this call does not slow down any ongoing scheduling iteration,
-     * the launch of the next scheuling iteration is delayed until this method returns. Therefore, this call must return
-     * quickly. For example, callers may wish to asynchronously process the results made available to them via the
-     * supplied action.
-     *
-     * @param action The action to call when results are available.
-     * @throws IllegalStateException If there are too many concurrent requests.
-     */
-    void registerTaskQListAction(
-            com.netflix.fenzo.functions.Action1<Map<TaskQueue.TaskState, Collection<QueuableTask>>> action
-    ) throws IllegalStateException;
-
-    /**
-     * Register an action to receive list of task assignment failures for a task from the latest scheduling iteration.
-     * Although this call does not slow down any ongoing scheduling iteration,
-     * the launch of the next scheuling iteration is delayed until this method returns. Therefore, this call must return
-     * quickly. For example, callers may wish to asynchronously process the results made available to them via the
-     * supplied action.
-     *
-     * @param taskId The task Id for which assignment failures are needed.
-     * @param action The action to call when results are available with list of assignment failures for the task, or with
-     *               <code>null</code> if the task isn't pending in the queue for resource assignment.
-     * @throws IllegalStateException If there are too many concurrent requests.
-     */
-    void registerTaskFailuresAction(
-            String taskId, com.netflix.fenzo.functions.Action1<List<TaskAssignmentResult>> action
-    ) throws IllegalStateException;
 
     /**
      * Returns the last known scheduling result for a task.

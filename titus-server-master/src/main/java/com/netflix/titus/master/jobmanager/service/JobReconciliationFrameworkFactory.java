@@ -305,7 +305,7 @@ public class JobReconciliationFrameworkFactory {
         try {
             Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
             String host = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-            schedulingService.initRunningTask(new V3QueueableTask(
+            schedulingService.addRunningTask(new V3QueueableTask(
                     tierAssignment.getLeft(),
                     tierAssignment.getRight(),
                     job,
