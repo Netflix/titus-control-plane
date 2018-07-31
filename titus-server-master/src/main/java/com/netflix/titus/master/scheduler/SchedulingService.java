@@ -16,10 +16,13 @@
 
 package com.netflix.titus.master.scheduler;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import rx.Observable;
 
 /**
@@ -50,12 +53,21 @@ public interface SchedulingService {
      * Returns the last known scheduling result for a task.
      *
      * @return {@link Optional#empty()} if the task is not found or the scheduling result otherwise
+     * <p>
+     * TODO Align with the new {@link TaskPlacementFailure} model
      */
     Optional<SchedulingResultEvent> findLastSchedulingResult(String taskId);
 
     /**
      * Observe Fenzo scheduling results for a task. The stream is completed when the task is successfully scheduled or
      * removed from the Fenzo queue.
+     * <p>
+     * TODO Align with the new {@link TaskPlacementFailure} model
      */
     Observable<SchedulingResultEvent> observeSchedulingResults(String taskId);
+
+    /**
+     * Returns the last known task placement failures grouped by a failure kind.
+     */
+    Map<FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures();
 }

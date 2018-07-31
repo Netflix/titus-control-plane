@@ -137,6 +137,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
     private Subscription slaUpdateSubscription;
+    private final TaskPlacementFailureClassifier taskPlacementFailureClassifier;
 
     private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
@@ -296,6 +297,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.taskCache = taskCache;
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
+        this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier(titusRuntime);
 
         totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
         assignedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration");
@@ -557,6 +559,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
         recordLastSchedulingResult(schedulingResult);
         processTaskSchedulingFailureCallbacks(schedulingResult);
+        taskPlacementFailureClassifier.update(schedulingResult);
 
         totalTasksPerIterationGauge.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
         assignedTasksPerIterationGauge.set(assignedDuringSchedulingResult);
@@ -742,6 +745,11 @@ public class DefaultSchedulingService implements SchedulingService {
                     }
                 })
                 .takeUntil(event -> event.getTask().getStatus().getState() != TaskState.Accepted);
+    }
+
+    @Override
+    public Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures() {
+        return taskPlacementFailureClassifier.getLastTaskPlacementFailures();
     }
 
     private void verifyAndReportResourceUsageMetrics(List<VirtualMachineCurrentState> vmCurrentStates) {

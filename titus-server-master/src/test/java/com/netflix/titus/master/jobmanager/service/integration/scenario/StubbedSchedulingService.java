@@ -16,7 +16,9 @@
 
 package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -25,6 +27,7 @@ import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
+import com.netflix.titus.master.scheduler.TaskPlacementFailure;
 import rx.Observable;
 
 class StubbedSchedulingService implements SchedulingService {
@@ -59,5 +62,10 @@ class StubbedSchedulingService implements SchedulingService {
     @Override
     public Observable<SchedulingResultEvent> observeSchedulingResults(String taskId) {
         return Observable.error(new UnsupportedOperationException("not implemented"));
+    }
+
+    @Override
+    public Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures() {
+        return Collections.emptyMap();
     }
 }
