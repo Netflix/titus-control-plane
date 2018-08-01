@@ -32,5 +32,5 @@ public interface AppScaleManagerConfiguration {
     long getStoreInitTimeoutSeconds();
 
     @DefaultValue("30")
-    long getReconcileAllPendingRequests();
+    long getReconcileAllPendingAndDeletingRequestsIntervalMins();
 }

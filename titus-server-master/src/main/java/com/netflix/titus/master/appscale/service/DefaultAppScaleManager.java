@@ -149,7 +149,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
         this.appScaleActionsSub = appScaleActionsSubject
                 .onBackpressureDrop(appScaleAction -> {
-                    logger.info("Dropping {}",appScaleAction);
+                    logger.error("Dropping {}",appScaleAction);
                     metrics.reportDroppedRequest();
                 })
                 .observeOn(awsInteractionScheduler, ASYNC_HANDLER_BUFFER_CAPACITY)
@@ -176,7 +176,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
         checkForScalingPolicyActions().toCompletable().await(appScaleManagerConfiguration.getStoreInitTimeoutSeconds(),
                 TimeUnit.SECONDS);
 
-        reconcileAllPendingRequests = Observable.interval(appScaleManagerConfiguration.getReconcileAllPendingRequests(), TimeUnit.MINUTES)
+        reconcileAllPendingRequests = Observable.interval(appScaleManagerConfiguration.getReconcileAllPendingAndDeletingRequestsIntervalMins(), TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
                 .flatMap(ignored -> checkForScalingPolicyActions())
                 .subscribe(policy -> logger.info("Reconciliation - policy request processed : {}.", policy.getPolicyId()),

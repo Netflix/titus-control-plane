@@ -46,7 +46,7 @@ public class AppScaleManagerMetrics {
         droppedRequestsCount = registry.counter(METRIC_BACK_PRESSURE_DROP_COUNT);
     }
 
-    private static final String METRIC_APPSCALE_ERRORS = "titus.appscale.errors";
+    private static final String METRIC_APPSCALE_ERRORS = "titus.appScale.errors";
     private static final String METRIC_TITUS_APPSCALE_NUM_TARGETS = "titus.appScale.numTargets";
     private static final String METRIC_TITUS_APPSCALE_POLICY = "titus.appScale.policy.";
     private static final String METRIC_BACK_PRESSURE_DROP_COUNT = "titus.appScale.droppedRequests";
