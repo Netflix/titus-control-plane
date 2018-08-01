@@ -58,6 +58,7 @@ import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.master.job.V2JobMgrIntf;
 import com.netflix.titus.master.job.V2JobOperations;
@@ -76,6 +77,8 @@ import rx.subjects.SerializedSubject;
 
 @Singleton
 public class DefaultAppScaleManager implements AppScaleManager {
+    public static final long INITIAL_RETRY_DELAY_SEC = 5;
+    public static final long MAX_RETRY_DELAY_SEC = 30;
     private static Logger logger = LoggerFactory.getLogger(DefaultAppScaleManager.class);
 
     private static final long SHUTDOWN_TIMEOUT_MS = 5_000;
@@ -154,7 +157,13 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 })
                 .observeOn(awsInteractionScheduler, ASYNC_HANDLER_BUFFER_CAPACITY)
                 .doOnError(e -> logger.error("Exception in appScaleActionsSubject ", e))
-                .retry()
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withScheduler(awsInteractionScheduler)
+                        .withDelay(INITIAL_RETRY_DELAY_SEC, MAX_RETRY_DELAY_SEC, TimeUnit.SECONDS)
+                        .withTitle("Auto-retry for appScaleActionsSubject")
+                        .buildExponentialBackoff()
+                )
                 .subscribe(new AppScaleActionHandler());
     }
 
@@ -178,8 +187,9 @@ public class DefaultAppScaleManager implements AppScaleManager {
         checkForScalingPolicyActions().toCompletable().await(appScaleManagerConfiguration.getStoreInitTimeoutSeconds(),
                 TimeUnit.SECONDS);
 
-        reconcileAllPendingRequests = Observable.interval(appScaleManagerConfiguration.getReconcileAllPendingAndDeletingRequestsIntervalMins(), TimeUnit.MINUTES)
-                .observeOn(Schedulers.io())
+        reconcileAllPendingRequests = Observable.interval(
+                appScaleManagerConfiguration.getReconcileAllPendingAndDeletingRequestsIntervalMins(), TimeUnit.MINUTES,
+                Schedulers.io())
                 .flatMap(ignored -> checkForScalingPolicyActions())
                 .subscribe(policy -> logger.info("Reconciliation - policy request processed : {}.", policy.getPolicyId()),
                         e -> logger.error("error in reconciliation (ReconcileAllPendingRequests) stream", e),
