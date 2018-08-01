@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
@@ -32,6 +33,7 @@ public class AppScaleManagerMetrics {
     private final Id errorMetricId;
     private Registry registry;
     private final AtomicInteger numTargets;
+    private final Counter droppedRequestsCount;
 
 
     private volatile Map<String, SpectatorExt.FsmMetrics<PolicyStatus>> fsmMetricsMap;
@@ -41,11 +43,13 @@ public class AppScaleManagerMetrics {
         fsmMetricsMap = new ConcurrentHashMap<>();
         numTargets = registry.gauge(METRIC_TITUS_APPSCALE_NUM_TARGETS, new AtomicInteger(0));
         this.registry = registry;
+        droppedRequestsCount = registry.counter(METRIC_BACK_PRESSURE_DROP_COUNT);
     }
 
-    public static final String METRIC_APPSCALE_ERRORS = "titus.appscale.errors";
-    public static final String METRIC_TITUS_APPSCALE_NUM_TARGETS = "titus.appScale.numTargets";
-    public static final String METRIC_TITUS_APPSCALE_POLICY = "titus.appScale.policy.";
+    private static final String METRIC_APPSCALE_ERRORS = "titus.appscale.errors";
+    private static final String METRIC_TITUS_APPSCALE_NUM_TARGETS = "titus.appScale.numTargets";
+    private static final String METRIC_TITUS_APPSCALE_POLICY = "titus.appScale.policy.";
+    private static final String METRIC_BACK_PRESSURE_DROP_COUNT = "titus.appScale.droppedRequests";
 
     private Id stateIdOf(AutoScalingPolicy autoScalingPolicy) {
         return registry.createId(METRIC_TITUS_APPSCALE_POLICY, "t.jobId", autoScalingPolicy.getJobId());
@@ -74,5 +78,9 @@ public class AppScaleManagerMetrics {
 
     public void reportErrorForException(AutoScalePolicyException autoScalePolicyException) {
         registry.counter(errorMetricId.withTag("errorCode", autoScalePolicyException.getErrorCode().name())).increment();
+    }
+
+    public void reportDroppedRequest() {
+        droppedRequestsCount.increment();
     }
 }
