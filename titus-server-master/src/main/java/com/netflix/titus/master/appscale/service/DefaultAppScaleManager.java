@@ -708,7 +708,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                 return appAutoScalingClient.deleteScalableTarget(autoScalingPolicy.getJobId())
                                         .doOnError(e -> saveStatusOnError(AutoScalePolicyException.errorDeletingTarget(autoScalingPolicy.getPolicyId(),
                                                 autoScalingPolicy.getJobId(), e.getMessage())))
-                                        .onErrorResumeNext(e -> Completable.complete())
                                         .andThen(Observable.just(autoScalingPolicy));
                             } else {
                                 return Observable.just(autoScalingPolicy);
