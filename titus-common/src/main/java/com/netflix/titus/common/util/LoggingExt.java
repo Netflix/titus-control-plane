@@ -28,6 +28,9 @@ public final class LoggingExt {
     private LoggingExt() {
     }
 
+    /**
+     * Execute an action with logging its execution time when it completes or fails.
+     */
     public static <T> T timed(String message, Supplier<T> fun) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         Logger tLogger;

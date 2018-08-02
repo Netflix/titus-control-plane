@@ -31,17 +31,17 @@ import static java.util.Arrays.asList;
 @Singleton
 public class DefaultSystemHardConstraint implements SystemHardConstraint {
     private final AgentManagementConstraint agentManagementConstraint;
-    private final ConcurrentTaskLaunchingConstraint concurrentTaskLaunchingConstraint;
+    private final AgentLaunchGuardConstraint agentLaunchGuardConstraint;
     private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
 
     private CompositeSystemConstraint delegate;
 
     @Inject
     public DefaultSystemHardConstraint(AgentManagementConstraint agentManagementConstraint,
-                                       ConcurrentTaskLaunchingConstraint concurrentTaskLaunchingConstraint,
+                                       AgentLaunchGuardConstraint agentLaunchGuardConstraint,
                                        SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator) {
         this.agentManagementConstraint = agentManagementConstraint;
-        this.concurrentTaskLaunchingConstraint = concurrentTaskLaunchingConstraint;
+        this.agentLaunchGuardConstraint = agentLaunchGuardConstraint;
         this.systemSelectorConstraintEvaluator = systemSelectorConstraintEvaluator;
     }
 
@@ -49,7 +49,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     public void enterActiveMode() {
         this.delegate = new CompositeSystemConstraint(asList(
                 agentManagementConstraint,
-                concurrentTaskLaunchingConstraint,
+                agentLaunchGuardConstraint,
                 systemSelectorConstraintEvaluator
         ));
     }

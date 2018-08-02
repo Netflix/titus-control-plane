@@ -1,5 +1,8 @@
 package com.netflix.titus.master.scheduler;
 
+import java.util.Map;
+import java.util.Objects;
+
 public class TaskPlacementFailure {
 
     public enum FailureKind {
@@ -31,7 +34,6 @@ public class TaskPlacementFailure {
 
         /**
          * Task not launched due to job hard constraint. It has lower priority than the previous failure kinds.
-         * The hard constraint name is stored in a {@link #failureReason} field.
          */
         JobHardConstraint,
 
@@ -40,18 +42,22 @@ public class TaskPlacementFailure {
 
     private final String taskId;
     private final FailureKind failureKind;
-    private final String failureReason;
 
     /**
      * Number of agents for which this failure kind was found, or -1 if this value is not relevant.
      */
     private final int agentCount;
 
-    public TaskPlacementFailure(String taskId, FailureKind failureKind, String failureReason, int agentCount) {
+    /**
+     * The original task placement result.
+     */
+    private final Map<String, Object> rawData;
+
+    public TaskPlacementFailure(String taskId, FailureKind failureKind, int agentCount, Map<String, Object> rawData) {
         this.taskId = taskId;
         this.failureKind = failureKind;
-        this.failureReason = failureReason;
         this.agentCount = agentCount;
+        this.rawData = rawData;
     }
 
     public String getTaskId() {
@@ -62,11 +68,43 @@ public class TaskPlacementFailure {
         return failureKind;
     }
 
-    public String getFailureReason() {
-        return failureReason;
-    }
-
     public int getAgentCount() {
         return agentCount;
+    }
+
+    public Map<String, Object> getRawData() {
+        return rawData;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        TaskPlacementFailure that = (TaskPlacementFailure) o;
+        return agentCount == that.agentCount &&
+                Objects.equals(taskId, that.taskId) &&
+                failureKind == that.failureKind &&
+                Objects.equals(rawData, that.rawData);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(taskId, failureKind, agentCount, rawData);
+    }
+
+    /**
+     * Do not include raw data in the string representation.
+     */
+    @Override
+    public String toString() {
+        return "TaskPlacementFailure{" +
+                "taskId='" + taskId + '\'' +
+                ", failureKind=" + failureKind +
+                ", agentCount=" + agentCount +
+                '}';
     }
 }
