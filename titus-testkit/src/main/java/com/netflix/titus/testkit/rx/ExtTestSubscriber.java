@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +46,9 @@ import static org.junit.Assert.fail;
  */
 public class ExtTestSubscriber<T> extends Subscriber<T> {
 
+    private static final Object COMPLETED_MARKER = "CompletedMarker";
+    private static final Object ERROR_MARKER = "ErrorMarker";
+
     private enum State {Open, OnCompleted, OnError}
 
     private final AtomicReference<State> state = new AtomicReference<>(State.Open);
@@ -57,14 +59,12 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
 
     private final List<Exception> contractErrors = new CopyOnWriteArrayList<>();
 
-    private final Set<Thread> blockedThreads = new ConcurrentSkipListSet<>((t1, t2) -> Long.compare(t1.getId(), t2.getId()));
-
     @Override
     public void onCompleted() {
         if (!state.compareAndSet(State.Open, State.OnCompleted)) {
             contractErrors.add(new Exception("onComplete called on subscriber in state " + state));
         }
-        awakeAllBlockedThreads();
+        available.add((T) COMPLETED_MARKER);
     }
 
     @Override
@@ -73,7 +73,7 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
             contractErrors.add(new Exception("onError called on subscriber in state " + state));
         }
         onErrorResult.set(e);
-        awakeAllBlockedThreads();
+        available.add((T) ERROR_MARKER);
     }
 
     @Override
@@ -94,7 +94,8 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
         if (isError()) {
             throw new IllegalStateException("OnError emitted", onErrorResult.get());
         }
-        return available.poll();
+        T value = available.poll();
+        return value == COMPLETED_MARKER ? null : value;
     }
 
     public List<T> takeNext(int n) throws IllegalStateException {
@@ -128,31 +129,35 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
     }
 
     public T takeNext(long timeout, TimeUnit timeUnit) throws InterruptedException {
-        blockedThreads.add(Thread.currentThread());
         try {
-            return available.poll(timeout, timeUnit);
+            return afterTakeNext(available.poll(timeout, timeUnit));
         } catch (InterruptedException e) {
             if (onErrorResult.get() != null) {
                 throw new RuntimeException(onErrorResult.get());
             }
             throw e;
-        } finally {
-            blockedThreads.remove(Thread.currentThread());
         }
     }
 
     public T takeNextOrWait() throws InterruptedException {
-        blockedThreads.add(Thread.currentThread());
         try {
-            return available.poll(24, TimeUnit.HOURS);
+            return afterTakeNext(available.poll(24, TimeUnit.HOURS));
         } catch (InterruptedException e) {
             if (onErrorResult.get() != null) {
                 throw new RuntimeException(onErrorResult.get());
             }
             throw e;
-        } finally {
-            blockedThreads.remove(Thread.currentThread());
         }
+    }
+
+    private T afterTakeNext(T value) {
+        if (value == COMPLETED_MARKER) {
+            return null;
+        }
+        if (value == ERROR_MARKER) {
+            throw new RuntimeException(onErrorResult.get());
+        }
+        return value;
     }
 
     public List<T> getAllItems() {
@@ -300,10 +305,6 @@ public class ExtTestSubscriber<T> extends Subscriber<T> {
                 fail(formatAnyOrderFailure(next, expected.size(), left));
             }
         }
-    }
-
-    private void awakeAllBlockedThreads() {
-        blockedThreads.forEach(Thread::interrupt);
     }
 
     private static <R> String formatAnyOrderFailure(R found, int total, Set<R> left) {
