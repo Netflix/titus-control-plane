@@ -5729,13 +5729,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -6036,7 +6036,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.20.1",
+            "locked": "2.21.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -7128,13 +7128,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -7435,7 +7435,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.20.1",
+            "locked": "2.21.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -8527,13 +8527,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -8834,7 +8834,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.20.1",
+            "locked": "2.21.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -9927,13 +9927,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.13",
+            "locked": "1.8.15",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -10234,7 +10234,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.20.1",
+            "locked": "2.21.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
