@@ -407,6 +407,38 @@ public class DefaultAppScaleManagerTest {
         Assertions.assertThat(notAutoScalePolicyException.isPresent()).isFalse();
     }
 
+    @Test
+    public void checkBulkPolicyCreations() throws InterruptedException {
+        AutoScalingPolicyTests.MockAlarmClient mockAlarmClient = new AutoScalingPolicyTests.MockAlarmClient();
+        AutoScalingPolicyTests.MockAppAutoScalingClient mockAppAutoScalingClient = new AutoScalingPolicyTests.MockAppAutoScalingClient();
+        InMemoryPolicyStore policyStore = new InMemoryPolicyStore();
+
+        final int totalJobs = 300;
+        List<String> jobIds = new ArrayList<>(totalJobs);
+        for (int i = 0; i < totalJobs; i++) {
+            String jobId = UUID.randomUUID().toString();
+            jobIds.add(jobId);
+        }
+
+        V3JobOperations v3JobOperations = mockV3OperationsForJobs(jobIds);
+        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
+                null, v3JobOperations, null, new DefaultRegistry(),
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.computation());
+
+        final CountDownLatch latch = new CountDownLatch(totalJobs);
+        for (int i = 0; i < totalJobs; i++) {
+            final AutoScalingPolicy autoScalingPolicy = AutoScalingPolicyTests.buildStepScalingPolicy(jobIds.get(i));
+            appScaleManager.createAutoScalingPolicy(autoScalingPolicy).subscribe(pid -> {
+                log.info("Policy created {}", pid);
+                latch.countDown();
+            });
+        }
+
+        latch.await(10, TimeUnit.SECONDS);
+        Thread.sleep(2000);
+        Assertions.assertThat(mockAppAutoScalingClient.getNumPolicies()).isEqualTo(totalJobs);
+    }
+
     public static class AppScaleClientWithScalingPolicyConstraints extends AutoScalingPolicyTests.MockAppAutoScalingClient {
 
         Map<String, JobScalingConstraints> scalingPolicyConstraints;
@@ -440,6 +472,7 @@ public class DefaultAppScaleManagerTest {
         JobScalingConstraints getJobScalingPolicyConstraintsForJob(String jobId) {
             return scalingPolicyConstraints.get(jobId);
         }
+
     }
 
     private List<String> submitTwoJobs(DefaultAppScaleManager appScaleManager, String jobIdOne, String jobIdTwo,
@@ -467,6 +500,35 @@ public class DefaultAppScaleManagerTest {
         when(jobGroupInfo.getSequence()).thenReturn("001");
         return jobGroupInfo;
     }
+
+    private V3JobOperations mockV3OperationsForJobs(List<String> jobIds) {
+        V3JobOperations v3JobOperations = mock(V3JobOperations.class);
+
+        for (String jobId : jobIds) {
+            // FIXME Use JobGenerator instead of mocking.
+            Job job = mock(Job.class);
+            when(job.getId()).thenReturn(jobId);
+            JobDescriptor jobDescriptorOne = mock(JobDescriptor.class);
+            ServiceJobExt serviceJobExtOne = mock(ServiceJobExt.class);
+            JobGroupInfo jobGroupInfoOne = buildMockJobGroupInfo(jobId);
+
+            Capacity capacityOne = mock(Capacity.class);
+            when(capacityOne.getMax()).thenReturn(10);
+            when(capacityOne.getMin()).thenReturn(1);
+            when(serviceJobExtOne.getCapacity()).thenReturn(capacityOne);
+            when(jobDescriptorOne.getExtensions()).thenReturn(serviceJobExtOne);
+            when(job.getJobDescriptor()).thenReturn(jobDescriptorOne);
+            when(jobDescriptorOne.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
+
+            when(v3JobOperations.getJob(jobId)).thenReturn(Optional.of(job));
+
+            JobManagerEvent<?> jobUpdateEvent = JobUpdateEvent.newJob(job);
+            when(v3JobOperations.observeJobs()).thenAnswer(invocation -> Observable.from(asList(jobUpdateEvent)));
+        }
+
+        return v3JobOperations;
+    }
+
 
     private V3JobOperations mockV3Operations(String jobIdOne, String jobIdTwo) {
         V3JobOperations v3JobOperations = mock(V3JobOperations.class);
