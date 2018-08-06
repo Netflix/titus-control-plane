@@ -38,7 +38,6 @@ import com.netflix.titus.master.endpoint.EndpointModule;
 import com.netflix.titus.master.endpoint.common.ContextResolver;
 import com.netflix.titus.master.endpoint.common.EmptyContextResolver;
 import com.netflix.titus.master.endpoint.v2.rest.JerseyModule;
-import com.netflix.titus.master.endpoint.v2.validator.ValidatorConfiguration;
 import com.netflix.titus.master.eviction.endpoint.grpc.EvictionEndpointModule;
 import com.netflix.titus.master.eviction.service.EvictionServiceModule;
 import com.netflix.titus.master.health.HealthModule;
@@ -139,12 +138,6 @@ public class TitusMasterModule extends AbstractModule {
     @Singleton
     public MasterConfiguration getMasterConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(MasterConfiguration.class);
-    }
-
-    @Provides
-    @Singleton
-    public ValidatorConfiguration getValidatorConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(ValidatorConfiguration.class);
     }
 
     @Provides

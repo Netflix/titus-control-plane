@@ -16,27 +16,13 @@
 
 package com.netflix.titus.master.endpoint;
 
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
-import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
-import com.netflix.titus.master.ApiOperations;
-import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
-import com.netflix.titus.master.job.V2JobOperations;
-import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusServiceGateway;
-import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.RoutingGrpcTitusServiceGateway;
-import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcTitusServiceGateway;
-import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-
-import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 
 public class EndpointModule extends AbstractModule {
     @Override
@@ -48,19 +34,5 @@ public class EndpointModule extends AbstractModule {
     @Singleton
     public GrpcEndpointConfiguration getGrpcEndpointConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(GrpcEndpointConfiguration.class);
-    }
-
-    @Provides
-    @Singleton
-    @Named(RoutingGrpcTitusServiceGateway.NAME_V2_ENGINE_GATEWAY)
-    public GrpcTitusServiceGateway getV2TitusServiceGateway(
-            MasterConfiguration configuration,
-            V2JobOperations v2JobOperations,
-            JobSubmitLimiter jobSubmitLimiter,
-            ApiOperations apiOperations,
-            RxEventBus eventBus,
-            LogStorageInfo<V2WorkerMetadata> v2LogStorage,
-            @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
-        return new V2GrpcTitusServiceGateway(configuration, v2JobOperations, jobSubmitLimiter, apiOperations, eventBus, v2LogStorage, entitySanitizer);
     }
 }
