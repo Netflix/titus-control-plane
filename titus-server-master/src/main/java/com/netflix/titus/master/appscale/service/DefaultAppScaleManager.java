@@ -65,10 +65,13 @@ import rx.subjects.SerializedSubject;
 
 @Singleton
 public class DefaultAppScaleManager implements AppScaleManager {
+    public static final long INITIAL_RETRY_DELAY_SEC = 5;
+    public static final long MAX_RETRY_DELAY_SEC = 30;
     private static Logger logger = LoggerFactory.getLogger(DefaultAppScaleManager.class);
 
     private static final long SHUTDOWN_TIMEOUT_MS = 5_000;
     private static final String DEFAULT_JOB_GROUP_SEQ = "v000";
+    private static final int ASYNC_HANDLER_BUFFER_CAPACITY = 10_000;
 
     private final AppScaleManagerMetrics metrics;
     private final SerializedSubject<AppScaleAction, AppScaleAction> appScaleActionsSubject;
@@ -80,6 +83,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     private volatile Map<String, AutoScalableTarget> scalableTargets;
     private volatile Subscription reconcileFinishedJobsSub;
+    private volatile Subscription reconcileAllPendingRequests;
     private volatile Subscription reconcileScalableTargetsSub;
 
     private volatile ExecutorService awsInteractionExecutor;
@@ -123,7 +127,22 @@ public class DefaultAppScaleManager implements AppScaleManager {
         this.scalableTargets = new ConcurrentHashMap<>();
         this.metrics = new AppScaleManagerMetrics(registry);
         this.appScaleActionsSubject = PublishSubject.<AppScaleAction>create().toSerialized();
-        this.appScaleActionsSub = appScaleActionsSubject.observeOn(awsInteractionScheduler).subscribe(new AppScaleActionHandler());
+
+        this.appScaleActionsSub = appScaleActionsSubject
+                .onBackpressureDrop(appScaleAction -> {
+                    logger.warn("Dropping {}", appScaleAction);
+                    metrics.reportDroppedRequest();
+                })
+                .observeOn(awsInteractionScheduler, ASYNC_HANDLER_BUFFER_CAPACITY)
+                .doOnError(e -> logger.error("Exception in appScaleActionsSubject ", e))
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withScheduler(awsInteractionScheduler)
+                        .withDelay(INITIAL_RETRY_DELAY_SEC, MAX_RETRY_DELAY_SEC, TimeUnit.SECONDS)
+                        .withTitle("Auto-retry for appScaleActionsSubject")
+                        .buildExponentialBackoff()
+                )
+                .subscribe(new AppScaleActionHandler());
     }
 
     @Activator
@@ -146,6 +165,13 @@ public class DefaultAppScaleManager implements AppScaleManager {
         checkForScalingPolicyActions().toCompletable().await(appScaleManagerConfiguration.getStoreInitTimeoutSeconds(),
                 TimeUnit.SECONDS);
 
+        reconcileAllPendingRequests = Observable.interval(
+                appScaleManagerConfiguration.getReconcileAllPendingAndDeletingRequestsIntervalMins(), TimeUnit.MINUTES,
+                Schedulers.io())
+                .flatMap(ignored -> checkForScalingPolicyActions())
+                .subscribe(policy -> logger.info("Reconciliation - policy request processed : {}.", policy.getPolicyId()),
+                        e -> logger.error("error in reconciliation (ReconcileAllPendingRequests) stream", e),
+                        () -> logger.info("reconciliation (ReconcileAllPendingRequests) stream closed"));
 
         reconcileFinishedJobsSub = Observable.interval(appScaleManagerConfiguration.getReconcileFinishedJobsIntervalMins(), TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
@@ -176,9 +202,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(reconcileFinishedJobsSub);
-        ObservableExt.safeUnsubscribe(reconcileScalableTargetsSub);
-        ObservableExt.safeUnsubscribe(appScaleActionsSub);
+        ObservableExt.safeUnsubscribe(reconcileFinishedJobsSub, reconcileScalableTargetsSub,
+                reconcileAllPendingRequests, appScaleActionsSub);
         if (awsInteractionExecutor == null) {
             return; // nothing else to do
         }
