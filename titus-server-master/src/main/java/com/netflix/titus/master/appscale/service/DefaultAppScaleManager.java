@@ -51,6 +51,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;

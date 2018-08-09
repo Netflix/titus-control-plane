@@ -276,9 +276,10 @@ public class DefaultAppScaleManagerTest {
         }
 
         V3JobOperations v3JobOperations = mockV3OperationsForJobs(jobIds);
-        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                null, v3JobOperations, null, new DefaultRegistry(),
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.computation());
+        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient,
+                mockAppAutoScalingClient,
+                v3JobOperations, new DefaultRegistry(), AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
+                Schedulers.computation());
 
         final CountDownLatch latch = new CountDownLatch(totalJobs);
         for (int i = 0; i < totalJobs; i++) {
