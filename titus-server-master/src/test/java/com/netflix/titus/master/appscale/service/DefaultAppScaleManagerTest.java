@@ -98,7 +98,7 @@ public class DefaultAppScaleManagerTest {
         V3JobOperations v3JobOperations = mockV3Operations(jobIdOne, jobIdTwo);
 
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                null, v3JobOperations, null, new DefaultRegistry(),
+                v3JobOperations, new DefaultRegistry(),
                 AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
 
         AutoScalingPolicy autoScalingPolicyOne;
@@ -150,127 +150,6 @@ public class DefaultAppScaleManagerTest {
     }
 
     @Test
-    public void checkV2LiveStreamPolicyCleanup() throws Exception {
-        AutoScalingPolicyTests.MockAlarmClient mockAlarmClient = new AutoScalingPolicyTests.MockAlarmClient();
-        AutoScalingPolicyTests.MockAppAutoScalingClient mockAppAutoScalingClient = new AutoScalingPolicyTests.MockAppAutoScalingClient();
-        InMemoryPolicyStore policyStore = new InMemoryPolicyStore();
-        Registry registry = new DefaultRegistry();
-        RxEventBus eventBus = new DefaultRxEventBus(registry.createId("test"), registry);
-
-
-        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                mockV2Operations(), null, eventBus, registry,
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
-
-        // call - createAutoScalingPolicy
-        String jobIdOne = "Titus-1";
-        AutoScalingPolicy autoScalingPolicyOne = AutoScalingPolicyTests.buildStepScalingPolicy(jobIdOne);
-        appScaleManager.createAutoScalingPolicy(autoScalingPolicyOne).toBlocking().single();
-
-        // call - createAutoScalingPolicy
-        String jobIdTwo = "Titus-2";
-        AutoScalingPolicy autoScalingPolicyTwo = AutoScalingPolicyTests.buildStepScalingPolicy(jobIdTwo);
-        appScaleManager.createAutoScalingPolicy(autoScalingPolicyTwo).toBlocking().single();
-
-        log.info("Done creating two policies");
-        List<AutoScalingPolicy> policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
-        Assertions.assertThat(policiesStored.size()).isEqualTo(2);
-
-        CountDownLatch latch = new CountDownLatch(1);
-        List<String> jobIdPoliciesToBeCleaned = new ArrayList<>();
-
-        Observable<String> jobsAffected = appScaleManager.v2LiveStreamPolicyCleanup();
-        jobsAffected
-                .observeOn(Schedulers.io())
-                .subscribe(jobAffected -> {
-                            log.info("Got JobId {} - policies cleaned up.", jobAffected);
-                            jobIdPoliciesToBeCleaned.add(jobAffected);
-                            latch.countDown();
-                        },
-                        e -> log.error("Error in v2 live stream for policy cleanup"),
-                        () -> log.info("Completed"));
-
-        eventBus.publish(new JobStateChangeEvent<>(jobIdTwo, JobStateChangeEvent.JobState.Finished,
-                System.currentTimeMillis(), "jobFinished"));
-        log.info("Done publishing JobStateChangeEvent for {}", jobIdTwo);
-        latch.await(60, TimeUnit.SECONDS);
-
-        AutoScalingPolicyTests.waitForCondition(() -> policyStore.retrievePolicies(false).toList().toBlocking().first().size() == 1 &&
-                jobIdPoliciesToBeCleaned.size() == 1 &&
-                jobIdPoliciesToBeCleaned.get(0).equals(jobIdTwo));
-
-        Assertions.assertThat(jobIdPoliciesToBeCleaned.size()).isEqualTo(1);
-        Assertions.assertThat(jobIdPoliciesToBeCleaned.get(0)).isEqualTo(jobIdTwo);
-        policiesStored = policyStore.retrievePolicies(false).toList().toBlocking().first();
-        Assertions.assertThat(policiesStored.size()).isEqualTo(1);
-    }
-
-    @Test
-    public void checkV2LiveStreamTargetUpdates() throws Exception {
-        InMemoryPolicyStore policyStore = new InMemoryPolicyStore();
-        Registry registry = new DefaultRegistry();
-        RxEventBus eventBus = new DefaultRxEventBus(registry.createId("test"), registry);
-
-
-        V2JobOperations v2JobOperations = mockV2Operations();
-        AppScaleClientWithScalingPolicyConstraints appScalingClient = new AppScaleClientWithScalingPolicyConstraints();
-        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore,
-                new AutoScalingPolicyTests.MockAlarmClient(),
-                appScalingClient,
-                v2JobOperations, null, eventBus, registry,
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
-
-        // call - createAutoScalingPolicy
-        String jobIdOne = "Titus-1";
-        AutoScalingPolicy autoScalingPolicyOne = AutoScalingPolicyTests.buildStepScalingPolicy(jobIdOne);
-        appScaleManager.createAutoScalingPolicy(autoScalingPolicyOne).toBlocking().single();
-
-        // call - createAutoScalingPolicy
-        String jobIdTwo = "Titus-2";
-        AutoScalingPolicy autoScalingPolicyTwo = AutoScalingPolicyTests.buildStepScalingPolicy(jobIdTwo);
-        appScaleManager.createAutoScalingPolicy(autoScalingPolicyTwo).toBlocking().single();
-
-        // call - processPendingPolicies
-        log.info("Done creating two policies");
-        CountDownLatch latch = new CountDownLatch(1);
-        Observable<String> jobTargetObservable = appScaleManager.v2LiveStreamTargetUpdates();
-
-        List<String> targetJobsUpdated = new ArrayList<>();
-        jobTargetObservable
-                .observeOn(Schedulers.io())
-                .subscribe(jobId -> {
-                            log.info("Scalable Target to be updated for Job {}", jobId);
-                            targetJobsUpdated.add(jobId);
-                            latch.countDown();
-                        },
-                        e -> log.error("Error in v2 live stream for scalable target update"),
-                        () -> log.info("Completed"));
-
-        AutoScalingPolicyTests.waitForCondition(() -> {
-            JobScalingConstraints jobScalingPolicyConstraintsForJob = appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo);
-            return jobScalingPolicyConstraintsForJob != null &&
-                    jobScalingPolicyConstraintsForJob.getMinCapacity() == 1 &&
-                    jobScalingPolicyConstraintsForJob.getMaxCapacity() == 10;
-        });
-
-        Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(1);
-        Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(10);
-
-        eventBus.publish(new JobStateChangeEvent<>(jobIdTwo, JobStateChangeEvent.JobState.Created,
-                System.currentTimeMillis(), "jobUpdated"));
-        log.info("Done publishing JobStateChangeEvent for {}", jobIdTwo);
-        latch.await(60, TimeUnit.SECONDS);
-
-        AutoScalingPolicyTests.waitForCondition(() -> targetJobsUpdated.size() == 1 &&
-                appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity() == 5 &&
-                appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity() == 15);
-
-        Assertions.assertThat(targetJobsUpdated.size()).isEqualTo(1);
-        Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(5);
-        Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(15);
-    }
-
-    @Test
     public void checkV3LiveStreamTargetUpdates() throws Exception {
         String jobIdOne = UUID.randomUUID().toString();
         String jobIdTwo = UUID.randomUUID().toString();
@@ -281,8 +160,7 @@ public class DefaultAppScaleManagerTest {
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore,
                 new AutoScalingPolicyTests.MockAlarmClient(),
                 appScalingClient,
-                null,
-                v3JobOperations, null, new DefaultRegistry(),
+                v3JobOperations, new DefaultRegistry(),
                 AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
 
         List<String> refIds = submitTwoJobs(appScaleManager, jobIdOne, jobIdTwo, policyStore);
@@ -313,29 +191,6 @@ public class DefaultAppScaleManagerTest {
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdOne).getMaxCapacity()).isEqualTo(10);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMinCapacity()).isEqualTo(5);
         Assertions.assertThat(appScalingClient.getJobScalingPolicyConstraintsForJob(jobIdTwo).getMaxCapacity()).isEqualTo(15);
-    }
-
-    @Test
-    public void checkASGNameBuildingV2() {
-        Parameter appParam = new Parameter(Parameters.APP_NAME, "testapp");
-        Parameter stackParam = new Parameter(Parameters.JOB_GROUP_STACK, "main");
-        Parameter detailParam = new Parameter(Parameters.JOB_GROUP_DETAIL, "2.0.0");
-        Parameter seqParam = new Parameter(Parameters.JOB_GROUP_SEQ, "v000");
-
-        String autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(appParam, stackParam, detailParam, seqParam));
-        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-main-2.0.0-v000");
-
-
-        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(stackParam, appParam, detailParam, seqParam));
-        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-main-2.0.0-v000");
-
-
-        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(stackParam, appParam));
-        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-main-v000");
-
-        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV2(asList(appParam));
-        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-v000");
-
     }
 
     @Test
@@ -421,9 +276,10 @@ public class DefaultAppScaleManagerTest {
         }
 
         V3JobOperations v3JobOperations = mockV3OperationsForJobs(jobIds);
-        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                null, v3JobOperations, null, new DefaultRegistry(),
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.computation());
+        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient,
+                mockAppAutoScalingClient,
+                v3JobOperations, new DefaultRegistry(), AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
+                Schedulers.computation());
 
         final CountDownLatch latch = new CountDownLatch(totalJobs);
         for (int i = 0; i < totalJobs; i++) {
@@ -595,60 +451,4 @@ public class DefaultAppScaleManagerTest {
 
         return v3JobOperations;
     }
-
-
-    private V2JobOperations mockV2Operations() {
-        V2JobMgrIntf mockJobMgr = mock(ServiceJobMgr.class);
-        V2JobOperations mockV2JobOperations = mock(V2JobOperations.class);
-        V2JobMetadata mockJobMetadata = mock(V2JobMetadata.class);
-        V2StageMetadata mockStageMetadata = mock(V2StageMetadata.class);
-        V2JobDefinition mockJobDefinition = mock(V2JobDefinition.class);
-        StageSchedulingInfo mockStageSchedulingInfo = mock(StageSchedulingInfo.class);
-        SchedulingInfo mockSchedulingInfo = mock(SchedulingInfo.class);
-        StageScalingPolicy mockScalingPolicy = mock(StageScalingPolicy.class);
-
-        when(mockScalingPolicy.getMin())
-                .thenAnswer(new Answer<Integer>() {
-                    private int count = 0;
-
-                    @Override
-                    public Integer answer(InvocationOnMock invocation) throws Throwable {
-                        if (count++ < 3) {
-                            return 1;
-                        } else {
-                            return 5;
-                        }
-                    }
-                });
-
-        when(mockScalingPolicy.getMax()).thenAnswer(new Answer<Integer>() {
-            private int count = 0;
-
-            @Override
-            public Integer answer(InvocationOnMock invocation) throws Throwable {
-                if (count++ < 2) {
-                    return 10;
-                } else {
-                    return 15;
-                }
-            }
-        });
-
-        when(mockJobMetadata.getStageMetadata(anyInt())).thenReturn(mockStageMetadata);
-        when(mockStageMetadata.getScalingPolicy()).thenReturn(mockScalingPolicy);
-        when(mockStageSchedulingInfo.getScalingPolicy()).thenReturn(mockScalingPolicy);
-
-        Map<Integer, StageSchedulingInfo> stageMap = new HashMap<>();
-        stageMap.put(1, mockStageSchedulingInfo);
-
-        when(mockSchedulingInfo.getStages()).thenReturn(stageMap);
-        when(mockJobDefinition.getSchedulingInfo()).thenReturn(mockSchedulingInfo);
-
-        when(mockJobMgr.getJobDefinition()).thenReturn(mockJobDefinition);
-        when(mockJobMgr.getJobMetadata()).thenReturn(mockJobMetadata);
-        when(mockV2JobOperations.getJobMgr(anyString())).thenReturn(mockJobMgr);
-
-        return mockV2JobOperations;
-    }
-
 }
