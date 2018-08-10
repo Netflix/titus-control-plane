@@ -23,7 +23,6 @@ import java.util.Set;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.endpoint.common.TaskSummary;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import rx.Observable;
 
@@ -110,8 +109,6 @@ public interface TitusServiceGateway<USER, JOB_SPEC, JOB_TYPE extends Enum<JOB_T
      * Kill a given task, optionally shrinking its job by one element.
      */
     Observable<Void> killTask(String user, String taskId, boolean shrink);
-
-    Observable<List<TaskSummary>> getTaskSummary();
 
     <EVENT, EVENT_STREAM extends Observable<EVENT>> EVENT_STREAM observeJobs();
 

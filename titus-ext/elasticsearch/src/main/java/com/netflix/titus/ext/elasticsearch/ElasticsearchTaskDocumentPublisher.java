@@ -34,15 +34,9 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.event.TaskStateChangeEvent;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
-import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -66,7 +60,6 @@ public class ElasticsearchTaskDocumentPublisher {
 
     private final ElasticsearchConfiguration configuration;
     private final V3JobOperations v3JobOperations;
-    private final RxEventBus rxEventBus;
     private final Client client;
     private final Map<String, String> taskDocumentContext;
     private final TitusRuntime titusRuntime;
@@ -77,13 +70,11 @@ public class ElasticsearchTaskDocumentPublisher {
     @Inject
     public ElasticsearchTaskDocumentPublisher(ElasticsearchConfiguration configuration,
                                               V3JobOperations v3JobOperations,
-                                              RxEventBus rxEventBus,
                                               Client client,
                                               @Named(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentContext,
                                               TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.v3JobOperations = v3JobOperations;
-        this.rxEventBus = rxEventBus;
         this.client = client;
         this.taskDocumentContext = taskDocumentContext;
         this.titusRuntime = titusRuntime;
@@ -99,34 +90,13 @@ public class ElasticsearchTaskDocumentPublisher {
     @Activator
     public void enterActiveMode() {
         logger.info("Starting the task streams to publish task documents to elasticsearch");
-        Observable.merge(v2TasksStream(), v3TasksStream()).buffer(TIME_TO_BUFFER_MS, TimeUnit.MILLISECONDS, COUNT_TO_BUFFER)
+        v3TasksStream().buffer(TIME_TO_BUFFER_MS, TimeUnit.MILLISECONDS, COUNT_TO_BUFFER)
                 .observeOn(Schedulers.io())
                 .subscribe(
                         this::publishTaskDocuments,
                         e -> logger.error("Unable to publish task documents to elasticsearch: ", e),
                         () -> logger.info("Finished publishing task documents to elasticsearch")
                 );
-    }
-
-    private Observable<TaskDocument> v2TasksStream() {
-        Observable<Optional<TaskDocument>> optionalTaskDocuments = rxEventBus.listen(getClass().getSimpleName(), TaskStateChangeEvent.class)
-                .filter(taskStateChangeEvent -> taskStateChangeEvent.getSource() instanceof Pair)
-                .map(taskStateChangeEvent -> {
-                    try {
-                        Pair<V2JobMetadata, V2WorkerMetadata> jobAndTaskPair = (Pair<V2JobMetadata, V2WorkerMetadata>) taskStateChangeEvent.getSource();
-                        V2JobMetadata job = jobAndTaskPair.getLeft();
-                        V2WorkerMetadata task = jobAndTaskPair.getRight();
-                        if (job != null && task != null) {
-                            TitusJobSpec titusJobSpec = TitusJobSpec.getSpec(job);
-                            TaskDocument taskDocument = TaskDocument.fromV2Task(task, titusJobSpec, taskDateFormat, taskDocumentContext);
-                            return Optional.of(taskDocument);
-                        }
-                    } catch (Exception e) {
-                        logger.error("Unable to convert task: {} to task document with error: ", taskStateChangeEvent.getTaskId(), e);
-                    }
-                    return Optional.empty();
-                });
-        return titusRuntime.persistentStream(ObservableExt.fromOptionalObservable(optionalTaskDocuments));
     }
 
     private Observable<TaskDocument> v3TasksStream() {

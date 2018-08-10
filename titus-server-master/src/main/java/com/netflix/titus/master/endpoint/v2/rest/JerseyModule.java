@@ -26,7 +26,6 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
-import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
 import com.netflix.titus.master.supervisor.endpoint.http.TitusSupervisorResource;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
@@ -59,20 +58,14 @@ public final class JerseyModule extends JerseyServletModule {
 
     @Provides
     @Singleton
-    public RestConfig getRestConfig(ConfigProxyFactory factory) {
-        return factory.newProxy(RestConfig.class);
-    }
-
-    @Provides
-    @Singleton
-    public RestServerConfiguration getRestServerConfiguration(RestConfig restConfig) {
-        return restConfig;
+    public RestServerConfiguration getRestServerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(RestServerConfiguration.class);
     }
 
     @Advises
     @Singleton
     @Named("governator")
-    UnaryOperator<DefaultResourceConfig> getConfig(MasterConfiguration configuration) {
+    UnaryOperator<DefaultResourceConfig> getConfig() {
         return config -> {
             // Providers
             config.getClasses().add(JsonMessageReaderWriter.class);
