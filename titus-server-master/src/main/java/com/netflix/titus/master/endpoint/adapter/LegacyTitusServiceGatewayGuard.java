@@ -22,10 +22,10 @@ import com.google.common.base.Strings;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.api.service.TitusServiceException.ErrorCode;
 import com.netflix.titus.master.ApiOperations;
-import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.endpoint.TitusServiceGateway;
-import com.netflix.titus.master.master.MasterDescription;
-import com.netflix.titus.master.master.MasterMonitor;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import rx.Completable;
 import rx.Observable;
 
@@ -65,7 +65,7 @@ public class LegacyTitusServiceGatewayGuard<USER, JOB_SPEC, JOB_TYPE extends Enu
 
     private void checkIfActive() {
         if (!leaderActivator.isLeader()) {
-            MasterDescription latestMaster = masterMonitor.getLatestMaster();
+            MasterDescription latestMaster = masterMonitor.getLatestLeader();
             if (latestMaster != null && !Strings.isNullOrEmpty(latestMaster.getHostIP())) {
                 throw TitusServiceException.notLeader(latestMaster.getHostIP());
             } else {

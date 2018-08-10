@@ -27,8 +27,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.LeaderRepresentation;
-import com.netflix.titus.master.master.MasterDescription;
-import com.netflix.titus.master.master.MasterMonitor;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.mesos.MesosMasterResolver;
 
 /**
@@ -54,7 +54,7 @@ public class LeaderResource implements LeaderEndpoint {
                 .map(LeaderResource::inetToString)
                 .collect(Collectors.toList());
 
-        MasterDescription masterDescription = masterMonitor.getLatestMaster();
+        MasterDescription masterDescription = masterMonitor.getLatestLeader();
 
         LeaderRepresentation.Builder builder = LeaderRepresentation.newBuilder()
                 .withHostname(masterDescription.getHostname())

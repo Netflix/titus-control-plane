@@ -19,7 +19,7 @@ package com.netflix.titus.master.endpoint.common.grpc.interceptor;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCall.Listener;

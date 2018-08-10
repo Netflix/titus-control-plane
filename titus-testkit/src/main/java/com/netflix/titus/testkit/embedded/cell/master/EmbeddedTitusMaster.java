@@ -70,11 +70,12 @@ import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
-import com.netflix.titus.master.cluster.LeaderActivator;
-import com.netflix.titus.master.cluster.LeaderElector;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
+import com.netflix.titus.master.supervisor.service.LeaderElector;
 import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
-import com.netflix.titus.master.master.MasterDescription;
-import com.netflix.titus.master.master.MasterMonitor;
+import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.store.V2StorageProvider;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
@@ -205,7 +206,7 @@ public class EmbeddedTitusMaster {
 
                                       bind(LeaderElector.class).to(EmbeddedLeaderElector.class);
                                       bind(MasterDescription.class).toInstance(masterDescription);
-                                      bind(MasterMonitor.class).to(EmbeddedMasterMonitor.class);
+                                      bind(MasterMonitor.class).to(LocalMasterMonitor.class);
                                       bind(V2StorageProvider.class).toInstance(storageProvider);
                                       bind(AgentStore.class).toInstance(agentStore);
 

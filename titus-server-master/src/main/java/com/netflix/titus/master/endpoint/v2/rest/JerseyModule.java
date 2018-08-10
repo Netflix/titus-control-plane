@@ -28,6 +28,7 @@ import com.netflix.governator.providers.Advises;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
+import com.netflix.titus.master.supervisor.endpoint.http.TitusSupervisorResource;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
@@ -83,6 +84,7 @@ public final class JerseyModule extends JerseyServletModule {
             config.getClasses().add(LeaderResource.class);
             config.getClasses().add(FitResource.class);
             config.getClasses().add(ServerStatusResource.class);
+            config.getClasses().add(TitusSupervisorResource.class);
 
             // V2 resources
             config.getClasses().add(VmManagementResource.class);

@@ -18,8 +18,24 @@ package com.netflix.titus.testkit.embedded.cell.master;
 
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.cluster.LeaderElector;
+import com.netflix.titus.master.supervisor.model.MasterState;
+import com.netflix.titus.master.supervisor.service.LeaderElector;
+import rx.Observable;
 
 @Singleton
 public class EmbeddedLeaderElector implements LeaderElector {
+    @Override
+    public boolean join() {
+        return false;
+    }
+
+    @Override
+    public boolean leaveIfNotLeader() {
+        return false;
+    }
+
+    @Override
+    public Observable<MasterState> awaitElection() {
+        return Observable.just(MasterState.LeaderActivated);
+    }
 }
