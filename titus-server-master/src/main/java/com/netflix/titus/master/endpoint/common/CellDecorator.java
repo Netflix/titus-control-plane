@@ -16,13 +16,10 @@
 
 package com.netflix.titus.master.endpoint.common;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
 
 public class CellDecorator {
 
@@ -30,18 +27,6 @@ public class CellDecorator {
 
     public CellDecorator(Supplier<String> cellNameSupplier) {
         this.cellNameSupplier = cellNameSupplier;
-    }
-
-    /**
-     * Adds a {@link JobAttributes#JOB_ATTRIBUTES_CELL "titus.cell"} label to a {@link TitusJobSpec V2 job spec},
-     * replacing the existing value if it is already present.
-     */
-    public TitusJobSpec ensureCellInfo(TitusJobSpec jobSpec) {
-        final Map<String, String> originalLabels = jobSpec.getLabels();
-        final Map<String, String> labels = originalLabels == null ? new HashMap<>() : new HashMap<>(originalLabels);
-        final String cellName = cellNameSupplier.get();
-        labels.put(JobAttributes.JOB_ATTRIBUTES_CELL, cellName);
-        return new TitusJobSpec.Builder(jobSpec).labels(labels).build();
     }
 
     /**
