@@ -22,7 +22,7 @@ import org.I0Itec.zkclient.ZkServer;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
-public class ZkExternalResource extends ExternalResource {
+public class ZookeeperResource extends ExternalResource {
 
     private static final String ZK_SERVER_HOST = "127.0.0.1";
 
@@ -31,7 +31,7 @@ public class ZkExternalResource extends ExternalResource {
     private ZookeeperServer zkServer;
     private String zkConnectStr;
 
-    public ZkExternalResource(TemporaryFolder tempFolder) {
+    public ZookeeperResource(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
     }
 

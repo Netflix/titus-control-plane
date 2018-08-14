@@ -46,7 +46,7 @@ public class LeaderRedirectingFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(LeaderRedirectingFilter.class);
 
-    private static final Set<String> ALWAYS_OPEN_PATHS = asSet("/api/v2/leader", "/api/v2/status", "/health");
+    private static final Set<String> ALWAYS_OPEN_PATHS = asSet("/api/v2/leader", "/api/v2/status", "/api/v3/supervisor", "/health");
 
     private final MasterConfiguration config;
     private final MasterMonitor masterMonitor;
@@ -67,7 +67,8 @@ public class LeaderRedirectingFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        boolean alwaysOpen = ALWAYS_OPEN_PATHS.contains(((HttpServletRequest) request).getRequestURI());
+        String requestURI = ((HttpServletRequest) request).getRequestURI();
+        boolean alwaysOpen = ALWAYS_OPEN_PATHS.stream().anyMatch(requestURI::contains);
         if (alwaysOpen) {
             chain.doFilter(request, response);
         } else if (isLocal() || leaderActivator.isLeader()) {

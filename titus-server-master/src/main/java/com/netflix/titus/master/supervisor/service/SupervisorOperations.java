@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.netflix.titus.master.supervisor.model.MasterInstance;
 import com.netflix.titus.master.supervisor.model.event.SupervisorEvent;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import rx.Observable;
 
 public interface SupervisorOperations {
@@ -19,5 +20,7 @@ public interface SupervisorOperations {
 
     Optional<MasterInstance> findLeader();
 
-    Observable<SupervisorEvent> events(boolean includeSnapshot);
+    Observable<SupervisorEvent> events();
+
+    void restartMasterInstance(CallMetadata callMetadata);
 }

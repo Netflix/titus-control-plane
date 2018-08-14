@@ -2,6 +2,7 @@ package com.netflix.titus.ext.eureka.supervisor;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -10,6 +11,7 @@ import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.EurekaEventListener;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.supervisor.model.MasterInstance;
+import com.netflix.titus.master.supervisor.model.MasterInstanceFunctions;
 import com.netflix.titus.master.supervisor.model.MasterState;
 import com.netflix.titus.master.supervisor.model.MasterStatus;
 import com.netflix.titus.master.supervisor.service.LocalMasterInstanceResolver;
@@ -37,12 +39,18 @@ public class EurekaLocalMasterInstanceResolver implements LocalMasterInstanceRes
     @Override
     public Observable<MasterInstance> observeLocalMasterInstanceUpdates() {
         return Observable.create(emitter -> {
+            AtomicReference<MasterInstance> last = new AtomicReference<>(fetchCurrent());
+
             // Emit immediately known state
-            emitter.onNext(fetchCurrent());
+            emitter.onNext(last.get());
 
             EurekaEventListener listener = event -> {
                 try {
-                    emitter.onNext(fetchCurrent());
+                    MasterInstance next = fetchCurrent();
+                    if (MasterInstanceFunctions.areDifferent(next, last.get())) {
+                        emitter.onNext(next);
+                        last.set(next);
+                    }
                 } catch (Exception e) {
                     titusRuntime.getCodeInvariants().unexpectedError(
                             "EurekaClient event processing error: event=%s, error=%s", event, e.getMessage()
@@ -120,6 +128,6 @@ public class EurekaLocalMasterInstanceResolver implements LocalMasterInstanceRes
                 break;
         }
 
-        return builder.build();
+        return builder.withStatus(statusBuilder.build()).build();
     }
 }

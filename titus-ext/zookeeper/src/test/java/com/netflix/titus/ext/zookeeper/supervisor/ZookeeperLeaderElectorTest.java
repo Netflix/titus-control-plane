@@ -20,8 +20,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.ext.zookeeper.ConfigurationMockSamples;
-import com.netflix.titus.ext.zookeeper.ZkExternalResource;
+import com.netflix.titus.ext.zookeeper.ZookeeperTestUtils;
+import com.netflix.titus.ext.zookeeper.ZookeeperResource;
 import com.netflix.titus.ext.zookeeper.ZookeeperConfiguration;
 import com.netflix.titus.ext.zookeeper.ZookeeperPaths;
 import com.netflix.titus.ext.zookeeper.connector.CuratorServiceImpl;
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
 public class ZookeeperLeaderElectorTest {
 
     private static TemporaryFolder tempFolder = new TemporaryFolder();
-    private static ZkExternalResource zkServer = new ZkExternalResource(tempFolder);
+    private static ZookeeperResource zkServer = new ZookeeperResource(tempFolder);
 
     @ClassRule
     public static TestRule chain = RuleChain
@@ -75,7 +75,7 @@ public class ZookeeperLeaderElectorTest {
 
     @Before
     public void setUp() {
-        config = ConfigurationMockSamples.withEmbeddedZookeeper(mock(ZookeeperConfiguration.class), zkServer.getZkConnStr());
+        config = ZookeeperTestUtils.withEmbeddedZookeeper(mock(ZookeeperConfiguration.class), zkServer.getZkConnStr());
         zkPaths = new ZookeeperPaths(config);
     }
 

@@ -16,164 +16,159 @@
 
 package com.netflix.titus.ext.zookeeper.supervisor;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.concurrent.CountDownLatch;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.ext.zookeeper.ConfigurationMockSamples;
-import com.netflix.titus.ext.zookeeper.ZkExternalResource;
-import com.netflix.titus.ext.zookeeper.ZookeeperConfiguration;
+import com.netflix.titus.ext.zookeeper.CuratorServiceResource;
 import com.netflix.titus.ext.zookeeper.ZookeeperPaths;
-import com.netflix.titus.ext.zookeeper.connector.CuratorServiceImpl;
-import com.netflix.titus.ext.zookeeper.connector.DefaultZookeeperClusterResolver;
-import com.netflix.titus.ext.zookeeper.connector.ZookeeperClusterResolver;
-import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.ext.zookeeper.ZookeeperTestUtils;
+import com.netflix.titus.ext.zookeeper.connector.CuratorUtils;
+import com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConverters;
+import com.netflix.titus.master.supervisor.model.MasterInstance;
+import com.netflix.titus.master.supervisor.model.MasterInstanceFunctions;
+import com.netflix.titus.master.supervisor.model.MasterState;
+import com.netflix.titus.master.supervisor.model.MasterStatus;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
+import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.data.Stat;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestRule;
-import rx.functions.Action1;
-import rx.functions.Func1;
 
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
+import static com.netflix.titus.common.util.CollectionsExt.asSet;
+import static com.netflix.titus.ext.zookeeper.ZookeeperTestUtils.newMasterDescription;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 @Category(IntegrationNotParallelizableTest.class)
 public class ZookeeperMasterMonitorTest {
 
     private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private static TemporaryFolder tempFolder = new TemporaryFolder();
-    private static ZkExternalResource zkServer = new ZkExternalResource(tempFolder);
-
     @ClassRule
-    public static TestRule chain = RuleChain
-            .outerRule(tempFolder)
-            .around(zkServer);
+    public static CuratorServiceResource curatorServiceResource = new CuratorServiceResource(titusRuntime);
 
-    private static MasterConfiguration config;
-    private static ZookeeperConfiguration zookeeperConfiguration;
+    private static CuratorFramework curator;
 
-    private final ZookeeperClusterResolver clusterResolver = new DefaultZookeeperClusterResolver(zookeeperConfiguration);
+    private static ZookeeperPaths zkPaths;
 
-    private ZookeeperPaths zkPaths = new ZookeeperPaths(zookeeperConfiguration);
+    private ZookeeperMasterMonitor masterMonitor;
 
     @BeforeClass
-    public static void setUp() throws Exception {
-        config = ConfigurationMockSamples.withExecutionEnvironment(mock(MasterConfiguration.class));
-        zookeeperConfiguration = ConfigurationMockSamples.withEmbeddedZookeeper(mock(ZookeeperConfiguration.class), zkServer.getZkConnStr());
+    public static void setUpClass() {
+        curatorServiceResource.createAllPaths();
+        curator = curatorServiceResource.getCuratorService().getCurator();
+        zkPaths = curatorServiceResource.getZkPaths();
     }
 
-    public MasterDescription newMasterDescription() {
-        String host = getHost();
-
-        return new MasterDescription(
-                host,
-                getHostIP(),
-                config.getApiProxyPort(),
-                config.getApiStatusUri(),
-                System.currentTimeMillis()
-        );
+    @Before
+    public void setUp() {
+        masterMonitor = new ZookeeperMasterMonitor(zkPaths, curatorServiceResource.getCuratorService(), titusRuntime);
+        masterMonitor.start();
     }
 
-    private String getHost() {
-        String host = config.getMasterHost();
-        if (host != null) {
-            return host;
-        }
-
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            throw new RuntimeException("Failed to get the host information: " + e.getMessage(), e);
-        }
+    @After
+    public void tearDown() {
+        masterMonitor.shutdown();
     }
 
-    private String getHostIP() {
-        String ip = config.getMasterIP();
-        if (ip != null) {
-            return ip;
-        }
-
-        try {
-            return InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException e) {
-            throw new RuntimeException("Failed to get the host information: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    public void testMonitorWorksForMultipleUpdates() throws Exception {
-        final AtomicInteger counter = new AtomicInteger();
-        int total = 5;
-        final CountDownLatch latch = new CountDownLatch(total);
-        final CuratorServiceImpl curatorService = new CuratorServiceImpl(zookeeperConfiguration, clusterResolver, new DefaultRegistry());
-        final ZookeeperMasterMonitor masterMonitor = new ZookeeperMasterMonitor(zkPaths, curatorService, titusRuntime);
-
+    @Test(timeout = 30_000)
+    public void testMonitorWorksForMultipleLeaderUpdates() throws Exception {
         // Note we intentionally didn't set the initial value of master description because we'd like to make sure
         // that the monitor will work property even if it fails occasionally (in this case, it will fail to deserialize
         // the master description in the very beginning
-        masterMonitor.getLeaderObservable()
-                .filter(new Func1<MasterDescription, Boolean>() {
-                    @Override
-                    public Boolean call(MasterDescription masterDescription) {
-                        return masterDescription != null;
-                    }
-                })
-                .doOnNext(new Action1<MasterDescription>() {
-                    @Override
-                    public void call(MasterDescription masterDescription) {
-                        System.out.println(counter.incrementAndGet() + ": Got new master: " + masterDescription.toString());
-                        latch.countDown();
-                    }
-                })
-                .subscribe();
-        curatorService.start();
-        masterMonitor.start();
+        ExtTestSubscriber<MasterDescription> leaderSubscriber = new ExtTestSubscriber<>();
+        masterMonitor.getLeaderObservable().filter(Objects::nonNull).subscribe(leaderSubscriber);
 
-        try {
-            CuratorFramework curator = curatorService.getCurator();
-            for (String fullPath : new String[]{zkPaths.getLeaderElectionPath(), zkPaths.getLeaderAnnouncementPath()}) {
-                Stat pathStat = curator.checkExists().forPath(fullPath);
-                // Create the path only if the path does not exist
-                if (pathStat == null) {
-                    curator.create()
-                            .creatingParentsIfNeeded()
-                            .withMode(CreateMode.PERSISTENT)
-                            .forPath(fullPath);
+        for (int i = 0; i < 5; i++) {
+            curator.setData()
+                    .forPath(zkPaths.getLeaderAnnouncementPath(), ObjectMappers.defaultMapper().writeValueAsBytes(newMasterDescription(i)));
+
+            // Try a few times, as we can get update for the same entity more than once.
+            for (int j = 0; j < 3; j++) {
+                MasterDescription newLeader = leaderSubscriber.takeNext(5, TimeUnit.SECONDS);
+                if (newLeader != null && newLeader.getApiPort() == i) {
+                    return;
                 }
             }
-
-            // Make enough updates to make sure that the monitor can pick up sufficient number of changes
-            // We use twice updates as needed in case some of the updates time out.
-            for (int i = 0; i < 2 * total; ++i) {
-                curatorService.getCurator().setData()
-                        .forPath(zkPaths.getLeaderAnnouncementPath(), ObjectMappers.defaultMapper().writeValueAsBytes(newMasterDescription()));
-                Thread.sleep(1000);
-            }
-
-            try {
-                boolean success = latch.await(60, TimeUnit.SECONDS);
-                assertTrue(String.format("The monitor should have picked up %d updates, but only %d is reported ", total, total - latch.getCount()), success);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        } finally {
-            curatorService.shutdown();
+            fail("Did not received TitusMaster update for iteration " + i);
         }
+    }
+
+    @Test(timeout = 30_000)
+    public void testLocalMasterInstanceUpdates() throws Exception {
+        // Should get dummy version first.
+        assertThat(masterMonitor.getCurrentMasterInstance()).isEqualTo(ZookeeperMasterMonitor.UNKNOWN_MASTER_INSTANCE);
+
+        ExtTestSubscriber<List<MasterInstance>> mastersSubscriber = new ExtTestSubscriber<>();
+        masterMonitor.observeMasters().subscribe(mastersSubscriber);
+        assertThat(mastersSubscriber.takeNext()).isEmpty();
+
+        // Update information about itself
+        MasterInstance initial = ZookeeperTestUtils.newMasterInstance("selfId", MasterState.Inactive);
+        assertThat(masterMonitor.updateOwnMasterInstance(initial).get()).isNull();
+
+        assertThat(mastersSubscriber.takeNext(5, TimeUnit.SECONDS)).hasSize(1).contains(initial);
+
+        // Change state
+        MasterInstance updated = MasterInstanceFunctions.moveTo(initial, MasterStatus.newBuilder()
+                .withState(MasterState.NonLeader)
+                .withReasonCode("nextStep")
+                .withReasonMessage("testing")
+                .build()
+        );
+        assertThat(masterMonitor.updateOwnMasterInstance(updated).get()).isNull();
+        expectMasters(mastersSubscriber, updated);
+
+        // Now add second master
+        MasterInstance second = ZookeeperTestUtils.newMasterInstance("secondId", MasterState.Inactive);
+
+        addMasterInstanceToZookeeper(second);
+        expectMasters(mastersSubscriber, updated, second);
+
+        // And remove it
+        removeMasterInstanceFromZookeeper(second.getInstanceId());
+        expectMasters(mastersSubscriber, updated);
+    }
+
+    /**
+     * Zookeeper sends multiple events for the same master update, so we have to be able to filter this out.
+     */
+    private void expectMasters(ExtTestSubscriber<List<MasterInstance>> mastersSubscriber, MasterInstance... masters) throws Exception {
+        List<MasterInstance> last = null;
+        for (List<MasterInstance> next; (next = mastersSubscriber.takeNext()) != null; ) {
+            last = next;
+        }
+        boolean matches = last != null && new HashSet<>(last).equals(asSet(masters));
+        if (!matches) {
+            assertThat(mastersSubscriber.takeNext(5, TimeUnit.SECONDS)).hasSize(masters.length).contains(masters);
+        }
+    }
+
+    private String buildInstancePath(String instanceId) {
+        return zkPaths.getAllMastersPath() + "/" + instanceId;
+    }
+
+    private void addMasterInstanceToZookeeper(MasterInstance instance) {
+        String path = buildInstancePath(instance.getInstanceId());
+        CuratorUtils.createPathIfNotExist(curator, path, false);
+
+        byte[] bytes = SupervisorGrpcModelConverters.toGrpcMasterInstance(instance).toByteArray();
+        assertThat(CuratorUtils.setData(curator, path, bytes).get()).isNull();
+    }
+
+    private void removeMasterInstanceFromZookeeper(String instanceId) throws Exception {
+        curator.delete().inBackground((client, event) -> {
+            System.out.printf("Received Curator notification after the instance node %s was removed: %s", instanceId, event);
+        }).forPath(buildInstancePath(instanceId));
     }
 }

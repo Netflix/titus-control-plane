@@ -70,16 +70,15 @@ import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
-import com.netflix.titus.master.supervisor.service.LeaderElector;
 import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
-import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
-import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.store.V2StorageProvider;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
+import com.netflix.titus.master.supervisor.service.LeaderElector;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.master.supervisor.service.MasterMonitor;
+import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
-import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
@@ -95,12 +94,10 @@ import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMe
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.CloudSimulatorResolver;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteMesosSchedulerDriverFactory;
+import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.testkit.util.NetworkExt;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.Metadata;
-import io.grpc.stub.AbstractStub;
-import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -310,37 +307,37 @@ public class EmbeddedTitusMaster {
 
     public HealthStub getHealthClient() {
         HealthStub client = HealthGrpc.newStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
+        return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public JobManagementServiceStub getV3GrpcClient() {
         JobManagementServiceStub client = JobManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
+        return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public JobManagementServiceBlockingStub getV3BlockingGrpcClient() {
         JobManagementServiceBlockingStub client = JobManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
+        return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient() {
         AgentManagementServiceGrpc.AgentManagementServiceStub client = AgentManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
+        return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient() {
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub client = AgentManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
+        return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         AutoScalingServiceGrpc.AutoScalingServiceStub client = AutoScalingServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
+        return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return attachCallHeaders(client);
+        return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {
@@ -405,14 +402,6 @@ public class EmbeddedTitusMaster {
 
     public int getGrpcPort() {
         return grpcPort;
-    }
-
-    private <STUB extends AbstractStub<STUB>> STUB attachCallHeaders(STUB client) {
-        Metadata metadata = new Metadata();
-        metadata.put(V3HeaderInterceptor.CALLER_ID_KEY, "embeddedMasterClient");
-        metadata.put(V3HeaderInterceptor.CALL_REASON_KEY, "test call");
-        metadata.put(V3HeaderInterceptor.DEBUG_KEY, "true");
-        return client.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
     }
 
     public Builder toBuilder() {

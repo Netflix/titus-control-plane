@@ -66,6 +66,10 @@ public class MasterStatus {
                 '}';
     }
 
+    public Builder toBuilder() {
+        return newBuilder().withState(state).withReasonCode(reasonCode).withReasonMessage(reasonMessage).withTimestamp(timestamp);
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }

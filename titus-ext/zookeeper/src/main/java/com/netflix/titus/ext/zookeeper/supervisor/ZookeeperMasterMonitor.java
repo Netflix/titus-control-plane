@@ -22,15 +22,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.ext.zookeeper.ZookeeperConstants;
 import com.netflix.titus.ext.zookeeper.ZookeeperPaths;
 import com.netflix.titus.ext.zookeeper.connector.CuratorService;
 import com.netflix.titus.ext.zookeeper.connector.CuratorUtils;
@@ -48,6 +53,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
+import rx.Scheduler;
+import rx.Subscription;
+import rx.schedulers.Schedulers;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
@@ -67,7 +75,8 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
      * instead we assign a default value which indicates this fact. Before the bootstrap completes this default
      * should be replaced with a correct value, or the JVM process should terminate.
      */
-    private static final MasterInstance UNKNOWN_MASTER_INSTANCE = MasterInstance.newBuilder()
+    @VisibleForTesting
+    static final MasterInstance UNKNOWN_MASTER_INSTANCE = MasterInstance.newBuilder()
             .withInstanceId("unknownId")
             .withIpAddress("0.0.0.0")
             .withStatus(MasterStatus.newBuilder()
@@ -78,6 +87,8 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
             )
             .build();
 
+    private static final long OWN_MASTER_REFRESH_INTERVAL_MS = 30_000;
+
     private final CuratorFramework curator;
     private final TitusRuntime titusRuntime;
 
@@ -86,8 +97,11 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
     private final AtomicReference<MasterDescription> latestLeader = new AtomicReference<>();
     private final NodeCache leaderMonitor;
 
-    private final String masterPath;
+    private final String allMastersPath;
     private final TreeCache masterMonitor;
+
+    private volatile List<MasterInstance> knownMasterInstances = Collections.emptyList();
+
     private final Subject<List<MasterInstance>, List<MasterInstance>> masterUpdates = new SerializedSubject<>(
             BehaviorSubject.create(Collections.emptyList())
     );
@@ -95,17 +109,21 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
             masterUpdates.asObservable(),
             logger
     );
+
     private volatile MasterInstance ownMasterInstance = UNKNOWN_MASTER_INSTANCE;
+
+    private final Subscription refreshOwnMasterInstanceSubscriber;
 
     @Inject
     public ZookeeperMasterMonitor(ZookeeperPaths zkPaths, CuratorService curatorService, TitusRuntime titusRuntime) {
-        this(zkPaths, curatorService.getCurator(), null, titusRuntime);
+        this(zkPaths, curatorService.getCurator(), null, titusRuntime, Schedulers.computation());
     }
 
     public ZookeeperMasterMonitor(ZookeeperPaths zkPaths,
                                   CuratorFramework curator,
                                   MasterDescription initValue,
-                                  TitusRuntime titusRuntime) {
+                                  TitusRuntime titusRuntime,
+                                  Scheduler scheduler) {
         this.curator = curator;
         this.titusRuntime = titusRuntime;
 
@@ -114,8 +132,17 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
         this.leaderMonitor = new NodeCache(curator, leaderPath);
         this.latestLeader.set(initValue);
 
-        this.masterPath = zkPaths.getTitusMasterPath();
-        this.masterMonitor = new TreeCache(curator, masterPath);
+        this.allMastersPath = zkPaths.getAllMastersPath();
+        this.masterMonitor = new TreeCache(curator, allMastersPath);
+
+        this.refreshOwnMasterInstanceSubscriber = ObservableExt.schedule(
+                ZookeeperConstants.METRICS_ROOT + "masterMonitor.ownInstanceRefreshScheduler",
+                titusRuntime.getRegistry(),
+                "reRegisterOwnMasterInstanceInZookeeper",
+                registerOwnMasterInstance(() -> ownMasterInstance),
+                OWN_MASTER_REFRESH_INTERVAL_MS, OWN_MASTER_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS,
+                scheduler
+        ).subscribe();
     }
 
     @PostConstruct
@@ -124,6 +151,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
         masterMonitor.getListenable().addListener(this::retrieveAllMasters);
         try {
             leaderMonitor.start();
+            masterMonitor.start();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to start master node monitor: " + e.getMessage(), e);
         }
@@ -133,14 +161,16 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
 
     @PreDestroy
     public void shutdown() {
+        ObservableExt.safeUnsubscribe(refreshOwnMasterInstanceSubscriber);
+
         try {
             leaderMonitor.close();
+            masterMonitor.close();
             logger.info("ZK master monitor is shut down");
         } catch (IOException e) {
             throw new RuntimeException("Failed to close the ZK node monitor: " + e.getMessage(), e);
         }
     }
-
 
     @Override
     public Observable<MasterDescription> getLeaderObservable() {
@@ -159,8 +189,20 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
 
     @Override
     public Completable updateOwnMasterInstance(MasterInstance self) {
-        return CuratorUtils.setData(curator, masterPath + '/' + self.getInstanceId(), toGrpcMasterInstance(self).toByteArray())
-                .doOnCompleted(() -> this.ownMasterInstance = self)
+        return registerOwnMasterInstance(() -> self)
+                .doOnSubscribe(s -> this.ownMasterInstance = self)
+                .doOnCompleted(() -> logger.info("Updated own MasterInstance state to: {}", self));
+    }
+
+    private Completable registerOwnMasterInstance(Supplier<MasterInstance> source) {
+        return Completable
+                .defer(() -> {
+                    MasterInstance self = source.get();
+                    String fullPath = allMastersPath + '/' + self.getInstanceId();
+                    CuratorUtils.createPathIfNotExist(curator, fullPath, false);
+
+                    return CuratorUtils.setData(curator, fullPath, toGrpcMasterInstance(self).toByteArray());
+                })
                 .doOnError(e -> logger.warn("Couldn't update own MasterInstance data in Zookeeper", e));
     }
 
@@ -177,11 +219,14 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
                             curator
                                     .getData()
                                     .inBackground((client, event) -> {
-                                        MasterDescription description = ObjectMappers.defaultMapper().readValue(event.getData(), MasterDescription.class);
-                                        logger.info("New master retrieved: {}", description);
-                                        latestLeader.set(description);
-                                        leaderSubject.onNext(description);
-
+                                        try {
+                                            MasterDescription description = ObjectMappers.defaultMapper().readValue(event.getData(), MasterDescription.class);
+                                            logger.info("New master retrieved: {}", description);
+                                            latestLeader.set(description);
+                                            leaderSubject.onNext(description);
+                                        } catch (Exception e) {
+                                            logger.error("Bad value in the leader path: {}", e.getMessage());
+                                        }
                                     })
                                     .forPath(leaderPath)
                     )
@@ -193,11 +238,21 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
     }
 
     private void retrieveAllMasters(CuratorFramework curator, TreeCacheEvent cacheEvent) {
+        logger.debug("Received TreeCacheEvent: {}", cacheEvent);
+
+        Map<String, ChildData> currentChildren = Evaluators.getOrDefault(
+                masterMonitor.getCurrentChildren(allMastersPath), Collections.emptyMap()
+        );
+
         List<MasterInstance> updatedMasterList = new ArrayList<>();
-        for (Map.Entry<String, ChildData> entry : masterMonitor.getCurrentChildren(masterPath).entrySet()) {
+        for (Map.Entry<String, ChildData> entry : currentChildren.entrySet()) {
             parseMasterInstanceData(entry.getValue()).ifPresent(updatedMasterList::add);
         }
-        masterUpdates.onNext(Collections.unmodifiableList(updatedMasterList));
+
+        if (!knownMasterInstances.equals(updatedMasterList)) {
+            knownMasterInstances = updatedMasterList;
+            masterUpdates.onNext(Collections.unmodifiableList(updatedMasterList));
+        }
     }
 
     private Optional<MasterInstance> parseMasterInstanceData(ChildData childData) {

@@ -27,24 +27,26 @@ import org.apache.curator.utils.ZKPaths;
 @Singleton
 public class ZookeeperPaths {
 
+    public static final String ALL_MASTERS = "/allMasters";
     public static final String LEADER_ANNOUNCEMENT_NODE = "/leader";
     public static final String LEADER_ELECTION_NODE = "/hosts";
 
-    private final String titusMasterPath;
+    private final String allMastersPath;
     private final String leaderElectionPath;
     private final String leaderAnnouncementPath;
     private final String mesosPath;
 
     @Inject
     public ZookeeperPaths(ZookeeperConfiguration configuration) {
-        this.titusMasterPath = ZKPaths.makePath(configuration.getZkRoot(), "master");
+        String titusMasterPath = ZKPaths.makePath(configuration.getZkRoot(), "master");
+        this.allMastersPath = ZKPaths.makePath(titusMasterPath, ALL_MASTERS);
         this.leaderElectionPath = ZKPaths.makePath(titusMasterPath, LEADER_ELECTION_NODE);
         this.leaderAnnouncementPath = ZKPaths.makePath(titusMasterPath, LEADER_ANNOUNCEMENT_NODE);
         this.mesosPath = ZKPaths.makePath(configuration.getZkRoot(), "/mesos");
     }
 
-    public String getTitusMasterPath() {
-        return titusMasterPath;
+    public String getAllMastersPath() {
+        return allMastersPath;
     }
 
     public String getLeaderElectionPath() {
@@ -62,7 +64,7 @@ public class ZookeeperPaths {
     @Override
     public String toString() {
         return "ZookeeperPaths{" +
-                "titusMasterPath='" + titusMasterPath + '\'' +
+                "allMastersPath='" + allMastersPath + '\'' +
                 ", leaderElectionPath='" + leaderElectionPath + '\'' +
                 ", leaderAnnouncementPath='" + leaderAnnouncementPath + '\'' +
                 ", mesosPath='" + mesosPath + '\'' +
