@@ -37,14 +37,17 @@ public class DefaultSupervisorOperations implements SupervisorOperations {
 
     private final LifecycleManager lifecycleManager;
     private final MasterMonitor masterMonitor;
+    private final LeaderActivator leaderActivator;
     private final TitusRuntime titusRuntime;
 
     @Inject
     public DefaultSupervisorOperations(LifecycleManager lifecycleManager,
                                        MasterMonitor masterMonitor,
+                                       LeaderActivator leaderActivator,
                                        TitusRuntime titusRuntime) {
         this.lifecycleManager = lifecycleManager;
         this.masterMonitor = masterMonitor;
+        this.leaderActivator = leaderActivator;
         this.titusRuntime = titusRuntime;
     }
 
@@ -78,11 +81,25 @@ public class DefaultSupervisorOperations implements SupervisorOperations {
     }
 
     @Override
-    public void restartMasterInstance(CallMetadata callMetadata) {
-        logger.warn("System shutdown requested");
+    public void stopBeingLeader(CallMetadata callMetadata) {
+        if (!leaderActivator.isLeader()) {
+            logger.warn("System shutdown requested for non-leader node by: {}", callMetadata);
+
+            titusRuntime.getSystemLogService().submit(SystemLogEvent.newBuilder()
+                    .withPriority(SystemLogEvent.Priority.Warn)
+                    .withMessage("System shutdown requested for non-leader node; ignoring it")
+                    .withComponent(COMPONENT)
+                    .withCategory(SystemLogEvent.Category.Transient)
+                    .withContext(CallMetadataUtils.asMap(callMetadata))
+                    .build()
+            );
+            return;
+        }
+
+        logger.warn("System shutdown requested for the current leader by: {}", callMetadata);
         titusRuntime.getSystemLogService().submit(SystemLogEvent.newBuilder()
                 .withPriority(SystemLogEvent.Priority.Warn)
-                .withMessage("System shutdown requested")
+                .withMessage("System shutdown requested for the leader node")
                 .withComponent(COMPONENT)
                 .withCategory(SystemLogEvent.Category.Transient)
                 .withContext(CallMetadataUtils.asMap(callMetadata))

@@ -48,8 +48,12 @@ class FsmMetricsImpl<S> implements SpectatorExt.FsmMetrics<S> {
         this.nameOf = nameOf;
         this.finalStateEval = finalStateEval;
         this.registry = registry;
-        this.baseStateId = registry.createId(rootId.name() + "currentState", rootId.tags());
-        this.baseUpdatesId = registry.createId(rootId.name() + "updates", rootId.tags());
+
+        Id effectiveRootId = rootId.name().endsWith(".")
+                ? rootId
+                : registry.createId(rootId.name() + '.', rootId.tags());
+        this.baseStateId = registry.createId(effectiveRootId + "currentState", rootId.tags());
+        this.baseUpdatesId = registry.createId(effectiveRootId + "updates", rootId.tags());
         this.currentState = new AtomicReference<>(new StateHolder(initialState, ""));
     }
 

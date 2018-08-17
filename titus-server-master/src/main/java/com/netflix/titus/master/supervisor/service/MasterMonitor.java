@@ -36,7 +36,7 @@ public interface MasterMonitor {
     MasterInstance getCurrentMasterInstance();
 
     /**
-     * Update the local {@link MasterInstance} data record.ł
+     * Update the local {@link MasterInstance} data record.
      */
     Completable updateOwnMasterInstance(MasterInstance self);
 
@@ -45,5 +45,4 @@ public interface MasterMonitor {
      * instances whenever anything changes.
      */
     Observable<List<MasterInstance>> observeMasters();
-
 }

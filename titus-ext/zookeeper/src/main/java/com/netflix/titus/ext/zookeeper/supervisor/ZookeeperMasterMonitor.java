@@ -32,6 +32,7 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.json.ObjectMappers;
+import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -42,6 +43,7 @@ import com.netflix.titus.ext.zookeeper.connector.CuratorUtils;
 import com.netflix.titus.master.supervisor.model.MasterInstance;
 import com.netflix.titus.master.supervisor.model.MasterState;
 import com.netflix.titus.master.supervisor.model.MasterStatus;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import org.apache.curator.framework.CuratorFramework;
@@ -93,7 +95,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
     private final TitusRuntime titusRuntime;
 
     private final String leaderPath;
-    private final BehaviorSubject<MasterDescription> leaderSubject;
+    private final SerializedSubject<MasterDescription, MasterDescription> leaderSubject;
     private final AtomicReference<MasterDescription> latestLeader = new AtomicReference<>();
     private final NodeCache leaderMonitor;
 
@@ -128,7 +130,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
         this.titusRuntime = titusRuntime;
 
         this.leaderPath = zkPaths.getLeaderAnnouncementPath();
-        this.leaderSubject = BehaviorSubject.create(initValue);
+        this.leaderSubject = BehaviorSubject.create(initValue).toSerialized();
         this.leaderMonitor = new NodeCache(curator, leaderPath);
         this.latestLeader.set(initValue);
 
@@ -174,7 +176,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
 
     @Override
     public Observable<MasterDescription> getLeaderObservable() {
-        return leaderSubject;
+        return leaderSubject.asObservable();
     }
 
     @Override
@@ -233,7 +235,17 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
                     .forPath(leaderPath);
 
         } catch (Exception e) {
-            logger.error("Failed to retrieve updated master information: {}", e.getMessage(), e);
+            String errorMessage = "Failed to retrieve updated master information: " + e.getMessage();
+
+            titusRuntime.getSystemLogService().submit(SystemLogEvent.newBuilder()
+                    .withComponent(LeaderActivator.COMPONENT)
+                    .withPriority(SystemLogEvent.Priority.Warn)
+                    .withCategory(SystemLogEvent.Category.Transient)
+                    .withMessage(errorMessage)
+                    .build()
+            );
+
+            logger.error(errorMessage, e);
         }
     }
 
@@ -250,6 +262,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
         }
 
         if (!knownMasterInstances.equals(updatedMasterList)) {
+            logger.info("Detected change in TitusMaster state and/or topology: {}", updatedMasterList);
             knownMasterInstances = updatedMasterList;
             masterUpdates.onNext(Collections.unmodifiableList(updatedMasterList));
         }

@@ -64,10 +64,10 @@ public class DefaultSupervisorServiceGrpc extends SupervisorServiceGrpc.Supervis
     }
 
     @Override
-    public void restartMasterInstance(Empty request, StreamObserver<Empty> responseObserver) {
+    public void stopBeingLeader(Empty request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             try {
-                supervisorOperations.restartMasterInstance(callMetadata);
+                supervisorOperations.stopBeingLeader(callMetadata);
                 responseObserver.onNext(Empty.getDefaultInstance());
                 responseObserver.onCompleted();
             } catch (Exception e) {

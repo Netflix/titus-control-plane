@@ -24,12 +24,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.ext.zookeeper.ZookeeperConfiguration;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.imps.GzipCompressionProvider;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,7 @@ public class CuratorServiceImpl implements CuratorService {
 
     @Inject
     public CuratorServiceImpl(ZookeeperConfiguration configs, ZookeeperClusterResolver clusterResolver, Registry registry) {
-        isConnectedGauge = registry.gauge("titusMaster.curator.isConnected", new AtomicInteger());
+        isConnectedGauge = PolledMeter.using(registry).withName("titusMaster.curator.isConnected").monitorValue(new AtomicInteger());
 
         Optional<String> connectString = clusterResolver.resolve();
         if (!connectString.isPresent()) {
@@ -66,23 +65,20 @@ public class CuratorServiceImpl implements CuratorService {
 
     private void setupCuratorListener() {
         LOG.info("Setting up curator state change listener");
-        curator.getConnectionStateListenable().addListener(new ConnectionStateListener() {
-            @Override
-            public void stateChanged(CuratorFramework client, ConnectionState newState) {
-                if (newState.isConnected()) {
-                    LOG.info("Curator connected");
-                    isConnectedGauge.set(1);
-                } else {
-                    // ToDo: determine if it is safe to restart our service instead of committing suicide
-                    LOG.error("Curator connection lost");
-                    isConnectedGauge.set(0);
-                }
+        curator.getConnectionStateListenable().addListener((client, newState) -> {
+            if (newState.isConnected()) {
+                LOG.info("Curator connected");
+                isConnectedGauge.set(1);
+            } else {
+                // ToDo: determine if it is safe to restart our service instead of committing suicide
+                LOG.error("Curator connection lost");
+                isConnectedGauge.set(0);
             }
         });
     }
 
     @PostConstruct
-    public void start() throws Exception {
+    public void start() {
         isConnectedGauge.set(0);
         setupCuratorListener();
         curator.start();
@@ -95,6 +91,8 @@ public class CuratorServiceImpl implements CuratorService {
         } catch (Exception e) {
             // A shutdown failure should not affect the subsequent shutdowns, so we just warn here
             LOG.warn("Failed to shut down the curator service: {}", e.getMessage(), e);
+        } finally {
+            isConnectedGauge.set(0);
         }
     }
 

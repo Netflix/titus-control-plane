@@ -41,7 +41,7 @@ public class SupervisorResource {
     }
 
     @GET
-    @ApiOperation("Find the TitusMaster instance with the specified id")
+    @ApiOperation("Get all TitusMaster instances")
     @Path("/instances")
     public List<MasterInstance> getAllMasterInstances() {
         return supervisorOperations.getMasterInstances().stream()
@@ -59,7 +59,7 @@ public class SupervisorResource {
     }
 
     @GET
-    @ApiOperation("Find the TitusMaster instance with the specified id")
+    @ApiOperation("Return current leader")
     @Path("/instances/leader")
     public MasterInstance getLeader() {
         return supervisorOperations.findLeader()
@@ -68,13 +68,13 @@ public class SupervisorResource {
     }
 
     @POST
-    @Path("/self/restart")
-    public Response restart() {
+    @Path("/self/stopBeingLeader")
+    public Response stopBeingLeader() {
         Optional<CallMetadata> callMetadataOpt = callMetadataResolver.resolve();
         if (!callMetadataOpt.isPresent()) {
             return Response.status(Response.Status.FORBIDDEN).entity("Unidentified request").build();
         }
-        supervisorOperations.restartMasterInstance(callMetadataOpt.get());
+        supervisorOperations.stopBeingLeader(callMetadataOpt.get());
         return Response.ok().build();
     }
 }

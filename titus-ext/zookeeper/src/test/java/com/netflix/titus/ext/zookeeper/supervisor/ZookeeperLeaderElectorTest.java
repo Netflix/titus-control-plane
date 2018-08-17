@@ -20,6 +20,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.ext.zookeeper.ZookeeperTestUtils;
 import com.netflix.titus.ext.zookeeper.ZookeeperResource;
 import com.netflix.titus.ext.zookeeper.ZookeeperConfiguration;
@@ -56,6 +58,8 @@ import static org.mockito.Mockito.when;
 @Category(IntegrationNotParallelizableTest.class)
 public class ZookeeperLeaderElectorTest {
 
+    private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
     private static TemporaryFolder tempFolder = new TemporaryFolder();
     private static ZookeeperResource zkServer = new ZookeeperResource(tempFolder);
 
@@ -88,12 +92,12 @@ public class ZookeeperLeaderElectorTest {
             cs = new CuratorServiceImpl(config, clusterResolver, new DefaultRegistry());
             cs.start();
 
-            ZookeeperLeaderElector elector = new ZookeeperLeaderElector(leaderActivator, cs, zkPaths, masterDescription);
+            ZookeeperLeaderElector elector = new ZookeeperLeaderElector(leaderActivator, cs, zkPaths, masterDescription, titusRuntime);
             elector.join();
             fail("The elector should fail fast");
         } catch (IllegalStateException e) {
             assertEquals("The cause should be from ZK connection failure", CuratorConnectionLossException.class, e.getCause().getClass());
-            assertTrue("The error message is unexpected: " + e.getMessage(), e.getMessage().contains("ConnectionLoss"));
+            assertTrue("The error message is unexpected: " + e.getMessage(), e.getCause().getMessage().contains("ConnectionLoss"));
         } finally {
             if (cs != null) {
                 cs.shutdown();
@@ -131,7 +135,7 @@ public class ZookeeperLeaderElectorTest {
                 return null;
             }).when(leaderActivator).becomeLeader();
 
-            elector = new ZookeeperLeaderElector(leaderActivator, () -> curator, zkPaths, masterDescription);
+            elector = new ZookeeperLeaderElector(leaderActivator, () -> curator, zkPaths, masterDescription, titusRuntime);
             elector.join();
 
             latch.await(5, TimeUnit.SECONDS);

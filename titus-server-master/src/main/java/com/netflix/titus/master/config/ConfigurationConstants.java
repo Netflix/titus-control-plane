@@ -23,6 +23,7 @@ public final class ConfigurationConstants {
 
     public static final String ONE_HOUR = "" + (60 * 60 * 1000);
     public static final String ONE_MINUTE = "" + (60 * 1000);
+    public static final String TEN_MINUTES = "" + (10 * 60 * 1000);
 
     private ConfigurationConstants() {
     }

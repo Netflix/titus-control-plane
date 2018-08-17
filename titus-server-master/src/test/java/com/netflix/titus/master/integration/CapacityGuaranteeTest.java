@@ -47,7 +47,7 @@ import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTask
  * Tests that capacity guarantees are enforced during task scheduling.
  */
 @Category(IntegrationTest.class)
-public class CapacityGuaranteeTest {
+public class CapacityGuaranteeTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<BatchJobExt> BATCH_JOB_8CPU = oneTaskBatchJobDescriptor()
             .but(jd -> jd.getContainer().but(c -> c.toBuilder().withContainerResources(

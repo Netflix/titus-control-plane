@@ -25,5 +25,6 @@ public final class ZookeeperSupervisorModule extends AbstractModule {
     protected void configure() {
         bind(LeaderElector.class).to(ZookeeperLeaderElector.class).asEagerSingleton();
         bind(MasterMonitor.class).to(ZookeeperMasterMonitor.class);
+        bind(ZkLeaderVerificator.class).asEagerSingleton();
     }
 }

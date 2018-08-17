@@ -16,7 +16,7 @@
 
 package com.netflix.titus.ext.zookeeper.supervisor;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.PreDestroy;
@@ -25,21 +25,20 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.titus.api.json.ObjectMappers;
+import com.netflix.titus.common.runtime.SystemLogEvent;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.ext.zookeeper.ZookeeperPaths;
 import com.netflix.titus.ext.zookeeper.connector.CuratorService;
+import com.netflix.titus.ext.zookeeper.connector.CuratorUtils;
 import com.netflix.titus.master.supervisor.model.MasterState;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.supervisor.service.LeaderElector;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.BackgroundCallback;
-import org.apache.curator.framework.api.CuratorEvent;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -53,6 +52,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
 
     private final LeaderActivator leaderActivator;
     private final ZookeeperPaths zookeeperPaths;
+    private final TitusRuntime titusRuntime;
     private final ObjectMapper jsonMapper;
     private final MasterDescription masterDescription;
     private final CuratorFramework curator;
@@ -68,9 +68,11 @@ public class ZookeeperLeaderElector implements LeaderElector {
     public ZookeeperLeaderElector(LeaderActivator leaderActivator,
                                   CuratorService curatorService,
                                   ZookeeperPaths zookeeperPaths,
-                                  MasterDescription masterDescription) {
+                                  MasterDescription masterDescription,
+                                  TitusRuntime titusRuntime) {
         this.leaderActivator = leaderActivator;
         this.zookeeperPaths = zookeeperPaths;
+        this.titusRuntime = titusRuntime;
         this.jsonMapper = ObjectMappers.defaultMapper();
         this.masterDescription = masterDescription;
         this.curator = curatorService.getCurator();
@@ -80,18 +82,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
     }
 
     private void initialize() {
-        try {
-            Stat pathStat = curator.checkExists().forPath(leaderPath);
-            // Create the path only if the path does not exist
-            if (pathStat == null) {
-                curator.create()
-                        .creatingParentsIfNeeded()
-                        .withMode(CreateMode.PERSISTENT)
-                        .forPath(leaderPath);
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize leader elector path: " + e.getMessage(), e);
-        }
+        CuratorUtils.createPathIfNotExist(curator, leaderPath, true);
     }
 
     @PreDestroy
@@ -128,20 +119,31 @@ public class ZookeeperLeaderElector implements LeaderElector {
     private class LeaderElectionProcess {
 
         private final LeaderLatch leaderLatch;
-        private final CompletableFuture<Boolean> electionFuture = new CompletableFuture<>();
 
-        public LeaderElectionProcess() {
+        private volatile boolean leaderFlag;
+
+        private LeaderElectionProcess() {
             this.leaderLatch = createNewLeaderLatch(zookeeperPaths.getLeaderElectionPath());
             try {
                 leaderLatch.start();
             } catch (Exception e) {
-                // TODO Major issue. Generate syslog event
-                throw new IllegalStateException("Failed to create a leader elector for master: " + e.getMessage(), e);
+                String errorMessage = "Failed to create a leader elector for master: " + e.getMessage();
+
+                titusRuntime.getSystemLogService().submit(SystemLogEvent.newBuilder()
+                        .withComponent(LeaderActivator.COMPONENT)
+                        .withCategory(SystemLogEvent.Category.Transient)
+                        .withPriority(SystemLogEvent.Priority.Fatal)
+                        .withMessage(errorMessage)
+                        .withContext(Collections.singletonMap("error", e.getMessage()))
+                        .build()
+                );
+
+                throw new IllegalStateException(errorMessage, e);
             }
         }
 
         private boolean leaveIfNotLeader() {
-            if (electionFuture.isDone()) {
+            if (!leaderFlag) {
                 return false;
             }
 
@@ -172,7 +174,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
                         public void notLeader() {
                             leaderActivator.stopBeingLeader();
                         }
-                    }, Executors.newSingleThreadExecutor(new DefaultThreadFactory("MasterLeader-%s")));
+                    }, Executors.newSingleThreadExecutor(new DefaultThreadFactory("LeaderLatchListener-%s")));
 
             return newLeaderLatch;
         }
@@ -185,17 +187,14 @@ public class ZookeeperLeaderElector implements LeaderElector {
                 // There is no need to lock anything because we ensure only leader will write to the leader path
                 curator
                         .setData()
-                        .inBackground(new BackgroundCallback() {
-                            @Override
-                            public void processResult(CuratorFramework client, CuratorEvent event) throws Exception {
-                                if (event.getResultCode() == OK.intValue()) {
-                                    electionFuture.complete(true);
-                                    electionSubject.onNext(MasterState.LeaderActivating);
-                                    leaderActivator.becomeLeader();
-                                    electionSubject.onNext(MasterState.LeaderActivated);
-                                } else {
-                                    logger.warn("Failed to elect leader from path {} with event {}", leaderPath, event);
-                                }
+                        .inBackground((client, event) -> {
+                            if (event.getResultCode() == OK.intValue()) {
+                                leaderFlag = true;
+                                electionSubject.onNext(MasterState.LeaderActivating);
+                                leaderActivator.becomeLeader();
+                                electionSubject.onNext(MasterState.LeaderActivated);
+                            } else {
+                                logger.warn("Failed to elect leader from path {} with event {}", leaderPath, event);
                             }
                         }).forPath(leaderPath, masterDescriptionBytes);
             } catch (Exception e) {

@@ -19,7 +19,7 @@ package com.netflix.titus.master.integration;
 import java.security.Permission;
 
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.experimental.categories.Category;
 
 @Category(IntegrationTest.class)
@@ -49,11 +49,10 @@ public class BaseIntegrationTest {
 
     private static final SecurityManager securityManager = new PreventSystemExitSecurityManager();
 
-    @Before
-    public void setSecurityManager() {
+    @BeforeClass
+    public static void setSecurityManager() {
         if (System.getSecurityManager() != securityManager) {
             System.setSecurityManager(securityManager);
         }
     }
-
 }

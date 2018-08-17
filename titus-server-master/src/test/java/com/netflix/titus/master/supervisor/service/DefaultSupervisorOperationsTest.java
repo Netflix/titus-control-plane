@@ -30,13 +30,15 @@ public class DefaultSupervisorOperationsTest {
     private final MasterMonitor masterMonitor = mock(MasterMonitor.class);
     private final PublishSubject<List<MasterInstance>> masterMonitorSubject = PublishSubject.create();
 
+    private LeaderActivator leaderActivator = mock(LeaderActivator.class);
+
     private DefaultSupervisorOperations supervisorOperations;
 
     @Before
     public void setUp() throws Exception {
         when(masterMonitor.observeMasters()).thenReturn(masterMonitorSubject);
 
-        supervisorOperations = new DefaultSupervisorOperations(new LifecycleManager(), masterMonitor, titusRuntime);
+        supervisorOperations = new DefaultSupervisorOperations(new LifecycleManager(), masterMonitor, leaderActivator, titusRuntime);
     }
 
     @Test

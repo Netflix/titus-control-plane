@@ -46,7 +46,7 @@ public final class LeaderServerInterceptor implements ServerInterceptor {
                                                       ServerCallHandler<ReqT, RespT> next) {
 
         if (SupervisorServiceGrpc.getServiceDescriptor().getMethods().contains(call.getMethodDescriptor())) {
-            // Supervisor calls are scoped to TitusMaster instance.
+            // Supervisor API calls are not restricted to the active leader.
             return next.startCall(call, headers);
         }
 

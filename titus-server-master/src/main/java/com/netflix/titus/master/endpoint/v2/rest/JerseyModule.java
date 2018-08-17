@@ -42,7 +42,7 @@ import com.sun.jersey.guice.JerseyServletModule;
 /**
  * We use this module to wire up our endpoints.
  */
-public final class JerseyModule extends JerseyServletModule {
+public class JerseyModule extends JerseyServletModule {
 
     public static final TypeLiteral<LogStorageInfo<V2WorkerMetadata>> V2_LOG_STORAGE_INFO =
             new TypeLiteral<LogStorageInfo<V2WorkerMetadata>>() {
@@ -69,7 +69,7 @@ public final class JerseyModule extends JerseyServletModule {
     @Advises
     @Singleton
     @Named("governator")
-    UnaryOperator<DefaultResourceConfig> getConfig() {
+    public UnaryOperator<DefaultResourceConfig> getConfig() {
         return config -> {
             // Providers
             config.getClasses().add(JsonMessageReaderWriter.class);

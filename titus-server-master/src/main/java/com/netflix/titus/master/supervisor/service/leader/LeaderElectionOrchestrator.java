@@ -7,10 +7,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.supervisor.model.MasterInstance;
 import com.netflix.titus.master.supervisor.model.MasterState;
 import com.netflix.titus.master.supervisor.model.MasterStatus;
@@ -40,6 +43,7 @@ public class LeaderElectionOrchestrator {
     private final Scheduler scheduler;
 
     private final Subscription localMasterUpdateSubscription;
+    private final SpectatorExt.FsmMetrics<MasterState> stateFsmMetrics;
 
     @Inject
     public LeaderElectionOrchestrator(LocalMasterInstanceResolver localMasterInstanceResolver,
@@ -71,6 +75,14 @@ public class LeaderElectionOrchestrator {
         // Synchronously initialize first the local MasterInstance, next subscribe to the stream to react to future changes
         checkAndRecordInitialMasterInstance(initial);
 
+        Registry registry = titusRuntime.getRegistry();
+        this.stateFsmMetrics = SpectatorExt.fsmMetrics(
+                registry.createId(MetricConstants.METRIC_SUPERVISOR + "orchestrator.masterState"),
+                s -> false,
+                initial.getStatus().getState(),
+                registry
+        );
+
         this.localMasterUpdateSubscription = subscribeToLocalMasterUpdateStream();
     }
 
@@ -80,11 +92,17 @@ public class LeaderElectionOrchestrator {
     }
 
     private static MasterInstance fetchInitialMasterInstance(LocalMasterInstanceResolver localMasterInstanceResolver) {
-        return localMasterInstanceResolver.observeLocalMasterInstanceUpdates()
+        MasterInstance masterInstance = localMasterInstanceResolver.observeLocalMasterInstanceUpdates()
                 .take(1)
                 .timeout(MASTER_INITIAL_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS, Schedulers.computation())
                 .toBlocking()
                 .firstOrDefault(null);
+
+        if (masterInstance == null) {
+            throw new IllegalStateException("Local MasterInstance record not resolved");
+        }
+
+        return masterInstance;
     }
 
     private void checkAndRecordInitialMasterInstance(MasterInstance initial) {
@@ -156,6 +174,8 @@ public class LeaderElectionOrchestrator {
 
     private void updateLeaderElectionState(MasterInstance newMasterInstance) {
         MasterState state = newMasterInstance.getStatus().getState();
+        stateFsmMetrics.transition(state);
+
         if (state == MasterState.NonLeader) {
             if (leaderElector.join()) {
                 logger.info("Joined leader election process, due to MasterInstance state update: {}", newMasterInstance);

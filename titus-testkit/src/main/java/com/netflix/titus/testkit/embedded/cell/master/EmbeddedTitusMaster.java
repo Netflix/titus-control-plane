@@ -65,6 +65,8 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
+import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBlockingStub;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
@@ -74,7 +76,6 @@ import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.store.V2StorageProvider;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
-import com.netflix.titus.master.supervisor.service.LeaderElector;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
@@ -201,7 +202,6 @@ public class EmbeddedTitusMaster {
                                       bind(InstanceCloudConnector.class).toInstance(cloudInstanceConnector);
                                       bind(MesosSchedulerDriverFactory.class).toInstance(mesosSchedulerDriverFactory);
 
-                                      bind(LeaderElector.class).to(EmbeddedLeaderElector.class);
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(LocalMasterMonitor.class);
                                       bind(V2StorageProvider.class).toInstance(storageProvider);
@@ -307,6 +307,11 @@ public class EmbeddedTitusMaster {
 
     public HealthStub getHealthClient() {
         HealthStub client = HealthGrpc.newStub(getOrCreateGrpcChannel());
+        return GrpcClientErrorUtils.attachCallHeaders(client);
+    }
+
+    public SupervisorServiceBlockingStub getSupervisorBlockingGrpcClient() {
+        SupervisorServiceBlockingStub client = SupervisorServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
         return GrpcClientErrorUtils.attachCallHeaders(client);
     }
 

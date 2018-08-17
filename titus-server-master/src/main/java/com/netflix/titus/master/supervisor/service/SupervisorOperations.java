@@ -22,5 +22,5 @@ public interface SupervisorOperations {
 
     Observable<SupervisorEvent> events();
 
-    void restartMasterInstance(CallMetadata callMetadata);
+    void stopBeingLeader(CallMetadata callMetadata);
 }
