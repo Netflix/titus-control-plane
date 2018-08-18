@@ -49,15 +49,8 @@ import com.amazonaws.services.autoscaling.model.SuspendedProcess;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupRequest;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupResult;
 import com.amazonaws.services.ec2.AmazonEC2Async;
-import com.amazonaws.services.ec2.model.CreateTagsRequest;
-import com.amazonaws.services.ec2.model.CreateTagsResult;
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.Filter;
-import com.amazonaws.services.ec2.model.Reservation;
-import com.amazonaws.services.ec2.model.Tag;
-import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import com.amazonaws.services.autoscaling.model.TagDescription;
+import com.amazonaws.services.ec2.model.*;
 import com.google.common.base.Strings;
 import com.netflix.titus.api.connector.cloud.CloudConnectorException;
 import com.netflix.titus.api.connector.cloud.Instance;
@@ -451,7 +444,8 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                 isLaunchSuspended,
                 isTerminateSuspended,
                 Collections.emptyMap(),
-                awsScalingGroup.getInstances().stream().map(com.amazonaws.services.autoscaling.model.Instance::getInstanceId).collect(Collectors.toList())
+                awsScalingGroup.getInstances().stream().map(com.amazonaws.services.autoscaling.model.Instance::getInstanceId).collect(Collectors.toList()),
+                awsScalingGroup.getTags().stream().collect(Collectors.toMap(TagDescription::getKey, TagDescription::getValue))
         );
     }
 

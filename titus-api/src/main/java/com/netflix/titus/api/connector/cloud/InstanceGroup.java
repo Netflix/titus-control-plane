@@ -30,6 +30,7 @@ public class InstanceGroup {
     private final boolean isTerminateSuspended;
     private final Map<String, String> attributes;
     private final List<String> instanceIds;
+    private final Map<String, String> tags;
 
     public InstanceGroup(String id,
                          String launchConfigurationName,
@@ -39,7 +40,8 @@ public class InstanceGroup {
                          boolean isLaunchSuspended,
                          boolean isTerminateSuspended,
                          Map<String, String> attributes,
-                         List<String> instanceIds) {
+                         List<String> instanceIds,
+                         Map<String, String> tags) {
         this.id = id;
         this.launchConfigurationName = launchConfigurationName;
         this.min = min;
@@ -49,6 +51,7 @@ public class InstanceGroup {
         this.isTerminateSuspended = isTerminateSuspended;
         this.attributes = attributes;
         this.instanceIds = instanceIds;
+        this.tags = tags;
     }
 
     public String getId() {
@@ -87,6 +90,10 @@ public class InstanceGroup {
         return instanceIds;
     }
 
+    public Map<String, String> getTags() {
+        return tags;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -122,6 +129,9 @@ public class InstanceGroup {
         if (attributes != null ? !attributes.equals(that.attributes) : that.attributes != null) {
             return false;
         }
+        if (tags != null ? !tags.equals(that.tags) : that.tags != null) {
+            return false;
+        }
         return instanceIds != null ? instanceIds.equals(that.instanceIds) : that.instanceIds == null;
     }
 
@@ -136,6 +146,7 @@ public class InstanceGroup {
         result = 31 * result + (isTerminateSuspended ? 1 : 0);
         result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
         result = 31 * result + (instanceIds != null ? instanceIds.hashCode() : 0);
+        result = 31 * result + (tags != null ? tags.hashCode() : 0);
         return result;
     }
 
@@ -151,6 +162,7 @@ public class InstanceGroup {
                 ", isTerminateSuspended=" + isTerminateSuspended +
                 ", attributes=" + attributes +
                 ", instanceIds=" + instanceIds +
+                ", tags=" + tags +
                 '}';
     }
 
@@ -164,7 +176,8 @@ public class InstanceGroup {
                 .withIsLaunchSuspended(isLaunchSuspended)
                 .withIsTerminateSuspended(isTerminateSuspended)
                 .withAttributes(attributes)
-                .withInstanceIds(instanceIds);
+                .withInstanceIds(instanceIds)
+                .withTags(tags);
     }
 
     public static Builder newBuilder() {
@@ -181,6 +194,7 @@ public class InstanceGroup {
         private boolean isTerminateSuspended;
         private List<String> instanceIds;
         private Map<String, String> attributes;
+        private Map<String, String> tags;
 
         private Builder() {
         }
@@ -230,6 +244,11 @@ public class InstanceGroup {
             return this;
         }
 
+        public Builder withTags(Map<String, String> tags) {
+            this.tags = tags;
+            return this;
+        }
+
         public Builder but() {
             return newBuilder()
                     .withId(id)
@@ -240,11 +259,12 @@ public class InstanceGroup {
                     .withIsLaunchSuspended(isLaunchSuspended)
                     .withIsTerminateSuspended(isTerminateSuspended)
                     .withAttributes(attributes)
-                    .withInstanceIds(instanceIds);
+                    .withInstanceIds(instanceIds)
+                    .withTags(tags);
         }
 
         public InstanceGroup build() {
-            InstanceGroup instanceGroup = new InstanceGroup(id, launchConfigurationName, min, desired, max, isLaunchSuspended, isTerminateSuspended, attributes, instanceIds);
+            InstanceGroup instanceGroup = new InstanceGroup(id, launchConfigurationName, min, desired, max, isLaunchSuspended, isTerminateSuspended, attributes, instanceIds, tags);
             return instanceGroup;
         }
     }
