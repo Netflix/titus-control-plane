@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -33,7 +32,6 @@ import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -83,6 +81,7 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConv
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 
 @Singleton
@@ -114,7 +113,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void createJob(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
-        execute(responseObserver, callMetadata -> {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
             if (configuration.isJobSizeValidationEnabled()) {
                 com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
 
@@ -212,7 +211,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata -> {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
             Capacity taskInstances = request.getCapacity();
             serviceGateway.resizeJob(
                     toReasonString(callMetadata), request.getJobId(), taskInstances.getDesired(), taskInstances.getMin(), taskInstances.getMax()
@@ -230,7 +229,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata -> {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
             ServiceJobSpec.ServiceJobProcesses serviceJobProcesses = request.getServiceJobProcesses();
             serviceGateway.updateJobProcesses(
                     toReasonString(callMetadata), request.getJobId(), serviceJobProcesses.getDisableDecreaseDesired(), serviceJobProcesses.getDisableIncreaseDesired()
@@ -248,7 +247,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata ->
+        execute(callMetadataResolver, responseObserver, callMetadata ->
                 serviceGateway.changeJobInServiceStatus(
                         toReasonString(callMetadata), request.getId(), request.getEnableStatus()
                 ).subscribe(
@@ -264,7 +263,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata ->
+        execute(callMetadataResolver, responseObserver, callMetadata ->
                 serviceGateway.killJob(
                         toReasonString(callMetadata), request.getId()
                 ).subscribe(
@@ -280,7 +279,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata ->
+        execute(callMetadataResolver, responseObserver, callMetadata ->
                 serviceGateway.killTask(
                         toReasonString(callMetadata), request.getTaskId(), request.getShrink()
                 ).subscribe(
@@ -327,23 +326,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         ServerCallStreamObserver<JobChangeNotification> serverObserver = (ServerCallStreamObserver<JobChangeNotification>) responseObserver;
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
-    }
-
-    /**
-     * Helper class working as key selector for building distinct stream of Job info objects.
-     * Currently we observe only number of workers and their state.
-     */
-    private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
-        Optional<CallMetadata> callMetadata = callMetadataResolver.resolve();
-        if (!callMetadata.isPresent()) {
-            responseObserver.onError(TitusServiceException.noCallerId());
-            return;
-        }
-        try {
-            action.accept(callMetadata.get());
-        } catch (Exception e) {
-            responseObserver.onError(e);
-        }
     }
 
     private JobQueryResult toJobQueryResult(List<Job> jobs, Pagination runtimePagination) {

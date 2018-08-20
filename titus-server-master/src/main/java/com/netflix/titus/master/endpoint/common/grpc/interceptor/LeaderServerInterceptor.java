@@ -19,7 +19,8 @@ package com.netflix.titus.master.endpoint.common.grpc.interceptor;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCall.Listener;
@@ -43,6 +44,12 @@ public final class LeaderServerInterceptor implements ServerInterceptor {
     @Override
     public <ReqT, RespT> Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers,
                                                       ServerCallHandler<ReqT, RespT> next) {
+
+        if (SupervisorServiceGrpc.getServiceDescriptor().getMethods().contains(call.getMethodDescriptor())) {
+            // Supervisor API calls are not restricted to the active leader.
+            return next.startCall(call, headers);
+        }
+
         if (leaderActivator.isLeader()) {
             if (leaderActivator.isActivated()) {
                 return next.startCall(call, headers);

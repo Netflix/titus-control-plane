@@ -31,7 +31,7 @@ import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse.Details;
 import com.netflix.titus.grpc.protogen.ServiceActivation;
-import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.config.CellInfoResolver;
 
 import static com.netflix.titus.grpc.protogen.HealthCheckResponse.ServingStatus.NOT_SERVING;

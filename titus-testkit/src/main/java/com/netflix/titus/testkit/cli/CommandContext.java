@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.ParseException;
 
@@ -52,7 +53,14 @@ public class CommandContext {
     }
 
     public synchronized ManagedChannel createChannel() {
-        ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext(true).build();
+        ManagedChannelBuilder channelBuilder = ManagedChannelBuilder.forAddress(host, port)
+                .usePlaintext(true);
+        if (channelBuilder instanceof NettyChannelBuilder) {
+            NettyChannelBuilder nettyChannelBuilder = (NettyChannelBuilder) channelBuilder;
+            nettyChannelBuilder.maxHeaderListSize(128 * 1024);
+        }
+        ManagedChannel channel = channelBuilder.build();
+
         channels.add(channel);
         return channel;
     }

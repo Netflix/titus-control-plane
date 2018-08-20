@@ -16,9 +16,6 @@
 
 package com.netflix.titus.master;
 
-import java.util.Arrays;
-
-import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.master.config.MasterConfiguration;
 
 import static org.mockito.Mockito.when;
@@ -30,33 +27,6 @@ public class ConfigurationMockSamples {
 
     public static MasterConfiguration withExecutionEnvironment(MasterConfiguration mock) {
         when(mock.getRegion()).thenReturn("us-east-1");
-        return mock;
-    }
-
-    public static MasterConfiguration withEmbeddedZookeeper(MasterConfiguration mock, String zkConnectStr) {
-        when(mock.isLocalMode()).thenReturn(true);
-        when(mock.getZkConnectionTimeoutMs()).thenReturn(1000);
-        when(mock.getZkConnectionRetrySleepMs()).thenReturn(100);
-        when(mock.getZkConnectionMaxRetries()).thenReturn(3);
-        when(mock.getZkConnectionString()).thenReturn(zkConnectStr);
-        when(mock.getZkRoot()).thenReturn("/titus/master");
-        return mock;
-    }
-
-    public static JobConfiguration withJobConfiguration(JobConfiguration mock) {
-        when(mock.getDefaultSecurityGroups()).thenReturn(Arrays.asList("infrastructure", "persistence"));
-        when(mock.getDefaultRuntimeLimitSec()).thenReturn(432000L);
-        when(mock.getMaxRuntimeLimitSec()).thenReturn(864000L);
-        return mock;
-    }
-
-    public static MasterConfiguration withJobSpec(MasterConfiguration mock) {
-        when(mock.getMaxCPUs()).thenReturn(32);
-        when(mock.getMaxMemory()).thenReturn(244000);
-        when(mock.getMaxDisk()).thenReturn(640000);
-        when(mock.getMaxNetworkMbps()).thenReturn(6000);
-        when(mock.getMaxBatchInstances()).thenReturn(10000);
-        when(mock.getMaxServiceInstances()).thenReturn(1000);
         return mock;
     }
 }

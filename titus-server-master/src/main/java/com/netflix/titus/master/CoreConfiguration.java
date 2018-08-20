@@ -24,30 +24,7 @@ import com.netflix.archaius.api.annotations.PropertyName;
  * potentially other sub-projects).
  */
 public interface CoreConfiguration {
-    @PropertyName(name = "titus.zookeeper.connectionTimeMs")
-    @DefaultValue("10000")
-    int getZkConnectionTimeoutMs();
-
-    @PropertyName(name = "titus.zookeeper.connection.retrySleepMs")
-    @DefaultValue("500")
-    int getZkConnectionRetrySleepMs();
-
-    @PropertyName(name = "titus.zookeeper.connection.retryCount")
-    @DefaultValue("5")
-    int getZkConnectionMaxRetries();
-
-    @PropertyName(name = "titus.zookeeper.connectString")
-    @DefaultValue("localhost:2181")
-    String getZkConnectionString();
-
-    @PropertyName(name = "titus.zookeeper.root")
-    String getZkRoot();
-
     @PropertyName(name = "titus.localmode")
     @DefaultValue("false")
     boolean isLocalMode();
-
-    @PropertyName(name = "titus.metricsPublisher.publishFrequencyInSeconds")
-    @DefaultValue("15")
-    int getMetricsPublisherFrequencyInSeconds();
 }

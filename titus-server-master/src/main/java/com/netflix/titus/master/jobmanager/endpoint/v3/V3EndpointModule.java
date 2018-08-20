@@ -32,8 +32,6 @@ import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusSer
 import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V3GrpcTitusServiceGateway;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.SimpleGrpcCallMetadataResolver;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 
@@ -45,7 +43,6 @@ public class V3EndpointModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(CallMetadataResolver.class).to(SimpleGrpcCallMetadataResolver.class);
         bind(JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
     }
 

@@ -27,6 +27,7 @@ import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
+import com.netflix.titus.master.supervisor.endpoint.http.SupervisorResource;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
@@ -34,13 +35,14 @@ import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.runtime.endpoint.common.rest.metric.ResettableInputStreamFilter;
 import com.netflix.titus.runtime.endpoint.common.rest.provider.InstrumentedResourceMethodDispatchAdapter;
 import com.netflix.titus.runtime.endpoint.fit.FitResource;
+import com.netflix.titus.runtime.endpoint.metadata.SimpleHttpCallMetadataResolver;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
 
 /**
  * We use this module to wire up our endpoints.
  */
-public final class JerseyModule extends JerseyServletModule {
+public class JerseyModule extends JerseyServletModule {
 
     public static final TypeLiteral<LogStorageInfo<V2WorkerMetadata>> V2_LOG_STORAGE_INFO =
             new TypeLiteral<LogStorageInfo<V2WorkerMetadata>>() {
@@ -48,6 +50,9 @@ public final class JerseyModule extends JerseyServletModule {
 
     @Override
     protected void configureServlets() {
+        // Call metadata interceptor (see CallMetadataHeaders).
+        filter("/api/v3/*").through(SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter.class);
+
         filter("/*").through(LeaderRedirectingFilter.class);
         filter("/*").through(ResettableInputStreamFilter.class);
 
@@ -64,7 +69,7 @@ public final class JerseyModule extends JerseyServletModule {
     @Advises
     @Singleton
     @Named("governator")
-    UnaryOperator<DefaultResourceConfig> getConfig() {
+    public UnaryOperator<DefaultResourceConfig> getConfig() {
         return config -> {
             // Providers
             config.getClasses().add(JsonMessageReaderWriter.class);
@@ -76,6 +81,7 @@ public final class JerseyModule extends JerseyServletModule {
             config.getClasses().add(LeaderResource.class);
             config.getClasses().add(FitResource.class);
             config.getClasses().add(ServerStatusResource.class);
+            config.getClasses().add(SupervisorResource.class);
 
             // V2 resources
             config.getClasses().add(VmManagementResource.class);

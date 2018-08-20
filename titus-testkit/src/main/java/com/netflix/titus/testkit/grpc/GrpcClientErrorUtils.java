@@ -26,8 +26,11 @@ import com.google.protobuf.MessageOrBuilder;
 import com.google.rpc.BadRequest;
 import com.google.rpc.DebugInfo;
 import com.google.rpc.Status;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Metadata;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.AbstractStub;
+import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +48,14 @@ public class GrpcClientErrorUtils {
 
     public static final Metadata.Key<String> KEY_TITUS_ERROR_REPORT = Metadata.Key.of(X_TITUS_ERROR, Metadata.ASCII_STRING_MARSHALLER);
     public static final Metadata.Key<byte[]> KEY_TITUS_ERROR_REPORT_BIN = Metadata.Key.of(X_TITUS_ERROR_BIN, Metadata.BINARY_BYTE_MARSHALLER);
+
+    public static <STUB extends AbstractStub<STUB>> STUB attachCallHeaders(STUB client) {
+        Metadata metadata = new Metadata();
+        metadata.put(V3HeaderInterceptor.CALLER_ID_KEY, "testkitClient");
+        metadata.put(V3HeaderInterceptor.CALL_REASON_KEY, "test call");
+        metadata.put(V3HeaderInterceptor.DEBUG_KEY, "true");
+        return client.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
+    }
 
     public static Status getStatus(StatusRuntimeException error) {
         if (error.getTrailers() == null) {

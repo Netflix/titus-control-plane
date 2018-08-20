@@ -31,11 +31,11 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.v2.rest.Util;
-import com.netflix.titus.master.master.MasterDescription;
-import com.netflix.titus.master.master.MasterMonitor;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +46,7 @@ public class LeaderRedirectingFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(LeaderRedirectingFilter.class);
 
-    private static final Set<String> ALWAYS_OPEN_PATHS = asSet("/api/v2/leader", "/api/v2/status", "/health");
+    private static final Set<String> ALWAYS_OPEN_PATHS = asSet("/api/v2/leader", "/api/v2/status", "/api/v3/supervisor", "/health");
 
     private final MasterConfiguration config;
     private final MasterMonitor masterMonitor;
@@ -67,7 +67,8 @@ public class LeaderRedirectingFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        boolean alwaysOpen = ALWAYS_OPEN_PATHS.contains(((HttpServletRequest) request).getRequestURI());
+        String requestURI = ((HttpServletRequest) request).getRequestURI();
+        boolean alwaysOpen = ALWAYS_OPEN_PATHS.stream().anyMatch(requestURI::contains);
         if (alwaysOpen) {
             chain.doFilter(request, response);
         } else if (isLocal() || leaderActivator.isLeader()) {
@@ -77,7 +78,7 @@ public class LeaderRedirectingFilter implements Filter {
                 httpResponse.setStatus(503);
             }
         } else {
-            URI redirectUri = getRedirectUri((HttpServletRequest) request, masterMonitor.getLatestMaster());
+            URI redirectUri = getRedirectUri((HttpServletRequest) request, masterMonitor.getLatestLeader());
             logger.info("Redirecting to {}", redirectUri.toURL());
             httpResponse.sendRedirect(redirectUri.toURL().toString());
         }
@@ -111,6 +112,6 @@ public class LeaderRedirectingFilter implements Filter {
     }
 
     private boolean isLocal() {
-        return config.isLocalMode() || Util.isLocalHost(masterMonitor.getLatestMaster());
+        return config.isLocalMode() || Util.isLocalHost(masterMonitor.getLatestLeader());
     }
 }

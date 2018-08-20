@@ -26,10 +26,6 @@ import com.netflix.titus.master.agent.AgentModule;
 import com.netflix.titus.master.agent.endpoint.AgentEndpointModule;
 import com.netflix.titus.master.appscale.endpoint.v3.AutoScalingModule;
 import com.netflix.titus.master.audit.service.AuditModule;
-import com.netflix.titus.master.cluster.DefaultLeaderActivator;
-import com.netflix.titus.master.cluster.DefaultLeaderElector;
-import com.netflix.titus.master.cluster.LeaderActivator;
-import com.netflix.titus.master.cluster.LeaderElector;
 import com.netflix.titus.master.clusteroperations.ClusterOperationsModule;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.config.ConfigurableCellInfoResolver;
@@ -45,15 +41,14 @@ import com.netflix.titus.master.job.JobModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
-import com.netflix.titus.master.master.MasterDescription;
-import com.netflix.titus.master.master.MasterMonitor;
-import com.netflix.titus.master.master.ZookeeperMasterMonitor;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.mesos.MesosModule;
 import com.netflix.titus.master.scheduler.SchedulerModule;
 import com.netflix.titus.master.service.management.ManagementModule;
 import com.netflix.titus.master.store.StoreModule;
+import com.netflix.titus.master.supervisor.endpoint.SupervisorEndpointModule;
+import com.netflix.titus.master.supervisor.service.SupervisorServiceModule;
 import com.netflix.titus.master.taskmigration.TaskMigratorModule;
-import com.netflix.titus.master.zookeeper.ZookeeperPaths;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.resolver.ByRemoteAddressHttpCallerIdResolver;
@@ -82,15 +77,14 @@ public class TitusMasterModule extends AbstractModule {
         bind(CoreConfiguration.class).to(MasterConfiguration.class);
         bind(CellInfoResolver.class).to(ConfigurableCellInfoResolver.class);
 
+        // Titus supervisor
+        install(new SupervisorServiceModule());
+        install(new SupervisorEndpointModule());
+
         install(new TitusEntitySanitizerModule());
 
         // Mesos
         install(new MesosModule());
-
-        // TitusMaster monitor / leader election
-        bind(MasterMonitor.class).to(ZookeeperMasterMonitor.class);
-        bind(LeaderElector.class).to(DefaultLeaderElector.class).asEagerSingleton();
-        bind(LeaderActivator.class).to(DefaultLeaderActivator.class);
 
         // Storage
         install(new StoreModule());
@@ -144,11 +138,5 @@ public class TitusMasterModule extends AbstractModule {
     @Singleton
     public MasterDescription getMasterDescription(MasterConfiguration configuration) {
         return MasterDescriptions.create(configuration);
-    }
-
-    @Provides
-    @Singleton
-    public ZookeeperPaths getZookeeperPaths(MasterConfiguration configuration) {
-        return new ZookeeperPaths(configuration.getZkRoot());
     }
 }
