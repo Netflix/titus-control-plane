@@ -10,6 +10,12 @@ import io.grpc.stub.StreamObserver;
 
 public class CallMetadataUtils {
 
+    public static final String UNKNOWN_CALLER_ID = "unknownDirectCaller";
+
+    public static boolean isUnknown(CallMetadata callMetadata) {
+        return UNKNOWN_CALLER_ID.equals(callMetadata.getCallerId());
+    }
+
     /**
      * Execute an action with the resolved call metadata context.
      */

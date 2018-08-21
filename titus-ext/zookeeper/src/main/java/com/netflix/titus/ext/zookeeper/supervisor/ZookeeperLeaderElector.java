@@ -106,8 +106,17 @@ public class ZookeeperLeaderElector implements LeaderElector {
 
     @Override
     public boolean leaveIfNotLeader() {
-        LeaderElectionProcess process = leaderElectionProcessRef.getAndSet(null);
-        return process != null && process.leaveIfNotLeader();
+        synchronized (leaderElectionProcessRef) {
+            LeaderElectionProcess process = leaderElectionProcessRef.get();
+            if (process == null) {
+                return false;
+            }
+            if (process.leaveIfNotLeader()) {
+                leaderElectionProcessRef.set(null);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -121,6 +130,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
         private final LeaderLatch leaderLatch;
 
         private volatile boolean leaderFlag;
+        private volatile boolean closed;
 
         private LeaderElectionProcess() {
             this.leaderLatch = createNewLeaderLatch(zookeeperPaths.getLeaderElectionPath());
@@ -143,16 +153,23 @@ public class ZookeeperLeaderElector implements LeaderElector {
         }
 
         private boolean leaveIfNotLeader() {
-            if (!leaderFlag) {
+            if (leaderFlag) {
                 return false;
             }
 
             // Not a leader yet, so it is safe to leave the leader election process.
             close();
+
+            if (leaderActivator.isLeader()) {
+                logger.error("Unexpected to be a leader. Terminating the JVM process");
+                System.exit(-1);
+            }
+
             return true;
         }
 
         private void close() {
+            closed = true;
             try {
                 leaderLatch.close();
             } catch (Exception e) {
@@ -189,16 +206,27 @@ public class ZookeeperLeaderElector implements LeaderElector {
                         .setData()
                         .inBackground((client, event) -> {
                             if (event.getResultCode() == OK.intValue()) {
+                                terminateIfClosed();
+
                                 leaderFlag = true;
                                 electionSubject.onNext(MasterState.LeaderActivating);
                                 leaderActivator.becomeLeader();
                                 electionSubject.onNext(MasterState.LeaderActivated);
+
+                                terminateIfClosed();
                             } else {
                                 logger.warn("Failed to elect leader from path {} with event {}", leaderPath, event);
                             }
                         }).forPath(leaderPath, masterDescriptionBytes);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to announce leader: " + e.getMessage(), e);
+            }
+        }
+
+        private void terminateIfClosed() {
+            if (closed) {
+                logger.error("Received leader activation request after initiating withdrawal from the leader election process. Terminating the JVM process");
+                System.exit(-1);
             }
         }
     }

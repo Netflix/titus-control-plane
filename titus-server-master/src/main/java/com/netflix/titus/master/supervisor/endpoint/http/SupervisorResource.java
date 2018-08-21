@@ -6,8 +6,8 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -20,6 +20,7 @@ import com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConv
 import com.netflix.titus.master.supervisor.service.SupervisorOperations;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -67,11 +68,13 @@ public class SupervisorResource {
                 .orElseThrow(() -> new WebApplicationException(Response.Status.NOT_FOUND));
     }
 
-    @POST
+    @DELETE
+    @ApiOperation("If leader, give up the leadership")
     @Path("/self/stopBeingLeader")
     public Response stopBeingLeader() {
         Optional<CallMetadata> callMetadataOpt = callMetadataResolver.resolve();
-        if (!callMetadataOpt.isPresent()) {
+        boolean validUser = callMetadataOpt.map(cm -> !CallMetadataUtils.isUnknown(cm)).orElse(false);
+        if (!validUser) {
             return Response.status(Response.Status.FORBIDDEN).entity("Unidentified request").build();
         }
         supervisorOperations.stopBeingLeader(callMetadataOpt.get());

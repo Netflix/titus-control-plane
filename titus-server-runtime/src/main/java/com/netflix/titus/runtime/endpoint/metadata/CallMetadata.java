@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class CallMetadata {
+
     private final String callerId;
     private final String callReason;
     private final List<String> callPath;
