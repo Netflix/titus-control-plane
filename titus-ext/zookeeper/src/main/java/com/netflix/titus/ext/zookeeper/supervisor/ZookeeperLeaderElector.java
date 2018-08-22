@@ -153,12 +153,14 @@ public class ZookeeperLeaderElector implements LeaderElector {
         }
 
         private boolean leaveIfNotLeader() {
-            if (leaderFlag) {
-                return false;
-            }
+            synchronized (this) {
+                if (leaderFlag) {
+                    return false;
+                }
 
-            // Not a leader yet, so it is safe to leave the leader election process.
-            close();
+                // Not a leader yet, so it is safe to leave the leader election process.
+                close();
+            }
 
             if (leaderActivator.isLeader()) {
                 logger.error("Unexpected to be a leader. Terminating the JVM process");
@@ -206,14 +208,14 @@ public class ZookeeperLeaderElector implements LeaderElector {
                         .setData()
                         .inBackground((client, event) -> {
                             if (event.getResultCode() == OK.intValue()) {
-                                terminateIfClosed();
+                                synchronized (LeaderElectionProcess.this) {
+                                    terminateIfClosed();
 
-                                leaderFlag = true;
-                                electionSubject.onNext(MasterState.LeaderActivating);
-                                leaderActivator.becomeLeader();
-                                electionSubject.onNext(MasterState.LeaderActivated);
-
-                                terminateIfClosed();
+                                    leaderFlag = true;
+                                    electionSubject.onNext(MasterState.LeaderActivating);
+                                    leaderActivator.becomeLeader();
+                                    electionSubject.onNext(MasterState.LeaderActivated);
+                                }
                             } else {
                                 logger.warn("Failed to elect leader from path {} with event {}", leaderPath, event);
                             }
