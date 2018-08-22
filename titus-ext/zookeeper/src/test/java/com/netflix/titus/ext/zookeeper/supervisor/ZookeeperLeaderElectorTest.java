@@ -22,36 +22,31 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.ext.zookeeper.ZookeeperTestUtils;
-import com.netflix.titus.ext.zookeeper.ZookeeperResource;
+import com.netflix.titus.ext.zookeeper.CuratorServiceResource;
 import com.netflix.titus.ext.zookeeper.ZookeeperConfiguration;
 import com.netflix.titus.ext.zookeeper.ZookeeperPaths;
 import com.netflix.titus.ext.zookeeper.connector.CuratorServiceImpl;
+import com.netflix.titus.ext.zookeeper.connector.CuratorUtils;
 import com.netflix.titus.ext.zookeeper.connector.DefaultZookeeperClusterResolver;
 import com.netflix.titus.ext.zookeeper.connector.ZookeeperClusterResolver;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
+import com.netflix.titus.testkit.junit.resource.CloseableExternalResource;
 import org.apache.curator.CuratorConnectionLossException;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.imps.GzipCompressionProvider;
-import org.apache.curator.retry.ExponentialBackoffRetry;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.data.Stat;
-import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestRule;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,36 +55,29 @@ public class ZookeeperLeaderElectorTest {
 
     private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private static TemporaryFolder tempFolder = new TemporaryFolder();
-    private static ZookeeperResource zkServer = new ZookeeperResource(tempFolder);
-
     @ClassRule
-    public static TestRule chain = RuleChain
-            .outerRule(tempFolder)
-            .around(zkServer);
+    public static final CuratorServiceResource curatorServiceResource = new CuratorServiceResource(titusRuntime);
 
-    private ZookeeperConfiguration config;
+    @Rule
+    public final CloseableExternalResource closeable = new CloseableExternalResource();
 
     private final LeaderActivator leaderActivator = mock(LeaderActivator.class);
+
     private final MasterDescription masterDescription = new MasterDescription(
             "myHost", "1.1.1.1", 8080, "/api/status/uri", System.currentTimeMillis()
     );
 
-    private ZookeeperPaths zkPaths;
-
-    @Before
-    public void setUp() {
-        config = ZookeeperTestUtils.withEmbeddedZookeeper(mock(ZookeeperConfiguration.class), zkServer.getZkConnStr());
-        zkPaths = new ZookeeperPaths(config);
-    }
+    private final CuratorFramework curator = curatorServiceResource.getCuratorService().getCurator();
+    private final ZookeeperPaths zkPaths = curatorServiceResource.getZkPaths();
 
     @Test
-    public void testConnectionLossWillLeadToStartupFailure() throws Exception {
+    public void testConnectionLossWillLeadToStartupFailure() {
+        ZookeeperConfiguration config = mock(ZookeeperConfiguration.class);
         when(config.getZkConnectionString()).thenReturn("non-existent:2181");
+
         ZookeeperClusterResolver clusterResolver = new DefaultZookeeperClusterResolver(config);
-        CuratorServiceImpl cs = null;
         try {
-            cs = new CuratorServiceImpl(config, clusterResolver, new DefaultRegistry());
+            CuratorServiceImpl cs = closeable.autoCloseable(new CuratorServiceImpl(config, clusterResolver, new DefaultRegistry()), CuratorServiceImpl::shutdown);
             cs.start();
 
             ZookeeperLeaderElector elector = new ZookeeperLeaderElector(leaderActivator, cs, zkPaths, masterDescription, titusRuntime);
@@ -98,55 +86,50 @@ public class ZookeeperLeaderElectorTest {
         } catch (IllegalStateException e) {
             assertEquals("The cause should be from ZK connection failure", CuratorConnectionLossException.class, e.getCause().getClass());
             assertTrue("The error message is unexpected: " + e.getMessage(), e.getCause().getMessage().contains("ConnectionLoss"));
-        } finally {
-            if (cs != null) {
-                cs.shutdown();
-            }
         }
     }
 
     @Test
     public void testLeaderCanHandleExistingPath() throws Exception {
-        CuratorFramework curator = CuratorFrameworkFactory.builder()
-                .compressionProvider(new GzipCompressionProvider())
-                .connectionTimeoutMs(config.getZkConnectionTimeoutMs())
-                .retryPolicy(new ExponentialBackoffRetry(config.getZkConnectionRetrySleepMs(), config.getZkConnectionMaxRetries()))
-                .connectString(config.getZkConnectionString())
-                .build();
-        ZookeeperLeaderElector elector = null;
+        CuratorUtils.createPathIfNotExist(curator, zkPaths.getLeaderElectionPath(), true);
+        CuratorUtils.createPathIfNotExist(curator, zkPaths.getLeaderAnnouncementPath(), true);
 
-        try {
-            curator.start();
+        ZookeeperLeaderElector elector = newZookeeperLeaderElector();
+        assertThat(elector.join()).isTrue();
 
-            for (String fullPath : new String[]{zkPaths.getLeaderElectionPath(), zkPaths.getLeaderAnnouncementPath()}) {
-                Stat pathStat = curator.checkExists().forPath(fullPath);
-                // Create the path only if the path does not exist
-                if (pathStat == null) {
-                    curator.create()
-                            .creatingParentsIfNeeded()
-                            .withMode(CreateMode.PERSISTENT)
-                            .forPath(fullPath);
-                }
-            }
+        awaitLeaderActivation();
+    }
 
-            final CountDownLatch latch = new CountDownLatch(1);
-            doAnswer(invocation -> {
-                latch.countDown();
-                return null;
-            }).when(leaderActivator).becomeLeader();
+    @Test
+    public void testLeaveIfNotLeader() throws Exception {
+        ZookeeperLeaderElector firstElector = newZookeeperLeaderElector();
+        ZookeeperLeaderElector secondElector = newZookeeperLeaderElector();
 
-            elector = new ZookeeperLeaderElector(leaderActivator, () -> curator, zkPaths, masterDescription, titusRuntime);
-            elector.join();
+        // Make the first elector a leader.
+        assertThat(firstElector.join()).isTrue();
+        awaitLeaderActivation();
+        assertThat(firstElector.leaveIfNotLeader()).isFalse();
 
-            latch.await(5, TimeUnit.SECONDS);
-            verify(leaderActivator).becomeLeader();
-        } finally {
-            if (elector != null) {
-                elector.shutdown();
-            }
-            if (curator != null) {
-                curator.close();
-            }
-        }
+        // Check that second elector can join and leave the leader election process.
+        assertThat(secondElector.join()).isTrue();
+        assertThat(secondElector.leaveIfNotLeader()).isTrue();
+    }
+
+    private ZookeeperLeaderElector newZookeeperLeaderElector() {
+        return closeable.autoCloseable(
+                new ZookeeperLeaderElector(leaderActivator, curatorServiceResource.getCuratorService(), zkPaths, masterDescription, titusRuntime),
+                ZookeeperLeaderElector::shutdown
+        );
+    }
+
+    private void awaitLeaderActivation() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            latch.countDown();
+            return null;
+        }).when(leaderActivator).becomeLeader();
+
+        latch.await(5, TimeUnit.SECONDS);
+        verify(leaderActivator, times(1)).becomeLeader();
     }
 }

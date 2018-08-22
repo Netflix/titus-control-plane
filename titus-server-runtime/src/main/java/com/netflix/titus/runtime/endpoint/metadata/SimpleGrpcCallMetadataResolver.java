@@ -22,7 +22,7 @@ public class SimpleGrpcCallMetadataResolver implements CallMetadataResolver {
 
         CallMetadata callMetadata = V3HeaderInterceptor.CALL_METADATA_CONTEXT_KEY.get();
         String directCallerId = resolveDirectCallerId().orElseGet(() ->
-                getOrDefault(V3HeaderInterceptor.DIRECT_CALLER_ID_CONTEXT_KEY.get(), "unknownDirectCaller")
+                getOrDefault(V3HeaderInterceptor.DIRECT_CALLER_ID_CONTEXT_KEY.get(), CallMetadataUtils.UNKNOWN_CALLER_ID)
         );
 
         // If we have CallMetadata instance, we can safely ignore other headers, except the direct caller.
