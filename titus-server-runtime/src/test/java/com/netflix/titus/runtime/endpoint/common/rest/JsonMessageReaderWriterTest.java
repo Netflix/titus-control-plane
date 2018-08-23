@@ -20,8 +20,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 
-import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
+import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
+import com.netflix.titus.api.endpoint.v2.rest.representation.TierRepresentation;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ public class JsonMessageReaderWriterTest {
     private final JsonMessageReaderWriter provider = new JsonMessageReaderWriter();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         provider.httpServletRequest = httpServletRequest;
     }
 
@@ -60,16 +60,14 @@ public class JsonMessageReaderWriterTest {
 
     @Test
     public void testFieldsSelection() throws Exception {
-        TitusJobSpec myJob = new TitusJobSpec.Builder()
-                .appName("appName")
-                .type(TitusJobType.batch)
-                .applicationName("imageName")
-                .build();
+        ApplicationSlaRepresentation myAppSla = new ApplicationSlaRepresentation(
+                "myApp", TierRepresentation.Critical, 1D, 2L, 3L, 4L, 5
+        );
 
-        when(httpServletRequest.getParameter(JsonMessageReaderWriter.FIELDS_PARAM)).thenReturn("appName,type");
-        String jsonText = serialize(myJob, TitusJobSpec.class);
+        when(httpServletRequest.getParameter(JsonMessageReaderWriter.FIELDS_PARAM)).thenReturn("appName,instanceCPU");
+        String jsonText = serialize(myAppSla, ApplicationSlaRepresentation.class);
 
-        assertThat(jsonText).contains("appName", "type");
+        assertThat(jsonText).contains("appName", "instanceCPU");
     }
 
     private <T> String serialize(T entity, Class<T> type) throws IOException {

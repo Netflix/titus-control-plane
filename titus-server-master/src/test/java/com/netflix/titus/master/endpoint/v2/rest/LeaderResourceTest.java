@@ -20,8 +20,8 @@ import java.net.InetSocketAddress;
 import java.util.Optional;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.LeaderRepresentation;
-import com.netflix.titus.master.master.MasterDescription;
-import com.netflix.titus.master.master.MasterMonitor;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.mesos.MesosMasterResolver;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
@@ -65,7 +65,7 @@ public class LeaderResourceTest {
 
     @Test
     public void testLeaderReply() throws Exception {
-        when(masterMonitor.getLatestMaster()).thenReturn(LATEST_MASTER);
+        when(masterMonitor.getLatestLeader()).thenReturn(LATEST_MASTER);
         when(mesosMasterResolver.resolveLeader()).thenReturn(Optional.of(LEADER_ADDRESS));
         when(mesosMasterResolver.resolveMesosAddresses()).thenReturn(asList(LEADER_ADDRESS, NON_LEADER_ADDRESS));
 

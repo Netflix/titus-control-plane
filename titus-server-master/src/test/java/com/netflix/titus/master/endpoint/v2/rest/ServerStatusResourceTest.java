@@ -21,7 +21,7 @@ import java.util.Collections;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ServerStatusRepresentation;
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.cluster.LeaderActivator;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.health.service.DefaultHealthService;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;

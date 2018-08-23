@@ -41,6 +41,9 @@ import com.netflix.titus.testkit.cli.command.job.ObserveJobsCommand;
 import com.netflix.titus.testkit.cli.command.job.TaskGetCommand;
 import com.netflix.titus.testkit.cli.command.job.TasksGetCommand;
 import com.netflix.titus.testkit.cli.command.scheduler.ObserveSchedulingResultCommand;
+import com.netflix.titus.testkit.cli.command.supervisor.SupervisorObserveEventsCommand;
+import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
+import io.grpc.StatusRuntimeException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -93,6 +96,9 @@ public class CLI {
 
         // Scheduler
         put("schedulingResults", new ObserveSchedulingResultCommand());
+
+        // Supervisor
+        put("supervisorEvents", new SupervisorObserveEventsCommand());
     }};
 
     private final boolean helpRequested;
@@ -124,6 +130,9 @@ public class CLI {
         } catch (Exception e) {
             context.shutdown();
             logger.error("Command execution failure", e);
+            if (e instanceof StatusRuntimeException) {
+                GrpcClientErrorUtils.printDetails((StatusRuntimeException) e);
+            }
         }
     }
 

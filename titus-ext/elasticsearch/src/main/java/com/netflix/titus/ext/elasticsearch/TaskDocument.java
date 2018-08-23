@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
@@ -41,13 +40,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.model.v2.JobCompletedReason;
-import com.netflix.titus.api.model.v2.WorkerNaming;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.master.endpoint.v2.rest.representation.TitusJobSpec;
-import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V2GrpcModelConverters;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 
@@ -358,116 +351,6 @@ public class TaskDocument {
         public Long getMsToFinished() {
             return msToFinished;
         }
-    }
-
-    public static TaskDocument fromV2Task(V2WorkerMetadata v2WorkerMetadata, TitusJobSpec jobSpec, SimpleDateFormat dateFormat, Map<String, String> context) {
-        TaskDocument taskDocument = new TaskDocument();
-        taskDocument.name = jobSpec.getName();
-        taskDocument.applicationName = jobSpec.getApplicationName();
-        taskDocument.appName = jobSpec.getAppName();
-        taskDocument.user = jobSpec.getUser();
-        taskDocument.type = jobSpec.getType();
-        taskDocument.labels = jobSpec.getLabels();
-        taskDocument.version = jobSpec.getVersion();
-        taskDocument.entryPoint = jobSpec.getEntryPoint();
-        taskDocument.inService = jobSpec.isInService();
-        taskDocument.instances = jobSpec.getInstances();
-        taskDocument.instancesMin = jobSpec.getInstancesMin();
-        taskDocument.instancesMax = jobSpec.getInstancesMax();
-        taskDocument.instancesDesired = jobSpec.getInstancesDesired();
-        taskDocument.cpu = jobSpec.getCpu();
-        taskDocument.memory = jobSpec.getMemory();
-        taskDocument.networkMbps = jobSpec.getNetworkMbps();
-        taskDocument.disk = jobSpec.getDisk();
-        taskDocument.gpu = jobSpec.getGpu();
-        taskDocument.env = jobSpec.getEnv();
-        taskDocument.retries = jobSpec.getRetries();
-        taskDocument.restartOnSuccess = jobSpec.isRestartOnSuccess();
-        taskDocument.runtimeLimitSecs = jobSpec.getRuntimeLimitSecs();
-        taskDocument.allocateIpAddress = jobSpec.isAllocateIpAddress();
-        taskDocument.iamProfile = jobSpec.getIamProfile();
-        taskDocument.securityGroups = jobSpec.getSecurityGroups();
-        taskDocument.jobGroupStack = jobSpec.getJobGroupStack();
-        taskDocument.jobGroupDetail = jobSpec.getJobGroupDetail();
-        taskDocument.jobGroupSequence = jobSpec.getJobGroupSequence();
-        taskDocument.capacityGroup = jobSpec.getCapacityGroup();
-        taskDocument.softConstraints = CollectionsExt.nonNull(jobSpec.getSoftConstraints()).stream().map(Enum::name).collect(Collectors.toList());
-        taskDocument.hardConstraints = CollectionsExt.nonNull(jobSpec.getHardConstraints()).stream().map(Enum::name).collect(Collectors.toList());
-
-        taskDocument.id = WorkerNaming.getWorkerName(v2WorkerMetadata.getJobId(), v2WorkerMetadata.getWorkerIndex(), v2WorkerMetadata.getWorkerNumber());
-        taskDocument.instanceId = v2WorkerMetadata.getWorkerInstanceId();
-        taskDocument.jobId = v2WorkerMetadata.getJobId();
-        taskDocument.state = isTombStone(v2WorkerMetadata)
-                ? TitusTaskState.STOPPED.name()
-                : TitusTaskState.getTitusState(v2WorkerMetadata.getState(), v2WorkerMetadata.getReason()).name();
-        taskDocument.host = v2WorkerMetadata.getSlave();
-        taskDocument.computedFields = new ComputedFields();
-
-        final String region = v2WorkerMetadata.getSlaveAttributes().get("region");
-        if (region != null) {
-            taskDocument.region = region;
-        }
-        final String zone = v2WorkerMetadata.getSlaveAttributes().get("zone");
-        if (zone != null) {
-            taskDocument.zone = zone;
-        }
-
-        final String asg = v2WorkerMetadata.getSlaveAttributes().get("asg");
-        if (asg != null) {
-            taskDocument.asg = asg;
-        }
-
-        final String instanceType = v2WorkerMetadata.getSlaveAttributes().get("itype");
-        if (instanceType != null) {
-            taskDocument.instanceType = instanceType;
-        }
-
-        final String instanceId = v2WorkerMetadata.getSlaveAttributes().get("id");
-        if (instanceId != null) {
-            taskDocument.hostInstanceId = instanceId;
-        }
-
-        if (v2WorkerMetadata.getStatusData() != null) {
-            Optional<TitusExecutorDetails> titusExecutorDetails = V2GrpcModelConverters.parseTitusExecutorDetails(v2WorkerMetadata.getStatusData());
-            titusExecutorDetails.ifPresent(executorDetails -> extractNetworkConfigurationData(executorDetails, taskDocument));
-        }
-
-
-        if (v2WorkerMetadata.getAcceptedAt() > 0) {
-            taskDocument.submittedAt = dateFormat.format(new Date(v2WorkerMetadata.getAcceptedAt()));
-        }
-
-        if (v2WorkerMetadata.getLaunchedAt() > 0) {
-            taskDocument.launchedAt = dateFormat.format(new Date(v2WorkerMetadata.getLaunchedAt()));
-            taskDocument.computedFields.msFromSubmittedToLaunched = v2WorkerMetadata.getLaunchedAt() - v2WorkerMetadata.getAcceptedAt();
-        }
-
-        if (v2WorkerMetadata.getStartingAt() > 0) {
-            taskDocument.startingAt = dateFormat.format(new Date(v2WorkerMetadata.getStartingAt()));
-            taskDocument.computedFields.msFromLaunchedToStarting = v2WorkerMetadata.getStartingAt() - v2WorkerMetadata.getLaunchedAt();
-            taskDocument.computedFields.msToStarting = v2WorkerMetadata.getStartingAt() - v2WorkerMetadata.getAcceptedAt();
-        }
-
-        if (v2WorkerMetadata.getStartedAt() > 0) {
-            taskDocument.startedAt = dateFormat.format(new Date(v2WorkerMetadata.getStartedAt()));
-            taskDocument.computedFields.msFromStartingToStarted = v2WorkerMetadata.getStartedAt() - v2WorkerMetadata.getStartingAt();
-            taskDocument.computedFields.msToStarted = v2WorkerMetadata.getStartedAt() - v2WorkerMetadata.getAcceptedAt();
-        }
-
-        if (v2WorkerMetadata.getCompletedAt() > 0) {
-            taskDocument.finishedAt = dateFormat.format(new Date(v2WorkerMetadata.getCompletedAt()));
-            taskDocument.computedFields.msFromStartedToFinished = v2WorkerMetadata.getCompletedAt() - v2WorkerMetadata.getStartedAt();
-            taskDocument.computedFields.msToFinished = v2WorkerMetadata.getCompletedAt() - v2WorkerMetadata.getAcceptedAt();
-        }
-
-        taskDocument.message = v2WorkerMetadata.getCompletionMessage();
-        taskDocument.titusContext = context;
-
-        return taskDocument;
-    }
-
-    private static boolean isTombStone(V2WorkerMetadata v2WorkerMetadata) {
-        return v2WorkerMetadata.getReason() != null && v2WorkerMetadata.getReason() == JobCompletedReason.TombStone;
     }
 
     public static TaskDocument fromV3Task(Task task, Job job, SimpleDateFormat dateFormat, Map<String, String> context) {

@@ -40,6 +40,8 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceImplBase;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
+import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
+import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceImplBase;
 import com.netflix.titus.master.endpoint.common.grpc.interceptor.LeaderServerInterceptor;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -58,6 +60,7 @@ public class TitusMasterGrpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(TitusMasterGrpcServer.class);
 
     private final HealthImplBase healthService;
+    private final SupervisorServiceImplBase titusSupervisorService;
     private final JobManagementServiceImplBase jobManagementService;
     private final AgentManagementServiceImplBase agentManagementService;
     private final EvictionServiceImplBase evictionService;
@@ -73,6 +76,7 @@ public class TitusMasterGrpcServer {
     @Inject
     public TitusMasterGrpcServer(
             HealthImplBase healthService,
+            SupervisorServiceImplBase titusSupervisorService,
             JobManagementServiceImplBase jobManagementService,
             AgentManagementServiceImplBase agentManagementService,
             EvictionServiceImplBase evictionService,
@@ -82,6 +86,7 @@ public class TitusMasterGrpcServer {
             GrpcEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor) {
         this.healthService = healthService;
+        this.titusSupervisorService = titusSupervisorService;
         this.jobManagementService = jobManagementService;
         this.agentManagementService = agentManagementService;
         this.evictionService = evictionService;
@@ -99,6 +104,9 @@ public class TitusMasterGrpcServer {
             serverBuilder.addService(ServerInterceptors.intercept(
                     healthService,
                     createInterceptors(HealthGrpc.getServiceDescriptor())
+            )).addService(ServerInterceptors.intercept(
+                    titusSupervisorService,
+                    createInterceptors(SupervisorServiceGrpc.getServiceDescriptor())
             )).addService(ServerInterceptors.intercept(
                     jobManagementService,
                     createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())

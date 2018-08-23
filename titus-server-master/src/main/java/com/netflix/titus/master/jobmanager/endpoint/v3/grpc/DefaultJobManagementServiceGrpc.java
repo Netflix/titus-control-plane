@@ -21,14 +21,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.model.Pagination;
-import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -51,10 +54,18 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.endpoint.TitusServiceGateway;
+import com.netflix.titus.master.endpoint.common.CellDecorator;
+import com.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
+import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusServiceGateway;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.model.ResourceDimensions;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -64,39 +75,68 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
+import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.JOB_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.TASK_MINIMUM_FIELD_SET;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
-import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.JOB_MINIMUM_FIELD_SET;
-import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.TASK_MINIMUM_FIELD_SET;
 
 @Singleton
 public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultJobManagementServiceGrpc.class);
 
+    private final GrpcEndpointConfiguration configuration;
+    private final AgentManagementService agentManagementService;
+    private final ApplicationSlaManagementService capacityGroupService;
     private final TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> serviceGateway;
     private final CallMetadataResolver callMetadataResolver;
+    private final CellDecorator cellDecorator;
 
     @Inject
-    public DefaultJobManagementServiceGrpc(TitusServiceGateway<String, JobDescriptor, JobSpecCase, Job, Task, TaskStatus.TaskState> serviceGateway,
-                                           CallMetadataResolver callMetadataResolver) {
+    public DefaultJobManagementServiceGrpc(GrpcEndpointConfiguration configuration,
+                                           AgentManagementService agentManagementService,
+                                           ApplicationSlaManagementService capacityGroupService,
+                                           GrpcTitusServiceGateway serviceGateway,
+                                           CallMetadataResolver callMetadataResolver,
+                                           CellInfoResolver cellInfoResolver) {
+        this.configuration = configuration;
+        this.agentManagementService = agentManagementService;
+        this.capacityGroupService = capacityGroupService;
         this.serviceGateway = serviceGateway;
         this.callMetadataResolver = callMetadataResolver;
+        this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
     }
 
     @Override
-    public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
-        execute(responseObserver, callMetadata ->
-                serviceGateway.createJob(
-                        request
-                ).subscribe(
-                        jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
-                        e -> safeOnError(logger, e, responseObserver),
-                        responseObserver::onCompleted
-                ));
+    public void createJob(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            if (configuration.isJobSizeValidationEnabled()) {
+                com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+
+                Tier tier = findTier(coreJobDescriptor);
+                ResourceDimension requestedResources = toResourceDimension(coreJobDescriptor.getContainer().getContainerResources());
+                List<ResourceDimension> tierResourceLimits = getTierResourceLimits(tier);
+                if (isTooLarge(requestedResources, tierResourceLimits)) {
+                    safeOnError(logger,
+                            JobManagerException.invalidContainerResources(tier, requestedResources, tierResourceLimits),
+                            responseObserver
+                    );
+                    return;
+                }
+            }
+
+            JobDescriptor withCellInfo = cellDecorator.ensureCellInfo(jobDescriptor);
+
+            serviceGateway.createJob(withCellInfo).subscribe(
+                    jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
+                    e -> safeOnError(logger, e, responseObserver),
+                    responseObserver::onCompleted
+            );
+        });
     }
 
     @Override
@@ -171,7 +211,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata -> {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
             Capacity taskInstances = request.getCapacity();
             serviceGateway.resizeJob(
                     toReasonString(callMetadata), request.getJobId(), taskInstances.getDesired(), taskInstances.getMin(), taskInstances.getMax()
@@ -189,7 +229,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata -> {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
             ServiceJobSpec.ServiceJobProcesses serviceJobProcesses = request.getServiceJobProcesses();
             serviceGateway.updateJobProcesses(
                     toReasonString(callMetadata), request.getJobId(), serviceJobProcesses.getDisableDecreaseDesired(), serviceJobProcesses.getDisableIncreaseDesired()
@@ -207,7 +247,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata ->
+        execute(callMetadataResolver, responseObserver, callMetadata ->
                 serviceGateway.changeJobInServiceStatus(
                         toReasonString(callMetadata), request.getId(), request.getEnableStatus()
                 ).subscribe(
@@ -223,7 +263,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata ->
+        execute(callMetadataResolver, responseObserver, callMetadata ->
                 serviceGateway.killJob(
                         toReasonString(callMetadata), request.getId()
                 ).subscribe(
@@ -239,7 +279,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
-        execute(responseObserver, callMetadata ->
+        execute(callMetadataResolver, responseObserver, callMetadata ->
                 serviceGateway.killTask(
                         toReasonString(callMetadata), request.getTaskId(), request.getShrink()
                 ).subscribe(
@@ -288,23 +328,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
     }
 
-    /**
-     * Helper class working as key selector for building distinct stream of Job info objects.
-     * Currently we observe only number of workers and their state.
-     */
-    private void execute(StreamObserver<?> responseObserver, Consumer<CallMetadata> action) {
-        Optional<CallMetadata> callMetadata = callMetadataResolver.resolve();
-        if (!callMetadata.isPresent()) {
-            responseObserver.onError(TitusServiceException.noCallerId());
-            return;
-        }
-        try {
-            action.accept(callMetadata.get());
-        } catch (Exception e) {
-            responseObserver.onError(e);
-        }
-    }
-
     private JobQueryResult toJobQueryResult(List<Job> jobs, Pagination runtimePagination) {
         return JobQueryResult.newBuilder()
                 .addAllItems(jobs)
@@ -316,6 +339,16 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         return TaskQueryResult.newBuilder()
                 .addAllItems(tasks)
                 .setPagination(toGrpcPagination(runtimePagination))
+                .build();
+    }
+
+    private ResourceDimension toResourceDimension(ContainerResources containerResources) {
+        return ResourceDimension.newBuilder()
+                .withCpus(containerResources.getCpu())
+                .withGpu(containerResources.getGpu())
+                .withMemoryMB(containerResources.getMemoryMB())
+                .withDiskMB(containerResources.getDiskMB())
+                .withNetworkMbs(containerResources.getNetworkMbps())
                 .build();
     }
 
@@ -341,5 +374,22 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         }
 
         return builder.toString();
+    }
+
+    private Tier findTier(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+        return JobManagerUtil.getTierAssignment(jobDescriptor, capacityGroupService).getLeft();
+    }
+
+    private List<ResourceDimension> getTierResourceLimits(Tier tier) {
+        return agentManagementService.getInstanceGroups().stream()
+                .filter(instanceGroup -> instanceGroup.getTier().equals(tier))
+                .map(instanceGroup ->
+                        agentManagementService.findResourceLimits(instanceGroup.getInstanceType()).orElse(instanceGroup.getResourceDimension())
+                )
+                .collect(Collectors.toList());
+    }
+
+    private boolean isTooLarge(ResourceDimension requestedResources, List<ResourceDimension> tierResourceLimits) {
+        return tierResourceLimits.stream().noneMatch(limit -> ResourceDimensions.isBigger(limit, requestedResources));
     }
 }

@@ -23,6 +23,8 @@ public class MetricConstants {
 
     public static final String METRIC_ROOT = "titusMaster.";
 
+    public static final String METRIC_SUPERVISOR = METRIC_ROOT + "supervisor.";
+
     public static final String METRIC_AGENT = METRIC_ROOT + "agent.";
 
     public static final String METRIC_AGENT_CACHE = METRIC_ROOT + "agentCache.";

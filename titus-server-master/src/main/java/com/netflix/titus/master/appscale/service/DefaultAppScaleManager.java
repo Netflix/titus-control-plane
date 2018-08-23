@@ -42,26 +42,16 @@ import com.netflix.titus.api.connector.cloud.AppAutoScalingClient;
 import com.netflix.titus.api.connector.cloud.CloudAlarmClient;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.event.JobStateChangeEvent;
-import com.netflix.titus.api.model.event.SchedulingEvent;
-import com.netflix.titus.api.model.v2.V2JobDefinition;
-import com.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
-import com.netflix.titus.api.model.v2.parameter.Parameter;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
-import com.netflix.titus.master.job.service.ServiceJobMgr;
+import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -76,23 +66,25 @@ import rx.subjects.SerializedSubject;
 
 @Singleton
 public class DefaultAppScaleManager implements AppScaleManager {
+    public static final long INITIAL_RETRY_DELAY_SEC = 5;
+    public static final long MAX_RETRY_DELAY_SEC = 30;
     private static Logger logger = LoggerFactory.getLogger(DefaultAppScaleManager.class);
 
     private static final long SHUTDOWN_TIMEOUT_MS = 5_000;
     private static final String DEFAULT_JOB_GROUP_SEQ = "v000";
+    private static final int ASYNC_HANDLER_BUFFER_CAPACITY = 10_000;
 
     private final AppScaleManagerMetrics metrics;
     private final SerializedSubject<AppScaleAction, AppScaleAction> appScaleActionsSubject;
     private final AppScalePolicyStore appScalePolicyStore;
     private final CloudAlarmClient cloudAlarmClient;
     private final AppAutoScalingClient appAutoScalingClient;
-    private final V2JobOperations v2JobOperations;
-    private final RxEventBus rxEventBus;
     private final V3JobOperations v3JobOperations;
     private final AppScaleManagerConfiguration appScaleManagerConfiguration;
 
     private volatile Map<String, AutoScalableTarget> scalableTargets;
     private volatile Subscription reconcileFinishedJobsSub;
+    private volatile Subscription reconcileAllPendingRequests;
     private volatile Subscription reconcileScalableTargetsSub;
 
     private volatile ExecutorService awsInteractionExecutor;
@@ -101,50 +93,57 @@ public class DefaultAppScaleManager implements AppScaleManager {
     @Inject
     public DefaultAppScaleManager(AppScalePolicyStore appScalePolicyStore, CloudAlarmClient cloudAlarmClient,
                                   AppAutoScalingClient applicationAutoScalingClient,
-                                  V2JobOperations v2JobOperations,
                                   V3JobOperations v3JobOperations,
-                                  RxEventBus rxEventBus,
                                   Registry registry,
                                   AppScaleManagerConfiguration appScaleManagerConfiguration) {
-        this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v2JobOperations, v3JobOperations,
-                rxEventBus, registry, appScaleManagerConfiguration,
+        this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v3JobOperations,
+                registry, appScaleManagerConfiguration,
                 ExecutorsExt.namedSingleThreadExecutor("DefaultAppScaleManager"));
     }
 
 
     private DefaultAppScaleManager(AppScalePolicyStore appScalePolicyStore, CloudAlarmClient cloudAlarmClient,
                                    AppAutoScalingClient applicationAutoScalingClient,
-                                   V2JobOperations v2JobOperations,
                                    V3JobOperations v3JobOperations,
-                                   RxEventBus rxEventBus,
                                    Registry registry,
                                    AppScaleManagerConfiguration appScaleManagerConfiguration,
                                    ExecutorService awsInteractionExecutor) {
-        this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v2JobOperations, v3JobOperations,
-                rxEventBus, registry, appScaleManagerConfiguration, Schedulers.from(awsInteractionExecutor));
+        this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v3JobOperations,
+                registry, appScaleManagerConfiguration, Schedulers.from(awsInteractionExecutor));
         this.awsInteractionExecutor = awsInteractionExecutor;
     }
 
     @VisibleForTesting
     public DefaultAppScaleManager(AppScalePolicyStore appScalePolicyStore, CloudAlarmClient cloudAlarmClient,
                                   AppAutoScalingClient applicationAutoScalingClient,
-                                  V2JobOperations v2JobOperations,
                                   V3JobOperations v3JobOperations,
-                                  RxEventBus rxEventBus,
                                   Registry registry,
                                   AppScaleManagerConfiguration appScaleManagerConfiguration,
                                   Scheduler awsInteractionScheduler) {
         this.appScalePolicyStore = appScalePolicyStore;
         this.cloudAlarmClient = cloudAlarmClient;
         this.appAutoScalingClient = applicationAutoScalingClient;
-        this.v2JobOperations = v2JobOperations;
-        this.rxEventBus = rxEventBus;
         this.v3JobOperations = v3JobOperations;
         this.appScaleManagerConfiguration = appScaleManagerConfiguration;
         this.scalableTargets = new ConcurrentHashMap<>();
         this.metrics = new AppScaleManagerMetrics(registry);
         this.appScaleActionsSubject = PublishSubject.<AppScaleAction>create().toSerialized();
-        this.appScaleActionsSub = appScaleActionsSubject.observeOn(awsInteractionScheduler).subscribe(new AppScaleActionHandler());
+
+        this.appScaleActionsSub = appScaleActionsSubject
+                .onBackpressureDrop(appScaleAction -> {
+                    logger.warn("Dropping {}", appScaleAction);
+                    metrics.reportDroppedRequest();
+                })
+                .observeOn(awsInteractionScheduler, ASYNC_HANDLER_BUFFER_CAPACITY)
+                .doOnError(e -> logger.error("Exception in appScaleActionsSubject ", e))
+                .retryWhen(RetryHandlerBuilder.retryHandler()
+                        .withUnlimitedRetries()
+                        .withScheduler(awsInteractionScheduler)
+                        .withDelay(INITIAL_RETRY_DELAY_SEC, MAX_RETRY_DELAY_SEC, TimeUnit.SECONDS)
+                        .withTitle("Auto-retry for appScaleActionsSubject")
+                        .buildExponentialBackoff()
+                )
+                .subscribe(new AppScaleActionHandler());
     }
 
     @Activator
@@ -167,6 +166,13 @@ public class DefaultAppScaleManager implements AppScaleManager {
         checkForScalingPolicyActions().toCompletable().await(appScaleManagerConfiguration.getStoreInitTimeoutSeconds(),
                 TimeUnit.SECONDS);
 
+        reconcileAllPendingRequests = Observable.interval(
+                appScaleManagerConfiguration.getReconcileAllPendingAndDeletingRequestsIntervalMins(), TimeUnit.MINUTES,
+                Schedulers.io())
+                .flatMap(ignored -> checkForScalingPolicyActions())
+                .subscribe(policy -> logger.info("Reconciliation - policy request processed : {}.", policy.getPolicyId()),
+                        e -> logger.error("error in reconciliation (ReconcileAllPendingRequests) stream", e),
+                        () -> logger.info("reconciliation (ReconcileAllPendingRequests) stream closed"));
 
         reconcileFinishedJobsSub = Observable.interval(appScaleManagerConfiguration.getReconcileFinishedJobsIntervalMins(), TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
@@ -181,17 +187,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .subscribe(jobId -> logger.info("Reconciliation (TargetUpdated) : {} target updated", jobId),
                         e -> logger.error("Error in reconciliation (TargetUpdated) stream", e),
                         () -> logger.info("Reconciliation (TargetUpdated) stream closed"));
-
-
-        v2LiveStreamPolicyCleanup()
-                .subscribe(jobId -> logger.info("(V2) Job {} policies cleaned up.", jobId),
-                        e -> logger.error("Error in V2 job state change event stream", e),
-                        () -> logger.info("V2 job event stream closed"));
-
-        v2LiveStreamTargetUpdates()
-                .subscribe(jobId -> logger.info("(V2) Job {} scalable target updated", jobId),
-                        e -> logger.error("Error in V2 job state change event stream", e),
-                        () -> logger.info("V2 job event stream closed"));
 
         v3LiveStreamTargetUpdates()
                 .subscribe(jobId -> logger.info("(V3) Job {} scalable target updated.", jobId),
@@ -208,9 +203,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(reconcileFinishedJobsSub);
-        ObservableExt.safeUnsubscribe(reconcileScalableTargetsSub);
-        ObservableExt.safeUnsubscribe(appScaleActionsSub);
+        ObservableExt.safeUnsubscribe(reconcileFinishedJobsSub, reconcileScalableTargetsSub,
+                reconcileAllPendingRequests, appScaleActionsSub);
         if (awsInteractionExecutor == null) {
             return; // nothing else to do
         }
@@ -262,32 +256,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .map(AppScaleAction::getJobId)
                 .doOnError(e -> logger.error("Exception in reconcileScalableTargets -> ", e))
                 .onErrorResumeNext(e -> Observable.empty());
-    }
-
-    Observable<String> v2LiveStreamPolicyCleanup() {
-        return rxEventBus.listen(getClass().getSimpleName(), JobStateChangeEvent.class)
-                .flatMap(jobStateChangeEvent ->
-                        Observable.just(jobStateChangeEvent)
-                                .filter(jse -> jse.getJobState() == JobStateChangeEvent.JobState.Finished)
-                                .map(SchedulingEvent::getJobId)
-                                .flatMap(jobId -> removePoliciesForJob(jobId).andThen(Observable.just(jobId)))
-                                .doOnError(e -> logger.error("Exception in v2LiveStreamPolicyCleanup -> ", e))
-                                .onErrorResumeNext(e -> saveStatusOnError(e).andThen(Observable.empty())));
-
-    }
-
-    Observable<String> v2LiveStreamTargetUpdates() {
-        return rxEventBus.listen(getClass().getSimpleName(), JobStateChangeEvent.class)
-                .flatMap(jobStateChangeEvent -> Observable.just(jobStateChangeEvent)
-                        .filter(jse -> jse.getJobState() != JobStateChangeEvent.JobState.Finished)
-                        .map(SchedulingEvent::getJobId)
-                        .flatMap(appScalePolicyStore::retrievePoliciesForJob)
-                        .filter(autoScalingPolicy -> shouldRefreshScalableTargetForJob(autoScalingPolicy.getJobId(),
-                                getJobScalingConstraints(autoScalingPolicy.getRefId(), autoScalingPolicy.getJobId())))
-                        .map(this::sendUpdateTargetAction)
-                        .map(AppScaleAction::getJobId)
-                        .doOnError(e -> logger.error("Exception in v2LiveStreamTargetUpdates -> ", e))
-                        .onErrorResumeNext(e -> Observable.empty()));
     }
 
 
@@ -404,12 +372,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
     }
 
     private boolean isJobActive(String jobId) {
-        if (JobFunctions.isV2JobId(jobId)) {
-            return v2JobOperations.getJobMgr(jobId) != null && v2JobOperations.getJobMgr(jobId).isActive();
-        } else {
-            // V3
-            return v3JobOperations.getJob(jobId) != null && v3JobOperations.getJob(jobId).isPresent();
-        }
+        return v3JobOperations.getJob(jobId).isPresent();
     }
 
 
@@ -444,29 +407,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
 
 
     private JobScalingConstraints getJobScalingConstraints(String policyRefId, String jobId) {
-        if (JobFunctions.isV2JobId(jobId)) {
-            if (v2JobOperations == null) {
-                return new JobScalingConstraints(0, 0);
-            }
-
-            V2JobMgrIntf v2JobMgr = v2JobOperations.getJobMgr(jobId);
-            if (v2JobMgr == null) {
-                throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
-            }
-
-            if (!(v2JobMgr instanceof ServiceJobMgr)) {
-                throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.notServiceJob(jobId));
-            }
-
-            v2JobMgr = v2JobOperations.getJobMgr(jobId);
-            if (v2JobMgr == null || v2JobMgr.getJobMetadata() == null
-                    || v2JobMgr.getJobMetadata().getStageMetadata(1) == null) {
-                throw AutoScalePolicyException.wrapJobManagerException(policyRefId, JobManagerException.jobNotFound(jobId));
-            }
-            StageScalingPolicy scalingPolicy = v2JobOperations.getJobMgr(jobId).getJobMetadata().getStageMetadata(1).getScalingPolicy();
-            return new JobScalingConstraints(scalingPolicy.getMin(), scalingPolicy.getMax());
-        }
-
         // V3 API
         if (v3JobOperations == null) {
             return new JobScalingConstraints(0, 0);
@@ -488,14 +428,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
     }
 
     private String buildAutoScalingGroup(String jobId) {
-        if (JobFunctions.isV2JobId(jobId)) {
-            if (v2JobOperations == null) {
-                return jobId;
-            }
-            V2JobDefinition jobDefinition = v2JobOperations.getJobMgr(jobId).getJobDefinition();
-            return buildAutoScalingGroupV2(jobDefinition.getParameters());
-        }
-
         if (v3JobOperations == null) {
             return jobId;
         }
@@ -503,18 +435,6 @@ public class DefaultAppScaleManager implements AppScaleManager {
                 .map(job -> buildAutoScalingGroupV3(job.getJobDescriptor()))
                 .orElseThrow(() -> JobManagerException.jobNotFound(jobId));
     }
-
-    @VisibleForTesting
-    static String buildAutoScalingGroupV2(List<Parameter> jobParameters) {
-        String jobGroupSequence = Parameters.getJobGroupSeq(jobParameters) != null ?
-                Parameters.getJobGroupSeq(jobParameters) : DEFAULT_JOB_GROUP_SEQ;
-        List<String> parameterList = Arrays.asList(Parameters.getAppName(jobParameters),
-                Parameters.getJobGroupStack(jobParameters),
-                Parameters.getJobGroupDetail(jobParameters),
-                jobGroupSequence);
-        return buildAutoScalingGroupFromParameters(parameterList);
-    }
-
 
     @VisibleForTesting
     static String buildAutoScalingGroupV3(JobDescriptor<?> jobDescriptor) {

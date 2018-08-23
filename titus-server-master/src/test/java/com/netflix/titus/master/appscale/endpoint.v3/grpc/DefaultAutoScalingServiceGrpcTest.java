@@ -53,7 +53,7 @@ public class DefaultAutoScalingServiceGrpcTest {
     private final AppScalePolicyStore appScalePolicyStore = new InMemoryPolicyStore();
     private final AppScaleManager appScaleManager = new DefaultAppScaleManager(appScalePolicyStore,
             new AutoScalingPolicyTests.MockAlarmClient(),
-            new AutoScalingPolicyTests.MockAppAutoScalingClient(), null, null, null,
+            new AutoScalingPolicyTests.MockAppAutoScalingClient(), null,
             new DefaultRegistry(),
             AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
     private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager);

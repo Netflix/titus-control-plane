@@ -34,6 +34,7 @@ import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.Pagination;
+import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -43,13 +44,13 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.TaskStatus;
-import com.netflix.titus.master.endpoint.common.TaskSummary;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
+import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -63,7 +64,7 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
 
     private static final Logger logger = LoggerFactory.getLogger(V3GrpcTitusServiceGateway.class);
 
-    static final JobChangeNotification SNAPSHOT_END_MARKER = JobChangeNotification.newBuilder().setSnapshotEnd(
+    private static final JobChangeNotification SNAPSHOT_END_MARKER = JobChangeNotification.newBuilder().setSnapshotEnd(
             JobChangeNotification.SnapshotEnd.newBuilder()
     ).build();
 
@@ -131,45 +132,41 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     @SuppressWarnings("ConstantConditions")
     @Override
     public Pair<List<Job>, Pagination> findJobsByCriteria(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Optional<Page> pageOpt) {
-        Page page = pageOpt.get();
-        int offset = page.getPageSize() * page.getPageNumber();
-
-        List<com.netflix.titus.api.jobmanager.model.job.Job<?>> queryResult = jobOperations.findJobs(
+        List<Job> allFilteredJobs = jobOperations.findJobs(
                 new V3JobQueryCriteriaEvaluator(queryCriteria, titusRuntime),
-                offset,
-                page.getPageSize() + 1
+                0,
+                Integer.MAX_VALUE / 2
+        ).stream()
+                .map(V3GrpcModelConverters::toGrpcJob)
+                .collect(Collectors.toList());
+
+        return PaginationUtil.takePageWithCursor(
+                pageOpt.get(),
+                allFilteredJobs,
+                JobManagerCursors.jobCursorOrderComparator(),
+                JobManagerCursors::jobIndexOf,
+                JobManagerCursors::newCursorFrom
         );
-
-        // We took extra item to know if there are more data to return
-        boolean hasMore = queryResult.size() > page.getPageSize();
-        List<com.netflix.titus.api.jobmanager.model.job.Job<?>> pageResult = hasMore ? queryResult.subList(0, page.getPageSize()) : queryResult;
-
-        List<Job> jobs = pageResult.stream().map(V3GrpcModelConverters::toGrpcJob).collect(Collectors.toList());
-        //TODO the pagination model here is not semantically correct since the total is not even known
-        return Pair.of(jobs, new Pagination(page, false, 1, jobs.size(), "", 0));
     }
 
     @SuppressWarnings("ConstantConditions")
     @Override
     public Pair<List<com.netflix.titus.grpc.protogen.Task>, Pagination> findTasksByCriteria(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria, Optional<Page> pageOpt) {
-        Page page = pageOpt.get();
-        int offset = page.getPageSize() * page.getPageNumber();
-
-        List<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, Task>> queryResult = jobOperations.findTasks(
+        List<com.netflix.titus.grpc.protogen.Task> allFilteredTasks = jobOperations.findTasks(
                 new V3TaskQueryCriteriaEvaluator(queryCriteria, titusRuntime),
-                offset,
-                page.getPageSize() + 1
+                0,
+                Integer.MAX_VALUE / 2
+        ).stream()
+                .map(jobTaskPair -> V3GrpcModelConverters.toGrpcTask(jobTaskPair.getRight(), logStorageInfo))
+                .collect(Collectors.toList());
+
+        return PaginationUtil.takePageWithCursor(
+                pageOpt.get(),
+                allFilteredTasks,
+                JobManagerCursors.taskCursorOrderComparator(),
+                JobManagerCursors::taskIndexOf,
+                JobManagerCursors::newCursorFrom
         );
-
-        // We took an extra item to know if there is more data to return
-        boolean hasMore = queryResult.size() > page.getPageSize();
-        List<Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, Task>> pageResult = hasMore ? queryResult.subList(0, page.getPageSize()) : queryResult;
-
-        List<com.netflix.titus.grpc.protogen.Task> tasks = pageResult.stream().map(jobTaskPair ->
-                V3GrpcModelConverters.toGrpcTask(jobTaskPair.getRight(), logStorageInfo)
-        ).collect(Collectors.toList());
-        //TODO the pagination model here is not semantically correct since the total is not even known
-        return Pair.of(tasks, new Pagination(page, false, 1, tasks.size(), "", 0));
     }
 
     @Override
@@ -207,11 +204,6 @@ public class V3GrpcTitusServiceGateway implements GrpcTitusServiceGateway {
     @Override
     public Observable<Void> killTask(String user, String taskId, boolean shrink) {
         return jobOperations.killTask(taskId, shrink, String.format("User initiated task kill: %s", user));
-    }
-
-    @Override
-    public Observable<List<TaskSummary>> getTaskSummary() {
-        return Observable.error(new IllegalStateException("Operation not supported by V3 API"));
     }
 
     @Override
