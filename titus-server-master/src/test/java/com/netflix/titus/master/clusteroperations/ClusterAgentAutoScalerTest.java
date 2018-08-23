@@ -317,7 +317,7 @@ public class ClusterAgentAutoScalerTest {
             TaskPlacementFailure.FailureKind failureKind = entry.getKey();
             List<TaskPlacementFailure> failures = failureKinds.computeIfAbsent(failureKind, k -> new ArrayList<>());
             for (int i = 0; i < entry.getValue(); i++) {
-                TaskPlacementFailure failure = new TaskPlacementFailure("task" + i, failureKind, "", tier, -1);
+                TaskPlacementFailure failure = new TaskPlacementFailure("task" + i, failureKind, -1, tier, Collections.emptyMap());
                 failures.add(failure);
             }
         }

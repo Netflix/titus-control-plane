@@ -9,12 +9,14 @@ import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 
 public class V3UniqueHostConstraint implements ConstraintEvaluator {
 
+    public static final String NAME = "UniqueAgentConstraint";
+
     private static final Result VALID = new Result(true, null);
     private static final Result INVALID = new Result(false, "Task from the same job already running on the agent");
 
     @Override
     public String getName() {
-        return "UniqueAgentConstraint";
+        return NAME;
     }
 
     @Override

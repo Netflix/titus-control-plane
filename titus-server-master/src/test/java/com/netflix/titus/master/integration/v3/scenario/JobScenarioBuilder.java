@@ -272,13 +272,18 @@ public class JobScenarioBuilder {
     }
 
     public JobScenarioBuilder expectJobEventStreamCompletes() {
-        logger.info("[{}] Expect job event stream to complete due to job termination...", discoverActiveTest());
-
         Stopwatch stopWatch = Stopwatch.createStarted();
-        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(eventStreamSubscription::isUnsubscribed);
+        try {
+            logger.info("[{}] Expect job event stream to complete due to job termination...", discoverActiveTest());
 
-        logger.info("[{}] Job event stream completed after waiting for {}ms", discoverActiveTest(), stopWatch.elapsed(TimeUnit.MILLISECONDS));
-        return this;
+            await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(eventStreamSubscription::isUnsubscribed);
+
+            logger.info("[{}] Job event stream completed after waiting for {}ms", discoverActiveTest(), stopWatch.elapsed(TimeUnit.MILLISECONDS));
+            return this;
+        } catch (Throwable e) {
+            logger.info("[{}] Job event stream failed after waiting for {}ms", discoverActiveTest(), stopWatch.elapsed(TimeUnit.MILLISECONDS), e);
+            throw e;
+        }
     }
 
     public JobScenarioBuilder expectAllTasksCreated() {

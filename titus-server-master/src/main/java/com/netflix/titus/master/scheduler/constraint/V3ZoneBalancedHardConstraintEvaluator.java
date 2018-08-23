@@ -11,6 +11,8 @@ import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 public class V3ZoneBalancedHardConstraintEvaluator implements ConstraintEvaluator {
 
+    public static final String NAME = "V3ZoneBalancedHardConstraintEvaluator";
+
     private static final Result VALID = new Result(true, null);
     private static final Result INVALID = new Result(false, "Zone balancing constraints not met");
     private static final Result NO_ZONE_ID = new Result(false, "Host without zone data");
@@ -27,7 +29,7 @@ public class V3ZoneBalancedHardConstraintEvaluator implements ConstraintEvaluato
 
     @Override
     public String getName() {
-        return "V3ZoneBalancedHardConstraintEvaluator";
+        return NAME;
     }
 
     @Override

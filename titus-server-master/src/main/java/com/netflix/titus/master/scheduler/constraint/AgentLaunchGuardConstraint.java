@@ -39,7 +39,7 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
  * A system constraint that prevents launching a task on an agent that already has a task launching.
  */
 @Singleton
-public class ConcurrentTaskLaunchingConstraint implements SystemConstraint {
+public class AgentLaunchGuardConstraint implements SystemConstraint {
 
     private static final Result VALID = new Result(true, null);
     private static final Result INVALID = new Result(false, "The agent has a task already launching");
@@ -50,8 +50,8 @@ public class ConcurrentTaskLaunchingConstraint implements SystemConstraint {
     private final AtomicReference<Map<String, Task>> taskIdMapRef = new AtomicReference<>(Collections.emptyMap());
 
     @Inject
-    public ConcurrentTaskLaunchingConstraint(SchedulerConfiguration schedulerConfiguration,
-                                             V3JobOperations v3JobOperations) {
+    public AgentLaunchGuardConstraint(SchedulerConfiguration schedulerConfiguration,
+                                      V3JobOperations v3JobOperations) {
         this.schedulerConfiguration = schedulerConfiguration;
         this.v3JobOperations = v3JobOperations;
     }
@@ -81,6 +81,10 @@ public class ConcurrentTaskLaunchingConstraint implements SystemConstraint {
         }
 
         return hasLaunchingTask(targetVM) ? INVALID : VALID;
+    }
+
+    public static boolean isAgentLaunchGuardConstraintReason(String reason) {
+        return reason != null && INVALID.getFailureReason().contains(reason);
     }
 
     private boolean hasLaunchingTask(VirtualMachineCurrentState targetVM) {

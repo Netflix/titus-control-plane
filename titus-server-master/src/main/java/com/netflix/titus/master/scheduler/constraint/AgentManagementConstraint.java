@@ -18,6 +18,7 @@ package com.netflix.titus.master.scheduler.constraint;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -34,6 +35,7 @@ import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValueOrEmptyString;
@@ -60,6 +62,20 @@ public class AgentManagementConstraint implements SystemConstraint {
     private static final Result INSTANCE_UNHEALTHY = new Result(false, "Unhealthy agent");
 
     private static final Result TRUE_RESULT = new Result(true, null);
+
+    private static final Set<String> FAILURE_REASONS = CollectionsExt.asSet(
+            INSTANCE_GROUP_NOT_FOUND.getFailureReason(),
+            MISSING_INSTANCE_GROUP_ATTRIBUTE.getFailureReason(),
+            INSTANCE_GROUP_NOT_ACTIVE.getFailureReason(),
+            INSTANCE_GROUP_TIER_MISMATCH.getFailureReason(),
+            INSTANCE_GROUP_DOES_NOT_HAVE_GPUS.getFailureReason(),
+            INSTANCE_GROUP_CANNOT_RUN_NON_GPU_TASKS.getFailureReason(),
+            MISSING_INSTANCE_ATTRIBUTE.getFailureReason(),
+            INSTANCE_NOT_FOUND.getFailureReason(),
+            INSTANCE_NOT_STARTED.getFailureReason(),
+            INSTANCE_STATE_IS_OVERRIDDEN.getFailureReason(),
+            INSTANCE_UNHEALTHY.getFailureReason()
+    );
 
     private final SchedulerConfiguration schedulerConfiguration;
     private final AgentManagementService agentManagementService;
@@ -92,6 +108,10 @@ public class AgentManagementConstraint implements SystemConstraint {
         }
 
         return TRUE_RESULT;
+    }
+
+    public static boolean isAgentManagementConstraintReason(String reason) {
+        return reason != null && FAILURE_REASONS.contains(reason);
     }
 
     private Result evaluateInstanceGroup(TaskRequest taskRequest, VirtualMachineCurrentState targetVM) {
