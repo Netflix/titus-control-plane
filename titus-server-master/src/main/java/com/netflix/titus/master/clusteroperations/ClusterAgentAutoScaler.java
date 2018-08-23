@@ -224,9 +224,8 @@ public class ClusterAgentAutoScaler {
                 Set<String> taskIdsForScaleUp = new HashSet<>();
                 for (String taskId : potentialTaskIdsForScaleUp) {
                     String scaledTaskId = taskIdsForPreviousScaleUps.getIfPresent(taskId);
-                    if (scaledTaskId == null) {
+                    if (scaledTaskId != null) {
                         taskIdsForScaleUp.add(taskId);
-                    } else {
                         taskIdsForPreviousScaleUps.put(taskId, taskId);
                     }
                 }
