@@ -3884,10 +3884,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -4682,7 +4678,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "jline:jline",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -4696,7 +4691,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -4822,7 +4816,6 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
@@ -5108,8 +5101,7 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
@@ -5167,10 +5159,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -5965,7 +5953,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "jline:jline",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -5979,7 +5966,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -6105,7 +6091,6 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
@@ -6391,8 +6376,7 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
@@ -6450,10 +6434,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -7248,7 +7228,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "jline:jline",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -7262,7 +7241,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -7388,7 +7366,6 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
@@ -7675,8 +7652,7 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
@@ -7734,10 +7710,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "com.101tec:zkclient": {
-            "locked": "0.4",
-            "requested": "0.4"
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -8532,7 +8504,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "jline:jline",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -8546,7 +8517,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
@@ -8672,7 +8642,6 @@
         "org.apache.zookeeper:zookeeper": {
             "locked": "3.4.6",
             "transitive": [
-                "com.101tec:zkclient",
                 "org.apache.curator:curator-client"
             ]
         },
@@ -8959,8 +8928,7 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
-                "org.apache.zookeeper:zookeeper"
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-core": {
