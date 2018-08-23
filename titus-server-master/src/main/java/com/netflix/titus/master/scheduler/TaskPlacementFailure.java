@@ -3,6 +3,8 @@ package com.netflix.titus.master.scheduler;
 import java.util.Map;
 import java.util.Objects;
 
+import com.netflix.titus.api.model.Tier;
+
 public class TaskPlacementFailure {
 
     public enum FailureKind {
@@ -42,6 +44,7 @@ public class TaskPlacementFailure {
 
     private final String taskId;
     private final FailureKind failureKind;
+    private final Tier tier;
 
     /**
      * Number of agents for which this failure kind was found, or -1 if this value is not relevant.
@@ -53,10 +56,11 @@ public class TaskPlacementFailure {
      */
     private final Map<String, Object> rawData;
 
-    public TaskPlacementFailure(String taskId, FailureKind failureKind, int agentCount, Map<String, Object> rawData) {
+    public TaskPlacementFailure(String taskId, FailureKind failureKind, int agentCount, Tier tier, Map<String, Object> rawData) {
         this.taskId = taskId;
         this.failureKind = failureKind;
         this.agentCount = agentCount;
+        this.tier = tier;
         this.rawData = rawData;
     }
 
@@ -66,6 +70,10 @@ public class TaskPlacementFailure {
 
     public FailureKind getFailureKind() {
         return failureKind;
+    }
+
+    public Tier getTier() {
+        return tier;
     }
 
     public int getAgentCount() {
@@ -88,12 +96,13 @@ public class TaskPlacementFailure {
         return agentCount == that.agentCount &&
                 Objects.equals(taskId, that.taskId) &&
                 failureKind == that.failureKind &&
+                tier == that.tier &&
                 Objects.equals(rawData, that.rawData);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, failureKind, agentCount, rawData);
+        return Objects.hash(taskId, failureKind, tier, agentCount, rawData);
     }
 
     /**
@@ -104,7 +113,9 @@ public class TaskPlacementFailure {
         return "TaskPlacementFailure{" +
                 "taskId='" + taskId + '\'' +
                 ", failureKind=" + failureKind +
+                ", tier=" + tier +
                 ", agentCount=" + agentCount +
+                ", rawData=" + rawData +
                 '}';
     }
 }

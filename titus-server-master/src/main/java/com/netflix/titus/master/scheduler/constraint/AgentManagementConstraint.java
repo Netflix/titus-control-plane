@@ -39,6 +39,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValueOrEmptyString;
+import static com.netflix.titus.master.scheduler.SchedulerUtils.getTier;
 
 /**
  * A system constraint that integrates with agent management in order to determine whether or a not a task
@@ -178,14 +179,6 @@ public class AgentManagementConstraint implements SystemConstraint {
         }
 
         return TRUE_RESULT;
-    }
-
-    private Tier getTier(QueuableTask queuableTask) {
-        Tier tier = Tier.Flex;
-        if (queuableTask.getQAttributes().getTierNumber() == 0) {
-            tier = Tier.Critical;
-        }
-        return tier;
     }
 
     private boolean taskRequestsGpu(TaskRequest taskRequest) {

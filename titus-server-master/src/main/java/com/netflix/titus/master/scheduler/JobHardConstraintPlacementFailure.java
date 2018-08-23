@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import com.netflix.titus.api.model.Tier;
+
 public class JobHardConstraintPlacementFailure extends TaskPlacementFailure {
 
     private final Set<String> hardConstraints;
@@ -11,8 +13,9 @@ public class JobHardConstraintPlacementFailure extends TaskPlacementFailure {
     public JobHardConstraintPlacementFailure(String taskId,
                                              int agentCount,
                                              Set<String> hardConstraints,
+                                             Tier tier,
                                              Map<String, Object> rawData) {
-        super(taskId, FailureKind.JobHardConstraint, agentCount, rawData);
+        super(taskId, FailureKind.JobHardConstraint, agentCount, tier, rawData);
         this.hardConstraints = hardConstraints;
     }
 
@@ -45,6 +48,7 @@ public class JobHardConstraintPlacementFailure extends TaskPlacementFailure {
         return "JobHardConstraintPlacementFailure{" +
                 "taskId='" + getTaskId() + '\'' +
                 ", failureKind=" + getFailureKind() +
+                ", tier=" + getTier() +
                 ", agentCount=" + getAgentCount() +
                 ", hardConstraints=" + hardConstraints +
                 "}";

@@ -17,6 +17,7 @@ import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VMResource;
 import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
+import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
@@ -101,7 +102,7 @@ class TaskPlacementFailureClassifier {
                 && !processLaunchGuard(taskRequest, assignmentResults, resultCollector)
                 && !processJobHardConstraints(taskRequest, assignmentResults, resultCollector)) {
             resultCollector.computeIfAbsent(FailureKind.Unrecognized, k -> new ArrayList<>()).add(
-                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.Unrecognized, -1, buildRawDataMap(taskRequest, assignmentResults))
+                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.Unrecognized, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
             );
         }
     }
@@ -113,7 +114,7 @@ class TaskPlacementFailureClassifier {
             }
         }
         resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new ArrayList<>()).add(
-                new TaskPlacementFailure(taskRequest.getId(), FailureKind.NoActiveAgents, -1, buildRawDataMap(taskRequest, assignmentResults))
+                new TaskPlacementFailure(taskRequest.getId(), FailureKind.NoActiveAgents, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
         );
         return true;
     }
@@ -126,7 +127,7 @@ class TaskPlacementFailureClassifier {
                         String message = assignmentFailure.getMessage();
                         if (message != null && message.contains("No guaranteed capacity left for queue")) {
                             resultCollector.computeIfAbsent(FailureKind.AboveCapacityLimit, k -> new ArrayList<>()).add(
-                                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.AboveCapacityLimit, -1, buildRawDataMap(taskRequest, assignmentResults))
+                                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.AboveCapacityLimit, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
                             );
                             return true;
                         }
@@ -153,7 +154,7 @@ class TaskPlacementFailureClassifier {
             }
         }
         resultCollector.computeIfAbsent(FailureKind.TooLargeToFit, k -> new ArrayList<>()).add(
-                new TaskPlacementFailure(taskRequest.getId(), FailureKind.TooLargeToFit, count, buildRawDataMap(taskRequest, assignmentResults))
+                new TaskPlacementFailure(taskRequest.getId(), FailureKind.TooLargeToFit, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
         );
 
         return true;
@@ -171,7 +172,7 @@ class TaskPlacementFailureClassifier {
         }
 
         resultCollector.computeIfAbsent(FailureKind.LaunchGuard, k -> new ArrayList<>()).add(
-                new TaskPlacementFailure(taskRequest.getId(), FailureKind.LaunchGuard, count, buildRawDataMap(taskRequest, assignmentResults))
+                new TaskPlacementFailure(taskRequest.getId(), FailureKind.LaunchGuard, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
         );
 
         return true;
@@ -190,7 +191,7 @@ class TaskPlacementFailureClassifier {
         }
 
         resultCollector.computeIfAbsent(FailureKind.JobHardConstraint, k -> new ArrayList<>()).add(
-                new JobHardConstraintPlacementFailure(taskRequest.getId(), count, hardConstraints, buildRawDataMap(taskRequest, assignmentResults))
+                new JobHardConstraintPlacementFailure(taskRequest.getId(), count, hardConstraints, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
         );
 
         return true;
