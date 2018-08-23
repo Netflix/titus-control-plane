@@ -1,5 +1,7 @@
 package com.netflix.titus.master.scheduler;
 
+import com.netflix.titus.api.model.Tier;
+
 public class TaskPlacementFailure {
 
     public enum FailureKind {
@@ -41,16 +43,18 @@ public class TaskPlacementFailure {
     private final String taskId;
     private final FailureKind failureKind;
     private final String failureReason;
+    private final Tier tier;
 
     /**
      * Number of agents for which this failure kind was found, or -1 if this value is not relevant.
      */
     private final int agentCount;
 
-    public TaskPlacementFailure(String taskId, FailureKind failureKind, String failureReason, int agentCount) {
+    public TaskPlacementFailure(String taskId, FailureKind failureKind, String failureReason, Tier tier, int agentCount) {
         this.taskId = taskId;
         this.failureKind = failureKind;
         this.failureReason = failureReason;
+        this.tier = tier;
         this.agentCount = agentCount;
     }
 
@@ -64,6 +68,10 @@ public class TaskPlacementFailure {
 
     public String getFailureReason() {
         return failureReason;
+    }
+
+    public Tier getTier() {
+        return tier;
     }
 
     public int getAgentCount() {

@@ -27,5 +27,10 @@ public enum InstanceOverrideState {
      * An agent instance is in the quarantined mode and is not accepting any traffic, unless a job directly
      * requests to be placed there.
      */
-    Quarantined
+    Quarantined,
+
+    /**
+     * An agent instance is removable which means it should be removed when the agent is idle.
+     */
+    Removable
 }

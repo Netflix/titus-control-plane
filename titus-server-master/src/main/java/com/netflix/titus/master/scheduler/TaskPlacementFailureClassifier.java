@@ -10,9 +10,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.netflix.fenzo.SchedulingResult;
 import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
+
+import static com.netflix.titus.master.scheduler.SchedulerUtils.getTier;
 
 class TaskPlacementFailureClassifier {
 
@@ -58,25 +62,26 @@ class TaskPlacementFailureClassifier {
     private void process(TaskRequest taskRequest,
                          List<TaskAssignmentResult> assignmentResults,
                          Map<FailureKind, List<TaskPlacementFailure>> resultCollector) {
+        Tier tier = getTier((QueuableTask) taskRequest);
         if (!hasActiveAgents(assignmentResults)) {
             resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new ArrayList<>()).add(
-                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.NoActiveAgents, "", -1)
+                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.NoActiveAgents, "", tier, -1)
             );
         } else if (isAboveCapacityLimit(assignmentResults)) {
             resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new ArrayList<>()).add(
-                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.AboveCapacityLimit, "", -1)
+                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.AboveCapacityLimit, "", tier, -1)
             );
         } else if (isAllAgentsFull(assignmentResults)) {
             resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new ArrayList<>()).add(
-                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.AllAgentsFull, "", -1)
+                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.AllAgentsFull, "", tier, -1)
             );
         } else if (isTooLargeToFit(assignmentResults)) {
             resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new ArrayList<>()).add(
-                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.TooLargeToFit, "", -1)
+                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.TooLargeToFit, "", tier, -1)
             );
         } else if (!processLaunchGuard(assignmentResults, resultCollector) && !processJobHardConstraints(assignmentResults, resultCollector)) {
             resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new ArrayList<>()).add(
-                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.Unrecognized, "", -1)
+                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.Unrecognized, "", tier, -1)
             );
         }
     }
