@@ -33,7 +33,7 @@ public class MetricConstants {
 
     public static final String METRIC_CAPACITY_MANAGEMENT = METRIC_ROOT + "capacity.";
 
-    public static final String METRIC_CLUSTER_OPERATIONS = METRIC_ROOT + "clusteroperations.";
+    public static final String METRIC_CLUSTER_OPERATIONS = METRIC_ROOT + "clusterOperations.";
 
     public static final String METRIC_SCHEDULING_SERVICE = METRIC_ROOT + "scheduler.";
 

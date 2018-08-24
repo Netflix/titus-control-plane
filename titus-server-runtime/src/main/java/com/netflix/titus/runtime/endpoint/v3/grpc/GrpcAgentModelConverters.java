@@ -205,6 +205,8 @@ public class GrpcAgentModelConverters {
                 return InstanceOverrideState.None;
             case Quarantined:
                 return InstanceOverrideState.Quarantined;
+            case AgentRemovable:
+                return InstanceOverrideState.Removable;
         }
         return InstanceOverrideState.None;
     }
@@ -267,6 +269,8 @@ public class GrpcAgentModelConverters {
                 return com.netflix.titus.grpc.protogen.InstanceOverrideState.NotOverriden;
             case Quarantined:
                 return com.netflix.titus.grpc.protogen.InstanceOverrideState.Quarantined;
+            case Removable:
+                return com.netflix.titus.grpc.protogen.InstanceOverrideState.AgentRemovable;
         }
         throw new IllegalArgumentException("Unrecognized InstanceOverrideState value: " + state);
     }

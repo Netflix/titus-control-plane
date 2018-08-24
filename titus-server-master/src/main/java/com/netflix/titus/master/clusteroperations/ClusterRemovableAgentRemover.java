@@ -27,6 +27,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -35,6 +36,8 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceOverrideState;
+import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -49,7 +52,6 @@ import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
-import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
@@ -60,16 +62,16 @@ import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS
  * This component is responsible for removing agents in a Removable Instance Group.
  */
 @Singleton
-public class ClusterAgentRemover {
-
-    private static final Logger logger = LoggerFactory.getLogger(ClusterAgentRemover.class);
+public class ClusterRemovableAgentRemover {
+    private static final Logger logger = LoggerFactory.getLogger(ClusterRemovableAgentRemover.class);
+    private static final String METRIC_ROOT = METRIC_CLUSTER_OPERATIONS + "clusterRemovableAgentRemover.";
     private static final long TIME_TO_WAIT_AFTER_ACTIVATION = 300_000;
-    private static final long REMOVER_ITERATION_INTERVAL_MS = 30_000;
-    private static final long CLUSTER_AGENT_REMOVE_COMPLETABLE_TIMEOUT_MS = 300_000;
+    private static final long REMOVE_AGENTS_ITERATION_INTERVAL_MS = 30_000;
+    private static final long REMOVE_AGENTS_COMPLETABLE_TIMEOUT_MS = 300_000;
     private static final long AGENT_INSTANCES_BEING_TERMINATED_TTL_MS = 300_000;
     private static final long TOKEN_BUCKET_CAPACITY = 100;
-    private static final long TOKEN_BUCKET_REFILL_AMOUNT = 100;
-    private static final long TOKEN_BUCKET_REFILL_INTERVAL_MS = 300_000;
+    private static final long TOKEN_BUCKET_REFILL_AMOUNT = 2;
+    private static final long TOKEN_BUCKET_REFILL_INTERVAL_MS = 1_000;
 
     private final TitusRuntime titusRuntime;
     private final ClusterOperationsConfiguration configuration;
@@ -77,27 +79,26 @@ public class ClusterAgentRemover {
     private final V3JobOperations v3JobOperations;
     private final Scheduler scheduler;
     private final Cache<String, String> agentInstancesBeingTerminated;
-
     private final Gauge totalAgentsToRemoveGauge;
     private final Gauge totalEligibleAgentsToRemoveGauge;
     private final Gauge totalAgentsBeingRemovedGauge;
 
     private ImmutableTokenBucket lastTokenBucket;
-    private Subscription agentRemoverSubscription;
+    private Subscription removeAgentsSubscription;
 
     @Inject
-    public ClusterAgentRemover(TitusRuntime titusRuntime,
-                               ClusterOperationsConfiguration configuration,
-                               AgentManagementService agentManagementService,
-                               V3JobOperations v3JobOperations) {
+    public ClusterRemovableAgentRemover(TitusRuntime titusRuntime,
+                                        ClusterOperationsConfiguration configuration,
+                                        AgentManagementService agentManagementService,
+                                        V3JobOperations v3JobOperations) {
         this(titusRuntime, configuration, agentManagementService, v3JobOperations, Schedulers.newThread());
     }
 
-    public ClusterAgentRemover(TitusRuntime titusRuntime,
-                               ClusterOperationsConfiguration configuration,
-                               AgentManagementService agentManagementService,
-                               V3JobOperations v3JobOperations,
-                               Scheduler scheduler) {
+    public ClusterRemovableAgentRemover(TitusRuntime titusRuntime,
+                                        ClusterOperationsConfiguration configuration,
+                                        AgentManagementService agentManagementService,
+                                        V3JobOperations v3JobOperations,
+                                        Scheduler scheduler) {
         this.titusRuntime = titusRuntime;
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
@@ -108,45 +109,49 @@ public class ClusterAgentRemover {
                 .build();
 
         Registry registry = titusRuntime.getRegistry();
-        totalAgentsToRemoveGauge = registry.gauge(METRIC_CLUSTER_OPERATIONS + "totalAgentsToRemove");
-        totalEligibleAgentsToRemoveGauge = registry.gauge(METRIC_CLUSTER_OPERATIONS + "totalEligibleAgentsToRemove");
-        totalAgentsBeingRemovedGauge = registry.gauge(METRIC_CLUSTER_OPERATIONS + "totalAgentsBeingRemoved");
+        totalAgentsToRemoveGauge = registry.gauge(METRIC_ROOT + "totalAgentsToRemove");
+        totalEligibleAgentsToRemoveGauge = registry.gauge(METRIC_ROOT + "totalEligibleAgentsToRemove");
+        totalAgentsBeingRemovedGauge = registry.gauge(METRIC_ROOT + "totalAgentsBeingRemoved");
         createTokenBucket();
     }
 
     @Activator
     public void enterActiveMode() {
-        this.agentRemoverSubscription = ObservableExt.schedule(
-                "clusterAgentRemover", titusRuntime.getRegistry(),
-                "doClusterAgentRemoval", this.doClusterAgentRemoval(),
-                TIME_TO_WAIT_AFTER_ACTIVATION, REMOVER_ITERATION_INTERVAL_MS, TimeUnit.MILLISECONDS, scheduler
-        ).subscribe(next -> next.ifPresent(e -> logger.warn("doClusterAgentRemoval error", e)));
+        this.removeAgentsSubscription = ObservableExt.schedule(
+                METRIC_ROOT, titusRuntime.getRegistry(),
+                "doRemoveAgents", doRemoveAgents(),
+                TIME_TO_WAIT_AFTER_ACTIVATION, REMOVE_AGENTS_ITERATION_INTERVAL_MS, TimeUnit.MILLISECONDS, scheduler
+        ).subscribe(next -> next.ifPresent(e -> logger.warn("doRemoveAgents error:", e)));
     }
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(agentRemoverSubscription);
+        ObservableExt.safeUnsubscribe(removeAgentsSubscription);
     }
 
-    public Completable doClusterAgentRemoval() {
-        return Observable.fromCallable(() -> {
+    @VisibleForTesting
+    Completable doRemoveAgents() {
+        return Completable.defer(() -> {
             if (!configuration.isRemovingAgentsEnabled()) {
                 logger.debug("Removing agents is not enabled");
-                return Observable.empty();
+                return Completable.complete();
             }
 
             long now = titusRuntime.getClock().wallTime();
             List<AgentInstanceGroup> eligibleInstanceGroups = agentManagementService.getInstanceGroups().stream()
-                    .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable)
-                    .filter(ig -> now - ig.getLifecycleStatus().getTimestamp() > configuration.getInstanceGroupRemovableGracePeriodMs())
+                    .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active ||
+                            ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut)
                     .collect(Collectors.toList());
 
             logger.debug("Eligible instance groups: {}", eligibleInstanceGroups);
-
             long totalAgentsToRemove = 0;
             Map<AgentInstanceGroup, List<AgentInstance>> agentInstancesPerInstanceGroup = new HashMap<>();
             for (AgentInstanceGroup instanceGroup : eligibleInstanceGroups) {
-                List<AgentInstance> agentInstances = agentManagementService.getAgentInstances(instanceGroup.getId());
+                List<AgentInstance> agentInstances = agentManagementService.getAgentInstances(instanceGroup.getId())
+                        .stream()
+                        .filter(ig -> ig.getOverrideStatus().getState() == InstanceOverrideState.Removable)
+                        .filter(ig -> now - ig.getOverrideStatus().getTimestamp() >= configuration.getAgentInstanceRemovableGracePeriodMs())
+                        .collect(Collectors.toList());
                 totalAgentsToRemove += agentInstances.size();
                 agentInstancesPerInstanceGroup.put(instanceGroup, agentInstances);
             }
@@ -155,12 +160,12 @@ public class ClusterAgentRemover {
 
             if (totalAgentsToRemove <= 0) {
                 totalEligibleAgentsToRemoveGauge.set(0);
-                return Observable.empty();
+                return Completable.complete();
             }
 
             long totalEligibleAgentsToRemove = 0;
             Map<AgentInstanceGroup, List<AgentInstance>> eligibleAgentInstancesPerInstanceGroup = new HashMap<>();
-            Map<String, Long> numberOfTasksOnAgents = ClusterAgentRemover.this.getNumberOfTasksOnAgents();
+            Map<String, Long> numberOfTasksOnAgents = getNumberOfTasksOnAgents();
             logger.debug("numberOfTasksOnAgents: {}", numberOfTasksOnAgents);
 
             for (Map.Entry<AgentInstanceGroup, List<AgentInstance>> entry : agentInstancesPerInstanceGroup.entrySet()) {
@@ -175,7 +180,7 @@ public class ClusterAgentRemover {
             logger.debug("Eligible agent instances per instance group: {}", eligibleAgentInstancesPerInstanceGroup);
 
             if (totalEligibleAgentsToRemove <= 0) {
-                return Observable.empty();
+                return Completable.complete();
             }
 
             long maxTokensToTake = Math.min(TOKEN_BUCKET_CAPACITY, totalEligibleAgentsToRemove);
@@ -187,7 +192,7 @@ public class ClusterAgentRemover {
                 long tokensUsed = 0;
 
                 logger.debug("Attempting to terminate {} agent instances", tokensAvailable);
-                List<Observable<List<Either<Boolean, Throwable>>>> terminateAgentObservables = new ArrayList<>();
+                List<Completable> actions = new ArrayList<>();
                 for (Map.Entry<AgentInstanceGroup, List<AgentInstance>> entry : eligibleAgentInstancesPerInstanceGroup.entrySet()) {
                     long tokensRemaining = tokensAvailable - tokensUsed;
                     if (tokensRemaining <= 0) {
@@ -201,17 +206,17 @@ public class ClusterAgentRemover {
                     List<AgentInstance> agentInstancesToTerminate = agentInstances.size() > tokensAvailable ? agentInstances.subList(0, (int) tokensRemaining) : agentInstances;
                     List<String> agentInstanceIdsToTerminate = agentInstancesToTerminate.stream().map(AgentInstance::getId).collect(Collectors.toList());
                     logger.info("Terminating in instance group: {} agent instances({}): {}", instanceGroupId, agentInstanceIdsToTerminate.size(), agentInstanceIdsToTerminate);
-                    terminateAgentObservables.add(createTerminateAction(instanceGroupId, agentInstanceIdsToTerminate));
+                    actions.add(createTerminateAgentsCompletable(instanceGroupId, agentInstanceIdsToTerminate));
                     tokensUsed += agentInstanceIdsToTerminate.size();
                 }
                 totalAgentsBeingRemovedGauge.set(tokensUsed);
-                return Observable.merge(terminateAgentObservables);
+                return Completable.concat(actions);
             }
-            return Observable.empty();
-        }).toList().flatMap(Observable::merge)
-                .doOnCompleted(() -> logger.debug("Completed cluster agent removal"))
-                .timeout(CLUSTER_AGENT_REMOVE_COMPLETABLE_TIMEOUT_MS, TimeUnit.MINUTES).toCompletable();
+            return Completable.complete();
+        }).doOnCompleted(() -> logger.debug("Completed cluster agent removal"))
+                .timeout(REMOVE_AGENTS_COMPLETABLE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
+
 
     private void createTokenBucket() {
         ImmutableRefillStrategy immutableRefillStrategy = ImmutableLimiters.refillAtFixedInterval(TOKEN_BUCKET_REFILL_AMOUNT,
@@ -219,7 +224,7 @@ public class ClusterAgentRemover {
         this.lastTokenBucket = ImmutableLimiters.tokenBucket(TOKEN_BUCKET_CAPACITY, immutableRefillStrategy);
     }
 
-    private Observable<List<Either<Boolean, Throwable>>> createTerminateAction(String instanceGroupId, List<String> terminateIds) {
+    private Completable createTerminateAgentsCompletable(String instanceGroupId, List<String> terminateIds) {
         Stopwatch timer = Stopwatch.createStarted();
         terminateIds.forEach(terminateId -> agentInstancesBeingTerminated.put(terminateId, terminateId));
         return agentManagementService.terminateAgents(instanceGroupId, terminateIds, true)
@@ -246,15 +251,13 @@ public class ClusterAgentRemover {
                         }
                     }
                     if (!terminatedOk.isEmpty()) {
-                        logger.info("Successfully terminated instances of the instance group {}: {}", instanceGroupId, terminatedOk);
+                        logger.info("Successfully terminated agent instances of the instance group {}: {}", instanceGroupId, terminatedOk);
                     }
                     if (!errors.isEmpty()) {
-                        logger.warn("Failed to terminate instances of the instance group {}: {}", instanceGroupId, errors);
+                        logger.warn("Failed to terminate agent instances of the instance group {}: {}", instanceGroupId, errors);
                     }
-                }).doOnError(e -> {
-                    logger.warn("Failed to terminate instances {} belonging to the instance group {} after {}ms",
-                            terminateIds, instanceGroupId, timer.elapsed(TimeUnit.MILLISECONDS), e);
-                });
+                }).doOnError(e -> logger.warn("Failed to terminate agent instances {} belonging to the instance group {} after {}ms",
+                        terminateIds, instanceGroupId, timer.elapsed(TimeUnit.MILLISECONDS), e)).toCompletable();
     }
 
     private Map<String, Long> getNumberOfTasksOnAgents() {

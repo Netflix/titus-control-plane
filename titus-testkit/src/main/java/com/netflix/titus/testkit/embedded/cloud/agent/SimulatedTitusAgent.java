@@ -505,7 +505,7 @@ public class SimulatedTitusAgent {
                 rescind();
                 return;
             }
-            if (!aboveZero()) {
+            if (!shouldSendOffer()) {
                 return;
             }
 
@@ -560,8 +560,8 @@ public class SimulatedTitusAgent {
         rescind();
     }
 
-    private boolean aboveZero() {
-        return availableCPUs > 0 && availableMemory > 0 && availableDisk > 0;
+    private boolean shouldSendOffer() {
+        return availableCPUs > 0 || availableMemory > 0 || availableDisk > 0 || availableNetworkMbs > 0;
     }
 
     private Offer createOfferForAvailableResources() {

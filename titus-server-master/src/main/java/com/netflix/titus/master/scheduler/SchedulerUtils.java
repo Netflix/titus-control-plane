@@ -27,11 +27,20 @@ import com.netflix.fenzo.TaskTracker;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import org.apache.mesos.Protos;
 
 public class SchedulerUtils {
+
+    public static Tier getTier(QueuableTask queuableTask) {
+        Tier tier = Tier.Flex;
+        if (queuableTask.getQAttributes().getTierNumber() == 0) {
+            tier = Tier.Critical;
+        }
+        return tier;
+    }
 
     public static boolean hasGpuRequest(QueuableTask task) {
         return task != null && task.getScalarRequests() != null &&

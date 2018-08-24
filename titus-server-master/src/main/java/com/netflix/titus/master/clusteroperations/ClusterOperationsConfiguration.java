@@ -23,7 +23,113 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 public interface ClusterOperationsConfiguration {
 
     /**
-     * @return whether or not the cluster agent remover should remove agents.
+     * @return whether or not the cluster agent auto scaler should auto scale agents.
+     */
+    @DefaultValue("true")
+    boolean isAutoScalingAgentsEnabled();
+
+    /**
+     * @return the the primary instance type for the Critical tier.
+     */
+    @DefaultValue("m4.16xlarge")
+    String getCriticalPrimaryInstanceType();
+
+    /**
+     * @return the minimum number of idle agents to keep for the Critical tier.
+     */
+    @DefaultValue("0")
+    int getCriticalMinIdle();
+
+    /**
+     * @return the maximum number of idle agents to keep for the Critical tier.
+     */
+    @DefaultValue("10")
+    int getCriticalMaxIdle();
+
+    /**
+     * @return the scale up cool down period for the Critical tier.
+     */
+    @DefaultValue("600000")
+    long getCriticalScaleUpCoolDownMs();
+
+    /**
+     * @return the scale down cool down period for the Critical tier.
+     */
+    @DefaultValue("600000")
+    long getCriticalScaleDownCoolDownMs();
+
+    /**
+     * @return the adjusting factor for the Critical tier to reduce the amount of agents scaled up.
+     */
+    @DefaultValue("16")
+    int getCriticalScaleUpAdjustingFactor();
+
+    /**
+     * @return the amount of time the auto scaler can wait for an individual Critical tier task before scaling up instances
+     * for it.
+     */
+    @DefaultValue("60000")
+    long getCriticalTaskSloMs();
+
+    /**
+     * @return the the primary instance type for the Critical tier.
+     */
+    @DefaultValue("r4.16xlarge")
+    String getFlexPrimaryInstanceType();
+
+    /**
+     * @return the minimum number of idle agents to keep for the Flex tier.
+     */
+    @DefaultValue("5")
+    int getFlexMinIdle();
+
+    /**
+     * @return the maximum number of idle agents to keep for the Flex tier.
+     */
+    @DefaultValue("10")
+    int getFlexMaxIdle();
+
+    /**
+     * @return the scale up cool down period for the Flex tier.
+     */
+    @DefaultValue("600000")
+    long getFlexScaleUpCoolDownMs();
+
+    /**
+     * @return the scale down cool down period for the Flex tier.
+     */
+    @DefaultValue("600000")
+    long getFlexScaleDownCoolDownMs();
+
+    /**
+     * @return the adjusting factor for the Flex tier to reduce the amount of agents scaled up.
+     */
+    @DefaultValue("16")
+    int getFlexScaleUpAdjustingFactor();
+
+    /**
+     * @return the amount of time the auto scaler can wait for an individual Flex tier task before scaling up instances
+     * for it.
+     */
+    @DefaultValue("300000")
+    long getFlexTaskSloMs();
+
+    /**
+     * @return the grace period in milliseconds before agents will be removed once in the removable state.
+     */
+    @DefaultValue("60000")
+    long getAgentInstanceRemovableGracePeriodMs();
+
+    /**
+     * @return the timeout in milliseconds before agent in the Removable state will lose their OverrideStatus. This will
+     * happen automatically if the auto scaler marks an agent as Removable but something ends up being placed on the agent
+     * due to synchronization delays.
+     */
+    @DefaultValue("600000")
+    long getAgentInstanceRemovableTimeoutMs();
+
+    /**
+     * @return whether or not the cluster agent removers should remove agents.
      */
     @DefaultValue("true")
     boolean isRemovingAgentsEnabled();

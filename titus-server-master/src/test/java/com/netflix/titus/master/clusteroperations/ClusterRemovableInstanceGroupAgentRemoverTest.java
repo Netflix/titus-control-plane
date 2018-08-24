@@ -43,7 +43,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ClusterAgentRemoverTest {
+public class ClusterRemovableInstanceGroupAgentRemoverTest {
 
     private final TestScheduler testScheduler = Schedulers.test();
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
@@ -87,10 +87,10 @@ public class ClusterAgentRemoverTest {
 
         testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
 
-        ClusterAgentRemover clusterAgentRemover = new ClusterAgentRemover(titusRuntime, configuration,
+        ClusterRemovableInstanceGroupAgentRemover clusterRemovableInstanceGroupAgentRemover = new ClusterRemovableInstanceGroupAgentRemover(titusRuntime, configuration,
                 agentManagementService, v3JobOperations, testScheduler);
 
-        clusterAgentRemover.doClusterAgentRemoval().await();
+        clusterRemovableInstanceGroupAgentRemover.doRemoveAgents().await();
 
         verify(agentManagementService).terminateAgents("instanceGroup1", singletonList("agentInstance1"), true);
     }

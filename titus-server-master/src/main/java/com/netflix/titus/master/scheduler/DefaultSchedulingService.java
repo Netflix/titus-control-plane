@@ -137,6 +137,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
     private Subscription slaUpdateSubscription;
+    private final TaskPlacementFailureClassifier taskPlacementFailureClassifier;
 
     private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
@@ -296,6 +297,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.taskCache = taskCache;
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
+        this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier(titusRuntime);
 
         totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
         assignedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration");
@@ -388,10 +390,16 @@ public class DefaultSchedulingService implements SchedulingService {
     private TaskScheduler setupTaskSchedulerAndAutoScaler(Observable<String> vmLeaseRescindedObservable,
                                                           TaskScheduler.Builder schedulerBuilder) {
         int minMinIdle = 4;
-        schedulerBuilder = schedulerBuilder
-                .withAutoScalerMapHostnameAttributeName(schedulerConfiguration.getInstanceAttributeName())
-                .withDelayAutoscaleUpBySecs(schedulerConfiguration.getDelayAutoScaleUpBySecs())
-                .withDelayAutoscaleDownBySecs(schedulerConfiguration.getDelayAutoScaleDownBySecs());
+        boolean fenzoAutoScalingEnabled = schedulerConfiguration.isFenzoAutoScalingEnabled();
+        if (!fenzoAutoScalingEnabled) {
+            logger.info("Fenzo autoscaling is disabled");
+        } else {
+            schedulerBuilder = schedulerBuilder
+                    .withAutoScalerMapHostnameAttributeName(schedulerConfiguration.getInstanceAttributeName())
+                    .withDelayAutoscaleUpBySecs(schedulerConfiguration.getDelayAutoScaleUpBySecs())
+                    .withDelayAutoscaleDownBySecs(schedulerConfiguration.getDelayAutoScaleDownBySecs());
+        }
+
         schedulerBuilder = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle));
         final TaskScheduler scheduler = schedulerBuilder.build();
         vmLeaseRescindedObservable
@@ -403,28 +411,31 @@ public class DefaultSchedulingService implements SchedulingService {
                     }
                 })
                 .subscribe();
-        scheduler.setAutoscalerCallback(action -> {
-            try {
-                switch (action.getType()) {
-                    case Up:
-                        autoScaleController.handleScaleUpAction(action.getRuleName(), ((ScaleUpAction) action).getScaleUpCount());
-                        break;
-                    case Down:
-                        // The API here is misleading. The 'hosts' attribute of ScaleDownAction contains instance ids.
-                        Set<String> idsToTerminate = new HashSet<>(((ScaleDownAction) action).getHosts());
-                        Pair<Set<String>, Set<String>> resultPair = autoScaleController.handleScaleDownAction(action.getRuleName(), idsToTerminate);
-                        Set<String> notTerminatedInstances = resultPair.getRight();
 
-                        // Now we need to convert instance ids to host names, as this is what the scheduler expects
-                        notTerminatedInstances.forEach(id ->
-                                ExceptionExt.silent(() -> taskScheduler.enableVM(agentManagementService.getAgentInstance(id).getIpAddress()))
-                        );
-                        break;
+        if (fenzoAutoScalingEnabled) {
+            scheduler.setAutoscalerCallback(action -> {
+                try {
+                    switch (action.getType()) {
+                        case Up:
+                            autoScaleController.handleScaleUpAction(action.getRuleName(), ((ScaleUpAction) action).getScaleUpCount());
+                            break;
+                        case Down:
+                            // The API here is misleading. The 'hosts' attribute of ScaleDownAction contains instance ids.
+                            Set<String> idsToTerminate = new HashSet<>(((ScaleDownAction) action).getHosts());
+                            Pair<Set<String>, Set<String>> resultPair = autoScaleController.handleScaleDownAction(action.getRuleName(), idsToTerminate);
+                            Set<String> notTerminatedInstances = resultPair.getRight();
+
+                            // Now we need to convert instance ids to host names, as this is what the scheduler expects
+                            notTerminatedInstances.forEach(id ->
+                                    ExceptionExt.silent(() -> taskScheduler.enableVM(agentManagementService.getAgentInstance(id).getIpAddress()))
+                            );
+                            break;
+                    }
+                } catch (Exception e) {
+                    logger.warn("Will continue after exception calling autoscale action observer: {}", e.getMessage(), e);
                 }
-            } catch (Exception e) {
-                logger.warn("Will continue after exception calling autoscale action observer: {}", e.getMessage(), e);
-            }
-        });
+            });
+        }
         return scheduler;
     }
 
@@ -557,6 +568,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
         recordLastSchedulingResult(schedulingResult);
         processTaskSchedulingFailureCallbacks(schedulingResult);
+        taskPlacementFailureClassifier.update(schedulingResult);
 
         totalTasksPerIterationGauge.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
         assignedTasksPerIterationGauge.set(assignedDuringSchedulingResult);
@@ -744,6 +756,11 @@ public class DefaultSchedulingService implements SchedulingService {
                 .takeUntil(event -> event.getTask().getStatus().getState() != TaskState.Accepted);
     }
 
+    @Override
+    public Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures() {
+        return taskPlacementFailureClassifier.getLastTaskPlacementFailures();
+    }
+
     private void verifyAndReportResourceUsageMetrics(List<VirtualMachineCurrentState> vmCurrentStates) {
         try {
             double totalCpu = 0.0;
@@ -786,7 +803,7 @@ public class DefaultSchedulingService implements SchedulingService {
                 if (disableDuration > 0) {
                     totalDisabled++;
                     currentMinDisableDuration = Math.min(currentMinDisableDuration, disableDuration);
-                    currentMaxDisableDuration = Math.max(currentMinDisableDuration, disableDuration);
+                    currentMaxDisableDuration = Math.max(currentMaxDisableDuration, disableDuration);
                 }
                 final Collection<TaskRequest> runningTasks = state.getRunningTasks();
                 if (runningTasks != null && !runningTasks.isEmpty()) {

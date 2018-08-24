@@ -27,7 +27,9 @@ public final class ClusterOperationsModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(ClusterAgentRemover.class).asEagerSingleton();
+        bind(ClusterRemovableInstanceGroupAgentRemover.class).asEagerSingleton();
+        bind(ClusterRemovableAgentRemover.class).asEagerSingleton();
+        bind(ClusterAgentAutoScaler.class).asEagerSingleton();
     }
 
     @Provides
