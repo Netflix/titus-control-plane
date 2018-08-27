@@ -346,8 +346,10 @@ public class ClusterAgentAutoScaler {
                 })
                 .flatMap(e -> e.getValue().stream().filter(i -> {
                     InstanceLifecycleStatus lifecycleStatus = i.getLifecycleStatus();
+                    InstanceOverrideStatus overrideStatus = i.getOverrideStatus();
                     return lifecycleStatus.getState() == InstanceLifecycleState.Started &&
                             hasTimeElapsed(lifecycleStatus.getLaunchTimestamp(), finished, elapsed) &&
+                            overrideStatus.getState() == InstanceOverrideState.None &&
                             numberOfTasksOnAgent.getOrDefault(i.getId(), 0L) <= 0;
                 }))
                 .collect(Collectors.toList());
