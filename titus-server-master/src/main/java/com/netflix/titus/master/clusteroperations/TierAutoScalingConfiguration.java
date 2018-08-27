@@ -23,23 +23,23 @@ public class TierAutoScalingConfiguration {
     private final Long scaleDownCoolDownMs;
     private final Integer minIdle;
     private final Integer maxIdle;
-    private final Integer scaleUpAdjustingFactor;
     private final Long taskSloMs;
+    private final Long idleInstanceGracePeriodMs;
 
     public TierAutoScalingConfiguration(String primaryInstanceType,
                                         Long scaleUpCoolDownMs,
                                         Long scaleDownCoolDownMs,
                                         Integer minIdle,
                                         Integer maxIdle,
-                                        Integer scaleUpAdjustingFactor,
-                                        Long taskSloMs) {
+                                        Long taskSloMs,
+                                        Long idleInstanceGracePeriodMs) {
         this.primaryInstanceType = primaryInstanceType;
         this.scaleUpCoolDownMs = scaleUpCoolDownMs;
         this.scaleDownCoolDownMs = scaleDownCoolDownMs;
         this.minIdle = minIdle;
         this.maxIdle = maxIdle;
-        this.scaleUpAdjustingFactor = scaleUpAdjustingFactor;
         this.taskSloMs = taskSloMs;
+        this.idleInstanceGracePeriodMs = idleInstanceGracePeriodMs;
     }
 
     public String getPrimaryInstanceType() {
@@ -62,11 +62,11 @@ public class TierAutoScalingConfiguration {
         return maxIdle;
     }
 
-    public Integer getScaleUpAdjustingFactor() {
-        return scaleUpAdjustingFactor;
-    }
-
     public Long getTaskSloMs() {
         return taskSloMs;
+    }
+
+    public Long getIdleInstanceGracePeriodMs() {
+        return idleInstanceGracePeriodMs;
     }
 }

@@ -35,6 +35,7 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.primitives.Ints;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
@@ -42,6 +43,8 @@ import com.netflix.spectator.api.Tag;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
 import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
@@ -59,6 +62,7 @@ import com.netflix.titus.common.util.limiter.ImmutableLimiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import com.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket.ImmutableRefillStrategy;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.scheduler.SchedulingService;
@@ -69,10 +73,8 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Scheduler;
 import rx.Subscription;
-import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS;
-import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.applyScalingFactor;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.canFit;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.getNumberOfTasksOnAgents;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.hasTimeElapsed;
@@ -114,7 +116,8 @@ public class ClusterAgentAutoScaler {
                                   AgentManagementService agentManagementService,
                                   V3JobOperations v3JobOperations,
                                   SchedulingService schedulingService) {
-        this(titusRuntime, configuration, agentManagementService, v3JobOperations, schedulingService, Schedulers.newThread());
+        this(titusRuntime, configuration, agentManagementService, v3JobOperations, schedulingService,
+                SchedulerExt.createSingleThreadScheduler("cluster-auto-scaler"));
     }
 
     public ClusterAgentAutoScaler(TitusRuntime titusRuntime,
@@ -139,7 +142,7 @@ public class ClusterAgentAutoScaler {
     @Activator
     public void enterActiveMode() {
         agentAutoScalerSubscription = ObservableExt.schedule(
-                METRIC_ROOT, titusRuntime.getRegistry(),
+                METRIC_CLUSTER_OPERATIONS + "clusterAgentAutoScaler", titusRuntime.getRegistry(),
                 "doAgentScaling", doAgentScaling(),
                 TIME_TO_WAIT_AFTER_ACTIVATION, AUTO_SCALER_ITERATION_INTERVAL_MS, TimeUnit.MILLISECONDS, scheduler
         ).subscribe(next -> next.ifPresent(e -> logger.warn("doAgentScaling error:", e)));
@@ -173,20 +176,27 @@ public class ClusterAgentAutoScaler {
             long now = clock.wallTime();
 
             for (Tier tier : Tier.values()) {
-                logger.debug("Starting scaling for tier: {}", tier);
+                logger.info("Starting scaling actions for tier: {}", tier);
                 TierAutoScalingConfiguration tierConfiguration = ClusterOperationFunctions.getTierConfiguration(tier, configuration);
                 TierAutoScalerExecution tierAutoScalerExecution = tierTierAutoScalerExecutions.computeIfAbsent(
                         tier, k -> new TierAutoScalerExecution(tier, titusRuntime.getRegistry())
                 );
+                // This will throw an exception if not properly configured
+                ResourceDimension tierResourceDimension = agentManagementService.getResourceLimits(tierConfiguration.getPrimaryInstanceType());
 
                 List<AgentInstanceGroup> activeInstanceGroupsForTier = activeInstanceGroups.stream()
                         .filter(ig -> ig.getTier() == tier)
                         .collect(Collectors.toList());
-                logger.debug("activeInstanceGroupsForTier: {}", activeInstanceGroupsForTier);
+                logger.info("{} active instance groups({}): {}", tier, activeInstanceGroupsForTier.size(), activeInstanceGroupsForTier);
+
                 List<AgentInstance> idleInstancesForTier = getIdleInstancesForTier(tier, tierConfiguration.getPrimaryInstanceType(),
-                        instancesForActiveInstanceGroups, numberOfTasksOnAgents);
+                        instancesForActiveInstanceGroups, numberOfTasksOnAgents, now, tierConfiguration.getIdleInstanceGracePeriodMs());
                 tierAutoScalerExecution.getTotalIdleInstancesGauge().set(idleInstancesForTier.size());
-                logger.debug("idleInstancesForTier: {}", idleInstancesForTier);
+                logger.info("{} idle instances({}): {}", tier, idleInstancesForTier.size(), idleInstancesForTier);
+
+                Set<String> failedTaskIds = failedTaskIdsByTier.getOrDefault(tier, Collections.emptySet());
+                tierAutoScalerExecution.getTotalFailedTasksGauge().set(failedTaskIds.size());
+                logger.info("{} failed tasks({}): {}", tier, failedTaskIds.size(), failedTaskIds);
 
                 int agentCountToScaleUp = 0;
                 Set<String> potentialTaskIdsForScaleUp = new HashSet<>();
@@ -195,31 +205,27 @@ public class ClusterAgentAutoScaler {
                     int minIdleForTier = tierConfiguration.getMinIdle();
                     if (idleInstancesForTier.size() < minIdleForTier) {
                         int instancesNeededForMinIdle = minIdleForTier - idleInstancesForTier.size();
-                        logger.debug("instancesNeededForMinIdle: {}", instancesNeededForMinIdle);
+                        logger.info("{} needs {} instances to satisfy min idle {}", tier, instancesNeededForMinIdle, minIdleForTier);
                         agentCountToScaleUp += instancesNeededForMinIdle;
                     }
 
-                    // This will throw an exception if not properly configured
-                    ResourceDimension resourceDimension = agentManagementService.getResourceLimits(tierConfiguration.getPrimaryInstanceType());
-                    Set<String> taskIdsForScaleUp = getTaskIdsForScaleUp(tier, resourceDimension,
-                            lastTaskPlacementFailures, launchGuardFailuresByTaskId, allJobs, allTasks);
-                    logger.debug("taskIdsForScaleUp: {}", taskIdsForScaleUp);
-                    potentialTaskIdsForScaleUp.addAll(taskIdsForScaleUp);
+                    Set<String> placementFailureTaskIds = getTaskIdsForTierWithoutLaunchGuardFailures(tier, lastTaskPlacementFailures, launchGuardFailuresByTaskId);
+                    logger.info("{} had the placement excluding launch guard failures({}): {}", tier, placementFailureTaskIds.size(), placementFailureTaskIds);
 
-                    if (agentCountToScaleUp > 0) {
+                    Set<String> scalablePlacementFailureTaskIds = filterOutTaskIdsForScaling(placementFailureTaskIds, allJobs, allTasks, tierResourceDimension);
+                    logger.info("{} had the scalable placement failures({}): {}", tier, scalablePlacementFailureTaskIds.size(), scalablePlacementFailureTaskIds);
+                    potentialTaskIdsForScaleUp.addAll(scalablePlacementFailureTaskIds);
+
+                    if (agentCountToScaleUp > 0 || !scalablePlacementFailureTaskIds.isEmpty()) {
                         tierAutoScalerExecution.getLastScaleUp().set(clock.wallTime());
                     }
                 }
 
-                Set<String> failedTaskIds = failedTaskIdsByTier.getOrDefault(tier, Collections.emptySet());
-                tierAutoScalerExecution.getTotalFailedTasksGauge().set(failedTaskIds.size());
-                logger.debug("failedTaskIds: {}", failedTaskIds);
-
                 Set<String> tasksPastSlo = getTasksPastSlo(failedTaskIds, allTasks, now, tierConfiguration.getTaskSloMs());
-                tierAutoScalerExecution.getTotalTasksPastSloGauge().set(tasksPastSlo.size());
-                logger.debug("tasksPastSlo: {}", tasksPastSlo);
-
-                potentialTaskIdsForScaleUp.addAll(tasksPastSlo);
+                Set<String> scalableTasksPastSlo = filterOutTaskIdsForScaling(tasksPastSlo, allJobs, allTasks, tierResourceDimension);
+                tierAutoScalerExecution.getTotalTasksPastSloGauge().set(scalableTasksPastSlo.size());
+                logger.info("{} had tasks past slo({}): {}", tier, scalableTasksPastSlo.size(), scalableTasksPastSlo);
+                potentialTaskIdsForScaleUp.addAll(scalableTasksPastSlo);
 
                 Set<String> taskIdsForScaleUp = new HashSet<>();
                 for (String taskId : potentialTaskIdsForScaleUp) {
@@ -229,14 +235,20 @@ public class ClusterAgentAutoScaler {
                         taskIdsForPreviousScaleUps.put(taskId, taskId);
                     }
                 }
+
                 tierAutoScalerExecution.getTotalTasksForScaleUpGauge().set(taskIdsForScaleUp.size());
-                logger.debug("taskIdsForScaleUp: {}", taskIdsForScaleUp);
-                agentCountToScaleUp += applyScalingFactor(tierConfiguration.getScaleUpAdjustingFactor(), taskIdsForScaleUp.size());
+                logger.info("{} had tasks to scale up({}): {}", tier, taskIdsForScaleUp.size(), taskIdsForScaleUp);
+
+                int agentScaleUpCountByDominantResource = calculateAgentScaleUpCountByDominantResource(taskIdsForScaleUp, allJobs, allTasks, tierResourceDimension);
+                logger.info("{} needs {} instances based on dominant resource", tier, agentScaleUpCountByDominantResource);
+
+                agentCountToScaleUp += agentScaleUpCountByDominantResource;
+                logger.info("{} needs {} instances", tier, agentCountToScaleUp);
                 tierAutoScalerExecution.getTotalAgentsToScaleUpGauge().set(agentCountToScaleUp);
                 boolean scalingUp = false;
 
                 if (agentCountToScaleUp > 0) {
-                    long maxTokensToTake = Math.min(SCALE_DOWN_TOKEN_BUCKET_CAPACITY, agentCountToScaleUp);
+                    long maxTokensToTake = Math.min(SCALE_UP_TOKEN_BUCKET_CAPACITY, agentCountToScaleUp);
                     Optional<Pair<Long, ImmutableTokenBucket>> takeOpt = tierAutoScalerExecution.getLastScaleUpTokenBucket().tryTake(1, maxTokensToTake);
                     if (takeOpt.isPresent()) {
                         Pair<Long, ImmutableTokenBucket> takePair = takeOpt.get();
@@ -256,7 +268,7 @@ public class ClusterAgentAutoScaler {
                     int maxIdleForTier = tierConfiguration.getMaxIdle();
                     if (idleInstancesForTier.size() > maxIdleForTier) {
                         int instancesNotNeededForMaxIdle = idleInstancesForTier.size() - maxIdleForTier;
-                        logger.debug("instancesNotNeededForMaxIdle: {}", instancesNotNeededForMaxIdle);
+                        logger.info("{} can remove {} instances to satisfy max idle {}", tier, instancesNotNeededForMaxIdle, maxIdleForTier);
                         agentCountToScaleDown += instancesNotNeededForMaxIdle;
                     }
 
@@ -278,16 +290,16 @@ public class ClusterAgentAutoScaler {
                         }
                     }
                 }
-                logger.debug("Finishing scaling for tier: {}", tier);
+                logger.info("Finishing scaling actions for tier: {}", tier);
             }
 
             List<AgentInstance> removableInstancesPastElapsedTime = getRemovableInstancesPastElapsedTime(instancesForActiveInstanceGroups,
                     now, configuration.getAgentInstanceRemovableTimeoutMs());
-            logger.debug("removableInstancesPastElapsedTime: {}", removableInstancesPastElapsedTime);
+            logger.info("Removable instances past elapsed time({}): {}", removableInstancesPastElapsedTime.size(), removableInstancesPastElapsedTime);
 
             if (!removableInstancesPastElapsedTime.isEmpty()) {
                 actions.add(createResetOverrideStatusesCompletable(removableInstancesPastElapsedTime));
-                logger.info("Resetting {} agent instances", removableInstancesPastElapsedTime.size());
+                logger.info("Resetting agent instances({}): {}", removableInstancesPastElapsedTime.size(), removableInstancesPastElapsedTime);
             }
 
             return Completable.concat(actions);
@@ -324,43 +336,35 @@ public class ClusterAgentAutoScaler {
     private List<AgentInstance> getIdleInstancesForTier(Tier tier,
                                                         String primaryInstanceType,
                                                         Map<AgentInstanceGroup, List<AgentInstance>> instancesForActiveInstanceGroups,
-                                                        Map<String, Long> numberOfTasksOnAgent) {
+                                                        Map<String, Long> numberOfTasksOnAgent,
+                                                        long finished,
+                                                        long elapsed) {
         return instancesForActiveInstanceGroups.entrySet().stream()
                 .filter(e -> {
                     AgentInstanceGroup instanceGroup = e.getKey();
                     return instanceGroup.getTier() == tier && instanceGroup.getInstanceType().equals(primaryInstanceType);
                 })
-                .flatMap(e -> e.getValue().stream().filter(i -> numberOfTasksOnAgent.getOrDefault(i.getId(), 0L) <= 0))
+                .flatMap(e -> e.getValue().stream().filter(i -> {
+                    InstanceLifecycleStatus lifecycleStatus = i.getLifecycleStatus();
+                    return lifecycleStatus.getState() == InstanceLifecycleState.Started &&
+                            hasTimeElapsed(lifecycleStatus.getLaunchTimestamp(), finished, elapsed) &&
+                            numberOfTasksOnAgent.getOrDefault(i.getId(), 0L) <= 0;
+                }))
                 .collect(Collectors.toList());
     }
 
-    private Set<String> getTaskIdsForScaleUp(Tier tier,
-                                             ResourceDimension resourceDimension,
-                                             Map<FailureKind, List<TaskPlacementFailure>> lastTaskPlacementFailures,
-                                             Map<String, TaskPlacementFailure> launchGuardFailuresByTaskId,
-                                             Map<String, Job> allJobs,
-                                             Map<String, Task> allTasks) {
-        Set<String> taskIdsForScaleUp = new HashSet<>();
+    private Set<String> getTaskIdsForTierWithoutLaunchGuardFailures(Tier tier,
+                                                                    Map<FailureKind, List<TaskPlacementFailure>> lastTaskPlacementFailures,
+                                                                    Map<String, TaskPlacementFailure> launchGuardFailuresByTaskId) {
+        Set<String> taskIds = new HashSet<>();
         for (List<TaskPlacementFailure> failures : lastTaskPlacementFailures.values()) {
             for (TaskPlacementFailure failure : failures) {
-                String taskId = failure.getTaskId();
                 if (failure.getTier() == tier && !launchGuardFailuresByTaskId.containsKey(failure.getTaskId())) {
-                    Task task = allTasks.get(taskId);
-                    if (task == null) {
-                        continue;
-                    }
-                    Job job = allJobs.get(task.getJobId());
-                    if (job == null) {
-                        continue;
-                    }
-                    ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
-                    if (canFit(containerResources, resourceDimension)) {
-                        taskIdsForScaleUp.add(failure.getTaskId());
-                    }
+                    taskIds.add(failure.getTaskId());
                 }
             }
         }
-        return taskIdsForScaleUp;
+        return taskIds;
     }
 
 
@@ -446,6 +450,58 @@ public class ClusterAgentAutoScaler {
     private Map<String, TaskPlacementFailure> getLaunchGuardFailuresByTaskId(Map<FailureKind, List<TaskPlacementFailure>> lastTaskPlacementFailures) {
         return lastTaskPlacementFailures.getOrDefault(FailureKind.LaunchGuard, Collections.emptyList()).stream()
                 .collect(Collectors.toMap(TaskPlacementFailure::getTaskId, Function.identity()));
+    }
+
+    private Set<String> filterOutTaskIdsForScaling(Set<String> taskIds,
+                                                   Map<String, Job> allJobs,
+                                                   Map<String, Task> allTasks,
+                                                   ResourceDimension resourceDimension) {
+        Set<String> filteredTaskIds = new HashSet<>();
+        for (String taskId : taskIds) {
+            ContainerResources taskContainerResources = getTaskContainerResources(taskId, allJobs, allTasks);
+            if (taskContainerResources != null && canFit(taskContainerResources, resourceDimension)) {
+                filteredTaskIds.add(taskId);
+            }
+        }
+        return filteredTaskIds;
+    }
+
+    private int calculateAgentScaleUpCountByDominantResource(Set<String> taskIds,
+                                                             Map<String, Job> allJobs,
+                                                             Map<String, Task> allTasks,
+                                                             ResourceDimension resourceDimension) {
+        double totalCpus = 0;
+        double totalMemoryMB = 0;
+        double totalDiskMB = 0;
+        double totalNetworkMbps = 0;
+        for (String taskId : taskIds) {
+            ContainerResources taskContainerResources = getTaskContainerResources(taskId, allJobs, allTasks);
+            if (taskContainerResources != null) {
+                totalCpus += taskContainerResources.getCpu();
+                totalMemoryMB += taskContainerResources.getMemoryMB();
+                totalDiskMB += taskContainerResources.getDiskMB();
+                totalNetworkMbps += taskContainerResources.getNetworkMbps();
+            }
+        }
+
+        int instancesByCpu = (int) Math.ceil(totalCpus / resourceDimension.getCpu());
+        int instancesByMemory = (int) Math.ceil(totalMemoryMB / (double) resourceDimension.getMemoryMB());
+        int instancesByDisk = (int) Math.ceil(totalDiskMB / (double) resourceDimension.getDiskMB());
+        int instancesByNetwork = (int) Math.ceil(totalNetworkMbps / (double) resourceDimension.getNetworkMbs());
+
+        return Ints.max(instancesByCpu, instancesByMemory, instancesByDisk, instancesByNetwork);
+    }
+
+    private ContainerResources getTaskContainerResources(String taskId, Map<String, Job> allJobs, Map<String, Task> allTasks) {
+        Task task = allTasks.get(taskId);
+        if (task == null) {
+            return null;
+        }
+        Job job = allJobs.get(task.getJobId());
+        if (job == null) {
+            return null;
+        }
+        return job.getJobDescriptor().getContainer().getContainerResources();
     }
 
     private static class TierAutoScalerExecution {

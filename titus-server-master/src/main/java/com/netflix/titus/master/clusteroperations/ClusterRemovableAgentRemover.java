@@ -37,7 +37,6 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceOverrideState;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -47,6 +46,7 @@ import com.netflix.titus.common.util.limiter.ImmutableLimiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
 import com.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket.ImmutableRefillStrategy;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Scheduler;
 import rx.Subscription;
-import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS;
 
@@ -91,7 +90,8 @@ public class ClusterRemovableAgentRemover {
                                         ClusterOperationsConfiguration configuration,
                                         AgentManagementService agentManagementService,
                                         V3JobOperations v3JobOperations) {
-        this(titusRuntime, configuration, agentManagementService, v3JobOperations, Schedulers.newThread());
+        this(titusRuntime, configuration, agentManagementService, v3JobOperations,
+                SchedulerExt.createSingleThreadScheduler("cluster-removable-agent-remover"));
     }
 
     public ClusterRemovableAgentRemover(TitusRuntime titusRuntime,
@@ -118,7 +118,7 @@ public class ClusterRemovableAgentRemover {
     @Activator
     public void enterActiveMode() {
         this.removeAgentsSubscription = ObservableExt.schedule(
-                METRIC_ROOT, titusRuntime.getRegistry(),
+                METRIC_CLUSTER_OPERATIONS + "clusterRemovableAgentRemover", titusRuntime.getRegistry(),
                 "doRemoveAgents", doRemoveAgents(),
                 TIME_TO_WAIT_AFTER_ACTIVATION, REMOVE_AGENTS_ITERATION_INTERVAL_MS, TimeUnit.MILLISECONDS, scheduler
         ).subscribe(next -> next.ifPresent(e -> logger.warn("doRemoveAgents error:", e)));

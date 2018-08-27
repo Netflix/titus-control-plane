@@ -37,8 +37,8 @@ public class ClusterOperationFunctions {
                         configuration.getCriticalScaleDownCoolDownMs(),
                         configuration.getCriticalMinIdle(),
                         configuration.getCriticalMaxIdle(),
-                        configuration.getCriticalScaleUpAdjustingFactor(),
-                        configuration.getCriticalTaskSloMs()
+                        configuration.getCriticalTaskSloMs(),
+                        configuration.getCriticalIdleInstanceGracePeriodMs()
                 );
             case Flex:
                 return new TierAutoScalingConfiguration(
@@ -47,8 +47,8 @@ public class ClusterOperationFunctions {
                         configuration.getFlexScaleDownCoolDownMs(),
                         configuration.getFlexMinIdle(),
                         configuration.getFlexMaxIdle(),
-                        configuration.getFlexScaleUpAdjustingFactor(),
-                        configuration.getFlexTaskSloMs()
+                        configuration.getFlexTaskSloMs(),
+                        configuration.getFlexIdleInstanceGracePeriodMs()
                 );
         }
         throw new IllegalArgumentException("Unknown Tier: " + tier);
@@ -58,18 +58,12 @@ public class ClusterOperationFunctions {
         return finish - start >= elapsed;
     }
 
-    public static int applyScalingFactor(int adjustingFactor, int scaleUpCount) {
-        if (adjustingFactor <= 0) {
-            return scaleUpCount;
-        }
-        return (int) Math.ceil(scaleUpCount / (double) scaleUpCount);
-    }
-
     public static boolean canFit(ContainerResources containerResources, ResourceDimension resourceDimension) {
         return containerResources.getCpu() <= resourceDimension.getCpu() &&
                 containerResources.getMemoryMB() <= resourceDimension.getMemoryMB() &&
                 containerResources.getDiskMB() <= resourceDimension.getDiskMB() &&
-                containerResources.getNetworkMbps() <= resourceDimension.getNetworkMbs();
+                containerResources.getNetworkMbps() <= resourceDimension.getNetworkMbs() &&
+                containerResources.getGpu() <= resourceDimension.getGpu();
     }
 
     public static Map<String, Long> getNumberOfTasksOnAgents(Collection<Task> tasks) {
