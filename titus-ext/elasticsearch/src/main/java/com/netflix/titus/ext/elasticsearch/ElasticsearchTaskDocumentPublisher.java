@@ -90,8 +90,7 @@ public class ElasticsearchTaskDocumentPublisher {
     @Activator
     public void enterActiveMode() {
         logger.info("Starting the task streams to publish task documents to elasticsearch");
-        v3TasksStream().buffer(TIME_TO_BUFFER_MS, TimeUnit.MILLISECONDS, COUNT_TO_BUFFER)
-                .observeOn(Schedulers.io())
+        v3TasksStream()
                 .subscribe(
                         this::publishTaskDocuments,
                         e -> logger.error("Unable to publish task documents to elasticsearch: ", e),
@@ -99,7 +98,7 @@ public class ElasticsearchTaskDocumentPublisher {
                 );
     }
 
-    private Observable<TaskDocument> v3TasksStream() {
+    private Observable<List<TaskDocument>> v3TasksStream() {
         Observable<Optional<TaskDocument>> optionalTaskDocuments = v3JobOperations.observeJobs()
                 .filter(event -> event instanceof TaskUpdateEvent)
                 .cast(TaskUpdateEvent.class)
@@ -109,7 +108,10 @@ public class ElasticsearchTaskDocumentPublisher {
                     TaskDocument taskDocument = TaskDocument.fromV3Task(task, job, taskDateFormat, taskDocumentContext);
                     return Optional.of(taskDocument);
                 });
-        return titusRuntime.persistentStream(ObservableExt.fromOptionalObservable(optionalTaskDocuments));
+        final Observable<List<TaskDocument>> taskDocumentsObservable = ObservableExt.fromOptionalObservable(optionalTaskDocuments)
+                .buffer(TIME_TO_BUFFER_MS, TimeUnit.MILLISECONDS, COUNT_TO_BUFFER).observeOn(Schedulers.io());
+
+        return titusRuntime.persistentStream(taskDocumentsObservable);
     }
 
     private void publishTaskDocuments(List<TaskDocument> taskDocuments) {
