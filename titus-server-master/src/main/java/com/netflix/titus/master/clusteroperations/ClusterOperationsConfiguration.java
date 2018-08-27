@@ -59,17 +59,17 @@ public interface ClusterOperationsConfiguration {
     long getCriticalScaleDownCoolDownMs();
 
     /**
-     * @return the adjusting factor for the Critical tier to reduce the amount of agents scaled up.
-     */
-    @DefaultValue("16")
-    int getCriticalScaleUpAdjustingFactor();
-
-    /**
      * @return the amount of time the auto scaler can wait for an individual Critical tier task before scaling up instances
      * for it.
      */
     @DefaultValue("60000")
     long getCriticalTaskSloMs();
+
+    /**
+     * @return the amount of time after the agent launch time the auto scaler waits before classifying a Critical tier agent as idle.
+     */
+    @DefaultValue("900000")
+    long getCriticalIdleInstanceGracePeriodMs();
 
     /**
      * @return the the primary instance type for the Critical tier.
@@ -102,12 +102,6 @@ public interface ClusterOperationsConfiguration {
     long getFlexScaleDownCoolDownMs();
 
     /**
-     * @return the adjusting factor for the Flex tier to reduce the amount of agents scaled up.
-     */
-    @DefaultValue("16")
-    int getFlexScaleUpAdjustingFactor();
-
-    /**
      * @return the amount of time the auto scaler can wait for an individual Flex tier task before scaling up instances
      * for it.
      */
@@ -115,9 +109,15 @@ public interface ClusterOperationsConfiguration {
     long getFlexTaskSloMs();
 
     /**
+     * @return the amount of time after the agent launch time the auto scaler waits before classifying a Flex tier agent as idle.
+     */
+    @DefaultValue("900000")
+    long getFlexIdleInstanceGracePeriodMs();
+
+    /**
      * @return the grace period in milliseconds before agents will be removed once in the removable state.
      */
-    @DefaultValue("60000")
+    @DefaultValue("120000")
     long getAgentInstanceRemovableGracePeriodMs();
 
     /**

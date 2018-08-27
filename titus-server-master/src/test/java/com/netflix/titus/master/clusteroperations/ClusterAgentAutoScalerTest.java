@@ -28,6 +28,8 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
+import com.netflix.titus.api.agent.model.InstanceLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
 import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
@@ -80,16 +82,16 @@ public class ClusterAgentAutoScalerTest {
         when(configuration.getCriticalMaxIdle()).thenReturn(10);
         when(configuration.getCriticalScaleUpCoolDownMs()).thenReturn(600000L);
         when(configuration.getCriticalScaleDownCoolDownMs()).thenReturn(600000L);
-        when(configuration.getCriticalScaleUpAdjustingFactor()).thenReturn(16);
         when(configuration.getCriticalTaskSloMs()).thenReturn(90000L);
+        when(configuration.getCriticalIdleInstanceGracePeriodMs()).thenReturn(90000L);
 
         when(configuration.getFlexPrimaryInstanceType()).thenReturn("r4.16xlarge");
         when(configuration.getFlexMinIdle()).thenReturn(5);
         when(configuration.getFlexMaxIdle()).thenReturn(10);
         when(configuration.getFlexScaleUpCoolDownMs()).thenReturn(60000L);
         when(configuration.getFlexScaleDownCoolDownMs()).thenReturn(60000L);
-        when(configuration.getFlexScaleUpAdjustingFactor()).thenReturn(0);
         when(configuration.getFlexTaskSloMs()).thenReturn(300000L);
+        when(configuration.getFlexIdleInstanceGracePeriodMs()).thenReturn(90000L);
 
         when(configuration.getAgentInstanceRemovableTimeoutMs()).thenReturn(600000L);
 
@@ -303,6 +305,7 @@ public class ClusterAgentAutoScalerTest {
             AgentInstance agentInstance = AgentInstance.newBuilder()
                     .withId("agentInstance" + i)
                     .withInstanceGroupId(instanceGroupId)
+                    .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Started).withLaunchTimestamp(titusRuntime.getClock().wallTime()).build())
                     .withOverrideStatus(InstanceOverrideStatus.newBuilder().withState(InstanceOverrideState.None).build())
                     .build();
             agents.add(agentInstance);
