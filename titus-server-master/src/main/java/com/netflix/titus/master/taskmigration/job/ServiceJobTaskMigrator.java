@@ -42,27 +42,22 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
+import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.scheduler.ScheduledRequest;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import com.netflix.titus.master.taskmigration.TaskMigrationManagerFactory;
 import com.netflix.titus.master.taskmigration.TaskMigrator;
-import com.netflix.titus.master.taskmigration.V2TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.functions.Action0;
-import rx.schedulers.Schedulers;
 
 @Singleton
 public class ServiceJobTaskMigrator implements TaskMigrator {
@@ -70,7 +65,6 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     private static final Logger logger = LoggerFactory.getLogger(ServiceJobTaskMigrator.class);
 
     private final Scheduler scheduler;
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private final ServiceJobTaskMigratorConfig config;
     private final TaskMigrationManagerFactory managerFactory;
@@ -89,22 +83,20 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     private Action0 action;
 
     @Inject
-    public ServiceJobTaskMigrator(V2JobOperations v2JobOperations,
-                                  V3JobOperations v3JobOperations,
+    public ServiceJobTaskMigrator(V3JobOperations v3JobOperations,
                                   ServiceJobTaskMigratorConfig config,
                                   TaskMigrationManagerFactory managerFactory,
                                   Registry registry) {
-        this(Schedulers.newThread(), v2JobOperations, v3JobOperations, config, managerFactory, registry);
+        this(SchedulerExt.createSingleThreadScheduler("service-job-task-migrator"),
+                v3JobOperations, config, managerFactory, registry);
     }
 
     public ServiceJobTaskMigrator(Scheduler scheduler,
-                                  V2JobOperations v2JobOperations,
                                   V3JobOperations v3JobOperations,
                                   ServiceJobTaskMigratorConfig config,
                                   TaskMigrationManagerFactory managerFactory,
                                   Registry registry) {
         this.scheduler = scheduler;
-        this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.config = config;
         this.worker = scheduler.createWorker();
@@ -149,28 +141,14 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
             String taskId = taskRequest.getId();
             try {
                 logger.debug("Adding taskId: {} to migration map", taskId);
-                if (taskRequest instanceof ScheduledRequest) {
-                    logger.debug("Adding v2 taskId: {} to migration map", taskId);
-                    WorkerNaming.JobWorkerIdPair jobAndWorkerId = WorkerNaming.getJobAndWorkerId(taskId);
-                    V2JobMgrIntf jobManager = v2JobOperations.getJobMgr(jobAndWorkerId.jobId);
-
-                    if (jobManager != null) {
-                        TaskMigrationDetails taskMigrationDetails = new V2TaskMigrationDetails(taskRequest, jobManager);
-                        if (!appNamesToIgnore.contains(taskMigrationDetails.getApplicationName()) && taskMigrationDetails.isService()) {
-                            taskMigrationDetailsMap.putIfAbsent(taskMigrationDetails.getId(), taskMigrationDetails);
-                            logger.debug("Added v2 taskId: {} to migration map", taskId);
-                        }
-                    }
-                } else if (taskRequest instanceof V3QueueableTask) {
-                    logger.debug("Adding v3 taskId: {} to migration map", taskId);
-                    V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-                    Job job = v3QueueableTask.getJob();
-                    Task task = v3QueueableTask.getTask();
-                    TaskMigrationDetails taskMigrationDetails = new V3TaskMigrationDetails(job, task, v3JobOperations);
-                    if (!appNamesToIgnore.contains(taskMigrationDetails.getApplicationName()) && taskMigrationDetails.isService()) {
-                        taskMigrationDetailsMap.putIfAbsent(taskMigrationDetails.getId(), taskMigrationDetails);
-                        logger.debug("Added v3 taskId: {} to migration map", taskId);
-                    }
+                logger.debug("Adding v3 taskId: {} to migration map", taskId);
+                V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
+                Job job = v3QueueableTask.getJob();
+                Task task = v3QueueableTask.getTask();
+                TaskMigrationDetails taskMigrationDetails = new V3TaskMigrationDetails(job, task, v3JobOperations);
+                if (!appNamesToIgnore.contains(taskMigrationDetails.getApplicationName()) && taskMigrationDetails.isService()) {
+                    taskMigrationDetailsMap.putIfAbsent(taskMigrationDetails.getId(), taskMigrationDetails);
+                    logger.debug("Added v3 taskId: {} to migration map", taskId);
                 }
             } catch (JobManagerException e) {
                 if (e.getErrorCode() == JobManagerException.ErrorCode.JobNotFound || e.getErrorCode() == JobManagerException.ErrorCode.TaskNotFound) {

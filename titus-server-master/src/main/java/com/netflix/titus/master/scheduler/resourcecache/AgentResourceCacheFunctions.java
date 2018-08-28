@@ -19,7 +19,6 @@ package com.netflix.titus.master.scheduler.resourcecache;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,25 +31,17 @@ import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
-import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.api.model.v2.WorkerNaming;
-import com.netflix.titus.api.model.v2.parameter.Parameter;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
-import com.netflix.titus.master.scheduler.ScheduledRequest;
 
 public class AgentResourceCacheFunctions {
     public static final String SECURITY_GROUP_ID_DELIMITER = ":";
     public static final String EMPTY_JOINED_SECURITY_GROUP_IDS = "";
     public static final String EMPTY_IP_ADDRESS = "";
 
-    public static AgentResourceCacheNetworkInterface createNetworkInterface(int eniIndex, Map<String, Set<String>> ipAddresses, Set<String> securityGroupIds,
-                                                                            boolean hasAvailableIps, long timestamp) {
+    public static AgentResourceCacheNetworkInterface createNetworkInterface(int eniIndex, Map<String, Set<String>> ipAddresses,
+                                                                            Set<String> securityGroupIds, boolean hasAvailableIps, long timestamp) {
         String joinedSecurityGroupIds = StringExt.concatenate(securityGroupIds, SECURITY_GROUP_ID_DELIMITER);
         return AgentResourceCacheNetworkInterface.newBuilder()
                 .withEniIndex(eniIndex)
@@ -62,7 +53,8 @@ public class AgentResourceCacheFunctions {
                 .build();
     }
 
-    public static AgentResourceCacheNetworkInterface updateNetworkInterface(AgentResourceCacheNetworkInterface original, AgentResourceCacheNetworkInterface updated) {
+    public static AgentResourceCacheNetworkInterface updateNetworkInterface(AgentResourceCacheNetworkInterface original,
+                                                                            AgentResourceCacheNetworkInterface updated) {
         Preconditions.checkNotNull(original, "original cannot be null");
         Preconditions.checkNotNull(updated, "updated cannot be null");
         Preconditions.checkArgument(original.getIndex() == updated.getIndex(),
@@ -114,16 +106,9 @@ public class AgentResourceCacheFunctions {
     }
 
     public static AgentResourceCacheImage getImage(TaskRequest taskRequest) {
-        if (taskRequest instanceof ScheduledRequest) {
-            ScheduledRequest scheduledRequest = (ScheduledRequest) taskRequest;
-            V2JobMetadata job = scheduledRequest.getJob();
-            return createImage(job);
-        } else if (taskRequest instanceof V3QueueableTask) {
-            V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-            Job job = v3QueueableTask.getJob();
-            return createImage(job);
-        }
-        return AgentResourceCacheImage.newBuilder().build();
+        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
+        Job job = v3QueueableTask.getJob();
+        return createImage(job);
     }
 
     public static AgentResourceCacheInstance createInstance(String hostname,
@@ -133,32 +118,11 @@ public class AgentResourceCacheFunctions {
         Preconditions.checkNotNull(consumeResult);
         int networkInterfaceIndex = consumeResult.getIndex();
 
-        if (request instanceof ScheduledRequest) {
-            ScheduledRequest scheduledRequest = (ScheduledRequest) request;
-            V2JobMetadata job = scheduledRequest.getJob();
-            V2WorkerMetadata task = scheduledRequest.getTask();
+        V3QueueableTask v3QueueableTask = (V3QueueableTask) request;
+        Job job = v3QueueableTask.getJob();
+        Task task = v3QueueableTask.getTask();
 
-            AgentResourceCacheImage image = createImage(job);
-            AgentResourceCacheNetworkInterface networkInterface = createNetworkInterface(job, task, networkInterfaceIndex, timestamp);
-            return createInstance(hostname, Collections.singleton(image), Collections.singletonMap(networkInterfaceIndex, networkInterface));
-        } else if (request instanceof V3QueueableTask) {
-            V3QueueableTask v3QueueableTask = (V3QueueableTask) request;
-            Job job = v3QueueableTask.getJob();
-            Task task = v3QueueableTask.getTask();
-
-            AgentResourceCacheImage image = createImage(job);
-            AgentResourceCacheNetworkInterface networkInterface = createNetworkInterface(job, task, networkInterfaceIndex, timestamp);
-            return createInstance(hostname, Collections.singleton(image), Collections.singletonMap(networkInterfaceIndex, networkInterface));
-        } else {
-            throw new IllegalArgumentException("Unknown task type");
-        }
-    }
-
-    public static AgentResourceCacheInstance createInstance(String hostname, V2JobMetadata job, V2WorkerMetadata task, long timestamp) {
         AgentResourceCacheImage image = createImage(job);
-        V2WorkerMetadata.TwoLevelResource twoLevelResource = CollectionsExt.first(task.getTwoLevelResources());
-        Preconditions.checkNotNull(twoLevelResource, "twoLevelResource cannot be null");
-        int networkInterfaceIndex = Integer.parseInt(twoLevelResource.getLabel());
         AgentResourceCacheNetworkInterface networkInterface = createNetworkInterface(job, task, networkInterfaceIndex, timestamp);
         return createInstance(hostname, Collections.singleton(image), Collections.singletonMap(networkInterfaceIndex, networkInterface));
     }
@@ -170,23 +134,6 @@ public class AgentResourceCacheFunctions {
         int networkInterfaceIndex = twoLevelResource.getIndex();
         AgentResourceCacheNetworkInterface networkInterface = createNetworkInterface(job, task, networkInterfaceIndex, timestamp);
         return createInstance(hostname, Collections.singleton(image), Collections.singletonMap(networkInterfaceIndex, networkInterface));
-    }
-
-    public static AgentResourceCacheImage createImage(V2JobMetadata job) {
-        List<Parameter> parameters = job.getParameters();
-        String imageName = Parameters.getImageName(parameters);
-        String imageDigest = Parameters.getImageDigest(parameters);
-        String imageTag = Parameters.getVersion(parameters);
-        return createImage(imageName, imageDigest, imageTag);
-    }
-
-    public static AgentResourceCacheNetworkInterface createNetworkInterface(V2JobMetadata job, V2WorkerMetadata task, int eniIndex, long timestamp) {
-        List<Parameter> parameters = job.getParameters();
-        Set<String> securityGroupIds = new LinkedHashSet<>(Parameters.getSecurityGroups(parameters));
-        String ipAddress = getIpAddress(task);
-        String taskId = WorkerNaming.getTaskId(task);
-        return createNetworkInterface(eniIndex, Collections.singletonMap(ipAddress, Collections.singleton(taskId)),
-                securityGroupIds, false, timestamp);
     }
 
     public static AgentResourceCacheImage createImage(Job job) {
@@ -214,25 +161,6 @@ public class AgentResourceCacheFunctions {
         return createInstance(original.getHostname(), newImages, newEnis);
     }
 
-    public static AgentResourceCacheInstance removeTaskFromInstance(AgentResourceCacheInstance instance, V2WorkerMetadata task, long timestamp) {
-        Preconditions.checkNotNull(instance, "instance cannot be null");
-        V2WorkerMetadata.TwoLevelResource twoLevelResource = CollectionsExt.first(task.getTwoLevelResources());
-        Preconditions.checkNotNull(twoLevelResource, "twoLevelResource cannot be null");
-        int networkInterfaceIndex = Integer.parseInt(twoLevelResource.getLabel());
-        Map<Integer, AgentResourceCacheNetworkInterface> networkInterfaces = instance.getNetworkInterfaces();
-        AgentResourceCacheNetworkInterface networkInterface = networkInterfaces.get(networkInterfaceIndex);
-        if (networkInterface == null) {
-            return instance;
-        }
-
-        String taskId = WorkerNaming.getTaskId(task);
-        String ipAddress = getIpAddress(task);
-        AgentResourceCacheNetworkInterface newNetworkInterface = removeTaskIdFromNetworkInterface(taskId, ipAddress, networkInterface, timestamp);
-
-        Map<Integer, AgentResourceCacheNetworkInterface> newNetworkInterfaces = CollectionsExt.copyAndAdd(networkInterfaces, networkInterfaceIndex, newNetworkInterface);
-        return instance.toBuilder().withNetworkInterfaces(newNetworkInterfaces).build();
-    }
-
     public static AgentResourceCacheInstance removeTaskFromInstance(AgentResourceCacheInstance instance, Task task, long timestamp) {
         Preconditions.checkNotNull(instance, "instance cannot be null");
         TwoLevelResource twoLevelResource = CollectionsExt.first(task.getTwoLevelResources());
@@ -250,21 +178,6 @@ public class AgentResourceCacheFunctions {
 
         Map<Integer, AgentResourceCacheNetworkInterface> newNetworkInterfaces = CollectionsExt.copyAndAdd(networkInterfaces, networkInterfaceIndex, newNetworkInterface);
         return instance.toBuilder().withNetworkInterfaces(newNetworkInterfaces).build();
-    }
-
-    private static String getIpAddress(V2WorkerMetadata task) {
-        Object statusData = task.getStatusData();
-        if (statusData == null || !(statusData instanceof Map)) {
-            return EMPTY_IP_ADDRESS;
-        }
-
-        try {
-            String stringData = ObjectMappers.defaultMapper().writeValueAsString(statusData);
-            return ObjectMappers.defaultMapper().readValue(stringData, TitusExecutorDetails.class).getNetworkConfiguration().getIpAddress();
-        } catch (Exception ignored) {
-        }
-
-        return EMPTY_IP_ADDRESS;
     }
 
     public static AgentResourceCacheNetworkInterface removeTaskIdFromNetworkInterface(String taskId,

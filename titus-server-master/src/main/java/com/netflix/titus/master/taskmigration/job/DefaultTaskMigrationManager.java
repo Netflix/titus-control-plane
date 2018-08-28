@@ -16,11 +16,11 @@
 
 package com.netflix.titus.master.taskmigration.job;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -28,16 +28,9 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.WorkerNaming;
-import com.netflix.titus.api.store.v2.InvalidJobException;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.store.InvalidJobStateChangeException;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
-import com.netflix.titus.master.taskmigration.V2TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,19 +67,12 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
                 return; // Throttle how often we migrate
             }
 
-            List<V2TaskMigrationDetails> v2TaskMigrationDetailsCollections = new ArrayList<>();
-            List<V3TaskMigrationDetails> v3TaskMigrationDetailsCollections = new ArrayList<>();
-            for (TaskMigrationDetails taskMigrationDetails : taskMigrationDetailsCollection) {
-                if (taskMigrationDetails instanceof V2TaskMigrationDetails) {
-                    v2TaskMigrationDetailsCollections.add((V2TaskMigrationDetails) taskMigrationDetails);
-                } else if (taskMigrationDetails instanceof V3TaskMigrationDetails) {
-                    v3TaskMigrationDetailsCollections.add((V3TaskMigrationDetails) taskMigrationDetails);
-                }
-            }
+            List<V3TaskMigrationDetails> v3TaskMigrationDetailsCollections = taskMigrationDetailsCollection.stream()
+                    .filter(d -> d instanceof V3TaskMigrationDetails)
+                    .map(d -> (V3TaskMigrationDetails) d)
+                    .collect(Collectors.toList());
 
-            if (!v2TaskMigrationDetailsCollections.isEmpty()) {
-                migrateV2Tasks(v2TaskMigrationDetailsCollections);
-            } else if (!v3TaskMigrationDetailsCollections.isEmpty()) {
+            if (!v3TaskMigrationDetailsCollections.isEmpty()) {
                 migrateV3Tasks(v3TaskMigrationDetailsCollections);
             }
         }
@@ -101,62 +87,6 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
     @Override
     public long getTimeoutMs() {
         return 0;
-    }
-
-    private void migrateV2Tasks(Collection<V2TaskMigrationDetails> taskMigrationDetailsCollection) {
-        V2TaskMigrationDetails first = taskMigrationDetailsCollection.iterator().next();
-        String jobId = first.getJobId();
-        V2JobMgrIntf jobManager = first.getJobManager();
-        try (AutoCloseable ignored = jobManager.getJobMetadata().obtainLock()) {
-            int numberOfInstances = first.getNumberOfInstances();
-            long numberOfRunningWorkers = jobManager.getWorkers().stream()
-                    .filter(t -> V2JobState.isRunningState(t.getState())).count();
-
-            if (numberOfRunningWorkers != numberOfInstances) {
-                logger.debug("Skipping iteration for jobId: {} because worker size: {} does not match number of instances: {}",
-                        jobId, numberOfRunningWorkers, numberOfInstances);
-                return; // Only migrate when the desired number of workers are running
-            }
-
-            // calculate how many tasks to migrate by taking the percent in the config, converting it into a decimal,
-            // and multiplying the desired by the decimal.
-            long numWorkersToMove = Math.round((double) numberOfInstances * (config.getIterationPercent() / 100));
-            LinkedList<V2WorkerMetadata> workersToMove = new LinkedList<>();
-
-            for (V2TaskMigrationDetails taskMigrationDetails : taskMigrationDetailsCollection) {
-                V2WorkerMetadata workerMetadata = taskMigrationDetails.getWorkerMetadata();
-                if (workerMetadata == null) {
-                    logger.debug("Skipping iteration for jobId: {} because workerMetadata is null", jobId);
-                    continue; // Worker is not active, ignore it
-                }
-
-                workersToMove.addLast(workerMetadata);
-                if (workersToMove.size() >= numWorkersToMove) {
-                    break; // We have enough workers to move
-                }
-            }
-            logger.debug("Attempting to move {} workers for jobId: {}", workersToMove.size(), jobId);
-
-            for (V2WorkerMetadata workerMetadata : workersToMove) {
-                if (V2JobState.isRunningState(workerMetadata.getState())) {
-                    try {
-                        if (terminateTokenBucket.tryTake()) {
-                            logger.info("Migrating worker: {} and index: {} of job: {}", workerMetadata.getWorkerNumber(), workerMetadata.getWorkerIndex(), first.getJobId());
-                            jobManager.resubmitWorker(
-                                    WorkerNaming.getWorkerName(workerMetadata.getJobId(), workerMetadata.getWorkerIndex(),
-                                            workerMetadata.getWorkerNumber()),
-                                    "Moving service task index " + workerMetadata.getWorkerIndex() + ", number " +
-                                            workerMetadata.getWorkerNumber() + " out of disabled VM");
-                            lastMovedWorkerOnDisabledVM = System.currentTimeMillis();
-                        }
-                    } catch (InvalidJobStateChangeException | InvalidJobException e) {
-                        logger.warn("No such worker: {} of job: {} to resubmit due to the error:", workerMetadata.getWorkerNumber(), first.getJobId(), e);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Unable to migrate tasks for jobId: {} with error:", first.getJobId(), e);
-        }
     }
 
     private void migrateV3Tasks(Collection<V3TaskMigrationDetails> taskMigrationDetailsCollection) {

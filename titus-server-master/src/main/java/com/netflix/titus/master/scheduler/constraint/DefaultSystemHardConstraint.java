@@ -30,6 +30,9 @@ import static java.util.Arrays.asList;
 
 @Singleton
 public class DefaultSystemHardConstraint implements SystemHardConstraint {
+
+    public static final String NAME = "DefaultSystemHardConstraint";
+
     private final AgentManagementConstraint agentManagementConstraint;
     private final AgentLaunchGuardConstraint agentLaunchGuardConstraint;
     private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
@@ -56,7 +59,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
 
     @Override
     public String getName() {
-        return "DefaultSystemHardConstraint";
+        return NAME;
     }
 
     @Override

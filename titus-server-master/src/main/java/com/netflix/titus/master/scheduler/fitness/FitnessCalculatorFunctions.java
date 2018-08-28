@@ -30,83 +30,44 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.parameter.Parameter;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.scheduler.ScheduledRequest;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions;
 import org.apache.mesos.Protos;
 
 public class FitnessCalculatorFunctions {
 
     public static boolean isBatchJob(TaskRequest taskRequest) {
-        if (taskRequest instanceof ScheduledRequest) {
-            ScheduledRequest scheduledRequest = (ScheduledRequest) taskRequest;
-            V2JobMetadata job = scheduledRequest.getJob();
-            return Parameters.getJobType(job.getParameters()) == Parameters.JobType.Batch;
-
-        } else if (taskRequest instanceof V3QueueableTask) {
-            V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-            Job job = v3QueueableTask.getJob();
-            return JobFunctions.isBatchJob(job);
-        }
-        return false;
+        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
+        Job job = v3QueueableTask.getJob();
+        return JobFunctions.isBatchJob(job);
     }
 
     public static boolean isServiceJob(TaskRequest taskRequest) {
-        if (taskRequest instanceof ScheduledRequest) {
-            ScheduledRequest scheduledRequest = (ScheduledRequest) taskRequest;
-            V2JobMetadata job = scheduledRequest.getJob();
-            return Parameters.getJobType(job.getParameters()) == Parameters.JobType.Service;
-
-        } else if (taskRequest instanceof V3QueueableTask) {
-            V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-            Job job = v3QueueableTask.getJob();
-            return JobFunctions.isServiceJob(job);
-        }
-        return false;
+        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
+        Job job = v3QueueableTask.getJob();
+        return JobFunctions.isServiceJob(job);
     }
 
     public static boolean isFlexTier(TaskRequest taskRequest) {
-        return taskRequest instanceof QueuableTask
-                && ((QueuableTask) taskRequest).getQAttributes().getTierNumber() == 1;
+        return ((QueuableTask) taskRequest).getQAttributes().getTierNumber() == 1;
     }
 
     public static boolean isCriticalTier(TaskRequest taskRequest) {
-        return taskRequest instanceof QueuableTask
-                && ((QueuableTask) taskRequest).getQAttributes().getTierNumber() == 0;
+        return ((QueuableTask) taskRequest).getQAttributes().getTierNumber() == 0;
     }
 
     public static boolean isTaskLaunching(TaskRequest request) {
-        if (request instanceof ScheduledRequest) {
-            V2WorkerMetadata task = ((ScheduledRequest) request).getTask();
-            V2JobState state = task.getState();
-            return state == V2JobState.Accepted || state == V2JobState.Launched || state == V2JobState.StartInitiated;
-        } else if (request instanceof V3QueueableTask) {
-            Task task = ((V3QueueableTask) request).getTask();
-            TaskState state = task.getStatus().getState();
-            return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
-        }
-        return false;
+        Task task = ((V3QueueableTask) request).getTask();
+        TaskState state = task.getStatus().getState();
+        return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
     }
 
     public static String getJoinedSecurityGroupIds(TaskRequest taskRequest) {
-        if (taskRequest instanceof ScheduledRequest) {
-            ScheduledRequest scheduledRequest = (ScheduledRequest) taskRequest;
-            V2JobMetadata job = scheduledRequest.getJob();
-            List<Parameter> parameters = job.getParameters();
-            return StringExt.concatenate(Parameters.getSecurityGroups(parameters), AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
-        } else if (taskRequest instanceof V3QueueableTask) {
-            V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-            Job job = v3QueueableTask.getJob();
-            Container container = job.getJobDescriptor().getContainer();
-            return StringExt.concatenate(container.getSecurityProfile().getSecurityGroups(), AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
-        }
-        return AgentResourceCacheFunctions.EMPTY_JOINED_SECURITY_GROUP_IDS;
+        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
+        Job job = v3QueueableTask.getJob();
+        Container container = job.getJobDescriptor().getContainer();
+        return StringExt.concatenate(container.getSecurityProfile().getSecurityGroups(), AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
     }
 
     public static List<TaskRequest> getAllTasksOnAgent(VirtualMachineCurrentState targetVm) {

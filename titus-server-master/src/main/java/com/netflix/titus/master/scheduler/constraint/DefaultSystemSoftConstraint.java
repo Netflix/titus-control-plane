@@ -31,6 +31,9 @@ import static java.util.Arrays.asList;
 
 @Singleton
 public class DefaultSystemSoftConstraint implements SystemSoftConstraint {
+
+    public static final String NAME = "DefaultSystemSoftConstraint";
+
     private final WeightedAverageFitnessCalculator delegate;
 
     @Inject
@@ -43,7 +46,7 @@ public class DefaultSystemSoftConstraint implements SystemSoftConstraint {
 
     @Override
     public String getName() {
-        return "Default System Soft Constraint";
+        return NAME;
     }
 
     @Override

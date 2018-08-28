@@ -24,14 +24,14 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.scheduler.ScheduledRequest;
 
 /**
  * A fitness calculator that will prefer task placement on agents with the same job type.
  */
 public class JobTypeFitnessCalculator implements VMTaskFitnessCalculator {
+
+    public static final String NAME = "JobTypeFitnessCalculator";
 
     private static final double EMPTY_HOST_SCORE = 0.7;
     private static final double ZERO_SAME_JOB_TASKS_SCORE = 0.01;
@@ -40,7 +40,7 @@ public class JobTypeFitnessCalculator implements VMTaskFitnessCalculator {
 
     @Override
     public String getName() {
-        return "Job Type Fitness Calculator";
+        return NAME;
     }
 
     @Override
@@ -73,20 +73,11 @@ public class JobTypeFitnessCalculator implements VMTaskFitnessCalculator {
     }
 
     private JobType getJobType(TaskRequest taskRequest) {
-        if (taskRequest instanceof ScheduledRequest) {
-            Parameters.JobType jobType = Parameters.getJobType(((ScheduledRequest) taskRequest).getJob().getParameters());
-            if (jobType == Parameters.JobType.Batch) {
-                return JobType.Batch;
-            } else if (jobType == Parameters.JobType.Service) {
-                return JobType.Service;
-            }
-        } else if (taskRequest instanceof V3QueueableTask) {
-            JobDescriptor.JobDescriptorExt jobDescriptorExt = ((V3QueueableTask) taskRequest).getJob().getJobDescriptor().getExtensions();
-            if (jobDescriptorExt instanceof BatchJobExt) {
-                return JobType.Batch;
-            } else if (jobDescriptorExt instanceof ServiceJobExt) {
-                return JobType.Service;
-            }
+        JobDescriptor.JobDescriptorExt jobDescriptorExt = ((V3QueueableTask) taskRequest).getJob().getJobDescriptor().getExtensions();
+        if (jobDescriptorExt instanceof BatchJobExt) {
+            return JobType.Batch;
+        } else if (jobDescriptorExt instanceof ServiceJobExt) {
+            return JobType.Service;
         }
         return JobType.Batch;
     }
