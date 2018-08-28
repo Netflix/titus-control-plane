@@ -37,6 +37,8 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator {
 
+    public static final String NAME = "AgentManagementFitnessCalculator";
+
     private static final Logger logger = LoggerFactory.getLogger(AgentManagementFitnessCalculator.class);
 
     private static final double ACTIVE_INSTANCE_GROUP_SCORE = 1.0;
@@ -60,7 +62,7 @@ public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator
 
     @Override
     public String getName() {
-        return "Agent Management Fitness Calculator";
+        return NAME;
     }
 
     @Override

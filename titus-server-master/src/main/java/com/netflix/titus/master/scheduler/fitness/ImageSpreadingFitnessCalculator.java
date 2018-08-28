@@ -30,12 +30,14 @@ import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheImage;
  */
 public class ImageSpreadingFitnessCalculator implements VMTaskFitnessCalculator {
 
+    public static final String NAME = "ImageSpreadingFitnessCalculator";
+
     private static final double MATCHING_TASK_SCORE = 0.5;
     private static final double NO_MATCHING_TASK_SCORE = 1.0;
 
     @Override
     public String getName() {
-        return "Image Spreading Fitness Calculator";
+        return NAME;
     }
 
     @Override

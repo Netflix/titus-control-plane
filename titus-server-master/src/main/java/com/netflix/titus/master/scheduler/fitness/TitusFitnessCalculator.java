@@ -34,6 +34,8 @@ import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFuncti
 
 public class TitusFitnessCalculator implements VMTaskFitnessCalculator {
 
+    public static final String NAME = "TitusFitnessCalculator";
+
     private final SchedulerConfiguration configuration;
     private final AgentManagementFitnessCalculator agentManagementFitnessCalculator;
     private final VMTaskFitnessCalculator criticalServiceJobSpreader;
@@ -55,7 +57,7 @@ public class TitusFitnessCalculator implements VMTaskFitnessCalculator {
 
     @Override
     public String getName() {
-        return "Titus Fitness Calculator";
+        return NAME;
     }
 
     @Override

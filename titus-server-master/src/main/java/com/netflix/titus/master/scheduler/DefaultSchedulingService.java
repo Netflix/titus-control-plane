@@ -265,7 +265,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.titusRuntime = titusRuntime;
         this.agentResourceCache = agentResourceCache;
         this.systemHardConstraint = systemHardConstraint;
-        agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations, rxEventBus);
+        agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations);
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {

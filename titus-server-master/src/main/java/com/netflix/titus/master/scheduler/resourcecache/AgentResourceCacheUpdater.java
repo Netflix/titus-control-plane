@@ -23,15 +23,9 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.event.TaskStateChangeEvent;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
-import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -45,30 +39,18 @@ public class AgentResourceCacheUpdater {
     private final TitusRuntime titusRuntime;
     private final AgentResourceCache agentResourceCache;
     private final V3JobOperations v3JobOperations;
-    private final RxEventBus rxEventBus;
 
-    private Subscription v2TaskSubscription;
     private Subscription v3TaskSubscription;
 
     public AgentResourceCacheUpdater(TitusRuntime titusRuntime,
                                      AgentResourceCache agentResourceCache,
-                                     V3JobOperations v3JobOperations,
-                                     RxEventBus rxEventBus) {
+                                     V3JobOperations v3JobOperations) {
         this.titusRuntime = titusRuntime;
         this.agentResourceCache = agentResourceCache;
         this.v3JobOperations = v3JobOperations;
-        this.rxEventBus = rxEventBus;
     }
 
     public void start() {
-        Observable<TaskStateChangeEvent> v2TaskStream = rxEventBus.listen(getClass().getSimpleName(), TaskStateChangeEvent.class)
-                .filter(taskStateChangeEvent -> taskStateChangeEvent.getSource() instanceof Pair);
-        v2TaskSubscription = titusRuntime.persistentStream(v2TaskStream).subscribe(
-                this::createOrUpdateAgentResourceCacheForV2Task,
-                e -> logger.error("Unable to update agent resource cache for v2 task with error: ", e),
-                () -> logger.info("Finished updating agent resource cache for v2 tasks")
-        );
-
         Observable<TaskUpdateEvent> v3TaskStream = v3JobOperations.observeJobs()
                 .filter(event -> event instanceof TaskUpdateEvent)
                 .cast(TaskUpdateEvent.class);
@@ -80,7 +62,7 @@ public class AgentResourceCacheUpdater {
     }
 
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(v2TaskSubscription, v3TaskSubscription);
+        ObservableExt.safeUnsubscribe(v3TaskSubscription);
     }
 
     public void createOrUpdateAgentResourceCacheForTask(QueuableTask task, String hostname) {
@@ -93,31 +75,6 @@ public class AgentResourceCacheUpdater {
             }
             return instance;
         });
-    }
-
-    private void createOrUpdateAgentResourceCacheForV2Task(TaskStateChangeEvent event) {
-        @SuppressWarnings("unchecked")
-        Pair<V2JobMetadata, V2WorkerMetadata> jobAndTaskPair = (Pair<V2JobMetadata, V2WorkerMetadata>) event.getSource();
-        V2JobMetadata job = jobAndTaskPair.getLeft();
-        V2WorkerMetadata task = jobAndTaskPair.getRight();
-        String hostname = task.getSlave();
-        if (task.getState() == V2JobState.Started) {
-            agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
-                AgentResourceCacheInstance instance = AgentResourceCacheFunctions.createInstance(hostname, job, task, titusRuntime.getClock().wallTime());
-                if (instanceOpt.isPresent()) {
-                    return AgentResourceCacheFunctions.updateInstance(instanceOpt.get(), instance);
-                }
-                return instance;
-            });
-        } else if (V2JobState.isTerminalState(task.getState())) {
-            agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
-                if (instanceOpt.isPresent()) {
-                    AgentResourceCacheInstance existingInstance = instanceOpt.get();
-                    return AgentResourceCacheFunctions.removeTaskFromInstance(existingInstance, task, titusRuntime.getClock().wallTime());
-                }
-                return null;
-            });
-        }
     }
 
     private void createOrUpdateAgentResourceCacheForV3Task(TaskUpdateEvent event) {

@@ -34,6 +34,8 @@ import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFuncti
  */
 public class CachedSecurityGroupFitnessCalculator implements VMTaskFitnessCalculator {
 
+    public static final String NAME = "CachedSecurityGroupFitnessCalculator";
+
     private static final double SECURITY_GROUPS_NOT_CACHED_SCORE = 0.01;
     private static final double SECURITY_GROUPS_CACHED_SCORE = 1.0;
 
@@ -45,7 +47,7 @@ public class CachedSecurityGroupFitnessCalculator implements VMTaskFitnessCalcul
 
     @Override
     public String getName() {
-        return "Cached Security Group Fitness Calculator";
+        return NAME;
     }
 
     @Override

@@ -48,6 +48,8 @@ import static com.netflix.titus.master.scheduler.SchedulerUtils.getTier;
 @Singleton
 public class AgentManagementConstraint implements SystemConstraint {
 
+    public static final String NAME = "AgentManagementConstraint";
+
     private static final Result MISSING_INSTANCE_GROUP_ATTRIBUTE = new Result(false, "Missing instance group attribute");
     private static final Result INSTANCE_GROUP_NOT_FOUND = new Result(false, "Instance group not found");
     private static final Result INSTANCE_GROUP_NOT_ACTIVE = new Result(false, "Instance group is not active or phased out");
@@ -92,7 +94,7 @@ public class AgentManagementConstraint implements SystemConstraint {
 
     @Override
     public String getName() {
-        return "GlobalAgentClusterConstraint";
+        return NAME;
     }
 
     @Override

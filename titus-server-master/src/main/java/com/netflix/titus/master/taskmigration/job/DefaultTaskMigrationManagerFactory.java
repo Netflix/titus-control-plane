@@ -25,14 +25,11 @@ import com.google.common.collect.Lists;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.model.MigrationPolicy;
-import com.netflix.titus.api.model.SelfManagedMigrationPolicy;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import com.netflix.titus.master.taskmigration.TaskMigrationManagerFactory;
-import com.netflix.titus.master.taskmigration.V2TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;
 
 @Singleton
@@ -51,13 +48,7 @@ public class DefaultTaskMigrationManagerFactory implements TaskMigrationManagerF
 
     @Override
     public TaskMigrationManager newTaskMigrationManager(TaskMigrationDetails taskMigrationDetails) {
-        if (taskMigrationDetails instanceof V2TaskMigrationDetails) {
-            V2TaskMigrationDetails v2TaskMigrationDetails = (V2TaskMigrationDetails) taskMigrationDetails;
-            MigrationPolicy migrationPolicy = v2TaskMigrationDetails.getMigrationPolicy();
-            if (migrationPolicy instanceof SelfManagedMigrationPolicy) {
-                return getSelfManagedMigrationManager(v2TaskMigrationDetails);
-            }
-        } else if (taskMigrationDetails instanceof V3TaskMigrationDetails) {
+        if (taskMigrationDetails instanceof V3TaskMigrationDetails) {
             V3TaskMigrationDetails v3TaskMigrationDetails = (V3TaskMigrationDetails) taskMigrationDetails;
             Job<?> job = v3TaskMigrationDetails.getJob();
             JobDescriptor.JobDescriptorExt extensions = job.getJobDescriptor().getExtensions();

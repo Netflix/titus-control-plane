@@ -28,12 +28,14 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
  */
 public class SecurityGroupSpreadingFitnessCalculator implements VMTaskFitnessCalculator {
 
+    public static final String NAME = "SecurityGroupSpreadingFitnessCalculator";
+
     private static final double MATCHING_TASK_SCORE = 0.5;
     private static final double NO_MATCHING_TASK_SCORE = 1.0;
 
     @Override
     public String getName() {
-        return "Security Group Spreading Fitness Calculator";
+        return NAME;
     }
 
     @Override

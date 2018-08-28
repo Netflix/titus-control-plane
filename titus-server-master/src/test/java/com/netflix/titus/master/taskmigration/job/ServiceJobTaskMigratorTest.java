@@ -23,18 +23,17 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.collect.Lists;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import com.netflix.titus.master.taskmigration.TaskMigrationManagerFactory;
-import com.netflix.titus.master.taskmigration.V2TaskMigrationDetails;
+import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;
 import org.junit.Test;
 import org.mockito.Mockito;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -47,15 +46,14 @@ public class ServiceJobTaskMigratorTest {
     private final ServiceJobTaskMigratorConfig migratorConfig = mock(ServiceJobTaskMigratorConfig.class);
     private final TaskMigrationManager migrationManager = mock(TaskMigrationManager.class);
     private final TaskMigrationManagerFactory managerFactory = mock(TaskMigrationManagerFactory.class);
-    private final V2JobOperations v2JobOperations = mock(V2JobOperations.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
     private final ServiceJobTaskMigrator serviceJobTaskMigrator = new ServiceJobTaskMigrator(scheduler,
-            v2JobOperations, v3JobOperations, migratorConfig, managerFactory, new DefaultRegistry());
+            v3JobOperations, migratorConfig, managerFactory, new DefaultRegistry());
 
 
     @Test
-    public void testMigrateServiceJobs() throws Exception {
+    public void testMigrateServiceJobs() {
 
         when(migratorConfig.isServiceTaskMigratorEnabled()).thenReturn(true);
         when(migratorConfig.getSchedulerDelayMs()).thenReturn(1000L);
@@ -71,7 +69,7 @@ public class ServiceJobTaskMigratorTest {
 
         when(migrationManager.getState()).thenReturn(TaskMigrationManager.State.Running);
 
-        when(managerFactory.newTaskMigrationManager(any(V2TaskMigrationDetails.class))).thenReturn(migrationManager);
+        when(managerFactory.newTaskMigrationManager(any(V3TaskMigrationDetails.class))).thenReturn(migrationManager);
 
         serviceJobTaskMigrator.enterActiveMode();
         scheduler.advanceTimeBy(0L, TimeUnit.MILLISECONDS);
@@ -79,7 +77,7 @@ public class ServiceJobTaskMigratorTest {
     }
 
     @Test
-    public void testMigrateServiceJobSchedulerTimeout() throws Exception {
+    public void testMigrateServiceJobSchedulerTimeout() {
 
         when(migratorConfig.isServiceTaskMigratorEnabled()).thenReturn(true);
         when(migratorConfig.getSchedulerDelayMs()).thenReturn(1000L);
@@ -92,7 +90,7 @@ public class ServiceJobTaskMigratorTest {
 
         when(migrationManager.getState()).thenReturn(TaskMigrationManager.State.Running);
 
-        when(managerFactory.newTaskMigrationManager(any(V2TaskMigrationDetails.class))).thenReturn(migrationManager);
+        when(managerFactory.newTaskMigrationManager(any(V3TaskMigrationDetails.class))).thenReturn(migrationManager);
 
         ServiceJobTaskMigrator spy = Mockito.spy(serviceJobTaskMigrator);
 
@@ -105,7 +103,7 @@ public class ServiceJobTaskMigratorTest {
     }
 
     private TaskMigrationDetails generateTaskMigrationDetails(String taskId, String jobId) {
-        TaskMigrationDetails taskMigrationDetails = mock(V2TaskMigrationDetails.class);
+        TaskMigrationDetails taskMigrationDetails = mock(V3TaskMigrationDetails.class);
         when(taskMigrationDetails.getId()).thenReturn(taskId);
         when(taskMigrationDetails.getJobId()).thenReturn(jobId);
         when(taskMigrationDetails.isActive()).thenReturn(true);

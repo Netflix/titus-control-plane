@@ -33,8 +33,11 @@ import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstan
  */
 public class CachedImageFitnessCalculator implements VMTaskFitnessCalculator {
 
+    public static final String NAME = "CachedImageFitnessCalculator";
+
     private static final double IMAGE_NOT_CACHED_SCORE = 0.01;
     private static final double IMAGE_CACHED_SCORE = 1.0;
+
     private final AgentResourceCache agentResourceCache;
 
     public CachedImageFitnessCalculator(AgentResourceCache agentResourceCache) {
@@ -43,7 +46,7 @@ public class CachedImageFitnessCalculator implements VMTaskFitnessCalculator {
 
     @Override
     public String getName() {
-        return "Image Fitness Calculator";
+        return NAME;
     }
 
     @Override

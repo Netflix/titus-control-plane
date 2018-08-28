@@ -29,10 +29,6 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
-import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.scheduler.ScheduledRequest;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 
 /**
@@ -40,6 +36,8 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
  */
 @Singleton
 public class AgentLaunchGuardConstraint implements SystemConstraint {
+
+    public static final String NAME = "AgentLaunchGuardConstraint";
 
     private static final Result VALID = new Result(true, null);
     private static final Result INVALID = new Result(false, "The agent has a task already launching");
@@ -58,7 +56,7 @@ public class AgentLaunchGuardConstraint implements SystemConstraint {
 
     @Override
     public String getName() {
-        return "GlobalTaskLaunchingConstraintEvaluator";
+        return NAME;
     }
 
     @Override
@@ -97,18 +95,11 @@ public class AgentLaunchGuardConstraint implements SystemConstraint {
     }
 
     private boolean isTaskLaunching(TaskRequest request) {
-        if (request instanceof ScheduledRequest) {
-            V2WorkerMetadata task = ((ScheduledRequest) request).getTask();
-            V2JobState state = task.getState();
-            return state == V2JobState.Accepted || state == V2JobState.Launched || state == V2JobState.StartInitiated;
-        } else if (request instanceof V3QueueableTask) {
-            Task current = taskIdMapRef.get().get(request.getId());
-            if (current == null) {
-                return false;
-            }
-            TaskState state = current.getStatus().getState();
-            return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
+        Task current = taskIdMapRef.get().get(request.getId());
+        if (current == null) {
+            return false;
         }
-        return false;
+        TaskState state = current.getStatus().getState();
+        return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
     }
 }
