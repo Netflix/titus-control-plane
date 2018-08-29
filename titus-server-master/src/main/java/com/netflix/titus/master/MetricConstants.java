@@ -50,4 +50,6 @@ public class MetricConstants {
     public static final String METRIC_WORKER_STATE_OBSERVER = METRIC_ROOT + "workerStateObserver.";
 
     public static final String METRIC_LOADBALANCER = METRIC_ROOT + "loadBalancer.";
+
+    public static final String METRIC_ES_PUBLISHER = METRIC_ROOT + "esPublisher.";
 }

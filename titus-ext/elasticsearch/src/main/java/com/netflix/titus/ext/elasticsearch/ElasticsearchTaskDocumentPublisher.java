@@ -24,12 +24,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -37,6 +41,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.master.MetricConstants;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -63,21 +68,30 @@ public class ElasticsearchTaskDocumentPublisher {
     private final Client client;
     private final Map<String, String> taskDocumentContext;
     private final TitusRuntime titusRuntime;
+    private final Registry registry;
     private final ObjectMapper objectMapper;
     private final SimpleDateFormat indexDateFormat;
     private final SimpleDateFormat taskDateFormat;
+    private final AtomicInteger docsToBePublished = new AtomicInteger(0);
+    private final AtomicInteger docsPublished = new AtomicInteger(0);
+    private final AtomicInteger errorJsonConversion = new AtomicInteger(0);
+    private final AtomicInteger errorEsClient = new AtomicInteger(0);
+    private final AtomicInteger errorInPublishing = new AtomicInteger(0);
+    private final AtomicLong lastPublishedTimestamp = new AtomicLong(0);
 
     @Inject
     public ElasticsearchTaskDocumentPublisher(ElasticsearchConfiguration configuration,
                                               V3JobOperations v3JobOperations,
                                               Client client,
                                               @Named(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentContext,
-                                              TitusRuntime titusRuntime) {
+                                              TitusRuntime titusRuntime,
+                                              Registry registry) {
         this.configuration = configuration;
         this.v3JobOperations = v3JobOperations;
         this.client = client;
         this.taskDocumentContext = taskDocumentContext;
         this.titusRuntime = titusRuntime;
+        this.registry = registry;
 
         this.objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -85,21 +99,35 @@ public class ElasticsearchTaskDocumentPublisher {
         this.indexDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         this.taskDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         this.taskDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "docsToBePublished").monitorValue(docsToBePublished);
+        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "docsPublished").monitorValue(docsPublished);
+        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion").monitorValue(errorJsonConversion);
+        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient").monitorValue(errorEsClient);
+        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing").monitorValue(errorInPublishing);
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_ES_PUBLISHER + "timeSinceLastPublished")
+                .monitorValue(this, ElasticsearchTaskDocumentPublisher::getTimeSinceLastPublished);
     }
+
 
     @Activator
     public void enterActiveMode() {
         logger.info("Starting the task streams to publish task documents to elasticsearch");
-        v3TasksStream().buffer(TIME_TO_BUFFER_MS, TimeUnit.MILLISECONDS, COUNT_TO_BUFFER)
-                .observeOn(Schedulers.io())
+        v3TasksStream()
                 .subscribe(
                         this::publishTaskDocuments,
-                        e -> logger.error("Unable to publish task documents to elasticsearch: ", e),
-                        () -> logger.info("Finished publishing task documents to elasticsearch")
+                        e -> {
+                            errorInPublishing.incrementAndGet();
+                            logger.error("Unable to publish task documents to elasticsearch: ", e);
+                        },
+                        () -> {
+                            logger.info("Finished publishing task documents to elasticsearch");
+                        }
                 );
     }
 
-    private Observable<TaskDocument> v3TasksStream() {
+    private Observable<List<TaskDocument>> v3TasksStream() {
         Observable<Optional<TaskDocument>> optionalTaskDocuments = v3JobOperations.observeJobs()
                 .filter(event -> event instanceof TaskUpdateEvent)
                 .cast(TaskUpdateEvent.class)
@@ -109,64 +137,85 @@ public class ElasticsearchTaskDocumentPublisher {
                     TaskDocument taskDocument = TaskDocument.fromV3Task(task, job, taskDateFormat, taskDocumentContext);
                     return Optional.of(taskDocument);
                 });
-        return titusRuntime.persistentStream(ObservableExt.fromOptionalObservable(optionalTaskDocuments));
+        final Observable<List<TaskDocument>> taskDocumentsObservable = ObservableExt.fromOptionalObservable(optionalTaskDocuments)
+                .buffer(TIME_TO_BUFFER_MS, TimeUnit.MILLISECONDS, COUNT_TO_BUFFER).observeOn(Schedulers.io());
+
+        return titusRuntime.persistentStream(taskDocumentsObservable);
     }
 
     private void publishTaskDocuments(List<TaskDocument> taskDocuments) {
-        if (configuration.isEnabled() && !taskDocuments.isEmpty()) {
-            Map<String, String> documentsToIndex = new HashMap<>();
-            for (TaskDocument taskDocument : taskDocuments) {
-                String documentId = taskDocument.getInstanceId();
-                try {
-                    String documentAsJson = objectMapper.writeValueAsString(taskDocument);
-                    documentsToIndex.put(documentId, documentAsJson);
-                } catch (Exception e) {
-                    logger.warn("Unable to convert document with id: {} to json with error: ", documentId, e);
-                }
-            }
-
-            if (!documentsToIndex.isEmpty()) {
-                logger.info("Attempting to index {} task documents to elasticsearch", documentsToIndex.size());
-                BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
-                for (Map.Entry<String, String> entry : documentsToIndex.entrySet()) {
-                    String documentId = entry.getKey();
-                    String documentJson = entry.getValue();
-                    IndexRequestBuilder indexRequestBuilder = client.prepareIndex(getEsIndexName(), DEFAULT_DOC_TYPE, documentId)
-                            .setSource(documentJson);
-                    bulkRequestBuilder.add(indexRequestBuilder);
-                    logger.debug("Indexing task document with id: {} and json: {}", documentId, documentJson);
+        lastPublishedTimestamp.set(registry.clock().wallTime());
+        try {
+            if (configuration.isEnabled() && !taskDocuments.isEmpty()) {
+                Map<String, String> documentsToIndex = new HashMap<>();
+                for (TaskDocument taskDocument : taskDocuments) {
+                    String documentId = taskDocument.getInstanceId();
+                    try {
+                        String documentAsJson = objectMapper.writeValueAsString(taskDocument);
+                        documentsToIndex.put(documentId, documentAsJson);
+                    } catch (Exception e) {
+                        errorJsonConversion.incrementAndGet();
+                        errorInPublishing.incrementAndGet();
+                        logger.warn("Unable to convert document with id: {} to json with error: ", documentId, e);
+                    }
                 }
 
-                bulkRequestBuilder.execute(new ActionListener<BulkResponse>() {
-                    @Override
-                    public void onResponse(BulkResponse bulkItemResponses) {
-                        BulkItemResponse[] items = bulkItemResponses.getItems();
-                        if (items != null) {
-                            int successCount = 0;
-                            for (BulkItemResponse bulkItemResponse : items) {
-                                if (!bulkItemResponse.isFailed()) {
-                                    String documentJson = documentsToIndex.get(bulkItemResponse.getId());
-                                    logger.debug("Successfully indexed task document with id: {} and json: {}", bulkItemResponse.getId(), documentJson);
-                                    successCount++;
+                if (!documentsToIndex.isEmpty()) {
+                    logger.info("Attempting to index {} task documents to elasticsearch", documentsToIndex.size());
+                    docsToBePublished.addAndGet(documentsToIndex.size());
+                    BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
+                    for (Map.Entry<String, String> entry : documentsToIndex.entrySet()) {
+                        String documentId = entry.getKey();
+                        String documentJson = entry.getValue();
+                        IndexRequestBuilder indexRequestBuilder = client.prepareIndex(getEsIndexName(), DEFAULT_DOC_TYPE, documentId)
+                                .setSource(documentJson);
+                        bulkRequestBuilder.add(indexRequestBuilder);
+                        logger.debug("Indexing task document with id: {} and json: {}", documentId, documentJson);
+                    }
+
+                    bulkRequestBuilder.execute(new ActionListener<BulkResponse>() {
+                        @Override
+                        public void onResponse(BulkResponse bulkItemResponses) {
+                            BulkItemResponse[] items = bulkItemResponses.getItems();
+                            if (items != null) {
+                                int successCount = 0;
+                                for (BulkItemResponse bulkItemResponse : items) {
+                                    if (!bulkItemResponse.isFailed()) {
+                                        String documentJson = documentsToIndex.get(bulkItemResponse.getId());
+                                        logger.debug("Successfully indexed task document with id: {} and json: {}", bulkItemResponse.getId(), documentJson);
+                                        successCount++;
+                                    }
                                 }
+                                logger.info("Successfully indexed {} out of {} task documents", successCount, items.length);
+                                docsPublished.addAndGet(successCount);
                             }
-                            logger.info("Successfully indexed {} out of {} task documents", successCount, items.length);
+                            if (bulkItemResponses.hasFailures()) {
+                                errorEsClient.incrementAndGet();
+                                errorInPublishing.incrementAndGet();
+                                logger.error(bulkItemResponses.buildFailureMessage());
+                            }
                         }
-                        if (bulkItemResponses.hasFailures()) {
-                            logger.error(bulkItemResponses.buildFailureMessage());
-                        }
-                    }
 
-                    @Override
-                    public void onFailure(Throwable e) {
-                        logger.error("Error in indexing task documents with error: ", e);
-                    }
-                });
+                        @Override
+                        public void onFailure(Throwable e) {
+                            logger.error("Error in indexing task documents with error: ", e);
+                            errorEsClient.incrementAndGet();
+                            errorInPublishing.incrementAndGet();
+                        }
+                    });
+                }
             }
+        } catch (Exception e) {
+            errorInPublishing.incrementAndGet();
+            logger.error("Exception in ElasticsearchTaskDocumentPublisher - ", e);
         }
     }
 
     private String getEsIndexName() {
         return configuration.getTaskDocumentEsIndexName() + indexDateFormat.format(new Date());
+    }
+
+    private long getTimeSinceLastPublished() {
+        return registry.clock().wallTime() - lastPublishedTimestamp.get();
     }
 }
