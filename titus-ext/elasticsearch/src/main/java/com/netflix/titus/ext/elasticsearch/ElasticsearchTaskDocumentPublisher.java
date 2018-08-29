@@ -68,7 +68,7 @@ public class ElasticsearchTaskDocumentPublisher {
     private final Client client;
     private final Map<String, String> taskDocumentContext;
     private final TitusRuntime titusRuntime;
-    private Registry registry;
+    private final Registry registry;
     private final ObjectMapper objectMapper;
     private final SimpleDateFormat indexDateFormat;
     private final SimpleDateFormat taskDateFormat;
