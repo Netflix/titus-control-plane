@@ -113,6 +113,7 @@ public final class AgentGenerator {
                         .withTier(tier)
                         .withMin(0)
                         .withDesired(desiredSize)
+                        .withCurrent(desiredSize)
                         .withMax(desiredSize)
                         .withLaunchTimestamp(System.currentTimeMillis())
                         .withTimestamp(System.currentTimeMillis())

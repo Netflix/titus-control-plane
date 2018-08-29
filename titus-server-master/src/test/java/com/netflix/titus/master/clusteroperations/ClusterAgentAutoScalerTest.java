@@ -54,6 +54,7 @@ import rx.Completable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.any;
@@ -297,6 +298,40 @@ public class ClusterAgentAutoScalerTest {
         clusterAgentAutoScaler.doAgentScaling().await();
 
         verify(agentManagementService, times(3)).updateInstanceOverride(any(), any());
+    }
+
+    @Test
+    public void testScaleDownForIdleAgentsDoesNotGoPastInstanceGroupMin() {
+        when(configuration.getFlexMinIdle()).thenReturn(0);
+
+        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("instanceGroup1")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("r4.16xlarge")
+                .withMin(13)
+                .withCurrent(20)
+                .withMax(20)
+                .build();
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+
+        List<AgentInstance> agentInstances = createAgents(20, "instanceGroup1");
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
+        when(agentManagementService.updateInstanceOverride(any(), any())).thenReturn(Completable.complete());
+
+        when(v3JobOperations.getTasks()).thenReturn(emptyList());
+
+        testScheduler.advanceTimeBy(11, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        verify(agentManagementService, times(7)).updateInstanceOverride(any(), any());
     }
 
     private List<AgentInstance> createAgents(int count, String instanceGroupId) {

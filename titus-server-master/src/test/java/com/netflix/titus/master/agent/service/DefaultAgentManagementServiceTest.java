@@ -78,23 +78,23 @@ public class DefaultAgentManagementServiceTest {
     private DataGenerator<AgentInstance> serverGen0;
     private DataGenerator<AgentInstance> serverGen1;
 
-    private List<AgentInstanceGroup> serverGroups;
-    private final List<AgentInstance> serverSet0 = new ArrayList<>();
-    private final List<AgentInstance> serverSet1 = new ArrayList<>();
+    private List<AgentInstanceGroup> instanceGroups;
+    private final List<AgentInstance> instanceSet0 = new ArrayList<>();
+    private final List<AgentInstance> instanceSet1 = new ArrayList<>();
 
     @Before
     public void setUp() throws Exception {
-        this.serverGroups = agentServerGroups(Tier.Flex, 5).toList(2);
-        this.serverGen0 = agentInstances(serverGroups.get(0)).apply(serverSet0::add, 5);
-        this.serverGen1 = agentInstances(serverGroups.get(1)).apply(serverSet1::add, 5);
+        this.instanceGroups = agentServerGroups(Tier.Flex, 5).toList(2);
+        this.serverGen0 = agentInstances(instanceGroups.get(0)).apply(instanceSet0::add, 5);
+        this.serverGen1 = agentInstances(instanceGroups.get(1)).apply(instanceSet1::add, 5);
 
         when(configuration.isInstanceGroupUpdateCapacityEnabled()).thenReturn(true);
 
-        when(agentCache.getInstanceGroups()).thenReturn(serverGroups);
-        when(agentCache.getInstanceGroup(serverGroups.get(0).getId())).thenReturn(serverGroups.get(0));
-        when(agentCache.getInstanceGroup(serverGroups.get(1).getId())).thenReturn(serverGroups.get(1));
-        when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
-        when(agentCache.getAgentInstances(serverGroups.get(1).getId())).thenReturn(new HashSet<>(serverSet1));
+        when(agentCache.getInstanceGroups()).thenReturn(instanceGroups);
+        when(agentCache.getInstanceGroup(instanceGroups.get(0).getId())).thenReturn(instanceGroups.get(0));
+        when(agentCache.getInstanceGroup(instanceGroups.get(1).getId())).thenReturn(instanceGroups.get(1));
+        when(agentCache.getAgentInstances(instanceGroups.get(0).getId())).thenReturn(new HashSet<>(instanceSet0));
+        when(agentCache.getAgentInstances(instanceGroups.get(1).getId())).thenReturn(new HashSet<>(instanceSet1));
         when(agentCache.events()).thenReturn(agentCacheEventSubject);
 
         when(connector.updateCapacity(any(), any(), any())).thenReturn(Completable.complete());
@@ -116,14 +116,14 @@ public class DefaultAgentManagementServiceTest {
 
     @Test
     public void testGetResourceLimitsWithNoAdjustment() {
-        ResourceDimension result = service.getResourceLimits(serverGroups.get(0).getInstanceType());
-        assertThat(result).isEqualTo(serverGroups.get(0).getResourceDimension());
+        ResourceDimension result = service.getResourceLimits(instanceGroups.get(0).getInstanceType());
+        assertThat(result).isEqualTo(instanceGroups.get(0).getResourceDimension());
     }
 
     @Test
     public void testGetResourceLimitsWithAdjustment() {
-        String instanceType = serverGroups.get(0).getInstanceType();
-        ResourceDimension adjustedResources = ResourceDimensions.multiply(serverGroups.get(0).getResourceDimension(), 0.5);
+        String instanceType = instanceGroups.get(0).getInstanceType();
+        ResourceDimension adjustedResources = ResourceDimensions.multiply(instanceGroups.get(0).getResourceDimension(), 0.5);
 
         when(serverInfoResolver.resolve(instanceType)).thenReturn(Optional.of(ServerInfo.from(adjustedResources)));
 
@@ -134,7 +134,7 @@ public class DefaultAgentManagementServiceTest {
     @Test
     public void testUpdateTier() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateInstanceGroupTier(serverGroups.get(0).getId(), Tier.Critical).toObservable().subscribe(testSubscriber);
+        service.updateInstanceGroupTier(instanceGroups.get(0).getId(), Tier.Critical).toObservable().subscribe(testSubscriber);
 
         ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
         verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
@@ -143,10 +143,10 @@ public class DefaultAgentManagementServiceTest {
 
     @Test
     public void testUpdateAutoScalingRule() {
-        AutoScaleRule updatedAutoScaleRule = serverGroups.get(0).getAutoScaleRule().toBuilder().withMax(1000).build();
+        AutoScaleRule updatedAutoScaleRule = instanceGroups.get(0).getAutoScaleRule().toBuilder().withMax(1000).build();
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateAutoScalingRule(serverGroups.get(0).getId(), updatedAutoScaleRule).toObservable().subscribe(testSubscriber);
+        service.updateAutoScalingRule(instanceGroups.get(0).getId(), updatedAutoScaleRule).toObservable().subscribe(testSubscriber);
 
         ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
         verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
@@ -158,7 +158,7 @@ public class DefaultAgentManagementServiceTest {
         InstanceGroupLifecycleStatus updatedInstanceGroupLifecycleStatus = InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build();
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateInstanceGroupLifecycle(serverGroups.get(0).getId(), updatedInstanceGroupLifecycleStatus).toObservable().subscribe(testSubscriber);
+        service.updateInstanceGroupLifecycle(instanceGroups.get(0).getId(), updatedInstanceGroupLifecycleStatus).toObservable().subscribe(testSubscriber);
 
         ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
         verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
@@ -168,7 +168,7 @@ public class DefaultAgentManagementServiceTest {
     @Test
     public void testUpdateAttributes() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        AgentInstanceGroup instanceGroup = serverGroups.get(0);
+        AgentInstanceGroup instanceGroup = instanceGroups.get(0);
         assertThat(instanceGroup.getAttributes()).isEmpty();
         service.updateInstanceGroupAttributes(instanceGroup.getId(), Collections.singletonMap("a", "1")).toObservable().subscribe(testSubscriber);
 
@@ -180,9 +180,9 @@ public class DefaultAgentManagementServiceTest {
     @Test
     public void testUpdateCapacity() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateCapacity(serverGroups.get(0).getId(), Optional.of(100), Optional.of(1000)).toObservable().subscribe(testSubscriber);
+        service.updateCapacity(instanceGroups.get(0).getId(), Optional.of(100), Optional.of(1000)).toObservable().subscribe(testSubscriber);
 
-        verify(connector, times(1)).updateCapacity(serverGroups.get(0).getId(), Optional.of(100), Optional.of(1000));
+        verify(connector, times(1)).updateCapacity(instanceGroups.get(0).getId(), Optional.of(100), Optional.of(1000));
 
         ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
         verify(agentCache, times(1)).updateInstanceGroupStoreAndSyncCloud(captor.capture());
@@ -192,7 +192,7 @@ public class DefaultAgentManagementServiceTest {
 
     @Test
     public void testScaleUp() {
-        AgentInstanceGroup instanceGroup = serverGroups.get(0);
+        AgentInstanceGroup instanceGroup = instanceGroups.get(0);
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         service.scaleUp(instanceGroup.getId(), 500).toObservable().subscribe(testSubscriber);
@@ -206,8 +206,8 @@ public class DefaultAgentManagementServiceTest {
 
     @Test
     public void testUpdateOverride() {
-        String agentId = serverSet0.get(0).getId();
-        when(agentCache.getAgentInstance(agentId)).thenReturn(serverSet0.get(0));
+        String agentId = instanceSet0.get(0).getId();
+        when(agentCache.getAgentInstance(agentId)).thenReturn(instanceSet0.get(0));
 
         InstanceOverrideStatus instanceOverrideStatus = InstanceOverrideStatus.newBuilder().withState(InstanceOverrideState.Quarantined).build();
 
@@ -221,19 +221,19 @@ public class DefaultAgentManagementServiceTest {
 
     @Test
     public void testTerminateAgentsFromOneServerGroup() {
-        String agentId1 = serverSet0.get(0).getId();
-        String agentId2 = serverSet0.get(1).getId();
+        String agentId1 = instanceSet0.get(0).getId();
+        String agentId2 = instanceSet0.get(1).getId();
         List<String> agentIds = asList(agentId1, agentId2);
 
-        when(agentCache.getAgentInstance(agentId1)).thenReturn(serverSet0.get(0));
-        when(agentCache.getAgentInstance(agentId2)).thenReturn(serverSet0.get(1));
-        when(connector.terminateInstances(serverGroups.get(0).getId(), agentIds, false)).thenReturn(
+        when(agentCache.getAgentInstance(agentId1)).thenReturn(instanceSet0.get(0));
+        when(agentCache.getAgentInstance(agentId2)).thenReturn(instanceSet0.get(1));
+        when(connector.terminateInstances(instanceGroups.get(0).getId(), agentIds, false)).thenReturn(
                 Observable.just(asList(Either.ofValue(true), Either.ofValue(true)))
         );
         when(agentCache.removeInstances(any(), any())).thenReturn(Completable.complete());
 
         ExtTestSubscriber<List<Either<Boolean, Throwable>>> testSubscriber = new ExtTestSubscriber<>();
-        service.terminateAgents(serverGroups.get(0).getId(), agentIds, false).subscribe(testSubscriber);
+        service.terminateAgents(instanceGroups.get(0).getId(), agentIds, false).subscribe(testSubscriber);
 
         List<Either<Boolean, Throwable>> result = testSubscriber.takeNext();
         assertThat(result).hasSize(2);
@@ -242,31 +242,31 @@ public class DefaultAgentManagementServiceTest {
 
     @Test
     public void testTerminateAgentsFromDifferentServerGroups() {
-        String agentId1 = serverSet0.get(0).getId();
-        String agentId2 = serverSet1.get(0).getId();
+        String agentId1 = instanceSet0.get(0).getId();
+        String agentId2 = instanceSet1.get(0).getId();
         List<String> agentIds = asList(agentId1, agentId2);
 
-        when(agentCache.getAgentInstance(agentId1)).thenReturn(serverSet0.get(0));
-        when(agentCache.getAgentInstance(agentId2)).thenReturn(serverSet1.get(0));
+        when(agentCache.getAgentInstance(agentId1)).thenReturn(instanceSet0.get(0));
+        when(agentCache.getAgentInstance(agentId2)).thenReturn(instanceSet1.get(0));
 
         ExtTestSubscriber<List<Either<Boolean, Throwable>>> testSubscriber = new ExtTestSubscriber<>();
-        service.terminateAgents(serverGroups.get(0).getId(), agentIds, false).subscribe(testSubscriber);
+        service.terminateAgents(instanceGroups.get(0).getId(), agentIds, false).subscribe(testSubscriber);
 
         assertThat(testSubscriber.isError()).isTrue();
     }
 
     @Test
     public void testEventOnServerGroupUpdate() {
-        serverGroups.set(0, serverGroups.get(0).toBuilder().withMax(1000).build());
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, serverGroups.get(0).getId()));
+        instanceGroups.set(0, instanceGroups.get(0).toBuilder().withMax(1000).build());
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroups.get(0).getId()));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceGroupUpdateEvent.class);
     }
 
     @Test
     public void testEventOnServerGroupRemoved() {
-        String id = serverGroups.get(0).getId();
-        serverGroups.remove(0);
+        String id = instanceGroups.get(0).getId();
+        instanceGroups.remove(0);
 
         agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, id));
         AgentEvent event = eventSubscriber.takeNext();
@@ -275,29 +275,29 @@ public class DefaultAgentManagementServiceTest {
 
     @Test
     public void testEventOnServerUpdate() {
-        serverSet0.set(0, serverSet0.get(0).toBuilder().withHostname("changed").build());
-        when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
+        instanceSet0.set(0, instanceSet0.get(0).toBuilder().withHostname("changed").build());
+        when(agentCache.getAgentInstances(instanceGroups.get(0).getId())).thenReturn(new HashSet<>(instanceSet0));
 
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, serverSet0.get(0).getId()));
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, instanceSet0.get(0).getId()));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceUpdateEvent.class);
     }
 
     @Test
     public void testEventOnServerRemovedAndGroupRefresh() {
-        serverSet0.remove(0);
-        when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
+        instanceSet0.remove(0);
+        when(agentCache.getAgentInstances(instanceGroups.get(0).getId())).thenReturn(new HashSet<>(instanceSet0));
 
-        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, serverGroups.get(0).getId()));
+        agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroups.get(0).getId()));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceRemovedEvent.class);
     }
 
     @Test
     public void testEventOnServerRemoved() {
-        String id = serverSet0.get(0).getId();
-        serverSet0.remove(0);
-        when(agentCache.getAgentInstances(serverGroups.get(0).getId())).thenReturn(new HashSet<>(serverSet0));
+        String id = instanceSet0.get(0).getId();
+        instanceSet0.remove(0);
+        when(agentCache.getAgentInstances(instanceGroups.get(0).getId())).thenReturn(new HashSet<>(instanceSet0));
 
         agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, id));
         AgentEvent event = eventSubscriber.takeNext();
