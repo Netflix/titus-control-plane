@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -67,6 +68,7 @@ public class ElasticsearchTaskDocumentPublisher {
     private final Client client;
     private final Map<String, String> taskDocumentContext;
     private final TitusRuntime titusRuntime;
+    private Registry registry;
     private final ObjectMapper objectMapper;
     private final SimpleDateFormat indexDateFormat;
     private final SimpleDateFormat taskDateFormat;
@@ -75,7 +77,7 @@ public class ElasticsearchTaskDocumentPublisher {
     private final AtomicInteger errorJsonConversion = new AtomicInteger(0);
     private final AtomicInteger errorEsClient = new AtomicInteger(0);
     private final AtomicInteger errorInPublishing = new AtomicInteger(0);
-    private final AtomicInteger isAlive = new AtomicInteger(0);
+    private final AtomicLong lastPublishedTimestamp = new AtomicLong(0);
 
     @Inject
     public ElasticsearchTaskDocumentPublisher(ElasticsearchConfiguration configuration,
@@ -89,6 +91,7 @@ public class ElasticsearchTaskDocumentPublisher {
         this.client = client;
         this.taskDocumentContext = taskDocumentContext;
         this.titusRuntime = titusRuntime;
+        this.registry = registry;
 
         this.objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -101,9 +104,12 @@ public class ElasticsearchTaskDocumentPublisher {
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "docsPublished").monitorValue(docsPublished);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion").monitorValue(errorJsonConversion);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient").monitorValue(errorEsClient);
-        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "error").monitorValue(errorInPublishing);
-        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "isAlive").monitorValue(isAlive);
+        PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing").monitorValue(errorInPublishing);
+        PolledMeter.using(registry)
+                .withName(MetricConstants.METRIC_ES_PUBLISHER + "timeSinceLastPublished")
+                .monitorValue(this, ElasticsearchTaskDocumentPublisher::getTimeSinceLastPublished);
     }
+
 
     @Activator
     public void enterActiveMode() {
@@ -113,11 +119,9 @@ public class ElasticsearchTaskDocumentPublisher {
                         this::publishTaskDocuments,
                         e -> {
                             errorInPublishing.incrementAndGet();
-                            isAlive.set(0);
                             logger.error("Unable to publish task documents to elasticsearch: ", e);
                         },
                         () -> {
-                            isAlive.set(0);
                             logger.info("Finished publishing task documents to elasticsearch");
                         }
                 );
@@ -140,8 +144,8 @@ public class ElasticsearchTaskDocumentPublisher {
     }
 
     private void publishTaskDocuments(List<TaskDocument> taskDocuments) {
+        lastPublishedTimestamp.set(registry.clock().wallTime());
         try {
-            isAlive.set(1);
             if (configuration.isEnabled() && !taskDocuments.isEmpty()) {
                 Map<String, String> documentsToIndex = new HashMap<>();
                 for (TaskDocument taskDocument : taskDocuments) {
@@ -209,5 +213,9 @@ public class ElasticsearchTaskDocumentPublisher {
 
     private String getEsIndexName() {
         return configuration.getTaskDocumentEsIndexName() + indexDateFormat.format(new Date());
+    }
+
+    private long getTimeSinceLastPublished() {
+        return registry.clock().wallTime() - lastPublishedTimestamp.get();
     }
 }
