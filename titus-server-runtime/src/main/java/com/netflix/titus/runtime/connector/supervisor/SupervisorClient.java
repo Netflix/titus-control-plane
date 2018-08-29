@@ -3,6 +3,7 @@ package com.netflix.titus.runtime.connector.supervisor;
 import com.netflix.titus.grpc.protogen.MasterInstance;
 import com.netflix.titus.grpc.protogen.MasterInstances;
 import com.netflix.titus.grpc.protogen.SupervisorEvent;
+import rx.Completable;
 import rx.Observable;
 
 public interface SupervisorClient {
@@ -12,4 +13,6 @@ public interface SupervisorClient {
     Observable<MasterInstance> getMasterInstance(String instanceId);
 
     Observable<SupervisorEvent> observeEvents();
+
+    Completable stopBeingLeader();
 }

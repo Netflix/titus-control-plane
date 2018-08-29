@@ -1,8 +1,5 @@
 package com.netflix.titus.runtime.connector.supervisor.client;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.MasterInstance;
 import com.netflix.titus.grpc.protogen.MasterInstanceId;
@@ -11,13 +8,16 @@ import com.netflix.titus.grpc.protogen.SupervisorEvent;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceStub;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.supervisor.SupervisorClient;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
+import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.*;
 
 @Singleton
 public class GrpcSupervisorClient implements SupervisorClient {
@@ -58,5 +58,13 @@ public class GrpcSupervisorClient implements SupervisorClient {
             StreamObserver<SupervisorEvent> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver).observeEvents(Empty.getDefaultInstance(), streamObserver);
         });
+    }
+
+    @Override
+    public Completable stopBeingLeader() {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).stopBeingLeader(Empty.getDefaultInstance(), streamObserver);
+        }, configuration.getRequestTimeout());
     }
 }
