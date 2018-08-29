@@ -78,6 +78,7 @@ import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.canFit;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.getNumberOfTasksOnAgents;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.hasTimeElapsed;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 /**
@@ -201,6 +202,7 @@ public class ClusterAgentAutoScaler {
                 int agentCountToScaleUp = 0;
                 Set<String> potentialTaskIdsForScaleUp = new HashSet<>();
 
+                boolean usedScaleUpCooldown = false;
                 if (hasTimeElapsed(tierAutoScalerExecution.getLastScaleUp().get(), now, tierConfiguration.getScaleUpCoolDownMs())) {
                     int minIdleForTier = tierConfiguration.getMinIdle();
                     if (idleInstancesForTier.size() < minIdleForTier) {
@@ -217,7 +219,7 @@ public class ClusterAgentAutoScaler {
                     potentialTaskIdsForScaleUp.addAll(scalablePlacementFailureTaskIds);
 
                     if (agentCountToScaleUp > 0 || !scalablePlacementFailureTaskIds.isEmpty()) {
-                        tierAutoScalerExecution.getLastScaleUp().set(clock.wallTime());
+                        usedScaleUpCooldown = true;
                     }
                 }
 
@@ -258,8 +260,13 @@ public class ClusterAgentAutoScaler {
                         actions.add(scaleUpPair.getRight());
                         Integer agentCountBeingScaled = scaleUpPair.getLeft();
                         tierAutoScalerExecution.getTotalAgentsBeingScaledUpGauge().set(agentCountBeingScaled);
-                        logger.info("Attempting to scale up {} tier by {} agent instances", tier, agentCountBeingScaled);
-                        scalingUp = true;
+                        if (agentCountBeingScaled > 0) {
+                            logger.info("Attempting to scale up {} tier by {} agent instances", tier, agentCountBeingScaled);
+                            scalingUp = true;
+                            if (usedScaleUpCooldown) {
+                                tierAutoScalerExecution.getLastScaleUp().set(clock.wallTime());
+                            }
+                        }
                     }
                 }
 
@@ -281,12 +288,15 @@ public class ClusterAgentAutoScaler {
                             Pair<Long, ImmutableTokenBucket> takePair = takeOpt.get();
                             tierAutoScalerExecution.setLastScaleDownTokenBucket(takePair.getRight());
                             long tokensAvailable = takePair.getLeft();
-                            Pair<Integer, Completable> scaleDownPair = createSetRemovableOverrideStatusesCompletable(idleInstancesForTier, (int) tokensAvailable);
+                            Pair<Integer, Completable> scaleDownPair = createSetRemovableOverrideStatusesCompletable(idleInstancesForTier,
+                                    activeInstanceGroupsForTier, (int) tokensAvailable);
                             actions.add(scaleDownPair.getRight());
                             Integer agentCountBeingScaledDown = scaleDownPair.getLeft();
                             tierAutoScalerExecution.getTotalAgentsBeingScaledDownGauge().set(agentCountBeingScaledDown);
-                            logger.info("Attempting to scale down {} tier by {} agent instances", tier, agentCountBeingScaledDown);
-                            tierAutoScalerExecution.getLastScaleDown().set(clock.wallTime());
+                            if (agentCountBeingScaledDown > 0) {
+                                logger.info("Attempting to scale down {} tier by {} agent instances", tier, agentCountBeingScaledDown);
+                                tierAutoScalerExecution.getLastScaleDown().set(clock.wallTime());
+                            }
                         }
                     }
                 }
@@ -372,7 +382,7 @@ public class ClusterAgentAutoScaler {
 
     private Pair<Integer, Completable> createScaleUpCompletable(List<AgentInstanceGroup> scalableInstanceGroups, int scaleUpCount) {
         int count = 0;
-        List<Completable> scaleUpActions = new ArrayList<>();
+        List<Completable> actions = new ArrayList<>();
         for (AgentInstanceGroup instanceGroup : scalableInstanceGroups) {
             int totalAgentsNeeded = scaleUpCount - count;
             if (totalAgentsNeeded <= 0) {
@@ -380,28 +390,42 @@ public class ClusterAgentAutoScaler {
             }
             int agentsAvailableInInstanceGroup = instanceGroup.getMax() - instanceGroup.getDesired();
             int agentsToScaleInInstanceGroup = Math.min(totalAgentsNeeded, agentsAvailableInInstanceGroup);
-            scaleUpActions.add(agentManagementService.scaleUp(instanceGroup.getId(), agentsToScaleInInstanceGroup));
+            actions.add(agentManagementService.scaleUp(instanceGroup.getId(), agentsToScaleInInstanceGroup));
             count += agentsToScaleInInstanceGroup;
         }
-        return Pair.of(count, Completable.concat(scaleUpActions));
+        return Pair.of(count, Completable.concat(actions));
     }
 
-    private Pair<Integer, Completable> createSetRemovableOverrideStatusesCompletable(List<AgentInstance> idleInstances, int scaleDownCount) {
+    private Pair<Integer, Completable> createSetRemovableOverrideStatusesCompletable(List<AgentInstance> idleInstances,
+                                                                                     List<AgentInstanceGroup> scalableInstanceGroups,
+                                                                                     int scaleDownCount) {
         List<Completable> actions = new ArrayList<>();
+        Map<String, List<AgentInstance>> idleInstancesByInstanceGroup = new HashMap<>();
+        for (AgentInstance agentInstance : idleInstances) {
+            List<AgentInstance> instances = idleInstancesByInstanceGroup.computeIfAbsent(agentInstance.getInstanceGroupId(), k -> new ArrayList<>());
+            instances.add(agentInstance);
+        }
 
         int count = 0;
-        for (AgentInstance agentInstance : idleInstances) {
-            if (count >= scaleDownCount) {
+        for (AgentInstanceGroup instanceGroup : scalableInstanceGroups) {
+            int remainingAgentsToRemove = scaleDownCount - count;
+            if (remainingAgentsToRemove <= 0) {
                 break;
             }
-            InstanceOverrideStatus removableOverrideStatus = InstanceOverrideStatus.newBuilder()
-                    .withState(InstanceOverrideState.Removable)
-                    .withTimestamp(clock.wallTime())
-                    .withDetail("ClusterAgentAutoScaler setting to Removable to scale down the instance")
-                    .build();
-            Completable completable = agentManagementService.updateInstanceOverride(agentInstance.getId(), removableOverrideStatus);
-            actions.add(completable);
-            count++;
+            List<AgentInstance> agentsEligibleToRemoveInInstanceGroup = idleInstancesByInstanceGroup.getOrDefault(instanceGroup.getId(), emptyList());
+            int agentCountEligibleToRemoveInInstanceGroup = instanceGroup.getCurrent() - instanceGroup.getMin();
+            int agentCountToRemoveInInstanceGroup = Math.min(remainingAgentsToRemove, agentCountEligibleToRemoveInInstanceGroup);
+            for (int i = 0; i < agentCountToRemoveInInstanceGroup; i++) {
+                AgentInstance agentInstance = agentsEligibleToRemoveInInstanceGroup.get(i);
+                InstanceOverrideStatus removableOverrideStatus = InstanceOverrideStatus.newBuilder()
+                        .withState(InstanceOverrideState.Removable)
+                        .withTimestamp(clock.wallTime())
+                        .withDetail("ClusterAgentAutoScaler setting to Removable to scale down the instance")
+                        .build();
+                Completable completable = agentManagementService.updateInstanceOverride(agentInstance.getId(), removableOverrideStatus);
+                actions.add(completable);
+                count++;
+            }
         }
         return Pair.of(count, Completable.concat(actions));
     }

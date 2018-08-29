@@ -236,23 +236,32 @@ public class DefaultAgentManagementService implements AgentManagementService {
         if (!configuration.isInstanceGroupUpdateCapacityEnabled() || instanceIds.isEmpty()) {
             return Observable.empty();
         }
-        return Observable.fromCallable(() -> resolveServerGroup(instanceIds))
-                .flatMap(id ->
-                        instanceCloudConnector.terminateInstances(id, instanceIds, shrink)
-                                .flatMap(resultList -> {
-                                    Set<String> removedInstanceIds = new HashSet<>();
-                                    for (int i = 0; i < resultList.size(); i++) {
-                                        Either<Boolean, Throwable> result = resultList.get(i);
-                                        if (result.hasValue() && result.getValue()) {
-                                            removedInstanceIds.add(instanceIds.get(i));
+        return Observable.fromCallable(() -> resolveInstanceGroup(instanceIds))
+                .flatMap(id -> {
+                            AgentInstanceGroup instanceGroup = agentCache.getInstanceGroup(id);
+                            int differenceBetweenMinAndCurrent = instanceGroup.getCurrent() - instanceGroup.getMin();
+                            if (instanceIds.size() > differenceBetweenMinAndCurrent) {
+                                return Observable.error(AgentManagementException.invalidArgument(
+                                        "Cannot terminate %d agents as the current(%d) would be less than the min(%d)",
+                                        instanceIds.size(), instanceGroup.getCurrent(), instanceGroup.getMin()
+                                ));
+                            }
+                            return instanceCloudConnector.terminateInstances(id, instanceIds, shrink)
+                                    .flatMap(resultList -> {
+                                        Set<String> removedInstanceIds = new HashSet<>();
+                                        for (int i = 0; i < resultList.size(); i++) {
+                                            Either<Boolean, Throwable> result = resultList.get(i);
+                                            if (result.hasValue() && result.getValue()) {
+                                                removedInstanceIds.add(instanceIds.get(i));
+                                            }
                                         }
-                                    }
-                                    if (removedInstanceIds.isEmpty()) {
-                                        return Observable.empty();
-                                    }
-                                    Observable cacheUpdate = agentCache.removeInstances(instanceGroupId, removedInstanceIds).toObservable();
-                                    return (Observable<List<Either<Boolean, Throwable>>>) cacheUpdate.concatWith(Observable.just(resultList));
-                                })
+                                        if (removedInstanceIds.isEmpty()) {
+                                            return Observable.empty();
+                                        }
+                                        Observable cacheUpdate = agentCache.removeInstances(instanceGroupId, removedInstanceIds).toObservable();
+                                        return (Observable<List<Either<Boolean, Throwable>>>) cacheUpdate.concatWith(Observable.just(resultList));
+                                    });
+                        }
                 );
     }
 
@@ -288,7 +297,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
                 }).toCompletable();
     }
 
-    private String resolveServerGroup(List<String> instanceIds) {
+    private String resolveInstanceGroup(List<String> instanceIds) {
         Set<String> instanceGroupIds = instanceIds.stream()
                 .map(instanceId -> agentCache.getAgentInstance(instanceId).getInstanceGroupId())
                 .collect(Collectors.toSet());
