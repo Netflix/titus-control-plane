@@ -168,7 +168,8 @@ public class ClusterAgentAutoScaler {
             Map<String, Task> allTasks = getAllTasks();
             List<AgentInstanceGroup> activeInstanceGroups = getActiveInstanceGroups();
             Map<AgentInstanceGroup, List<AgentInstance>> instancesForActiveInstanceGroups = getInstancesForInstanceGroups(activeInstanceGroups);
-
+            Map<String, List<AgentInstance>> instancesForActiveInstanceGroupsById = instancesForActiveInstanceGroups.entrySet().stream()
+                    .collect(Collectors.toMap(e -> e.getKey().getId(), Map.Entry::getValue));
             Map<String, Long> numberOfTasksOnAgents = getNumberOfTasksOnAgents(allTasks.values());
             Map<FailureKind, List<TaskPlacementFailure>> lastTaskPlacementFailures = schedulingService.getLastTaskPlacementFailures();
             Map<String, TaskPlacementFailure> launchGuardFailuresByTaskId = getLaunchGuardFailuresByTaskId(lastTaskPlacementFailures);
@@ -289,7 +290,7 @@ public class ClusterAgentAutoScaler {
                             tierAutoScalerExecution.setLastScaleDownTokenBucket(takePair.getRight());
                             long tokensAvailable = takePair.getLeft();
                             Pair<Integer, Completable> scaleDownPair = createSetRemovableOverrideStatusesCompletable(idleInstancesForTier,
-                                    activeInstanceGroupsForTier, (int) tokensAvailable);
+                                    activeInstanceGroupsForTier, instancesForActiveInstanceGroupsById, (int) tokensAvailable);
                             actions.add(scaleDownPair.getRight());
                             Integer agentCountBeingScaledDown = scaleDownPair.getLeft();
                             tierAutoScalerExecution.getTotalAgentsBeingScaledDownGauge().set(agentCountBeingScaledDown);
@@ -398,6 +399,7 @@ public class ClusterAgentAutoScaler {
 
     private Pair<Integer, Completable> createSetRemovableOverrideStatusesCompletable(List<AgentInstance> idleInstances,
                                                                                      List<AgentInstanceGroup> scalableInstanceGroups,
+                                                                                     Map<String, List<AgentInstance>> instancesForActiveInstanceGroupsById,
                                                                                      int scaleDownCount) {
         List<Completable> actions = new ArrayList<>();
         Map<String, List<AgentInstance>> idleInstancesByInstanceGroup = new HashMap<>();
@@ -412,9 +414,15 @@ public class ClusterAgentAutoScaler {
             if (remainingAgentsToRemove <= 0) {
                 break;
             }
+
+            List<AgentInstance> removableInstancesInInstanceGroup = instancesForActiveInstanceGroupsById.getOrDefault(instanceGroup.getId(), emptyList())
+                    .stream()
+                    .filter(i -> i.getOverrideStatus().getState() == InstanceOverrideState.Removable)
+                    .collect(Collectors.toList());
+
             List<AgentInstance> agentsEligibleToRemoveInInstanceGroup = idleInstancesByInstanceGroup.getOrDefault(instanceGroup.getId(), emptyList());
-            int agentCountEligibleToRemoveInInstanceGroup = instanceGroup.getCurrent() - instanceGroup.getMin();
-            int agentCountToRemoveInInstanceGroup = Math.min(remainingAgentsToRemove, agentCountEligibleToRemoveInInstanceGroup);
+            int agentCountEligibleToRemoveInInstanceGroup = instanceGroup.getCurrent() - instanceGroup.getMin() - removableInstancesInInstanceGroup.size();
+            int agentCountToRemoveInInstanceGroup = Ints.min(remainingAgentsToRemove, agentCountEligibleToRemoveInInstanceGroup, agentsEligibleToRemoveInInstanceGroup.size());
             for (int i = 0; i < agentCountToRemoveInInstanceGroup; i++) {
                 AgentInstance agentInstance = agentsEligibleToRemoveInInstanceGroup.get(i);
                 InstanceOverrideStatus removableOverrideStatus = InstanceOverrideStatus.newBuilder()

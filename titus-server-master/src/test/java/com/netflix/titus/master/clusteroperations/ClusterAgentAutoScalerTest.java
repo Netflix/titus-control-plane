@@ -46,6 +46,7 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;
 import org.junit.Before;
@@ -150,7 +151,7 @@ public class ClusterAgentAutoScalerTest {
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
-        List<AgentInstance> agentInstances = createAgents(12, "instanceGroup1");
+        List<AgentInstance> agentInstances = createAgents(12, "instanceGroup1", InstanceOverrideState.None);
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
         when(agentManagementService.updateInstanceOverride(any(), any())).thenReturn(Completable.complete());
 
@@ -278,7 +279,7 @@ public class ClusterAgentAutoScalerTest {
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
-        List<AgentInstance> agentInstances = createAgents(20, "instanceGroup1");
+        List<AgentInstance> agentInstances = createAgents(20, "instanceGroup1", InstanceOverrideState.None);
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
         when(agentManagementService.updateInstanceOverride(any(), any())).thenReturn(Completable.complete());
 
@@ -303,6 +304,7 @@ public class ClusterAgentAutoScalerTest {
     @Test
     public void testScaleDownForIdleAgentsDoesNotGoPastInstanceGroupMin() {
         when(configuration.getFlexMinIdle()).thenReturn(0);
+        when(configuration.getAgentInstanceRemovableTimeoutMs()).thenReturn(9999999999L);
 
         AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
                 .withId("instanceGroup1")
@@ -318,7 +320,10 @@ public class ClusterAgentAutoScalerTest {
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
-        List<AgentInstance> agentInstances = createAgents(20, "instanceGroup1");
+        List<AgentInstance> agentInstances = CollectionsExt.merge(
+                createAgents(18, "instanceGroup1", InstanceOverrideState.None),
+                createAgents(2, "instanceGroup1", InstanceOverrideState.Removable)
+        );
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
         when(agentManagementService.updateInstanceOverride(any(), any())).thenReturn(Completable.complete());
 
@@ -331,17 +336,17 @@ public class ClusterAgentAutoScalerTest {
 
         clusterAgentAutoScaler.doAgentScaling().await();
 
-        verify(agentManagementService, times(7)).updateInstanceOverride(any(), any());
+        verify(agentManagementService, times(5)).updateInstanceOverride(any(), any());
     }
 
-    private List<AgentInstance> createAgents(int count, String instanceGroupId) {
+    private List<AgentInstance> createAgents(int count, String instanceGroupId, InstanceOverrideState overrideState) {
         List<AgentInstance> agents = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             AgentInstance agentInstance = AgentInstance.newBuilder()
                     .withId("agentInstance" + i)
                     .withInstanceGroupId(instanceGroupId)
                     .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Started).withLaunchTimestamp(titusRuntime.getClock().wallTime()).build())
-                    .withOverrideStatus(InstanceOverrideStatus.newBuilder().withState(InstanceOverrideState.None).build())
+                    .withOverrideStatus(InstanceOverrideStatus.newBuilder().withState(overrideState).build())
                     .build();
             agents.add(agentInstance);
         }

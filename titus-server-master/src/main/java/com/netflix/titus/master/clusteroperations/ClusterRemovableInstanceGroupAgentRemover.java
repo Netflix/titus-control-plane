@@ -197,12 +197,19 @@ public class ClusterRemovableInstanceGroupAgentRemover {
                     if (agentInstances.isEmpty()) {
                         continue;
                     }
-                    String instanceGroupId = entry.getKey().getId();
-                    List<AgentInstance> agentInstancesToTerminate = agentInstances.size() > tokensAvailable ? agentInstances.subList(0, (int) tokensRemaining) : agentInstances;
-                    List<String> agentInstanceIdsToTerminate = agentInstancesToTerminate.stream().map(AgentInstance::getId).collect(Collectors.toList());
-                    logger.info("Terminating in instance group: {} agent instances({}): {}", instanceGroupId, agentInstanceIdsToTerminate.size(), agentInstanceIdsToTerminate);
-                    actions.add(createTerminateAgentsCompletable(instanceGroupId, agentInstanceIdsToTerminate));
-                    tokensUsed += agentInstanceIdsToTerminate.size();
+                    AgentInstanceGroup instanceGroup = entry.getKey();
+                    String instanceGroupId = instanceGroup.getId();
+                    int agentCountEligibleToTerminateInInstanceGroup = instanceGroup.getCurrent() - instanceGroup.getMin();
+                    int agentCountToTerminate = Math.min((int) tokensRemaining, agentCountEligibleToTerminateInInstanceGroup);
+                    if (agentCountToTerminate > 0) {
+                        List<String> agentInstanceIdsToTerminate = agentInstances.stream()
+                                .limit(agentCountToTerminate)
+                                .map(AgentInstance::getId)
+                                .collect(Collectors.toList());
+                        logger.info("Terminating in instance group: {} agent instances({}): {}", instanceGroupId, agentInstanceIdsToTerminate.size(), agentInstanceIdsToTerminate);
+                        actions.add(createTerminateAgentsCompletable(instanceGroupId, agentInstanceIdsToTerminate));
+                        tokensUsed += agentInstanceIdsToTerminate.size();
+                    }
                 }
                 totalAgentsBeingRemovedGauge.set(tokensUsed);
                 return Completable.concat(actions);

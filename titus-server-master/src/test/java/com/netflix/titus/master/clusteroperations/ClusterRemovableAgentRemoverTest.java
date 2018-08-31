@@ -39,9 +39,13 @@ import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -97,6 +101,48 @@ public class ClusterRemovableAgentRemoverTest {
         clusterRemovableAgentRemover.doRemoveAgents().await();
 
         verify(agentManagementService).terminateAgents("instanceGroup1", singletonList("agentInstance1"), true);
+    }
+
+    @Test
+    public void testDoNotRemoveMoreAgentsThanInstanceGroupMin() {
+        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("instanceGroup1")
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withMin(2)
+                .withCurrent(2)
+                .withDesired(2)
+                .withMax(2)
+                .build();
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+
+        AgentInstance agentInstance1 = AgentInstance.newBuilder()
+                .withId("agentInstance1")
+                .withInstanceGroupId("instanceGroup1")
+                .build();
+        AgentInstance agentInstance2 = AgentInstance.newBuilder()
+                .withId("agentInstance2")
+                .withInstanceGroupId("instanceGroup1")
+                .build();
+
+        List<AgentInstance> agentInstances = asList(agentInstance1, agentInstance2);
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
+
+        when(agentManagementService.terminateAgents("instanceGroup1", singletonList("agentInstance1"), true))
+                .thenReturn(Observable.just(singletonList(Either.ofValue(true))));
+
+        when(v3JobOperations.getTasks()).thenReturn(emptyList());
+
+        testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
+
+        ClusterRemovableInstanceGroupAgentRemover clusterRemovableInstanceGroupAgentRemover = new ClusterRemovableInstanceGroupAgentRemover(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, testScheduler);
+
+        clusterRemovableInstanceGroupAgentRemover.doRemoveAgents().await();
+
+        verify(agentManagementService, times(0)).terminateAgents(any(), any(), anyBoolean());
     }
 
     private Task createTask(String agentId) {
