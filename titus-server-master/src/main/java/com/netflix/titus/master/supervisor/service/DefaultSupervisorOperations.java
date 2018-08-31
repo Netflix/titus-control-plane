@@ -84,16 +84,7 @@ public class DefaultSupervisorOperations implements SupervisorOperations {
     public void stopBeingLeader(CallMetadata callMetadata) {
         if (!leaderActivator.isLeader()) {
             logger.warn("System shutdown requested for non-leader node by: {}", callMetadata);
-
-            titusRuntime.getSystemLogService().submit(SystemLogEvent.newBuilder()
-                    .withPriority(SystemLogEvent.Priority.Warn)
-                    .withMessage("System shutdown requested for non-leader node; ignoring it")
-                    .withComponent(COMPONENT)
-                    .withCategory(SystemLogEvent.Category.Transient)
-                    .withContext(CallMetadataUtils.asMap(callMetadata))
-                    .build()
-            );
-            return;
+            throw SupervisorServiceException.notLeader(masterMonitor.getCurrentMasterInstance());
         }
 
         logger.warn("System shutdown requested for the current leader by: {}", callMetadata);

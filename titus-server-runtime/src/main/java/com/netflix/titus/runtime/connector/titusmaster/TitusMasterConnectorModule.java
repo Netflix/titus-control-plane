@@ -48,6 +48,7 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
+import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import okhttp3.Interceptor;
@@ -115,6 +116,12 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     HealthStub healthClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return HealthGrpc.newStub(channel);
+    }
+
+    @Provides
+    @Singleton
+    SupervisorServiceGrpc.SupervisorServiceStub supervisorClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return SupervisorServiceGrpc.newStub(channel);
     }
 
     @Provides
