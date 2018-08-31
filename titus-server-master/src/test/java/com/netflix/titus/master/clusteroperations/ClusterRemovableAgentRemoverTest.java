@@ -70,6 +70,10 @@ public class ClusterRemovableAgentRemoverTest {
                         .withState(InstanceGroupLifecycleState.Active)
                         .withTimestamp(titusRuntime.getClock().wallTime())
                         .build())
+                .withMin(0)
+                .withCurrent(2)
+                .withDesired(2)
+                .withMax(2)
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
