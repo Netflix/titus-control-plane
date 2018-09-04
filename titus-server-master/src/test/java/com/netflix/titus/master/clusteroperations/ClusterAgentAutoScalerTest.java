@@ -60,6 +60,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -258,6 +259,65 @@ public class ClusterAgentAutoScalerTest {
         clusterAgentAutoScaler.doAgentScaling().await();
 
         verify(agentManagementService).scaleUp("instanceGroup1", 10);
+    }
+
+    @Test
+    public void testScaleUpForNonPrimaryInstanceType() {
+        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("instanceGroup1")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("m4.16xlarge")
+                .withMin(0)
+                .withCurrent(0)
+                .withMax(10)
+                .build();
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
+        when(agentManagementService.scaleUp(eq("instanceGroup1"), anyInt())).thenReturn(Completable.complete());
+
+        testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        verify(agentManagementService, times(0)).scaleUp(anyString(), anyInt());
+    }
+
+    @Test
+    public void testScaleDownForNonPrimaryInstanceType() {
+        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("instanceGroup1")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("m4.16xlarge")
+                .withMin(0)
+                .withCurrent(12)
+                .withMax(20)
+                .build();
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+
+        List<AgentInstance> agentInstances = createAgents(12, "instanceGroup1", InstanceOverrideState.None);
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
+        when(agentManagementService.updateInstanceOverride(any(), any())).thenReturn(Completable.complete());
+
+        testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        verify(agentManagementService, times(0)).updateInstanceOverride(any(), any());
     }
 
     @Test

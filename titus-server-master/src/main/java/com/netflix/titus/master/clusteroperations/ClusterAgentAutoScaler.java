@@ -183,15 +183,17 @@ public class ClusterAgentAutoScaler {
                 TierAutoScalerExecution tierAutoScalerExecution = tierTierAutoScalerExecutions.computeIfAbsent(
                         tier, k -> new TierAutoScalerExecution(tier, titusRuntime.getRegistry())
                 );
+
+                String primaryInstanceType = tierConfiguration.getPrimaryInstanceType();
                 // This will throw an exception if not properly configured
-                ResourceDimension tierResourceDimension = agentManagementService.getResourceLimits(tierConfiguration.getPrimaryInstanceType());
+                ResourceDimension tierResourceDimension = agentManagementService.getResourceLimits(primaryInstanceType);
 
-                List<AgentInstanceGroup> activeInstanceGroupsForTier = activeInstanceGroups.stream()
-                        .filter(ig -> ig.getTier() == tier)
+                List<AgentInstanceGroup> activeScalableInstanceGroupsForTier = activeInstanceGroups.stream()
+                        .filter(ig -> ig.getTier() == tier && ig.getInstanceType().equals(primaryInstanceType))
                         .collect(Collectors.toList());
-                logger.info("{} active instance groups({}): {}", tier, activeInstanceGroupsForTier.size(), activeInstanceGroupsForTier);
+                logger.info("{} active instance groups({}): {}", tier, activeScalableInstanceGroupsForTier.size(), activeScalableInstanceGroupsForTier);
 
-                List<AgentInstance> idleInstancesForTier = getIdleInstancesForTier(tier, tierConfiguration.getPrimaryInstanceType(),
+                List<AgentInstance> idleInstancesForTier = getIdleInstancesForTier(tier, primaryInstanceType,
                         instancesForActiveInstanceGroups, numberOfTasksOnAgents, now, tierConfiguration.getIdleInstanceGracePeriodMs());
                 tierAutoScalerExecution.getTotalIdleInstancesGauge().set(idleInstancesForTier.size());
                 logger.info("{} idle instances({}): {}", tier, idleInstancesForTier.size(), idleInstancesForTier);
@@ -257,11 +259,11 @@ public class ClusterAgentAutoScaler {
                         Pair<Long, ImmutableTokenBucket> takePair = takeOpt.get();
                         tierAutoScalerExecution.setLastScaleUpTokenBucket(takePair.getRight());
                         long tokensAvailable = takePair.getLeft();
-                        Pair<Integer, Completable> scaleUpPair = createScaleUpCompletable(activeInstanceGroupsForTier, (int) tokensAvailable);
-                        actions.add(scaleUpPair.getRight());
+                        Pair<Integer, Completable> scaleUpPair = createScaleUpCompletable(activeScalableInstanceGroupsForTier, (int) tokensAvailable);
                         Integer agentCountBeingScaled = scaleUpPair.getLeft();
                         tierAutoScalerExecution.getTotalAgentsBeingScaledUpGauge().set(agentCountBeingScaled);
                         if (agentCountBeingScaled > 0) {
+                            actions.add(scaleUpPair.getRight());
                             logger.info("Attempting to scale up {} tier by {} agent instances", tier, agentCountBeingScaled);
                             scalingUp = true;
                             if (usedScaleUpCooldown) {
@@ -290,11 +292,11 @@ public class ClusterAgentAutoScaler {
                             tierAutoScalerExecution.setLastScaleDownTokenBucket(takePair.getRight());
                             long tokensAvailable = takePair.getLeft();
                             Pair<Integer, Completable> scaleDownPair = createSetRemovableOverrideStatusesCompletable(idleInstancesForTier,
-                                    activeInstanceGroupsForTier, instancesForActiveInstanceGroupsById, (int) tokensAvailable);
-                            actions.add(scaleDownPair.getRight());
+                                    activeScalableInstanceGroupsForTier, instancesForActiveInstanceGroupsById, (int) tokensAvailable);
                             Integer agentCountBeingScaledDown = scaleDownPair.getLeft();
                             tierAutoScalerExecution.getTotalAgentsBeingScaledDownGauge().set(agentCountBeingScaledDown);
                             if (agentCountBeingScaledDown > 0) {
+                                actions.add(scaleDownPair.getRight());
                                 logger.info("Attempting to scale down {} tier by {} agent instances", tier, agentCountBeingScaledDown);
                                 tierAutoScalerExecution.getLastScaleDown().set(clock.wallTime());
                             }
@@ -313,7 +315,7 @@ public class ClusterAgentAutoScaler {
                 logger.info("Resetting agent instances({}): {}", removableInstancesPastElapsedTime.size(), removableInstancesPastElapsedTime);
             }
 
-            return Completable.concat(actions);
+            return actions.isEmpty() ? Completable.complete() : Completable.concat(actions);
         }).doOnCompleted(() -> logger.debug("Completed scaling agents"))
                 .timeout(CLUSTER_AGENT_AUTO_SCALE_COMPLETABLE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
