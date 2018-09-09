@@ -398,4 +398,11 @@ public final class StringExt {
     public static String doubleQuotes(String text) {
         return "\"" + text + "\"";
     }
+
+    /**
+     * Append the value to the end of the text if the value is not already there.
+     */
+    public static String appendToEndIfMissing(String text, String value) {
+        return text.endsWith(value) ? text : text + value;
+    }
 }

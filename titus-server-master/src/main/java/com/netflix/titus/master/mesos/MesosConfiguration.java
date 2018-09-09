@@ -70,12 +70,6 @@ public interface MesosConfiguration {
     int getDefaultKillWaitSeconds();
 
     /**
-     * @return whether or not the ignoreLaunchGuard flag should be sent to the agent on a v3 task.
-     */
-    @DefaultValue("false")
-    boolean isV3IgnoreLaunchGuardEnabled();
-
-    /**
      * @return whether or not to override the executor URI on an agent.
      */
     @DefaultValue("true")
@@ -92,4 +86,10 @@ public interface MesosConfiguration {
      */
     @DefaultValue("./run")
     String getExecutorUriOverrideCommand();
+
+    /**
+     * @return the registry URL that will be merged with the image name.
+     */
+    @DefaultValue("")
+    String getRegistryUrl();
 }
