@@ -59,7 +59,7 @@ public class ResourceConsumptionEvaluatorTest {
     private final RuntimeModelGenerator runtimeModelGenerator = new RuntimeModelGenerator(getClass().getSimpleName());
 
     @Test
-    public void testEvaluation() throws Exception {
+    public void testEvaluation() {
         when(applicationSlaManagementService.getApplicationSLAs()).thenReturn(asList(ConsumptionModelGenerator.DEFAULT_SLA, ConsumptionModelGenerator.CRITICAL_SLA_1, ConsumptionModelGenerator.NOT_USED_SLA));
 
         // Job with defined capacity group SLA
@@ -109,7 +109,7 @@ public class ResourceConsumptionEvaluatorTest {
                 ConsumptionModelGenerator.singleWorkerConsumptionOf(goodCapacityJob) // We have single worker in Started state
         );
 
-        assertThat(criticalConsumption.getAllowedConsumption()).isEqualTo(ResourceDimensions.multiply(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.CRITICAL_SLA_1), (1 + BUFFER)));
+        assertThat(criticalConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.CRITICAL_SLA_1));
         assertThat(criticalConsumption.isAboveLimit()).isTrue();
 
         // Default capacity group
@@ -123,7 +123,7 @@ public class ResourceConsumptionEvaluatorTest {
                 )
         );
 
-        assertThat(defaultConsumption.getAllowedConsumption()).isEqualTo(ResourceDimensions.multiply(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.DEFAULT_SLA), (1 + BUFFER)));
+        assertThat(defaultConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.DEFAULT_SLA));
         assertThat(defaultConsumption.isAboveLimit()).isFalse();
 
         // Not used capacity group
@@ -131,7 +131,7 @@ public class ResourceConsumptionEvaluatorTest {
                 systemConsumption, Tier.Critical.name(), ConsumptionModelGenerator.NOT_USED_SLA.getAppName()
         ).get();
         assertThat(notUsedConsumption.getCurrentConsumption()).isEqualTo(ResourceDimension.empty());
-        assertThat(notUsedConsumption.getAllowedConsumption()).isEqualTo(ResourceDimensions.multiply(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.NOT_USED_SLA), (1 + BUFFER)));
+        assertThat(notUsedConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.NOT_USED_SLA));
         assertThat(notUsedConsumption.isAboveLimit()).isFalse();
     }
 }

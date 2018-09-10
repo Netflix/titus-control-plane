@@ -81,6 +81,7 @@ public class DefaultAvailableCapacityServiceTest {
 
         AgentInstanceGroup criticalInstanceGroup = AgentGenerator.agentServerGroups(Tier.Critical, 0, singletonList(M4_XLARGE_ID)).getValue()
                 .toBuilder()
+                .withCurrent(CRITICAL_INSTANCE_COUNT)
                 .withMax(CRITICAL_INSTANCE_COUNT)
                 .build();
 
@@ -95,12 +96,12 @@ public class DefaultAvailableCapacityServiceTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         availableCapacityService.shutdown();
     }
 
     @Test
-    public void testCapacityComputationCorrectness() throws Exception {
+    public void testCapacityComputationCorrectness() {
         testScheduler.triggerActions();
 
         Optional<ResourceDimension> capacity = availableCapacityService.totalCapacityOf(Tier.Critical);

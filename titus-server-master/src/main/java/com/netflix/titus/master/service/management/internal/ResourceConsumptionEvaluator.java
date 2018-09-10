@@ -115,8 +115,7 @@ class ResourceConsumptionEvaluator {
         capacityGroupConsumptionMap.forEach((capacityGroup, appConsumptions) -> {
 
             ApplicationSLA sla = applicationSlaMap.get(capacityGroup);
-            double buffer = getBuffer(sla.getTier());
-            ResourceDimension allowedConsumption = ResourceDimensions.multiply(sla.getResourceDimension(), sla.getInstanceCount() * (1 + buffer));
+            ResourceDimension allowedConsumption = ResourceDimensions.multiply(sla.getResourceDimension(), sla.getInstanceCount());
             ResourceDimension maxConsumption = ResourceConsumptions.addMaxConsumptions(appConsumptions.values());
 
             List<Map<String, Object>> attrsList = appConsumptions.values().stream().map(ResourceConsumption::getAttributes).collect(Collectors.toList());
