@@ -101,6 +101,15 @@ public enum AwsInstanceType {
             .ebsBandwidthMbs(4000)
             .build()
     ),
+    M4_16XLarge(AwsInstanceDescriptor.newBuilder("m4.16xlarge")
+            .cpu(64)
+            .memoryGB(256)
+            .storageGB(1_000)
+            .networkMbs(25000)
+            .ebsOnly()
+            .ebsBandwidthMbs(10_000)
+            .build()
+    ),
 
     /*
      * R3 family
@@ -217,6 +226,7 @@ public enum AwsInstanceType {
     public static final String M4_2XLARGE_ID = "m4.2xlarge";
     public static final String M4_4XLARGE_ID = "m4.4xlarge";
     public static final String M4_10XLARGE_ID = "m4.10xlarge";
+    public static final String M4_16XLARGE_ID = "m4.16xlarge";
 
     public static final String R3_2XLARGE_ID = "r3.2xlarge";
     public static final String R3_4XLARGE_ID = "r3.4xlarge";

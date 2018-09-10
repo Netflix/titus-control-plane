@@ -129,7 +129,8 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
             if (instanceGroup.getTier() == tier && isActiveOrPhasedOut(instanceGroup)) {
                 Optional<ServerInfo> serverInfo = serverInfoResolver.resolve(instanceGroup.getInstanceType());
                 if (serverInfo.isPresent()) {
-                    total = ResourceDimensions.add(total, toResourceDimension(serverInfo.get(), instanceGroup.getMax()));
+                    long maxSize = tier == Tier.Critical ? instanceGroup.getCurrent() : instanceGroup.getMax();
+                    total = ResourceDimensions.add(total, toResourceDimension(serverInfo.get(), maxSize));
                 }
             }
         }

@@ -43,7 +43,7 @@ public interface ClusterOperationsConfiguration {
     /**
      * @return the maximum number of idle agents to keep for the Critical tier.
      */
-    @DefaultValue("10")
+    @DefaultValue("5")
     int getCriticalMaxIdle();
 
     /**
@@ -62,7 +62,7 @@ public interface ClusterOperationsConfiguration {
      * @return the amount of time the auto scaler can wait for an individual Critical tier task before scaling up instances
      * for it.
      */
-    @DefaultValue("60000")
+    @DefaultValue("300000")
     long getCriticalTaskSloMs();
 
     /**
