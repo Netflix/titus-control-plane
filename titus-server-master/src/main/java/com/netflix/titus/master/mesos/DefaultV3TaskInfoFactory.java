@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
@@ -109,10 +110,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         SecurityProfile v3SecurityProfile = container.getSecurityProfile();
 
         // Docker Values (Image, entrypoint, and command)
-        Image image = container.getImage();
-        containerInfoBuilder.setImageName(image.getName());
-        applyNotNull(image.getDigest(), containerInfoBuilder::setImageDigest);
-        applyNotNull(image.getTag(), containerInfoBuilder::setVersion);
+        setImage(containerInfoBuilder, container.getImage());
         setEntryPointCommand(containerInfoBuilder, container);
 
         // Netflix Values
@@ -173,10 +171,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INDEX", "" + batchJobTask.getIndex());
         }
 
-        // Set whether or not to ignore the launch guard
-        if (mesosConfiguration.isV3IgnoreLaunchGuardEnabled()) {
-            containerInfoBuilder.setIgnoreLaunchGuard(true);
-        }
+        // Always set this to true until it is removed from the executor
+        containerInfoBuilder.setIgnoreLaunchGuard(true);
 
         // AWS Values
         // Configure IAM Role
@@ -204,6 +200,18 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         containerInfoBuilder.addAllEfsConfigInfo(setupEfsMounts(containerResources.getEfsMounts()));
 
         return containerInfoBuilder;
+    }
+
+    private void setImage(ContainerInfo.Builder containerInfoBuilder, Image image) {
+        containerInfoBuilder.setImageName(image.getName());
+        String registryUrl = mesosConfiguration.getRegistryUrl();
+        if (!Strings.isNullOrEmpty(registryUrl)) {
+            String updatedRegistryUrl = StringExt.appendToEndIfMissing(registryUrl, "/");
+            String fullQualifiedImage = updatedRegistryUrl + image.getName();
+            containerInfoBuilder.setFullyQualifiedImage(fullQualifiedImage);
+        }
+        applyNotNull(image.getDigest(), containerInfoBuilder::setImageDigest);
+        applyNotNull(image.getTag(), containerInfoBuilder::setVersion);
     }
 
     private void setEntryPointCommand(ContainerInfo.Builder containerInfoBuilder, Container container) {
