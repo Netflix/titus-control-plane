@@ -1,16 +1,18 @@
 package com.netflix.titus.runtime.connector.common.replicator;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Scheduler;
-import rx.functions.Func1;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 
 public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<D> {
 
@@ -37,13 +39,13 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
     }
 
     @Override
-    public Observable<ReplicatorEvent<D>> connect() {
+    public Flux<ReplicatorEvent<D>> connect() {
         return connectInternal((ReplicatorEvent<D>) UNINITIALIZED);
     }
 
-    private Observable<ReplicatorEvent<D>> connectInternal(ReplicatorEvent<D> lastReplicatorEvent) {
+    private Flux<ReplicatorEvent<D>> connectInternal(ReplicatorEvent<D> lastReplicatorEvent) {
         return createDelegateEmittingAtLeastOneItem(lastReplicatorEvent)
-                .onErrorResumeNext(e -> {
+                .onErrorResume(e -> {
                     metrics.disconnected();
 
                     if (e instanceof DataReplicatorException) {
@@ -63,37 +65,43 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                     metrics.connected();
                     metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
                 })
-                .doOnUnsubscribe(metrics::disconnected)
+                .doOnCancel(metrics::disconnected)
                 .doOnError(error -> {
                     // Because we always retry, we should never reach this point.
                     logger.warn("Retryable stream terminated with an error", new IllegalStateException(error)); // Record current stack trace if that happens
                     titusRuntime.getCodeInvariants().unexpectedError("Retryable stream terminated with an error", error.getMessage());
                     metrics.disconnected(error);
                 })
-                .doOnCompleted(metrics::disconnected);
+                .doOnComplete(metrics::disconnected);
     }
 
-    private Observable<ReplicatorEvent<D>> createDelegateEmittingAtLeastOneItem(ReplicatorEvent<D> lastReplicatorEvent) {
-        return Observable.fromCallable(() -> new AtomicReference<>(lastReplicatorEvent))
-                .flatMap(ref -> {
-                            Observable<ReplicatorEvent<D>> staleCacheObservable = Observable.interval(LATENCY_REPORT_INTERVAL_MS, LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS, scheduler)
-                                    .takeUntil(tick -> ref.get() != lastReplicatorEvent)
-                                    .map(tick -> lastReplicatorEvent);
+    private Flux<ReplicatorEvent<D>> createDelegateEmittingAtLeastOneItem(ReplicatorEvent<D> lastReplicatorEvent) {
+        return Flux.defer(() -> {
+                    AtomicReference<ReplicatorEvent<D>> ref = new AtomicReference<>(lastReplicatorEvent);
 
-                            Func1<Observable<? extends Throwable>, Observable<?>> retryer = RetryHandlerBuilder.retryHandler()
-                                    .withRetryWhen(() -> ref.get() == lastReplicatorEvent)
-                                    .withUnlimitedRetries()
-                                    .withDelay(INITIAL_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS, TimeUnit.MILLISECONDS)
-                                    .withScheduler(scheduler)
-                                    .buildExponentialBackoff();
+                    Flux<ReplicatorEvent<D>> staleCacheObservable = Flux
+                            .interval(
+                                    Duration.ofMillis(LATENCY_REPORT_INTERVAL_MS),
+                                    Duration.ofMillis(LATENCY_REPORT_INTERVAL_MS),
+                                    scheduler
+                            )
+                            .takeUntil(tick -> ref.get() != lastReplicatorEvent)
+                            .map(tick -> lastReplicatorEvent);
 
-                            Observable<ReplicatorEvent<D>> newCacheObservable = delegate.connect()
-                                    .doOnNext(ref::set)
-                                    .retryWhen(retryer)
-                                    .onErrorResumeNext(e -> Observable.error(new DataReplicatorException(Optional.ofNullable(ref.get()), e)));
+                    Function<Flux<Throwable>, Publisher<?>> retryer = RetryHandlerBuilder.retryHandler()
+                            .withRetryWhen(() -> ref.get() == lastReplicatorEvent)
+                            .withUnlimitedRetries()
+                            .withDelay(INITIAL_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS, TimeUnit.MILLISECONDS)
+                            .withReactorScheduler(scheduler)
+                            .buildReactorExponentialBackoff();
 
-                            return Observable.merge(staleCacheObservable, newCacheObservable);
-                        }
-                );
+                    Flux<ReplicatorEvent<D>> newCacheObservable = delegate.connect()
+                            .doOnNext(ref::set)
+                            .retryWhen(retryer)
+                            .onErrorResume(e -> Flux.error(new DataReplicatorException(Optional.ofNullable(ref.get()), e)));
+
+                    return Flux.merge(staleCacheObservable, newCacheObservable);
+                }
+        );
     }
 }
