@@ -715,13 +715,13 @@
             "requested": "4.10"
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -746,7 +746,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.21.0",
+            "locked": "2.22.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -867,13 +867,13 @@
             "requested": "4.10"
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -898,7 +898,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.21.0",
+            "locked": "2.22.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1025,13 +1025,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1056,7 +1056,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.21.0",
+            "locked": "2.22.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1190,13 +1190,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.8.15",
+            "locked": "1.8.21",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1221,7 +1221,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.21.0",
+            "locked": "2.22.0",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
