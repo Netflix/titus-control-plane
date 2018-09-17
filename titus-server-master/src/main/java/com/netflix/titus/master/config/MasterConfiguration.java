@@ -110,10 +110,6 @@ public interface MasterConfiguration extends CoreConfiguration {
     @DefaultValue("zone")
     String getHostZoneAttributeName();
 
-    @PropertyName(name = "titus.agent.cluster.autoscale.by.attribute.name")
-    @DefaultValue("asg")
-    String getAutoscaleByAttributeName();
-
     @PropertyName(name = "titus.agent.cluster.instance.type")
     @DefaultValue("itype")
     String getInstanceTypeAttributeName();

@@ -351,14 +351,4 @@ class ResourceConsumptionEvaluator {
     private List<Task> getRunningWorkers(List<Task> tasks) {
         return tasks.stream().filter(t -> TaskState.isRunning(t.getStatus().getState())).collect(Collectors.toList());
     }
-
-    private double getBuffer(Tier tier) {
-        double buffer = 0.0;
-        if (tier == Tier.Critical) {
-            buffer = config.getCriticalTierBuffer();
-        } else if (tier == Tier.Flex) {
-            buffer = config.getFlexTierBuffer();
-        }
-        return buffer;
-    }
 }

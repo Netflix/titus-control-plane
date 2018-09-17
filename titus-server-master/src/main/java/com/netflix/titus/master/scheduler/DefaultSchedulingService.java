@@ -20,12 +20,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -45,10 +43,6 @@ import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet.PreferentialNamedConsumableResource;
-import com.netflix.fenzo.ScaleDownAction;
-import com.netflix.fenzo.ScaleDownConstraintEvaluator;
-import com.netflix.fenzo.ScaleDownOrderEvaluator;
-import com.netflix.fenzo.ScaleUpAction;
 import com.netflix.fenzo.SchedulingResult;
 import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskRequest;
@@ -66,9 +60,6 @@ import com.netflix.fenzo.queues.TaskQueues;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
-import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import com.netflix.titus.api.agent.service.AgentManagementFunctions;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -80,10 +71,8 @@ import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.VirtualMachineMasterService;
@@ -99,8 +88,6 @@ import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculat
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
-import com.netflix.titus.master.scheduler.scaling.DefaultAutoScaleController;
-import com.netflix.titus.master.scheduler.scaling.FenzoAutoScaleRuleWrapper;
 import com.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -123,7 +110,7 @@ public class DefaultSchedulingService implements SchedulingService {
 
     // Choose this max delay between scheduling iterations with care. Making it too short makes scheduler do unnecessary
     // work when assignments are not possible. On the other hand, making it too long will delay other aspects such as
-    // triggerring autoscale actions, expiring mesos offers, etc.
+    // expiring mesos offers, etc.
     private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
 
     private final VirtualMachineMasterService virtualMachineService;
@@ -138,8 +125,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private TaskQueue taskQueue;
     private Subscription slaUpdateSubscription;
     private final TaskPlacementFailureClassifier taskPlacementFailureClassifier;
-
-    private final TaskToClusterMapper taskToClusterMapper = new TaskToClusterMapper();
 
     private final Gauge totalTasksPerIterationGauge;
     private final Gauge assignedTasksPerIterationGauge;
@@ -186,7 +171,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final Registry registry;
     private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
-    private final DefaultAutoScaleController autoScaleController;
     private Subscription vmStateUpdateSubscription;
 
     private final AtomicReference<Map<String, List<TaskAssignmentResult>>> lastSchedulingResult = new AtomicReference<>();
@@ -198,7 +182,6 @@ public class DefaultSchedulingService implements SchedulingService {
     public DefaultSchedulingService(V2JobOperations v2JobOperations,
                                     V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
-                                    DefaultAutoScaleController autoScaleController,
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
@@ -208,29 +191,25 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TaskCache taskCache,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
-                                    ScaleDownOrderEvaluator scaleDownOrderEvaluator,
-                                    Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     AgentManagementFitnessCalculator agentManagementFitnessCalculator,
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
-                                    RxEventBus rxEventBus,
                                     AgentResourceCache agentResourceCache,
                                     Config config) {
-        this(v2JobOperations, v3JobOperations, agentManagementService, autoScaleController, v3TaskInfoFactory, vmOps,
+        this(v2JobOperations, v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps,
                 virtualMachineService, masterConfiguration, schedulerConfiguration,
                 systemHardConstraint, taskCache,
                 Schedulers.computation(),
-                tierSlaUpdater, registry, scaleDownOrderEvaluator, weightedScaleDownConstraintEvaluators,
+                tierSlaUpdater, registry,
                 preferentialNamedConsumableResourceEvaluator, agentManagementFitnessCalculator,
-                taskMigrator, titusRuntime, rxEventBus, agentResourceCache, config
+                taskMigrator, titusRuntime, agentResourceCache, config
         );
     }
 
     public DefaultSchedulingService(V2JobOperations v2JobOperations,
                                     V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
-                                    DefaultAutoScaleController autoScaleController,
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
@@ -241,19 +220,15 @@ public class DefaultSchedulingService implements SchedulingService {
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
-                                    ScaleDownOrderEvaluator scaleDownOrderEvaluator,
-                                    Map<ScaleDownConstraintEvaluator, Double> weightedScaleDownConstraintEvaluators,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     AgentManagementFitnessCalculator agentManagementFitnessCalculator,
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
-                                    RxEventBus rxEventBus,
                                     AgentResourceCache agentResourceCache,
                                     Config config) {
         this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
-        this.autoScaleController = autoScaleController;
         this.vmOps = vmOps;
         this.virtualMachineService = virtualMachineService;
         this.masterConfiguration = masterConfiguration;
@@ -283,14 +258,11 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withLeaseOfferExpirySecs(masterConfiguration.getMesosLeaseOfferExpirySecs())
                 .withFitnessCalculator(new TitusFitnessCalculator(schedulerConfiguration, agentManagementFitnessCalculator, agentResourceCache))
                 .withFitnessGoodEnoughFunction(TitusFitnessCalculator.fitnessGoodEnoughFunction)
-                .withAutoScaleByAttributeName(masterConfiguration.getAutoscaleByAttributeName())
-                .withScaleDownOrderEvaluator(scaleDownOrderEvaluator)
-                .withWeightedScaleDownConstraintEvaluators(weightedScaleDownConstraintEvaluators)
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
                 .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent())
                 .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize);
 
-        taskScheduler = setupTaskSchedulerAndAutoScaler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
+        taskScheduler = setupTaskScheduler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);
         schedulingService = setupTaskSchedulingService(taskScheduler);
         virtualMachineService.setVMLeaseHandler(schedulingService::addLeases);
@@ -387,21 +359,10 @@ public class DefaultSchedulingService implements SchedulingService {
                 });
     }
 
-    private TaskScheduler setupTaskSchedulerAndAutoScaler(Observable<String> vmLeaseRescindedObservable,
-                                                          TaskScheduler.Builder schedulerBuilder) {
+    private TaskScheduler setupTaskScheduler(Observable<String> vmLeaseRescindedObservable,
+                                             TaskScheduler.Builder schedulerBuilder) {
         int minMinIdle = 4;
-        boolean fenzoAutoScalingEnabled = schedulerConfiguration.isFenzoAutoScalingEnabled();
-        if (!fenzoAutoScalingEnabled) {
-            logger.info("Fenzo autoscaling is disabled");
-        } else {
-            schedulerBuilder = schedulerBuilder
-                    .withAutoScalerMapHostnameAttributeName(schedulerConfiguration.getInstanceAttributeName())
-                    .withDelayAutoscaleUpBySecs(schedulerConfiguration.getDelayAutoScaleUpBySecs())
-                    .withDelayAutoscaleDownBySecs(schedulerConfiguration.getDelayAutoScaleDownBySecs());
-        }
-
-        schedulerBuilder = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle));
-        final TaskScheduler scheduler = schedulerBuilder.build();
+        final TaskScheduler scheduler = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle)).build();
         vmLeaseRescindedObservable
                 .doOnNext(s -> {
                     if (s.equals("ALL")) {
@@ -411,57 +372,7 @@ public class DefaultSchedulingService implements SchedulingService {
                     }
                 })
                 .subscribe();
-
-        if (fenzoAutoScalingEnabled) {
-            scheduler.setAutoscalerCallback(action -> {
-                try {
-                    switch (action.getType()) {
-                        case Up:
-                            autoScaleController.handleScaleUpAction(action.getRuleName(), ((ScaleUpAction) action).getScaleUpCount());
-                            break;
-                        case Down:
-                            // The API here is misleading. The 'hosts' attribute of ScaleDownAction contains instance ids.
-                            Set<String> idsToTerminate = new HashSet<>(((ScaleDownAction) action).getHosts());
-                            Pair<Set<String>, Set<String>> resultPair = autoScaleController.handleScaleDownAction(action.getRuleName(), idsToTerminate);
-                            Set<String> notTerminatedInstances = resultPair.getRight();
-
-                            // Now we need to convert instance ids to host names, as this is what the scheduler expects
-                            notTerminatedInstances.forEach(id ->
-                                    ExceptionExt.silent(() -> taskScheduler.enableVM(agentManagementService.getAgentInstance(id).getIpAddress()))
-                            );
-                            break;
-                    }
-                } catch (Exception e) {
-                    logger.warn("Will continue after exception calling autoscale action observer: {}", e.getMessage(), e);
-                }
-            });
-        }
         return scheduler;
-    }
-
-    private void setupAutoscaleRulesDynamicUpdater() {
-        titusRuntime.persistentStream(agentManagementService.events(true)).subscribe(
-                next -> {
-                    try {
-                        if (next instanceof AgentInstanceGroupUpdateEvent) {
-                            AgentInstanceGroupUpdateEvent updateEvent = (AgentInstanceGroupUpdateEvent) next;
-                            AgentInstanceGroup instanceGroup = updateEvent.getAgentInstanceGroup();
-                            String instanceGroupId = instanceGroup.getId();
-                            com.netflix.titus.api.agent.model.AutoScaleRule rule = instanceGroup.getAutoScaleRule();
-
-                            logger.info("Setting up autoscale rule for the agent instance group {}: {}", instanceGroupId, rule);
-                            taskScheduler.addOrReplaceAutoScaleRule(new FenzoAutoScaleRuleWrapper(instanceGroupId, rule));
-                        } else if (next instanceof AgentInstanceGroupRemovedEvent) {
-                            String instanceGroupId = ((AgentInstanceGroupRemovedEvent) next).getInstanceGroupId();
-
-                            logger.info("Removing autoscale rule for the agent instance group {}", instanceGroupId);
-                            taskScheduler.removeAutoScaleRule(instanceGroupId);
-                        }
-                    } catch (Exception e) {
-                        logger.warn("Unexpected error updating cluster autoscale rules: {}", e.getMessage());
-                    }
-                }
-        );
     }
 
     private void setupVmStatesUpdate() {
@@ -489,12 +400,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private void preSchedulingHook() {
         systemHardConstraint.prepare();
         taskCache.prepare();
-        setupTierAutoscalerConfig();
-    }
-
-    private void setupTierAutoscalerConfig() {
-        taskToClusterMapper.update(agentManagementService);
-        schedulingService.setTaskToClusterAutoScalerMapGetter(taskToClusterMapper.getMapperFunc1());
     }
 
     private void checkIfExitOnSchedError(String s) {
@@ -669,7 +574,6 @@ public class DefaultSchedulingService implements SchedulingService {
         logger.info("Scheduling service starting now");
 
         setupVmOps(masterConfiguration.getActiveSlaveAttributeName());
-        setupAutoscaleRulesDynamicUpdater();
 
         this.slaUpdateSubscription = tierSlaUpdater.tieredQueueSlaUpdates()
                 .compose(SpectatorExt.subscriptionMetrics(METRIC_SLA_UPDATES, DefaultSchedulingService.class, registry))
