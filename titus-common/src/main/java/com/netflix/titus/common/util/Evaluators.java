@@ -64,4 +64,10 @@ public final class Evaluators {
             task.run();
         }
     }
+
+    public static void times(int count, Consumer<Integer> task) {
+        for (int i = 0; i < count; i++) {
+            task.accept(i);
+        }
+    }
 }

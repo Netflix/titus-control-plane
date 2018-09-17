@@ -33,7 +33,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
-import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -50,12 +49,13 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.JobManagementClientDelegate;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -65,6 +65,7 @@ import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
@@ -151,7 +152,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
             Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(filteringCriteriaMap.getOrDefault("taskStates", "")));
             if (!v3JobIds.isEmpty() && taskStates.contains(TaskState.Finished.name())) {
                 return retrieveArchivedTasksForJobs(v3JobIds)
-                        .map(archivedTasks -> combineTaskResults(taskQuery, result.getItemsList(), archivedTasks));
+                        .map(archivedTasks -> combineTaskResults(taskQuery, result, archivedTasks));
             } else {
                 return Observable.just(result);
             }
@@ -182,18 +183,31 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     }
 
     private TaskQueryResult combineTaskResults(TaskQuery taskQuery,
-                                               List<Task> activeTasks,
+                                               TaskQueryResult activeTasksResult,
                                                List<Task> archivedTasks) {
-        List<Task> tasks = deDupTasks(activeTasks, archivedTasks);
-        // TODO Set the cursor value after V2 engine is removed
-        Page page = new Page(taskQuery.getPage().getPageNumber(), taskQuery.getPage().getPageSize(), "");
+        List<Task> tasks = deDupTasks(activeTasksResult.getItemsList(), archivedTasks);
 
-        // Cursors not supported for point queries.
-        Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePageWithoutCursor(page, tasks, task -> "");
+        Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePageWithCursor(
+                toPage(taskQuery.getPage()),
+                tasks,
+                JobManagerCursors.taskCursorOrderComparator(),
+                JobManagerCursors::taskIndexOf,
+                JobManagerCursors::newCursorFrom
+        );
+
+        // Fix pagination result, as the total items count does not include all active tasks.
+        // The total could be larger than the actual number of tasks, as we are not filtering duplicates.
+        // This could be fixed in the future, when the gateway stores all active tasks in a local cache.
+        int allTasksCount = activeTasksResult.getPagination().getTotalItems() + archivedTasks.size();
+        Pair<List<Task>, Pagination> fixedPaginationPair = paginationPair.mapRight(p -> p.toBuilder()
+                .withTotalItems(allTasksCount)
+                .withTotalPages(PaginationUtil.numberOfPages(toPage(taskQuery.getPage()), allTasksCount))
+                .build()
+        );
 
         return TaskQueryResult.newBuilder()
-                .addAllItems(paginationPair.getLeft())
-                .setPagination(toGrpcPagination(paginationPair.getRight()))
+                .addAllItems(fixedPaginationPair.getLeft())
+                .setPagination(toGrpcPagination(fixedPaginationPair.getRight()))
                 .build();
     }
 

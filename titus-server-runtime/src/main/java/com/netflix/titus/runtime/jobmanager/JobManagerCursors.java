@@ -151,7 +151,7 @@ public final class JobManagerCursors {
         return Base64.getEncoder().encodeToString(value.getBytes());
     }
 
-    private static Optional<Pair<String, Long>> decode(String encodedValue) {
+    public static Optional<Pair<String, Long>> decode(String encodedValue) {
         String decoded;
         try {
             decoded = new String(Base64.getDecoder().decode(encodedValue.getBytes()));
