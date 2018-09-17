@@ -11,6 +11,8 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.validator.Validator;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -50,15 +52,18 @@ public class GrpcJobManagementClient implements JobManagementClient {
     private final CallMetadataResolver callMetadataResolver;
     private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
+    private final Validator validator;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
                                    @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                   Validator validator,
                                    GrpcClientConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.entitySanitizer = entitySanitizer;
+        this.validator = validator;
         this.configuration = configuration;
     }
 
@@ -75,6 +80,15 @@ public class GrpcJobManagementClient implements JobManagementClient {
         Set<ConstraintViolation<com.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
         if (!violations.isEmpty()) {
             return Observable.error(TitusServiceException.invalidArgument(violations));
+        }
+
+        /**
+         * The validation call here is synchronous.  Any latency requirements for either the success or failure of
+         * validation should be implemented within the {@link Validator}.
+         */
+        Set<ValidationError> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
+        if (!validationErrors.isEmpty()) {
+            return Observable.error(TitusServiceException.invalidJob(validationErrors));
         }
 
         JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);

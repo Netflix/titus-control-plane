@@ -16,9 +16,12 @@
 
 package com.netflix.titus.api.service;
 
+import com.netflix.titus.common.model.validator.ValidationError;
+
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 
 import static java.lang.String.format;
@@ -42,7 +45,8 @@ public class TitusServiceException extends RuntimeException {
         UNEXPECTED,
         INVALID_PAGE_OFFSET,
         INVALID_ARGUMENT,
-        CELL_NOT_FOUND
+        CELL_NOT_FOUND,
+        INVALID_JOB
     }
 
     private final ErrorCode errorCode;
@@ -151,6 +155,21 @@ public class TitusServiceException extends RuntimeException {
         return TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, messageBuilder.toString())
                 .withConstraintViolations(constraintViolations)
                 .build();
+    }
+
+    /**
+     * Creates a {@link TitusServiceException} encapsulating {@link ValidationError}s.
+     *
+     * @param validationErrors The errors to be encapsulated by the exception
+     * @return A {@link TitusServiceException} encapsulating the appropriate errors.
+     */
+    public static TitusServiceException invalidJob(Set<ValidationError> validationErrors) {
+        String errors = validationErrors.stream()
+                .map(err -> String.format("{%s}", err))
+                .collect(Collectors.joining(", "));
+        String errMsg = String.format("Invalid Job: %s", errors);
+
+        return TitusServiceException.newBuilder(ErrorCode.INVALID_JOB, errMsg).build();
     }
 
     public static TitusServiceException unexpected(String message, Object... args) {
