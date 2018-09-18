@@ -151,8 +151,8 @@ subprojects {
         }
 
         testLogging {
-            outputs.upToDateWhen {false}
             showStandardStreams = true
+            outputs.upToDateWhen {false}
         }
 
         reports {
@@ -167,8 +167,8 @@ subprojects {
         }
 
         testLogging {
-            outputs.upToDateWhen {false}
             showStandardStreams = true
+            outputs.upToDateWhen {false}
         }
 
         reports {
