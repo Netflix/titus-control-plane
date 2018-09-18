@@ -214,6 +214,18 @@ public class JobSnapshot {
         return Optional.of(new JobSnapshot(this, task));
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("JobSnapshot{jobs=");
+        jobsById.forEach((id, job) -> {
+            List<Task> tasks = tasksByJobId.get(id);
+            int tasksCount = tasks == null ? 0 : tasks.size();
+            sb.append(id).append('=').append(tasksCount).append(',');
+        });
+        sb.setLength(sb.length() - 1);
+        return sb.append('}').toString();
+    }
+
     public static JobSnapshot empty() {
         return EMPTY;
     }

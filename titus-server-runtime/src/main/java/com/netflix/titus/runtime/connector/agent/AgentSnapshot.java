@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.base.Preconditions;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
+import com.netflix.titus.common.util.CollectionsExt;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -51,21 +53,28 @@ public class AgentSnapshot {
     }
 
     public AgentSnapshot(AgentSnapshot previous, AgentInstance instance, boolean remove) {
-        this.instanceGroupsById = previous.instanceGroupsById;
-        this.instanceGroupList = previous.instanceGroupList;
+        String instanceGroupId = instance.getInstanceGroupId();
+
+        AgentInstanceGroup currentInstanceGroup = previous.instanceGroupsById.get(instanceGroupId);
+        Preconditions.checkNotNull(currentInstanceGroup, "Inconsistent data. Agent instance without associated instance group: %s", instanceGroupId);
 
         if (remove) {
             this.instancesById = unmodifiableMap(copyAndRemove(previous.instancesById, instance.getId()));
             this.instances = unmodifiableList(copyAndRemove(previous.instances, i -> i.getId().equals(instance.getId())));
 
-            List<AgentInstance> groupInstances = copyAndRemove(previous.instancesByInstanceGroupId.getOrDefault(instance.getInstanceGroupId(), Collections.emptyList()), i -> i.getId().equals(instance.getId()));
-            this.instancesByInstanceGroupId = unmodifiableMap(copyAndAdd(previous.instancesByInstanceGroupId, instance.getInstanceGroupId(), groupInstances));
+            List<AgentInstance> groupInstances = copyAndRemove(previous.instancesByInstanceGroupId.getOrDefault(instanceGroupId, Collections.emptyList()), i -> i.getId().equals(instance.getId()));
+            this.instancesByInstanceGroupId = unmodifiableMap(copyAndAdd(previous.instancesByInstanceGroupId, instanceGroupId, groupInstances));
+
         } else {
             this.instancesById = unmodifiableMap(copyAndAdd(previous.instancesById, instance.getId(), instance));
             this.instances = updateInstanceInList(previous.instances, instance);
             List<AgentInstance> groupInstances = updateInstanceInList(previous.instancesByInstanceGroupId.getOrDefault(instance.getId(), Collections.emptyList()), instance);
-            this.instancesByInstanceGroupId = unmodifiableMap(copyAndAdd(previous.instancesByInstanceGroupId, instance.getInstanceGroupId(), groupInstances));
+            this.instancesByInstanceGroupId = unmodifiableMap(copyAndAdd(previous.instancesByInstanceGroupId, instanceGroupId, groupInstances));
         }
+
+        AgentInstanceGroup newInstanceGroup = currentInstanceGroup.toBuilder().withCurrent(instancesByInstanceGroupId.get(instanceGroupId).size()).build();
+        this.instanceGroupsById = CollectionsExt.copyAndAdd(previous.instanceGroupsById, instanceGroupId, newInstanceGroup);
+        this.instanceGroupList = Collections.unmodifiableList(new ArrayList<>(instanceGroupsById.values()));
     }
 
     public List<AgentInstanceGroup> getInstanceGroups() {
@@ -110,6 +119,15 @@ public class AgentSnapshot {
             return Optional.of(new AgentSnapshot(this, instance, true));
         }
         return Optional.empty();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("AgentSnapshot{instanceGroups=");
+
+        instanceGroupList.forEach(ig -> sb.append(ig.getId()).append('=').append(ig.getCurrent()).append(','));
+        sb.setLength(sb.length() - 1);
+        return sb.append('}').toString();
     }
 
     private List<AgentInstance> toAllInstances(Map<String, List<AgentInstance>> instancesByGroupId) {

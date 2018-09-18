@@ -1,17 +1,16 @@
 package com.netflix.titus.runtime.connector.common.replicator;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream.ReplicatorEvent;
-import com.netflix.titus.testkit.rx.ExtTestSubscriber;
-import org.junit.Before;
 import org.junit.Test;
-import rx.Observable;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
-import rx.subjects.PublishSubject;
+import org.reactivestreams.Processor;
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -19,93 +18,99 @@ import static org.mockito.Mockito.when;
 
 public class RetryableReplicatorEventStreamTest {
 
-    private final TestScheduler testScheduler = Schedulers.test();
-
-    private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
+    private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
     private final ReplicatorEventStream<String> delegate = mock(ReplicatorEventStream.class);
 
-    private final RetryableReplicatorEventStream<String> jobStreamCache = new RetryableReplicatorEventStream<>(
-            delegate, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, testScheduler
-    );
-
-    private final ExtTestSubscriber<ReplicatorEvent> cacheEventSubscriber = new ExtTestSubscriber<>();
-
-    private PublishSubject<ReplicatorEvent<String>> eventSubject;
-
-    @Before
-    public void setUp() {
-        when(delegate.connect()).thenAnswer(arg -> Observable.unsafeCreate(subscriber -> {
-            eventSubject = PublishSubject.create();
-            eventSubject.subscribe(subscriber);
-        }));
-    }
+    private Processor<ReplicatorEvent<String>, ReplicatorEvent<String>> eventSubject;
 
     @Test
     public void testImmediateConnect() {
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
+        newConnectVerifier()
+                // Event 1
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
-        eventSubject.onNext(new ReplicatorEvent<>("event1", 1));
-        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(1);
+                // Event 2
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event2", 2)))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(2))
 
-        eventSubject.onNext(new ReplicatorEvent<>("event2", 2));
-        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(2);
+                .thenCancel()
+                .verify();
     }
 
     @Test
     public void testImmediateFailureWithSuccessfulReconnect() {
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
-        eventSubject.onError(new RuntimeException("simulated error"));
+        newConnectVerifier()
+                // Simulated error
+                .then(() -> eventSubject.onError(new RuntimeException("simulated error")))
+                .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS))
 
-        testScheduler.advanceTimeBy(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS, TimeUnit.MILLISECONDS);
-        assertThat(cacheEventSubscriber.takeNext()).isNull();
+                // Event 1
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
-        eventSubject.onNext(new ReplicatorEvent<>("event1", 1));
-        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(1);
+                .thenCancel()
+                .verify();
     }
 
     @Test
     public void testReconnectAfterFailure() {
-        // First connect successfully, and return cache instance
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
+        newConnectVerifier()
+                // Event 1
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
-        eventSubject.onNext(new ReplicatorEvent<>("event1", 1));
-        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(1);
+                // Now fail
+                .then(() -> eventSubject.onError(new RuntimeException("simulated error")))
+                .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS))
 
-        // Now fail
-        eventSubject.onError(new RuntimeException("simulated error"));
-        testScheduler.advanceTimeBy(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS, TimeUnit.MILLISECONDS);
-        assertThat(cacheEventSubscriber.takeNext()).isNull();
+                // Recover
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("even2", 2)))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(2))
 
-        // Recover
-        eventSubject.onNext(new ReplicatorEvent<>("event2", 2));
-        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(2);
+                // Fail again
+                .then(() -> eventSubject.onError(new RuntimeException("simulated error")))
+                .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS))
 
-        // Fail again
-        eventSubject.onError(new RuntimeException("simulated error"));
-        testScheduler.advanceTimeBy(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS, TimeUnit.MILLISECONDS);
-        assertThat(cacheEventSubscriber.takeNext()).isNull();
+                // Recover again
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("even3", 3)))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(3))
 
-        // Recover again
-        eventSubject.onNext(new ReplicatorEvent<>("event3", 3));
-        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(3);
+                .thenCancel()
+                .verify();
     }
 
     @Test
-    public void testProlongedOutage() {
-        // First connect successfully, and return cache instance
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
+    public void testInProlongedOutageTheLastKnownItemIsReEmitted() {
+        newConnectVerifier()
+                // Event 1
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
-        eventSubject.onNext(new ReplicatorEvent<>("event1", 1));
-        assertThat(cacheEventSubscriber.takeNext().getLastUpdateTime()).isEqualTo(1);
+                // Now fail
+                .then(() -> eventSubject.onError(new RuntimeException("simulated error")))
 
-        // Now fail
-        eventSubject.onError(new RuntimeException("simulated error"));
-        testScheduler.advanceTimeBy(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS, TimeUnit.MILLISECONDS);
-        assertThat(cacheEventSubscriber.takeNext()).isNull();
+                // Expect re-emit
+                .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.LATENCY_REPORT_INTERVAL_MS))
+                .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
-        //
-        testScheduler.advanceTimeBy(RetryableReplicatorEventStream.LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(cacheEventSubscriber.takeNext()).isNotNull();
+                .thenCancel()
+                .verify();
+    }
+
+    private RetryableReplicatorEventStream<String> newStream() {
+        when(delegate.connect()).thenAnswer(invocation -> Flux.defer(() -> {
+            eventSubject = EmitterProcessor.create();
+            return eventSubject;
+        }));
+
+        return new RetryableReplicatorEventStream<>(
+                delegate, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel()
+        );
+    }
+
+    private StepVerifier.FirstStep<ReplicatorEvent<String>> newConnectVerifier() {
+        return StepVerifier.withVirtualTime(() -> newStream().connect().log());
     }
 }

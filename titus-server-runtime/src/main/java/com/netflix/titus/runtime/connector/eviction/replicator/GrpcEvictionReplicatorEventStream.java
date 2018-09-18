@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
@@ -17,16 +16,15 @@ import com.netflix.titus.api.eviction.model.event.SystemDisruptionBudgetUpdateEv
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataSnapshot;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Scheduler;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -46,12 +44,12 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
     }
 
     @Override
-    protected Observable<ReplicatorEvent<EvictionDataSnapshot>> newConnection() {
-        return Observable.fromCallable(CacheUpdater::new)
-                .flatMap(cacheUpdater -> {
-                    logger.info("Connecting to the eviction event stream...");
-                    return client.observeEvents(true).flatMap(cacheUpdater::onEvent);
-                });
+    protected Flux<ReplicatorEvent<EvictionDataSnapshot>> newConnection() {
+        return Flux.defer(() -> {
+            CacheUpdater cacheUpdater = new CacheUpdater();
+            logger.info("Connecting to the eviction event stream...");
+            return ReactorExt.toFlux(client.observeEvents(true)).flatMap(cacheUpdater::onEvent);
+        });
     }
 
     private class CacheUpdater {
@@ -59,7 +57,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
         private final List<EvictionEvent> snapshotEvents = new ArrayList<>();
         private final AtomicReference<EvictionDataSnapshot> lastSnapshotRef = new AtomicReference<>();
 
-        private Observable<ReplicatorEvent<EvictionDataSnapshot>> onEvent(EvictionEvent event) {
+        private Flux<ReplicatorEvent<EvictionDataSnapshot>> onEvent(EvictionEvent event) {
             try {
                 if (lastSnapshotRef.get() != null) {
                     return processSnapshotUpdate(event);
@@ -70,12 +68,12 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
                 snapshotEvents.add(event);
             } catch (Exception e) {
                 logger.warn("Unexpected error when handling the agent change notification: {}", event, e);
-                return Observable.error(e); // Return error to force the cache reconnect.
+                return Flux.error(e); // Return error to force the cache reconnect.
             }
-            return Observable.empty();
+            return Flux.empty();
         }
 
-        private Observable<ReplicatorEvent<EvictionDataSnapshot>> buildInitialCache() {
+        private Flux<ReplicatorEvent<EvictionDataSnapshot>> buildInitialCache() {
             SystemDisruptionBudget globalDisruptionBudget = null;
             EvictionQuota globalEvictionQuota = null;
             Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudgets = new HashMap<>();
@@ -132,10 +130,10 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             );
 
             lastSnapshotRef.set(initialSnapshot);
-            return Observable.just(new ReplicatorEvent<>(initialSnapshot, titusRuntime.getClock().wallTime()));
+            return Flux.just(new ReplicatorEvent<>(initialSnapshot, titusRuntime.getClock().wallTime()));
         }
 
-        private Observable<ReplicatorEvent<EvictionDataSnapshot>> processSnapshotUpdate(EvictionEvent event) {
+        private Flux<ReplicatorEvent<EvictionDataSnapshot>> processSnapshotUpdate(EvictionEvent event) {
             EvictionDataSnapshot snapshot = lastSnapshotRef.get();
             Optional<EvictionDataSnapshot> newSnapshot = Optional.empty();
 
@@ -147,9 +145,9 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
 
             if (newSnapshot.isPresent()) {
                 lastSnapshotRef.set(newSnapshot.get());
-                return Observable.just(new ReplicatorEvent<>(newSnapshot.get(), titusRuntime.getClock().wallTime()));
+                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), titusRuntime.getClock().wallTime()));
             }
-            return Observable.empty();
+            return Flux.empty();
         }
     }
 }

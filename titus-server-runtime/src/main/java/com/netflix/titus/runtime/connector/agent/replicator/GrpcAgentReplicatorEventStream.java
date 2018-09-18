@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.AgentSnapshot;
@@ -16,8 +17,8 @@ import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetri
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Scheduler;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 
 public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStream<AgentSnapshot> {
 
@@ -34,12 +35,12 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
     }
 
     @Override
-    protected Observable<ReplicatorEvent<AgentSnapshot>> newConnection() {
-        return Observable.fromCallable(CacheUpdater::new)
-                .flatMap(cacheUpdater -> {
-                    logger.info("Connecting to the agent event stream...");
-                    return client.observeAgents().flatMap(cacheUpdater::onEvent);
-                });
+    protected Flux<ReplicatorEvent<AgentSnapshot>> newConnection() {
+        return Flux.defer(() -> {
+            CacheUpdater cacheUpdater = new CacheUpdater();
+            logger.info("Connecting to the agent event stream...");
+            return ReactorExt.toFlux(client.observeAgents()).flatMap(cacheUpdater::onEvent);
+        });
     }
 
     private class CacheUpdater {
@@ -47,7 +48,7 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
         private final Map<String, AgentChangeEvent> snapshotEvents = new HashMap<>();
         private final AtomicReference<AgentSnapshot> lastAgentSnapshotRef = new AtomicReference<>();
 
-        private Observable<ReplicatorEvent<AgentSnapshot>> onEvent(AgentChangeEvent event) {
+        private Flux<ReplicatorEvent<AgentSnapshot>> onEvent(AgentChangeEvent event) {
             try {
                 if (lastAgentSnapshotRef.get() != null) {
                     return processSnapshotUpdate(event);
@@ -72,12 +73,12 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
                 }
             } catch (Exception e) {
                 logger.warn("Unexpected error when handling the agent change notification: {}", event, e);
-                return Observable.error(e); // Return error to force the cache reconnect.
+                return Flux.error(e); // Return error to force the cache reconnect.
             }
-            return Observable.empty();
+            return Flux.empty();
         }
 
-        private Observable<ReplicatorEvent<AgentSnapshot>> buildInitialCache() {
+        private Flux<ReplicatorEvent<AgentSnapshot>> buildInitialCache() {
             Map<String, com.netflix.titus.api.agent.model.AgentInstanceGroup> instanceGroupsById = new HashMap<>();
             Map<String, List<com.netflix.titus.api.agent.model.AgentInstance>> instancesByGroupId = new HashMap<>();
 
@@ -101,10 +102,10 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
 
             logger.info("Agent snapshot loaded: instanceGroups={}, instances={}", initialSnapshot.getInstanceGroups().size(), initialSnapshot.getInstances().size());
 
-            return Observable.just(new ReplicatorEvent<>(initialSnapshot, titusRuntime.getClock().wallTime()));
+            return Flux.just(new ReplicatorEvent<>(initialSnapshot, titusRuntime.getClock().wallTime()));
         }
 
-        private Observable<ReplicatorEvent<AgentSnapshot>> processSnapshotUpdate(AgentChangeEvent event) {
+        private Flux<ReplicatorEvent<AgentSnapshot>> processSnapshotUpdate(AgentChangeEvent event) {
             AgentSnapshot lastSnapshot = lastAgentSnapshotRef.get();
             Optional<AgentSnapshot> newSnapshot;
             switch (event.getEventCase()) {
@@ -125,9 +126,9 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
             }
             if (newSnapshot.isPresent()) {
                 lastAgentSnapshotRef.set(newSnapshot.get());
-                return Observable.just(new ReplicatorEvent<>(newSnapshot.get(), titusRuntime.getClock().wallTime()));
+                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), titusRuntime.getClock().wallTime()));
             }
-            return Observable.empty();
+            return Flux.empty();
         }
     }
 }

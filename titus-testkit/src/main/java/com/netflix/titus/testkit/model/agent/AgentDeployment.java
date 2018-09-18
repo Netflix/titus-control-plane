@@ -156,6 +156,10 @@ public class AgentDeployment {
         Map<String, AgentInstance> instances = instancesByGroup.get(instance.getInstanceGroupId());
         instances.remove(instanceId);
 
+        AgentInstanceGroup instanceGroup = getInstanceGroup(instance.getInstanceGroupId());
+        AgentInstanceGroup updatedInstanceGroup = instanceGroup.toBuilder().withCurrent(instanceGroup.getCurrent() - 1).build();
+        instanceGroups.put(instance.getInstanceGroupId(), updatedInstanceGroup);
+
         observeAgentsSubject.onNext(new AgentInstanceRemovedEvent(instanceId));
     }
 

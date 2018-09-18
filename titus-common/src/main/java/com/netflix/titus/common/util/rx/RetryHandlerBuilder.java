@@ -17,15 +17,19 @@
 package com.netflix.titus.common.util.rx;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.ExceptionExt;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import rx.Observable;
 import rx.Scheduler;
 import rx.functions.Action1;
@@ -41,6 +45,8 @@ public final class RetryHandlerBuilder {
     private static final Logger logger = LoggerFactory.getLogger(RetryHandlerBuilder.class);
 
     private Scheduler scheduler = Schedulers.computation();
+    private reactor.core.scheduler.Scheduler reactorScheduler;
+
     private int retryCount = -1;
     private long retryDelayMs = -1;
     private long maxDelay = Long.MAX_VALUE;
@@ -56,6 +62,12 @@ public final class RetryHandlerBuilder {
     public RetryHandlerBuilder withScheduler(Scheduler scheduler) {
         Preconditions.checkNotNull(scheduler);
         this.scheduler = scheduler;
+        return this;
+    }
+
+    public RetryHandlerBuilder withReactorScheduler(reactor.core.scheduler.Scheduler scheduler) {
+        Preconditions.checkNotNull(scheduler);
+        this.reactorScheduler = scheduler;
         return this;
     }
 
@@ -109,7 +121,6 @@ public final class RetryHandlerBuilder {
         RetryHandlerBuilder newInstance = new RetryHandlerBuilder();
         newInstance.retryCount = retryCount;
         newInstance.scheduler = scheduler;
-        newInstance.retryCount = retryCount;
         newInstance.retryDelayMs = retryDelayMs;
         newInstance.maxDelay = maxDelay;
         newInstance.title = title;
@@ -125,7 +136,7 @@ public final class RetryHandlerBuilder {
                 .doOnNext(error -> onErrorHook.call(error))
                 .zipWith(Observable.range(0, retryCount + 1), RetryItem::new)
                 .flatMap(retryItem -> {
-                    if(retryWhenCondition != null && !retryWhenCondition.get()) {
+                    if (retryWhenCondition != null && !retryWhenCondition.get()) {
                         String errorMessage = String.format(
                                 "Retry condition not met for %s. Last error: %s. Returning an error to the caller",
                                 title, retryItem.cause.getMessage()
@@ -147,6 +158,40 @@ public final class RetryHandlerBuilder {
                         logger.debug("Exception", retryItem.cause);
                     }
                     return Observable.timer(expDelay, TimeUnit.MILLISECONDS, scheduler);
+                });
+    }
+
+    public Function<Flux<Throwable>, Publisher<?>> buildReactorExponentialBackoff() {
+        Preconditions.checkState(retryCount > 0, "Retry count not defined");
+        Preconditions.checkState(retryDelayMs > 0, "Retry delay not defined");
+        Preconditions.checkNotNull(reactorScheduler, "Reactor scheduler not set");
+
+        return failedAttempts -> failedAttempts
+                .doOnError(error -> onErrorHook.call(error))
+                .zipWith(Flux.range(0, retryCount + 1), RetryItem::new)
+                .flatMap(retryItem -> {
+                    if (retryWhenCondition != null && !retryWhenCondition.get()) {
+                        String errorMessage = String.format(
+                                "Retry condition not met for %s. Last error: %s. Returning an error to the caller",
+                                title, retryItem.cause.getMessage()
+                        );
+                        return Flux.error(new IOException(errorMessage, retryItem.cause));
+                    }
+                    if (retryItem.retry == retryCount) {
+                        String errorMessage = String.format(
+                                "Retry limit reached for %s. Last error: %s. Returning an error to the caller",
+                                title, retryItem.cause.getMessage()
+                        );
+                        return Flux.error(new IOException(errorMessage, retryItem.cause));
+                    }
+                    long expDelay = Math.min(maxDelay, (1 << retryItem.retry) * retryDelayMs);
+                    if (retryItem.cause instanceof TimeoutException) {
+                        logger.info("Delaying timed-out {} retry by {}[ms]", title, expDelay);
+                    } else {
+                        logger.info("Delaying failed {} retry by {}[ms]: {}", title, expDelay, ExceptionExt.toMessageChain(retryItem.cause));
+                        logger.debug("Exception", retryItem.cause);
+                    }
+                    return Flux.interval(Duration.ofMillis(expDelay), reactorScheduler).take(1);
                 });
     }
 
