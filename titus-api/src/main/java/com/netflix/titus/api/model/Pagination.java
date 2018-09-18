@@ -115,6 +115,10 @@ public class Pagination {
                 '}';
     }
 
+    public Builder toBuilder() {
+        return newBuilder(this);
+    }
+
     public static Pagination empty(Page page) {
         return new Pagination(page, false, 0, 0, "", 0);
     }

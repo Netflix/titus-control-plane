@@ -167,6 +167,23 @@ public final class StringExt {
     }
 
     /**
+     * Concatenate enum values.
+     */
+    public static <E extends Enum> String concatenate(Class<E> enumType, String delimiter, Function<E, Boolean> filter) {
+        StringBuilder sb = new StringBuilder();
+        for (E value : enumType.getEnumConstants()) {
+            if (filter.apply(value)) {
+                sb.append(value).append(delimiter);
+            }
+        }
+        if (sb.length() == 0) {
+            return "";
+        }
+        sb.setLength(sb.length() - delimiter.length());
+        return sb.toString();
+    }
+
+    /**
      * Given sequence of string values, return the first one that is not empty (see {@link #isNotEmpty(String)} or
      * {@link Optional#empty()}.
      */
