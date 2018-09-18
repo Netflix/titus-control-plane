@@ -16,24 +16,12 @@
 
 package com.netflix.titus.master.jobmanager.endpoint.v3;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
-import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.GrpcTitusServiceGateway;
-import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.gateway.V3GrpcTitusServiceGateway;
-import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-
-import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 
 public class V3EndpointModule extends AbstractModule {
 
@@ -44,15 +32,5 @@ public class V3EndpointModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
-    }
-
-    @Provides
-    @Singleton
-    public GrpcTitusServiceGateway getV3ServiceGateway(V3JobOperations jobOperations,
-                                                       JobSubmitLimiter jobSubmitLimiter,
-                                                       LogStorageInfo<Task> v3LogStorage,
-                                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                                       TitusRuntime titusRuntime) {
-        return new V3GrpcTitusServiceGateway(jobOperations, jobSubmitLimiter, v3LogStorage, entitySanitizer, titusRuntime);
     }
 }

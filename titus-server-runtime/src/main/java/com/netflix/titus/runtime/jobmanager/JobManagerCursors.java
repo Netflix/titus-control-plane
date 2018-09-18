@@ -24,6 +24,9 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobStatus;
@@ -46,8 +49,39 @@ public final class JobManagerCursors {
 
     /**
      * Compare two job entities by the creation time (first), and a job id (second).
+     *
+     * @deprecated Use core model entities.
      */
+    @Deprecated
     public static Comparator<Job> jobCursorOrderComparator() {
+        return (first, second) -> {
+            int cmp = Long.compare(getCursorTimestamp(first), getCursorTimestamp(second));
+            if (cmp != 0) {
+                return cmp;
+            }
+            return first.getId().compareTo(second.getId());
+        };
+    }
+
+    /**
+     * Compare two job entities by the creation time (first), and a job id (second).
+     */
+    public static Comparator<com.netflix.titus.api.jobmanager.model.job.Job<?>> coreJobCursorOrderComparator() {
+        return (first, second) -> {
+            int cmp = Long.compare(getCoreCursorTimestamp(first), getCoreCursorTimestamp(second));
+            if (cmp != 0) {
+                return cmp;
+            }
+            return first.getId().compareTo(second.getId());
+        };
+    }
+
+    /**
+     * Compare two task entities by the creation time (first), and a task id (second).
+     * @deprecated Use core model entities.
+     */
+    @Deprecated
+    public static Comparator<Task> taskCursorOrderComparator() {
         return (first, second) -> {
             int cmp = Long.compare(getCursorTimestamp(first), getCursorTimestamp(second));
             if (cmp != 0) {
@@ -60,9 +94,9 @@ public final class JobManagerCursors {
     /**
      * Compare two task entities by the creation time (first), and a task id (second).
      */
-    public static Comparator<Task> taskCursorOrderComparator() {
+    public static Comparator<com.netflix.titus.api.jobmanager.model.job.Task> coreTaskCursorOrderComparator() {
         return (first, second) -> {
-            int cmp = Long.compare(getCursorTimestamp(first), getCursorTimestamp(second));
+            int cmp = Long.compare(getCoreCursorTimestamp(first), getCoreCursorTimestamp(second));
             if (cmp != 0) {
                 return cmp;
             }
@@ -74,7 +108,10 @@ public final class JobManagerCursors {
      * Find an index of the element pointed to by the cursor, or if not found, the element immediately preceding it.
      * <p>
      * If the element pointed to by the cursor would be the first element in the list (index=0) this returns -1.
+     *
+     * @deprecated Use core model entities.
      */
+    @Deprecated
     public static Optional<Integer> jobIndexOf(List<Job> jobs, String cursor) {
         return decode(cursor).map(cursorValues -> {
             String jobId = cursorValues.getLeft();
@@ -96,6 +133,30 @@ public final class JobManagerCursors {
      * <p>
      * If the element pointed to by the cursor would be the first element in the list (index=0) this returns -1.
      */
+    public static Optional<Integer> coreJobIndexOf(List<com.netflix.titus.api.jobmanager.model.job.Job<?>> jobs, String cursor) {
+        return decode(cursor).map(cursorValues -> {
+            String jobId = cursorValues.getLeft();
+            long timestamp = cursorValues.getRight();
+            com.netflix.titus.api.jobmanager.model.job.Job<?> referenceJob = com.netflix.titus.api.jobmanager.model.job.Job.newBuilder()
+                    .withId(jobId)
+                    .withStatus(com.netflix.titus.api.jobmanager.model.job.JobStatus.newBuilder().withState(JobState.Accepted).withTimestamp(timestamp).build())
+                    .build();
+            int idx = Collections.binarySearch(jobs, referenceJob, coreJobCursorOrderComparator());
+            if (idx >= 0) {
+                return idx;
+            }
+            return Math.max(-1, -idx - 2);
+        });
+    }
+
+    /**
+     * Find an index of the element pointed to by the cursor, or if not found, the element immediately preceding it.
+     * <p>
+     * If the element pointed to by the cursor would be the first element in the list (index=0) this returns -1.
+     *
+     * @deprecated Use core model entities.
+     */
+    @Deprecated
     public static Optional<Integer> taskIndexOf(List<Task> tasks, String cursor) {
         return decode(cursor).map(cursorValues -> {
             String taskId = cursorValues.getLeft();
@@ -112,12 +173,41 @@ public final class JobManagerCursors {
         });
     }
 
+    /**
+     * Find an index of the element pointed to by the cursor, or if not found, the element immediately preceding it.
+     * <p>
+     * If the element pointed to by the cursor would be the first element in the list (index=0) this returns -1.
+     */
+    public static Optional<Integer> coreTaskIndexOf(List<com.netflix.titus.api.jobmanager.model.job.Task> tasks, String cursor) {
+        return decode(cursor).map(cursorValues -> {
+            String taskId = cursorValues.getLeft();
+            long timestamp = cursorValues.getRight();
+            BatchJobTask referenceTask = BatchJobTask.newBuilder()
+                    .withId(taskId)
+                    .withStatus(com.netflix.titus.api.jobmanager.model.job.TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(timestamp).build())
+                    .build();
+            int idx = Collections.binarySearch(tasks, referenceTask, coreTaskCursorOrderComparator());
+            if (idx >= 0) {
+                return idx;
+            }
+            return Math.max(-1, -idx - 2);
+        });
+    }
+
     public static String newCursorFrom(Job job) {
         return encode(job.getId(), getCursorTimestamp(job));
     }
 
+    public static String newCoreCursorFrom(com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
+        return encode(job.getId(), getCoreCursorTimestamp(job));
+    }
+
     public static String newCursorFrom(Task task) {
         return encode(task.getId(), getCursorTimestamp(task));
+    }
+
+    public static String newCoreCursorFrom(com.netflix.titus.api.jobmanager.model.job.Task task) {
+        return encode(task.getId(), getCoreCursorTimestamp(task));
     }
 
     private static long getCursorTimestamp(Job job) {
@@ -133,12 +223,38 @@ public final class JobManagerCursors {
         return job.getStatus().getTimestamp();
     }
 
+    private static long getCoreCursorTimestamp(com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
+        if (job.getStatus().getState() == JobState.Accepted) {
+            return job.getStatus().getTimestamp();
+        }
+        for (com.netflix.titus.api.jobmanager.model.job.JobStatus next : job.getStatusHistory()) {
+            if (next.getState() == JobState.Accepted) {
+                return next.getTimestamp();
+            }
+        }
+        // Fallback, in case Accepted state is not found which should never happen.
+        return job.getStatus().getTimestamp();
+    }
+
     private static long getCursorTimestamp(Task task) {
         if (task.getStatus().getState() == TaskStatus.TaskState.Accepted) {
             return task.getStatus().getTimestamp();
         }
         for (TaskStatus next : task.getStatusHistoryList()) {
             if (next.getState() == TaskStatus.TaskState.Accepted) {
+                return next.getTimestamp();
+            }
+        }
+        // Fallback, in case Accepted state is not found which should never happen.
+        return task.getStatus().getTimestamp();
+    }
+
+    private static long getCoreCursorTimestamp(com.netflix.titus.api.jobmanager.model.job.Task task) {
+        if (task.getStatus().getState() == TaskState.Accepted) {
+            return task.getStatus().getTimestamp();
+        }
+        for (com.netflix.titus.api.jobmanager.model.job.TaskStatus next : task.getStatusHistory()) {
+            if (next.getState() == TaskState.Accepted) {
                 return next.getTimestamp();
             }
         }

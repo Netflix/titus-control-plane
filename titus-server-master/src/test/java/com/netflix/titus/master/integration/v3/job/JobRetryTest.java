@@ -19,6 +19,7 @@ package com.netflix.titus.master.integration.v3.job;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
@@ -32,7 +33,6 @@ import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -61,6 +61,7 @@ public class JobRetryTest extends BaseIntegrationTest {
             .withExtensions(ServiceJobExt.newBuilder()
                     .withCapacity(Capacity.newBuilder().withMin(0).withDesired(1).withMax(2).build())
                     .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(1).build())
+                    .withServiceJobProcesses(ServiceJobProcesses.newBuilder().build())
                     .build()
             )
             .build();
@@ -75,7 +76,7 @@ public class JobRetryTest extends BaseIntegrationTest {
     public static final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void setUp() {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
     }
 
@@ -83,7 +84,6 @@ public class JobRetryTest extends BaseIntegrationTest {
      * FIXME V3 engine is broken. Batch job returned as service job.
      */
     @Test(timeout = 30_000)
-    @Ignore
     public void testBatchJobRetry() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -91,7 +91,7 @@ public class JobRetryTest extends BaseIntegrationTest {
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Finished))
                 .expectAllTasksCreated()
                 .allTasks(TaskScenarioBuilder::expectTaskOnAgent)
-                .assertTasks(task -> task.get(1).getResubmitNumber() == 1)
+                .assertTasks(task -> task.get(0).getResubmitNumber() == 1)
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.completeTask()))
                 .expectJobEventStreamCompletes()
@@ -99,7 +99,6 @@ public class JobRetryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    @Ignore
     public void testServiceJobRetry() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -107,15 +106,14 @@ public class JobRetryTest extends BaseIntegrationTest {
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Finished))
                 .expectAllTasksCreated()
                 .allTasks(TaskScenarioBuilder::expectTaskOnAgent)
-                .assertTasks(task -> task.get(1).getResubmitNumber() == 1)
-                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
-                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.completeTask()))
+                .assertTasks(task -> task.get(0).getResubmitNumber() == 1)
+                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.startTask()))
+                .killJob()
                 .expectJobEventStreamCompletes()
         );
     }
 
     @Test(timeout = 30_000)
-    @Ignore
     public void testBatchJobFailsAfterRetrying() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -129,7 +127,6 @@ public class JobRetryTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = 30_000)
-    @Ignore
     public void testServiceJobFailsAfterRetrying() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -138,6 +135,9 @@ public class JobRetryTest extends BaseIntegrationTest {
                 .expectAllTasksCreated()
                 .allTasks(TaskScenarioBuilder::expectTaskOnAgent)
                 .inTask(0, TaskScenarioBuilder::failTaskExecution)
+                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Finished))
+                .expectAllTasksCreated() // Service job retries forever
+                .killJob()
                 .expectJobEventStreamCompletes()
         );
     }

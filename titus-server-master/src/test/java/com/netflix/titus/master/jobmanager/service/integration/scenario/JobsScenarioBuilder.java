@@ -43,6 +43,7 @@ import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
+import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -151,6 +152,23 @@ public class JobsScenarioBuilder {
                 testScheduler
         );
 
+
+        JobSubmitLimiter jobSubmitLimiter = new JobSubmitLimiter() {
+            @Override
+            public <JOB_DESCR> Optional<String> checkIfAllowed(JOB_DESCR jobDescriptor) {
+                return Optional.empty();
+            }
+
+            @Override
+            public <JOB_DESCR> Optional<String> reserveId(JOB_DESCR jobDescriptor) {
+                return Optional.empty();
+            }
+
+            @Override
+            public <JOB_DESCR> void releaseId(JOB_DESCR jobDescriptor) {
+            }
+        };
+
         DefaultV3JobOperations v3JobOperations = new DefaultV3JobOperations(
                 configuration,
                 jobStore,
@@ -170,6 +188,7 @@ public class JobsScenarioBuilder {
                         titusRuntime,
                         Optional.of(testScheduler)
                 ),
+                jobSubmitLimiter,
                 titusRuntime
         );
         v3JobOperations.enterActiveMode();
