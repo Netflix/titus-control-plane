@@ -27,9 +27,9 @@ import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
+import com.netflix.titus.api.jobmanager.model.job.validator.PassJobEntityValidator;
 import com.netflix.titus.api.jobmanager.store.JobStore;
-import com.netflix.titus.common.model.validator.Validator;
+import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -70,7 +70,7 @@ public class EmbeddedTitusGateway {
     private final Properties properties;
 
     private final DefaultSettableConfig config;
-    private final Validator<JobDescriptor> validator;
+    private final EntityValidator<JobDescriptor> validator;
 
     private LifecycleInjector injector;
 
@@ -128,7 +128,7 @@ public class EmbeddedTitusGateway {
                             bind(JobStore.class).toInstance(store);
                         }
 
-                        bind(Validator.class).toInstance(validator);
+                        bind(EntityValidator.class).toInstance(validator);
                     }
                 })
         ).createInjector();
@@ -226,7 +226,7 @@ public class EmbeddedTitusGateway {
         private boolean enableREST = true;
         private JobStore store;
         private Properties properties = new Properties();
-        private Validator<JobDescriptor> validator = new PassJobValidator();
+        private EntityValidator<JobDescriptor> validator = new PassJobEntityValidator();
 
         // Enable V2 engine by default
         private boolean v2Enabled = true;
@@ -273,7 +273,7 @@ public class EmbeddedTitusGateway {
             return this;
         }
 
-        public Builder withJobValidator(Validator<JobDescriptor> validator) {
+        public Builder withJobValidator(EntityValidator<JobDescriptor> validator) {
             this.validator = validator;
             return this;
         }

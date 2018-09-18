@@ -37,7 +37,7 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.validator.Validator;
+import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -94,7 +94,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                       JobStore store,
                                       LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                      Validator validator) {
+                                      EntityValidator validator) {
         super(new GrpcJobManagementClient(
                 client,
                 callMetadataResolver,

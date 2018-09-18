@@ -11,7 +11,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.validator.Validator;
+import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -52,13 +52,13 @@ public class GrpcJobManagementClient implements JobManagementClient {
     private final CallMetadataResolver callMetadataResolver;
     private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
-    private final Validator validator;
+    private final EntityValidator validator;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
                                    @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                   Validator validator,
+                                   EntityValidator validator,
                                    GrpcClientConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
@@ -84,7 +84,7 @@ public class GrpcJobManagementClient implements JobManagementClient {
 
         /**
          * The validation call here is synchronous.  Any latency requirements for either the success or failure of
-         * validation should be implemented within the {@link Validator}.
+         * validation should be implemented within the {@link EntityValidator}.
          */
         Set<ValidationError> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
         if (!validationErrors.isEmpty()) {
