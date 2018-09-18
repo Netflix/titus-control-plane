@@ -16,8 +16,9 @@
 
 package com.netflix.titus.api.loadbalancer.store;
 
+import com.netflix.titus.common.model.validator.ValidationError;
+
 import java.util.Set;
-import javax.validation.ConstraintViolation;
 
 public class LoadBalancerStoreException extends RuntimeException {
     public enum ErrorCode {
@@ -40,12 +41,9 @@ public class LoadBalancerStoreException extends RuntimeException {
         return errorCode;
     }
 
-    public static LoadBalancerStoreException cassandraDriverError(Throwable e) {
-        return new LoadBalancerStoreException(e.getMessage(), ErrorCode.CASSANDRA_DRIVER_ERROR, e);
+    public static <T> LoadBalancerStoreException badData(T value, Set<ValidationError> violations) {
+        return new LoadBalancerStoreException(
+                String.format("Entity %s violates constraints: %s", value, violations),
+                ErrorCode.BAD_DATA);
     }
-
-    public static <T> LoadBalancerStoreException badData(T value, Set<ConstraintViolation<T>> violations) {
-        return new LoadBalancerStoreException("Entity " + value + " violates constraints: " + violations, ErrorCode.BAD_DATA);
-    }
-
 }

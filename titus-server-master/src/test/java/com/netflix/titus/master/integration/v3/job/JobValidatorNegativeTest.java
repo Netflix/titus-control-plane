@@ -28,8 +28,8 @@ import static org.junit.Assert.fail;
  * the default EntityValidator is the {@link PassJobValidator}.  All
  * other test suites prove that it does not invalidate jobs inappropriately.
  */
-public class JobEntityValidatorNegativeTest extends BaseIntegrationTest {
-    private static final Logger logger = LoggerFactory.getLogger(JobEntityValidatorNegativeTest.class);
+public class JobValidatorNegativeTest extends BaseIntegrationTest {
+    private static final Logger logger = LoggerFactory.getLogger(JobValidatorNegativeTest.class);
 
     private static final TitusStackResource titusStackResource = getTitusStackResource(new FailJobValidator());
 
@@ -49,14 +49,15 @@ public class JobEntityValidatorNegativeTest extends BaseIntegrationTest {
     @Test(timeout = 30_000)
     public void testFailedValidationThrowsException() {
         final com.netflix.titus.grpc.protogen.JobDescriptor jobDescriptor =
-                toGrpcJobDescriptor(batchJobDescriptors().getValue()).toBuilder().build();
+                toGrpcJobDescriptor(batchJobDescriptors().getValue());
 
         try {
             client.createJob(jobDescriptor).getId();
             fail("Expected test to fail");
         } catch (StatusRuntimeException e) {
             logger.info("Received StatusRuntimeException: {}",  e.getMessage());
-            assertTrue(e.getMessage().contains(FailJobValidator.ERR_MSG));
+            assertTrue(e.getMessage().contains(FailJobValidator.ERR_DESCRIPTION));
+            assertTrue(e.getMessage().contains(FailJobValidator.ERR_FIELD));
         }
     }
 

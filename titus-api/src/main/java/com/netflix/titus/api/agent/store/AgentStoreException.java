@@ -16,6 +16,8 @@
 
 package com.netflix.titus.api.agent.store;
 
+import com.netflix.titus.common.model.validator.ValidationError;
+
 import java.util.Set;
 import javax.validation.ConstraintViolation;
 
@@ -45,7 +47,9 @@ public class AgentStoreException extends RuntimeException {
         return new AgentStoreException(e.getMessage(), ErrorCode.CASSANDRA_DRIVER_ERROR, e);
     }
 
-    public static <T> AgentStoreException badData(T value, Set<ConstraintViolation<T>> violations) {
-        return new AgentStoreException("Entity " + value + " violates constraints: " + violations, ErrorCode.BAD_DATA);
+    public static <T> AgentStoreException badData(T value, Set<ValidationError> violations) {
+        return new AgentStoreException(
+                String.format("Entity %s violates constraints: %s", value, violations),
+                ErrorCode.BAD_DATA);
     }
 }

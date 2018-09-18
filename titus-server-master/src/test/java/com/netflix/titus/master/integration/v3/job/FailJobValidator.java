@@ -13,9 +13,10 @@ import java.util.Set;
  * This {@link EntityValidator} implementation always causes validation to fail.  It is used for testing purposes.
  */
 public class FailJobValidator implements EntityValidator<JobDescriptor> {
-    public static final String ERR_MSG = "The FailJobValidator should always fail with this error.";
+    public static final String ERR_FIELD = "fail-field";
+    public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with this error.";
 
-    private static final ValidationError error = new ValidationError(ERR_MSG);
+    private static final ValidationError error = new ValidationError(ERR_FIELD, ERR_DESCRIPTION);
     private static final Set<ValidationError> errors = new HashSet<>(Arrays.asList(error));
 
     @Override

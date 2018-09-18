@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import javax.validation.ConstraintViolation;
 
+import com.netflix.titus.common.model.validator.ValidationError;
 import org.junit.Test;
 
 import static com.netflix.titus.common.util.ReflectionExt.isStandardDataType;
@@ -44,21 +45,21 @@ public class EntitySanitizerBuilderTest {
         );
 
         // Null values violation + min
-        Set<ConstraintViolation<TestModel.Root>> violations = sanitizer.validate(root);
+        Set<ValidationError> violations = sanitizer.validate(root);
         System.out.println(violations);
         assertThat(violations).hasSize(3);
 
         // Now fix this by sanitizing
         TestModel.Root sanitizedRoot = sanitizer.sanitize(root).get();
 
-        Set<ConstraintViolation<TestModel.Root>> rangeViolations = sanitizer.validate(sanitizedRoot);
+        Set<ValidationError> rangeViolations = sanitizer.validate(sanitizedRoot);
         System.out.println(violations);
         assertThat(rangeViolations).hasSize(2);
     }
 
     @Test
     public void testRegisteredObjects() throws Exception {
-        Set<ConstraintViolation<TestModel.StringWithPrefixCheck>> violations = sanitizer.validate(new TestModel.StringWithPrefixCheck("testXXX"));
+        Set<ValidationError> violations = sanitizer.validate(new TestModel.StringWithPrefixCheck("testXXX"));
         assertThat(violations).isEmpty();
     }
 }

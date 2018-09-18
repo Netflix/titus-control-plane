@@ -79,7 +79,7 @@ public class GrpcJobManagementClient implements JobManagementClient {
         }
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
-        Set<ConstraintViolation<com.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
+        Set<ValidationError> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
         if (!violations.isEmpty()) {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
@@ -110,7 +110,7 @@ public class GrpcJobManagementClient implements JobManagementClient {
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
         Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(jobCapacityUpdate.getCapacity());
-        Set<ConstraintViolation<Capacity>> violations = entitySanitizer.validate(newCapacity);
+        Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
         if (!violations.isEmpty()) {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
