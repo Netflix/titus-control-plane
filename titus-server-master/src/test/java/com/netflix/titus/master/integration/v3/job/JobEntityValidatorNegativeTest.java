@@ -1,7 +1,7 @@
 package com.netflix.titus.master.integration.v3.job;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobEntityValidator;
+import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
@@ -25,13 +25,13 @@ import static org.junit.Assert.fail;
 
 /**
  * This test suite proves that {@link EntityValidator <JobDescriptor>} failures behave as expected.  Outside of this test suite
- * the default EntityValidator is the {@link PassJobEntityValidator}.  All
+ * the default EntityValidator is the {@link PassJobValidator}.  All
  * other test suites prove that it does not invalidate jobs inappropriately.
  */
 public class JobEntityValidatorNegativeTest extends BaseIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(JobEntityValidatorNegativeTest.class);
 
-    private static final TitusStackResource titusStackResource = getTitusStackResource(new FailJobEntityValidator());
+    private static final TitusStackResource titusStackResource = getTitusStackResource(new FailJobValidator());
 
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
@@ -56,7 +56,7 @@ public class JobEntityValidatorNegativeTest extends BaseIntegrationTest {
             fail("Expected test to fail");
         } catch (StatusRuntimeException e) {
             logger.info("Received StatusRuntimeException: {}",  e.getMessage());
-            assertTrue(e.getMessage().contains(FailJobEntityValidator.ERR_MSG));
+            assertTrue(e.getMessage().contains(FailJobValidator.ERR_MSG));
         }
     }
 

@@ -27,7 +27,7 @@ import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobEntityValidator;
+import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
@@ -226,7 +226,7 @@ public class EmbeddedTitusGateway {
         private boolean enableREST = true;
         private JobStore store;
         private Properties properties = new Properties();
-        private EntityValidator<JobDescriptor> validator = new PassJobEntityValidator();
+        private EntityValidator<JobDescriptor> validator = new PassJobValidator();
 
         // Enable V2 engine by default
         private boolean v2Enabled = true;

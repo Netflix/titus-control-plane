@@ -19,7 +19,7 @@ package com.netflix.titus.testkit.embedded.cell;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobEntityValidator;
+import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
@@ -79,7 +79,7 @@ public class EmbeddedTitusCell {
         private EmbeddedTitusGateway gateway;
         private boolean enableREST;
         private boolean defaultGateway;
-        private EntityValidator<JobDescriptor> validator = new PassJobEntityValidator();
+        private EntityValidator<JobDescriptor> validator = new PassJobValidator();
 
         public Builder withMaster(EmbeddedTitusMaster master) {
             this.master = master;

@@ -38,6 +38,6 @@ public class Validator<T> {
 
     @Override
     public String toString() {
-        return "EntityValidator [description=" + description + "]";
+        return "Validator [description=" + description + "]";
     }
 }

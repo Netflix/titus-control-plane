@@ -1,5 +1,7 @@
 package com.netflix.titus.common.model.validator;
 
+import reactor.core.publisher.Flux;
+
 import java.util.Set;
 
 /**
@@ -9,5 +11,5 @@ import java.util.Set;
  * @param <T> The type of object this EntityValidator validates.
  */
 public interface EntityValidator<T> {
-    Set<ValidationError> validate(T entity);
+    Flux<Set<ValidationError>> validate(T entity);
 }

@@ -13,6 +13,7 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -33,6 +34,7 @@ import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.stub.StreamObserver;
+import reactor.core.publisher.Flux;
 import rx.Completable;
 import rx.Observable;
 
@@ -82,18 +84,10 @@ public class GrpcJobManagementClient implements JobManagementClient {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        /**
-         * The validation call here is synchronous.  Any latency requirements for either the success or failure of
-         * validation should be implemented within the {@link EntityValidator}.
-         */
-        Set<ValidationError> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
-        if (!validationErrors.isEmpty()) {
-            return Observable.error(TitusServiceException.invalidJob(validationErrors));
-        }
+        Flux<Set<ValidationError>> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
 
         JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
-
-        return createRequestObservable(emitter -> {
+        Observable<String> requestObservable = createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
                     jobId -> emitter.onNext(jobId.getId()),
@@ -102,6 +96,15 @@ public class GrpcJobManagementClient implements JobManagementClient {
             );
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
         }, configuration.getRequestTimeout());
+
+        return ReactorExt.toObservable(validationErrors)
+                .flatMap(errors -> {
+                    if (!errors.isEmpty()) {
+                        return Observable.error(TitusServiceException.invalidJob(errors));
+                    } else {
+                        return requestObservable;
+                    }
+                });
     }
 
     @Override

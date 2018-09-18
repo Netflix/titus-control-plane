@@ -3,6 +3,7 @@ package com.netflix.titus.common.util.rx;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
@@ -29,5 +30,12 @@ public final class ReactorExt {
      */
     public static <T> Flux<T> toFlux(Observable<T> observable) {
         return Flux.create(new FluxObservableEmitter<>(observable));
+    }
+
+    /**
+     * {@link Flux} bridge to RxJava {@link Observable}.
+     */
+    public static <T> Observable<T> toObservable(Flux<T> flux) {
+        return RxJavaInterop.toV1Observable(flux);
     }
 }

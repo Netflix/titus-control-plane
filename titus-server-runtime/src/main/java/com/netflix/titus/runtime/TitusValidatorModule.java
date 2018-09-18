@@ -2,7 +2,7 @@ package com.netflix.titus.runtime;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobEntityValidator;
+import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.common.model.validator.EntityValidator;
 
 import javax.inject.Singleton;
@@ -20,6 +20,6 @@ public class TitusValidatorModule extends AbstractModule {
     @Provides
     @Singleton
     public EntityValidator getJobValidator() {
-        return new PassJobEntityValidator();
+        return new PassJobValidator();
     }
 }
