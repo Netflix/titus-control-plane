@@ -42,6 +42,7 @@ import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStoreException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
@@ -142,7 +143,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .forEach(loadBalancerStatePair -> {
                     JobLoadBalancer jobLoadBalancer = loadBalancerStatePair.getLeft();
                     JobLoadBalancer.State state = loadBalancerStatePair.getRight();
-                    Set<ConstraintViolation<JobLoadBalancer>> violations = entitySanitizer.validate(jobLoadBalancer);
+                    Set<ValidationError> violations = entitySanitizer.validate(jobLoadBalancer);
                     if (violations.isEmpty()) {
                         loadBalancerStateMap.putIfAbsent(jobLoadBalancer, state);
                         SortedSet<JobLoadBalancer> jobLoadBalancers = jobToAssociatedLoadBalancersMap.getOrDefault(jobLoadBalancer.getJobId(), new TreeSet<>());

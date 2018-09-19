@@ -197,10 +197,10 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
                 errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
 
-        if (!CollectionsExt.isNullOrEmpty(e.getConstraintViolations())) {
+        if (!CollectionsExt.isNullOrEmpty(e.getValidationErrors())) {
             errorBuilder.withContext(
                     "constraintViolations",
-                    EntitySanitizerUtil.toStringMap((Collection) e.getConstraintViolations())
+                    EntitySanitizerUtil.toStringMap((Collection) e.getValidationErrors())
             );
         }
 

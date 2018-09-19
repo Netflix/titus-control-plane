@@ -16,6 +16,8 @@
 
 package com.netflix.titus.common.model.sanitizer;
 
+import com.netflix.titus.common.model.validator.ValidationError;
+
 import java.util.Optional;
 import java.util.Set;
 import javax.validation.ConstraintViolation;
@@ -32,9 +34,9 @@ public interface EntitySanitizer {
     /**
      * Validate an entity and report constraint violations.
      *
-     * @return failed constraints or empty set if entity is valid
+     * @return validation errors or empty set if entity is valid
      */
-    <T> Set<ConstraintViolation<T>> validate(T entity);
+    <T> Set<ValidationError> validate(T entity);
 
     /**
      * Cleans and adds missing data elements to an entity.

@@ -69,6 +69,7 @@ subprojects {
         spectatorVersion = '0.59.+'
         mesosVersion = '1.3.2'
         protobufVersion = '3.5.+'
+        springReactor = '3.1.+'
         grpcVersion = '1.10.+'
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
@@ -83,6 +84,8 @@ subprojects {
         commonsCliVersion = '1.3.+'
         elasticsearchVersion = '2.4.2'
         caffeineVersion = '2.6.+'
+        rxJavaInteropVersion = '0.13.2'
+
 
         // Test
         junitVersion = '4.10'
@@ -116,12 +119,15 @@ subprojects {
 
     dependencies {
         compile "org.slf4j:slf4j-api:${slf4jVersion}"
+        compile "io.projectreactor:reactor-core:${springReactor}"
+        compile "io.projectreactor.addons:reactor-adapter:${springReactor}"
         runtime "org.slf4j:slf4j-log4j12:${slf4jVersion}"
 
         testCompile "junit:junit-dep:${junitVersion}"
         testCompile "org.mockito:mockito-core:${mockitoVersion}"
         testCompile "org.hamcrest:hamcrest-core:${hamcrestVersion}"
         testCompile "com.jayway.awaitility:awaitility:${awaitilityVersion}"
+        testCompile "io.projectreactor:reactor-test:${springReactor}"
 
         testCompile "org.assertj:assertj-core:${assertjVersion}"
     }
@@ -137,6 +143,23 @@ subprojects {
             junitXml.enabled = true
             html.enabled = true
         }
+
+        def stdout = new LinkedList<String>()
+        beforeTest {
+            stdout.clear()
+        }
+
+        onOutput { td, toe ->
+            stdout.addAll(toe.getMessage().split('(?m)$'))
+        }
+
+        afterTest { td, tr ->
+            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
+                println()
+                println("${td.className}.${td.name} failed, output:")
+                stdout.each { print(it) }
+            }
+        }
     }
 
     task integrationTest(type: Test) {
@@ -146,14 +169,26 @@ subprojects {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
         }
 
-        testLogging {
-            outputs.upToDateWhen {false}
-            showStandardStreams = true
-        }
-
         reports {
             junitXml.enabled = true
             html.enabled = true
+        }
+
+        def stdout = new LinkedList<String>()
+        beforeTest {
+            stdout.clear()
+        }
+
+        onOutput { td, toe ->
+            stdout.addAll(toe.getMessage().split('(?m)$'))
+        }
+
+        afterTest { td, tr ->
+            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
+                println()
+                println("${td.className}.${td.name} failed, output:")
+                stdout.each { print(it) }
+            }
         }
     }
 
@@ -162,14 +197,26 @@ subprojects {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest'
         }
 
-        testLogging {
-            outputs.upToDateWhen {false}
-            showStandardStreams = true
-        }
-
         reports {
             junitXml.enabled = true
             html.enabled = true
+        }
+
+        def stdout = new LinkedList<String>()
+        beforeTest {
+            stdout.clear()
+        }
+
+        onOutput { td, toe ->
+            stdout.addAll(toe.getMessage().split('(?m)$'))
+        }
+
+        afterTest { td, tr ->
+            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
+                println()
+                println("${td.className}.${td.name} failed, output:")
+                stdout.each { print(it) }
+            }
         }
     }
 

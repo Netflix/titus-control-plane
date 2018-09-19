@@ -1,7 +1,7 @@
 package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -18,11 +18,10 @@ import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
-import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
+import reactor.core.scheduler.Schedulers;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -36,22 +35,14 @@ public class GrpcJobReplicatorEventStreamTest {
     private static final int SERVICE_DESIRED = 5;
     private static final int BATCH_DESIRED = 1;
 
-    private final TestScheduler testScheduler = Schedulers.test();
-
-    private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
+    private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
     private final JobGeneratorOrchestrator dataGenerator = new JobGeneratorOrchestrator(titusRuntime);
 
     private final JobManagementClient client = mock(JobManagementClient.class);
 
-    private final GrpcJobReplicatorEventStream jobStreamCache = new GrpcJobReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, testScheduler);
-
-    private final ExtTestSubscriber<ReplicatorEvent<JobSnapshot>> cacheEventSubscriber = new ExtTestSubscriber<>();
-
     @Before
     public void setUp() {
-        when(client.observeJobs()).thenReturn(dataGenerator.grpcObserveJobs(true));
-
         dataGenerator.addJobTemplate(SERVICE_JOB, JobDescriptorGenerator.serviceJobDescriptors()
                 .map(jd -> jd.but(d -> d.getExtensions().toBuilder().withCapacity(Capacity.newBuilder().withDesired(SERVICE_DESIRED).withMax(10).build())))
                 .cast(JobDescriptor.class)
@@ -66,73 +57,93 @@ public class GrpcJobReplicatorEventStreamTest {
     @Test
     public void testCacheBootstrap() {
         dataGenerator.creteMultipleJobsAndTasks(SERVICE_JOB, BATCH_JOB);
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
 
-        ReplicatorEvent<JobSnapshot> initialReplicatorEvent = cacheEventSubscriber.takeNext();
-        assertThat(initialReplicatorEvent).isNotNull();
+        newConnectVerifier()
+                .assertNext(initialReplicatorEvent -> {
+                    assertThat(initialReplicatorEvent).isNotNull();
 
-        JobSnapshot cache = initialReplicatorEvent.getData();
-        assertThat(cache.getJobs()).hasSize(2);
-        assertThat(cache.getTasks()).hasSize(SERVICE_DESIRED + BATCH_DESIRED);
+                    JobSnapshot cache = initialReplicatorEvent.getData();
+                    assertThat(cache.getJobs()).hasSize(2);
+                    assertThat(cache.getTasks()).hasSize(SERVICE_DESIRED + BATCH_DESIRED);
+                })
+
+                .thenCancel()
+                .verify();
     }
 
     @Test
     public void testCacheJobUpdate() {
-        Job job = bootstrapWithOneJobNoTasks();
-        dataGenerator.moveJobToKillInitiatedState(job);
-        assertThat(cacheEventSubscriber.takeNext().getData().getJobs().get(0).getStatus().getState()).isEqualTo(JobState.KillInitiated);
+        Job job = dataGenerator.createJob(SERVICE_JOB);
+
+        newConnectVerifier()
+                .assertNext(next -> assertThat(next.getData().getJobs().get(0).getStatus().getState()).isEqualTo(JobState.Accepted))
+                .then(() -> dataGenerator.moveJobToKillInitiatedState(job))
+                .assertNext(next -> assertThat(next.getData().getJobs().get(0).getStatus().getState()).isEqualTo(JobState.KillInitiated))
+                .thenCancel()
+                .verify();
     }
 
     @Test
     public void testCacheJobRemove() {
-        Job job = bootstrapWithOneJobNoTasks();
+        Job job = dataGenerator.createJob(SERVICE_JOB);
         dataGenerator.moveJobToKillInitiatedState(job);
-        cacheEventSubscriber.skipAvailable();
 
-        dataGenerator.finishJob(job);
-        assertThat(cacheEventSubscriber.takeNext().getData().getJobs()).isEmpty();
+        newConnectVerifier()
+                .assertNext(next -> assertThat(next.getData().getJobs().get(0).getStatus().getState()).isEqualTo(JobState.KillInitiated))
+                .then(() -> dataGenerator.finishJob(job))
+                .assertNext(next -> assertThat(next.getData().getJobs()).isEmpty())
+
+                .thenCancel()
+                .verify();
     }
 
     @Test
     public void testCacheTaskUpdate() {
-        Pair<Job, List<Task>> pair = bootstrapWithOneJobAndOneTask();
+        Pair<Job, List<Task>> pair = dataGenerator.createJobAndTasks(BATCH_JOB);
         Task task = pair.getRight().get(0);
-        dataGenerator.moveTaskToState(task, TaskState.Launched);
-        assertThat(cacheEventSubscriber.takeNext().getData().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Launched);
+
+        newConnectVerifier()
+                .assertNext(next -> assertThat(next.getData().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Accepted))
+                .then(() -> dataGenerator.moveTaskToState(task, TaskState.Launched))
+                .assertNext(next -> assertThat(next.getData().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Launched))
+
+                .thenCancel()
+                .verify();
     }
 
     @Test
     public void testCacheTaskRemove() {
-        Pair<Job, List<Task>> pair = bootstrapWithOneJobAndOneTask();
+        Pair<Job, List<Task>> pair = dataGenerator.createJobAndTasks(BATCH_JOB);
         Task task = pair.getRight().get(0);
 
-        dataGenerator.moveTaskToState(task, TaskState.Finished);
-        assertThat(cacheEventSubscriber.takeNext().getData().getTasks()).isEmpty();
+        newConnectVerifier()
+                .assertNext(next -> assertThat(next.getData().getTasks().get(0).getStatus().getState()).isEqualTo(TaskState.Accepted))
+                .then(() -> dataGenerator.moveTaskToState(task, TaskState.Finished))
+                .assertNext(next -> assertThat(next.getData().getTasks()).isEmpty())
+
+                .thenCancel()
+                .verify();
     }
 
     @Test
     public void testReemit() {
         dataGenerator.creteMultipleJobsAndTasks(SERVICE_JOB, BATCH_JOB);
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
 
-        assertThat(cacheEventSubscriber.takeNext()).isNotNull();
+        newConnectVerifier()
+                .expectNextCount(1)
+                .expectNoEvent(Duration.ofMillis(GrpcJobReplicatorEventStream.LATENCY_REPORT_INTERVAL_MS))
+                .expectNextCount(1)
 
-        assertThat(cacheEventSubscriber.takeNext()).isNull();
-        testScheduler.advanceTimeBy(GrpcJobReplicatorEventStream.LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(cacheEventSubscriber.takeNext()).isNotNull();
+                .thenCancel()
+                .verify();
     }
 
-    private Job bootstrapWithOneJobNoTasks() {
-        Job job = dataGenerator.createJob(SERVICE_JOB);
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
-        cacheEventSubscriber.skipAvailable();
-        return job;
+    private GrpcJobReplicatorEventStream newStream() {
+        when(client.observeJobs()).thenReturn(dataGenerator.grpcObserveJobs(true));
+        return new GrpcJobReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
-    private Pair<Job, List<Task>> bootstrapWithOneJobAndOneTask() {
-        Pair<Job, List<Task>> pair = dataGenerator.createJobAndTasks(BATCH_JOB);
-        jobStreamCache.connect().subscribe(cacheEventSubscriber);
-        cacheEventSubscriber.skipAvailable();
-        return pair;
+    private StepVerifier.FirstStep<ReplicatorEvent<JobSnapshot>> newConnectVerifier() {
+        return StepVerifier.withVirtualTime(() -> newStream().connect().log());
     }
 }

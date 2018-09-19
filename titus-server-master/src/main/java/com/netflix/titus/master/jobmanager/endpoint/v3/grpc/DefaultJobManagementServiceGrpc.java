@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.agent.service.AgentManagementService;
@@ -39,6 +38,7 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.StringExt;
@@ -168,7 +168,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
-        Set<ConstraintViolation<com.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
+        Set<ValidationError> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
         if (!violations.isEmpty()) {
             safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
             return Optional.empty();
@@ -300,7 +300,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             com.netflix.titus.api.jobmanager.model.job.Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(request.getCapacity());
 
-            Set<ConstraintViolation<com.netflix.titus.api.jobmanager.model.job.Capacity>> violations = entitySanitizer.validate(newCapacity);
+            Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
             if (!violations.isEmpty()) {
                 safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
                 return;

@@ -25,6 +25,7 @@ import javax.validation.ConstraintViolation;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -116,9 +117,9 @@ public class GrpcAgentManagementClient implements AgentManagementClient {
     @Override
     public Completable updateAutoScalingRule(AutoScalingRuleUpdate autoScalingRuleUpdate) {
         AutoScaleRule coreAutoScaleRule = GrpcAgentModelConverters.toCoreAutoScaleRule(autoScalingRuleUpdate.getAutoScaleRule());
-        Set<ConstraintViolation<AutoScaleRule>> violations = entitySanitizer.validate(coreAutoScaleRule);
-        if (!violations.isEmpty()) {
-            return Completable.error(TitusServiceException.invalidArgument(violations));
+        Set<ValidationError> errors = entitySanitizer.validate(coreAutoScaleRule);
+        if (!errors.isEmpty()) {
+            return Completable.error(TitusServiceException.invalidArgument(errors));
         }
 
         return createRequestCompletable(emitter -> {

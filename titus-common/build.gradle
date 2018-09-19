@@ -28,6 +28,8 @@ dependencies {
     compile "io.grpc:grpc-stub:${grpcVersion}"
     compile "io.grpc:grpc-protobuf:${grpcVersion}"
 
+    compile "com.github.akarnokd:rxjava2-interop:${rxJavaInteropVersion}"
+
     testCompile project(':titus-testkit')
     testCompile "com.squareup.okhttp3:mockwebserver:${okHttpVersion}"
 }

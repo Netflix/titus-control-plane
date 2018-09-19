@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
@@ -32,6 +33,7 @@ import javax.validation.Validator;
 
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
+import com.netflix.titus.common.model.validator.ValidationError;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.spel.support.ReflectiveMethodResolver;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -81,8 +83,10 @@ public class DefaultEntitySanitizer implements EntitySanitizer {
     }
 
     @Override
-    public <T> Set<ConstraintViolation<T>> validate(T entity) {
-        return validator.validate(entity);
+    public <T> Set<ValidationError> validate(T entity) {
+        return validator.validate(entity).stream()
+                .map(violation -> new ValidationError(violation.getPropertyPath().toString(), violation.getMessage()))
+                .collect(Collectors.toSet());
     }
 
     @Override
