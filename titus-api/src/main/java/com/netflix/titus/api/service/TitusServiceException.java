@@ -16,9 +16,12 @@
 
 package com.netflix.titus.api.service;
 
+import com.netflix.titus.common.model.validator.ValidationError;
+
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 
 import static java.lang.String.format;
@@ -42,17 +45,18 @@ public class TitusServiceException extends RuntimeException {
         UNEXPECTED,
         INVALID_PAGE_OFFSET,
         INVALID_ARGUMENT,
-        CELL_NOT_FOUND
+        CELL_NOT_FOUND,
+        INVALID_JOB
     }
 
     private final ErrorCode errorCode;
-    private final Set<? extends ConstraintViolation<?>> constraintViolations;
+    private final Set<? extends ValidationError> validationErrors;
     private final Optional<String> leaderAddress;
 
     private TitusServiceException(TitusServiceExceptionBuilder builder) {
         super(builder.message, builder.cause);
         this.errorCode = builder.errorCode;
-        this.constraintViolations = builder.constraintViolations;
+        this.validationErrors = builder.validationErrors;
         this.leaderAddress = builder.leaderAddress;
     }
 
@@ -64,8 +68,8 @@ public class TitusServiceException extends RuntimeException {
         return errorCode;
     }
 
-    public Set<? extends ConstraintViolation<?>> getConstraintViolations() {
-        return constraintViolations;
+    public Set<? extends ValidationError> getValidationErrors() {
+        return validationErrors;
     }
 
     public Optional<String> getLeaderAddress() {
@@ -76,7 +80,7 @@ public class TitusServiceException extends RuntimeException {
         ErrorCode errorCode;
         String message;
         Throwable cause;
-        Set<? extends ConstraintViolation<?>> constraintViolations;
+        Set<? extends ValidationError> validationErrors;
         Optional<String> leaderAddress;
 
         private TitusServiceExceptionBuilder(ErrorCode errorCode, String message) {
@@ -89,8 +93,8 @@ public class TitusServiceException extends RuntimeException {
             return this;
         }
 
-        public TitusServiceExceptionBuilder withConstraintViolations(Set<? extends ConstraintViolation<?>> constraintViolations) {
-            this.constraintViolations = constraintViolations;
+        public TitusServiceExceptionBuilder withValidationErrors(Set<? extends ValidationError> constraintViolations) {
+            this.validationErrors = constraintViolations;
             return this;
         }
 
@@ -100,8 +104,8 @@ public class TitusServiceException extends RuntimeException {
         }
 
         public TitusServiceException build() {
-            if (this.constraintViolations == null) {
-                this.constraintViolations = Collections.emptySet();
+            if (this.validationErrors == null) {
+                this.validationErrors = Collections.emptySet();
             }
             if (this.leaderAddress == null) {
                 this.leaderAddress = Optional.empty();
@@ -141,16 +145,29 @@ public class TitusServiceException extends RuntimeException {
         return TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, e.getMessage()).withCause(e).build();
     }
 
-    public static TitusServiceException invalidArgument(Set<? extends ConstraintViolation<?>> constraintViolations) {
-        StringBuilder messageBuilder = new StringBuilder("Invalid Argument: ");
-        for (ConstraintViolation constraintViolation : constraintViolations) {
-            messageBuilder = messageBuilder.append("{field: ").append(constraintViolation.getPropertyPath().toString())
-                    .append(", description: ").append(constraintViolation.getMessage()).append("},");
-        }
-        messageBuilder.setLength(messageBuilder.length() - 1);
-        return TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, messageBuilder.toString())
-                .withConstraintViolations(constraintViolations)
+    public static TitusServiceException invalidArgument(Set<? extends ValidationError> validationErrors) {
+        String errors = validationErrors.stream()
+                .map(err -> String.format("{%s}", err))
+                .collect(Collectors.joining(", "));
+        String errMsg = String.format("Invalid Argument: %s", errors);
+        return TitusServiceException.newBuilder(ErrorCode.INVALID_ARGUMENT, errMsg)
+                .withValidationErrors(validationErrors)
                 .build();
+    }
+
+    /**
+     * Creates a {@link TitusServiceException} encapsulating {@link ValidationError}s.
+     *
+     * @param validationErrors The errors to be encapsulated by the exception
+     * @return A {@link TitusServiceException} encapsulating the appropriate errors.
+     */
+    public static TitusServiceException invalidJob(Set<ValidationError> validationErrors) {
+        String errors = validationErrors.stream()
+                .map(err -> String.format("{%s}", err))
+                .collect(Collectors.joining(", "));
+        String errMsg = String.format("Invalid Job: %s", errors);
+
+        return TitusServiceException.newBuilder(ErrorCode.INVALID_JOB, errMsg).build();
     }
 
     public static TitusServiceException unexpected(String message, Object... args) {

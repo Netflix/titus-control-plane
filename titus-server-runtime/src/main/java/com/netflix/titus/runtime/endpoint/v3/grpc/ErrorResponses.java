@@ -94,13 +94,13 @@ public final class ErrorResponses {
 
         if (exception instanceof TitusServiceException) {
             TitusServiceException e = (TitusServiceException) exception;
-            if (!e.getConstraintViolations().isEmpty()) {
+            if (!e.getValidationErrors().isEmpty()) {
                 BadRequest.Builder rbuilder = BadRequest.newBuilder();
 
-                e.getConstraintViolations().forEach(v -> {
+                e.getValidationErrors().forEach(v -> {
                     BadRequest.FieldViolation.Builder fbuilder = BadRequest.FieldViolation.newBuilder();
-                    fbuilder.setField(v.getPropertyPath().toString());
-                    fbuilder.setDescription(v.getMessage());
+                    fbuilder.setField(v.getField());
+                    fbuilder.setDescription(v.getDescription());
 
                     rbuilder.addFieldViolations(fbuilder.build());
                 });

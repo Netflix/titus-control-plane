@@ -20,11 +20,11 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.gateway.service.v3.SchedulerService;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
@@ -37,8 +37,6 @@ import com.netflix.titus.grpc.protogen.SystemSelectors;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcSchedulerModelConverters;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
@@ -51,8 +49,6 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrap
 
 @Singleton
 public class DefaultSchedulerService implements SchedulerService {
-    private static Logger logger = LoggerFactory.getLogger(DefaultSchedulerService.class);
-
     private final GrpcClientConfiguration configuration;
     private final SchedulerServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
@@ -88,7 +84,7 @@ public class DefaultSchedulerService implements SchedulerService {
     @Override
     public Completable createSystemSelector(SystemSelector systemSelector) {
         com.netflix.titus.api.scheduler.model.SystemSelector coreSystemSelector = GrpcSchedulerModelConverters.toCoreSystemSelector(systemSelector);
-        Set<ConstraintViolation<com.netflix.titus.api.scheduler.model.SystemSelector>> violations = entitySanitizer.validate(coreSystemSelector);
+        Set<ValidationError> violations = entitySanitizer.validate(coreSystemSelector);
         if (!violations.isEmpty()) {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
@@ -102,7 +98,7 @@ public class DefaultSchedulerService implements SchedulerService {
     @Override
     public Completable updateSystemSelector(String id, SystemSelector systemSelector) {
         com.netflix.titus.api.scheduler.model.SystemSelector coreSystemSelector = GrpcSchedulerModelConverters.toCoreSystemSelector(systemSelector);
-        Set<ConstraintViolation<com.netflix.titus.api.scheduler.model.SystemSelector>> violations = entitySanitizer.validate(coreSystemSelector);
+        Set<ValidationError> violations = entitySanitizer.validate(coreSystemSelector);
         if (!violations.isEmpty()) {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }

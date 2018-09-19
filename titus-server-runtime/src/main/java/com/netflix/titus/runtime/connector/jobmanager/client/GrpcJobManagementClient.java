@@ -5,12 +5,14 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -31,6 +33,7 @@ import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.stub.StreamObserver;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -50,15 +53,18 @@ public class GrpcJobManagementClient implements JobManagementClient {
     private final CallMetadataResolver callMetadataResolver;
     private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
+    private final EntityValidator validator;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
                                    @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                   EntityValidator validator,
                                    GrpcClientConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.entitySanitizer = entitySanitizer;
+        this.validator = validator;
         this.configuration = configuration;
     }
 
@@ -72,14 +78,15 @@ public class GrpcJobManagementClient implements JobManagementClient {
         }
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
-        Set<ConstraintViolation<com.netflix.titus.api.jobmanager.model.job.JobDescriptor>> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
+        Set<ValidationError> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
         if (!violations.isEmpty()) {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
+        Mono<Set<ValidationError>> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
 
-        return createRequestObservable(emitter -> {
+        JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
+        Observable<String> requestObservable = createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
                     jobId -> emitter.onNext(jobId.getId()),
@@ -88,12 +95,21 @@ public class GrpcJobManagementClient implements JobManagementClient {
             );
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
         }, configuration.getRequestTimeout());
+
+        return ReactorExt.toObservable(validationErrors)
+                .flatMap(errors -> {
+                    if (!errors.isEmpty()) {
+                        return Observable.error(TitusServiceException.invalidJob(errors));
+                    } else {
+                        return requestObservable;
+                    }
+                });
     }
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
         Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(jobCapacityUpdate.getCapacity());
-        Set<ConstraintViolation<Capacity>> violations = entitySanitizer.validate(newCapacity);
+        Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
         if (!violations.isEmpty()) {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }

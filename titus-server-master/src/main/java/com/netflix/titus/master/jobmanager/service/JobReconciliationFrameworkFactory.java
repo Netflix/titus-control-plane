@@ -60,6 +60,7 @@ import com.netflix.titus.common.framework.reconciler.internal.DefaultReconciliat
 import com.netflix.titus.common.framework.reconciler.internal.InternalReconciliationEngine;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -401,17 +402,17 @@ public class JobReconciliationFrameworkFactory {
 
     private Optional<Job> validateJob(Job job) {
         // Perform strict validation for reporting purposes
-        Set<ConstraintViolation<Job>> strictViolations = strictEntitySanitizer.validate(job);
+        Set<ValidationError> strictViolations = strictEntitySanitizer.validate(job);
         if (!strictViolations.isEmpty()) {
-            logger.error("No strictly consistent job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
+            logger.error("No strictly consistent job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap(strictViolations));
             errorCollector.strictlyInvalidJob(job.getId());
         }
 
         // Required checks
-        Set<ConstraintViolation<Job>> violations = permissiveEntitySanitizer.validate(job);
+        Set<ValidationError> violations = permissiveEntitySanitizer.validate(job);
 
         if (!violations.isEmpty()) {
-            logger.error("Bad job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
+            logger.error("Bad job record found: jobId={}, violations={}", job.getId(), EntitySanitizerUtil.toStringMap(violations));
             if (jobManagerConfiguration.isFailOnDataValidation()) {
                 return Optional.empty();
             }
@@ -422,17 +423,17 @@ public class JobReconciliationFrameworkFactory {
 
     private Optional<Task> validateTask(Task task) {
         // Perform strict validation for reporting purposes
-        Set<ConstraintViolation<Task>> strictViolations = strictEntitySanitizer.validate(task);
+        Set<ValidationError> strictViolations = strictEntitySanitizer.validate(task);
         if (!strictViolations.isEmpty()) {
-            logger.error("No strictly consistent task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) strictViolations));
+            logger.error("No strictly consistent task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap(strictViolations));
             errorCollector.strictlyInvalidTask(task.getId());
         }
 
         // Required checks
-        Set<ConstraintViolation<Task>> violations = permissiveEntitySanitizer.validate(task);
+        Set<ValidationError> violations = permissiveEntitySanitizer.validate(task);
 
         if (!violations.isEmpty()) {
-            logger.error("Bad task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap((Collection) violations));
+            logger.error("Bad task record found: taskId={}, violations={}", task.getId(), EntitySanitizerUtil.toStringMap(violations));
             if (jobManagerConfiguration.isFailOnDataValidation()) {
                 return Optional.empty();
             }

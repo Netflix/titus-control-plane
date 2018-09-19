@@ -36,6 +36,7 @@ import com.google.common.util.concurrent.Futures;
 import com.netflix.titus.api.agent.store.AgentStoreException;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.validator.ValidationError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -88,7 +89,7 @@ final class StoreUtils {
                                 String text = row.getString(0);
                                 try {
                                     T value = ObjectMappers.readValue(mapper, text, type);
-                                    Set<ConstraintViolation<T>> violations = entitySanitizer.validate(value);
+                                    Set<ValidationError> violations = entitySanitizer.validate(value);
                                     if (violations.isEmpty()) {
                                         converted.add(value);
                                     } else {
