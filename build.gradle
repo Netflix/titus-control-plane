@@ -141,6 +141,23 @@ subprojects {
             junitXml.enabled = true
             html.enabled = true
         }
+
+        def stdout = new LinkedList<String>()
+        beforeTest {
+            stdout.clear()
+        }
+
+        onOutput { td, toe ->
+            stdout.addAll(toe.getMessage().split('(?m)$'))
+        }
+
+        afterTest { td, tr ->
+            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
+                println()
+                println("${td.className}.${td.name} failed, output:")
+                stdout.each { print(it) }
+            }
+        }
     }
 
     task integrationTest(type: Test) {
@@ -150,14 +167,26 @@ subprojects {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
         }
 
-        testLogging {
-            outputs.upToDateWhen {false}
-            showStandardStreams = true
-        }
-
         reports {
             junitXml.enabled = true
             html.enabled = true
+        }
+
+        def stdout = new LinkedList<String>()
+        beforeTest {
+            stdout.clear()
+        }
+
+        onOutput { td, toe ->
+            stdout.addAll(toe.getMessage().split('(?m)$'))
+        }
+
+        afterTest { td, tr ->
+            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
+                println()
+                println("${td.className}.${td.name} failed, output:")
+                stdout.each { print(it) }
+            }
         }
     }
 
@@ -166,14 +195,26 @@ subprojects {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest'
         }
 
-        testLogging {
-            outputs.upToDateWhen {false}
-            showStandardStreams = true
-        }
-
         reports {
             junitXml.enabled = true
             html.enabled = true
+        }
+
+        def stdout = new LinkedList<String>()
+        beforeTest {
+            stdout.clear()
+        }
+
+        onOutput { td, toe ->
+            stdout.addAll(toe.getMessage().split('(?m)$'))
+        }
+
+        afterTest { td, tr ->
+            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
+                println()
+                println("${td.className}.${td.name} failed, output:")
+                stdout.each { print(it) }
+            }
         }
     }
 
