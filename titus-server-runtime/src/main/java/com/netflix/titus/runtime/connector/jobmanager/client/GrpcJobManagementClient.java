@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.validation.ConstraintViolation;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -34,7 +33,7 @@ import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.stub.StreamObserver;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -84,7 +83,7 @@ public class GrpcJobManagementClient implements JobManagementClient {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        Flux<Set<ValidationError>> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
+        Mono<Set<ValidationError>> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
 
         JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
         Observable<String> requestObservable = createRequestObservable(emitter -> {

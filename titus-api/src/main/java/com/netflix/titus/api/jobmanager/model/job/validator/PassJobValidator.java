@@ -6,7 +6,7 @@ import java.util.Set;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * This {@link EntityValidator} implementation always causes validation to fail.  It is used as a default implementation which
@@ -14,7 +14,7 @@ import reactor.core.publisher.Flux;
  */
 public class PassJobValidator implements EntityValidator<JobDescriptor> {
     @Override
-    public Flux<Set<ValidationError>> validate(JobDescriptor entity) {
-        return Flux.just(Collections.emptySet());
+    public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
+        return Mono.just(Collections.emptySet());
     }
 }

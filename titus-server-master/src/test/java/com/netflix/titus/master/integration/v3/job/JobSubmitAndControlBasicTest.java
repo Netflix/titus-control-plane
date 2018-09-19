@@ -49,6 +49,7 @@ import static com.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGIN
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static java.util.Arrays.asList;
+import static org.junit.Assert.fail;
 
 /**
  */

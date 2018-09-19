@@ -3,7 +3,7 @@ package com.netflix.titus.master.integration.v3.job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -20,7 +20,7 @@ public class FailJobValidator implements EntityValidator<JobDescriptor> {
     private static final Set<ValidationError> errors = new HashSet<>(Arrays.asList(error));
 
     @Override
-    public Flux<Set<ValidationError>> validate(JobDescriptor entity) {
-        return Flux.just(errors);
+    public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
+        return Mono.just(errors);
     }
 }
