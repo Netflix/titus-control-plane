@@ -64,6 +64,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskA
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +86,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private final VirtualMachineMasterService vmService;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
+    private final JobSubmitLimiter jobSubmitLimiter;
     private final TitusRuntime titusRuntime;
 
     private ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
@@ -96,11 +98,13 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   JobStore store,
                                   VirtualMachineMasterService vmService,
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
+                                  JobSubmitLimiter jobSubmitLimiter,
                                   TitusRuntime titusRuntime) {
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
+        this.jobSubmitLimiter = jobSubmitLimiter;
         this.titusRuntime = titusRuntime;
     }
 
@@ -154,12 +158,25 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<String> createJob(JobDescriptor<?> jobDescriptor) {
-        return Observable.fromCallable(() -> newJob(jobDescriptor))
-                .flatMap(job -> {
+        return Observable.fromCallable(() -> jobSubmitLimiter.reserveId(jobDescriptor))
+                .flatMap(reservationFailure -> {
+
+                    if (reservationFailure.isPresent()) {
+                        return Observable.error(JobManagerException.jobCreateLimited(reservationFailure.get()));
+                    }
+                    Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDescriptor);
+                    if (limited.isPresent()) {
+                        jobSubmitLimiter.releaseId(jobDescriptor);
+                        return Observable.error(JobManagerException.jobCreateLimited(limited.get()));
+                    }
+
+                    Job<?> job = newJob(jobDescriptor);
                     String jobId = job.getId();
+
                     return store.storeJob(job).toObservable()
                             .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job)))
                             .map(engine -> jobId)
+                            .doOnTerminate(() -> jobSubmitLimiter.releaseId(jobDescriptor))
                             .doOnCompleted(() -> logger.info("Created job {}", jobId))
                             .doOnError(e -> logger.info("Job {} creation failure", jobId, e));
                 });

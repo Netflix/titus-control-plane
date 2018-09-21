@@ -135,7 +135,9 @@ public class TitusMasterGrpcServer {
             try {
                 this.server.start();
             } catch (final IOException e) {
-                throw new RuntimeException(e);
+                String errorMessage = "Cannot start TitusMaster GRPC server on port " + config.getPort();
+                LOG.error(errorMessage, e);
+                throw new RuntimeException(errorMessage, e);
             }
             LOG.info("Started gRPC server on port {}.", config.getPort());
         }
