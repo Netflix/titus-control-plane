@@ -34,6 +34,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -43,15 +44,19 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.endpoint.common.rest.Responses;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+
+import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.logPageNumberUsage;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -61,10 +66,16 @@ import io.swagger.annotations.ApiOperation;
 public class JobManagementResource {
 
     private final JobManagementClient jobManagementClient;
+    private final SystemLogService systemLog;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public JobManagementResource(JobManagementClient jobManagementClient) {
+    public JobManagementResource(JobManagementClient jobManagementClient,
+                                 SystemLogService systemLog,
+                                 CallMetadataResolver callMetadataResolver) {
         this.jobManagementClient = jobManagementClient;
+        this.systemLog = systemLog;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @POST
@@ -134,7 +145,9 @@ public class JobManagementResource {
     public JobQueryResult findJobs(@Context UriInfo info) {
         MultivaluedMap<String, String> queryParameters = info.getQueryParameters(true);
         JobQuery.Builder queryBuilder = JobQuery.newBuilder();
-        queryBuilder.setPage(RestUtil.createPage(queryParameters));
+        Page page = RestUtil.createPage(queryParameters);
+        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findJobs", page);
+        queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
         return Responses.fromSingleValueObservable(jobManagementClient.findJobs(queryBuilder.build()));
@@ -160,7 +173,9 @@ public class JobManagementResource {
     public TaskQueryResult findTasks(@Context UriInfo info) {
         MultivaluedMap<String, String> queryParameters = info.getQueryParameters(true);
         TaskQuery.Builder queryBuilder = TaskQuery.newBuilder();
-        queryBuilder.setPage(RestUtil.createPage(queryParameters));
+        Page page = RestUtil.createPage(queryParameters);
+        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findTasks", page);
+        queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
         return Responses.fromSingleValueObservable(jobManagementClient.findTasks(queryBuilder.build()));

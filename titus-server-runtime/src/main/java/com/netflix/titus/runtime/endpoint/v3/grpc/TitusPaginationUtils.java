@@ -16,8 +16,14 @@
 
 package com.netflix.titus.runtime.endpoint.v3.grpc;
 
+import java.util.Collections;
+
+import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.runtime.SystemLogEvent;
+import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.Page;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
 
 /**
@@ -38,5 +44,33 @@ public class TitusPaginationUtils {
             return false;
         }
         return true;
+    }
+
+    public static void logPageNumberUsage(SystemLogService systemLog,
+                                          CallMetadataResolver metadataResolver,
+                                          String component,
+                                          String apiName,
+                                          Page page) {
+        if (page.getPageNumber() == 0) {
+            return;
+        }
+
+        ImmutableMap.Builder<String, String> contextBuilder = new ImmutableMap.Builder<>();
+        contextBuilder.put("apiName", apiName);
+        metadataResolver.resolve().ifPresent(callMetadata -> contextBuilder
+                .put("callPath", String.join(",", callMetadata.getCallPath()))
+                .put("callerId", callMetadata.getCallerId())
+                .put("reason", callMetadata.getCallReason())
+        );
+
+        systemLog.submit(SystemLogEvent.newBuilder()
+                .withCategory(SystemLogEvent.Category.Other)
+                .withComponent(component)
+                .withPriority(SystemLogEvent.Priority.Info)
+                .withTags(Collections.singleton("pageNumberUsage"))
+                .withContext(contextBuilder.build())
+                .withMessage("API called with a pageNumber")
+                .build()
+        );
     }
 }

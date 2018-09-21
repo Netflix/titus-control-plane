@@ -20,6 +20,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.runtime.SystemLogService;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
@@ -34,15 +36,22 @@ import rx.Subscription;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.logPageNumberUsage;
 
 @Singleton
 public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.LoadBalancerServiceImplBase {
     private static Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerServiceGrpc.class);
     private final LoadBalancerService loadBalancerService;
+    private final SystemLogService systemLog;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public DefaultLoadBalancerServiceGrpc(LoadBalancerService loadBalancerService) {
+    public DefaultLoadBalancerServiceGrpc(LoadBalancerService loadBalancerService,
+                                          SystemLogService systemLog,
+                                          CallMetadataResolver callMetadataResolver) {
         this.loadBalancerService = loadBalancerService;
+        this.systemLog = systemLog;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
@@ -60,6 +69,7 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     public void getAllLoadBalancers(com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest request,
                                     StreamObserver<GetAllLoadBalancersResult> responseObserver) {
         logger.debug("Received get all load balancer request {}", request);
+        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "getAllLoadBalancers", request.getPage());
         Subscription subscription = loadBalancerService.getAllLoadBalancers(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),

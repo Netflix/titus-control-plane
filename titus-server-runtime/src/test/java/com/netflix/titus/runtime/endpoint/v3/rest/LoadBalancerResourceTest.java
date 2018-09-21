@@ -1,8 +1,14 @@
 package com.netflix.titus.runtime.endpoint.v3.rest;
 
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.junit.Before;
@@ -11,10 +17,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import rx.Completable;
 import rx.Observable;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.core.MultivaluedMap;
 
 import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.CURSOR_QUERY_KEY;
 import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.PAGE_QUERY_KEY;
@@ -28,8 +30,15 @@ import static org.mockito.Mockito.when;
  * Tests the {@link LoadBalancerResource} class.
  */
 public class LoadBalancerResourceTest {
-    @Mock private LoadBalancerService loadBalancerService;
-    @Mock private UriInfo uriInfo;
+    @Mock
+    private LoadBalancerService loadBalancerService;
+    @Mock
+    private UriInfo uriInfo;
+    @Mock
+    private SystemLogService systemLog;
+    @Mock
+    private CallMetadataResolver callMetadataResolver;
+
 
     private LoadBalancerResource loadBalancerResource;
 
@@ -39,7 +48,7 @@ public class LoadBalancerResourceTest {
     @Before
     public void beforeAll() {
         MockitoAnnotations.initMocks(this);
-        this.loadBalancerResource = new LoadBalancerResource(loadBalancerService);
+        this.loadBalancerResource = new LoadBalancerResource(loadBalancerService, systemLog, callMetadataResolver);
     }
 
     @Test
