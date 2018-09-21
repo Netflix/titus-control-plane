@@ -84,6 +84,26 @@ public final class StringExt {
     }
 
     /**
+     * Return prefix until first occurrence of the end marker.
+     */
+    public static String takeUntil(String value, String endMarker) {
+        if(value == null) {
+            return "";
+        }
+        if(endMarker == null) {
+            return value;
+        }
+        if(value.length() < endMarker.length()) {
+            return value;
+        }
+        int idx = value.indexOf(endMarker);
+        if(idx < 0) {
+            return value;
+        }
+        return value.substring(0, idx);
+    }
+
+    /**
      * Pass a string value to the consumer if it is not null, and non-empty.
      */
     public static void applyIfNonEmpty(String value, Consumer<String> consumer) {

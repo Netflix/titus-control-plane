@@ -6,6 +6,11 @@ dependencies {
     }
     compile "org.hdrhistogram:HdrHistogram:${hdrhistogramVersion}"
 
+    // Spring
+    compile "io.projectreactor:reactor-core:${springReactor}"
+    compile "io.projectreactor.addons:reactor-adapter:${springReactor}"
+    compile "io.projectreactor.ipc:reactor-netty:${springReactorNetty}"
+
     compile "com.netflix.spectator:spectator-api:${spectatorVersion}"
     compile "com.netflix.numerus:numerus:${numerusVersion}"
     compile "com.netflix.archaius:archaius2-core:${archaius2Version}"
@@ -16,6 +21,8 @@ dependencies {
     compile "com.netflix.governator:governator-core:${governatorVersion}"
     compile "com.squareup.okhttp3:okhttp:${okHttpVersion}"
     compile "com.github.ben-manes.caffeine:caffeine:${caffeineVersion}"
+    compile "javax.servlet:javax.servlet-api:${servletVersion}"
+    compile "javax.ws.rs:jsr311-api:1.1.1"
 
     // Java Bean validation/EL and SpEL
     compile "javax.el:javax.el-api:${javaxElVersion}"
