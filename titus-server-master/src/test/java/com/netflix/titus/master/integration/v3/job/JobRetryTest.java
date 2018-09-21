@@ -41,9 +41,6 @@ import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCe
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
-/**
- * TODO These tests are not stable.
- */
 @Category(IntegrationTest.class)
 public class JobRetryTest extends BaseIntegrationTest {
 
@@ -80,9 +77,6 @@ public class JobRetryTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
     }
 
-    /**
-     * FIXME V3 engine is broken. Batch job returned as service job.
-     */
     @Test(timeout = 30_000)
     public void testBatchJobRetry() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder

@@ -265,6 +265,18 @@ public final class JobFunctions {
         return expectedPreviousStates.equals(taskStates);
     }
 
+    public static Optional<JobStatus> findJobStatus(Job<?> job, JobState checkedState) {
+        if (job.getStatus().getState() == checkedState) {
+            return Optional.of(job.getStatus());
+        }
+        for (JobStatus jobStatus : job.getStatusHistory()) {
+            if (jobStatus.getState() == checkedState) {
+                return Optional.of(jobStatus);
+            }
+        }
+        return Optional.empty();
+    }
+
     public static Optional<TaskStatus> findTaskStatus(Task task, TaskState checkedState) {
         if (task.getStatus().getState() == checkedState) {
             return Optional.of(task.getStatus());

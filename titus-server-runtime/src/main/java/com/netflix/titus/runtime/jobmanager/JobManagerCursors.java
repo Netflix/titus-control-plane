@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -78,6 +79,7 @@ public final class JobManagerCursors {
 
     /**
      * Compare two task entities by the creation time (first), and a task id (second).
+     *
      * @deprecated Use core model entities.
      */
     @Deprecated
@@ -224,16 +226,7 @@ public final class JobManagerCursors {
     }
 
     private static long getCoreCursorTimestamp(com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
-        if (job.getStatus().getState() == JobState.Accepted) {
-            return job.getStatus().getTimestamp();
-        }
-        for (com.netflix.titus.api.jobmanager.model.job.JobStatus next : job.getStatusHistory()) {
-            if (next.getState() == JobState.Accepted) {
-                return next.getTimestamp();
-            }
-        }
-        // Fallback, in case Accepted state is not found which should never happen.
-        return job.getStatus().getTimestamp();
+        return JobFunctions.findJobStatus(job, JobState.Accepted).orElse(job.getStatus()).getTimestamp();
     }
 
     private static long getCursorTimestamp(Task task) {
@@ -250,16 +243,7 @@ public final class JobManagerCursors {
     }
 
     private static long getCoreCursorTimestamp(com.netflix.titus.api.jobmanager.model.job.Task task) {
-        if (task.getStatus().getState() == TaskState.Accepted) {
-            return task.getStatus().getTimestamp();
-        }
-        for (com.netflix.titus.api.jobmanager.model.job.TaskStatus next : task.getStatusHistory()) {
-            if (next.getState() == TaskState.Accepted) {
-                return next.getTimestamp();
-            }
-        }
-        // Fallback, in case Accepted state is not found which should never happen.
-        return task.getStatus().getTimestamp();
+        return JobFunctions.findTaskStatus(task, TaskState.Accepted).orElse(task.getStatus()).getTimestamp();
     }
 
     private static String encode(String id, long timestamp) {

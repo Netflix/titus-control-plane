@@ -212,7 +212,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             responseObserver.onNext(grpcQueryResult);
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            safeOnError(logger, e, responseObserver);
         }
     }
 
@@ -230,7 +230,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                             responseObserver::onCompleted
                     );
         } catch (Exception e) {
-            responseObserver.onError(e);
+            safeOnError(logger, e, responseObserver);
         }
     }
 
@@ -270,7 +270,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             responseObserver.onNext(grpcQueryResult);
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            safeOnError(logger, e, responseObserver);
         }
     }
 
@@ -291,7 +291,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                             responseObserver::onCompleted
                     );
         } catch (Exception e) {
-            responseObserver.onError(e);
+            safeOnError(logger, e, responseObserver);
         }
     }
 
