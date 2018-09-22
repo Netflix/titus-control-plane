@@ -7,11 +7,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -19,15 +19,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -73,6 +73,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -338,9 +344,33 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -424,6 +454,14 @@
             "locked": "3.3.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -479,11 +517,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -491,15 +529,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -545,6 +583,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -810,9 +854,33 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -896,6 +964,14 @@
             "locked": "3.3.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -951,11 +1027,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -963,15 +1039,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1017,6 +1093,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -1282,9 +1364,33 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -1368,6 +1474,14 @@
             "locked": "3.3.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -1487,11 +1601,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1499,15 +1613,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1553,6 +1667,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -1818,9 +1938,33 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -1904,6 +2048,14 @@
             "locked": "3.3.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -1960,11 +2112,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -1972,15 +2124,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2026,6 +2178,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -2291,9 +2449,33 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -2377,6 +2559,14 @@
             "locked": "3.3.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -2457,11 +2647,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2469,15 +2659,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -2567,6 +2757,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -3155,9 +3351,54 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -3625,6 +3866,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -3768,11 +4017,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -3780,15 +4029,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -3878,6 +4127,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -4466,9 +4721,54 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -4936,6 +5236,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -5079,11 +5387,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -5091,15 +5399,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -5189,6 +5497,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -5777,9 +6091,54 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -6247,6 +6606,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -6391,11 +6758,11 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -6403,15 +6770,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.409",
+            "locked": "1.11.414",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-autoscaling",
                 "com.amazonaws:aws-java-sdk-ec2",
@@ -6501,6 +6868,12 @@
             "locked": "1.3.1",
             "transitive": [
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "com.github.ben-manes.caffeine:caffeine": {
@@ -7089,9 +7462,54 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-testkit",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -7559,6 +7977,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {

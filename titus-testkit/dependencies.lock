@@ -100,6 +100,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -664,9 +670,47 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -1107,6 +1151,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -1311,6 +1363,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -1875,9 +1933,47 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -2318,6 +2414,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -2522,6 +2626,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -3086,9 +3196,47 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -3529,6 +3677,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -3797,6 +3953,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -4361,9 +4523,47 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -4804,6 +5004,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -5009,6 +5217,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -5573,9 +5787,47 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter"
+            ]
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -6016,6 +6268,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -6227,6 +6487,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -6795,9 +7061,52 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -7246,6 +7555,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -7456,6 +7773,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -8024,9 +8347,52 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -8475,6 +8841,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -8685,6 +9059,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -9253,9 +9633,52 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -9704,6 +10127,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
@@ -9915,6 +10346,12 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
+        "com.github.akarnokd:rxjava2-interop": {
+            "locked": "0.13.2",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
         "com.github.ben-manes.caffeine:caffeine": {
             "locked": "2.6.2",
             "transitive": [
@@ -10483,9 +10920,52 @@
                 "io.grpc:grpc-core"
             ]
         },
+        "io.projectreactor.addons:reactor-adapter": {
+            "locked": "3.1.7.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "io.projectreactor:reactor-core": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+",
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-ext-cassandra",
+                "com.netflix.titus:titus-ext-cassandra-testkit",
+                "com.netflix.titus:titus-grpc-api",
+                "com.netflix.titus:titus-server-federation",
+                "com.netflix.titus:titus-server-gateway",
+                "com.netflix.titus:titus-server-master",
+                "com.netflix.titus:titus-server-runtime",
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor:reactor-test"
+            ]
+        },
+        "io.projectreactor:reactor-test": {
+            "locked": "3.1.9.RELEASE",
+            "requested": "3.1.+"
+        },
+        "io.reactivex.rxjava2:rxjava": {
+            "locked": "2.2.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop"
+            ]
+        },
         "io.reactivex:rxjava": {
             "locked": "1.3.8",
             "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
                 "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
@@ -10934,6 +11414,14 @@
             "locked": "2.2.1",
             "transitive": [
                 "com.netflix.fenzo:fenzo-triggers"
+            ]
+        },
+        "org.reactivestreams:reactive-streams": {
+            "locked": "1.0.2",
+            "transitive": [
+                "com.github.akarnokd:rxjava2-interop",
+                "io.projectreactor:reactor-core",
+                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.reflections:reflections": {
