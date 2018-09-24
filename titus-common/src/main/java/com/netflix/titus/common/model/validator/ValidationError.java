@@ -6,10 +6,26 @@ package com.netflix.titus.common.model.validator;
 public class ValidationError {
     private final String field;
     private final String description;
+    private final Type type;
+
+    /**
+     * The error type defined here is an indication of the seriousness of the error.  In general "HARD" errors should be
+     * considered fatal, in that continued use of the validated object is not recommended.  SOFT errors indicate that
+     * subsequent use of the validated object is possible.
+     */
+    public enum Type {
+        HARD,
+        SOFT
+    }
 
     public ValidationError(String field, String description) {
+        this(field, description, Type.HARD);
+    }
+
+    public ValidationError(String field, String description, Type type) {
         this.field = field;
         this.description = description;
+        this.type = type;
     }
 
     public String getField() {
@@ -20,8 +36,12 @@ public class ValidationError {
         return description;
     }
 
+    public Type getType() {
+        return type;
+    }
+
     public String getMessage() {
-        return String.format("field: '%s', description: '%s'", field, description);
+        return String.format("field: '%s', description: '%s', type: '%s'", field, description, type);
     }
 
     @Override

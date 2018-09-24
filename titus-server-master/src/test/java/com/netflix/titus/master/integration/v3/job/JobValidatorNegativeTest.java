@@ -1,6 +1,7 @@
 package com.netflix.titus.master.integration.v3.job;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.validator.FailJobValidator;
 import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
