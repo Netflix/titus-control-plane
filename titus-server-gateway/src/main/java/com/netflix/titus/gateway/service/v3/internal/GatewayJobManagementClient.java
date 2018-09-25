@@ -29,6 +29,7 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.store.JobStore;
@@ -94,13 +95,15 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                       JobStore store,
                                       LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                      EntityValidator validator) {
+                                      EntityValidator validator,
+                                      Registry registry) {
         super(new GrpcJobManagementClient(
                 client,
                 callMetadataResolver,
                 new ExtendedJobSanitizer(jobManagerConfiguration, entitySanitizer),
                 validator,
-                configuration));
+                configuration,
+                registry));
         this.configuration = configuration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;

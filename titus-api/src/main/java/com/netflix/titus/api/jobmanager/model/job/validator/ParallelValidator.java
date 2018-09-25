@@ -10,7 +10,6 @@ import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
 /**
  * A ParallelValidator executes multiple {@link EntityValidator}s in parallel.

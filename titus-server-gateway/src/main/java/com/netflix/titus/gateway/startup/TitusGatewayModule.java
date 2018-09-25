@@ -43,7 +43,6 @@ import com.netflix.titus.gateway.endpoint.JerseyModule;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
-import com.netflix.titus.runtime.TitusValidatorModule;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
