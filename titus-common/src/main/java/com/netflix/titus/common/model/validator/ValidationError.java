@@ -44,6 +44,14 @@ public class ValidationError {
         return String.format("field: '%s', description: '%s', type: '%s'", field, description, type);
     }
 
+    public boolean isHard() {
+        return getType().equals(Type.HARD);
+    }
+
+    public boolean isSoft() {
+        return getType().equals(Type.SOFT);
+    }
+
     @Override
     public String toString() {
         return String.format("Validation failed: '%s'", getMessage());

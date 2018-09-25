@@ -2,11 +2,13 @@ package com.netflix.titus.runtime.connector.jobmanager.client;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -54,18 +56,21 @@ public class GrpcJobManagementClient implements JobManagementClient {
     private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
     private final EntityValidator validator;
+    private final Registry registry;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
                                    @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                    EntityValidator validator,
-                                   GrpcClientConfiguration configuration) {
+                                   GrpcClientConfiguration configuration,
+                                   Registry registry) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.entitySanitizer = entitySanitizer;
         this.validator = validator;
         this.configuration = configuration;
+        this.registry = registry;
     }
 
     @Override
@@ -98,6 +103,12 @@ public class GrpcJobManagementClient implements JobManagementClient {
 
         return ReactorExt.toObservable(validationErrors)
                 .flatMap(errors -> {
+                    // Report metrics on all errors
+                    reportErrorMetrics(errors);
+
+                    // Only emit an error on HARD validation errors
+                    errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
+
                     if (!errors.isEmpty()) {
                         return Observable.error(TitusServiceException.invalidJob(errors));
                     } else {
@@ -200,5 +211,14 @@ public class GrpcJobManagementClient implements JobManagementClient {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).killTask(taskKillRequest, streamObserver);
         }, configuration.getRequestTimeout());
+    }
+
+    private void reportErrorMetrics(Set<ValidationError> errors) {
+        errors.forEach(error ->
+                registry.counter(
+                        error.getField(),
+                        "type", error.getType().name(),
+                        "description", error.getDescription())
+                        .increment());
     }
 }
