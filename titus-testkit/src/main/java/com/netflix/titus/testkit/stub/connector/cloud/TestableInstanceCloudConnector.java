@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.connector.cloud.Instance;
@@ -46,6 +47,7 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
     private final Map<String, InstanceLaunchConfiguration> launchConfigurationsById = new HashMap<>();
 
     private final Map<String, Pair<Instance, Integer>> instancesById = new HashMap<>();
+    private final Map<String, List<Consumer<String>>> interceptorsById = new HashMap<>();
 
     @Override
     public Observable<List<InstanceGroup>> getInstanceGroups() {
@@ -57,7 +59,10 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
     public Observable<List<InstanceGroup>> getInstanceGroups(List<String> instanceGroupIds) {
         return Observable.fromCallable(() -> instanceGroupIds.stream()
                 .filter(instanceGroupsById::containsKey)
-                .map(id -> instanceGroupsById.get(id).getFirst())
+                .map(id -> {
+                    executeInterceptors(id);
+                    return instanceGroupsById.get(id).getFirst();
+                })
                 .collect(Collectors.toList()));
     }
 
@@ -110,6 +115,10 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
 
     public void addInstanceGroup(InstanceGroup instanceGroup) {
         addInstanceGroup(instanceGroup, DEFAULT_INSTANCE_TYPE);
+    }
+
+    public void addInterceptor(String targetId, Consumer<String> interceptor) {
+        interceptorsById.computeIfAbsent(targetId, id -> new ArrayList<>()).add(interceptor);
     }
 
     public void addInstanceGroup(InstanceGroup instanceGroup, String instanceType) {
@@ -214,5 +223,13 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Instance with index " + instanceIndex + " not found in instance group " + instanceGroupIndex))
                 .getLeft();
+    }
+
+    private void executeInterceptors(String id) {
+        List<Consumer<String>> interceptors = interceptorsById.get(id);
+        if (interceptors == null) {
+            return;
+        }
+        interceptors.forEach(i -> i.accept(id));
     }
 }

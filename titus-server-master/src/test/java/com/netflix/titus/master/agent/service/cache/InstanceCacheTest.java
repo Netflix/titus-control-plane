@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.agent.service.AgentManagementException;
+import com.netflix.titus.api.agent.service.AgentManagementException.ErrorCode;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.common.data.generator.DataGenerator;
@@ -36,6 +38,7 @@ import org.junit.Test;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.CACHE_REFRESH_INTERVAL_MS;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.FULL_CACHE_REFRESH_INTERVAL_MS;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceGroupUpdateEvent;
@@ -71,7 +74,7 @@ public class InstanceCacheTest {
     }
 
     @Test
-    public void testBootstrapWithKnownInstanceGroups() throws Exception {
+    public void testBootstrapWithoutKnownInstanceGroups() {
         assertThat(instanceGroupIds(cache.getInstanceGroups())).containsAll(testConnector.takeInstanceGroupIds());
         InstanceGroup firstInstanceGroup = testConnector.takeInstanceGroup(0);
         assertThat(cache.getInstanceGroups().contains(firstInstanceGroup));
@@ -86,7 +89,21 @@ public class InstanceCacheTest {
     }
 
     @Test
-    public void testInstanceGroupAdded() throws Exception {
+    public void testBootstrapWithKnownInstanceGroupsAndConnectorTimeout() {
+        String id1 = testConnector.takeInstanceGroup(0).getId();
+        String id2 = testConnector.takeInstanceGroup(1).getId();
+        testConnector.addInterceptor(id1, id -> {
+            throw new RuntimeException("Simulated connector error");
+        });
+        try {
+            cache = InstanceCache.newInstance(configuration, testConnector, asSet(id1, id2), registry, 1, 1, Schedulers.computation());
+        } catch (AgentManagementException e) {
+            assertThat(e.getErrorCode()).isEqualTo(ErrorCode.InitializationError);
+        }
+    }
+
+    @Test
+    public void testInstanceGroupAdded() {
         int initialCount = cache.getInstanceGroups().size();
         instanceGroupsGenerator = instanceGroupsGenerator.apply(testConnector::addInstanceGroup);
 
@@ -99,7 +116,7 @@ public class InstanceCacheTest {
     }
 
     @Test
-    public void testInstanceGroupChanged() throws Exception {
+    public void testInstanceGroupChanged() {
         InstanceGroup updated = testConnector.takeInstanceGroup(0).toBuilder().withMax(100).build();
         testConnector.addInstanceGroup(updated);
 
@@ -110,7 +127,7 @@ public class InstanceCacheTest {
     }
 
     @Test
-    public void testInstanceGroupRemoved() throws Exception {
+    public void testInstanceGroupRemoved() {
         int initialCount = cache.getInstanceGroups().size();
 
         String removedInstanceGroupId = testConnector.takeInstanceGroup(0).getId();
@@ -122,7 +139,7 @@ public class InstanceCacheTest {
     }
 
     @Test
-    public void testInstanceAdded() throws Exception {
+    public void testInstanceAdded() {
         String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
         int initialCount = cache.getInstanceGroup(instanceGroupId).getInstanceIds().size();
 
@@ -134,7 +151,7 @@ public class InstanceCacheTest {
     }
 
     @Test
-    public void testInstanceChanged() throws Exception {
+    public void testInstanceChanged() {
         Instance updatedInstance = testConnector.takeInstance(0, 0).toBuilder()
                 .withInstanceState(Instance.InstanceState.Terminated)
                 .build();
@@ -146,7 +163,7 @@ public class InstanceCacheTest {
     }
 
     @Test
-    public void testInstanceRemoved() throws Exception {
+    public void testInstanceRemoved() {
         String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
         int initialCount = cache.getInstanceGroup(instanceGroupId).getInstanceIds().size();
 
