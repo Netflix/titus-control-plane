@@ -27,6 +27,7 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
+import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
 import com.netflix.titus.testkit.junit.jaxrs.HttpTestClientException;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
@@ -34,6 +35,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
 import rx.Observable;
 
@@ -51,6 +53,7 @@ import static org.mockito.Mockito.when;
  * Runs tests in the embedded jetty jaxRsServer, as we want to verify that providers and annotations are applied
  * as expected.
  */
+@Category(IntegrationTest.class)
 public class ApplicationSlaManagementResourceTest {
 
     private static final ApplicationSLA SAMPLE_SLA = ApplicationSlaSample.CriticalSmall.build();

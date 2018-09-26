@@ -26,12 +26,14 @@ import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import com.netflix.titus.master.scheduler.VMOperations;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
+import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
 
 import static java.util.Collections.singletonList;
@@ -42,6 +44,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@Category(IntegrationTest.class)
 public class VmManagementResourceTest {
 
     private static final TypeReference<List<ServerInfo>> LIST_SERVER_INFOS_TREF = new TypeReference<List<ServerInfo>>() {

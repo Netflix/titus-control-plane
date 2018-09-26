@@ -1,5 +1,8 @@
 package com.netflix.titus.common.network.reverseproxy.grpc;
 
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -25,6 +28,8 @@ public class RemoteHandlerRegistry extends HandlerRegistry {
 
     private final ManagedChannelFactory managedChannelFactory;
 
+    private final ConcurrentMap<String, ServerMethodDefinition<?, ?>> cache = new ConcurrentHashMap<>();
+
     @Inject
     public RemoteHandlerRegistry(ManagedChannelFactory managedChannelFactory) {
         this.managedChannelFactory = managedChannelFactory;
@@ -33,6 +38,17 @@ public class RemoteHandlerRegistry extends HandlerRegistry {
     @Nullable
     @Override
     public ServerMethodDefinition<?, ?> lookupMethod(String methodName, @Nullable String authority) {
+        ServerMethodDefinition<?, ?> result = cache.get(methodName);
+        if (result != null) {
+            return result;
+        }
+        return newServerMethodDefinition(methodName).map(d -> {
+            cache.put(methodName, d);
+            return d;
+        }).orElse(null);
+    }
+
+    private Optional<ServerMethodDefinition> newServerMethodDefinition(String methodName) {
         return managedChannelFactory.newManagedChannel(StringExt.takeUntil(methodName, "/"))
                 .map(c -> {
                     ServerMethodDefinition<Object, Object> methodDefinition = ServerMethodDefinition.create(
@@ -45,7 +61,6 @@ public class RemoteHandlerRegistry extends HandlerRegistry {
                             .getMethod(REVERSE_PROXY_METHOD_NAME);
 
                     return serverMethodDefinition.withServerCallHandler(new ReverseProxyServerCallHandler(c, methodName));
-                })
-                .orElse(null);
+                });
     }
 }

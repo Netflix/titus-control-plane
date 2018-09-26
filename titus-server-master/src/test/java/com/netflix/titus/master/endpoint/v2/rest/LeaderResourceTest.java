@@ -25,17 +25,20 @@ import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.mesos.MesosMasterResolver;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
+import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@Category(IntegrationTest.class)
 public class LeaderResourceTest {
 
     private static final MasterDescription LATEST_MASTER = new MasterDescription(

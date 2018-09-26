@@ -108,7 +108,7 @@ class ReverseProxyServerCallHandler implements ServerCallHandler<Object, Object>
         };
 
         forwardedCall.start(clientCallListener, new Metadata());
-        serverCall.request(1);
+        serverCall.request(2);
 
         return serverCallListener;
     }

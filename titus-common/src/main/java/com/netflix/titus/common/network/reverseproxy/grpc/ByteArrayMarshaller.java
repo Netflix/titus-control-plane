@@ -8,6 +8,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
 import io.grpc.MethodDescriptor;
 
+/**
+ * TODO Do not use byte array, but InputStream (see ServerInterceptors#useInputStreamMessages).
+ */
 class ByteArrayMarshaller implements MethodDescriptor.Marshaller<Object> {
 
     static ByteArrayMarshaller INSTANCE = new ByteArrayMarshaller();
