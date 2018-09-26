@@ -19,9 +19,9 @@ package com.netflix.titus.master.endpoint.v2.rest;
 import java.util.Arrays;
 import java.util.List;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
-import com.netflix.titus.api.endpoint.v2.rest.representation.TypeReferences;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
@@ -55,6 +55,10 @@ import static org.mockito.Mockito.when;
  */
 @Category(IntegrationTest.class)
 public class ApplicationSlaManagementResourceTest {
+
+    private static final TypeReference<List<ApplicationSlaRepresentation>> APPLICATION_SLA_REP_LIST_TREF =
+            new TypeReference<List<ApplicationSlaRepresentation>>() {
+            };
 
     private static final ApplicationSLA SAMPLE_SLA = ApplicationSlaSample.CriticalSmall.build();
     private static final ApplicationSlaRepresentation SAMPLE_SLA_REPRESENTATION = representationOf(SAMPLE_SLA);
@@ -109,7 +113,7 @@ public class ApplicationSlaManagementResourceTest {
                 ApplicationSlaSample.CriticalSmall.build(), ApplicationSlaSample.CriticalLarge.build()
         ));
 
-        List<ApplicationSlaRepresentation> result = client.doGET(TypeReferences.APPLICATION_SLA_REP_LIST_TREF);
+        List<ApplicationSlaRepresentation> result = client.doGET(APPLICATION_SLA_REP_LIST_TREF);
         assertThat(result).hasSize(2);
 
         verify(capacityManagementService, times(1)).getApplicationSLAs();
