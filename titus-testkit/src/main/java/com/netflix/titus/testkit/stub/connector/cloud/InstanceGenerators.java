@@ -40,6 +40,7 @@ public final class InstanceGenerators {
                 .withDesired(desiredSize)
                 .withMax(desiredSize)
                 .withAttributes(Collections.singletonMap(ATTR_SUBNET, idx + ".0.0.0/8"))
+                .withTags(Collections.emptyMap())
                 .withInstanceIds(Collections.emptyList())
                 .build()
         );

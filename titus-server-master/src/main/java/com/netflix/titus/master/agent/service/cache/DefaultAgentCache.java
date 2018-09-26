@@ -37,6 +37,7 @@ import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
@@ -310,7 +311,8 @@ public class DefaultAgentCache implements AgentCache {
             agentInstanceGroup = DataConverters.toAgentInstanceGroup(
                     instanceGroup,
                     instanceResourceDimension,
-                    defaultAutoScaleRule
+                    defaultAutoScaleRule,
+                    Tier.Flex
             );
             agentInstances = instanceGroup.getInstanceIds().stream()
                     .map(instanceCache::getAgentInstance)

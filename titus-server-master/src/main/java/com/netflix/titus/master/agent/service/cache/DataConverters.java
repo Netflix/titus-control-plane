@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.service.cache;
 
 import java.util.Collections;
+import java.util.Map;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -33,11 +34,27 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.Evaluators;
 
 class DataConverters {
+    private static final String TIER_TAG = "titus:tier";
+
+    private static Tier tagsToTier(Map<String, String> tags, Tier defaultTier) {
+        final String tierTag = tags.get(TIER_TAG);
+        if (tierTag == null) {
+            return defaultTier;
+        }
+        for (Tier tier : Tier.values()) {
+            if (tier.toString().equalsIgnoreCase(tierTag)) {
+                return tier;
+            }
+        }
+        return defaultTier;
+    }
 
     static AgentInstanceGroup toAgentInstanceGroup(InstanceGroup instanceGroup,
                                                    ResourceDimension instanceResourceDimension,
-                                                   AutoScaleRule defaultAutoScaleRule) {
+                                                   AutoScaleRule defaultAutoScaleRule,
+                                                   Tier defaultTier) {
         long now = System.currentTimeMillis();
+        final Tier tier = tagsToTier(instanceGroup.getTags(), defaultTier);
         String instanceType = instanceGroup.getAttributes().getOrDefault(InstanceCache.ATTR_INSTANCE_TYPE, "unknown");
 
         return AgentInstanceGroup.newBuilder()
@@ -48,7 +65,7 @@ class DataConverters {
                         .withTimestamp(now)
                         .build()
                 )
-                .withTier(Tier.Flex)
+                .withTier(tier)
                 .withInstanceType(instanceType)
                 .withResourceDimension(instanceResourceDimension)
                 .withAutoScaleRule(defaultAutoScaleRule)
