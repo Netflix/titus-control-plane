@@ -201,7 +201,7 @@
             "requested": "1.10.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -209,50 +209,76 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -272,11 +298,16 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+"
         },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+"
+        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -310,11 +341,19 @@
                 "com.netflix.governator:governator-core"
             ]
         },
+        "javax.servlet:javax.servlet-api": {
+            "locked": "3.1.0",
+            "requested": "3.1.0"
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "javax.ws.rs:jsr311-api": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
@@ -575,7 +614,7 @@
             "requested": "1.10.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -583,50 +622,76 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -646,11 +711,16 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+"
         },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+"
+        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -684,11 +754,19 @@
                 "com.netflix.governator:governator-core"
             ]
         },
+        "javax.servlet:javax.servlet-api": {
+            "locked": "3.1.0",
+            "requested": "3.1.0"
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "javax.ws.rs:jsr311-api": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
@@ -949,7 +1027,7 @@
             "requested": "1.10.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -957,50 +1035,76 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -1020,11 +1124,16 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+"
         },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+"
+        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -1058,11 +1167,19 @@
                 "com.netflix.governator:governator-core"
             ]
         },
+        "javax.servlet:javax.servlet-api": {
+            "locked": "3.1.0",
+            "requested": "3.1.0"
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "javax.ws.rs:jsr311-api": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
         },
         "log4j:log4j": {
             "locked": "1.2.17",
@@ -1397,7 +1514,7 @@
             "requested": "1.10.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -1405,50 +1522,76 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -1468,11 +1611,16 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+"
         },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+"
+        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -1506,11 +1654,19 @@
                 "com.netflix.governator:governator-core"
             ]
         },
+        "javax.servlet:javax.servlet-api": {
+            "locked": "3.1.0",
+            "requested": "3.1.0"
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "javax.ws.rs:jsr311-api": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
         },
         "log4j:log4j": {
             "locked": "1.2.17",
@@ -1782,7 +1938,7 @@
             "requested": "1.10.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -1790,50 +1946,76 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -1853,11 +2035,16 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+"
         },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+"
+        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
+                "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -1891,11 +2078,19 @@
                 "com.netflix.governator:governator-core"
             ]
         },
+        "javax.servlet:javax.servlet-api": {
+            "locked": "3.1.0",
+            "requested": "3.1.0"
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
                 "org.hibernate:hibernate-validator"
             ]
+        },
+        "javax.ws.rs:jsr311-api": {
+            "locked": "1.1.1",
+            "requested": "1.1.1"
         },
         "log4j:log4j": {
             "locked": "1.2.17",
@@ -2611,7 +2806,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -2619,52 +2814,78 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
+            ]
+        },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -2684,33 +2905,23 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit"
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.projectreactor:reactor-test"
             ]
         },
@@ -2797,7 +3008,9 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
+            "requested": "3.1.0",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -2814,7 +3027,9 @@
         },
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -3956,7 +4171,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -3964,52 +4179,78 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
+            ]
+        },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -4029,33 +4270,23 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit"
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.projectreactor:reactor-test"
             ]
         },
@@ -4142,7 +4373,9 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
+            "requested": "3.1.0",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -4159,7 +4392,9 @@
         },
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -5301,7 +5536,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -5309,52 +5544,78 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
+            ]
+        },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -5374,33 +5635,23 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit"
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.projectreactor:reactor-test"
             ]
         },
@@ -5487,7 +5738,9 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
+            "requested": "3.1.0",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -5504,7 +5757,9 @@
         },
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]
@@ -6647,7 +6902,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -6655,52 +6910,78 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.netty:netty-handler-proxy",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
+        "io.netty:netty-codec-socks": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-handler-proxy"
+            ]
+        },
         "io.netty:netty-common": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
+        "io.netty:netty-handler-proxy": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.projectreactor.ipc:reactor-netty"
+            ]
+        },
         "io.netty:netty-resolver": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
-                "io.netty:netty-transport-native-epoll"
+                "io.netty:netty-handler-proxy",
+                "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common"
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.5.Final",
+            "locked": "4.1.29.Final",
             "transitive": [
+                "io.projectreactor.ipc:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-transport-native-unix-common": {
+            "locked": "4.1.29.Final",
+            "transitive": [
+                "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
@@ -6720,33 +7001,23 @@
             "locked": "3.1.7.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit"
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "io.projectreactor.ipc:reactor-netty": {
+            "locked": "0.7.9.RELEASE",
+            "requested": "0.7.+",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
             "requested": "3.1.+",
             "transitive": [
-                "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-grpc-api",
-                "com.netflix.titus:titus-server-federation",
-                "com.netflix.titus:titus-server-gateway",
-                "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
+                "io.projectreactor.ipc:reactor-netty",
                 "io.projectreactor:reactor-test"
             ]
         },
@@ -6833,7 +7104,9 @@
         },
         "javax.servlet:javax.servlet-api": {
             "locked": "3.1.0",
+            "requested": "3.1.0",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
@@ -6850,7 +7123,9 @@
         },
         "javax.ws.rs:jsr311-api": {
             "locked": "1.1.1",
+            "requested": "1.1.1",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.sun.jersey:jersey-core",
                 "io.swagger:swagger-jaxrs"
             ]

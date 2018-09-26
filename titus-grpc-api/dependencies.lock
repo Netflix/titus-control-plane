@@ -90,23 +90,6 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
-        "io.projectreactor:reactor-core": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
-            "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
-            "transitive": [
-                "io.projectreactor:reactor-core"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.0",
             "requested": "1.7.0"
@@ -201,23 +184,6 @@
             "locked": "0.11.0",
             "transitive": [
                 "io.grpc:grpc-core"
-            ]
-        },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
-        "io.projectreactor:reactor-core": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
-            "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
-            "transitive": [
-                "io.projectreactor:reactor-core"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -316,27 +282,10 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
-        "io.projectreactor:reactor-core": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
-            "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
-            ]
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
-            "transitive": [
-                "io.projectreactor:reactor-core"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -426,7 +375,7 @@
     },
     "protobuf": {
         "com.netflix.titus:titus-api-definitions": {
-            "locked": "0.0.1-rc38",
+            "locked": "0.0.1-rc39",
             "requested": "0.0.1-rc+"
         }
     },
@@ -533,27 +482,10 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
-        "io.projectreactor:reactor-core": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
-            "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
-            ]
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
-            "transitive": [
-                "io.projectreactor:reactor-core"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -659,27 +591,10 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
-        "io.projectreactor:reactor-core": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
-            "transitive": [
-                "io.projectreactor.addons:reactor-adapter"
-            ]
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
-            "transitive": [
-                "io.projectreactor:reactor-core"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -795,15 +710,9 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor:reactor-test"
             ]
         },
@@ -969,15 +878,9 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor:reactor-test"
             ]
         },
@@ -1143,15 +1046,9 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor:reactor-test"
             ]
         },
@@ -1330,15 +1227,9 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
-            "requested": "3.1.+"
-        },
         "io.projectreactor:reactor-core": {
             "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
             "transitive": [
-                "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor:reactor-test"
             ]
         },
