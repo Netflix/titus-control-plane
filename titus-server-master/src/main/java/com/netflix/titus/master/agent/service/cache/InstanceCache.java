@@ -48,7 +48,6 @@ import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
-import rx.Notification;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
@@ -99,6 +98,8 @@ class InstanceCache {
                           InstanceCloudConnector connector,
                           Set<String> knownInstanceGroups,
                           Registry registry,
+                          int bootRetryCount,
+                          long bootRetryDelayMs,
                           Scheduler scheduler) {
         this.configuration = configuration;
         this.connector = connector;
@@ -112,8 +113,8 @@ class InstanceCache {
         // Synchronously refresh information about the known instance groups
         List<Completable> initialRefresh = knownInstanceGroups.stream().map(this::doInstanceGroupRefresh).collect(Collectors.toList());
         Throwable error = Completable.merge(initialRefresh).timeout(BOOT_TIMEOUT_MS, TimeUnit.MILLISECONDS).retryWhen(RetryHandlerBuilder.retryHandler()
-                .withRetryCount(BOOT_RETRY_COUNT)
-                .withDelay(BOOT_RETRY_DELAYS_MS, BOOT_RETRY_DELAYS_MS, TimeUnit.MILLISECONDS)
+                .withRetryCount(bootRetryCount)
+                .withDelay(bootRetryDelayMs, bootRetryDelayMs, TimeUnit.MILLISECONDS)
                 .withScheduler(scheduler)
                 .buildExponentialBackoff()
         ).get();
@@ -236,14 +237,14 @@ class InstanceCache {
                 .timeout(MAX_REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-    private Completable.Transformer getInstanceGroupRefreshMetricsTransform(String instanceGroupId) {
+    private Observable.Transformer getInstanceGroupRefreshMetricsTransform(String instanceGroupId) {
         return instanceGroupRefreshMetricsTransformers.computeIfAbsent(instanceGroupId, k -> {
             List<Tag> tags = asList(
                     new BasicTag("class", InstanceCache.class.getSimpleName()),
                     new BasicTag("instanceGroupId", instanceGroupId)
             );
             return continuousSubscriptionMetrics(METRIC_AGENT_CACHE + "instanceGroupRefresh", tags, registry);
-        }).asCompletable();
+        }).asObservable();
     }
 
     private Optional<Pattern> getInstanceGroupPattern() {
@@ -262,7 +263,11 @@ class InstanceCache {
 
     private Completable doInstanceGroupRefresh() {
         return ObservableExt.fromCallable(() -> cacheSnapshot.getInstanceGroups())
-                .flatMap(instanceGroup -> doInstanceGroupRefresh(instanceGroup).toObservable())
+                .flatMap(instanceGroup ->
+                        doInstanceGroupRefresh(instanceGroup)
+                                .onErrorComplete() // We do logging in doInstanceGroupRefresh, and we do not want to break parallel streams
+                                .toObservable()
+                )
                 .toCompletable();
     }
 
@@ -298,16 +303,12 @@ class InstanceCache {
                             .cast(Void.class);
                 });
 
-        Completable completable = updateAction.materialize().take(1).doOnNext(
-                result -> {
-                    if (result.getKind() == Notification.Kind.OnError) {
-                        logger.warn("Instance group: {} refresh error", instanceGroupId, result.getThrowable());
-                    }
-                }
-        ).toCompletable();
-
-        return completable.compose(getInstanceGroupRefreshMetricsTransform(instanceGroupId))
-                .timeout(MAX_REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
+        return updateAction
+                .take(1)
+                .timeout(MAX_REFRESH_TIMEOUT, TimeUnit.MILLISECONDS)
+                .compose(getInstanceGroupRefreshMetricsTransform(instanceGroupId))
+                .doOnError(error -> logger.warn("Instance group: {} refresh error", instanceGroupId, error))
+                .toCompletable();
     }
 
     private void updateCache(InstanceGroup updatedInstanceGroup, List<Instance> updatedInstances) {
@@ -390,7 +391,17 @@ class InstanceCache {
                                      InstanceCloudConnector connector,
                                      Set<String> knownInstanceGroups,
                                      Registry registry,
+                                     int bootRetryCount,
+                                     long bootRetryDelayMs,
                                      Scheduler scheduler) {
-        return new InstanceCache(configuration, connector, knownInstanceGroups, registry, scheduler);
+        return new InstanceCache(configuration, connector, knownInstanceGroups, registry, bootRetryCount, bootRetryDelayMs, scheduler);
+    }
+
+    static InstanceCache newInstance(AgentManagementConfiguration configuration,
+                                     InstanceCloudConnector connector,
+                                     Set<String> knownInstanceGroups,
+                                     Registry registry,
+                                     Scheduler scheduler) {
+        return newInstance(configuration, connector, knownInstanceGroups, registry, BOOT_RETRY_COUNT, BOOT_RETRY_DELAYS_MS, scheduler);
     }
 }
