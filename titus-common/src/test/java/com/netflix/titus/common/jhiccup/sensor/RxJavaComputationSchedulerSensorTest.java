@@ -47,7 +47,7 @@ public class RxJavaComputationSchedulerSensorTest {
     private final AtomicReference<StackTraceElement[]> blockedThreadRef = new AtomicReference<>();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         when(configuration.getTaskExecutionDeadlineMs()).thenReturn(100L);
 
         sensor = new RxJavaComputationSchedulerSensor(configuration, PROBING_INTERVAL_MS, PROGRESS_CHECK_INTERVAL_MS, new DefaultRegistry()) {
@@ -59,27 +59,43 @@ public class RxJavaComputationSchedulerSensorTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (sensor != null) {
             sensor.shutdown();
         }
     }
 
     @Test
-    public void testExpectedNumberOfComputationThreadsIsDetected() throws Exception {
+    public void testExpectedNumberOfComputationThreadsIsDetected() {
         assertThat(sensor.getLastPercentile(99.5).keySet()).hasSize(Runtime.getRuntime().availableProcessors());
     }
 
     @Test(timeout = 30_000)
     public void testLongRunningTask() throws Exception {
-        Thread.sleep(2 * PROGRESS_CHECK_INTERVAL_MS);
+        Exception lastError = null;
+        for (int multiplier = 2; multiplier < 5; multiplier++) {
+            try {
+                tryTestLongRunningTask(multiplier);
+                lastError = null;
+                break;
+            } catch (Exception e) {
+                lastError = e;
+            }
+        }
+        if (lastError != null) {
+            throw lastError;
+        }
+    }
 
+    // To avoid a long pause in the unit test, we try first with a short delay, and the risk of detection miss.
+    // If the latter happens, the delay is increased and the test is repeated.
+    private void tryTestLongRunningTask(int delayMultiplier) throws InterruptedException {
         Scheduler.Worker worker = Schedulers.computation().createWorker();
         CountDownLatch latch = new CountDownLatch(1);
         try {
             worker.schedule(() -> {
                 try {
-                    Thread.sleep(PROBING_INTERVAL_MS * 2);
+                    Thread.sleep(PROBING_INTERVAL_MS * delayMultiplier);
                 } catch (InterruptedException ignore) {
                 }
                 latch.countDown();
@@ -90,12 +106,13 @@ public class RxJavaComputationSchedulerSensorTest {
         }
 
         // Now give some time for pending tasks to complete
-        await().pollDelay(1, TimeUnit.MILLISECONDS).timeout(100, TimeUnit.MILLISECONDS).until(() -> {
-            Map<String, Long> percentiles = sensor.getLastPercentile(99.99);
-            long paused = percentiles.entrySet().stream().filter(e -> e.getValue() >= PROBING_INTERVAL_MS).count();
-            return paused > 0;
-
-        });
+        await().pollDelay(1, TimeUnit.MILLISECONDS)
+                .timeout(2 * delayMultiplier * PROBING_INTERVAL_MS, TimeUnit.MILLISECONDS)
+                .until(() -> {
+                    Map<String, Long> percentiles = sensor.getLastPercentile(99.99);
+                    long paused = percentiles.entrySet().stream().filter(e -> e.getValue() >= PROBING_INTERVAL_MS).count();
+                    return paused > 0;
+                });
     }
 
     @Test(timeout = 30_000)
