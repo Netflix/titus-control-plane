@@ -26,12 +26,14 @@ import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.health.service.DefaultHealthService;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
+import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static com.netflix.titus.master.endpoint.v2.rest.ServerStatusResource.NOT_APPLICABLE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
+@Category(IntegrationTest.class)
 public class ServerStatusResourceTest {
 
     private static final CellInfoResolver cellInfoResolver = mock(CellInfoResolver.class);

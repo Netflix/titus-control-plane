@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+// Test client/server
+//
+
+package com.netflix.titus.testing;
+
+import "google/protobuf/empty.proto";
+
+// ----------------------------------------------------------------------------
+// Data model
+
+message SampleContainer {
+    string stringValue = 1;
+}
+
+// ----------------------------------------------------------------------------
+// Service
+
+service SampleService {
+
+    rpc GetOneValue (google.protobuf.Empty) returns (SampleContainer) {
+    }
+
+    rpc Stream(google.protobuf.Empty) returns (stream SampleContainer) {
+    }
+}

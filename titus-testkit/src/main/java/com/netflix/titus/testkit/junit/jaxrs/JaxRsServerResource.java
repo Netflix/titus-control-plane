@@ -20,16 +20,20 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
 import javax.ws.rs.core.Application;
 
 import com.netflix.titus.testkit.util.NetworkExt;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.junit.rules.ExternalResource;
@@ -37,14 +41,17 @@ import org.junit.rules.ExternalResource;
 public class JaxRsServerResource<S> extends ExternalResource {
 
     private final S restService;
+    private final List<Filter> filters;
     private final List<Object> providers;
 
     private Server server;
     private ExecutorService executor;
+    private int port;
     private String baseURI;
 
-    private JaxRsServerResource(S restService, List<Object> providers) {
+    private JaxRsServerResource(S restService, List<Filter> filters, List<Object> providers) {
         this.restService = restService;
+        this.filters = filters;
         this.providers = providers;
     }
 
@@ -62,13 +69,18 @@ public class JaxRsServerResource<S> extends ExternalResource {
 
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
+        filters.forEach(filter -> context.addFilter(
+                new FilterHolder(filter),
+                "/*",
+                EnumSet.of(DispatcherType.REQUEST)
+        ));
         context.addServlet(new ServletHolder(new ServletContainer(application)), "/*");
 
-        int unusedPort = NetworkExt.findUnusedPort();
-        server = new Server(unusedPort);
+        this.port = NetworkExt.findUnusedPort();
+        server = new Server(port);
         server.setHandler(context);
 
-        baseURI = "http://localhost:" + unusedPort;
+        baseURI = "http://localhost:" + port;
 
         executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "jettyServer");
@@ -112,6 +124,10 @@ public class JaxRsServerResource<S> extends ExternalResource {
         return new Builder<>(restService);
     }
 
+    public int getPort() {
+        return port;
+    }
+
     public String getBaseURI() {
         return baseURI;
     }
@@ -119,10 +135,16 @@ public class JaxRsServerResource<S> extends ExternalResource {
     public static class Builder<S> {
 
         private final S restService;
+        private final List<Filter> filters = new ArrayList<>();
         private final List<Object> providers = new ArrayList<>();
 
         private Builder(S restService) {
             this.restService = restService;
+        }
+
+        public Builder<S> withFilter(Filter filter) {
+            filters.add(filter);
+            return this;
         }
 
         public Builder<S> withProvider(Object provider) {
@@ -138,7 +160,7 @@ public class JaxRsServerResource<S> extends ExternalResource {
         }
 
         public JaxRsServerResource<S> build() {
-            return new JaxRsServerResource<S>(restService, providers);
+            return new JaxRsServerResource<>(restService, filters, providers);
         }
     }
 }

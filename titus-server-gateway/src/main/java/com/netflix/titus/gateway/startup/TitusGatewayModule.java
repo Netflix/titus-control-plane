@@ -22,7 +22,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -38,16 +37,13 @@ import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
-import com.netflix.titus.gateway.endpoint.GrpcModule;
-import com.netflix.titus.gateway.endpoint.JerseyModule;
+import com.netflix.titus.gateway.endpoint.GatewayEndpointModule;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
-import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 
 // Common module dependencies
 // Server dependencies
@@ -85,14 +81,7 @@ public final class TitusGatewayModule extends AbstractModule {
         install(new TitusEntitySanitizerModule());
         install(new TitusValidatorModule());
 
-        if (enableREST) {
-            install(new GovernatorJerseySupportModule());
-            install(new JerseyModule());
-        }
-
-        bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
-
-        install(new GrpcModule());
+        install(new GatewayEndpointModule(enableREST));
         install(new TitusMasterConnectorModule());
 
         bind(V3_LOG_STORAGE_INFO).toInstance(EmptyLogStorageInfo.INSTANCE);

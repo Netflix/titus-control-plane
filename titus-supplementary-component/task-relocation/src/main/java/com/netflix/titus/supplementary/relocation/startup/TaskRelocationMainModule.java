@@ -7,6 +7,8 @@ import com.google.inject.Provides;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
+import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
@@ -17,6 +19,7 @@ import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.supplementary.relocation.endpoint.TaskRelocationEndpointModule;
 import com.netflix.titus.supplementary.relocation.evacuation.AgentInstanceEvacuator;
 
 public class TaskRelocationMainModule extends AbstractModule {
@@ -29,8 +32,11 @@ public class TaskRelocationMainModule extends AbstractModule {
         install(new GovernatorJerseySupportModule());
 
         install(new TitusEntitySanitizerModule());
+        bind(EntityValidator.class).to(PassJobValidator.class);
+
         install(new MasterConnectorModule());
         install(new TaskRelocationModule());
+        install(new TaskRelocationEndpointModule());
 
         bind(AgentInstanceEvacuator.class).asEagerSingleton();
     }
