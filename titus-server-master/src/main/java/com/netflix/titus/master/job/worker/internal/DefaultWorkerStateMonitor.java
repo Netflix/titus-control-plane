@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.job.worker.internal;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,7 +33,6 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -43,7 +41,6 @@ import com.netflix.titus.master.Status;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.job.JobManagerConfiguration;
 import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.job.worker.WorkerStateMonitor;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.ContainerEvent;
@@ -82,8 +79,6 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
     private static final Logger logger = LoggerFactory.getLogger(DefaultWorkerStateMonitor.class);
 
     private final VirtualMachineMasterService vmService;
-    private final V2JobOperations jobOps;
-    private final Observable<V2JobMgrIntf> jobCreationObservable;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final PublishSubject<StateToMonitor> workerStatesSubject;
     private final PublishSubject<Status> allStatusSubject;
@@ -91,13 +86,10 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
 
     @Inject
     public DefaultWorkerStateMonitor(VirtualMachineMasterService vmService,
-                                     V2JobOperations jOps,
                                      V3JobOperations v3JobOperations,
                                      JobManagerConfiguration jobManagerConfiguration,
                                      TitusRuntime titusRuntime) {
         this.vmService = vmService;
-        this.jobOps = jOps;
-        this.jobCreationObservable = jOps.getJobCreationPublishSubject();
         this.jobManagerConfiguration = jobManagerConfiguration;
         workerStatesSubject = PublishSubject.create();
         workerStatesSubject
@@ -127,22 +119,6 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
 
             @Override
             public void onNext(ContainerEvent containerEvent) {
-                // V2
-                if (containerEvent instanceof Status) {
-                    Status args = (Status) containerEvent;
-                    try {
-                        V2JobMgrIntf jobMgr = jobOps.getJobMgr(args.getJobId());
-                        if (jobMgr != null) {
-                            jobMgr.handleStatus(args);
-                            return;
-                        }
-                    } catch (Exception e) {
-                        logger.warn("Exception during handling task status update notification", e);
-                    }
-                    killOrphanedTask(args);
-                    return;
-                }
-
                 // V3
                 try {
                     V3ContainerEvent args = (V3ContainerEvent) containerEvent;
@@ -294,31 +270,5 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
             logger.warn("Unexpected error during handling task stuck state", e);
             return false;
         }
-    }
-
-    private void subscribeToJobMgr(final V2JobMgrIntf jobMgr) {
-        jobMgr.getStatusSubject().subscribe(status -> {
-            if (status.getWorkerIndex() < 0) {
-                return; // its on the job itself, nothing to do
-            }
-            workerStatesSubject.onNext(new StateToMonitor(jobMgr, status.getWorkerIndex(), status.getWorkerNumber(),
-                    WorkerNaming.getWorkerName(jobMgr.getJobId(), status.getWorkerIndex(), status.getWorkerNumber()),
-                    status.getState()));
-            allStatusSubject.onNext(status);
-        });
-    }
-
-    public void start(List<V2JobMgrIntf> initialJobMgrs) {
-        if (initialJobMgrs != null) {
-            for (V2JobMgrIntf jobMgr : initialJobMgrs) {
-                subscribeToJobMgr(jobMgr);
-            }
-        }
-        jobCreationObservable.subscribe(jobMgr -> {
-            if (jobMgr.getStatusSubject() == null) {
-                return;
-            }
-            subscribeToJobMgr(jobMgr);
-        });
     }
 }

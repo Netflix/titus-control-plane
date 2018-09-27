@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -41,19 +40,10 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.model.v2.MachineDefinition;
 import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2StageMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
-import com.netflix.titus.common.util.code.CodePointTracker;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
 import com.netflix.titus.master.service.management.ResourceConsumption;
 import com.netflix.titus.master.service.management.ResourceConsumption.ConsumptionLevel;
@@ -72,9 +62,7 @@ class ResourceConsumptionEvaluator {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceConsumptionEvaluator.class);
 
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
-    private final CapacityManagementConfiguration config;
     private final Set<String> definedCapacityGroups;
     private final Map<String, ApplicationSLA> applicationSlaMap;
 
@@ -82,12 +70,8 @@ class ResourceConsumptionEvaluator {
     private Set<String> undefinedCapacityGroups;
 
     ResourceConsumptionEvaluator(ApplicationSlaManagementService applicationSlaManagementService,
-                                 V2JobOperations v2JobOperations,
-                                 V3JobOperations v3JobOperations,
-                                 CapacityManagementConfiguration config) {
-        this.v2JobOperations = v2JobOperations;
+                                 V3JobOperations v3JobOperations) {
         this.v3JobOperations = v3JobOperations;
-        this.config = config;
         Collection<ApplicationSLA> applicationSLAs = applicationSlaManagementService.getApplicationSLAs();
         this.definedCapacityGroups = applicationSLAs.stream().map(ApplicationSLA::getAppName).collect(Collectors.toSet());
         this.applicationSlaMap = applicationSLAs.stream().collect(Collectors.toMap(ApplicationSLA::getAppName, Function.identity()));
@@ -145,32 +129,6 @@ class ResourceConsumptionEvaluator {
         Map<String, Map<String, ResourceConsumption>> consumptionMap = new HashMap<>();
         Set<String> undefinedCapacityGroups = new HashSet<>();
 
-        // V2 engine
-        v2JobOperations.getAllJobMgrs().stream()
-                .map(V2JobMgrIntf::getJobMetadata)
-                .filter(Objects::nonNull)
-                .forEach(jobMetadata -> {
-                    V2StageMetadata stageMetadata = jobMetadata.getStageMetadata(1);
-
-                    ResourceDimension taskResources = toResourceDimension(stageMetadata);
-                    int max = getMaxJobSize(jobMetadata, stageMetadata);
-
-                    Map<String, Object> tasksStates = getWorkerStateMap(stageMetadata);
-
-                    String appName = Parameters.getAppName(jobMetadata.getParameters());
-
-                    ResourceConsumption jobConsumption = new ResourceConsumption(
-                            appName == null ? DEFAULT_APPLICATION : appName,
-                            ConsumptionLevel.Application,
-                            ResourceDimensions.multiply(taskResources, getRunningWorkers(stageMetadata.getAllWorkers()).size()),
-                            ResourceDimensions.multiply(taskResources, max),
-                            tasksStates
-                    );
-
-                    String capacityGroup = resolveCapacityGroup(undefinedCapacityGroups, jobMetadata, appName);
-                    updateConsumptionMap(appName, capacityGroup, jobConsumption, consumptionMap);
-                });
-
         // V3 engine
         v3JobOperations.getJobsAndTasks().forEach(jobsAndTasks -> {
             Job job = jobsAndTasks.getLeft();
@@ -219,37 +177,10 @@ class ResourceConsumptionEvaluator {
         }
     }
 
-    private int getMaxJobSize(V2JobMetadata jobMetadata, V2StageMetadata stageMetadata) {
-        String jobId = jobMetadata.getJobId();
-        int max;
-        Parameters.JobType jobType = Parameters.getJobType(jobMetadata.getParameters());
-        if (jobType == Parameters.JobType.Service) {
-
-            // This is a guard, as some old jobs might have no policy defined
-            if (stageMetadata.getScalingPolicy() == null) {
-                CodePointTracker.mark("scaling policy not defined for job " + jobId);
-                logger.warn("Scaling policy for job {} not defined", jobId);
-                max = stageMetadata.getNumWorkers();
-            } else {
-                max = stageMetadata.getScalingPolicy().getMax();
-            }
-        } else {
-            max = stageMetadata.getNumWorkers();
-        }
-        return max;
-    }
-
     private int getMaxJobSize(Job<?> job) {
         return JobFunctions.isServiceJob(job)
                 ? ((Job<ServiceJobExt>) job).getJobDescriptor().getExtensions().getCapacity().getMax()
                 : ((Job<BatchJobExt>) job).getJobDescriptor().getExtensions().getSize();
-    }
-
-    private Map<String, Object> getWorkerStateMap(V2StageMetadata stageMetadata) {
-        List<V2WorkerMetadata> allWorkers = new ArrayList<>(stageMetadata.getAllWorkers());
-        Map<String, Object> tasksStates = newTaskStateMap();
-        allWorkers.forEach(w -> tasksStates.put(w.getState().name(), (int) tasksStates.get(w.getState().name()) + 1));
-        return tasksStates;
     }
 
     private Map<String, Object> getWorkerStateMap(List<Task> tasks) {
@@ -266,23 +197,6 @@ class ResourceConsumptionEvaluator {
             tasksStates.put(state.name(), 0);
         }
         return tasksStates;
-    }
-
-    private String resolveCapacityGroup(Set<String> undefinedCapacityGroups, V2JobMetadata jobMetadata, String appName) {
-        String capacityGroup;
-        capacityGroup = Parameters.getCapacityGroup(jobMetadata.getParameters());
-        if (capacityGroup == null) {
-            if (appName != null && definedCapacityGroups.contains(appName)) {
-                capacityGroup = appName;
-            }
-        }
-        if (capacityGroup == null) {
-            capacityGroup = DEFAULT_APPLICATION;
-        } else if (!definedCapacityGroups.contains(capacityGroup)) {
-            undefinedCapacityGroups.add(capacityGroup);
-            capacityGroup = DEFAULT_APPLICATION;
-        }
-        return capacityGroup;
     }
 
     private String resolveCapacityGroup(Set<String> undefinedCapacityGroups, Job job, String appName) {
@@ -302,11 +216,9 @@ class ResourceConsumptionEvaluator {
     }
 
     static Supplier<DefaultResourceConsumptionService.ConsumptionEvaluationResult> newEvaluator(ApplicationSlaManagementService applicationSlaManagementService,
-                                                                                                V2JobOperations v2JobOperations,
-                                                                                                V3JobOperations v3JobOperations,
-                                                                                                CapacityManagementConfiguration config) {
+                                                                                                V3JobOperations v3JobOperations) {
         return () -> {
-            ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v2JobOperations, v3JobOperations, config);
+            ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v3JobOperations);
             return new DefaultResourceConsumptionService.ConsumptionEvaluationResult(
                     evaluator.getDefinedCapacityGroups(),
                     evaluator.getUndefinedCapacityGroups(),
@@ -316,24 +228,7 @@ class ResourceConsumptionEvaluator {
     }
 
     @VisibleForTesting
-    static ResourceDimension toResourceDimension(V2StageMetadata stageMetadata) {
-        MachineDefinition machineDefinition = stageMetadata.getMachineDefinition();
-        double gpu;
-        try {
-            gpu = machineDefinition.getScalars().get("gpu");
-        } catch (Exception ignore) {
-            gpu = 0;
-        }
-        return new ResourceDimension(
-                machineDefinition.getCpuCores(),
-                (int) gpu,
-                (int) machineDefinition.getMemoryMB(),
-                (int) machineDefinition.getDiskMB(),
-                (int) machineDefinition.getNetworkMbps()
-        );
-    }
-
-    private static ResourceDimension toResourceDimension(Job<?> job) {
+    static ResourceDimension toResourceDimension(Job<?> job) {
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
         return new ResourceDimension(
                 containerResources.getCpu(),
@@ -342,10 +237,6 @@ class ResourceConsumptionEvaluator {
                 containerResources.getDiskMB(),
                 containerResources.getNetworkMbps()
         );
-    }
-
-    private List<? extends V2WorkerMetadata> getRunningWorkers(Collection<V2WorkerMetadata> allWorkers) {
-        return allWorkers.stream().filter(t -> V2JobState.isRunningState(t.getState())).collect(Collectors.toList());
     }
 
     private List<Task> getRunningWorkers(List<Task> tasks) {

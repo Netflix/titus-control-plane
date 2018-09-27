@@ -16,17 +16,12 @@
 
 package com.netflix.titus.master.job.worker;
 
-import java.util.List;
-
 import com.netflix.titus.master.Status;
-import com.netflix.titus.master.job.V2JobMgrIntf;
 import rx.Observable;
 
 /**
  */
 public interface WorkerStateMonitor {
-
-    void start(List<V2JobMgrIntf> initialJobMgrs);
 
     Observable<Status> getAllStatusObservable();
 }

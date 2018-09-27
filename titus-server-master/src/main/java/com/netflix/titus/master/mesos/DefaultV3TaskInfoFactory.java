@@ -42,7 +42,6 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.job.worker.WorkerRequest;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
@@ -60,6 +59,9 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
  */
 @Singleton
 public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo> {
+
+    public static final String NETFLIX_APP_METADATA = "NETFLIX_APP_METADATA";
+    public static final String NETFLIX_APP_METADATA_SIG = "NETFLIX_APP_METADATA_SIG";
 
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
@@ -124,8 +126,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         }
 
         // Configure Metatron
-        String metatronAppMetadata = v3SecurityProfile.getAttributes().get(WorkerRequest.V2_NETFLIX_APP_METADATA);
-        String metatronAppSignature = v3SecurityProfile.getAttributes().get(WorkerRequest.V2_NETFLIX_APP_METADATA_SIG);
+        String metatronAppMetadata = v3SecurityProfile.getAttributes().get(NETFLIX_APP_METADATA);
+        String metatronAppSignature = v3SecurityProfile.getAttributes().get(NETFLIX_APP_METADATA_SIG);
         if (metatronAppMetadata != null && metatronAppSignature != null) {
             ContainerInfo.MetatronCreds.Builder metatronBuilder = ContainerInfo.MetatronCreds.newBuilder()
                     .setAppMetadata(metatronAppMetadata)

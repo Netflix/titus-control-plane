@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.jobmanager.service.limiter;
 
-import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -30,26 +29,20 @@ import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.v2.V2JobDefinition;
 import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.master.job.JobMgr;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 
 @Singleton
 public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
 
     private final JobManagerConfiguration configuration;
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
 
     private final ConcurrentMap<String, Boolean> reservedJobIdSequences = new ConcurrentHashMap<>();
 
     @Inject
     public DefaultJobSubmitLimiter(JobManagerConfiguration configuration,
-                                   V2JobOperations v2JobOperations,
                                    V3JobOperations v3JobOperations) {
         this.configuration = configuration;
-        this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
     }
 
@@ -89,7 +82,7 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
     }
 
     private Optional<String> checkActiveJobLimit() {
-        int totalJobs = v2JobOperations.getAllJobMgrs().size() + v3JobOperations.getJobs().size();
+        int totalJobs = v3JobOperations.getJobs().size();
         long limit = configuration.getMaxActiveJobs();
         if (totalJobs >= limit) {
             return Optional.of(String.format("Reached a limit of active jobs Titus can run (active=%d, limit=%d)", totalJobs, limit));
@@ -103,10 +96,6 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
             return Optional.empty();
         }
 
-        Optional<String> existingV2Job = isJobSequenceInV2Engine(jobIdSequence);
-        if (existingV2Job.isPresent()) {
-            return Optional.of(String.format("Constraint violation - job with group sequence %s exists (%s)", jobIdSequence, existingV2Job.get()));
-        }
         return isJobSequenceInV3Engine(jobIdSequence).map(existingJobId ->
                 String.format("Constraint violation - job with group sequence %s exists (%s)", jobIdSequence, existingJobId)
         );
@@ -116,20 +105,6 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
         return jobDescriptor instanceof JobDescriptor
                 ? formatJobGroupName((JobDescriptor<?>) jobDescriptor)
                 : Parameters.getJobIdSequence(((V2JobDefinition) jobDescriptor).getParameters());
-    }
-
-    private Optional<String> isJobSequenceInV2Engine(String newJobIdSequence) {
-        return new ArrayList<>(v2JobOperations.getAllJobMgrs()).stream()
-                .filter(j -> {
-                    V2JobMetadata jobDescriptor = j.getJobMetadata();
-                    if (jobDescriptor == null) {
-                        return false;
-                    }
-                    String v2JobIdSequence = Parameters.getJobIdSequence(jobDescriptor.getParameters());
-                    return v2JobIdSequence != null && v2JobIdSequence.equals(newJobIdSequence);
-                })
-                .map(JobMgr::getJobId)
-                .findFirst();
     }
 
     private Optional<String> isJobSequenceInV3Engine(String newJobIdSequence) {

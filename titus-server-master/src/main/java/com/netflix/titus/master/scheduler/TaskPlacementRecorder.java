@@ -20,22 +20,16 @@ import com.netflix.fenzo.TaskSchedulingService;
 import com.netflix.fenzo.VMAssignmentResult;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.store.v2.InvalidJobException;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.job.JobMgr;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
-import com.netflix.titus.master.store.InvalidJobStateChangeException;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +46,6 @@ class TaskPlacementRecorder {
     private final Config config;
     private final MasterConfiguration masterConfiguration;
     private final TaskSchedulingService schedulingService;
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private final TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory;
     private final Clock clock;
@@ -61,14 +54,12 @@ class TaskPlacementRecorder {
     TaskPlacementRecorder(Config config,
                           MasterConfiguration masterConfiguration,
                           TaskSchedulingService schedulingService,
-                          V2JobOperations v2JobOperations,
                           V3JobOperations v3JobOperations,
                           TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                           TitusRuntime titusRuntime) {
         this.config = config;
         this.masterConfiguration = masterConfiguration;
         this.schedulingService = schedulingService;
-        this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.v3TaskInfoFactory = v3TaskInfoFactory;
         this.clock = titusRuntime.getClock();
@@ -81,63 +72,19 @@ class TaskPlacementRecorder {
 
         long startTime = clock.wallTime();
         try {
-            Map<AgentAssignment, List<Protos.TaskInfo>> v2Result = processV2Assignments(assignments);
             Map<AgentAssignment, List<Protos.TaskInfo>> v3Result = processV3Assignments(assignments);
 
-            Set<AgentAssignment> allAssignments = CollectionsExt.merge(v2Result.keySet(), v3Result.keySet());
+            Set<AgentAssignment> allAssignments = v3Result.keySet();
 
             return allAssignments.stream()
-                    .map(a -> Pair.of(a.getLeases(), CollectionsExt.merge(v2Result.get(a), v3Result.get(a))))
+                    .map(a -> Pair.of(a.getLeases(), v3Result.get(a)))
                     .collect(Collectors.toList());
         } finally {
             int taskCount = schedulingResult.getResultMap().values().stream().mapToInt(a -> a.getTasksAssigned().size()).sum();
-            if(taskCount > 0) {
+            if (taskCount > 0) {
                 logger.info("Task placement recording: tasks={}, executionTimeMs={}", taskCount, clock.wallTime() - startTime);
             }
         }
-    }
-
-    private Map<AgentAssignment, List<Protos.TaskInfo>> processV2Assignments(List<AgentAssignment> assignments) {
-        Map<AgentAssignment, List<Protos.TaskInfo>> result = new HashMap<>();
-        for (AgentAssignment assignment : assignments) {
-            List<Protos.TaskInfo> taskInfos = new ArrayList<>();
-            for (TaskAssignmentResult assignmentResult : assignment.getV2Assignments()) {
-                processV2Assignment(assignment, assignmentResult).ifPresent(taskInfos::add);
-            }
-            result.put(assignment, taskInfos);
-        }
-        return result;
-    }
-
-    private Optional<Protos.TaskInfo> processV2Assignment(AgentAssignment assignment, TaskAssignmentResult assignmentResult) {
-        List<PreferentialNamedConsumableResourceSet.ConsumeResult> consumeResults = assignmentResult.getrSets();
-        TitusQueuableTask task = (TitusQueuableTask) assignmentResult.getRequest();
-
-        boolean taskFound;
-        PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult = consumeResults.get(0);
-        final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(task.getId());
-        taskFound = jobMgr != null;
-        if (taskFound) {
-            final VirtualMachineLease lease = assignment.getLeases().get(0);
-            try {
-                Protos.TaskInfo taskInfo = jobMgr.setLaunchedAndCreateTaskInfo(
-                        task, lease.hostname(), assignment.getAttributesMap(), lease.getOffer().getSlaveId(),
-                        consumeResult, assignmentResult.getAssignedPorts()
-                );
-                return Optional.of(taskInfo);
-            } catch (InvalidJobStateChangeException | InvalidJobException e) {
-                logger.warn("Not launching task due to error setting state to launched for {} - {}", task.getId(), e.getMessage());
-            } catch (Exception e) {
-                // unexpected error creating task info
-                String msg = "fatal error creating taskInfo for " + task.getId() + ": " + e.getMessage();
-                logger.warn("Killing job {}: {}", jobMgr.getJobId(), msg, e);
-                jobMgr.killJob("SYSTEM", msg);
-            }
-        } else {
-            removeUnknownTask(assignmentResult, task);
-        }
-
-        return Optional.empty();
     }
 
     private Map<AgentAssignment, List<Protos.TaskInfo>> processV3Assignments(List<AgentAssignment> assignments) {
@@ -242,25 +189,13 @@ class TaskPlacementRecorder {
         private final String hostname;
         private final Map<String, String> attributeMap;
         private final VMAssignmentResult assignmentResult;
-        private final List<TaskAssignmentResult> v2Assignments;
         private final List<TaskAssignmentResult> v3Assignments;
 
         AgentAssignment(String hostname, VMAssignmentResult assignmentResult) {
             this.hostname = hostname;
             this.assignmentResult = assignmentResult;
             this.attributeMap = buildAttributeMap(assignmentResult);
-
-            List<TaskAssignmentResult> v2Assignments = new ArrayList<>();
-            List<TaskAssignmentResult> v3Assignments = new ArrayList<>();
-            assignmentResult.getTasksAssigned().forEach(a -> {
-                if (JobFunctions.isV2Task(a.getTaskId())) {
-                    v2Assignments.add(a);
-                } else {
-                    v3Assignments.add(a);
-                }
-            });
-            this.v2Assignments = v2Assignments;
-            this.v3Assignments = v3Assignments;
+            this.v3Assignments = new ArrayList<>(assignmentResult.getTasksAssigned());
         }
 
         List<VirtualMachineLease> getLeases() {
@@ -269,10 +204,6 @@ class TaskPlacementRecorder {
 
         Map<String, String> getAttributesMap() {
             return attributeMap;
-        }
-
-        List<TaskAssignmentResult> getV2Assignments() {
-            return v2Assignments;
         }
 
         List<TaskAssignmentResult> getV3Assignments() {

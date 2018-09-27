@@ -18,7 +18,6 @@ package com.netflix.titus.master.job;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
@@ -77,13 +76,6 @@ public interface JobMgr {
     void setTaskKillAction(Consumer<String> killAction);
 
     void resubmitWorker(String taskId, String reason) throws InvalidJobException, InvalidJobStateChangeException;
-
-    /**
-     * Returns list of agents on which tasks of this job where run, and failed. There may be many additional criteria
-     * to put an agent on this list, like task execution time (for example add to the list only if execution time < 60sec).
-     * The agents on the list are not there permanently, just disabled for some time.
-     */
-    Set<String> getExcludedAgents();
 
     boolean isTaskValid(String taskId);
 
