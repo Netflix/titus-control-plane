@@ -54,22 +54,24 @@ public class AgentStoreReaper {
     public static final String ATTR_REMOVED = "instanceGroupRemoved";
 
     @VisibleForTesting
-    static final long EXPIRED_DATA_RETENTION_PERIOD_MS = 3600_000;
+    static final long MIN_EXPIRED_DATA_RETENTION_PERIOD_MS = 3600_000;
 
     private static final long STORAGE_GC_INTERVAL_MS = 600_000;
 
     private final AgentStore agentStore;
     private final Registry registry;
     private final Scheduler scheduler;
+    private final AgentStoreReaperConfiguration configuration;
 
     private Subscription reaperSubscription;
 
     @Inject
-    public AgentStoreReaper(AgentStore agentStore, Registry registry) {
-        this(agentStore, registry, Schedulers.computation());
+    public AgentStoreReaper(AgentStoreReaperConfiguration configuration, AgentStore agentStore, Registry registry) {
+        this(configuration, agentStore, registry, Schedulers.computation());
     }
 
-    public AgentStoreReaper(AgentStore agentStore, Registry registry, Scheduler scheduler) {
+    public AgentStoreReaper(AgentStoreReaperConfiguration configuration, AgentStore agentStore, Registry registry, Scheduler scheduler) {
+        this.configuration = configuration;
         this.agentStore = agentStore;
         this.registry = registry;
         this.scheduler = scheduler;
@@ -109,7 +111,8 @@ public class AgentStoreReaper {
         }
         try {
             long removedTimestamp = Long.parseLong(removedTimestampStr);
-            return (removedTimestamp + EXPIRED_DATA_RETENTION_PERIOD_MS) <= scheduler.now();
+            long retentionPeriodMs = Math.max(MIN_EXPIRED_DATA_RETENTION_PERIOD_MS, configuration.getExpiredDataRetentionPeriodMs());
+            return (removedTimestamp + retentionPeriodMs) <= scheduler.now();
         } catch (Exception e) {
             logger.warn("Invalid " + ATTR_REMOVED + " value={} found for instance group record {}", removedTimestampStr, sg.getId());
             return true;

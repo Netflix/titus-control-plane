@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import com.google.protobuf.Any;
 import com.google.rpc.BadRequest;
 import com.google.rpc.DebugInfo;
+import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -139,6 +140,20 @@ public final class ErrorResponses {
                 case UNIMPLEMENTED:
                     return Status.UNIMPLEMENTED;
                 case UNEXPECTED:
+                    return Status.INTERNAL;
+            }
+        } else if (cause instanceof AgentManagementException) {
+            AgentManagementException e = (AgentManagementException) cause;
+            switch (e.getErrorCode()) {
+                case InitializationError:
+                    return Status.INTERNAL;
+                case InvalidArgument:
+                    return Status.INVALID_ARGUMENT;
+                case InstanceGroupNotFound:
+                case AgentNotFound:
+                case InstanceTypeNotFound:
+                    return Status.NOT_FOUND;
+                default:
                     return Status.INTERNAL;
             }
         } else if (cause instanceof JobManagerException) {

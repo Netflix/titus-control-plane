@@ -35,6 +35,7 @@ import com.netflix.titus.master.agent.service.monitor.V2JobStatusMonitor;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolvers;
 import com.netflix.titus.master.agent.store.AgentStoreReaper;
+import com.netflix.titus.master.agent.store.AgentStoreReaperConfiguration;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.scheduler.VmOperationsInstanceCloudConnector;
 import rx.schedulers.Schedulers;
@@ -63,6 +64,12 @@ public class AgentModule extends AbstractModule {
     @Singleton
     public AgentManagementConfiguration getAgentManagementConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(AgentManagementConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public AgentStoreReaperConfiguration getAgentStoreReaperConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(AgentStoreReaperConfiguration.class);
     }
 
     @Provides

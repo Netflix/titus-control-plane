@@ -41,12 +41,15 @@ public class AgentStoreReaperTest {
 
     private final TestScheduler testScheduler = Schedulers.test();
 
+    private final AgentStoreReaperConfiguration configuration = mock(AgentStoreReaperConfiguration.class);
+
     private final AgentStore agentStore = mock(AgentStore.class);
 
-    private final AgentStoreReaper reaper = new AgentStoreReaper(agentStore, new DefaultRegistry(), testScheduler);
+    private final AgentStoreReaper reaper = new AgentStoreReaper(configuration, agentStore, new DefaultRegistry(), testScheduler);
 
     @Before
     public void setUp() throws Exception {
+        when(configuration.getExpiredDataRetentionPeriodMs()).thenReturn(AgentStoreReaper.MIN_EXPIRED_DATA_RETENTION_PERIOD_MS);
         when(agentStore.retrieveAgentInstanceGroups()).thenReturn(Observable.empty());
         when(agentStore.retrieveAgentInstances()).thenReturn(Observable.empty());
         when(agentStore.removeAgentInstanceGroups(any())).thenReturn(Completable.complete());
@@ -55,14 +58,14 @@ public class AgentStoreReaperTest {
     }
 
     @Test
-    public void testTaggedInstanceGroupsAreRemovedAfterDeadline() throws Exception {
+    public void testTaggedInstanceGroupsAreRemovedAfterDeadline() {
         AgentInstanceGroup instanceGroup = AgentStoreReaper.tagToRemove(AgentGenerator.agentServerGroups().getValue(), testScheduler);
         AgentInstance instance = AgentGenerator.agentInstances(instanceGroup).getValue();
 
         when(agentStore.retrieveAgentInstanceGroups()).thenReturn(Observable.just(instanceGroup));
         when(agentStore.retrieveAgentInstances()).thenReturn(Observable.just(instance));
 
-        testScheduler.advanceTimeBy(AgentStoreReaper.EXPIRED_DATA_RETENTION_PERIOD_MS - 1, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(AgentStoreReaper.MIN_EXPIRED_DATA_RETENTION_PERIOD_MS - 1, TimeUnit.MILLISECONDS);
         verify(agentStore, times(0)).removeAgentInstanceGroups(Collections.singletonList(instanceGroup.getId()));
         verify(agentStore, times(0)).removeAgentInstances(Collections.singletonList(instance.getId()));
 
