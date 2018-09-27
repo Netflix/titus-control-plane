@@ -228,30 +228,6 @@ public class SimpleCapacityGuaranteeStrategyTest {
     }
 
     @Test
-    public void testAllocationsMinLimitsAreApplied() {
-        List<AgentInstanceGroup> instanceGroups = asList(
-                getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 2, 10),
-                getInstanceGroup(Tier.Critical, M4_4XLARGE_ID, 3, 10),
-                getInstanceGroup(Tier.Critical, P2_8XLARGE_ID, 5, 10)
-        );
-        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
-
-        ApplicationSLA smallSLA = ApplicationSlaSample.CriticalSmall.builder().withInstanceCount(1).build();
-
-        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Critical, singletonList(smallSLA)));
-        CapacityAllocations allocations = strategy.compute(requirements);
-
-        AgentInstanceGroup m4xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_XLARGE_ID);
-        assertThat(allocations.getExpectedMinSize(m4xlInstanceGroup)).isEqualTo(2);
-
-        AgentInstanceGroup m44xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), M4_4XLARGE_ID);
-        assertThat(allocations.getExpectedMinSize(m44xlInstanceGroup)).isEqualTo(3);
-
-        AgentInstanceGroup p28xlInstanceGroup = findInstanceGroupByInstanceType(allocations.getInstanceGroups(), P2_8XLARGE_ID);
-        assertThat(allocations.getExpectedMinSize(p28xlInstanceGroup)).isEqualTo(5);
-    }
-
-    @Test
     public void testResourceShortageReporting() {
         List<AgentInstanceGroup> instanceGroups = singletonList(
                 getInstanceGroup(Tier.Critical, M4_XLARGE_ID, 0, 2)
