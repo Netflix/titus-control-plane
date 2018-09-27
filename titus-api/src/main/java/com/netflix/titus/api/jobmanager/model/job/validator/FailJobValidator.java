@@ -1,14 +1,31 @@
+/*
+ * Copyright 2018 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.netflix.titus.api.jobmanager.model.job.validator;
 
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
-import reactor.core.publisher.Mono;
-
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.ValidationError;
+import reactor.core.publisher.Mono;
 
 /**
  * This {@link EntityValidator} implementation always causes validation to fail.  It is used for testing purposes.
@@ -22,6 +39,11 @@ public class FailJobValidator implements EntityValidator<JobDescriptor> {
         final String errorMsg = String.format("%s %s", ERR_DESCRIPTION, UUID.randomUUID().toString());
         final ValidationError error = new ValidationError(ERR_FIELD, errorMsg);
 
-        return Mono.just(new HashSet<>(Arrays.asList(error)));
+        return Mono.just(new HashSet<>(Collections.singletonList(error)));
+    }
+
+    @Override
+    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
+        return Mono.error(TitusServiceException.invalidArgument(ERR_DESCRIPTION));
     }
 }

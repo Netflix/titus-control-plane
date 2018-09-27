@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.validation.ConstraintViolation;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.archaius.ConfigProxyFactory;
@@ -256,7 +255,7 @@ public class JobModelSanitizationTest {
     private EntitySanitizer newJobSanitizer(VerifierMode verifierMode) {
         return new JobSanitizerBuilder()
                 .withVerifierMode(verifierMode)
-                .withJobConstrainstConfiguration(constraints)
+                .withJobConstraintConfiguration(constraints)
                 .withMaxContainerSizeResolver(capacityGroup -> MAX_CONTAINER_SIZE)
                 .build();
     }

@@ -17,8 +17,8 @@
 package com.netflix.titus.api.jobmanager.model.job.validator;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
@@ -26,18 +26,27 @@ import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation always causes validation to pass.  It is used as a default implementation which
- * should be overriden.
+ * This {@link EntityValidator} implementation ensures a job's appname matches a specific
+ * string. It is only used for testing purposes.
  */
-@Singleton
-public class PassJobValidator implements EntityValidator<JobDescriptor> {
+public class AppNameSanitizer implements EntityValidator<JobDescriptor> {
+    public final static String desiredAppName = "desiredAppName";
+    private static final String ERR_FIELD = "fail-field";
+    private static final String ERR_DESCRIPTION = "The job does not have desired appname " + desiredAppName;
+
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
-        return Mono.just(Collections.emptySet());
+        if (entity.getApplicationName().equals(desiredAppName)) {
+            return Mono.just(Collections.emptySet());
+        }
+        final ValidationError error = new ValidationError(ERR_FIELD, ERR_DESCRIPTION);
+        return Mono.just(new HashSet<>(Collections.singletonList(error)));
     }
 
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-      return Mono.just(entity);
+        return Mono.just(entity.toBuilder()
+                .withApplicationName(desiredAppName)
+                .build());
     }
 }

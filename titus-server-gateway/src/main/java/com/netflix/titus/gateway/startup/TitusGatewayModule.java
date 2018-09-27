@@ -41,9 +41,11 @@ import com.netflix.titus.gateway.endpoint.GatewayEndpointModule;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.runtime.connector.registry.TitusRegistryModule;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.validator.TitusValidatorModule;
 
 // Common module dependencies
 // Server dependencies
@@ -78,6 +80,7 @@ public final class TitusGatewayModule extends AbstractModule {
 
         install(new ContainerEventBusModule());
 
+        install(new TitusRegistryModule());
         install(new TitusEntitySanitizerModule());
         install(new TitusValidatorModule());
 

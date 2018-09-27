@@ -41,8 +41,8 @@ import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.util.NetworkExt;
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
@@ -187,8 +187,9 @@ public class EmbeddedTitusGateway {
 
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
-            this.grpcChannel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
+            this.grpcChannel = NettyChannelBuilder.forAddress("localhost", grpcPort)
                     .usePlaintext(true)
+                    .maxHeaderListSize(65536)
                     .build();
         }
         return grpcChannel;

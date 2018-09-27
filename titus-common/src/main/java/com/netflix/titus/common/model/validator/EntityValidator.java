@@ -12,4 +12,12 @@ import java.util.Set;
  */
 public interface EntityValidator<T> {
     Mono<Set<ValidationError>> validate(T entity);
+
+    /**
+     * Async method to clean and add missing data elements to an entity
+     *
+     * @return Returns a Mono/Single that emits an a cleaned up version. If no changes were made,
+     * the emitted item will share reference with the source parameter.
+     */
+    Mono<T> sanitize(T entity);
 }

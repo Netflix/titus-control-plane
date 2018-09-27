@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.client;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -67,6 +68,6 @@ public class DefaultTitusMasterClient implements TitusMasterClient {
 
     @Override
     public Observable<List<ApplicationSlaRepresentation>> findAllApplicationSLA() {
-        return restClient.doGET("/api/v2/management/applications", APPLICATION_SLA_LIST_TP);
+        return restClient.doGET("/api/v2/management/applications", Collections.emptyMap(), APPLICATION_SLA_LIST_TP);
     }
 }

@@ -174,6 +174,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     @Ignore("Until we support digests")
     public void testJobWithBothTagAndDigest() throws Exception {
+        // TODO(Andrew L): Enable this test.
     }
 
     @Test

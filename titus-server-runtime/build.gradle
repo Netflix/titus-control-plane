@@ -18,6 +18,7 @@ dependencies {
     // Misc dependencies
     compile "io.swagger:swagger-jaxrs:${swaggerVersion}"
     compile "org.hibernate:hibernate-validator:${hibernateValidatorVersion}"
+    compile "org.mock-server:mockserver-netty:${mockServerVersion}"
 
     // GRPC dependencies
     compile "io.grpc:grpc-netty-shaded:${grpcVersion}"

@@ -31,6 +31,8 @@ import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +61,7 @@ public class RetryableRestClientTest {
 
     @Test
     public void testRetryOnError() throws Exception {
-        when(delegate.doGET("/path", STRING_TYPE_PROVIDER)).thenReturn(createFailingObservable(RETRY_COUNT));
+        when(delegate.doGET(eq("/path"), anyMap(), eq(STRING_TYPE_PROVIDER))).thenReturn(createFailingObservable(RETRY_COUNT));
 
         ExtTestSubscriber<String> replySubscriber = new ExtTestSubscriber<>();
         client.doGET("/path", STRING_TYPE_PROVIDER).subscribe(replySubscriber);
@@ -70,7 +72,7 @@ public class RetryableRestClientTest {
 
     @Test
     public void testRetryWithPermanentError() throws Exception {
-        when(delegate.doGET("/path", STRING_TYPE_PROVIDER)).thenReturn(createFailingObservable(RETRY_COUNT + 1));
+        when(delegate.doGET(eq("/path"), anyMap(), eq(STRING_TYPE_PROVIDER))).thenReturn(createFailingObservable(RETRY_COUNT + 1));
 
         ExtTestSubscriber<String> replySubscriber = new ExtTestSubscriber<>();
         client.doGET("/path", STRING_TYPE_PROVIDER).subscribe(replySubscriber);
@@ -81,7 +83,7 @@ public class RetryableRestClientTest {
 
     @Test
     public void testRetryOnTimeout() throws Exception {
-        when(delegate.doGET("/path", STRING_TYPE_PROVIDER)).thenReturn(createSlowObservable(RETRY_COUNT, REQ_TIMEOUT_MS));
+        when(delegate.doGET(eq("/path"), anyMap(), eq(STRING_TYPE_PROVIDER))).thenReturn(createSlowObservable(RETRY_COUNT, REQ_TIMEOUT_MS));
 
         ExtTestSubscriber<String> replySubscriber = new ExtTestSubscriber<>();
         client.doGET("/path", STRING_TYPE_PROVIDER).subscribe(replySubscriber);

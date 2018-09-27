@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.netflix.titus.runtime.connector.jobmanager.client;
 
 import java.util.Set;
@@ -35,7 +51,8 @@ import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.stub.StreamObserver;
-import reactor.core.publisher.Mono;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
@@ -51,18 +68,20 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrap
 @Singleton
 public class GrpcJobManagementClient implements JobManagementClient {
 
+    private static final Logger logger = LoggerFactory.getLogger(GrpcJobManagementClient.class);
+
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
     private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
-    private final EntityValidator validator;
+    private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
     private final Registry registry;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
                                    @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                   EntityValidator validator,
+                                   EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                    GrpcClientConfiguration configuration,
                                    Registry registry) {
         this.client = client;
@@ -88,32 +107,37 @@ public class GrpcJobManagementClient implements JobManagementClient {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        Mono<Set<ValidationError>> validationErrors = validator.validate(sanitizedCoreJobDescriptor);
+        Observable<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizedCoreJobDescriptorObs =
+                ReactorExt.toObservable(validator.sanitize(sanitizedCoreJobDescriptor))
+                        .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
+                        .flatMap(scjd -> ReactorExt.toObservable(validator.validate(scjd))
+                                .flatMap(errors -> {
+                                    // Report metrics on all errors
+                                    reportErrorMetrics(errors);
 
-        JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
-        Observable<String> requestObservable = createRequestObservable(emitter -> {
-            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
-                    emitter,
-                    jobId -> emitter.onNext(jobId.getId()),
-                    emitter::onError,
-                    emitter::onCompleted
-            );
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
-        }, configuration.getRequestTimeout());
+                                    // Only emit an error on HARD validation errors
+                                    errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
 
-        return ReactorExt.toObservable(validationErrors)
-                .flatMap(errors -> {
-                    // Report metrics on all errors
-                    reportErrorMetrics(errors);
+                                    if (!errors.isEmpty()) {
+                                        return Observable.error(TitusServiceException.invalidJob(errors));
+                                    } else {
+                                        return Observable.just(scjd);
+                                    }
+                                })
+                        );
 
-                    // Only emit an error on HARD validation errors
-                    errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
-
-                    if (!errors.isEmpty()) {
-                        return Observable.error(TitusServiceException.invalidJob(errors));
-                    } else {
-                        return requestObservable;
-                    }
+        return sanitizedCoreJobDescriptorObs
+                .flatMap(scjd -> {
+                    JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(scjd);
+                    return createRequestObservable(emitter -> {
+                        StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                                emitter,
+                                jobId -> emitter.onNext(jobId.getId()),
+                                emitter::onError,
+                                emitter::onCompleted
+                        );
+                        createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
+                    }, configuration.getRequestTimeout());
                 });
     }
 

@@ -1,11 +1,20 @@
-package com.netflix.titus.api.jobmanager.model.job.validator;
+/*
+ * Copyright 2018 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
-import org.junit.Test;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
+package com.netflix.titus.api.jobmanager.model.job.validator;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -14,15 +23,33 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.runtime.endpoint.validator.AggregatingValidator;
+import com.netflix.titus.runtime.endpoint.validator.TitusValidatorConfiguration;
+import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
+import org.junit.Before;
+import org.junit.Test;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * This class tests the {@link ParallelValidator} class.
+ * This class tests the {@link AggregatingValidator} class.
  */
-public class ParallelValidatorTest {
+public class AggregatingValidatorTest {
     private static final JobDescriptor MOCK_JOB = mock(JobDescriptor.class);
-    private static final Duration TIMEOUT = Duration.ofMillis(10);
+    private final TitusValidatorConfiguration configuration = mock(TitusValidatorConfiguration.class);
+
+    @Before
+    public void setUp() {
+        when(configuration.getTimeoutMs()).thenReturn(100);
+    }
 
     // Hard validation tests
 
@@ -30,7 +57,11 @@ public class ParallelValidatorTest {
     public void validateHardPassPass() {
         EntityValidator pass0 = new PassJobValidator();
         EntityValidator pass1 = new PassJobValidator();
-        ParallelValidator validator = new ParallelValidator(TIMEOUT, Arrays.asList(pass0, pass1), Collections.emptySet());
+        AggregatingValidator validator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(pass0, pass1),
+                Collections.emptySet(),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -42,7 +73,11 @@ public class ParallelValidatorTest {
     public void validateHardFailFail() {
         EntityValidator fail0 = new FailJobValidator();
         EntityValidator fail1 = new FailJobValidator();
-        ParallelValidator validator = new ParallelValidator(TIMEOUT, Arrays.asList(fail0, fail1), Collections.emptySet());
+        AggregatingValidator validator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(fail0, fail1),
+                Collections.emptySet(),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -58,7 +93,11 @@ public class ParallelValidatorTest {
     public void validateHardPassFail() {
         EntityValidator pass = new PassJobValidator();
         EntityValidator fail = new FailJobValidator();
-        ParallelValidator validator = new ParallelValidator(TIMEOUT, Arrays.asList(pass, fail), Collections.emptySet());
+        AggregatingValidator validator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(pass, fail),
+                Collections.emptySet(),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -74,7 +113,11 @@ public class ParallelValidatorTest {
     public void validateHardPassTimeout() {
         EntityValidator pass = new PassJobValidator();
         EntityValidator never = new NeverJobValidator();
-        EntityValidator validator = new ParallelValidator(TIMEOUT, Arrays.asList(pass, never), Collections.emptySet());
+        EntityValidator validator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(pass, never),
+                Collections.emptySet(),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -91,7 +134,11 @@ public class ParallelValidatorTest {
         EntityValidator pass = new PassJobValidator();
         EntityValidator fail = new FailJobValidator();
         EntityValidator never = new NeverJobValidator();
-        EntityValidator parallelValidator = new ParallelValidator(TIMEOUT, Arrays.asList(pass, fail, never), Collections.emptySet());
+        EntityValidator parallelValidator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(pass, fail, never),
+                Collections.emptySet(),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = parallelValidator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -119,7 +166,11 @@ public class ParallelValidatorTest {
     @Test
     public void validateSoftTimeout() {
         EntityValidator never = new NeverJobValidator();
-        EntityValidator validator = new ParallelValidator(TIMEOUT, Collections.emptySet(), Arrays.asList(never));
+        EntityValidator validator = new AggregatingValidator(
+                configuration,
+                Collections.emptySet(),
+                Arrays.asList(never),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -134,7 +185,11 @@ public class ParallelValidatorTest {
     @Test
     public void validateSoftFailure() {
         EntityValidator fail = new FailJobValidator();
-        EntityValidator validator = new ParallelValidator(TIMEOUT, Collections.emptySet(), Arrays.asList(fail));
+        EntityValidator validator = new AggregatingValidator(
+                configuration,
+                Collections.emptySet(),
+                Arrays.asList(fail),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -149,7 +204,11 @@ public class ParallelValidatorTest {
     @Test
     public void validateSoftPass() {
         EntityValidator pass = new PassJobValidator();
-        EntityValidator validator = new ParallelValidator(TIMEOUT, Collections.emptySet(), Arrays.asList(pass));
+        EntityValidator validator = new AggregatingValidator(
+                configuration,
+                Collections.emptySet(),
+                Arrays.asList(pass),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -163,7 +222,11 @@ public class ParallelValidatorTest {
     public void validateHardSoftTimeout() {
         EntityValidator never0 = new NeverJobValidator();
         EntityValidator never1 = new NeverJobValidator();
-        EntityValidator validator = new ParallelValidator(TIMEOUT, Arrays.asList(never0), Arrays.asList(never1));
+        EntityValidator validator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(never0),
+                Arrays.asList(never1),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -187,7 +250,11 @@ public class ParallelValidatorTest {
     public void validateHardSoftPass() {
         EntityValidator pass0 = new PassJobValidator();
         EntityValidator pass1 = new PassJobValidator();
-        EntityValidator validator = new ParallelValidator(TIMEOUT, Arrays.asList(pass0), Arrays.asList(pass1));
+        EntityValidator validator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(pass0),
+                Arrays.asList(pass1),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -199,7 +266,11 @@ public class ParallelValidatorTest {
     public void validateHardSoftFail() {
         EntityValidator fail0 = new FailJobValidator();
         EntityValidator fail1 = new FailJobValidator();
-        EntityValidator validator = new ParallelValidator(TIMEOUT, Arrays.asList(fail0), Arrays.asList(fail1));
+        EntityValidator validator = new AggregatingValidator(
+                configuration,
+                Arrays.asList(fail0),
+                Arrays.asList(fail1),
+                Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -209,6 +280,61 @@ public class ParallelValidatorTest {
         Collection<ValidationError> errors = mono.block();
         validateFailErrors(errors);
         assertThat(errors).allMatch(error -> error.getType().equals(ValidationError.Type.HARD));
+    }
+
+    // Sanitizer tests
+
+    @Test
+    public void sanitizePassPass() {
+        final String initialAppName = "initialAppName";
+        final String initialCapacityGroup = "initialCapacityGroup";
+        EntityValidator appNameSanitizer = new AppNameSanitizer();
+        EntityValidator capacityGroupSanitizer = new CapacityGroupSanitizer();
+
+        JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.toBuilder()
+                        .withApplicationName(initialAppName)
+                        .withCapacityGroup(initialCapacityGroup)
+                        .build())
+                .getValue();
+
+        AggregatingValidator validator = new AggregatingValidator(
+                configuration,
+                Collections.emptySet(),
+                Collections.emptySet(),
+                Arrays.asList(appNameSanitizer, capacityGroupSanitizer));
+
+        StepVerifier.create(validator.sanitize(jobDescriptor))
+                .assertNext(sanitizedJobDescriptor -> {
+                    assertThat(sanitizedJobDescriptor.getApplicationName().equals(AppNameSanitizer.desiredAppName)).isTrue();
+                    assertThat(sanitizedJobDescriptor.getCapacityGroup().equals(CapacityGroupSanitizer.desiredCapacityGroup)).isTrue();
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    public void sanitizePassFail() {
+        final String initialAppName = "initialAppName";
+        final String initialCapacityGroup = "initialCapacityGroup";
+        EntityValidator appNameSanitizer = new AppNameSanitizer();
+        EntityValidator failSanitizer = new FailJobValidator();
+
+        JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.toBuilder()
+                        .withApplicationName(initialAppName)
+                        .withCapacityGroup(initialCapacityGroup)
+                        .build())
+                .getValue();
+
+        AggregatingValidator validator = new AggregatingValidator(
+                configuration,
+                Collections.emptySet(),
+                Collections.emptySet(),
+                Arrays.asList(appNameSanitizer, failSanitizer));
+
+        StepVerifier.create(validator.sanitize(jobDescriptor))
+                .expectError(TitusServiceException.class)
+                .verify();
     }
 
     private void validateFailErrors(Collection<ValidationError> failErrors) {
@@ -222,7 +348,7 @@ public class ParallelValidatorTest {
         assertThat(timeoutErrors.size() > 0).isTrue();
         assertThat(timeoutErrors)
                 .allMatch(error -> error.getField().equals(NeverJobValidator.class.getSimpleName()))
-                .allMatch(error -> error.getDescription().equals(ParallelValidator.getTimeoutMsg(TIMEOUT)));
+                .allMatch(error -> error.getDescription().equals(AggregatingValidator.getTimeoutMsg(Duration.ofMillis(configuration.getTimeoutMs()))));
     }
 
     private void validateErrorType(Collection<ValidationError> hardErrors, ValidationError.Type errorType) {

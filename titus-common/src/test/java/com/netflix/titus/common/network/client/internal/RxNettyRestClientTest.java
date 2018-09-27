@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,7 +71,7 @@ public class RxNettyRestClientTest {
         };
 
         runHttpAndHttps(requestHandler, () -> {
-            MyEntity result = client.doGET("/path", TypeProviders.of(MyEntity.class)).toBlocking().first();
+            MyEntity result = client.doGET("/path", Collections.emptyMap(), TypeProviders.of(MyEntity.class)).toBlocking().first();
             assertThat(result).isEqualTo(actual);
         });
     }
@@ -85,7 +86,7 @@ public class RxNettyRestClientTest {
         };
 
         runHttpAndHttps(requesterHandler, () -> {
-            RxHttpResponse<MyEntity> result = client.doGET("/path", TypeProviders.ofResponse(MyEntity.class)).toBlocking().first();
+            RxHttpResponse<MyEntity> result = client.doGET("/path", Collections.emptyMap(), TypeProviders.ofResponse(MyEntity.class)).toBlocking().first();
             assertThat(result.getEntity()).contains(actual);
         });
     }
@@ -101,7 +102,7 @@ public class RxNettyRestClientTest {
 
         runHttpAndHttps(requesterHandler, () -> {
             try {
-                client.doGET("/path", TypeProviders.of(MyEntity.class)).toBlocking().first();
+                client.doGET("/path", Collections.emptyMap(), TypeProviders.of(MyEntity.class)).toBlocking().first();
                 fail("Expected to fail");
             } catch (RxRestClientException e) {
                 assertThat(e.getStatusCode()).isEqualTo(HttpResponseStatus.NOT_FOUND.code());
@@ -124,7 +125,7 @@ public class RxNettyRestClientTest {
         };
 
         runHttpAndHttps(requesterHandler, () -> {
-            MyEntity result = client.doGET("/path", TypeProviders.of(MyEntity.class)).toBlocking().first();
+            MyEntity result = client.doGET("/path", Collections.emptyMap(), TypeProviders.of(MyEntity.class)).toBlocking().first();
             assertThat(result).isEqualTo(actual);
         });
     }
@@ -139,7 +140,7 @@ public class RxNettyRestClientTest {
         };
 
         runHttpAndHttps(requesterHandler, () -> {
-            List<MyEntity> result = client.doGET("/path", TypeProviders.of(MY_ENTITY_LIST_REF)).toBlocking().first();
+            List<MyEntity> result = client.doGET("/path", Collections.emptyMap(), TypeProviders.of(MY_ENTITY_LIST_REF)).toBlocking().first();
             assertThat(result).isEqualTo(actual);
         });
     }

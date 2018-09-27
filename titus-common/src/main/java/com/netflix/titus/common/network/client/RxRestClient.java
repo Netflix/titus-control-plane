@@ -17,6 +17,7 @@
 package com.netflix.titus.common.network.client;
 
 import java.net.URI;
+import java.util.Map;
 
 import rx.Observable;
 
@@ -35,6 +36,8 @@ public interface RxRestClient {
     }
 
     <T> Observable<T> doGET(String relativeURI, TypeProvider<T> typeProvider);
+
+    <T> Observable<T> doGET(String relativeURI, Map<String, String> headers, TypeProvider<T> typeProvider);
 
     <REQ> Observable<Void> doPOST(String relativeURI, REQ entity);
 
