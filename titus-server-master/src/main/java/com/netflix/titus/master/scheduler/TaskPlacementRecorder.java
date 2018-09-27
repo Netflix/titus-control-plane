@@ -202,7 +202,7 @@ class TaskPlacementRecorder {
             }).map(taskInfo -> Pair.of(assignment, taskInfo));
         } catch (Exception e) {
             killBrokenV3Task(fenzoTask, e.toString());
-            logger.error("Fatal error when creating TaskInfo for task: {}", fenzoTask.getId(), e);
+            logger.error("Fatal error when creating Mesos#TaskInfo for task: {}", fenzoTask.getId(), e);
             return Observable.empty();
         }
     }
