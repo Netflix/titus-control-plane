@@ -95,22 +95,6 @@ public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator
             }
         }
 
-        String instanceId = getAttributeValueOrEmptyString(targetVM, schedulerConfiguration.getInstanceAttributeName());
-        if (Strings.isNullOrEmpty(instanceId)) {
-            return DEFAULT_SCORE;
-        }
-
-        Optional<AgentInstance> instanceOpt = agentManagementService.findAgentInstance(instanceId);
-        if (!instanceOpt.isPresent()) {
-            return DEFAULT_SCORE;
-        }
-
-        AgentInstance instance = instanceOpt.get();
-        boolean preferNoPlacement = Boolean.parseBoolean(instance.getAttributes().get(AgentAttributes.PREFER_NO_PLACEMENT));
-        if (preferNoPlacement) {
-            return PREFER_NO_PLACEMENT_SCORE;
-        }
-
         return DEFAULT_SCORE;
     }
 }
