@@ -462,6 +462,23 @@ public final class CollectionsExt {
     }
 
     /**
+     * @return true when the <tt>map</tt> contains any of the keys
+     */
+    @SafeVarargs
+    public static <T> boolean containsAnyKeys(Map<T, ?> map, T... keys) {
+        if (map == null) {
+            return false;
+        }
+
+        for (T key : keys) {
+            if (map.containsKey(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Items with the same index key will be discarded (only the first is kept in the result {@link Map}.
      */
     public static <T, I> Map<I, T> indexBy(List<T> items, Function<T, I> keyMapper) {

@@ -16,20 +16,26 @@
 
 package com.netflix.titus.master.scheduler.fitness;
 
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.VirtualMachineCurrentState;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.master.agent.AgentAttributes;
 import com.netflix.titus.master.scheduler.AgentQualityTracker;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValueOrEmptyString;
 
 /**
  *
@@ -43,7 +49,8 @@ public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator
 
     private static final double ACTIVE_INSTANCE_GROUP_SCORE = 1.0;
     private static final double PHASED_OUT_INSTANCE_GROUP_SCORE = 0.5;
-    private static final double NOT_ACTIVE_INSTANCE_GROUP_SCORE = 0.01;
+    private static final double DEFAULT_SCORE = 0.01;
+    private static final double PREFER_NO_PLACEMENT_SCORE = 0.5;
 
     private static final double QUALITY_OF_UNKNOWN_AGENT = 0.5;
 
@@ -88,6 +95,6 @@ public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator
             }
         }
 
-        return NOT_ACTIVE_INSTANCE_GROUP_SCORE;
+        return DEFAULT_SCORE;
     }
 }

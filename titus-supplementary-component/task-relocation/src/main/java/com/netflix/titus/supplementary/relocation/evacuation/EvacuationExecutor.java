@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -66,10 +65,7 @@ class EvacuationExecutor {
             return true;
         }
 
-        if (instance.getOverrideStatus().getState() != InstanceOverrideState.Quarantined) {
-            logger.info("Agent instance no longer quarantined. Terminating the evacuation process: {}", instance.getId());
-            return true;
-        }
+        //TODO add quarantined replacement
         return false;
     }
 

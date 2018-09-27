@@ -20,7 +20,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
@@ -28,12 +27,12 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AgentQuery;
-import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
+import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,15 +105,6 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceOverrideState(InstanceOverrideStateUpdate request, StreamObserver<Empty> responseObserver) {
         Subscription subscription = agentManagementService.updateInstanceOverride(request).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
-        );
-        attachCancellingCallback(responseObserver, subscription);
-    }
-
-    @Override
-    public void updateAutoScalingRule(AutoScalingRuleUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = agentManagementService.updateAutoScalingRule(request).subscribe(
                 () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
         );

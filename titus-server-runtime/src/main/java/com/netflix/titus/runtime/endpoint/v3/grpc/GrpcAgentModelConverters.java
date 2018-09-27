@@ -22,13 +22,10 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
@@ -57,7 +54,6 @@ public class GrpcAgentModelConverters {
                 .setMax(coreAgentGroup.getMax())
                 .setIsLaunchEnabled(coreAgentGroup.isLaunchEnabled())
                 .setIsTerminateEnabled(coreAgentGroup.isTerminateEnabled())
-                .setAutoScaleRule(toGrpcAutoScaleRule(coreAgentGroup.getAutoScaleRule()))
                 .setLifecycleStatus(toGrpcLifecycleStatus(coreAgentGroup.getLifecycleStatus()))
                 .setLaunchTimestamp(coreAgentGroup.getLaunchTimestamp())
                 .putAllAttributes(coreAgentGroup.getAttributes())
@@ -83,21 +79,8 @@ public class GrpcAgentModelConverters {
                 .setIpAddress(coreAgentInstance.getIpAddress())
                 .setHostname(coreAgentInstance.getHostname())
                 .setLifecycleStatus(toGrpcDeploymentStatus(coreAgentInstance.getLifecycleStatus()))
-                .setOverrideStatus(toGrpcOverrideStatus(coreAgentInstance.getOverrideStatus()))
                 .setHealthStatus(healthStatus)
                 .putAllAttributes(coreAgentInstance.getAttributes())
-                .build();
-    }
-
-    public static com.netflix.titus.grpc.protogen.AutoScaleRule toGrpcAutoScaleRule(AutoScaleRule autoScaleRule) {
-        return com.netflix.titus.grpc.protogen.AutoScaleRule.newBuilder()
-                .setMin(autoScaleRule.getMin())
-                .setMax(autoScaleRule.getMax())
-                .setMinIdleToKeep(autoScaleRule.getMinIdleToKeep())
-                .setMaxIdleToKeep(autoScaleRule.getMaxIdleToKeep())
-                .setCoolDownSec(autoScaleRule.getCoolDownSec())
-                .setPriority(autoScaleRule.getPriority())
-                .setShortfallAdjustingFactor(autoScaleRule.getShortfallAdjustingFactor())
                 .build();
     }
 
@@ -111,7 +94,6 @@ public class GrpcAgentModelConverters {
                 .withDesired(grpcAgentInstanceGroup.getDesired())
                 .withCurrent(grpcAgentInstanceGroup.getCurrent())
                 .withMax(grpcAgentInstanceGroup.getMax())
-                .withAutoScaleRule(toCoreAutoScaleRule(grpcAgentInstanceGroup.getAutoScaleRule()))
                 .withLifecycleStatus(toCoreLifecycleStatus(grpcAgentInstanceGroup.getLifecycleStatus()))
                 .withIsLaunchEnabled(grpcAgentInstanceGroup.getIsLaunchEnabled())
                 .withIsTerminateEnabled(grpcAgentInstanceGroup.getIsTerminateEnabled())
@@ -127,7 +109,6 @@ public class GrpcAgentModelConverters {
                 .withHostname(grpcAgentInstance.getHostname())
                 .withIpAddress(grpcAgentInstance.getIpAddress())
                 .withDeploymentStatus(toCoreInstanceLifecycleStatus(grpcAgentInstance.getLifecycleStatus()))
-                .withOverrideStatus(toCoreInstanceOverrideStatus(grpcAgentInstance.getOverrideStatus()))
                 .withAttributes(grpcAgentInstance.getAttributesMap())
                 .build();
     }
@@ -139,18 +120,6 @@ public class GrpcAgentModelConverters {
                 .withMemoryMB(grpcResourceDimension.getMemoryMB())
                 .withDiskMB(grpcResourceDimension.getDiskMB())
                 .withNetworkMbs(grpcResourceDimension.getNetworkMbps())
-                .build();
-    }
-
-    public static AutoScaleRule toCoreAutoScaleRule(com.netflix.titus.grpc.protogen.AutoScaleRule grpcAutoScaleRule) {
-        return AutoScaleRule.newBuilder()
-                .withMin(grpcAutoScaleRule.getMin())
-                .withMax(grpcAutoScaleRule.getMax())
-                .withMinIdleToKeep(grpcAutoScaleRule.getMinIdleToKeep())
-                .withMaxIdleToKeep(grpcAutoScaleRule.getMaxIdleToKeep())
-                .withCoolDownSec((int) grpcAutoScaleRule.getCoolDownSec())
-                .withPriority(grpcAutoScaleRule.getPriority())
-                .withShortfallAdjustingFactor(grpcAutoScaleRule.getShortfallAdjustingFactor())
                 .build();
     }
 
@@ -199,25 +168,6 @@ public class GrpcAgentModelConverters {
                 .build();
     }
 
-    public static InstanceOverrideState toCoreInstanceOverrideState(com.netflix.titus.grpc.protogen.InstanceOverrideState overrideState) {
-        switch (overrideState) {
-            case NotOverriden:
-                return InstanceOverrideState.None;
-            case Quarantined:
-                return InstanceOverrideState.Quarantined;
-            case AgentRemovable:
-                return InstanceOverrideState.Removable;
-        }
-        return InstanceOverrideState.None;
-    }
-
-    public static InstanceOverrideStatus toCoreInstanceOverrideStatus(com.netflix.titus.grpc.protogen.InstanceOverrideStatus grpcOverrideStatus) {
-        return InstanceOverrideStatus.newBuilder()
-                .withState(toCoreInstanceOverrideState(grpcOverrideStatus.getState()))
-                .withDetail(grpcOverrideStatus.getDetail())
-                .build();
-    }
-
     public static com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState toGrpcLifecycleState(InstanceGroupLifecycleState state) {
         switch (state) {
             case Inactive:
@@ -260,26 +210,6 @@ public class GrpcAgentModelConverters {
         return com.netflix.titus.grpc.protogen.InstanceLifecycleStatus.newBuilder()
                 .setState(toGrpcDeploymentState(instanceLifecycleStatus.getState()))
                 .setLaunchTimestamp(instanceLifecycleStatus.getLaunchTimestamp())
-                .build();
-    }
-
-    public static com.netflix.titus.grpc.protogen.InstanceOverrideState toGrpcOverrideState(InstanceOverrideState state) {
-        switch (state) {
-            case None:
-                return com.netflix.titus.grpc.protogen.InstanceOverrideState.NotOverriden;
-            case Quarantined:
-                return com.netflix.titus.grpc.protogen.InstanceOverrideState.Quarantined;
-            case Removable:
-                return com.netflix.titus.grpc.protogen.InstanceOverrideState.AgentRemovable;
-        }
-        throw new IllegalArgumentException("Unrecognized InstanceOverrideState value: " + state);
-    }
-
-    public static com.netflix.titus.grpc.protogen.InstanceOverrideStatus toGrpcOverrideStatus(InstanceOverrideStatus instanceOverrideStatus) {
-        return com.netflix.titus.grpc.protogen.InstanceOverrideStatus.newBuilder()
-                .setState(toGrpcOverrideState(instanceOverrideStatus.getState()))
-                .setDetail(instanceOverrideStatus.getDetail())
-                .setTimestamp(instanceOverrideStatus.getTimestamp())
                 .build();
     }
 

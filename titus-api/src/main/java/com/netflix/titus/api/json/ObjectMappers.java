@@ -40,16 +40,12 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.store.mixin.AgentInstanceGroupMixin;
 import com.netflix.titus.api.agent.store.mixin.AgentInstanceMixin;
-import com.netflix.titus.api.agent.store.mixin.AutoScaleRuleMixin;
 import com.netflix.titus.api.agent.store.mixin.InstanceGroupLifecycleStatusMixin;
 import com.netflix.titus.api.agent.store.mixin.InstanceLifecycleStatusMixin;
-import com.netflix.titus.api.agent.store.mixin.InstanceOverrideStatusMixin;
 import com.netflix.titus.api.appscale.model.AlarmConfiguration;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import com.netflix.titus.api.appscale.model.CustomizedMetricSpecification;
@@ -322,10 +318,8 @@ public class ObjectMappers {
         // Agent Management
         objectMapper.addMixIn(AgentInstanceGroup.class, AgentInstanceGroupMixin.class);
         objectMapper.addMixIn(AgentInstance.class, AgentInstanceMixin.class);
-        objectMapper.addMixIn(AutoScaleRule.class, AutoScaleRuleMixin.class);
         objectMapper.addMixIn(InstanceLifecycleStatus.class, InstanceLifecycleStatusMixin.class);
         objectMapper.addMixIn(InstanceGroupLifecycleStatus.class, InstanceGroupLifecycleStatusMixin.class);
-        objectMapper.addMixIn(InstanceOverrideStatus.class, InstanceOverrideStatusMixin.class);
 
         // Job Management
         objectMapper.addMixIn(Capacity.class, CapacityMixin.class);

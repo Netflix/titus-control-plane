@@ -19,10 +19,11 @@ package com.netflix.titus.api.agent.store.mixin;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AgentInstanceMixin {
     @JsonCreator
     public AgentInstanceMixin(@JsonProperty("id") String id,
@@ -30,7 +31,6 @@ public class AgentInstanceMixin {
                               @JsonProperty("ipAddress") String ipAddress,
                               @JsonProperty("hostname") String hostname,
                               @JsonProperty("lifecycleStatus") InstanceLifecycleStatus lifecycleStatus,
-                              @JsonProperty("overrideStatus") InstanceOverrideStatus overrideStatus,
                               @JsonProperty("attributes") Map<String, String> attributes) {
     }
 }

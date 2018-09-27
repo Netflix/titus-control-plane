@@ -24,11 +24,8 @@ import java.util.Optional;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
@@ -142,18 +139,6 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testUpdateAutoScalingRule() {
-        AutoScaleRule updatedAutoScaleRule = instanceGroups.get(0).getAutoScaleRule().toBuilder().withMax(1000).build();
-
-        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateAutoScalingRule(instanceGroups.get(0).getId(), updatedAutoScaleRule).toObservable().subscribe(testSubscriber);
-
-        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
-        verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
-        assertThat(captor.getValue().getAutoScaleRule()).isEqualTo(updatedAutoScaleRule);
-    }
-
-    @Test
     public void testUpdateLifecycle() {
         InstanceGroupLifecycleStatus updatedInstanceGroupLifecycleStatus = InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build();
 
@@ -202,21 +187,6 @@ public class DefaultAgentManagementServiceTest {
         ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
         verify(agentCache, times(1)).updateInstanceGroupStoreAndSyncCloud(captor.capture());
         assertThat(captor.getValue().getDesired()).isEqualTo(instanceGroup.getDesired() + 500);
-    }
-
-    @Test
-    public void testUpdateOverride() {
-        String agentId = instanceSet0.get(0).getId();
-        when(agentCache.getAgentInstance(agentId)).thenReturn(instanceSet0.get(0));
-
-        InstanceOverrideStatus instanceOverrideStatus = InstanceOverrideStatus.newBuilder().withState(InstanceOverrideState.Quarantined).build();
-
-        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateInstanceOverride(agentId, instanceOverrideStatus).toObservable().subscribe(testSubscriber);
-
-        ArgumentCaptor<AgentInstance> captor = ArgumentCaptor.forClass(AgentInstance.class);
-        verify(agentCache, times(1)).updateAgentInstanceStore(captor.capture());
-        assertThat(captor.getValue().getOverrideStatus()).isEqualTo(instanceOverrideStatus);
     }
 
     @Test

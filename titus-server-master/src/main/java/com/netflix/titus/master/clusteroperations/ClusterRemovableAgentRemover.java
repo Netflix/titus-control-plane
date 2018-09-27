@@ -29,14 +29,15 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.primitives.Longs;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -49,6 +50,7 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.agent.AgentAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -56,6 +58,7 @@ import rx.Scheduler;
 import rx.Subscription;
 
 import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS;
+import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.hasTimeElapsed;
 
 /**
  * This component is responsible for removing agents in a Removable Instance Group.
@@ -149,8 +152,19 @@ public class ClusterRemovableAgentRemover {
             for (AgentInstanceGroup instanceGroup : eligibleInstanceGroups) {
                 List<AgentInstance> agentInstances = agentManagementService.getAgentInstances(instanceGroup.getId())
                         .stream()
-                        .filter(ig -> ig.getOverrideStatus().getState() == InstanceOverrideState.Removable)
-                        .filter(ig -> now - ig.getOverrideStatus().getTimestamp() >= configuration.getAgentInstanceRemovableGracePeriodMs())
+                        .filter(i -> {
+                            Map<String, String> attributes = i.getAttributes();
+                            if (attributes.containsKey(AgentAttributes.NOT_REMOVABLE)) {
+                                return false;
+                            }
+                            String removableTimestampValue = attributes.get(AgentAttributes.REMOVABLE);
+                            if (!Strings.isNullOrEmpty(removableTimestampValue)) {
+                                Long parsedRemovableTimestamp = Longs.tryParse(removableTimestampValue);
+                                long removableTimestamp = parsedRemovableTimestamp == null ? 0L : parsedRemovableTimestamp;
+                                return hasTimeElapsed(removableTimestamp, now, configuration.getAgentInstanceRemovableGracePeriodMs());
+                            }
+                            return false;
+                        })
                         .collect(Collectors.toList());
                 totalAgentsToRemove += agentInstances.size();
                 agentInstancesPerInstanceGroup.put(instanceGroup, agentInstances);

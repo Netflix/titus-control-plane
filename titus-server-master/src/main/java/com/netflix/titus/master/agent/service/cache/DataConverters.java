@@ -20,12 +20,10 @@ import java.util.Collections;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -35,8 +33,7 @@ import com.netflix.titus.common.util.Evaluators;
 class DataConverters {
 
     static AgentInstanceGroup toAgentInstanceGroup(InstanceGroup instanceGroup,
-                                                   ResourceDimension instanceResourceDimension,
-                                                   AutoScaleRule defaultAutoScaleRule) {
+                                                   ResourceDimension instanceResourceDimension) {
         long now = System.currentTimeMillis();
         String instanceType = instanceGroup.getAttributes().getOrDefault(InstanceCache.ATTR_INSTANCE_TYPE, "unknown");
 
@@ -51,7 +48,6 @@ class DataConverters {
                 .withTier(Tier.Flex)
                 .withInstanceType(instanceType)
                 .withResourceDimension(instanceResourceDimension)
-                .withAutoScaleRule(defaultAutoScaleRule)
                 .withMin(instanceGroup.getMin())
                 .withDesired(instanceGroup.getDesired())
                 .withMax(instanceGroup.getMax())
@@ -85,7 +81,6 @@ class DataConverters {
                 .withIpAddress(instance.getIpAddress())
                 .withHostname(instance.getHostname())
                 .withDeploymentStatus(toDeploymentStatus(instance))
-                .withOverrideStatus(InstanceOverrideStatus.none())
                 .withAttributes(instance.getAttributes())
                 .withTimestamp(System.currentTimeMillis())
                 .build();

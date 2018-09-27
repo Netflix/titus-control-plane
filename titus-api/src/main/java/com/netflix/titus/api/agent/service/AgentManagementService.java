@@ -23,9 +23,7 @@ import java.util.function.Predicate;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
@@ -96,13 +94,6 @@ public interface AgentManagementService {
     Completable updateInstanceGroupTier(String instanceGroupId, Tier tier);
 
     /**
-     * Associates a new auto scaling rule with a given instance group.
-     *
-     * @return AgentManagementException if the instance group is not found
-     */
-    Completable updateAutoScalingRule(String instanceGroupId, AutoScaleRule autoScaleRule);
-
-    /**
      * Changes lifecycle status of a instance group.
      *
      * @return AgentManagementException if the instance group is not found
@@ -115,6 +106,13 @@ public interface AgentManagementService {
      * @return AgentManagementException if the instance group is not found
      */
     Completable updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes);
+
+    /**
+     * Changes attributes of an agent instance.
+     *
+     * @return AgentManagementException if the agent instance is not found
+     */
+    Completable updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes);
 
     /**
      * Updates instance group capacity. If only min value is provided, the desired size is adjusted to be no less than min.
@@ -142,20 +140,6 @@ public interface AgentManagementService {
      * @return AgentManagementException if the instance group is not found
      */
     Completable scaleUp(String instanceGroupId, int scaleUpCount);
-
-    /**
-     * Add/change override status of the given agent server.
-     *
-     * @return AgentManagementException if the instance group is not found
-     */
-    Completable updateInstanceOverride(String instanceId, InstanceOverrideStatus instanceOverrideStatus);
-
-    /**
-     * Remove status override of the given agent server.
-     *
-     * @return AgentManagementException if the instance group is not found
-     */
-    Completable removeInstanceOverride(String instanceId);
 
     /**
      * Terminate agents with the given instance ids. The agents must belong to the same instance group.

@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -61,7 +60,6 @@ public class SimulatedTitusAgentCluster {
     private final int disk;
     private final int networkMbs;
     private final int ipPerEni;
-    private final AutoScaleRule autoScaleRule;
 
     private int minSize = 0;
     private int maxSize;
@@ -84,8 +82,8 @@ public class SimulatedTitusAgentCluster {
                                        int disk,
                                        int networkMbs,
                                        int ipPerEni,
-                                       AutoScaleRule autoScaleRule,
-                                       ContainerPlayersManager containerPlayersManager) {
+                                       ContainerPlayersManager containerPlayersManager,
+                                       int maxSize) {
         this.name = name;
         this.computeResources = computeResources;
         this.instanceType = instanceType;
@@ -95,9 +93,8 @@ public class SimulatedTitusAgentCluster {
         this.disk = disk;
         this.networkMbs = networkMbs;
         this.ipPerEni = ipPerEni;
-        this.autoScaleRule = autoScaleRule;
-        this.maxSize = autoScaleRule.getMax();
         this.containerPlayersManager = containerPlayersManager;
+        this.maxSize = maxSize;
 
         this.offerTemplate = Protos.Offer.newBuilder()
                 .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("EmbeddedTitusMaster"))
@@ -148,10 +145,6 @@ public class SimulatedTitusAgentCluster {
 
     public int getMaxSize() {
         return maxSize;
-    }
-
-    public AutoScaleRule getAutoScaleRule() {
-        return autoScaleRule;
     }
 
     public List<SimulatedTitusAgent> getAgents() {
@@ -292,9 +285,6 @@ public class SimulatedTitusAgentCluster {
         private int maxSize = 2;
         private int gpus = 0;
 
-        private int minIdleHostsToKeep = 1;
-        private int maxIdleHostsToKeep = 10;
-        private long coolDownSec = 30;
         private int ipPerEni = 29;
         private ContainerPlayersManager containerPlayersManager;
 
@@ -328,21 +318,6 @@ public class SimulatedTitusAgentCluster {
             return this;
         }
 
-        public Builder withMinIdleHostsToKeep(int minIdleHostsToKeep) {
-            this.minIdleHostsToKeep = minIdleHostsToKeep;
-            return this;
-        }
-
-        public Builder withMaxIdleHostsToKeep(int maxIdleHostsToKeep) {
-            this.maxIdleHostsToKeep = maxIdleHostsToKeep;
-            return this;
-        }
-
-        public Builder withCoolDownSec(long coolDownSec) {
-            this.coolDownSec = coolDownSec;
-            return this;
-        }
-
         public Builder withIpPerEni(int ipPerEni) {
             this.ipPerEni = ipPerEni;
             return this;
@@ -356,17 +331,8 @@ public class SimulatedTitusAgentCluster {
         public SimulatedTitusAgentCluster build() {
             Preconditions.checkNotNull(containerPlayersManager, "ContainerPlayersManager not defined");
 
-            AutoScaleRule autoScaleRule = AutoScaleRule.newBuilder()
-                    .withMinIdleToKeep(minIdleHostsToKeep)
-                    .withMaxIdleToKeep(maxIdleHostsToKeep)
-                    .withMax(maxSize)
-                    .withCoolDownSec((int) coolDownSec)
-                    .withShortfallAdjustingFactor(1)
-                    .build();
-
             SimulatedTitusAgentCluster agentCluster = new SimulatedTitusAgentCluster(
-                    name, computeResources, instanceType, cpus, gpus, memory, disk, networkMbs, ipPerEni,
-                    autoScaleRule, containerPlayersManager
+                    name, computeResources, instanceType, cpus, gpus, memory, disk, networkMbs, ipPerEni, containerPlayersManager, maxSize
             );
             agentCluster.scaleUp(size);
             return agentCluster;

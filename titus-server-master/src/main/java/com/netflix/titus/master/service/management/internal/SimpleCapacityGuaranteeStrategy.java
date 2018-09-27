@@ -76,7 +76,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
                 left.ifPresent(resourceDimension -> resourceShortage.put(tier, resourceDimension));
             }
         }
-        return new CapacityAllocations(applyMinSizeLimits(instanceAllocations), resourceShortage);
+        return new CapacityAllocations(instanceAllocations, resourceShortage);
     }
 
     private Optional<ResourceDimension> allocate(Tier tier,
@@ -120,19 +120,6 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
         }
         logger.warn("Insufficient server resources available for tier {}. Lacking capacity for {}", tier, left);
         return Optional.of(left);
-    }
-
-    /**
-     * Enforce min of min constraint (if calculated min level is lower than configured min, enforce the latter).
-     */
-    private Map<AgentInstanceGroup, Integer> applyMinSizeLimits(Map<AgentInstanceGroup, Integer> instanceAllocations) {
-        Map<AgentInstanceGroup, Integer> result = new HashMap<>();
-        for (Map.Entry<AgentInstanceGroup, Integer> entry : instanceAllocations.entrySet()) {
-            AgentInstanceGroup instanceGroup = entry.getKey();
-            int minSize = instanceGroup.getAutoScaleRule().getMin();
-            result.put(instanceGroup, Math.max(entry.getValue(), minSize));
-        }
-        return result;
     }
 
     private ResourceDimension computeTierResourceDimension(Tier tier, CapacityRequirements capacityRequirements) {

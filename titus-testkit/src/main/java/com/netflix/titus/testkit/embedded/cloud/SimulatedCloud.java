@@ -86,7 +86,6 @@ public class SimulatedCloud {
             );
             SimulatedTitusAgentCluster newAgentInstanceGroup = SimulatedTitusAgentCluster.aTitusAgentCluster(agentGroupDescriptor.getName(), nextInstanceGroupId++)
                     .withComputeResources(computeResources)
-                    .withCoolDownSec(60)
                     .withInstanceType(AwsInstanceType.withName(agentGroupDescriptor.getInstanceType()))
                     .withIpPerEni(agentGroupDescriptor.getIpPerEni())
                     .withSize(agentGroupDescriptor.getDesired())
