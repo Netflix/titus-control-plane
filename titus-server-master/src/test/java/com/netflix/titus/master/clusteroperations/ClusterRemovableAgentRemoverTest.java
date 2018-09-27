@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.clusteroperations;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -23,8 +24,6 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -32,6 +31,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Either;
+import com.netflix.titus.master.agent.AgentAttributes;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
@@ -77,15 +77,16 @@ public class ClusterRemovableAgentRemoverTest {
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
+        String removableTimestampValue = String.valueOf(titusRuntime.getClock().wallTime());
         AgentInstance agentInstance1 = AgentInstance.newBuilder()
                 .withId("agentInstance1")
                 .withInstanceGroupId("instanceGroup1")
-                .withOverrideStatus(InstanceOverrideStatus.newBuilder().withState(InstanceOverrideState.Removable).build())
+                .withAttributes(Collections.singletonMap(AgentAttributes.REMOVABLE, removableTimestampValue))
                 .build();
         AgentInstance agentInstance2 = AgentInstance.newBuilder()
                 .withId("agentInstance2")
                 .withInstanceGroupId("instanceGroup1")
-                .withOverrideStatus(InstanceOverrideStatus.newBuilder().withState(InstanceOverrideState.None).build())
+                .withAttributes(Collections.emptyMap())
                 .build();
 
         List<AgentInstance> agentInstances = asList(agentInstance1, agentInstance2);
@@ -125,10 +126,12 @@ public class ClusterRemovableAgentRemoverTest {
         AgentInstance agentInstance1 = AgentInstance.newBuilder()
                 .withId("agentInstance1")
                 .withInstanceGroupId("instanceGroup1")
+                .withAttributes(Collections.emptyMap())
                 .build();
         AgentInstance agentInstance2 = AgentInstance.newBuilder()
                 .withId("agentInstance2")
                 .withInstanceGroupId("instanceGroup1")
+                .withAttributes(Collections.emptyMap())
                 .build();
 
         List<AgentInstance> agentInstances = asList(agentInstance1, agentInstance2);

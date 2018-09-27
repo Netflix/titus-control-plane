@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
 import com.netflix.titus.api.model.Tier;
@@ -30,7 +29,6 @@ import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
@@ -40,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcAutoScaleRule;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcDeploymentState;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcLifecycleState;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcTier;
@@ -108,21 +105,6 @@ public class InstanceGroupScenarioBuilder {
                 .build()
         );
         logger.info("{} lifecycle state changed in {}ms", instanceGroup.getId(), timer.elapsed(TimeUnit.MILLISECONDS));
-
-        return this;
-    }
-
-    public InstanceGroupScenarioBuilder autoScaleRule(AutoScaleRule autoScaleRule) {
-        checkIsKnown();
-
-        Stopwatch timer = Stopwatch.createStarted();
-        logger.info("Changing auto scale rule of {} to: {}", instanceGroup.getId(), autoScaleRule);
-        client.updateAutoScalingRule(AutoScalingRuleUpdate.newBuilder()
-                .setInstanceGroupId(instanceGroup.getId())
-                .setAutoScaleRule(toGrpcAutoScaleRule(autoScaleRule))
-                .build()
-        );
-        logger.info("{} auto scale rule changed in {}ms", instanceGroup.getId(), timer.elapsed(TimeUnit.MILLISECONDS));
 
         return this;
     }

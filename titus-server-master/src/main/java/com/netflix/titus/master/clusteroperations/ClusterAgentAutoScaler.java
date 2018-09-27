@@ -33,9 +33,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
@@ -45,8 +47,6 @@ import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -57,6 +57,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.limiter.ImmutableLimiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
@@ -65,6 +66,7 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.agent.AgentAttributes;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
@@ -340,8 +342,13 @@ public class ClusterAgentAutoScaler {
                                                                      long elapsed) {
         return instancesForActiveInstanceGroups.entrySet().stream()
                 .flatMap(e -> e.getValue().stream().filter(i -> {
-                    InstanceOverrideStatus overrideStatus = i.getOverrideStatus();
-                    return overrideStatus.getState() == InstanceOverrideState.Removable && hasTimeElapsed(overrideStatus.getTimestamp(), finish, elapsed);
+                    String removableTimestampValue = i.getAttributes().get(AgentAttributes.REMOVABLE);
+                    if (!Strings.isNullOrEmpty(removableTimestampValue)) {
+                        Long parsedRemovableTimestamp = Longs.tryParse(removableTimestampValue);
+                        long removableTimestamp = parsedRemovableTimestamp == null ? 0L : parsedRemovableTimestamp;
+                        return hasTimeElapsed(removableTimestamp, finish, elapsed);
+                    }
+                    return false;
                 }))
                 .collect(Collectors.toList());
     }
@@ -359,10 +366,10 @@ public class ClusterAgentAutoScaler {
                 })
                 .flatMap(e -> e.getValue().stream().filter(i -> {
                     InstanceLifecycleStatus lifecycleStatus = i.getLifecycleStatus();
-                    InstanceOverrideStatus overrideStatus = i.getOverrideStatus();
                     return lifecycleStatus.getState() == InstanceLifecycleState.Started &&
                             hasTimeElapsed(lifecycleStatus.getLaunchTimestamp(), finished, elapsed) &&
-                            overrideStatus.getState() == InstanceOverrideState.None &&
+                            !i.getAttributes().containsKey(AgentAttributes.NOT_REMOVABLE) &&
+                            !i.getAttributes().containsKey(AgentAttributes.REMOVABLE) &&
                             numberOfTasksOnAgent.getOrDefault(i.getId(), 0L) <= 0;
                 }))
                 .collect(Collectors.toList());
@@ -419,7 +426,7 @@ public class ClusterAgentAutoScaler {
 
             List<AgentInstance> removableInstancesInInstanceGroup = instancesForActiveInstanceGroupsById.getOrDefault(instanceGroup.getId(), emptyList())
                     .stream()
-                    .filter(i -> i.getOverrideStatus().getState() == InstanceOverrideState.Removable)
+                    .filter(i -> i.getAttributes().containsKey(AgentAttributes.REMOVABLE))
                     .collect(Collectors.toList());
 
             List<AgentInstance> agentsEligibleToRemoveInInstanceGroup = idleInstancesByInstanceGroup.getOrDefault(instanceGroup.getId(), emptyList());
@@ -427,12 +434,11 @@ public class ClusterAgentAutoScaler {
             int agentCountToRemoveInInstanceGroup = Ints.min(remainingAgentsToRemove, agentCountEligibleToRemoveInInstanceGroup, agentsEligibleToRemoveInInstanceGroup.size());
             for (int i = 0; i < agentCountToRemoveInInstanceGroup; i++) {
                 AgentInstance agentInstance = agentsEligibleToRemoveInInstanceGroup.get(i);
-                InstanceOverrideStatus removableOverrideStatus = InstanceOverrideStatus.newBuilder()
-                        .withState(InstanceOverrideState.Removable)
-                        .withTimestamp(clock.wallTime())
-                        .withDetail("ClusterAgentAutoScaler setting to Removable to scale down the instance")
-                        .build();
-                Completable completable = agentManagementService.updateInstanceOverride(agentInstance.getId(), removableOverrideStatus);
+                Map<String, String> updatedAttributes = CollectionsExt.merge(
+                        agentInstance.getAttributes(),
+                        Collections.singletonMap(AgentAttributes.REMOVABLE, String.valueOf(clock.wallTime()))
+                );
+                Completable completable = agentManagementService.updateAgentInstanceAttributes(agentInstance.getId(), updatedAttributes);
                 actions.add(completable);
                 count++;
             }
@@ -443,7 +449,8 @@ public class ClusterAgentAutoScaler {
     private Completable createResetOverrideStatusesCompletable(List<AgentInstance> removableInstances) {
         List<Completable> actions = new ArrayList<>();
         for (AgentInstance agentInstance : removableInstances) {
-            Completable completable = agentManagementService.removeInstanceOverride(agentInstance.getId());
+            Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(agentInstance.getAttributes(), AgentAttributes.REMOVABLE);
+            Completable completable = agentManagementService.updateAgentInstanceAttributes(agentInstance.getId(), updatedAttributes);
             actions.add(completable);
         }
         return Completable.concat(actions);

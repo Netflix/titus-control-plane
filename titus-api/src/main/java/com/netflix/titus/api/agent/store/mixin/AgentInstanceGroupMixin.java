@@ -19,12 +19,13 @@ package com.netflix.titus.api.agent.store.mixin;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AgentInstanceGroupMixin {
     @JsonCreator
     public AgentInstanceGroupMixin(@JsonProperty("id") String id,
@@ -37,7 +38,6 @@ public abstract class AgentInstanceGroupMixin {
                                    @JsonProperty("max") int max,
                                    @JsonProperty("launchEnabled") boolean isLaunchEnabled,
                                    @JsonProperty("terminateEnabled") boolean isTerminateEnabled,
-                                   @JsonProperty("autoScaleRule") AutoScaleRule autoScaleRule,
                                    @JsonProperty("lifecycleStatus") InstanceGroupLifecycleStatus lifecycleStatus,
                                    @JsonProperty("launchTimestamp") long launchTimestamp,
                                    @JsonProperty("attributes") Map<String, String> attributes) {

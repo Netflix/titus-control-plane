@@ -30,10 +30,8 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.service.AgentManagementService;
@@ -149,14 +147,6 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public Completable updateAutoScalingRule(String instanceGroupId, AutoScaleRule autoScaleRule) {
-        return updateServerGroupInStore(
-                instanceGroupId,
-                instanceGroup -> instanceGroup.toBuilder().withAutoScaleRule(autoScaleRule).build()
-        );
-    }
-
-    @Override
     public Completable updateInstanceGroupLifecycle(String instanceGroupId, InstanceGroupLifecycleStatus instanceGroupLifecycleStatus) {
         return Observable.fromCallable(() -> getInstanceGroup(instanceGroupId))
                 .flatMap(instanceGroup -> {
@@ -178,6 +168,16 @@ public class DefaultAgentManagementService implements AgentManagementService {
                 .flatMap(instanceGroup -> {
                     AgentInstanceGroup newInstanceGroup = instanceGroup.toBuilder().withAttributes(attributes).build();
                     return agentCache.updateInstanceGroupStore(newInstanceGroup).toObservable();
+
+                }).toCompletable();
+    }
+
+    @Override
+    public Completable updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes) {
+        return Observable.fromCallable(() -> getAgentInstance(instanceId))
+                .flatMap(instance -> {
+                    AgentInstance newAgentInstance = instance.toBuilder().withAttributes(attributes).build();
+                    return agentCache.updateAgentInstanceStore(newAgentInstance).toObservable();
 
                 }).toCompletable();
     }
@@ -214,21 +214,6 @@ public class DefaultAgentManagementService implements AgentManagementService {
                         }
                 )
                 .toCompletable();
-    }
-
-    @Override
-    public Completable updateInstanceOverride(String instanceId, InstanceOverrideStatus instanceOverrideStatus) {
-        return Observable.fromCallable(() -> agentCache.getAgentInstance(instanceId))
-                .flatMap(instance -> {
-                            AgentInstance updated = instance.toBuilder().withOverrideStatus(instanceOverrideStatus).build();
-                            return agentCache.updateAgentInstanceStore(updated).toObservable();
-                        }
-                ).toCompletable();
-    }
-
-    @Override
-    public Completable removeInstanceOverride(String instanceId) {
-        return updateInstanceOverride(instanceId, InstanceOverrideStatus.none());
     }
 
     @Override

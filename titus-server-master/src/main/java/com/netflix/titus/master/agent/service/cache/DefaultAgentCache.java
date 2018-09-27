@@ -30,7 +30,6 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.connector.cloud.Instance;
@@ -71,14 +70,7 @@ public class DefaultAgentCache implements AgentCache {
     private static final Logger logger = LoggerFactory.getLogger(DefaultAgentCache.class);
 
     private final Scheduler scheduler;
-
     private final AgentManagementConfiguration configuration;
-
-    /**
-     * Each newly discovered ASG will have this default auto scaling rule set.
-     */
-    private final AutoScaleRule defaultAutoScaleRule;
-
     private final AgentStore agentStore;
     private final InstanceCloudConnector connector;
     private final Registry registry;
@@ -105,15 +97,6 @@ public class DefaultAgentCache implements AgentCache {
                       InstanceCloudConnector connector,
                       Registry registry,
                       Scheduler scheduler) {
-        this.defaultAutoScaleRule = AutoScaleRule.newBuilder()
-                .withPriority(100)
-                .withMinIdleToKeep(configuration.getAutoScaleRuleMinIdleToKeep())
-                .withMaxIdleToKeep(configuration.getAutoScaleRuleMaxIdleToKeep())
-                .withMin(configuration.getAutoScaleRuleMin())
-                .withMax(configuration.getAutoScaleRuleMax())
-                .withCoolDownSec(configuration.getAutoScaleRuleCoolDownSec())
-                .withShortfallAdjustingFactor(configuration.getAutoScaleRuleShortfallAdjustingFactor())
-                .build();
         this.configuration = configuration;
         this.agentStore = agentStore;
         this.connector = connector;
@@ -309,8 +292,7 @@ public class DefaultAgentCache implements AgentCache {
 
             agentInstanceGroup = DataConverters.toAgentInstanceGroup(
                     instanceGroup,
-                    instanceResourceDimension,
-                    defaultAutoScaleRule
+                    instanceResourceDimension
             );
             agentInstances = instanceGroup.getInstanceIds().stream()
                     .map(instanceCache::getAgentInstance)

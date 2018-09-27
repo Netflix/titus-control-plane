@@ -58,8 +58,6 @@ public class AgentInstanceGroup {
 
     private final boolean isTerminateEnabled;
 
-    private final AutoScaleRule autoScaleRule;
-
     private final InstanceGroupLifecycleStatus lifecycleStatus;
 
     @Min(value = 0, message = "Negative launch timestamp value")
@@ -78,7 +76,6 @@ public class AgentInstanceGroup {
                               int max,
                               boolean isLaunchEnabled,
                               boolean isTerminateEnabled,
-                              AutoScaleRule autoScaleRule,
                               InstanceGroupLifecycleStatus lifecycleStatus,
                               long launchTimestamp,
                               Map<String, String> attributes) {
@@ -92,7 +89,6 @@ public class AgentInstanceGroup {
         this.max = max;
         this.isLaunchEnabled = isLaunchEnabled;
         this.isTerminateEnabled = isTerminateEnabled;
-        this.autoScaleRule = autoScaleRule;
         this.lifecycleStatus = lifecycleStatus;
         this.launchTimestamp = launchTimestamp;
         this.attributes = attributes;
@@ -136,10 +132,6 @@ public class AgentInstanceGroup {
 
     public boolean isTerminateEnabled() {
         return isTerminateEnabled;
-    }
-
-    public AutoScaleRule getAutoScaleRule() {
-        return autoScaleRule;
     }
 
     public InstanceGroupLifecycleStatus getLifecycleStatus() {
@@ -198,9 +190,6 @@ public class AgentInstanceGroup {
         if (resourceDimension != null ? !resourceDimension.equals(that.resourceDimension) : that.resourceDimension != null) {
             return false;
         }
-        if (autoScaleRule != null ? !autoScaleRule.equals(that.autoScaleRule) : that.autoScaleRule != null) {
-            return false;
-        }
         if (lifecycleStatus != null ? !lifecycleStatus.equals(that.lifecycleStatus) : that.lifecycleStatus != null) {
             return false;
         }
@@ -219,7 +208,6 @@ public class AgentInstanceGroup {
         result = 31 * result + max;
         result = 31 * result + (isLaunchEnabled ? 1 : 0);
         result = 31 * result + (isTerminateEnabled ? 1 : 0);
-        result = 31 * result + (autoScaleRule != null ? autoScaleRule.hashCode() : 0);
         result = 31 * result + (lifecycleStatus != null ? lifecycleStatus.hashCode() : 0);
         result = 31 * result + (int) (launchTimestamp ^ (launchTimestamp >>> 32));
         result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
@@ -239,7 +227,6 @@ public class AgentInstanceGroup {
                 ", max=" + max +
                 ", isLaunchEnabled=" + isLaunchEnabled +
                 ", isTerminateEnabled=" + isTerminateEnabled +
-                ", autoScaleRule=" + autoScaleRule +
                 ", lifecycleStatus=" + lifecycleStatus +
                 ", launchTimestamp=" + launchTimestamp +
                 ", attributes=" + attributes +
@@ -258,7 +245,6 @@ public class AgentInstanceGroup {
                 .withMax(max)
                 .withIsLaunchEnabled(isLaunchEnabled)
                 .withIsTerminateEnabled(isTerminateEnabled)
-                .withAutoScaleRule(autoScaleRule)
                 .withLifecycleStatus(lifecycleStatus)
                 .withLaunchTimestamp(launchTimestamp)
                 .withAttributes(attributes);
@@ -279,7 +265,6 @@ public class AgentInstanceGroup {
         private int max;
         private boolean isLaunchEnabled;
         private boolean isTerminateEnabled;
-        private AutoScaleRule autoScaleRule;
         private InstanceGroupLifecycleStatus instanceGroupLifecycleStatus;
         private long launchTimestamp;
         private Map<String, String> attributes;
@@ -338,11 +323,6 @@ public class AgentInstanceGroup {
             return this;
         }
 
-        public Builder withAutoScaleRule(AutoScaleRule autoScaleRule) {
-            this.autoScaleRule = autoScaleRule;
-            return this;
-        }
-
         public Builder withLifecycleStatus(InstanceGroupLifecycleStatus instanceGroupLifecycleStatus) {
             this.instanceGroupLifecycleStatus = instanceGroupLifecycleStatus;
             return this;
@@ -364,14 +344,14 @@ public class AgentInstanceGroup {
         }
 
         public Builder but() {
-            return newBuilder().withId(id).withInstanceType(instanceType).withTier(tier).withResourceDimension(resourceDimension).withMin(min).withDesired(desired).withCurrent(current).withMax(max).withIsLaunchEnabled(isLaunchEnabled).withIsTerminateEnabled(isTerminateEnabled).withAutoScaleRule(autoScaleRule).withLifecycleStatus(instanceGroupLifecycleStatus).withLaunchTimestamp(launchTimestamp).withAttributes(attributes).withTimestamp(timestamp);
+            return newBuilder().withId(id).withInstanceType(instanceType).withTier(tier).withResourceDimension(resourceDimension).withMin(min).withDesired(desired).withCurrent(current).withMax(max).withIsLaunchEnabled(isLaunchEnabled).withIsTerminateEnabled(isTerminateEnabled).withLifecycleStatus(instanceGroupLifecycleStatus).withLaunchTimestamp(launchTimestamp).withAttributes(attributes).withTimestamp(timestamp);
         }
 
         public AgentInstanceGroup build() {
 
             AgentInstanceGroup agentInstanceGroup = new AgentInstanceGroup(
                     id, instanceType, tier, resourceDimension, min, desired, current, max, isLaunchEnabled,
-                    isTerminateEnabled, autoScaleRule, instanceGroupLifecycleStatus, launchTimestamp, attributes);
+                    isTerminateEnabled, instanceGroupLifecycleStatus, launchTimestamp, attributes);
             return agentInstanceGroup;
         }
     }

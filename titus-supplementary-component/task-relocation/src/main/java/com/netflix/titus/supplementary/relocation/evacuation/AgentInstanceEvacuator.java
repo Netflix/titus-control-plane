@@ -8,7 +8,6 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
@@ -21,7 +20,7 @@ import rx.Observable;
 import rx.Subscription;
 
 @Singleton
-@Experimental(detail="Proof of concept", deadline = "09/01/2018")
+@Experimental(detail = "Proof of concept", deadline = "09/01/2018")
 public class AgentInstanceEvacuator {
 
     private static final Logger logger = LoggerFactory.getLogger(AgentInstanceEvacuator.class);
@@ -95,8 +94,6 @@ public class AgentInstanceEvacuator {
             if (isCandidate(instance)) {
                 if (bestMatch == null) {
                     bestMatch = instance;
-                } else if (bestMatch.getOverrideStatus().getTimestamp() > instance.getOverrideStatus().getTimestamp()) {
-                    bestMatch = instance;
                 }
             }
         }
@@ -115,9 +112,6 @@ public class AgentInstanceEvacuator {
     }
 
     private boolean isCandidate(AgentInstance instance) {
-        if (instance.getOverrideStatus().getState() != InstanceOverrideState.Quarantined) {
-            return false;
-        }
         return EvacuationExecutor.isAgentRunningTasks(jobDataReplicator, instance);
     }
 }

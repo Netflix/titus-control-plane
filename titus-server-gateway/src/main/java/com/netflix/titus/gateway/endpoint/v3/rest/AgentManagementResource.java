@@ -34,17 +34,16 @@ import javax.ws.rs.core.UriInfo;
 import com.google.common.base.Strings;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
-import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
+import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import io.swagger.annotations.Api;
@@ -110,13 +109,6 @@ public class AgentManagementResource {
                 .setTier(GrpcAgentModelConverters.toGrpcTier(tierWrapper.getTier()))
                 .build();
         return Responses.fromCompletable(agentManagementService.updateInstanceGroupTier(tierUpdate));
-    }
-
-    @PUT
-    @ApiOperation("Update auto scaling rule configuration")
-    @Path("/instanceGroups/{id}/autoscale")
-    public Response updateAutoScalingRule(AutoScalingRuleUpdate autoScalingRuleUpdate) {
-        return Responses.fromCompletable(agentManagementService.updateAutoScalingRule(autoScalingRuleUpdate));
     }
 
     @PUT

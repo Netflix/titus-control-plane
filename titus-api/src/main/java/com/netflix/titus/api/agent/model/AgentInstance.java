@@ -37,8 +37,6 @@ public class AgentInstance {
 
     private final InstanceLifecycleStatus lifecycleStatus;
 
-    private final InstanceOverrideStatus overrideStatus;
-
     @CollectionInvariants
     private final Map<String, String> attributes;
 
@@ -47,14 +45,12 @@ public class AgentInstance {
                          String ipAddress,
                          String hostname,
                          InstanceLifecycleStatus lifecycleStatus,
-                         InstanceOverrideStatus overrideStatus,
                          Map<String, String> attributes) {
         this.id = id;
         this.instanceGroupId = instanceGroupId;
         this.ipAddress = ipAddress;
         this.hostname = hostname;
         this.lifecycleStatus = lifecycleStatus;
-        this.overrideStatus = overrideStatus;
         this.attributes = attributes;
     }
 
@@ -76,10 +72,6 @@ public class AgentInstance {
 
     public InstanceLifecycleStatus getLifecycleStatus() {
         return lifecycleStatus;
-    }
-
-    public InstanceOverrideStatus getOverrideStatus() {
-        return overrideStatus;
     }
 
     public Map<String, String> getAttributes() {
@@ -112,9 +104,6 @@ public class AgentInstance {
         if (lifecycleStatus != null ? !lifecycleStatus.equals(that.lifecycleStatus) : that.lifecycleStatus != null) {
             return false;
         }
-        if (overrideStatus != null ? !overrideStatus.equals(that.overrideStatus) : that.overrideStatus != null) {
-            return false;
-        }
         return attributes != null ? attributes.equals(that.attributes) : that.attributes == null;
     }
 
@@ -125,7 +114,6 @@ public class AgentInstance {
         result = 31 * result + (ipAddress != null ? ipAddress.hashCode() : 0);
         result = 31 * result + (hostname != null ? hostname.hashCode() : 0);
         result = 31 * result + (lifecycleStatus != null ? lifecycleStatus.hashCode() : 0);
-        result = 31 * result + (overrideStatus != null ? overrideStatus.hashCode() : 0);
         result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
         return result;
     }
@@ -138,7 +126,6 @@ public class AgentInstance {
                 ", ipAddress='" + ipAddress + '\'' +
                 ", hostname='" + hostname + '\'' +
                 ", lifecycleStatus=" + lifecycleStatus +
-                ", overrideStatus=" + overrideStatus +
                 ", attributes=" + attributes +
                 '}';
     }
@@ -150,7 +137,6 @@ public class AgentInstance {
                 .withIpAddress(ipAddress)
                 .withHostname(hostname)
                 .withDeploymentStatus(lifecycleStatus)
-                .withOverrideStatus(overrideStatus)
                 .withAttributes(attributes);
     }
 
@@ -168,7 +154,6 @@ public class AgentInstance {
         private String ipAddress;
         private String hostname;
         private InstanceLifecycleStatus instanceLifecycleStatus;
-        private InstanceOverrideStatus instanceOverrideStatus;
         private Map<String, String> attributes;
         private long timestamp;
 
@@ -200,11 +185,6 @@ public class AgentInstance {
             return this;
         }
 
-        public Builder withOverrideStatus(InstanceOverrideStatus instanceOverrideStatus) {
-            this.instanceOverrideStatus = instanceOverrideStatus;
-            return this;
-        }
-
         public Builder withAttributes(Map<String, String> attributes) {
             this.attributes = attributes;
             return this;
@@ -216,11 +196,11 @@ public class AgentInstance {
         }
 
         public Builder but() {
-            return newBuilder().withId(id).withInstanceGroupId(instanceGroupId).withIpAddress(ipAddress).withHostname(hostname).withDeploymentStatus(instanceLifecycleStatus).withOverrideStatus(instanceOverrideStatus).withAttributes(attributes).withTimestamp(timestamp);
+            return newBuilder().withId(id).withInstanceGroupId(instanceGroupId).withIpAddress(ipAddress).withHostname(hostname).withDeploymentStatus(instanceLifecycleStatus).withAttributes(attributes).withTimestamp(timestamp);
         }
 
         public AgentInstance build() {
-            AgentInstance agentInstance = new AgentInstance(id, instanceGroupId, ipAddress, hostname, instanceLifecycleStatus, instanceOverrideStatus, attributes);
+            AgentInstance agentInstance = new AgentInstance(id, instanceGroupId, ipAddress, hostname, instanceLifecycleStatus, attributes);
             return agentInstance;
         }
     }

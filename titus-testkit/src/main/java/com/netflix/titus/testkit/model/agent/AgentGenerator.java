@@ -21,18 +21,15 @@ import java.util.List;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.AutoScaleRule;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.aws.AwsInstanceDescriptor;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.data.generator.DataGenerator;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
 
 import static com.netflix.titus.common.data.generator.DataGenerator.range;
@@ -56,25 +53,6 @@ public final class AgentGenerator {
 
     public static DataGenerator<Tier> tiers() {
         return DataGenerator.items(asList(Tier.values()));
-    }
-
-    public static DataGenerator<AutoScaleRule> autoScaleRules() {
-        DataGenerator<Pair<Long, Long>> minMax = range(0, MAX_SERVER_GROUP_SIZE).map(min -> Pair.of(min, Math.min(MAX_SERVER_GROUP_SIZE, 5 + 2 * min)));
-        DataGenerator<Pair<Long, Long>> minMaxIdleToKeep = range(0, MAX_IDLE_TO_KEEP).map(min -> Pair.of(min, Math.min(MAX_IDLE_TO_KEEP, 5 + 2 * min)));
-
-        return DataGenerator.bindBuilder(AutoScaleRule::newBuilder)
-                .bind(minMax, (builder, minMaxV) -> {
-                    builder.withMin(Math.toIntExact(minMaxV.getLeft()));
-                    builder.withMax(Math.toIntExact(minMaxV.getRight()));
-                })
-                .bind(minMaxIdleToKeep, (builder, minMaxV) -> {
-                    builder.withMaxIdleToKeep(Math.toIntExact(minMaxV.getLeft()));
-                    builder.withMaxIdleToKeep(Math.toIntExact(minMaxV.getRight()));
-                })
-                .bind(range(60, 600), (builder, cd) -> builder.withCoolDownSec(Math.toIntExact(cd)))
-                .bind(range(0, 10), (builder, priority) -> builder.withPriority(Math.toIntExact(priority)))
-                .bind(range(0, 10), (builder, priority) -> builder.withShortfallAdjustingFactor(Math.toIntExact(priority)))
-                .map(AutoScaleRule.Builder::build);
     }
 
     public static DataGenerator<AgentInstanceGroup> agentServerGroups(Tier tier, int desiredSize) {
@@ -108,7 +86,6 @@ public final class AgentGenerator {
                         .withInstanceType(instanceType)
                         .withResourceDimension(ResourceDimensions.fromAwsInstanceType(AwsInstanceType.withName(instanceType)))
                 )
-                .bind(autoScaleRules(), AgentInstanceGroup.Builder::withAutoScaleRule)
                 .map(builder -> builder
                         .withTier(tier)
                         .withMin(0)
@@ -154,7 +131,6 @@ public final class AgentGenerator {
                         .withLaunchTimestamp(System.currentTimeMillis())
                         .build()
                 )
-                .withOverrideStatus(InstanceOverrideStatus.none())
                 .withAttributes(Collections.emptyMap());
         String subnet = serverGroup.getAttributes().getOrDefault(ATTR_SUBNET, "10.0.0.0/8");
 

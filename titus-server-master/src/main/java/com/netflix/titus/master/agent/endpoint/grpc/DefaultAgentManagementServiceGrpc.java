@@ -25,7 +25,6 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
-import com.netflix.titus.api.agent.model.InstanceOverrideStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
 import com.netflix.titus.api.agent.model.monitor.AgentStatus;
@@ -39,11 +38,9 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AgentQuery;
-import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -131,20 +128,6 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     }
 
     @Override
-    public void updateAutoScalingRule(AutoScalingRuleUpdate request, StreamObserver<Empty> responseObserver) {
-        agentManagementService.updateAutoScalingRule(
-                request.getInstanceGroupId(),
-                GrpcAgentModelConverters.toCoreAutoScaleRule(request.getAutoScaleRule())
-        ).subscribe(
-                () -> {
-                    responseObserver.onNext(Empty.getDefaultInstance());
-                    responseObserver.onCompleted();
-                },
-                responseObserver::onError
-        );
-    }
-
-    @Override
     public void updateInstanceGroupLifecycleState(InstanceGroupLifecycleStateUpdate request, StreamObserver<Empty> responseObserver) {
         InstanceGroupLifecycleStatus coreInstanceGroupLifecycleStatus = InstanceGroupLifecycleStatus.newBuilder()
                 .withState(GrpcAgentModelConverters.toCoreLifecycleState(request.getLifecycleState()))
@@ -163,22 +146,6 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceGroupAttributes(InstanceGroupAttributesUpdate request, StreamObserver<Empty> responseObserver) {
         agentManagementService.updateInstanceGroupAttributes(request.getInstanceGroupId(), request.getAttributesMap()).subscribe(
-                () -> {
-                    responseObserver.onNext(Empty.getDefaultInstance());
-                    responseObserver.onCompleted();
-                },
-                responseObserver::onError
-        );
-    }
-
-    @Override
-    public void updateInstanceOverrideState(InstanceOverrideStateUpdate request, StreamObserver<Empty> responseObserver) {
-        InstanceOverrideStatus coreInstanceOverrideStatus = InstanceOverrideStatus.newBuilder()
-                .withState(GrpcAgentModelConverters.toCoreInstanceOverrideState(request.getOverrideState()))
-                .withDetail(request.getDetail())
-                .withTimestamp(System.currentTimeMillis())
-                .build();
-        agentManagementService.updateInstanceOverride(request.getAgentInstanceId(), coreInstanceOverrideStatus).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();

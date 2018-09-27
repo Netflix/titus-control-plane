@@ -28,10 +28,10 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.HealthState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
-import com.netflix.titus.api.agent.model.InstanceOverrideState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.InstanceOverrideState;
 
 import static com.netflix.titus.common.util.StringExt.parseEnumIgnoreCase;
 import static com.netflix.titus.common.util.StringExt.splitByComma;
@@ -88,10 +88,6 @@ final class AgentQueryExecutor {
             return deploymentState.map(deploymentState -> deploymentState.equals(agentInstance.getLifecycleStatus().getState())).orElse(true);
         }
 
-        boolean matchesOverrideState(AgentInstance agentInstance) {
-            return overrideState.map(overrideState -> overrideState.equals(agentInstance.getOverrideStatus().getState())).orElse(true);
-        }
-
 //        boolean matchesHealthState(AgentInstance agentInstance) {
 //            return healthState.map(healthState -> healthState.equals(agentInstance.getHealthStatus().getState())).orElse(true);
 //        }
@@ -104,8 +100,7 @@ final class AgentQueryExecutor {
             AgentInstance agentInstance = pair.getRight();
             return queryEvaluator.matchesAgentId(agentInstance)
                     && queryEvaluator.matchesInstanceGroupId(instanceGroup)
-                    && queryEvaluator.matchesDeploymentState(agentInstance)
-                    && queryEvaluator.matchesOverrideState(agentInstance);
+                    && queryEvaluator.matchesDeploymentState(agentInstance);
         };
         return agentManagementService.findAgentInstances(predicate).stream()
                 .flatMap(pair -> pair.getRight().stream())
