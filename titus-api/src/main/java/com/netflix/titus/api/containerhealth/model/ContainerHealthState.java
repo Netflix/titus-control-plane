@@ -18,11 +18,6 @@ public enum ContainerHealthState {
     Unknown,
 
     /**
-     * The application or container are terminating.
-     */
-    Terminating,
-
-    /**
      * The application/container are terminated. All tasks which are finished are assigned this state.
      */
     Terminated
