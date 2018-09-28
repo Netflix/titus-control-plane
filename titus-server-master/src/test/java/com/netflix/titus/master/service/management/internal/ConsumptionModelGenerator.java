@@ -30,7 +30,6 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
@@ -187,18 +186,8 @@ class ConsumptionModelGenerator {
         return appConsumptions;
     }
 
-    ResourceDimension capacityGroupLimit(String capacityGroup) {
-        ApplicationSLA sla = capacityGroupMap.get(capacityGroup);
-        Preconditions.checkNotNull(sla, "Unknown capacity group " + capacityGroup);
-        return ResourceDimensions.multiply(sla.getResourceDimension(), sla.getInstanceCount());
-    }
-
     static ResourceDimension capacityGroupLimit(ApplicationSLA sla) {
         return ResourceDimensions.multiply(sla.getResourceDimension(), sla.getInstanceCount());
-    }
-
-    static ResourceDimension singleWorkerConsumptionOf(V2JobMetadata jobMetadata) {
-        return ResourceConsumptionEvaluator.toResourceDimension(jobMetadata.getStageMetadata(1));
     }
 
     static <E extends ResourceConsumptionEvent> Optional<E> findEvent(List<ResourceConsumptionEvent> events, Class<E> eventClass, String capacityGroup) {

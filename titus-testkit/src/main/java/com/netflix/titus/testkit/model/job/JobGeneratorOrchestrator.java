@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -53,8 +55,9 @@ public class JobGeneratorOrchestrator {
         this.jobGenerator = new MutableDataGenerator<>(JobGenerator.jobs(titusRuntime.getClock()));
     }
 
-    public void addJobTemplate(String templateId, DataGenerator<JobDescriptor> jobDescriptorGenerator) {
+    public JobGeneratorOrchestrator addJobTemplate(String templateId, DataGenerator<JobDescriptor> jobDescriptorGenerator) {
         jobTemplates.put(templateId, new MutableDataGenerator<>(jobDescriptorGenerator));
+        return this;
     }
 
     public Job createJob(String templateId) {
@@ -95,6 +98,12 @@ public class JobGeneratorOrchestrator {
         Job job = createJob(templateId);
         List<Task> tasks = createDesiredTasks(job);
         return Pair.of(job, tasks);
+    }
+
+    public Job createJobAndTasks(String templateId, BiConsumer<Job, List<Task>> processor) {
+        Pair<Job, List<Task>> pair = createJobAndTasks(templateId);
+        processor.accept(pair.getLeft(), pair.getRight());
+        return pair.getLeft();
     }
 
     public List<Pair<Job, List<Task>>> creteMultipleJobsAndTasks(String... templateIds) {
@@ -185,6 +194,13 @@ public class JobGeneratorOrchestrator {
         Preconditions.checkState(currentTask != null && currentTask.getStatus().getState() == TaskState.Finished);
 
         tasksByJobId.put(job.getId(), CollectionsExt.copyAndRemove(tasks, task.getId()));
+    }
+
+    public List<Pair<Job, List<Task>>> getJobsAndTasks() {
+        return jobsById.values().stream()
+                .map(Pair::getLeft)
+                .map(job -> Pair.of(job, (List<Task>) new ArrayList<>(tasksByJobId.get(job.getId()).values())))
+                .collect(Collectors.toList());
     }
 
     public Observable<JobManagerEvent> observeJobs(boolean snapshot) {

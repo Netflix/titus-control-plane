@@ -17,7 +17,6 @@
 package com.netflix.titus.master.appscale.service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import com.netflix.titus.api.appscale.model.PolicyType;
@@ -43,20 +41,6 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.event.JobStateChangeEvent;
-import com.netflix.titus.api.model.v2.V2JobDefinition;
-import com.netflix.titus.api.model.v2.descriptor.SchedulingInfo;
-import com.netflix.titus.api.model.v2.descriptor.StageScalingPolicy;
-import com.netflix.titus.api.model.v2.descriptor.StageSchedulingInfo;
-import com.netflix.titus.api.model.v2.parameter.Parameter;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2StageMetadata;
-import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
-import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
-import com.netflix.titus.master.job.service.ServiceJobMgr;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -69,8 +53,6 @@ import rx.Observable;
 import rx.schedulers.Schedulers;
 
 import static java.util.Arrays.asList;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

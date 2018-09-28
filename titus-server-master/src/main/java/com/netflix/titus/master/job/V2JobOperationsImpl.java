@@ -47,7 +47,6 @@ import com.netflix.titus.api.model.v2.parameter.Parameters.JobType;
 import com.netflix.titus.api.store.v2.InvalidJobException;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
-import com.netflix.titus.master.ApiOperations;
 import com.netflix.titus.master.JobSchedulingInfo;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.VirtualMachineMasterService;
@@ -55,7 +54,6 @@ import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.job.batch.BatchJobMgr;
 import com.netflix.titus.master.job.service.ServiceJobMgr;
-import com.netflix.titus.master.job.worker.WorkerStateMonitor;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.master.store.NamedJob;
@@ -79,7 +77,6 @@ public class V2JobOperationsImpl implements V2JobOperations {
     private ConcurrentMap<String, V2JobMgrIntf> jobMgrConcurrentMap = new ConcurrentHashMap<>();
     private VirtualMachineMasterService vmService;
     private ReplaySubject<Observable<JobSchedulingInfo>> jobSchedulingObserver;
-    private final ApiOperations apiOps;
     private final NamedJobs namedJobs;
     private final AtomicBoolean isReady = new AtomicBoolean(false);
 
@@ -112,7 +109,6 @@ public class V2JobOperationsImpl implements V2JobOperations {
                                MasterConfiguration masterConfiguration,
                                JobManagerConfiguration jobManagerConfiguration,
                                VirtualMachineMasterService vmService,
-                               ApiOperations apiOps,
                                TriggerOperator triggerOperator,
                                MasterConfiguration config,
                                CellInfoResolver cellInfoResolver,
@@ -132,7 +128,7 @@ public class V2JobOperationsImpl implements V2JobOperations {
         this.jobSchedulingObserver = ReplaySubject.create();
         this.namedJobs = new NamedJobs(
                 config,
-                apiOps.getNamedJobs(),
+                new ConcurrentHashMap<>(),
                 namedJobReplaySubject,
                 jobMgrConcurrentMap,
                 this,
@@ -140,7 +136,6 @@ public class V2JobOperationsImpl implements V2JobOperations {
                 auditLogService
         );
         jobCreationPublishSubject = PublishSubject.create();
-        this.apiOps = apiOps;
         jobIdReuseCounter = registry.counter(MetricConstants.METRIC_SCHEDULING_JOB + JobIdReuseCounterName);
         jobSlaEnforcerMillis = registry.counter(MetricConstants.METRIC_SCHEDULING_JOB + JobSlaEnforcerMillisCounterName);
         jobSlaEnforcerErrors = registry.counter(MetricConstants.METRIC_SCHEDULING_JOB + JobSlaEnforcerErrorsCounterName);
@@ -154,13 +149,9 @@ public class V2JobOperationsImpl implements V2JobOperations {
     public Observable<Void> enterActiveMode() {
         store.start();
 
-        injector.getInstance(WorkerStateMonitor.class).start(initialJobMgrs);
-
         logger.info("state monitor started");
         setReady();
         logger.info("jobOps set to ready");
-        apiOps.setReady(store);
-        logger.info("apiOps set to ready");
 
         return Observable.empty();
     }
@@ -207,13 +198,11 @@ public class V2JobOperationsImpl implements V2JobOperations {
     }
 
     private void removeJobIdRef(String jobId) {
-        apiOps.removeJobIdRef(jobId);
         jobMgrConcurrentMap.remove(jobId);
     }
 
     private void addJobIdRef(String jobId, V2JobMgrIntf jobMgr) {
         jobMgrConcurrentMap.put(jobId, jobMgr);
-        apiOps.addJobIdRef(jobId, jobMgr);
     }
 
     @Override

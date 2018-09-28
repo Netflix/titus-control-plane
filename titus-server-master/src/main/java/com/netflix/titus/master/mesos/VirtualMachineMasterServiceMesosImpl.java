@@ -38,12 +38,9 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-import com.netflix.titus.master.scheduler.SchedulingService;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Protos.TaskID;
@@ -232,7 +229,6 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
      */
     void enterActiveMode() {
         // Due to circular dependency, we need to differ services access until the activation phase.
-        V2JobOperations v2JobOperations = injector.getInstance(V2JobOperations.class);
         V3JobOperations v3JobOperations = injector.getInstance(V3JobOperations.class);
 
         logger.info("Registering Titus Framework with Mesos");
@@ -242,7 +238,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         }
 
         mesosCallbackHandler = new MesosSchedulerCallbackHandler(leaseHandler, vmLeaseRescindedObserver, vmTaskStatusObserver,
-                v2JobOperations, v3JobOperations, taskStatusUpdateFitInjection, config, mesosConfiguration, titusRuntime);
+                v3JobOperations, taskStatusUpdateFitInjection, config, mesosConfiguration, titusRuntime);
 
         FrameworkInfo framework = FrameworkInfo.newBuilder()
                 .setUser("root") // Fix to root, to enable running master as non-root

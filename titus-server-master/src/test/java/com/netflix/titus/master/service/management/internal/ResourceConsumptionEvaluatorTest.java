@@ -16,27 +16,30 @@
 
 package com.netflix.titus.master.service.management.internal;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.BeanCapacityManagementConfiguration;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
 import com.netflix.titus.master.service.management.ResourceConsumption;
-import com.netflix.titus.testkit.model.runtime.RuntimeModelGenerator;
+import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
+import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.master.service.management.ResourceConsumptions.findConsumption;
+import static com.netflix.titus.master.service.management.internal.ResourceConsumptionEvaluator.toResourceDimension;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -44,55 +47,53 @@ import static org.mockito.Mockito.when;
 
 public class ResourceConsumptionEvaluatorTest {
 
-    private static final double BUFFER = 0.5;
-
-    private final BeanCapacityManagementConfiguration config = BeanCapacityManagementConfiguration.newBuilder()
-            .withCriticalTierBuffer(BUFFER)
-            .withFlexTierBuffer(BUFFER)
+    private static final ContainerResources CONTAINER_RESOURCES = ContainerResources.newBuilder()
+            .withCpu(1)
+            .withMemoryMB(1024)
+            .withDiskMB(512)
+            .withNetworkMbps(128)
             .build();
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
     private final ApplicationSlaManagementService applicationSlaManagementService = mock(ApplicationSlaManagementService.class);
 
-    private final V2JobOperations v2JobOperations = mock(V2JobOperations.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
-    private final RuntimeModelGenerator runtimeModelGenerator = new RuntimeModelGenerator(getClass().getSimpleName());
+    private final JobGeneratorOrchestrator dataGenerator = new JobGeneratorOrchestrator(titusRuntime);
+
+    @Before
+    public void setUp() throws Exception {
+        when(v3JobOperations.getJobsAndTasks()).then(invocation -> dataGenerator.getJobsAndTasks());
+    }
 
     @Test
     public void testEvaluation() {
         when(applicationSlaManagementService.getApplicationSLAs()).thenReturn(asList(ConsumptionModelGenerator.DEFAULT_SLA, ConsumptionModelGenerator.CRITICAL_SLA_1, ConsumptionModelGenerator.NOT_USED_SLA));
 
         // Job with defined capacity group SLA
-        V2JobMetadata goodCapacityJob = runtimeModelGenerator.newJobMetadata(Parameters.JobType.Service, "goodCapacityJob", ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName());
-        runtimeModelGenerator.scheduleJob(goodCapacityJob.getJobId());
-        runtimeModelGenerator.moveWorkerToState(goodCapacityJob.getJobId(), 0, V2JobState.Started);
-
-        V2JobMgrIntf goodCapacityJobMgr = mock(V2JobMgrIntf.class);
-        when(goodCapacityJobMgr.getJobMetadata()).thenReturn(goodCapacityJob);
-        when(goodCapacityJobMgr.getWorkers()).thenReturn((List) runtimeModelGenerator.getRunningWorkers(goodCapacityJob.getJobId()));
+        Job goodCapacityJob = newJob(
+                "goodCapacityJob",
+                jd -> jd.toBuilder().withCapacityGroup(ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName()).build()
+        );
 
         // Job without appName defined
-        V2JobMetadata noAppNameJob = runtimeModelGenerator.newJobMetadata(Parameters.JobType.Service, null, ConsumptionModelGenerator.DEFAULT_SLA.getAppName());
-        runtimeModelGenerator.scheduleJob(noAppNameJob.getJobId());
-        runtimeModelGenerator.moveWorkerToState(noAppNameJob.getJobId(), 0, V2JobState.Started);
-
-        V2JobMgrIntf noAppNameJobMgr = mock(V2JobMgrIntf.class);
-        when(noAppNameJobMgr.getJobMetadata()).thenReturn(noAppNameJob);
-        when(noAppNameJobMgr.getWorkers()).thenReturn((List) runtimeModelGenerator.getRunningWorkers(noAppNameJob.getJobId()));
+        Job noAppNameJob = newJob(
+                "badCapacityJob",
+                jd -> jd.toBuilder()
+                        .withApplicationName("")
+                        .withCapacityGroup(ConsumptionModelGenerator.DEFAULT_SLA.getAppName())
+                        .build()
+        );
 
         // Job with capacity group for which SLA is not defined
-        V2JobMetadata badCapacityJob = runtimeModelGenerator.newJobMetadata(Parameters.JobType.Service, "badCapacityJob", "missingCapacityGroup");
-        runtimeModelGenerator.scheduleJob(badCapacityJob.getJobId());
-        runtimeModelGenerator.moveWorkerToState(badCapacityJob.getJobId(), 0, V2JobState.Started);
-
-        V2JobMgrIntf badCapacityJobMgr = mock(V2JobMgrIntf.class);
-        when(badCapacityJobMgr.getJobMetadata()).thenReturn(badCapacityJob);
-        when(badCapacityJobMgr.getWorkers()).thenReturn((List) runtimeModelGenerator.getAllWorkers(badCapacityJob.getJobId()));
-
-        when(v2JobOperations.getAllJobMgrs()).thenReturn(asList(goodCapacityJobMgr, noAppNameJobMgr, badCapacityJobMgr));
+        Job badCapacityJob = newJob(
+                "goodCapacityJob",
+                jd -> jd.toBuilder().withCapacityGroup("missingCapacityGroup").build()
+        );
 
         // Evaluate
-        ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v2JobOperations, v3JobOperations, config);
+        ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v3JobOperations);
 
         Set<String> undefined = evaluator.getUndefinedCapacityGroups();
         assertThat(undefined).contains("missingCapacityGroup");
@@ -105,9 +106,7 @@ public class ResourceConsumptionEvaluatorTest {
         CompositeResourceConsumption criticalConsumption = (CompositeResourceConsumption) findConsumption(
                 systemConsumption, Tier.Critical.name(), ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName()
         ).get();
-        assertThat(criticalConsumption.getCurrentConsumption()).isEqualTo(
-                ConsumptionModelGenerator.singleWorkerConsumptionOf(goodCapacityJob) // We have single worker in Started state
-        );
+        assertThat(criticalConsumption.getCurrentConsumption()).isEqualTo(toResourceDimension(goodCapacityJob)); // We have single worker in Started state
 
         assertThat(criticalConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.CRITICAL_SLA_1));
         assertThat(criticalConsumption.isAboveLimit()).isTrue();
@@ -117,10 +116,7 @@ public class ResourceConsumptionEvaluatorTest {
                 systemConsumption, Tier.Flex.name(), ConsumptionModelGenerator.DEFAULT_SLA.getAppName()
         ).get();
         assertThat(defaultConsumption.getCurrentConsumption()).isEqualTo(
-                ResourceDimensions.add(
-                        ConsumptionModelGenerator.singleWorkerConsumptionOf(noAppNameJob),
-                        ConsumptionModelGenerator.singleWorkerConsumptionOf(badCapacityJob)
-                )
+                ResourceDimensions.add(toResourceDimension(noAppNameJob), toResourceDimension(badCapacityJob))
         );
 
         assertThat(defaultConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.DEFAULT_SLA));
@@ -133,5 +129,16 @@ public class ResourceConsumptionEvaluatorTest {
         assertThat(notUsedConsumption.getCurrentConsumption()).isEqualTo(ResourceDimension.empty());
         assertThat(notUsedConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.NOT_USED_SLA));
         assertThat(notUsedConsumption.isAboveLimit()).isFalse();
+    }
+
+    private Job newJob(String name, Function<JobDescriptor, JobDescriptor> transformer) {
+        dataGenerator.addJobTemplate(name, JobDescriptorGenerator.serviceJobDescriptors()
+                .map(jd -> jd.but(self -> self.getContainer().but(c -> CONTAINER_RESOURCES)))
+                .map(transformer::apply)
+        );
+        return dataGenerator.createJobAndTasks(
+                name,
+                (job, tasks) -> dataGenerator.moveTaskToState(tasks.get(0), TaskState.Started)
+        );
     }
 }

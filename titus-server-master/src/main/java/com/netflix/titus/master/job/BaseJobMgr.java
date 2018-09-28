@@ -116,7 +116,6 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     protected final V2JobDefinition jobDefinition;
     protected final V2JobMetrics jobMetrics;
-    private final ExcludedAgentsTracker excludedAgentsTracker;
     protected V2JobStore store = null;
     private Consumer<String> taskKillAction = null;
     private final WorkerNumberGenerator workerNumberGenerator;
@@ -179,7 +178,6 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
             capacityGroup = "UNKNOWN";
         }
         this.jobMetrics = new V2JobMetrics(jobId, serviceJob, appName, capacityGroup, registry);
-        this.excludedAgentsTracker = new ExcludedAgentsTracker(jobId, appName, jobManagerConfiguration, registry);
 
         workerNumberGenerator = new WorkerNumberGenerator(jobId);
 
@@ -451,7 +449,6 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
                 }
                 return; // no-op
             }
-            excludedAgentsTracker.update(task, status.getState(), status.getReason());
             if (V2JobState.isTerminalState(task.getState()) && !V2JobState.isTerminalState(status.getState())) {
                 logger.info(jobId + " " + getTaskStringPrefix(task.getWorkerIndex(), task.getWorkerNumber()) +
                         " killing terminal task reporting state " + status.getState());
@@ -838,11 +835,6 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
         }
     }
 
-    @Override
-    public Set<String> getExcludedAgents() {
-        return excludedAgentsTracker.getExcludedAgents();
-    }
-
     private void storeAndMarkJobTerminated(V2JobState state, String mesg) {
         V2JobMetadata jobMetadata = null;
         try {
@@ -862,7 +854,6 @@ public abstract class BaseJobMgr implements V2JobMgrIntf {
             logger.warn(jobId + ": error changing state to Failed: " + e.getMessage());
         } finally {
             jobMetrics.finish();
-            excludedAgentsTracker.finish();
         }
         numJobTerminated.increment();
         statusSerializedObserver.onCompleted();
