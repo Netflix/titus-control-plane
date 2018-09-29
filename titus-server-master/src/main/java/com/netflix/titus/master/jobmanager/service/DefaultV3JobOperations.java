@@ -63,7 +63,8 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.BasicJobAc
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
-import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobModelUpdateReconcilerEvent;
+import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import org.slf4j.Logger;
@@ -71,6 +72,9 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
+import rx.functions.Func1;
+
+import static com.netflix.titus.common.util.FunctionExt.alwaysTrue;
 
 @Singleton
 @ProxyConfiguration(types = ProxyType.ActiveGuard)
@@ -116,8 +120,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
         // Remove finished jobs from the reconciliation framework.
         this.reconcilerEventSubscription = reconciliationFramework.events().subscribe(
                 event -> {
-                    if (event instanceof JobModelReconcilerEvent.JobModelUpdateReconcilerEvent) {
-                        JobModelReconcilerEvent.JobModelUpdateReconcilerEvent jobUpdateEvent = (JobModelReconcilerEvent.JobModelUpdateReconcilerEvent) event;
+                    if (event instanceof JobModelUpdateReconcilerEvent) {
+                        JobModelUpdateReconcilerEvent jobUpdateEvent = (JobModelUpdateReconcilerEvent) event;
                         handleJobCompletedEvent(jobUpdateEvent.getChangedEntityHolder());
                     }
                 },
@@ -378,8 +382,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<JobManagerEvent<?>> observeJobs() {
-        return toJobManagerEvents(reconciliationFramework.events());
+    public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
+                                                      Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+        return toJobManagerEvents(reconciliationFramework.events(), jobsPredicate, tasksPredicate);
     }
 
     @Override
@@ -387,7 +392,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         return Observable.fromCallable(() -> reconciliationFramework.findEngineByRootId(jobId))
                 .flatMap(engineOpt ->
                         engineOpt.map(engine ->
-                                toJobManagerEvents(engine.events())
+                                toJobManagerEvents(engine.events(), alwaysTrue(), alwaysTrue())
                         ).orElseGet(() ->
                                 Observable.error(JobManagerException.jobNotFound(jobId))
                         ));
@@ -418,43 +423,85 @@ public class DefaultV3JobOperations implements V3JobOperations {
         return Pair.of(jobHolder.getEntity(), tasks);
     }
 
-    private Observable<JobManagerEvent<?>> toJobManagerEvents(Observable<JobManagerReconcilerEvent> events) {
-        return events
-                .map(this::toJobManagerEvent)
+    private Observable<JobManagerEvent<?>> toJobManagerEvents(Observable<JobManagerReconcilerEvent> events,
+                                                              Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
+                                                              Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+        return events.map(toJobManagerEvent(jobsPredicate, tasksPredicate))
                 .filter(Optional::isPresent)
                 .map(Optional::get);
     }
 
-    private Optional<JobManagerEvent<?>> toJobManagerEvent(JobManagerReconcilerEvent event) {
-        if (event instanceof JobModelReconcilerEvent.JobNewModelReconcilerEvent) {
-            return Optional.of(JobUpdateEvent.newJob(((JobModelReconcilerEvent.JobNewModelReconcilerEvent) event).getNewRoot().getEntity()));
-        }
-        if (event instanceof JobModelReconcilerEvent.JobModelUpdateReconcilerEvent) {
-            JobModelReconcilerEvent.JobModelUpdateReconcilerEvent modelUpdateEvent = (JobModelReconcilerEvent.JobModelUpdateReconcilerEvent) event;
+    private Func1<JobManagerReconcilerEvent, Optional<JobManagerEvent<?>>> toJobManagerEvent(
+            Predicate<Pair<Job<?>, List<Task>>> jobsPredicate, Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+        return event -> {
+            if (event instanceof JobNewModelReconcilerEvent) {
+                JobNewModelReconcilerEvent newModelEvent = (JobNewModelReconcilerEvent) event;
+                return toJobUpdateEvent(newModelEvent, jobsPredicate);
+            }
+            if (!(event instanceof JobModelUpdateReconcilerEvent)) {
+                return Optional.empty();
+            }
+            JobModelUpdateReconcilerEvent modelUpdateEvent = (JobModelUpdateReconcilerEvent) event;
             if (modelUpdateEvent.getModelActionHolder().getModel() != Model.Reference) {
                 return Optional.empty();
             }
             if (modelUpdateEvent.getChangedEntityHolder().getEntity() instanceof Job) {
-                Job<?> changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
-                if (modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
-                    Job<?> previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
-                    return changed.equals(previous)
-                            ? Optional.empty()
-                            : Optional.of(JobUpdateEvent.jobChange(changed, previous));
-                }
-                return Optional.of(JobUpdateEvent.jobChange(changed, changed));
+                return toJobUpdateEvent(modelUpdateEvent, jobsPredicate);
             }
-            Job job = modelUpdateEvent.getJob();
-            Task changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
-            if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
-                return Optional.of(TaskUpdateEvent.newTask(job, changed));
-            }
-            Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
-            return changed.equals(previous)
-                    ? Optional.empty()
-                    : Optional.of(TaskUpdateEvent.taskChange(job, changed, previous));
+            return toTaskUpdateEvent(modelUpdateEvent, tasksPredicate);
+        };
+    }
+
+    private Optional<JobManagerEvent<?>> toJobUpdateEvent(JobNewModelReconcilerEvent newModelEvent,
+                                                          Predicate<Pair<Job<?>, List<Task>>> jobsPredicate) {
+        Job<?> job = newModelEvent.getNewRoot().getEntity();
+        List<Task> tasks = newModelEvent.getNewRoot().getChildren()
+                .stream()
+                .map(EntityHolder::<Task>getEntity)
+                .collect(Collectors.toList());
+        return jobsPredicate.test(Pair.of(job, tasks))
+                ? Optional.of(JobUpdateEvent.newJob(job))
+                : Optional.empty();
+    }
+
+    private Optional<JobManagerEvent<?>> toJobUpdateEvent(JobModelUpdateReconcilerEvent modelUpdateEvent,
+                                                          Predicate<Pair<Job<?>, List<Task>>> jobsPredicate) {
+        Job<?> changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
+        List<Task> tasks = modelUpdateEvent.getChangedEntityHolder().getChildren()
+                .stream()
+                .map(EntityHolder::<Task>getEntity)
+                .collect(Collectors.toList());
+
+        if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
+            return jobsPredicate.test(Pair.of(changed, tasks))
+                    ? Optional.of(JobUpdateEvent.jobChange(changed, changed))
+                    : Optional.empty();
         }
-        return Optional.empty();
+        Job<?> previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
+        if (changed.equals(previous)) {
+            return Optional.empty();
+        }
+        return jobsPredicate.test(Pair.of(changed, tasks))
+                ? Optional.of(JobUpdateEvent.jobChange(changed, previous))
+                : Optional.empty();
+    }
+
+    private Optional<JobManagerEvent<?>> toTaskUpdateEvent(JobModelUpdateReconcilerEvent modelUpdateEvent,
+                                                           Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+        Job<?> job = modelUpdateEvent.getJob();
+        Task changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
+        if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
+            return tasksPredicate.test(Pair.of(job, changed))
+                    ? Optional.of(TaskUpdateEvent.newTask(job, changed))
+                    : Optional.empty();
+        }
+        Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
+        if (changed.equals(previous)) {
+            return Optional.empty();
+        }
+        return tasksPredicate.test(Pair.of(job, changed))
+                ? Optional.of(TaskUpdateEvent.taskChange(job, changed, previous))
+                : Optional.empty();
     }
 
     private boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {

@@ -21,6 +21,7 @@ import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import io.grpc.stub.StreamObserver;
@@ -91,7 +92,8 @@ class CellWithFixedJobsService extends JobManagementServiceGrpc.JobManagementSer
     }
 
     @Override
-    public void observeJobs(Empty request, StreamObserver<JobChangeNotification> responseObserver) {
+    public void observeJobs(ObserveJobsQuery query, StreamObserver<JobChangeNotification> responseObserver) {
+        // TODO: query criteria (filters) are not implemented
         for (Job job : jobsIndex.values()) {
             JobChangeNotification.JobUpdate update = JobChangeNotification.JobUpdate.newBuilder().setJob(job).build();
             JobChangeNotification notification = JobChangeNotification.newBuilder().setJobUpdate(update).build();

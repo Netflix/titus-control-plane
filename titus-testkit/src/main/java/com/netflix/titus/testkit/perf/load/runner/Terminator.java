@@ -29,6 +29,7 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobStatus;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -89,7 +90,8 @@ public class Terminator {
 
     private boolean doTry(Set<String> jobIdsToRemove, Set<String> unknownJobs) {
         try {
-            Iterator<JobChangeNotification> it = context.getJobManagementClientBlocking().observeJobs(Empty.getDefaultInstance());
+            Iterator<JobChangeNotification> it = context.getJobManagementClientBlocking()
+                    .observeJobs(ObserveJobsQuery.newBuilder().build());
             while (it.hasNext()) {
                 JobChangeNotification event = it.next();
                 if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {

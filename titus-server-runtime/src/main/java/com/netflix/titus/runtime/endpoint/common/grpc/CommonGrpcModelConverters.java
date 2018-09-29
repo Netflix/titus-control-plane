@@ -29,6 +29,7 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobStatus;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
@@ -123,6 +124,13 @@ public class CommonGrpcModelConverters {
                 .setCursor("")
                 .setCursorPosition(0)
                 .build();
+    }
+
+    public static JobQueryCriteria<TaskStatus.TaskState, JobSpecCase> toJobQueryCriteria(ObserveJobsQuery query) {
+        if (query.getFilteringCriteriaCount() == 0) {
+            return JobQueryCriteria.<TaskStatus.TaskState, JobSpecCase>newBuilder().build();
+        }
+        return toJobQueryCriteria(query.getFilteringCriteriaMap());
     }
 
     public static JobQueryCriteria<TaskStatus.TaskState, JobSpecCase> toJobQueryCriteria(JobQuery jobQuery) {

@@ -31,9 +31,8 @@ import com.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
-/**
- *
- */
+import static com.netflix.titus.common.util.FunctionExt.alwaysTrue;
+
 public interface V3JobOperations {
 
     String COMPONENT = "jobManagement";
@@ -88,7 +87,12 @@ public interface V3JobOperations {
      */
     Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction);
 
-    Observable<JobManagerEvent<?>> observeJobs();
+    default Observable<JobManagerEvent<?>> observeJobs() {
+        return observeJobs(alwaysTrue(), alwaysTrue());
+    }
+
+    Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
+                                               Predicate<Pair<Job<?>, Task>> tasksPredicate);
 
     Observable<JobManagerEvent<?>> observeJob(String jobId);
 }

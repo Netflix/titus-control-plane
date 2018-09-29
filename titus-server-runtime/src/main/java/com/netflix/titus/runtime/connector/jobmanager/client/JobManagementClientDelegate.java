@@ -8,6 +8,7 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -60,8 +61,8 @@ public class JobManagementClientDelegate implements JobManagementClient {
     }
 
     @Override
-    public Observable<JobChangeNotification> observeJobs() {
-        return delegate.observeJobs();
+    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query) {
+        return delegate.observeJobs(query);
     }
 
     @Override

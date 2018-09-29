@@ -54,6 +54,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementSer
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatus;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -622,7 +623,7 @@ public class AggregatingJobManagementClientTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
 
-        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs().test();
+        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.newBuilder().build()).test();
         List<JobChangeNotification> expected = Stream.concat(
                 cellOneSnapshot.stream().map(this::toNotification).map(this::withStackName),
                 cellTwoSnapshot.stream().map(this::toNotification).map(this::withStackName)
@@ -653,7 +654,7 @@ public class AggregatingJobManagementClientTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
-        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs().test();
+        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.newBuilder().build()).test();
 
         final JobChangeNotification cellOneUpdate = toNotification(Job.newBuilder().setId("cell-1-job-100").setStatus(ACCEPTED_STATE).build());
         final JobChangeNotification cellTwoUpdate = toNotification(Job.newBuilder().setId("cell-2-job-200").setStatus(ACCEPTED_STATE).build());
@@ -679,7 +680,7 @@ public class AggregatingJobManagementClientTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
-        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs().test();
+        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.newBuilder().build()).test();
 
         final JobChangeNotification cellOneUpdate = toNotification(Job.newBuilder().setId("cell-1-job-100").setStatus(ACCEPTED_STATE).build());
         final JobChangeNotification cellTwoUpdate = toNotification(Job.newBuilder().setId("cell-2-job-200").setStatus(ACCEPTED_STATE).build());
@@ -766,7 +767,7 @@ public class AggregatingJobManagementClientTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
-        AssertableSubscriber<JobChangeNotification> subscriber = service.observeJobs().test();
+        AssertableSubscriber<JobChangeNotification> subscriber = service.observeJobs(ObserveJobsQuery.newBuilder().build()).test();
 
         // TODO: make it easier to extract the Deadline for each cell call
         Thread.sleep(2 * GRPC_REQUEST_TIMEOUT_MS);
