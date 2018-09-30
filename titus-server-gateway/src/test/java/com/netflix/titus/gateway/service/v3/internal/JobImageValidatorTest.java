@@ -26,6 +26,7 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import com.netflix.titus.runtime.endpoint.validator.JobImageValidator;
+import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfiguration;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,13 +46,15 @@ public class JobImageValidatorTest {
     private static final String digest = "sha256:f9f5bb506406b80454a4255b33ed2e4383b9e4a32fb94d6f7e51922704e818fa";
     private static final String errorDescription = "Image not found";
 
+    private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
     private JobImageValidator validator;
 
     @Before
     public void setUp() {
+        when(configuration.getEnabled()).thenReturn(true);
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.just(digest));
-        validator = new JobImageValidator(registryClient);
+        validator = new JobImageValidator(configuration, registryClient);
     }
 
     @Test

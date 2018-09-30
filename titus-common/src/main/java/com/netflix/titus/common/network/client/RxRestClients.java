@@ -18,8 +18,10 @@ package com.netflix.titus.common.network.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -29,6 +31,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.network.client.internal.RetryableRestClient;
 import com.netflix.titus.common.network.client.internal.RxClientMetric;
 import com.netflix.titus.common.network.client.internal.RxNettyRestClient;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.netty.pipeline.ssl.SSLEngineFactory;
 import rx.Observable;
 import rx.schedulers.Schedulers;
@@ -72,6 +75,7 @@ public class RxRestClients {
         private long requestTimeout;
         private long retryDelay;
         private TimeUnit timeUnit;
+        private Set<HttpResponseStatus> noRetryStatuses;
         private RxRestClientConfiguration configuration;
 
 
@@ -125,6 +129,11 @@ public class RxRestClients {
             return this;
         }
 
+        public Builder noRetryStatuses(Set<HttpResponseStatus> statuses) {
+            this.noRetryStatuses = statuses;
+            return this;
+        }
+
         public Builder configuration(RxRestClientConfiguration configuration) {
             this.configuration = configuration;
             return this;
@@ -143,10 +152,11 @@ public class RxRestClients {
                 requestTimeout = configuration.getRequestTimeoutMs();
                 retryDelay = configuration.getRetryDelayMs();
                 timeUnit = TimeUnit.MILLISECONDS;
+                noRetryStatuses = Collections.emptySet();
             }
 
             if (retryCount > 0) {
-                rxRestClient = new RetryableRestClient(rxRestClient, retryCount, requestTimeout, retryDelay, timeUnit, clientMetric, Schedulers.computation());
+                rxRestClient = new RetryableRestClient(rxRestClient, retryCount, requestTimeout, retryDelay, timeUnit, noRetryStatuses, clientMetric, Schedulers.computation());
             }
 
             return rxRestClient;

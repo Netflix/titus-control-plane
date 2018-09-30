@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.connector.registry;
 import java.net.URI;
 import java.net.URISyntaxException;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.netflix.titus.common.network.client.RxRestClientException;
 import rx.Observable;
@@ -27,6 +28,7 @@ import rx.Observable;
  * This {@link RegistryEndpointResolver} implementation resolves a Registry endpoint based on
  * * a provided configuration.
  */
+@Singleton
 public class RegistryConfigurationEndpointResolver implements RegistryEndpointResolver {
 
     private final TitusRegistryClientConfiguration titusRegistryClientConfiguration;

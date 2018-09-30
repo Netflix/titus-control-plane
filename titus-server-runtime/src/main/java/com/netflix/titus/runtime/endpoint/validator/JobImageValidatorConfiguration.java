@@ -14,31 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.registry;
+package com.netflix.titus.runtime.endpoint.validator;
 
-import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.archaius.api.annotations.PropertyName;
 
-@Configuration(prefix = "titus.registryClient")
-public interface TitusRegistryClientConfiguration {
-    @DefaultValue("myRegistry")
-    String getVipAddress();
-
-    @DefaultValue("localhost")
-    String getRegistryHostname();
-
-    @DefaultValue("7002")
-    int getRegistryHttpPort();
-
-    @DefaultValue("true")
-    boolean isSecure();
-
-    @DefaultValue("500")
-    int getRegistryTimeoutMs();
-
-    @DefaultValue("3")
-    int getRegistryRetryCount();
-
-    @DefaultValue("5")
-    int getRegistryRetryDelayMs();
+public interface JobImageValidatorConfiguration {
+    @PropertyName(name = "titus.validate.job.image.enabled")
+    @DefaultValue("false")
+    boolean getEnabled();
 }

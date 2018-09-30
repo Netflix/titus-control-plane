@@ -48,6 +48,8 @@ public class RegistryClientTest {
         when(configuration.getRegistryHttpPort()).thenReturn(7002);
         when(configuration.isSecure()).thenReturn(false);
         when(configuration.getRegistryTimeoutMs()).thenReturn(500);
+        when(configuration.getRegistryRetryCount()).thenReturn(3);
+        when(configuration.getRegistryRetryDelayMs()).thenReturn(5);
 
         mockServer = startClientAndServer(configuration.getRegistryHttpPort());
 

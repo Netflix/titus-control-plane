@@ -48,7 +48,7 @@ public class AggregatingValidatorTest {
 
     @Before
     public void setUp() {
-        when(configuration.getTimeoutMs()).thenReturn(100);
+        when(configuration.getTimeoutMs()).thenReturn(500);
     }
 
     // Hard validation tests

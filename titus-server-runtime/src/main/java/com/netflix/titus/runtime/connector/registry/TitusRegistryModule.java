@@ -21,6 +21,7 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfiguration;
 
 public class TitusRegistryModule extends AbstractModule {
     @Override
@@ -33,5 +34,11 @@ public class TitusRegistryModule extends AbstractModule {
     @Singleton
     public TitusRegistryClientConfiguration getTitusRegistryConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(TitusRegistryClientConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public JobImageValidatorConfiguration getJobImageValidatorConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(JobImageValidatorConfiguration.class);
     }
 }

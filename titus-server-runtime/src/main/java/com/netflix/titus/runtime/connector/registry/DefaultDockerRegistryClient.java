@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.registry;
 
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -74,7 +75,8 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                 .timeUnit(TimeUnit.MILLISECONDS)
                 .requestTimeout(titusRegistryClientConfiguration.getRegistryTimeoutMs())
                 .retryCount(titusRegistryClientConfiguration.getRegistryRetryCount())
-                .retryDelay(titusRegistryClientConfiguration.getRegistryRetryDelayMs());
+                .retryDelay(titusRegistryClientConfiguration.getRegistryRetryDelayMs())
+                .noRetryStatuses(new HashSet<>(Collections.singletonList(HttpResponseStatus.NOT_FOUND)));
         if (titusRegistryClientConfiguration.isSecure()) {
             try {
                 builder.sslEngineFactory(new NettySslContextEngineFactory(SslContextBuilder.forClient().build()));
@@ -116,7 +118,7 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                         if (((RxRestClientException)throwable).getStatusCode() == HttpResponseStatus.NOT_FOUND.code()) {
                             return Observable.error(
                                     new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
-                                    throwable.getMessage()));
+                                    "Image does not exist in registry"));
                         }
                     }
                     return  Observable.error(

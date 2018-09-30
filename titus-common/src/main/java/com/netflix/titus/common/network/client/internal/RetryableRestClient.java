@@ -20,12 +20,15 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.titus.common.network.client.RxRestClient;
+import com.netflix.titus.common.network.client.RxRestClientException;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -34,7 +37,7 @@ import rx.functions.Func1;
 
 /**
  * A retryable client, that re-executes requests a configurable number of times. Each subsequent request is
- * delayed with exponential backoff strategy.
+ * delayed with exponential backoff strategy. A set of non-retryable status codes can be provided.
  */
 public class RetryableRestClient implements RxRestClient {
 
@@ -48,8 +51,9 @@ public class RetryableRestClient implements RxRestClient {
     private final Scheduler scheduler;
     private final long timeoutMs;
     private final long retryDelayMs;
+    private final Set<HttpResponseStatus> noRetryStatuses;
 
-    public RetryableRestClient(RxRestClient delegate, int retryCount, long timeout, long retryDelay, TimeUnit timeUnit,
+    public RetryableRestClient(RxRestClient delegate, int retryCount, long timeout, long retryDelay, TimeUnit timeUnit, Set<HttpResponseStatus> noRetryStatuses,
                                RxClientMetric rxClientMetric, Scheduler scheduler) {
         this.delegate = delegate;
         this.retryCount = retryCount;
@@ -57,6 +61,7 @@ public class RetryableRestClient implements RxRestClient {
         this.scheduler = scheduler;
         this.timeoutMs = timeUnit.toMillis(timeout);
         this.retryDelayMs = timeUnit.toMillis(retryDelay);
+        this.noRetryStatuses = noRetryStatuses;
     }
 
     @Override
@@ -102,27 +107,34 @@ public class RetryableRestClient implements RxRestClient {
 
     private Func1<Observable<? extends Throwable>, Observable<?>> createExponentialBackoffHandler(
             Id retryId, int retryCount, long retryDelayMs, String reqSignature) {
-        return failedAttempts -> {
-            return failedAttempts
-                    .doOnNext(error -> rxClientMetric.increment(retryId))
-                    .zipWith(Observable.range(0, retryCount + 1), RetryItem::new)
-                    .flatMap(retryItem -> {
-                        if (retryItem.retry == retryCount) {
-                            String errorMessage = String.format(
-                                    "Retry limit reached for %s REST call. Last error: %s. Returning an error to the caller",
-                                    reqSignature, retryItem.cause.getMessage()
-                            );
-                            return Observable.error(new IOException(errorMessage, retryItem.cause));
+        return failedAttempts -> failedAttempts
+                .doOnNext(error -> rxClientMetric.increment(retryId))
+                .zipWith(Observable.range(0, retryCount + 1), RetryItem::new)
+                .flatMap(retryItem -> {
+                    // Check if the error response status is retryable.
+                    if (retryItem.cause instanceof RxRestClientException) {
+                        if (noRetryStatuses.contains(
+                                HttpResponseStatus.valueOf(
+                                        ((RxRestClientException)retryItem.cause).getStatusCode()))) {
+                            return Observable.error(retryItem.cause);
                         }
-                        long expDelay = Math.min(MAX_DELAY_MS, (2 << retryItem.retry) * retryDelayMs);
-                        if (retryItem.cause instanceof TimeoutException) {
-                            logger.info("Delaying timed-out {} REST call retry by {}[ms]", reqSignature, expDelay);
-                        } else {
-                            logger.info("Delaying failed {} REST call retry by {}[ms]", reqSignature, expDelay);
-                        }
-                        return Observable.timer(expDelay, TimeUnit.MILLISECONDS, scheduler);
-                    });
-        };
+                    }
+
+                    if (retryItem.retry == retryCount) {
+                        String errorMessage = String.format(
+                                "Retry limit reached for %s REST call. Last error: %s. Returning an error to the caller",
+                                reqSignature, retryItem.cause.getMessage()
+                        );
+                        return Observable.error(new IOException(errorMessage, retryItem.cause));
+                    }
+                    long expDelay = Math.min(MAX_DELAY_MS, (2 << retryItem.retry) * retryDelayMs);
+                    if (retryItem.cause instanceof TimeoutException) {
+                        logger.info("Delaying timed-out {} REST call retry by {}[ms]", reqSignature, expDelay);
+                    } else {
+                        logger.info("Delaying failed {} REST call retry by {}[ms]", reqSignature, expDelay);
+                    }
+                    return Observable.timer(expDelay, TimeUnit.MILLISECONDS, scheduler);
+                });
     }
 
     static class RetryItem {

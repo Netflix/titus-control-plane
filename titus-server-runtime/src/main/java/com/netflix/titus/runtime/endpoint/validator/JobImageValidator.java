@@ -38,18 +38,25 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class JobImageValidator implements EntityValidator<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(JobImageValidator.class);
+
+    private final JobImageValidatorConfiguration configuration;
     private final RegistryClient registryClient;
 
     @Inject
-    public JobImageValidator(RegistryClient registryClient) {
+    public JobImageValidator(JobImageValidatorConfiguration configuration, RegistryClient registryClient) {
+        this.configuration = configuration;
         this.registryClient = registryClient;
     }
 
     @Override
-    public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
+    public Mono<Set<ValidationError>> validate(JobDescriptor jobDescriptor) {
+        if (isDisabled()) {
+            return Mono.just(Collections.emptySet());
+        }
+
         Mono<Void> imageExistsMono;
 
-        Image image = entity.getContainer().getImage();
+        Image image = jobDescriptor.getContainer().getImage();
         if (hasDigest(image)) {
             imageExistsMono = checkImageDigestExist(image);
         } else {
@@ -68,8 +75,12 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
     }
 
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        return validateImage(entity)
+    public Mono<JobDescriptor> sanitize(JobDescriptor jobDescriptor) {
+        if (isDisabled()) {
+            return Mono.just(jobDescriptor);
+        }
+
+        return validateImage(jobDescriptor)
         // We are ignoring most image validation errors. We will propagate
         // more errors as we going feature confidence.
         .onErrorReturn(throwable -> {
@@ -83,7 +94,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                 }
             }
             return true;
-        }, entity);
+        }, jobDescriptor);
     }
 
     private Mono<JobDescriptor> validateImage(JobDescriptor jobDescriptor) {
@@ -127,4 +138,6 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
     private boolean hasDigest(Image image) {
         return null != image.getDigest() && !image.getDigest().isEmpty();
     }
+
+    private boolean isDisabled() { return !configuration.getEnabled(); }
 }

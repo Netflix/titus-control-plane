@@ -28,6 +28,7 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBu
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import com.netflix.titus.runtime.endpoint.validator.JobImageValidator;
+import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
@@ -62,9 +63,10 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     private static final String missingImageErrorMsg = "Image not found";
     private static final String internalErrorMsg = "Oops";
 
+    private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
 
-    private final TitusStackResource titusStackResource = getTitusStackResource(new JobImageValidator(registryClient));
+    private final TitusStackResource titusStackResource = getTitusStackResource(new JobImageValidator(configuration, registryClient));
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
@@ -73,6 +75,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
+        when(configuration.getEnabled()).thenReturn(true);
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
