@@ -104,7 +104,7 @@ public class GrpcJobManagementClient implements JobManagementClient {
         return ReactorExt.toObservable(validationErrors)
                 .flatMap(errors -> {
                     // Report metrics on all errors
-                    reportErrorMetrics(errors);
+                    reportErrorMetrics(errors, effectiveJobDescriptor);
 
                     // Only emit an error on HARD validation errors
                     errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
@@ -213,12 +213,13 @@ public class GrpcJobManagementClient implements JobManagementClient {
         }, configuration.getRequestTimeout());
     }
 
-    private void reportErrorMetrics(Set<ValidationError> errors) {
+    private void reportErrorMetrics(Set<ValidationError> errors, JobDescriptor jobDescriptor) {
         errors.forEach(error ->
                 registry.counter(
                         error.getField(),
                         "type", error.getType().name(),
-                        "description", error.getDescription())
+                        "description", error.getDescription(),
+                        "application", jobDescriptor.getApplicationName())
                         .increment());
     }
 }
