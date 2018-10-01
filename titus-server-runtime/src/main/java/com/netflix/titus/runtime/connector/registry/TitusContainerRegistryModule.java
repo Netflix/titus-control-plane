@@ -23,7 +23,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfiguration;
 
-public class TitusRegistryModule extends AbstractModule {
+public class TitusContainerRegistryModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(RegistryEndpointResolver.class).to(RegistryConfigurationEndpointResolver.class);

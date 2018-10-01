@@ -22,5 +22,5 @@ import com.netflix.archaius.api.annotations.PropertyName;
 public interface JobImageValidatorConfiguration {
     @PropertyName(name = "titus.validate.job.image.enabled")
     @DefaultValue("false")
-    boolean getEnabled();
+    boolean isEnabled();
 }

@@ -288,8 +288,8 @@ public class AggregatingValidatorTest {
     public void sanitizePassPass() {
         final String initialAppName = "initialAppName";
         final String initialCapacityGroup = "initialCapacityGroup";
-        EntityValidator appNameSanitizer = new AppNameSanitizer();
-        EntityValidator capacityGroupSanitizer = new CapacityGroupSanitizer();
+        EntityValidator appNameSanitizer = new TestingAppNameSanitizer();
+        EntityValidator capacityGroupSanitizer = new TestingCapacityGroupSanitizer();
 
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.toBuilder()
@@ -306,8 +306,8 @@ public class AggregatingValidatorTest {
 
         StepVerifier.create(validator.sanitize(jobDescriptor))
                 .assertNext(sanitizedJobDescriptor -> {
-                    assertThat(sanitizedJobDescriptor.getApplicationName().equals(AppNameSanitizer.desiredAppName)).isTrue();
-                    assertThat(sanitizedJobDescriptor.getCapacityGroup().equals(CapacityGroupSanitizer.desiredCapacityGroup)).isTrue();
+                    assertThat(sanitizedJobDescriptor.getApplicationName().equals(TestingAppNameSanitizer.desiredAppName)).isTrue();
+                    assertThat(sanitizedJobDescriptor.getCapacityGroup().equals(TestingCapacityGroupSanitizer.desiredCapacityGroup)).isTrue();
                 })
                 .verifyComplete();
     }
@@ -316,7 +316,7 @@ public class AggregatingValidatorTest {
     public void sanitizePassFail() {
         final String initialAppName = "initialAppName";
         final String initialCapacityGroup = "initialCapacityGroup";
-        EntityValidator appNameSanitizer = new AppNameSanitizer();
+        EntityValidator appNameSanitizer = new TestingAppNameSanitizer();
         EntityValidator failSanitizer = new FailJobValidator();
 
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()

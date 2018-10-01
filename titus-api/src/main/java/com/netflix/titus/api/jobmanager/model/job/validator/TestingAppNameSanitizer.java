@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
  * This {@link EntityValidator} implementation ensures a job's appname matches a specific
  * string. It is only used for testing purposes.
  */
-public class AppNameSanitizer implements EntityValidator<JobDescriptor> {
+public class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
     public final static String desiredAppName = "desiredAppName";
     private static final String ERR_FIELD = "fail-field";
     private static final String ERR_DESCRIPTION = "The job does not have desired appname " + desiredAppName;

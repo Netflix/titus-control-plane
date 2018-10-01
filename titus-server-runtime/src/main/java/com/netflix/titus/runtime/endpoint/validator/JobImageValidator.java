@@ -139,5 +139,5 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
         return null != image.getDigest() && !image.getDigest().isEmpty();
     }
 
-    private boolean isDisabled() { return !configuration.getEnabled(); }
+    private boolean isDisabled() { return !configuration.isEnabled(); }
 }

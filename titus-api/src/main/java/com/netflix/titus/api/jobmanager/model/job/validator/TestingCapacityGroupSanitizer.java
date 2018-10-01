@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
  * This {@link EntityValidator} implementation ensures a job's capacity group matches a specific
  * string. It is only used for testing purposes.
  */
-public class CapacityGroupSanitizer implements EntityValidator<JobDescriptor> {
+public class TestingCapacityGroupSanitizer implements EntityValidator<JobDescriptor> {
     public final static String desiredCapacityGroup = "desiredCapacityGroup";
     private static final String ERR_FIELD = "fail-field";
     private static final String ERR_DESCRIPTION = "The job does not have desired capacity group " + desiredCapacityGroup;
