@@ -44,7 +44,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
             logger.info("Connecting to the job event stream...");
-            return ReactorExt.toFlux(client.observeJobs(ObserveJobsQuery.newBuilder().build()))
+            return ReactorExt.toFlux(client.observeJobs(ObserveJobsQuery.getDefaultInstance()))
                     .flatMap(cacheUpdater::onEvent);
         });
     }
