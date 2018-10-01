@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
@@ -117,8 +118,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     }
 
     @Override
-    public void observeJobs(Empty request, StreamObserver<JobChangeNotification> responseObserver) {
-        Subscription subscription = jobManagementClient.observeJobs().subscribe(
+    public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
+        Subscription subscription = jobManagementClient.observeJobs(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
