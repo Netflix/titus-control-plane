@@ -50,6 +50,7 @@ import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.SupervisorServiceModule;
 import com.netflix.titus.master.taskmigration.TaskMigratorModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.runtime.containerhealth.service.ContainerHealthServiceModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.resolver.ByRemoteAddressHttpCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
@@ -96,6 +97,7 @@ public class TitusMasterModule extends AbstractModule {
         install(new SchedulerModule());
         install(new JobModule());
         install(new V3JobManagerModule());
+        install(new ContainerHealthServiceModule());
         install(new ManagementModule());
 
         // REST/GRPC

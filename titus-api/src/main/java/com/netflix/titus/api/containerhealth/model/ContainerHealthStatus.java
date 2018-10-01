@@ -52,4 +52,40 @@ public class ContainerHealthStatus {
                 ", timestamp=" + timestamp +
                 '}';
     }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private String taskId;
+        private ContainerHealthState state;
+        private long timestamp;
+
+        private Builder() {
+        }
+
+        public Builder withTaskId(String taskId) {
+            this.taskId = taskId;
+            return this;
+        }
+
+        public Builder withState(ContainerHealthState state) {
+            this.state = state;
+            return this;
+        }
+
+        public Builder withTimestamp(long timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+
+        public Builder but() {
+            return newBuilder().withTaskId(taskId).withState(state).withTimestamp(timestamp);
+        }
+
+        public ContainerHealthStatus build() {
+            return new ContainerHealthStatus(taskId, state, timestamp);
+        }
+    }
 }

@@ -24,6 +24,7 @@ import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
@@ -47,6 +48,7 @@ public class V3JobManagerModule extends AbstractModule {
         bind(Key.get(JOB_DIFFERENCE_RESOLVER, Names.named(JobReconciliationFrameworkFactory.SERVICE_RESOLVER))).to(ServiceDifferenceResolver.class);
 
         bind(V3JobOperations.class).to(DefaultV3JobOperations.class);
+        bind(ReadOnlyJobOperations.class).to(DefaultV3JobOperations.class);
         bind(JobSubmitLimiter.class).to(DefaultJobSubmitLimiter.class);
 
         bind(new TypeLiteral<TaskInfoFactory<Protos.TaskInfo>>() {

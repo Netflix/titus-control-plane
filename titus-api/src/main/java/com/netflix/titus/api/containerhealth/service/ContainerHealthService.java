@@ -13,6 +13,11 @@ import reactor.core.publisher.Flux;
 public interface ContainerHealthService {
 
     /**
+     * Container health provider name.
+     */
+    String getName();
+
+    /**
      * Returns task's status, if the task with the given id is known or {@link Optional#empty()} otherwise.
      * If a task is in the {@link TaskState#Finished} state, its status will be returned as long as it is kept
      * in memory (its job is active, and it is not archived yet).
