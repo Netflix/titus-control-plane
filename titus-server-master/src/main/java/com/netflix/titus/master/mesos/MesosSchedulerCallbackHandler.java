@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.mesos.MesosTracer.logMesosCallbackDebug;
 import static com.netflix.titus.master.mesos.MesosTracer.logMesosCallbackError;
@@ -139,7 +140,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         this.config = config;
         this.mesosConfiguration = mesosConfiguration;
         this.registry = titusRuntime.getRegistry();
-        this.mesosStateTracker = new MesosStateTracker(config, titusRuntime);
+        this.mesosStateTracker = new MesosStateTracker(config, titusRuntime, Schedulers.computation());
 
         numMesosRegistered = registry.counter(MetricConstants.METRIC_MESOS + "numMesosRegistered");
         numMesosDisconnects = registry.counter(MetricConstants.METRIC_MESOS + "numMesosDisconnects");
@@ -166,6 +167,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     public void shutdown() {
+        mesosStateTracker.shutdown();
         try {
             if (executor != null) {
                 executor.shutdown();

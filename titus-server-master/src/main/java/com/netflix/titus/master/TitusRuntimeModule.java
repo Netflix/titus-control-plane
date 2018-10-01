@@ -49,9 +49,9 @@ import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
 import com.netflix.titus.master.scheduler.SchedulingService;
+import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.runtime.Fit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,12 +84,12 @@ public class TitusRuntimeModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TitusRuntime getTitusRuntime(LoggingSystemLogService loggingSystemLogService, SystemAbortListener systemAbortListener, Registry registry) {
+    public TitusRuntime getTitusRuntime(SystemLogService systemLogService, SystemAbortListener systemAbortListener, Registry registry) {
         CodeInvariants codeInvariants = new CompositeCodeInvariants(
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, loggingSystemLogService, systemAbortListener, registry);
+        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, systemLogService, systemAbortListener, registry);
 
         // Setup FIT component hierarchy
         FitFramework fitFramework = titusRuntime.getFitFramework();
