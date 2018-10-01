@@ -19,11 +19,14 @@ package com.netflix.titus.common.util;
 import java.util.function.Predicate;
 
 public final class FunctionExt {
+    private static final Predicate TRUE_PREDICATE = ignored -> true;
+    private static final Predicate FALSE_PREDICATE = ignored -> false;
+
     public static <T> Predicate<T> alwaysTrue() {
-        return ignored -> true;
+        return TRUE_PREDICATE;
     }
 
     public static <T> Predicate<T> alwaysFalse() {
-        return ignored -> false;
+        return FALSE_PREDICATE;
     }
 }
