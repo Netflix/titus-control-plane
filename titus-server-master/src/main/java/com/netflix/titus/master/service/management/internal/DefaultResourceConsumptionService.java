@@ -36,9 +36,7 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
 import com.netflix.titus.master.service.management.ResourceConsumption;
 import com.netflix.titus.master.service.management.ResourceConsumption.ConsumptionLevel;
@@ -86,11 +84,9 @@ public class DefaultResourceConsumptionService implements ResourceConsumptionSer
 
     @Inject
     public DefaultResourceConsumptionService(ApplicationSlaManagementService applicationSlaManagementService,
-                                             V2JobOperations v2JobOperations,
                                              V3JobOperations v3JobOperations,
-                                             CapacityManagementConfiguration config,
                                              Registry registry) {
-        this(ResourceConsumptionEvaluator.newEvaluator(applicationSlaManagementService, v2JobOperations, v3JobOperations, config), registry, Schedulers.computation());
+        this(ResourceConsumptionEvaluator.newEvaluator(applicationSlaManagementService, v3JobOperations), registry, Schedulers.computation());
     }
 
     /* For testing */ DefaultResourceConsumptionService(Supplier<ConsumptionEvaluationResult> evaluator,

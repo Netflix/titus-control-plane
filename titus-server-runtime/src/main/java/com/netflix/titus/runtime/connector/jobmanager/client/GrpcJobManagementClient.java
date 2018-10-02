@@ -39,6 +39,7 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -173,10 +174,10 @@ public class GrpcJobManagementClient implements JobManagementClient {
     }
 
     @Override
-    public Observable<JobChangeNotification> observeJobs() {
+    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query) {
         return createRequestObservable(emitter -> {
             StreamObserver<JobChangeNotification> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver).observeJobs(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStub(client, callMetadataResolver).observeJobs(query, streamObserver);
         });
     }
 
@@ -214,12 +215,13 @@ public class GrpcJobManagementClient implements JobManagementClient {
         }, configuration.getRequestTimeout());
     }
 
-    private void reportErrorMetrics(Set<ValidationError> errors) {
+    private void reportErrorMetrics(Set<ValidationError> errors, JobDescriptor jobDescriptor) {
         errors.forEach(error ->
                 registry.counter(
                         error.getField(),
                         "type", error.getType().name(),
-                        "description", error.getDescription())
+                        "description", error.getDescription(),
+                        "application", jobDescriptor.getApplicationName())
                         .increment());
     }
 }

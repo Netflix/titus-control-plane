@@ -36,7 +36,6 @@ import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
-import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
@@ -48,7 +47,6 @@ import com.netflix.titus.common.util.rx.batch.Batch;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import rx.Completable;
 import rx.Single;
 import rx.observers.AssertableSubscriber;
@@ -719,7 +717,6 @@ public class DefaultLoadBalancerServiceTest {
 
     private void verifyReconcilerIgnore(String jobId, String loadBalancerId, String... ipAddresses) {
         final Set<String> ipSet = CollectionsExt.asSet(ipAddresses);
-        final ArgumentCaptor<LoadBalancerTarget> captor = ArgumentCaptor.forClass(LoadBalancerTarget.class);
         verify(reconciler, times(ipAddresses.length)).activateCooldownFor(argThat(target ->
                 jobId.equals(target.getJobId())
                         && loadBalancerId.equals(target.getLoadBalancerId())

@@ -49,6 +49,7 @@ import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransfor
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
@@ -189,6 +190,7 @@ public class JobsScenarioBuilder {
                         Optional.of(testScheduler)
                 ),
                 jobSubmitLimiter,
+                new ManagementSubsystemInitializer(null, null),
                 titusRuntime
         );
         v3JobOperations.enterActiveMode();

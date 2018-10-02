@@ -26,6 +26,7 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -58,7 +59,7 @@ public interface JobManagementClient {
 
     Observable<JobChangeNotification> observeJob(String jobId);
 
-    Observable<JobChangeNotification> observeJobs();
+    Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query);
 
     Completable killJob(String jobId);
 

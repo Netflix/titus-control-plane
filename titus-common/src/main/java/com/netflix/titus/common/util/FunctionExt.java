@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.job.worker;
+package com.netflix.titus.common.util;
 
-import java.util.List;
+import java.util.function.Predicate;
 
-import com.netflix.titus.master.Status;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import rx.Observable;
+public final class FunctionExt {
+    private static final Predicate TRUE_PREDICATE = ignored -> true;
+    private static final Predicate FALSE_PREDICATE = ignored -> false;
 
-/**
- */
-public interface WorkerStateMonitor {
+    public static <T> Predicate<T> alwaysTrue() {
+        return TRUE_PREDICATE;
+    }
 
-    void start(List<V2JobMgrIntf> initialJobMgrs);
-
-    Observable<Status> getAllStatusObservable();
+    public static <T> Predicate<T> alwaysFalse() {
+        return FALSE_PREDICATE;
+    }
 }

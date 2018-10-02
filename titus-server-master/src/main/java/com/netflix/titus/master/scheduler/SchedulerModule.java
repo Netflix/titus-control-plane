@@ -16,8 +16,6 @@
 
 package com.netflix.titus.master.scheduler;
 
-import java.util.Collections;
-import java.util.Map;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
@@ -25,8 +23,6 @@ import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
-import com.netflix.fenzo.ScaleDownConstraintEvaluator;
-import com.netflix.fenzo.ScaleDownOrderEvaluator;
 import com.netflix.titus.api.scheduler.service.SchedulerService;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;

@@ -16,25 +16,17 @@
 
 package com.netflix.titus.api.jobmanager.service;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
-import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
-import com.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
-/**
- *
- */
-public interface V3JobOperations {
+public interface V3JobOperations extends ReadOnlyJobOperations {
 
     String COMPONENT = "jobManagement";
 
@@ -47,22 +39,6 @@ public interface V3JobOperations {
     }
 
     Observable<String> createJob(JobDescriptor<?> jobDescriptor);
-
-    List<Job> getJobs();
-
-    Optional<Job<?>> getJob(String jobId);
-
-    List<Task> getTasks();
-
-    List<Task> getTasks(String jobId);
-
-    List<Pair<Job, List<Task>>> getJobsAndTasks();
-
-    List<Job<?>> findJobs(Predicate<Pair<Job<?>, List<Task>>> queryPredicate, int offset, int limit);
-
-    List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit);
-
-    Optional<Pair<Job<?>, Task>> findTaskById(String taskId);
 
     Observable<Void> updateJobCapacity(String jobId, Capacity capacity);
 
@@ -87,8 +63,4 @@ public interface V3JobOperations {
      * TODO 'Launched' state means two things today. Task placement by Fenzo, and Mesos 'Launched'. It makes sense to separate the two.
      */
     Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction);
-
-    Observable<JobManagerEvent<?>> observeJobs();
-
-    Observable<JobManagerEvent<?>> observeJob(String jobId);
 }

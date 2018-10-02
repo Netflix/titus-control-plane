@@ -38,24 +38,15 @@ import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.JobCompletedReason;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.WorkerNaming;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.Status;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.ExecutorID;
@@ -73,6 +64,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.mesos.MesosTracer.logMesosCallbackDebug;
 import static com.netflix.titus.master.mesos.MesosTracer.logMesosCallbackError;
@@ -91,7 +83,6 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private Observer<String> vmLeaseRescindedObserver;
     private Observer<ContainerEvent> vmTaskStatusObserver;
     private static final Logger logger = LoggerFactory.getLogger(MesosSchedulerCallbackHandler.class);
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private volatile ScheduledFuture reconcilerFuture = null;
     private final MasterConfiguration config;
@@ -136,7 +127,6 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             Action1<List<? extends VirtualMachineLease>> leaseHandler,
             Observer<String> vmLeaseRescindedObserver,
             Observer<ContainerEvent> vmTaskStatusObserver,
-            V2JobOperations v2JobOperations,
             V3JobOperations v3JobOperations,
             Optional<FitInjection> taskStatusUpdateFitInjection,
             MasterConfiguration config,
@@ -145,13 +135,12 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
         this.leaseHandler = leaseHandler;
         this.vmLeaseRescindedObserver = vmLeaseRescindedObserver;
         this.vmTaskStatusObserver = vmTaskStatusObserver;
-        this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.taskStatusUpdateFitInjection = taskStatusUpdateFitInjection;
         this.config = config;
         this.mesosConfiguration = mesosConfiguration;
         this.registry = titusRuntime.getRegistry();
-        this.mesosStateTracker = new MesosStateTracker(config, titusRuntime);
+        this.mesosStateTracker = new MesosStateTracker(config, titusRuntime, Schedulers.computation());
 
         numMesosRegistered = registry.counter(MetricConstants.METRIC_MESOS + "numMesosRegistered");
         numMesosDisconnects = registry.counter(MetricConstants.METRIC_MESOS + "numMesosDisconnects");
@@ -178,6 +167,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     public void shutdown() {
+        mesosStateTracker.shutdown();
         try {
             if (executor != null) {
                 executor.shutdown();
@@ -313,29 +303,6 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     private void reconcileTasksKnownToUs(SchedulerDriver driver) {
         final List<TaskStatus> tasksToInitialize = new ArrayList<>();
 
-        List<V2WorkerMetadata> runningWorkers = new ArrayList<>();
-        v2JobOperations.getAllJobMgrs().forEach(m -> {
-                    List<V2WorkerMetadata> tasks = m.getWorkers().stream()
-                            .filter(t -> t.getState() == V2JobState.Started)
-                            .collect(Collectors.toList());
-                    runningWorkers.addAll(tasks);
-                }
-        );
-        for (V2WorkerMetadata mwmd : runningWorkers) {
-            tasksToInitialize.add(TaskStatus.newBuilder()
-                    .setTaskId(
-                            Protos.TaskID.newBuilder()
-                                    .setValue(
-                                            WorkerNaming.getWorkerName(
-                                                    mwmd.getJobId(),
-                                                    mwmd.getWorkerIndex(),
-                                                    mwmd.getWorkerNumber()))
-                                    .build())
-                    .setState(TaskState.TASK_RUNNING)
-                    .setSlaveId(SlaveID.newBuilder().setValue(mwmd.getSlaveID()).build())
-                    .build()
-            );
-        }
         for (Task task : v3JobOperations.getTasks()) {
             com.netflix.titus.api.jobmanager.model.job.TaskState taskState = task.getStatus().getState();
             TaskState mesosState;
@@ -421,11 +388,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
             logMesosCallbackInfo("Task status update: taskId=%s, taskState=%s, message=%s", taskId, taskState, effectiveTaskStatus.getMessage());
 
-            if (JobFunctions.isV2Task(taskId)) {
-                v2StatusUpdate(effectiveTaskStatus);
-            } else {
-                v3StatusUpdate(effectiveTaskStatus);
-            }
+            v3StatusUpdate(effectiveTaskStatus);
         } catch (Exception e) {
             logger.error("Unexpected error when handling the status update: {}", taskStatus, e);
             throw e;
@@ -442,80 +405,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     private boolean isKnown(String taskId) {
-        // V3 engine
-        if (!JobFunctions.isV2Task(taskId)) {
-            return v3JobOperations.findTaskById(taskId).isPresent();
-        }
-
-        // V2 engine
-        for (V2JobMgrIntf jmgr : v2JobOperations.getAllJobMgrs()) {
-            V2JobMetadata jobMetadata = jmgr.getJobMetadata();
-            if (jobMetadata != null) {
-                try {
-                    for (V2WorkerMetadata worker : jmgr.getWorkers()) {
-                        if (taskId.equals(WorkerNaming.getTaskId(worker))) {
-                            return true;
-                        }
-                    }
-                } catch (Exception ignore) {
-                    logger.debug("Error during searching through V2 tasks of job: {}", jobMetadata.getJobId());
-                }
-            }
-        }
-        return false;
-    }
-
-    private void v2StatusUpdate(TaskStatus taskStatus) {
-        String taskId = taskStatus.getTaskId().getValue();
-        TaskState taskState = taskStatus.getState();
-
-        TaskState previous = lastStatusUpdate.getIfPresent(taskId);
-        TaskState effectiveState = getEffectiveState(taskId, taskState, previous);
-
-        V2JobState state;
-        JobCompletedReason reason = JobCompletedReason.Normal;
-        switch (effectiveState) {
-            case TASK_FAILED:
-                state = V2JobState.Failed;
-                reason = JobCompletedReason.Failed;
-                break;
-            case TASK_LOST:
-                state = V2JobState.Failed;
-                reason = JobCompletedReason.Lost;
-                break;
-            case TASK_KILLED:
-                state = V2JobState.Failed;
-                reason = JobCompletedReason.Killed;
-                break;
-            case TASK_FINISHED:
-                state = V2JobState.Completed;
-                break;
-            case TASK_RUNNING:
-                state = V2JobState.Started;
-                break;
-            case TASK_STAGING:
-                state = V2JobState.Launched;
-                break;
-            case TASK_STARTING:
-                state = V2JobState.StartInitiated;
-                break;
-            default:
-                logger.warn("Unexpected Mesos task state {}", effectiveState);
-                return;
-        }
-        String data = "";
-        if (taskStatus.getData() != null) {
-            data = new String(taskStatus.getData().toByteArray());
-            logMesosCallbackDebug("Mesos status object data: %s", data);
-        }
-        WorkerNaming.JobWorkerIdPair pair = WorkerNaming.getJobAndWorkerId(taskId);
-        Status status = new Status(pair.jobId, taskId, -1, pair.workerIndex, pair.workerNumber, Status.TYPE.ERROR,
-                taskStatus.getMessage(), data, state);
-        status.setReason(reason);
-
-        logger.debug("Publishing task status: {}", status);
-
-        vmTaskStatusObserver.onNext(status);
+        return v3JobOperations.findTaskById(taskId).isPresent();
     }
 
     private void v3StatusUpdate(TaskStatus taskStatus) {

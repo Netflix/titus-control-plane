@@ -5,10 +5,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
@@ -47,7 +47,7 @@ public class JobFederationTest extends BaseIntegrationTest {
         this.eventStreamObserver = new TestStreamObserver<>();
 
         JobManagementServiceGrpc.JobManagementServiceStub asyncClient = titusStackResource.getOperations().getV3GrpcClient();
-        asyncClient.observeJobs(Empty.getDefaultInstance(), eventStreamObserver);
+        asyncClient.observeJobs(ObserveJobsQuery.newBuilder().build(), eventStreamObserver);
     }
 
     @Test

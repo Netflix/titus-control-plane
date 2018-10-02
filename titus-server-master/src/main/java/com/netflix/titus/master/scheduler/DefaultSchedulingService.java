@@ -77,8 +77,6 @@ import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.job.JobMgr;
-import com.netflix.titus.master.job.V2JobOperations;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
@@ -116,7 +114,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final VirtualMachineMasterService virtualMachineService;
     private final MasterConfiguration masterConfiguration;
     private final SchedulerConfiguration schedulerConfiguration;
-    private final V2JobOperations v2JobOperations;
     private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
     private final Optional<FitInjection> fitInjection;
@@ -179,8 +176,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TaskCache taskCache;
 
     @Inject
-    public DefaultSchedulingService(V2JobOperations v2JobOperations,
-                                    V3JobOperations v3JobOperations,
+    public DefaultSchedulingService(V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
@@ -197,7 +193,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
                                     Config config) {
-        this(v2JobOperations, v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps,
+        this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps,
                 virtualMachineService, masterConfiguration, schedulerConfiguration,
                 systemHardConstraint, taskCache,
                 Schedulers.computation(),
@@ -207,8 +203,7 @@ public class DefaultSchedulingService implements SchedulingService {
         );
     }
 
-    public DefaultSchedulingService(V2JobOperations v2JobOperations,
-                                    V3JobOperations v3JobOperations,
+    public DefaultSchedulingService(V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
                                     TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
                                     VMOperations vmOps,
@@ -226,7 +221,6 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
                                     Config config) {
-        this.v2JobOperations = v2JobOperations;
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.vmOps = vmOps;
@@ -268,7 +262,7 @@ public class DefaultSchedulingService implements SchedulingService {
         virtualMachineService.setVMLeaseHandler(schedulingService::addLeases);
         this.taskCache = taskCache;
 
-        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v2JobOperations, v3JobOperations, v3TaskInfoFactory, titusRuntime);
+        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoFactory, titusRuntime);
         this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier(titusRuntime);
 
         totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
@@ -713,21 +707,7 @@ public class DefaultSchedulingService implements SchedulingService {
                 if (runningTasks != null && !runningTasks.isEmpty()) {
                     for (TaskRequest t : runningTasks) {
                         QueuableTask task = (QueuableTask) t;
-                        if (task instanceof ScheduledRequest) {
-                            final JobMgr jobMgr = v2JobOperations.getJobMgrFromTaskId(t.getId());
-                            if (jobMgr == null || !jobMgr.isTaskValid(t.getId())) {
-                                schedulingService.removeTask(task.getId(), task.getQAttributes(), state.getHostname());
-                            } else {
-                                usedCpu += t.getCPUs();
-                                totalCpu += t.getCPUs();
-                                usedMemory += t.getMemory();
-                                totalMemory += t.getMemory();
-                                usedDisk += t.getDisk();
-                                totalDisk += t.getDisk();
-                                usedNetworkMbps += t.getNetworkMbps();
-                                totalNetworkMbps += t.getNetworkMbps();
-                            }
-                        } else if (task instanceof V3QueueableTask) {
+                        if (task instanceof V3QueueableTask) {
                             //TODO redo the metrics publishing but we should keep it the same as v2 for now
                             usedCpu += t.getCPUs();
                             totalCpu += t.getCPUs();

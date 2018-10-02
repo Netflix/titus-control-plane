@@ -52,16 +52,17 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,7 +247,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
     }
 
     @Override
-    public Observable<JobChangeNotification> observeJobs() {
+    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query) {
         final Observable<JobChangeNotification> observable = createRequestObservable(delegate -> {
             Emitter<JobChangeNotification> emitter = new EmitterWithMultipleSubscriptions<>(delegate);
             Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(connector, JobManagementServiceGrpc::newStub);
@@ -255,7 +256,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
             );
             clients.forEach((cell, client) -> {
                 StreamObserver<JobChangeNotification> streamObserver = new FilterOutFirstMarker(emitter, markersEmitted);
-                wrapWithNoDeadline(client).observeJobs(Empty.getDefaultInstance(), streamObserver);
+                wrapWithNoDeadline(client).observeJobs(query, streamObserver);
             });
         });
         return observable.map(this::addStackName);

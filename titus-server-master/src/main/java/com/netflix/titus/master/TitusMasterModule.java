@@ -41,15 +41,16 @@ import com.netflix.titus.master.job.JobModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.mesos.MesosModule;
 import com.netflix.titus.master.scheduler.SchedulerModule;
 import com.netflix.titus.master.service.management.ManagementModule;
 import com.netflix.titus.master.store.StoreModule;
 import com.netflix.titus.master.supervisor.endpoint.SupervisorEndpointModule;
+import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.SupervisorServiceModule;
 import com.netflix.titus.master.taskmigration.TaskMigratorModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.runtime.containerhealth.service.ContainerHealthServiceModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.resolver.ByRemoteAddressHttpCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
@@ -96,10 +97,8 @@ public class TitusMasterModule extends AbstractModule {
         install(new SchedulerModule());
         install(new JobModule());
         install(new V3JobManagerModule());
+        install(new ContainerHealthServiceModule());
         install(new ManagementModule());
-
-        // Remaining services
-        bind(ApiOperations.class).to(ApiOperationsImpl.class);
 
         // REST/GRPC
         bind(JerseyModule.V2_LOG_STORAGE_INFO).toInstance(EmptyLogStorageInfo.INSTANCE);

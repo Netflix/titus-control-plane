@@ -16,7 +16,6 @@
 
 package com.netflix.titus.testkit.rx;
 
-import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -28,6 +27,7 @@ import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
@@ -151,7 +151,7 @@ public class RxGrpcJobManagementService {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
                     channel.newCall(JobManagementServiceGrpc.METHOD_OBSERVE_JOBS, CallOptions.DEFAULT),
-                    Empty.getDefaultInstance()
+                    ObserveJobsQuery.newBuilder().build()
             ).subscribe(subscriber);
         });
     }

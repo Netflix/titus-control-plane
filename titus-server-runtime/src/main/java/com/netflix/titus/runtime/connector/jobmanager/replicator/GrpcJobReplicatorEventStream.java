@@ -13,6 +13,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobStatus;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
@@ -43,7 +44,8 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
             logger.info("Connecting to the job event stream...");
-            return ReactorExt.toFlux(client.observeJobs()).flatMap(cacheUpdater::onEvent);
+            return ReactorExt.toFlux(client.observeJobs(ObserveJobsQuery.getDefaultInstance()))
+                    .flatMap(cacheUpdater::onEvent);
         });
     }
 

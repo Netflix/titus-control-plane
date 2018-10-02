@@ -24,6 +24,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -139,7 +140,7 @@ public class GrpcJobReplicatorEventStreamTest {
     }
 
     private GrpcJobReplicatorEventStream newStream() {
-        when(client.observeJobs()).thenReturn(dataGenerator.grpcObserveJobs(true));
+        when(client.observeJobs(any())).thenReturn(dataGenerator.grpcObserveJobs(true));
         return new GrpcJobReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
