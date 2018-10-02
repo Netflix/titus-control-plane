@@ -18,7 +18,6 @@ package com.netflix.titus.runtime.connector.registry;
 
 import java.util.AbstractMap;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -76,12 +75,12 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                 .requestTimeout(titusRegistryClientConfiguration.getRegistryTimeoutMs())
                 .retryCount(titusRegistryClientConfiguration.getRegistryRetryCount())
                 .retryDelay(titusRegistryClientConfiguration.getRegistryRetryDelayMs())
-                .noRetryStatuses(new HashSet<>(Collections.singletonList(HttpResponseStatus.NOT_FOUND)));
+                .noRetryStatuses(Collections.singleton(HttpResponseStatus.NOT_FOUND));
         if (titusRegistryClientConfiguration.isSecure()) {
             try {
                 builder.sslEngineFactory(new NettySslContextEngineFactory(SslContextBuilder.forClient().build()));
             } catch (SSLException e) {
-                logger.error("Unable configure Docker registry client SSL context: {}", e.getMessage());
+                logger.error("Unable configure Docker registry client SSL context: {}", e);
                 throw new RuntimeException("Error configuring SSL context", e);
             }
         }
@@ -89,16 +88,17 @@ public class DefaultDockerRegistryClient implements RegistryClient {
     }
 
     /**
-     * Gets the Docker Version 2 Schema 2 Content Digest for the provide repository and reference. The
+     * Gets the Docker Version 2 Schema 2 Content Digest for the provided repository and reference. The
      * reference may be an image tag or digest value. If the image does not exist or another error is
      * encountered, an onError value is emitted.
      */
     public Single<String> getImageDigest(String repository, String reference) {
-        return registryRequestWithErrorHandling(restClient.doGET(buildRegistryUri(repository, reference), headers, TypeProviders.ofEmptyResponse()))
+        return registryRequestWithErrorHandling(
+                restClient.doGET(buildRegistryUri(repository, reference), headers, TypeProviders.ofEmptyResponse()), repository, reference)
                 .map(RxHttpResponse::getHeaders)
                 .flatMap(stringListMap -> {
                     if (stringListMap.containsKey(dockerDigestHeaderKey)) {
-                        return Observable.from(stringListMap.get("Docker-Content-Digest"));
+                        return Observable.from(stringListMap.get(dockerDigestHeaderKey));
                     }
                     return Observable.error(new TitusRegistryException(TitusRegistryException.ErrorCode.MISSING_HEADER, "Missing required header " + dockerDigestHeaderKey));
                 }).first().toSingle();
@@ -111,14 +111,14 @@ public class DefaultDockerRegistryClient implements RegistryClient {
     /**
      * Wraps an observable registry request with timeouts and error handling.
      */
-    private <T> Observable<T> registryRequestWithErrorHandling(Observable<T> obs) {
+    private <T> Observable<T> registryRequestWithErrorHandling(Observable<T> obs, String repository, String reference) {
         return obs.timeout(titusRegistryClientConfiguration.getRegistryTimeoutMs(), TimeUnit.MILLISECONDS)
                 .onErrorResumeNext(throwable -> {
                     if (throwable instanceof RxRestClientException) {
                         if (((RxRestClientException)throwable).getStatusCode() == HttpResponseStatus.NOT_FOUND.code()) {
                             return Observable.error(
                                     new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
-                                    "Image does not exist in registry"));
+                                    String.format("Image %s:%s does not exist in registry", repository, reference)));
                         }
                     }
                     return  Observable.error(

@@ -18,7 +18,6 @@ package com.netflix.titus.common.network.client.internal;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +65,7 @@ public class RetryableRestClient implements RxRestClient {
 
     @Override
     public <T> Observable<T> doGET(String relativeURI, TypeProvider<T> type) {
-        return doGET(relativeURI, Collections.unmodifiableMap(new HashMap<>()), type);
+        return doGET(relativeURI, Collections.emptyMap(), type);
     }
 
     @Override

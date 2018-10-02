@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * This {@link EntityValidator} implementation always causes validation to pass.  It is used as a default implementation which
- * should be overriden.
+ * should be overridden.
  */
 @Singleton
 public class PassJobValidator implements EntityValidator<JobDescriptor> {

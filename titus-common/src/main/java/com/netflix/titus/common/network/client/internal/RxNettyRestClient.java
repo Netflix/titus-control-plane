@@ -82,7 +82,7 @@ public class RxNettyRestClient implements RxRestClient {
 
     @Override
     public <T> Observable<T> doGET(String relativeURI, TypeProvider<T> type) {
-        return doGET(relativeURI, Collections.unmodifiableMap(new HashMap<>()), type);
+        return doGET(relativeURI, Collections.emptyMap(), type);
     }
 
     @Override

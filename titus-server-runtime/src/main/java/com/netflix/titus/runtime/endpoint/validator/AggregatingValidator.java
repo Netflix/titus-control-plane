@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
- * A AggregatingValidator executes and aggregates the results of multiple {@link EntityValidator}s.
+ * An AggregatingValidator executes and aggregates the results of multiple {@link EntityValidator}s.
  */
 @Singleton
 public class AggregatingValidator implements EntityValidator<JobDescriptor> {

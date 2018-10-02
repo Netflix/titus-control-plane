@@ -18,7 +18,6 @@ package com.netflix.titus.common.network.client.internal;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -62,7 +61,7 @@ public class RetryableRestClientTest {
     @Before
     public void setUp() throws Exception {
         client = new RetryableRestClient(delegate,
-                RETRY_COUNT, REQ_TIMEOUT_MS, RETRY_DELAY_MS, TimeUnit.MILLISECONDS, new HashSet<>(Collections.singletonList(noRetryStatus)), clientMetric, testScheduler);
+                RETRY_COUNT, REQ_TIMEOUT_MS, RETRY_DELAY_MS, TimeUnit.MILLISECONDS, Collections.singleton(noRetryStatus), clientMetric, testScheduler);
     }
 
     @Test
