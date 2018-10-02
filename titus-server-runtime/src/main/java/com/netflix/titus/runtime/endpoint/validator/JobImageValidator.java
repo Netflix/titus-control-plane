@@ -80,7 +80,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
             return Mono.just(jobDescriptor);
         }
 
-        return validateImage(jobDescriptor)
+        return sanitizeImage(jobDescriptor)
         // We are ignoring most image validation errors. We will propagate
         // more errors as we going feature confidence.
         .onErrorReturn(throwable -> {
@@ -97,7 +97,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
         }, jobDescriptor);
     }
 
-    private Mono<JobDescriptor> validateImage(JobDescriptor jobDescriptor) {
+    private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {
         // Check if a digest is provided
         // If so, check if it exists
         Image image = jobDescriptor.getContainer().getImage();

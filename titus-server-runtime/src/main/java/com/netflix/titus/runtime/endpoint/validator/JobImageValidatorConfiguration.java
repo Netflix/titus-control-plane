@@ -16,11 +16,11 @@
 
 package com.netflix.titus.runtime.endpoint.validator;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.archaius.api.annotations.PropertyName;
 
+@Configuration(prefix = "titus.validate.job.image")
 public interface JobImageValidatorConfiguration {
-    @PropertyName(name = "titus.validate.job.image.enabled")
     @DefaultValue("false")
     boolean isEnabled();
 }
