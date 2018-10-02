@@ -39,11 +39,14 @@ import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.Task;
@@ -55,6 +58,7 @@ import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.JobManagementClientDelegate;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
@@ -86,6 +90,8 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     private final CallMetadataResolver callMetadataResolver;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
+    private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
+    private final Registry spectatorRegistry;
 
     @Inject
     public GatewayJobManagementClient(GrpcClientConfiguration configuration,
@@ -95,7 +101,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                       JobStore store,
                                       LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                      EntityValidator validator,
+                                      EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                       Registry registry) {
         super(new GrpcJobManagementClient(
                 client,
@@ -109,6 +115,51 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
         this.callMetadataResolver = callMetadataResolver;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
+        this.validator = validator;
+        this.spectatorRegistry = registry;
+    }
+
+    @Override
+    public Observable<String> createJob(JobDescriptor jobDescriptor) {
+        com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
+        try {
+            coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+        } catch (Exception e) {
+            return Observable.error(TitusServiceException.invalidArgument(e));
+        }
+
+        Observable<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizedCoreJobDescriptorObs =
+                ReactorExt.toObservable(validator.sanitize(coreJobDescriptor))
+                        .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
+                        .flatMap(sanitizedCoreJobDescriptor -> ReactorExt.toObservable(validator.validate(sanitizedCoreJobDescriptor))
+                                .flatMap(errors -> {
+                                    // Report metrics on all errors
+                                    reportErrorMetrics(errors);
+
+                                    // Only emit an error on HARD validation errors
+                                    errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
+
+                                    if (!errors.isEmpty()) {
+                                        return Observable.error(TitusServiceException.invalidJob(errors));
+                                    } else {
+                                        return Observable.just(sanitizedCoreJobDescriptor);
+                                    }
+                                })
+                        );
+
+        return sanitizedCoreJobDescriptorObs
+                .flatMap(scjd -> {
+                    JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(scjd);
+                    return createRequestObservable(emitter -> {
+                        StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                                emitter,
+                                jobId -> emitter.onNext(jobId.getId()),
+                                emitter::onError,
+                                emitter::onCompleted
+                        );
+                        createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
+                    }, configuration.getRequestTimeout());
+                });
     }
 
     @Override
@@ -246,5 +297,14 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
         }).collect(Collectors.toList());
         uniqueActiveTasks.addAll(archivedTasks);
         return uniqueActiveTasks;
+    }
+
+    private void reportErrorMetrics(Set<ValidationError> errors) {
+        errors.forEach(error ->
+                spectatorRegistry.counter(
+                        error.getField(),
+                        "type", error.getType().name(),
+                        "description", error.getDescription())
+                        .increment());
     }
 }

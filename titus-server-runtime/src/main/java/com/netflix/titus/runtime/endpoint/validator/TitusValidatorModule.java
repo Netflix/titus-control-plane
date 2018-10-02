@@ -23,6 +23,7 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
@@ -45,8 +46,8 @@ public class TitusValidatorModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public EntityValidator getJobValidator(TitusValidatorConfiguration configuration,
-                                           JobImageValidator jobImageValidator) {
+    public EntityValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
+                                                          JobImageValidator jobImageValidator) {
         return new AggregatingValidator(
                 configuration,
                 Collections.emptyList(), // No HARD validators

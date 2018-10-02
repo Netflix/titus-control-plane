@@ -18,7 +18,6 @@ package com.netflix.titus.runtime.connector.jobmanager.client;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -30,7 +29,6 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -107,38 +105,17 @@ public class GrpcJobManagementClient implements JobManagementClient {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        Observable<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizedCoreJobDescriptorObs =
-                ReactorExt.toObservable(validator.sanitize(sanitizedCoreJobDescriptor))
-                        .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
-                        .flatMap(scjd -> ReactorExt.toObservable(validator.validate(scjd))
-                                .flatMap(errors -> {
-                                    // Report metrics on all errors
-                                    reportErrorMetrics(errors);
+        JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
 
-                                    // Only emit an error on HARD validation errors
-                                    errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
-
-                                    if (!errors.isEmpty()) {
-                                        return Observable.error(TitusServiceException.invalidJob(errors));
-                                    } else {
-                                        return Observable.just(scjd);
-                                    }
-                                })
-                        );
-
-        return sanitizedCoreJobDescriptorObs
-                .flatMap(scjd -> {
-                    JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(scjd);
-                    return createRequestObservable(emitter -> {
-                        StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
-                                emitter,
-                                jobId -> emitter.onNext(jobId.getId()),
-                                emitter::onError,
-                                emitter::onCompleted
-                        );
-                        createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
-                    }, configuration.getRequestTimeout());
-                });
+        return createRequestObservable(emitter -> {
+            StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
+                    emitter,
+                    jobId -> emitter.onNext(jobId.getId()),
+                    emitter::onError,
+                    emitter::onCompleted
+            );
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
+        }, configuration.getRequestTimeout());
     }
 
     @Override

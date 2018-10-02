@@ -20,6 +20,7 @@ import java.util.Properties;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Module;
+import com.google.inject.TypeLiteral;
 import com.google.inject.util.Modules;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
@@ -128,7 +129,7 @@ public class EmbeddedTitusGateway {
                             bind(JobStore.class).toInstance(store);
                         }
 
-                        bind(EntityValidator.class).toInstance(validator);
+                        bind(new TypeLiteral<EntityValidator<JobDescriptor>>() {}).toInstance(validator);
                     }
                 })
         ).createInjector();
