@@ -13,6 +13,8 @@ import com.netflix.titus.api.agent.model.monitor.AgentStatus.AgentStatusCode;
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.service.AgentManagementException.ErrorCode;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.testkit.model.agent.AgentGenerator;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -29,9 +31,11 @@ public class LifecycleAgentStatusMonitorTest {
             .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Started).build())
             .build();
 
+    private final TitusRuntime titusRuntime = TitusRuntimes.test();
+
     private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
 
-    private final LifecycleAgentStatusMonitor monitor = new LifecycleAgentStatusMonitor(agentManagementService);
+    private final LifecycleAgentStatusMonitor monitor = new LifecycleAgentStatusMonitor(agentManagementService, titusRuntime);
 
     @Test
     public void testGetHealthAndStatusForExistingInstance() {

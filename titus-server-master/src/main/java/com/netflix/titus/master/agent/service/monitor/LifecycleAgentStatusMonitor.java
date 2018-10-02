@@ -15,6 +15,7 @@ import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import rx.Observable;
 
 @Singleton
@@ -23,11 +24,13 @@ public class LifecycleAgentStatusMonitor implements AgentStatusMonitor {
     static final String SOURCE_ID = "lifecycle";
 
     private final AgentManagementService agentManagementService;
+    private final TitusRuntime titusRuntime;
     private final ConcurrentMap<String, AgentInstance> knownInstances = new ConcurrentHashMap<>();
 
     @Inject
-    public LifecycleAgentStatusMonitor(AgentManagementService agentManagementService) {
+    public LifecycleAgentStatusMonitor(AgentManagementService agentManagementService, TitusRuntime titusRuntime) {
         this.agentManagementService = agentManagementService;
+        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -67,9 +70,9 @@ public class LifecycleAgentStatusMonitor implements AgentStatusMonitor {
     private AgentStatus statusOf(AgentInstance agent) {
         InstanceLifecycleState state = agent.getLifecycleStatus().getState();
         if (state == InstanceLifecycleState.Started) {
-            return AgentStatus.healthy(SOURCE_ID, agent, "Agent in Started state", System.currentTimeMillis());
+            return AgentStatus.healthy(SOURCE_ID, agent, "Agent in Started state", titusRuntime.getClock().wallTime());
         }
-        return AgentStatus.unhealthy(SOURCE_ID, agent, "Agent not in Started state: currentState=" + state, System.currentTimeMillis());
+        return AgentStatus.unhealthy(SOURCE_ID, agent, "Agent not in Started state: currentState=" + state, titusRuntime.getClock().wallTime());
     }
 
     private AgentStatus toTerminatedEvent(AgentInstance agentInstance) {
@@ -78,6 +81,6 @@ public class LifecycleAgentStatusMonitor implements AgentStatusMonitor {
                 .withLaunchTimestamp(agentInstance.getLifecycleStatus().getLaunchTimestamp())
                 .build()
         ).build();
-        return AgentStatus.terminated(agentInstance.getId(), terminatedInstance, "Agent instance terminated", System.currentTimeMillis());
+        return AgentStatus.terminated(agentInstance.getId(), terminatedInstance, "Agent instance terminated", titusRuntime.getClock().wallTime());
     }
 }
