@@ -47,19 +47,19 @@ public interface AgentMonitorConfiguration {
     long getHealthPollingInterval();
 
     /**
-     * To disable {@link V2JobStatusMonitor} set this flag to false.
+     * To disable {@link LifecycleAgentStatusMonitor} set this flag to false.
      */
     @DefaultValue("true")
-    boolean isJobStatusMonitorEnabled();
+    boolean isLifecycleStatusMonitorEnabled();
 
     /**
-     * To disable {@link V2JobStatusMonitor} set this flag to false.
+     * To disable health status monitor set this flag to false.
      */
     @DefaultValue("true")
     boolean isHealthStatusMonitorEnabled();
 
     /**
-     * To disable {@link V2JobStatusMonitor} set this flag to false.
+     * To disable {@link AggregatingAgentStatusMonitor} set this flag to false.
      */
     @DefaultValue("true")
     boolean isAggregatingStatusMonitorEnabled();

@@ -26,11 +26,7 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.fenzo.triggers.TriggerOperator;
 import com.netflix.fenzo.triggers.exceptions.SchedulerException;
 import com.netflix.titus.master.job.worker.WorkerResubmitRateLimiter;
-import com.netflix.titus.master.job.worker.WorkerStateMonitor;
 import com.netflix.titus.master.job.worker.internal.DefaultWorkerResubmitRateLimiter;
-import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
-import com.netflix.titus.master.store.WorkerStateObserver;
-import com.netflix.titus.master.store.WorkerStateObserverImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +38,7 @@ public final class JobModule extends AbstractModule {
     protected void configure() {
         bind(TriggerOperator.class).toProvider(TriggerOperatorProvider.class);
         bind(WorkerResubmitRateLimiter.class).to(DefaultWorkerResubmitRateLimiter.class);
-        bind(WorkerStateMonitor.class).to(DefaultWorkerStateMonitor.class);
         bind(V2JobOperations.class).to(V2JobOperationsImpl.class);
-        bind(WorkerStateObserver.class).to(WorkerStateObserverImpl.class).asEagerSingleton();
     }
 
     @Provides

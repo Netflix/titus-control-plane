@@ -30,8 +30,8 @@ import com.netflix.titus.master.agent.service.DefaultAgentManagementService;
 import com.netflix.titus.master.agent.service.cache.AgentCache;
 import com.netflix.titus.master.agent.service.cache.DefaultAgentCache;
 import com.netflix.titus.master.agent.service.monitor.AgentMonitorConfiguration;
+import com.netflix.titus.master.agent.service.monitor.LifecycleAgentStatusMonitor;
 import com.netflix.titus.master.agent.service.monitor.OnOffStatusMonitor;
-import com.netflix.titus.master.agent.service.monitor.V2JobStatusMonitor;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolvers;
 import com.netflix.titus.master.agent.store.AgentStoreReaper;
@@ -75,8 +75,8 @@ public class AgentModule extends AbstractModule {
     @Provides
     @Singleton
     public AgentStatusMonitor getAgentStatusMonitor(AgentManagementService agentManagementService,
-                                                    V2JobStatusMonitor v2JobStatusMonitor,
+                                                    LifecycleAgentStatusMonitor lifecycleAgentStatusMonitor,
                                                     AgentMonitorConfiguration config) {
-        return new OnOffStatusMonitor(agentManagementService, v2JobStatusMonitor, config::isJobStatusMonitorEnabled, Schedulers.computation());
+        return new OnOffStatusMonitor(agentManagementService, lifecycleAgentStatusMonitor, config::isLifecycleStatusMonitorEnabled, Schedulers.computation());
     }
 }

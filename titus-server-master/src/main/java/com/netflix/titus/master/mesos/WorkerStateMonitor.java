@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.job.worker.internal;
+package com.netflix.titus.master.mesos;
 
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import javax.annotation.PreDestroy;
@@ -32,80 +31,27 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
-import com.netflix.titus.api.model.v2.V2JobState;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.Status;
 import com.netflix.titus.master.VirtualMachineMasterService;
-import com.netflix.titus.master.job.JobManagerConfiguration;
-import com.netflix.titus.master.job.V2JobMgrIntf;
-import com.netflix.titus.master.job.worker.WorkerStateMonitor;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.mesos.ContainerEvent;
-import com.netflix.titus.master.mesos.V3ContainerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
 import rx.Observer;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
 
 @Singleton
-public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
+public class WorkerStateMonitor {
 
-    private class StateToMonitor {
-        private final V2JobMgrIntf jobMgr;
-        private int workerIndex;
-        private int workerNumber;
-        private final String taskId;
-        private V2JobState state;
-
-        StateToMonitor(V2JobMgrIntf jobMgr, int workerIndex, int workerNumber, String taskId, V2JobState state) {
-            this.jobMgr = jobMgr;
-            this.workerIndex = workerIndex;
-            this.workerNumber = workerNumber;
-            this.taskId = taskId;
-            this.state = state;
-        }
-
-        @Override
-        public String toString() {
-            return jobMgr.getJobId() + "-worker-" + workerIndex + "-" + workerNumber + ": state " + state;
-        }
-    }
-
-    private static final Logger logger = LoggerFactory.getLogger(DefaultWorkerStateMonitor.class);
+    private static final Logger logger = LoggerFactory.getLogger(WorkerStateMonitor.class);
 
     private final VirtualMachineMasterService vmService;
-    private final JobManagerConfiguration jobManagerConfiguration;
-    private final PublishSubject<StateToMonitor> workerStatesSubject;
-    private final PublishSubject<Status> allStatusSubject;
     private AtomicBoolean shutdownFlag = new AtomicBoolean();
 
     @Inject
-    public DefaultWorkerStateMonitor(VirtualMachineMasterService vmService,
-                                     V3JobOperations v3JobOperations,
-                                     JobManagerConfiguration jobManagerConfiguration,
-                                     TitusRuntime titusRuntime) {
+    public WorkerStateMonitor(VirtualMachineMasterService vmService,
+                              V3JobOperations v3JobOperations,
+                              TitusRuntime titusRuntime) {
         this.vmService = vmService;
-        this.jobManagerConfiguration = jobManagerConfiguration;
-        workerStatesSubject = PublishSubject.create();
-        workerStatesSubject
-                .groupBy(stateToMonitor ->
-                        stateToMonitor.jobMgr.getJobId() + stateToMonitor.workerIndex + "-" + stateToMonitor.workerNumber
-                )
-                .flatMap(statesGO -> statesGO
-                        .debounce(2000, TimeUnit.MILLISECONDS)
-                        .map(stateToMonitor -> {
-                            Schedulers.computation().createWorker().schedule(() ->
-                                    handleJobStuck(stateToMonitor), getMillisToWait(stateToMonitor.state, stateToMonitor.jobMgr), TimeUnit.MILLISECONDS
-                            );
-                            return !V2JobState.isTerminalState(stateToMonitor.state);
-                        })
-                        .takeWhile(keepGoing -> keepGoing))
-                .subscribe();
         vmService.getTaskStatusObservable().subscribe(new Observer<ContainerEvent>() {
             @Override
             public void onCompleted() {
@@ -164,7 +110,6 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
                 }
             }
         });
-        allStatusSubject = PublishSubject.create();
     }
 
     /**
@@ -188,24 +133,6 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
         return stateInHistory == TaskState.Accepted;
     }
 
-    private void killOrphanedTask(Status status) {
-        String taskId = status.getTaskId();
-
-        // This should never happen, but lets check it anyway
-        if (taskId == null) {
-            logger.warn("Task status update notification received, but no task id is given: {}", status);
-            return;
-        }
-
-        // If it is already terminated, do nothing
-        if (V2JobState.isTerminalState(status.getState())) {
-            return;
-        }
-
-        logger.warn("Received Mesos callback for unknown task: {} (state {}). Terminating it.", taskId, status.getState());
-        vmService.killTask(taskId);
-    }
-
     private void killOrphanedTask(V3ContainerEvent status) {
         String taskId = status.getTaskId();
 
@@ -227,48 +154,5 @@ public class DefaultWorkerStateMonitor implements WorkerStateMonitor {
     @PreDestroy
     public void shutdown() {
         shutdownFlag.set(true);
-    }
-
-    @Override
-    public Observable<Status> getAllStatusObservable() {
-        return allStatusSubject;
-    }
-
-    private void handleJobStuck(StateToMonitor stateToMonitor) {
-        if (!shutdownFlag.get()) {
-            V2JobMgrIntf jobMgr = stateToMonitor.jobMgr;
-            if (jobMgr == null) {
-                logger.warn("Can't find jobMgr to handle stuck worker for {}, has null jobMgr, ignoring...", stateToMonitor);
-            } else {
-                jobMgr.handleTaskStuckInState(stateToMonitor.taskId, stateToMonitor.state);
-            }
-        }
-    }
-
-    private long getMillisToWait(V2JobState state, V2JobMgrIntf jobMgr) {
-        switch (state) {
-            case Accepted:
-            case Started:
-                // TODO Accepted and Started are stable states. Do we need timeout here?
-                return 6000;
-            case Launched:
-                return jobManagerConfiguration.getTaskInLaunchedStateTimeoutMs();
-            case StartInitiated:
-                return isServiceJob(jobMgr)
-                        ? jobManagerConfiguration.getServiceTaskInStartInitiatedStateTimeoutMs()
-                        : jobManagerConfiguration.getBatchTaskInStartInitiatedStateTimeoutMs();
-            default:
-                return 0; // For now, not interested in monitoring other states in which worker could be stuck
-        }
-    }
-
-    private boolean isServiceJob(V2JobMgrIntf jobMgr) {
-        try {
-            V2JobMetadata jobMetadata = jobMgr.getJobMetadata();
-            return jobMetadata != null && Parameters.getJobType(jobMetadata.getParameters()) == Parameters.JobType.Service;
-        } catch (Exception e) {
-            logger.warn("Unexpected error during handling task stuck state", e);
-            return false;
-        }
     }
 }
