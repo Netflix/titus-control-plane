@@ -32,7 +32,8 @@ import reactor.core.publisher.Mono;
 public class TestingCapacityGroupSanitizer implements EntityValidator<JobDescriptor> {
     public final static String desiredCapacityGroup = "desiredCapacityGroup";
     private static final String ERR_FIELD = "fail-field";
-    private static final String ERR_DESCRIPTION = "The job does not have desired capacity group " + desiredCapacityGroup;
+    private static final String ERR_DESCRIPTION =
+            String.format("The job does not have desired capacity group %s", desiredCapacityGroup);
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {

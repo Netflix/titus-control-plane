@@ -32,7 +32,8 @@ import reactor.core.publisher.Mono;
 public class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
     public final static String desiredAppName = "desiredAppName";
     private static final String ERR_FIELD = "fail-field";
-    private static final String ERR_DESCRIPTION = "The job does not have desired appname " + desiredAppName;
+    private static final String ERR_DESCRIPTION =
+            String.format("The job does not have desired appname %s", desiredAppName);
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
