@@ -19,6 +19,7 @@ package com.netflix.titus.common.network.client.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,9 +82,14 @@ public class RxNettyRestClient implements RxRestClient {
 
     @Override
     public <T> Observable<T> doGET(String relativeURI, TypeProvider<T> type) {
+        return doGET(relativeURI, Collections.emptyMap(), type);
+    }
+
+    @Override
+    public <T> Observable<T> doGET(String relativeURI, Map<String, String> headers, TypeProvider<T> type) {
         return Observable.create(subscriber -> {
             long startTime = System.currentTimeMillis();
-            doGetInternal(relativeURI, type)
+            doGetInternal(relativeURI, headers, type)
                     .doOnTerminate(() -> registerLatency(HttpMethod.GET, startTime))
                     .subscribe(subscriber);
         });
@@ -129,8 +135,9 @@ public class RxNettyRestClient implements RxRestClient {
         });
     }
 
-    private <T> Observable<T> doGetInternal(String relativeURI, TypeProvider<T> type) {
+    private <T> Observable<T> doGetInternal(String relativeURI, Map<String, String> headers, TypeProvider<T> type) {
         HttpClientRequest<ByteBuf> httpRequest = HttpClientRequest.create(HttpMethod.GET, relativeURI);
+        headers.forEach(httpRequest::withHeader);
 
         return newClient().flatMap(client -> client.submit(httpRequest).doOnTerminate(client::shutdown))
                 .flatMap(response -> {

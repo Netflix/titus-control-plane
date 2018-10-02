@@ -49,7 +49,7 @@ public class JobSanitizerBuilder {
         return this;
     }
 
-    public JobSanitizerBuilder withJobConstrainstConfiguration(JobConfiguration jobConfiguration) {
+    public JobSanitizerBuilder withJobConstraintConfiguration(JobConfiguration jobConfiguration) {
         this.jobConfiguration = jobConfiguration;
         return this;
     }

@@ -95,6 +95,7 @@ subprojects {
         awaitilityVersion = '1.7.0'
         assertjVersion = '3.8.0'
         cassandraUnitVersion = '3.1.1.0'
+        mockServerVersion = '3.10.8'
     }
 
     tasks.withType(JavaCompile) {

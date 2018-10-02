@@ -21,7 +21,10 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -126,6 +129,34 @@ public class RxNettyRestClientTest {
         runHttpAndHttps(requesterHandler, () -> {
             MyEntity result = client.doGET("/path", TypeProviders.of(MyEntity.class)).toBlocking().first();
             assertThat(result).isEqualTo(actual);
+        });
+    }
+
+    @Test(timeout = 30_000)
+    public void testGetWithHeader() throws Exception {
+        MyEntity actual = new MyEntity("test");
+        final String requestHeaderKey = "requestKey";
+        final String requestHeaderValue = "requestValue";
+        final String responseHeaderKey = "responseKey";
+        final String responseHeaderValue = "responseValue";
+
+        RequestHandler<ByteBuf, ByteBuf> requestHandler = (request, response) -> {
+            if (request.getHeaders().contains(requestHeaderKey) &&
+                    request.getHeaders().get(requestHeaderKey).equals(requestHeaderValue)) {
+                response.setStatus(HttpResponseStatus.OK);
+            } else {
+                response.setStatus(HttpResponseStatus.BAD_REQUEST);
+            }
+            response.getHeaders().addHeader(responseHeaderKey, responseHeaderValue);
+            return response.writeAndFlush(toByteBuf(actual));
+        };
+
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put(requestHeaderKey, requestHeaderValue);
+        runHttpAndHttps(requestHandler, () -> {
+            RxHttpResponse result = client.doGET("/path", headers, TypeProviders.ofEmptyResponse()).toBlocking().first();
+            assertThat(result.getStatusCode()).isEqualTo(HttpResponseStatus.OK.code());
+            assertThat(result.getHeaders().get(responseHeaderKey)).isEqualTo(Collections.singletonList(responseHeaderValue));
         });
     }
 

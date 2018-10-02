@@ -62,7 +62,7 @@ public class TitusEntitySanitizerModule extends AbstractModule {
     private EntitySanitizer getJobEntitySanitizer(JobConfiguration jobConfiguration, VerifierMode verifierMode) {
         return new JobSanitizerBuilder()
                 .withVerifierMode(verifierMode)
-                .withJobConstrainstConfiguration(jobConfiguration)
+                .withJobConstraintConfiguration(jobConfiguration)
                 .withMaxContainerSizeResolver(capacityGroup -> ResourceDimension.newBuilder()
                         .withCpus(jobConfiguration.getCpuMax())
                         .withGpu(jobConfiguration.getGpuMax())

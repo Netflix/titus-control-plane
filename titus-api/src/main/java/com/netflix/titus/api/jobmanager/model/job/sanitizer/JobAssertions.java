@@ -105,10 +105,6 @@ public class JobAssertions {
             violations.put("noValidImageDigestOrTag", "must specify a valid digest or tag");
         }
 
-        if (validDigest && validTag) {
-            violations.put("bothImageDigestAndTagDefined", "must specify only a valid digest or tag and not both");
-        }
-
         return violations;
     }
 

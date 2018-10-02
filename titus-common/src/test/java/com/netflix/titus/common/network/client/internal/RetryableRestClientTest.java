@@ -17,20 +17,26 @@
 package com.netflix.titus.common.network.client.internal;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.common.network.client.RxRestClient;
+import com.netflix.titus.common.network.client.RxRestClientException;
 import com.netflix.titus.common.network.client.TypeProviders;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static java.lang.Math.toIntExact;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +48,7 @@ public class RetryableRestClientTest {
     private static final long RETRY_DELAY_MS = 200;
     private static final int RETRY_COUNT = 10;
     private static final String REPLY_TEXT = "ok";
+    private static final HttpResponseStatus noRetryStatus = HttpResponseStatus.NOT_FOUND;
 
     private final TestScheduler testScheduler = Schedulers.test();
 
@@ -54,12 +61,12 @@ public class RetryableRestClientTest {
     @Before
     public void setUp() throws Exception {
         client = new RetryableRestClient(delegate,
-                RETRY_COUNT, REQ_TIMEOUT_MS, RETRY_DELAY_MS, TimeUnit.MILLISECONDS, clientMetric, testScheduler);
+                RETRY_COUNT, REQ_TIMEOUT_MS, RETRY_DELAY_MS, TimeUnit.MILLISECONDS, Collections.singleton(noRetryStatus), clientMetric, testScheduler);
     }
 
     @Test
     public void testRetryOnError() throws Exception {
-        when(delegate.doGET("/path", STRING_TYPE_PROVIDER)).thenReturn(createFailingObservable(RETRY_COUNT));
+        when(delegate.doGET(eq("/path"), anyMap(), eq(STRING_TYPE_PROVIDER))).thenReturn(createFailingObservable(RETRY_COUNT));
 
         ExtTestSubscriber<String> replySubscriber = new ExtTestSubscriber<>();
         client.doGET("/path", STRING_TYPE_PROVIDER).subscribe(replySubscriber);
@@ -70,7 +77,7 @@ public class RetryableRestClientTest {
 
     @Test
     public void testRetryWithPermanentError() throws Exception {
-        when(delegate.doGET("/path", STRING_TYPE_PROVIDER)).thenReturn(createFailingObservable(RETRY_COUNT + 1));
+        when(delegate.doGET(eq("/path"), anyMap(), eq(STRING_TYPE_PROVIDER))).thenReturn(createFailingObservable(RETRY_COUNT + 1));
 
         ExtTestSubscriber<String> replySubscriber = new ExtTestSubscriber<>();
         client.doGET("/path", STRING_TYPE_PROVIDER).subscribe(replySubscriber);
@@ -81,13 +88,24 @@ public class RetryableRestClientTest {
 
     @Test
     public void testRetryOnTimeout() throws Exception {
-        when(delegate.doGET("/path", STRING_TYPE_PROVIDER)).thenReturn(createSlowObservable(RETRY_COUNT, REQ_TIMEOUT_MS));
+        when(delegate.doGET(eq("/path"), anyMap(), eq(STRING_TYPE_PROVIDER))).thenReturn(createSlowObservable(RETRY_COUNT, REQ_TIMEOUT_MS));
 
         ExtTestSubscriber<String> replySubscriber = new ExtTestSubscriber<>();
         client.doGET("/path", STRING_TYPE_PROVIDER).subscribe(replySubscriber);
 
         testScheduler.advanceTimeBy(RETRY_COUNT * (RetryableRestClient.MAX_DELAY_MS + REQ_TIMEOUT_MS), TimeUnit.MILLISECONDS);
         assertThat(replySubscriber.takeNext()).isEqualTo(REPLY_TEXT);
+    }
+
+    @Test
+    public void testNonretryableStatus() throws Exception {
+        when(delegate.doGET(eq("/path"), anyMap(), eq(STRING_TYPE_PROVIDER))).thenReturn(createStatusErrorObservable(noRetryStatus));
+
+        ExtTestSubscriber<String> replySubscriber = new ExtTestSubscriber<>();
+        client.doGET("/path", STRING_TYPE_PROVIDER).subscribe(replySubscriber);
+
+        replySubscriber.assertOnError(toIntExact(REQ_TIMEOUT_MS), TimeUnit.MILLISECONDS);
+        assertThat(replySubscriber.getError()).isExactlyInstanceOf(RxRestClientException.class);
     }
 
     private Observable<String> createFailingObservable(int errorCount) {
@@ -112,5 +130,9 @@ public class RetryableRestClientTest {
                 subscriber.onCompleted();
             }
         });
+    }
+
+    private Observable<String> createStatusErrorObservable(HttpResponseStatus status) {
+        return Observable.error(new RxRestClientException(status.code()));
     }
 }

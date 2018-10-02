@@ -19,31 +19,35 @@ package com.netflix.titus.api.jobmanager.model.job.validator;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation always causes validation to fail.  It is used for testing purposes.
+ * This {@link EntityValidator} implementation ensures a job's appname matches a specific
+ * string. It is only used for testing purposes.
  */
-public class FailJobValidator implements EntityValidator<JobDescriptor> {
-    public static final String ERR_FIELD = "fail-field";
-    public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with a unique error:";
+public class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
+    public final static String desiredAppName = "desiredAppName";
+    private static final String ERR_FIELD = "fail-field";
+    private static final String ERR_DESCRIPTION =
+            String.format("The job does not have desired appname %s", desiredAppName);
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
-        final String errorMsg = String.format("%s %s", ERR_DESCRIPTION, UUID.randomUUID().toString());
-        final ValidationError error = new ValidationError(ERR_FIELD, errorMsg);
-
+        if (entity.getApplicationName().equals(desiredAppName)) {
+            return Mono.just(Collections.emptySet());
+        }
+        final ValidationError error = new ValidationError(ERR_FIELD, ERR_DESCRIPTION);
         return Mono.just(new HashSet<>(Collections.singletonList(error)));
     }
 
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        return Mono.error(TitusServiceException.invalidArgument(ERR_DESCRIPTION));
+        return Mono.just(entity.toBuilder()
+                .withApplicationName(desiredAppName)
+                .build());
     }
 }

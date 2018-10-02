@@ -271,7 +271,7 @@ public class JobsScenarioBuilder {
     private EntitySanitizer newJobSanitizer(VerifierMode verifierMode) {
         return new JobSanitizerBuilder()
                 .withVerifierMode(verifierMode)
-                .withJobConstrainstConfiguration(jobSanitizerConfiguration)
+                .withJobConstraintConfiguration(jobSanitizerConfiguration)
                 .withMaxContainerSizeResolver(instanceType -> ResourceDimension.newBuilder()
                         .withCpus(64)
                         .withGpu(8)
