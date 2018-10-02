@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
  */
 public class ParallelValidatorTest {
     private static final JobDescriptor MOCK_JOB = mock(JobDescriptor.class);
-    private static final Duration TIMEOUT = Duration.ofMillis(10);
+    private static final Duration TIMEOUT = Duration.ofMillis(20);
 
     // Hard validation tests
 
