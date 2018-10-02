@@ -18,10 +18,13 @@ package com.netflix.titus.testkit.cli;
 
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.logging.Level;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.netflix.titus.testkit.cli.command.HealthCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentInstanceGetCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentLifecycleUpdateCommand;
@@ -70,36 +73,32 @@ public class CLI {
         rootLog.getHandlers()[0].setLevel(Level.WARNING);
     }
 
-    private static Map<String, CliCommand> COMMANDS = new TreeMap<String, CliCommand>() {{
-        put("health", new HealthCommand());
-
-        // Agent management
-        put("agentServerGroups", new AgentServerGroupGetCommand());
-        put("agentInstances", new AgentInstanceGetCommand());
-        put("agentOverride", new AgentOverrideCommand());
-        put("agentLifecycle", new AgentLifecycleUpdateCommand());
-        put("agentObserve", new AgentObserveCommand());
-
-        // Job management
-        put("submit", new JobSubmitCommand());
-        put("jobTemplate", new JobTemplateCommand());
-        put("findJobs", new JobsGetCommand());
-        put("findJob", new JobGetCommand());
-        put("findTasks", new TasksGetCommand());
-        put("findTask", new TaskGetCommand());
-        put("observeJobs", new ObserveJobsCommand());
-        put("inService", new JobInServiceCommand());
-        put("jobProcesses", new JobProcessesCommand());
-        put("resizeJob", new JobResizeCommand());
-        put("killJob", new JobKillCommand());
-        put("killTask", new KillTaskCommand());
-
-        // Scheduler
-        put("schedulingResults", new ObserveSchedulingResultCommand());
-
-        // Supervisor
-        put("supervisorEvents", new SupervisorObserveEventsCommand());
-    }};
+    private static final Map<String, CliCommand> BUILTIN_COMMANDS = ImmutableMap.<String, CliCommand>builder()
+            .put("health", new HealthCommand())
+            // Agent management
+            .put("agentServerGroups", new AgentServerGroupGetCommand())
+            .put("agentInstances", new AgentInstanceGetCommand())
+            .put("agentOverride", new AgentOverrideCommand())
+            .put("agentLifecycle", new AgentLifecycleUpdateCommand())
+            .put("agentObserve", new AgentObserveCommand())
+            // Job management
+            .put("submit", new JobSubmitCommand())
+            .put("jobTemplate", new JobTemplateCommand())
+            .put("findJobs", new JobsGetCommand())
+            .put("findJob", new JobGetCommand())
+            .put("findTasks", new TasksGetCommand())
+            .put("findTask", new TaskGetCommand())
+            .put("observeJobs", new ObserveJobsCommand())
+            .put("inService", new JobInServiceCommand())
+            .put("jobProcesses", new JobProcessesCommand())
+            .put("resizeJob", new JobResizeCommand())
+            .put("killJob", new JobKillCommand())
+            .put("killTask", new KillTaskCommand())
+            // Scheduler
+            .put("schedulingResults", new ObserveSchedulingResultCommand())
+            // Supervisor
+            .put("supervisorEvents", new SupervisorObserveEventsCommand())
+            .build();
 
     private final boolean helpRequested;
     private final String cmdName;
@@ -140,9 +139,19 @@ public class CLI {
         return new CommandContext(commandLine);
     }
 
+    protected Map<String, CliCommand> getCommandOverrides() {
+        return Collections.emptyMap();
+    }
+
+    private Map<String, CliCommand> getCommands() {
+        Map<String, CliCommand> merged = new HashMap<>(BUILTIN_COMMANDS);
+        merged.putAll(getCommandOverrides());
+        return ImmutableSortedMap.<String, CliCommand>naturalOrder().putAll(merged).build();
+    }
+
     private boolean hasHelpOption(String[] args) {
-        for (int i = 0; i < args.length; i++) {
-            if (args[i].equals("-h") || args[i].equals("--help")) {
+        for (String arg : args) {
+            if (arg.equals("-h") || arg.equals("--help")) {
                 return true;
             }
         }
@@ -178,7 +187,7 @@ public class CLI {
         writer.println("Available commands:");
         writer.println();
 
-        for (Map.Entry<String, CliCommand> entry : COMMANDS.entrySet()) {
+        for (Map.Entry<String, CliCommand> entry : getCommands().entrySet()) {
             CliCommand cliCmd = entry.getValue();
             writer.println(entry.getKey() + " (" + cliCmd.getDescription() + ')');
             formatter.printOptions(writer, 128, cliCmd.getOptions(), 4, 4);
@@ -187,7 +196,7 @@ public class CLI {
     }
 
     private CliCommand findCommand() {
-        CliCommand cmd = COMMANDS.get(cmdName);
+        CliCommand cmd = getCommands().get(cmdName);
         if (cmd == null) {
             throw new IllegalArgumentException("Unrecognized command " + cmdName);
         }
