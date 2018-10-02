@@ -214,14 +214,4 @@ public class GrpcJobManagementClient implements JobManagementClient {
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).killTask(taskKillRequest, streamObserver);
         }, configuration.getRequestTimeout());
     }
-
-    private void reportErrorMetrics(Set<ValidationError> errors, JobDescriptor jobDescriptor) {
-        errors.forEach(error ->
-                registry.counter(
-                        error.getField(),
-                        "type", error.getType().name(),
-                        "description", error.getDescription(),
-                        "application", jobDescriptor.getApplicationName())
-                        .increment());
-    }
 }

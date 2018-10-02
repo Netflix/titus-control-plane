@@ -134,7 +134,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                         .flatMap(sanitizedCoreJobDescriptor -> ReactorExt.toObservable(validator.validate(sanitizedCoreJobDescriptor))
                                 .flatMap(errors -> {
                                     // Report metrics on all errors
-                                    reportErrorMetrics(errors);
+                                    reportErrorMetrics(errors, sanitizedCoreJobDescriptor);
 
                                     // Only emit an error on HARD validation errors
                                     errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
@@ -299,12 +299,13 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
         return uniqueActiveTasks;
     }
 
-    private void reportErrorMetrics(Set<ValidationError> errors) {
+    private void reportErrorMetrics(Set<ValidationError> errors, com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
         errors.forEach(error ->
                 spectatorRegistry.counter(
                         error.getField(),
                         "type", error.getType().name(),
-                        "description", error.getDescription())
+                        "description", error.getDescription(),
+                        "application", jobDescriptor.getApplicationName())
                         .increment());
     }
 }
