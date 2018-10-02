@@ -72,7 +72,6 @@ import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
-import com.netflix.titus.master.job.worker.internal.DefaultWorkerStateMonitor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.store.V2StorageProvider;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
@@ -134,7 +133,6 @@ public class EmbeddedTitusMaster {
 
     private LifecycleInjector injector;
     private final List<AuditLogEvent> auditLogs = new CopyOnWriteArrayList<>();
-    private DefaultWorkerStateMonitor workerStateMonitor;
 
     private ManagedChannel grpcChannel;
 
@@ -265,7 +263,6 @@ public class EmbeddedTitusMaster {
             ).timeout(30, TimeUnit.SECONDS).toBlocking().firstOrDefault(null);
         }
 
-        workerStateMonitor = injector.getInstance(DefaultWorkerStateMonitor.class);
         logger.info("Embedded TitusMaster started in {}ms", timer.elapsed(TimeUnit.MILLISECONDS));
 
         return this;

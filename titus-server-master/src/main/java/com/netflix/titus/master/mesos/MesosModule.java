@@ -33,6 +33,8 @@ public class MesosModule extends AbstractModule {
         bind(VirtualMachineMasterService.class).to(VirtualMachineMasterServiceMesosImpl.class);
         bind(VirtualMachineMasterServiceActivator.class).asEagerSingleton();
 
+        bind(WorkerStateMonitor.class).asEagerSingleton();
+
         install(new HealthModule() {
             @Override
             protected void configureHealth() {

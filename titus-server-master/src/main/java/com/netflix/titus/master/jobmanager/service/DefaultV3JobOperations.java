@@ -67,6 +67,7 @@ import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent
 import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
+import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -97,12 +98,16 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private Subscription transactionLoggerSubscription;
     private Subscription reconcilerEventSubscription;
 
+    /**
+     * WARNING: we depend here on {@link ManagementSubsystemInitializer} to enforce proper initialization order.
+     */
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
                                   JobStore store,
                                   VirtualMachineMasterService vmService,
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
                                   JobSubmitLimiter jobSubmitLimiter,
+                                  ManagementSubsystemInitializer managementSubsystemInitializer,
                                   TitusRuntime titusRuntime) {
         this.store = store;
         this.vmService = vmService;
