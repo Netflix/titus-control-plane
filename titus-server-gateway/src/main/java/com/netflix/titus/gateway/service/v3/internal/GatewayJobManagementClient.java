@@ -205,7 +205,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                 Page page = taskQuery.getPage();
                 boolean nextPageByNumber = StringExt.isEmpty(page.getCursor()) && page.getPageNumber() > 0;
 
-                if (taskStates.size() > 1 && nextPageByNumber) {
+                if (nextPageByNumber) {
                     // In this case we ask for active and archived tasks using a page number > 0. Because of that
                     // we have to fetch as much tasks from master as we can. Tasks that we do not fetch, will not be
                     // visible to the client.
