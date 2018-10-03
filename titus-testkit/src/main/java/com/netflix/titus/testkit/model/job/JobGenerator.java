@@ -21,6 +21,7 @@ import java.util.UUID;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
@@ -96,6 +97,10 @@ public class JobGenerator {
                         .withState(JobState.Accepted).build())
                 .withJobDescriptor(jobDescriptor)
                 .build());
+    }
+
+    public static DataGenerator<Job<BatchJobExt>> batchJobsOfSize(int size) {
+        return batchJobs(JobFunctions.changeBatchJobSize(JobDescriptorGenerator.oneTaskBatchJobDescriptor(), size));
     }
 
     /**

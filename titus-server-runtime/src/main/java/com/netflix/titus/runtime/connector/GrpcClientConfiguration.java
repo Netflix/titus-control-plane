@@ -27,4 +27,10 @@ public interface GrpcClientConfiguration {
      */
     @DefaultValue("10000")
     long getRequestTimeout();
+
+    /**
+     * Maximum number of tasks in a page. This limit exists due to the GRPC buffer limits.
+     */
+    @DefaultValue("5000")
+    int getMaxTaskPageSize();
 }

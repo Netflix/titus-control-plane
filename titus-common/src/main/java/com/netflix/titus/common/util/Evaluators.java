@@ -16,8 +16,13 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A collection of higher order functions helping in conditional expression evaluations.
@@ -69,5 +74,17 @@ public final class Evaluators {
         for (int i = 0; i < count; i++) {
             task.accept(i);
         }
+    }
+
+    public static <T> List<T> evaluateTimes(int count, Function<Integer, T> transformer) {
+        Preconditions.checkArgument(count >= 0);
+        if (count == 0) {
+            return Collections.emptyList();
+        }
+        List<T> result = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            result.add(transformer.apply(i));
+        }
+        return result;
     }
 }

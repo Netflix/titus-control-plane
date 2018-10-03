@@ -62,14 +62,6 @@ public final class JobFunctions {
         throw new IllegalStateException("Unexpected V3 task state: " + v3TaskState);
     }
 
-    public static boolean isV2JobId(String jobId) {
-        return jobId.startsWith("Titus-");
-    }
-
-    public static boolean isV2Task(String taskId) {
-        return isV2JobId(taskId);
-    }
-
     public static boolean isBatchJob(Job<?> job) {
         return job.getJobDescriptor().getExtensions() instanceof BatchJobExt;
     }

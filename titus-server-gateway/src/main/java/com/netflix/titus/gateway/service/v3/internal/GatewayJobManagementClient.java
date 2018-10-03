@@ -17,6 +17,7 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +31,6 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
@@ -49,6 +49,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -58,7 +59,6 @@ import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.JobManagementClientDelegate;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
@@ -147,19 +147,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                 })
                         );
 
-        return sanitizedCoreJobDescriptorObs
-                .flatMap(scjd -> {
-                    JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(scjd);
-                    return createRequestObservable(emitter -> {
-                        StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
-                                emitter,
-                                jobId -> emitter.onNext(jobId.getId()),
-                                emitter::onError,
-                                emitter::onCompleted
-                        );
-                        createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
-                    }, configuration.getRequestTimeout());
-                });
+        return sanitizedCoreJobDescriptorObs.flatMap(scjd -> super.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(scjd)));
     }
 
     @Override
@@ -200,26 +188,47 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
 
     @Override
     public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
-        Observable<TaskQueryResult> observable = createRequestObservable(emitter -> {
+        Map<String, String> filteringCriteriaMap = taskQuery.getFilteringCriteriaMap();
+        Set<String> v3JobIds = new HashSet<>(StringExt.splitByComma(filteringCriteriaMap.getOrDefault("jobIds", "")));
+
+        Observable<TaskQueryResult> observable;
+        if (v3JobIds.isEmpty()) {
+            // Active task set only
+            observable = newActiveTaskQueryAction(taskQuery);
+        } else {
+            Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(taskQuery.getFilteringCriteriaMap().getOrDefault("taskStates", "")));
+
+            if (!taskStates.contains(TaskState.Finished.name())) {
+                // Active task set only
+                observable = newActiveTaskQueryAction(taskQuery);
+            } else {
+                Page page = taskQuery.getPage();
+                boolean nextPageByNumber = StringExt.isEmpty(page.getCursor()) && page.getPageNumber() > 0;
+
+                if (taskStates.size() > 1 && nextPageByNumber) {
+                    // In this case we ask for active and archived tasks using a page number > 0. Because of that
+                    // we have to fetch as much tasks from master as we can. Tasks that we do not fetch, will not be
+                    // visible to the client.
+                    TaskQuery largePageQuery = taskQuery.toBuilder().setPage(taskQuery.getPage().toBuilder().setPageNumber(0).setPageSize(configuration.getMaxTaskPageSize())).build();
+                    observable = newActiveTaskQueryAction(largePageQuery);
+                } else {
+                    observable = newActiveTaskQueryAction(taskQuery);
+                }
+
+                observable = observable.flatMap(result ->
+                        retrieveArchivedTasksForJobs(v3JobIds).map(archivedTasks -> combineTaskResults(taskQuery, result, archivedTasks))
+                );
+            }
+        }
+
+        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+    }
+
+    private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery) {
+        return createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
         }, configuration.getRequestTimeout());
-
-        observable = observable.flatMap(result -> {
-            Map<String, String> filteringCriteriaMap = taskQuery.getFilteringCriteriaMap();
-            Set<String> v3JobIds = StringExt.splitByComma(filteringCriteriaMap.getOrDefault("jobIds", "")).stream()
-                    .filter(jobId -> !JobFunctions.isV2JobId(jobId))
-                    .collect(Collectors.toSet());
-            Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(filteringCriteriaMap.getOrDefault("taskStates", "")));
-            if (!v3JobIds.isEmpty() && taskStates.contains(TaskState.Finished.name())) {
-                return retrieveArchivedTasksForJobs(v3JobIds)
-                        .map(archivedTasks -> combineTaskResults(taskQuery, result, archivedTasks));
-            } else {
-                return Observable.just(result);
-            }
-        });
-
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     private Observable<Job> retrieveArchivedJob(String jobId) {
@@ -243,9 +252,23 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                 .toSortedList((first, second) -> Long.compare(first.getStatus().getTimestamp(), second.getStatus().getTimestamp()));
     }
 
-    private TaskQueryResult combineTaskResults(TaskQuery taskQuery,
-                                               TaskQueryResult activeTasksResult,
-                                               List<Task> archivedTasks) {
+    private Observable<Task> retrieveArchivedTask(String taskId) {
+        return store.retrieveArchivedTask(taskId)
+                .onErrorResumeNext(e -> {
+                    if (e instanceof JobStoreException) {
+                        JobStoreException storeException = (JobStoreException) e;
+                        if (storeException.getErrorCode().equals(JobStoreException.ErrorCode.TASK_DOES_NOT_EXIST)) {
+                            return Observable.error(TitusServiceException.taskNotFound(taskId));
+                        }
+                    }
+                    return Observable.error(TitusServiceException.unexpected("Not able to retrieve the task: %s (%s)", taskId, ExceptionExt.toMessageChain(e)));
+                }).map(task -> V3GrpcModelConverters.toGrpcTask(task, logStorageInfo));
+    }
+
+    @VisibleForTesting
+    static TaskQueryResult combineTaskResults(TaskQuery taskQuery,
+                                              TaskQueryResult activeTasksResult,
+                                              List<Task> archivedTasks) {
         List<Task> tasks = deDupTasks(activeTasksResult.getItemsList(), archivedTasks);
 
         Pair<List<Task>, Pagination> paginationPair = PaginationUtil.takePageWithCursor(
@@ -272,19 +295,11 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                 .build();
     }
 
-    private Observable<Task> retrieveArchivedTask(String taskId) {
-        return store.retrieveArchivedTask(taskId)
-                .onErrorResumeNext(e -> {
-                    if (e instanceof JobStoreException) {
-                        JobStoreException storeException = (JobStoreException) e;
-                        if (storeException.getErrorCode().equals(JobStoreException.ErrorCode.TASK_DOES_NOT_EXIST)) {
-                            return Observable.error(TitusServiceException.taskNotFound(taskId));
-                        }
-                    }
-                    return Observable.error(TitusServiceException.unexpected("Not able to retrieve the task: %s (%s)", taskId, ExceptionExt.toMessageChain(e)));
-                }).map(task -> V3GrpcModelConverters.toGrpcTask(task, logStorageInfo));
-    }
-
+    /**
+     * It is ok to find the same task in the active and the archived data set. This may happen as the active and the archive
+     * queries are run one after the other. In such case we know that the archive task is the latest copy, and should be
+     * returned to the client.
+     */
     @VisibleForTesting
     static List<Task> deDupTasks(List<Task> activeTasks, List<Task> archivedTasks) {
         Map<String, Task> archivedTasksMap = archivedTasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
