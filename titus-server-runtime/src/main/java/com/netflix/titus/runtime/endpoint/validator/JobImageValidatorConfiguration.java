@@ -21,6 +21,6 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.validate.job.image")
 public interface JobImageValidatorConfiguration {
-    @DefaultValue("false")
+    @DefaultValue("true")
     boolean isEnabled();
 }
