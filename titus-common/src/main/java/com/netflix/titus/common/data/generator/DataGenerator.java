@@ -40,6 +40,7 @@ import com.netflix.titus.common.data.generator.internal.LimitDataGenerator;
 import com.netflix.titus.common.data.generator.internal.LongRangeDataGenerator;
 import com.netflix.titus.common.data.generator.internal.LoopedDataGenerator;
 import com.netflix.titus.common.data.generator.internal.MappedDataGenerator;
+import com.netflix.titus.common.data.generator.internal.MappedWithIndexDataGenerator;
 import com.netflix.titus.common.data.generator.internal.MergeDataGenerator;
 import com.netflix.titus.common.data.generator.internal.RandomDataGenerator;
 import com.netflix.titus.common.data.generator.internal.SeqDataGenerator;
@@ -97,6 +98,10 @@ public abstract class DataGenerator<A> {
         return getOptionalValue().orElseThrow(() -> new IllegalStateException("No more values"));
     }
 
+    public List<A> getValues(int count) {
+        return getAndApply(count).getRight();
+    }
+
     public abstract Optional<A> getOptionalValue();
 
     public <B> DataGenerator<B> cast(Class<B> newType) {
@@ -151,6 +156,10 @@ public abstract class DataGenerator<A> {
 
     public <B> DataGenerator<B> map(Function<A, B> transformer) {
         return MappedDataGenerator.newInstance(this, transformer);
+    }
+
+    public <B> DataGenerator<B> map(BiFunction<Long, A, B> transformer) {
+        return MappedWithIndexDataGenerator.newInstance(this, transformer);
     }
 
     public DataGenerator<A> random() {

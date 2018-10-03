@@ -33,9 +33,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.model.EfsMount;
-import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -413,10 +411,6 @@ public class SimulatedTitusAgent {
     }
 
     private String extractJobId(Protos.TaskInfo task) {
-        String v2TaskId = task.getTaskId().getValue();
-        if (JobFunctions.isV2Task(v2TaskId)) {
-            return WorkerNaming.getJobAndWorkerId(v2TaskId).jobId;
-        }
         ContainerInfo containerInfo;
         try {
             containerInfo = ContainerInfo.parseFrom(task.getData());

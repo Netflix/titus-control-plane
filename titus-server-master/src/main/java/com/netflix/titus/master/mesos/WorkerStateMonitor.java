@@ -24,7 +24,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -65,10 +64,9 @@ public class WorkerStateMonitor {
 
             @Override
             public void onNext(ContainerEvent containerEvent) {
-                // V3
                 try {
                     V3ContainerEvent args = (V3ContainerEvent) containerEvent;
-                    if (args.getTaskId() != null && !JobFunctions.isV2Task(args.getTaskId())) {
+                    if (args.getTaskId() != null) {
                         Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
                         if (jobAndTaskOpt.isPresent()) {
                             Task task = jobAndTaskOpt.get().getRight();
