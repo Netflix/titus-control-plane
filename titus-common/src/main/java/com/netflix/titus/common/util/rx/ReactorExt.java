@@ -17,6 +17,7 @@
 package com.netflix.titus.common.util.rx;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
@@ -33,6 +34,10 @@ import rx.Single;
 public final class ReactorExt {
 
     private ReactorExt() {
+    }
+
+    public static <T> Flux<T> fromListener(Consumer<Consumer<T>> register, Consumer<Consumer<T>> unregister) {
+        return null;
     }
 
     /**
