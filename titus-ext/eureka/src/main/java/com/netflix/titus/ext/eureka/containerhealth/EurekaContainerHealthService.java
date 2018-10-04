@@ -1,14 +1,18 @@
 package com.netflix.titus.ext.eureka.containerhealth;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.base.Preconditions;
 import com.netflix.appinfo.InstanceInfo;
+import com.netflix.discovery.CacheRefreshedEvent;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.EurekaEvent;
 import com.netflix.discovery.EurekaEventListener;
@@ -18,6 +22,7 @@ import com.netflix.titus.api.containerhealth.model.event.ContainerHealthChangeEv
 import com.netflix.titus.api.containerhealth.model.event.ContainerHealthEvent;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
@@ -48,15 +53,16 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         this.titusRuntime = titusRuntime;
 
         Flux<EurekaEvent> eurekaCallbacks = ReactorExt.fromListener(
-                h -> eurekaClient.registerEventListener((EurekaEventListener) h),
-                h -> eurekaClient.unregisterEventListener((EurekaEventListener) h)
+                EurekaEventListener.class,
+                eurekaClient::registerEventListener,
+                eurekaClient::unregisterEventListener
         );
 
         this.healthStatuses = Flux.defer(() -> {
             ConcurrentMap<String, ContainerHealthEvent> current = new ConcurrentHashMap<>();
             return Flux.merge(eurekaCallbacks, ReactorExt.toFlux(jobOperations.observeJobs()))
-                    .flatMap(event -> handleStatusUpdate(event, current));
-        }).share();
+                    .flatMap(event -> handleJobManagerOrEurekaStatusUpdate(event, current));
+        }).share().compose(ReactorExt.badSubscriberHandler(logger));
     }
 
     @Override
@@ -96,6 +102,11 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         if (CollectionsExt.isNullOrEmpty(instances)) {
             state = ContainerHealthState.Unknown;
         } else {
+            // If it is finished, ignore Eureka status
+            if (task.getStatus().getState() == TaskState.Finished) {
+                return ContainerHealthState.Terminated;
+            }
+
             InstanceInfo instance = instances.get(0);
             state = instance.getStatus() == InstanceInfo.InstanceStatus.UP
                     ? ContainerHealthState.Healthy
@@ -104,9 +115,9 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         return state;
     }
 
-    private Flux<ContainerHealthEvent> handleStatusUpdate(Object event, ConcurrentMap<String, ContainerHealthEvent> state) {
+    private Flux<ContainerHealthEvent> handleJobManagerOrEurekaStatusUpdate(Object event, ConcurrentMap<String, ContainerHealthEvent> state) {
         if (event instanceof JobManagerEvent) {
-            return handleJobEvent((JobManagerEvent) event, state);
+            return handleJobManagerEvent((JobManagerEvent) event, state);
         }
         if (event instanceof EurekaEvent) {
             return handleEurekaEvent((EurekaEvent) event, state);
@@ -114,31 +125,58 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         return Flux.empty();
     }
 
-    private Flux<ContainerHealthEvent> handleJobEvent(JobManagerEvent event, ConcurrentMap<String, ContainerHealthEvent> state) {
+    private Flux<ContainerHealthEvent> handleJobManagerEvent(JobManagerEvent event, ConcurrentMap<String, ContainerHealthEvent> state) {
         if (!(event instanceof TaskUpdateEvent)) {
             return Flux.empty();
         }
+        return handleTaskStateUpdate(((TaskUpdateEvent) event).getCurrentTask(), state).map(Flux::just).orElse(Flux.empty());
+    }
 
-        TaskUpdateEvent taskEvent = (TaskUpdateEvent) event;
-        Task task = taskEvent.getCurrentTask();
+    private Flux<ContainerHealthEvent> handleEurekaEvent(EurekaEvent event, ConcurrentMap<String, ContainerHealthEvent> state) {
+        if (!(event instanceof CacheRefreshedEvent)) {
+            return Flux.empty();
+        }
 
+        List<Task> allTasks = jobOperations.getTasks();
+        List<ContainerHealthEvent> events = new ArrayList<>();
+        allTasks.forEach(t -> handleTaskStateUpdate(t, state).ifPresent(events::add));
+
+        // Cleanup, in case we have stale entries.
+        Set<String> unknownTaskIds = CollectionsExt.copyAndRemove(state.keySet(), allTasks.stream().map(Task::getId).collect(Collectors.toSet()));
+        unknownTaskIds.forEach(taskId -> {
+            state.remove(taskId);
+
+            // Assume the task was terminated.
+            ContainerHealthStatus terminatedStatus = ContainerHealthStatus.newBuilder()
+                    .withTaskId(taskId)
+                    .withTimestamp(titusRuntime.getClock().wallTime())
+                    .withState(ContainerHealthState.Terminated).build();
+
+            events.add(ContainerHealthChangeEvent.healthChanged(terminatedStatus));
+        });
+
+        return Flux.fromIterable(events);
+    }
+
+    private Optional<ContainerHealthEvent> handleTaskStateUpdate(Task task, ConcurrentMap<String, ContainerHealthEvent> state) {
         ContainerHealthChangeEvent lastEvent = (ContainerHealthChangeEvent) state.get(task.getId());
         if (lastEvent == null) {
-            ContainerHealthChangeEvent newEvent = ContainerHealthEvent.healthChanged(buildHealthStatus(task));
-            state.put(task.getId(), newEvent);
-            return Flux.just(newEvent);
+            return Optional.of(recordNewState(state, task, ContainerHealthEvent.healthChanged(buildHealthStatus(task))));
         }
 
         ContainerHealthState newTaskState = takeStateOf(task);
         if (lastEvent.getContainerHealthStatus().getState() == newTaskState) {
-            return Flux.empty();
+            return Optional.empty();
         }
-        ContainerHealthChangeEvent newEvent = ContainerHealthEvent.healthChanged(buildHealthStatus(task, newTaskState));
-        state.put(task.getId(), newEvent);
-        return Flux.just(newEvent);
+        return Optional.of(recordNewState(state, task, ContainerHealthEvent.healthChanged(buildHealthStatus(task, newTaskState))));
     }
 
-    private Flux<ContainerHealthEvent> handleEurekaEvent(EurekaEvent event, ConcurrentMap<String, ContainerHealthEvent> state) {
-        return null;
+    private ContainerHealthChangeEvent recordNewState(ConcurrentMap<String, ContainerHealthEvent> state, Task task, ContainerHealthChangeEvent newEvent) {
+        if (task.getStatus().getState() != TaskState.Finished) {
+            state.put(task.getId(), newEvent);
+        } else {
+            state.remove(task.getId());
+        }
+        return newEvent;
     }
 }

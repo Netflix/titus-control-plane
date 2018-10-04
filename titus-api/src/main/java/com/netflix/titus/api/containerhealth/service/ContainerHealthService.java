@@ -3,8 +3,9 @@ package com.netflix.titus.api.containerhealth.service;
 import java.util.Optional;
 
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
-import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.containerhealth.model.event.ContainerHealthEvent;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import reactor.core.publisher.Flux;
 
 /**
@@ -16,6 +17,10 @@ public interface ContainerHealthService {
      * Container health provider name.
      */
     String getName();
+
+    default ContainerHealthStatus getHealthStatus(String taskId) {
+        return findHealthStatus(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
+    }
 
     /**
      * Returns task's status, if the task with the given id is known or {@link Optional#empty()} otherwise.

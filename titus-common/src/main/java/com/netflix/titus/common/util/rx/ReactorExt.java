@@ -22,6 +22,8 @@ import java.util.function.Function;
 
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -36,8 +38,47 @@ public final class ReactorExt {
     private ReactorExt() {
     }
 
-    public static <T> Flux<T> fromListener(Consumer<Consumer<T>> register, Consumer<Consumer<T>> unregister) {
-        return null;
+    public static <L, T> Flux<T> fromListener(Class<L> listener, Consumer<L> register, Consumer<L> unregister) {
+        return FluxListenerInvocationHandler.adapt(listener, register, unregister);
+    }
+
+    /**
+     * In case subscriber does not provide exception handler, the error is propagated back to source, and the stream is broken.
+     * In some scenarios it is undesirable behavior. This method wraps the unprotected observable, and logs all unhandled
+     * exceptions using the provided logger.
+     */
+    public static <T> Function<Flux<T>, Publisher<T>> badSubscriberHandler(Logger logger) {
+        return source -> Flux.create(emitter -> {
+            Disposable subscription = source.subscribe(
+                    event -> {
+                        try {
+                            emitter.next(event);
+                        } catch (Exception e) {
+                            try {
+                                emitter.error(e);
+                            } catch (Exception e2) {
+                                logger.warn("Subscriber threw an exception from onNext handler", e);
+                                logger.warn("Subscriber threw an exception from onError handler", e2);
+                            }
+                        }
+                    },
+                    e -> {
+                        try {
+                            emitter.error(e);
+                        } catch (Exception e2) {
+                            logger.warn("Subscriber threw an exception from onError handler", e2);
+                        }
+                    },
+                    () -> {
+                        try {
+                            emitter.complete();
+                        } catch (Exception e) {
+                            logger.warn("Subscriber threw an exception from onCompleted handler", e);
+                        }
+                    }
+            );
+            emitter.onDispose(() -> safeDispose(subscription));
+        });
     }
 
     /**
@@ -46,6 +87,15 @@ public final class ReactorExt {
      */
     public static <T> Function<Flux<T>, Publisher<T>> reEmitter(Function<T, T> transformer, long interval, TimeUnit timeUnit, Scheduler scheduler) {
         return new ReactorReEmitterOperator<>(transformer, interval, timeUnit, scheduler);
+    }
+
+    public static void safeDispose(Disposable... disposables) {
+        for (Disposable disposable : disposables) {
+            try {
+                disposable.dispose();
+            } catch (Exception ignore) {
+            }
+        }
     }
 
     /**

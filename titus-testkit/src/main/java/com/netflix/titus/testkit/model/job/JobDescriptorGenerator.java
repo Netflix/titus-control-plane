@@ -17,11 +17,13 @@
 package com.netflix.titus.testkit.model.job;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -73,7 +75,7 @@ public final class JobDescriptorGenerator {
         );
     }
 
-    public static DataGenerator<JobDescriptor<BatchJobExt>> batchJobDescriptors() {
+    public static DataGenerator<JobDescriptor<BatchJobExt>> batchJobDescriptors(Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>>... modifiers) {
         DataGenerator<JobDescriptor.Builder<BatchJobExt>> withOwner = union(
                 items(JobModel.<BatchJobExt>newJobDescriptor()),
                 owners(),
@@ -104,11 +106,24 @@ public final class JobDescriptorGenerator {
                 batchJobExtensions(),
                 (builder, batchJobExt) -> builder.but().withExtensions(batchJobExt)
         );
-        return withExtensions.map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
-                .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
-                .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_CELL_NAME)
-                .entry("labelA", "valueA")
-                .toMap()).build());
+        return withExtensions
+                .map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
+                        .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
+                        .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_CELL_NAME)
+                        .entry("labelA", "valueA")
+                        .toMap()).build()
+                )
+                .map(jd -> {
+                    JobDescriptor<BatchJobExt> result = jd;
+                    for (Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> modifier : modifiers) {
+                        result = modifier.apply(result);
+                    }
+                    return result;
+                });
+    }
+
+    public static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> ofBatchSize(int size) {
+        return jd -> JobFunctions.changeBatchJobSize(jd, size);
     }
 
     public static DataGenerator<JobDescriptor<ServiceJobExt>> serviceJobDescriptors() {
