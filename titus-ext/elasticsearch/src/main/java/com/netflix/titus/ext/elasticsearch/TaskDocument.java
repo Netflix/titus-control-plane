@@ -77,6 +77,7 @@ public class TaskDocument {
     private TitusJobType type;
     private Map<String, String> labels;
     private String version;
+    private String digest;
     private String entryPoint;
     private Boolean inService;
     private int instances;
@@ -134,6 +135,8 @@ public class TaskDocument {
     public String getVersion() {
         return version;
     }
+
+    public String getDigest() { return digest; }
 
     public String getEntryPoint() {
         return entryPoint;
@@ -367,6 +370,7 @@ public class TaskDocument {
         taskDocument.user = jobDescriptor.getOwner().getTeamEmail();
         taskDocument.labels = container.getAttributes();
         taskDocument.version = image.getTag();
+        taskDocument.digest = image.getDigest();
         taskDocument.entryPoint = StringExt.concatenate(container.getEntryPoint(), " ");
         taskDocument.cpu = containerResources.getCpu();
         taskDocument.memory = containerResources.getMemoryMB();
