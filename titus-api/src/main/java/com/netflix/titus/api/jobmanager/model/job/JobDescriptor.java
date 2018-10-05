@@ -16,11 +16,16 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import javax.validation.Valid;
 import javax.validation.constraints.Size;
 
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
@@ -35,6 +40,13 @@ import com.netflix.titus.common.util.CollectionsExt;
 @ClassFieldsNotNull
 @ClassInvariant(expr = "@asserts.notExceedsComputeResources(capacityGroup, container)", mode = VerifierMode.Strict)
 public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
+
+    private static final DisruptionBudget DEFAULT_DISRUPTION_BUDGET = DisruptionBudget.newBuilder()
+            .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
+            .withDisruptionBudgetRate(UnlimitedDisruptionBudgetRate.newBuilder().build())
+            .withTimeWindows(Collections.emptyList())
+            .withContainerHealthProviders(Collections.emptyList())
+            .build();
 
     /**
      * A marker interface for {@link JobDescriptor} extensions.
@@ -61,6 +73,9 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     private final Container container;
 
     @Valid
+    private final DisruptionBudget disruptionBudget;
+
+    @Valid
     private final E extensions;
 
     public JobDescriptor(Owner owner,
@@ -69,6 +84,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                          JobGroupInfo jobGroupInfo,
                          Map<String, String> attributes,
                          Container container,
+                         DisruptionBudget disruptionBudget,
                          E extensions) {
         this.owner = owner;
         this.applicationName = applicationName;
@@ -77,6 +93,13 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         this.attributes = CollectionsExt.nullableImmutableCopyOf(attributes);
         this.container = container;
         this.extensions = extensions;
+
+        //TODO remove this once we start storing the disruption budget
+        if (disruptionBudget == null) {
+            this.disruptionBudget = DEFAULT_DISRUPTION_BUDGET;
+        } else {
+            this.disruptionBudget = disruptionBudget;
+        }
     }
 
     /**
@@ -124,6 +147,13 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     /**
+     * Disruption budget to use for a job.
+     */
+    public DisruptionBudget getDisruptionBudget() {
+        return disruptionBudget;
+    }
+
+    /**
      * Returns job type specific data.
      */
     public E getExtensions() {
@@ -138,40 +168,20 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         JobDescriptor<?> that = (JobDescriptor<?>) o;
-
-        if (owner != null ? !owner.equals(that.owner) : that.owner != null) {
-            return false;
-        }
-        if (applicationName != null ? !applicationName.equals(that.applicationName) : that.applicationName != null) {
-            return false;
-        }
-        if (capacityGroup != null ? !capacityGroup.equals(that.capacityGroup) : that.capacityGroup != null) {
-            return false;
-        }
-        if (jobGroupInfo != null ? !jobGroupInfo.equals(that.jobGroupInfo) : that.jobGroupInfo != null) {
-            return false;
-        }
-        if (attributes != null ? !attributes.equals(that.attributes) : that.attributes != null) {
-            return false;
-        }
-        if (container != null ? !container.equals(that.container) : that.container != null) {
-            return false;
-        }
-        return extensions != null ? extensions.equals(that.extensions) : that.extensions == null;
+        return Objects.equals(owner, that.owner) &&
+                Objects.equals(applicationName, that.applicationName) &&
+                Objects.equals(capacityGroup, that.capacityGroup) &&
+                Objects.equals(jobGroupInfo, that.jobGroupInfo) &&
+                Objects.equals(attributes, that.attributes) &&
+                Objects.equals(container, that.container) &&
+                Objects.equals(disruptionBudget, that.disruptionBudget) &&
+                Objects.equals(extensions, that.extensions);
     }
 
     @Override
     public int hashCode() {
-        int result = owner != null ? owner.hashCode() : 0;
-        result = 31 * result + (applicationName != null ? applicationName.hashCode() : 0);
-        result = 31 * result + (capacityGroup != null ? capacityGroup.hashCode() : 0);
-        result = 31 * result + (jobGroupInfo != null ? jobGroupInfo.hashCode() : 0);
-        result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
-        result = 31 * result + (container != null ? container.hashCode() : 0);
-        result = 31 * result + (extensions != null ? extensions.hashCode() : 0);
-        return result;
+        return Objects.hash(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, extensions);
     }
 
     @Override
@@ -183,6 +193,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 ", jobGroupInfo=" + jobGroupInfo +
                 ", attributes=" + attributes +
                 ", container=" + container +
+                ", disruptionBudget=" + disruptionBudget +
                 ", extensions=" + extensions +
                 '}';
     }
@@ -213,6 +224,12 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         if (result instanceof Container.Builder) {
             return toBuilder().withContainer(((Container.Builder) result).build()).build();
         }
+        if (result instanceof DisruptionBudget) {
+            return toBuilder().withDisruptionBudget((DisruptionBudget) result).build();
+        }
+        if (result instanceof DisruptionBudget.Builder) {
+            return toBuilder().withDisruptionBudget(((DisruptionBudget.Builder) result).build()).build();
+        }
         if (result instanceof JobDescriptorExt) {
             return toBuilder().withExtensions((E) result).build();
         }
@@ -241,6 +258,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 .withJobGroupInfo(jobDescriptor.getJobGroupInfo())
                 .withAttributes(jobDescriptor.getAttributes())
                 .withContainer(jobDescriptor.getContainer())
+                .withDisruptionBudget(jobDescriptor.getDisruptionBudget())
                 .withExtensions(jobDescriptor.getExtensions());
     }
 
@@ -251,6 +269,7 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
         private JobGroupInfo jobGroupInfo;
         private Map<String, String> attributes;
         private Container container;
+        private DisruptionBudget disruptionBudget;
         private E extensions;
 
         private Builder() {
@@ -286,6 +305,11 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
             return this;
         }
 
+        public Builder<E> withDisruptionBudget(DisruptionBudget disruptionBudget) {
+            this.disruptionBudget = disruptionBudget;
+            return this;
+        }
+
         public Builder<E> withExtensions(E extensions) {
             this.extensions = extensions;
             return this;
@@ -299,11 +323,12 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                     .withJobGroupInfo(jobGroupInfo)
                     .withAttributes(attributes)
                     .withContainer(container)
+                    .withDisruptionBudget(disruptionBudget)
                     .withExtensions(extensions);
         }
 
         public JobDescriptor<E> build() {
-            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, extensions);
+            JobDescriptor<E> jobDescriptor = new JobDescriptor<>(owner, applicationName, capacityGroup, jobGroupInfo, attributes, container, disruptionBudget, extensions);
             return jobDescriptor;
         }
     }

@@ -41,6 +41,19 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.HourlyTimeWindow;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -61,6 +74,7 @@ import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Constraints;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
 import com.netflix.titus.grpc.protogen.LogLocation;
 import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.SecurityProfile;
@@ -77,6 +91,13 @@ import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 import static com.netflix.titus.common.util.StringExt.nonNull;
+import static com.netflix.titus.grpc.protogen.Day.Friday;
+import static com.netflix.titus.grpc.protogen.Day.Monday;
+import static com.netflix.titus.grpc.protogen.Day.Saturday;
+import static com.netflix.titus.grpc.protogen.Day.Sunday;
+import static com.netflix.titus.grpc.protogen.Day.Thursday;
+import static com.netflix.titus.grpc.protogen.Day.Tuesday;
+import static com.netflix.titus.grpc.protogen.Day.Wednesday;
 
 public final class V3GrpcModelConverters {
 
@@ -119,6 +140,7 @@ public final class V3GrpcModelConverters {
                 .withCapacityGroup(grpcJobDescriptor.getCapacityGroup())
                 .withContainer(toCoreContainer(grpcJobDescriptor.getContainer()))
                 .withAttributes(grpcJobDescriptor.getAttributesMap())
+                .withDisruptionBudget(toCoreDisruptionBudget(grpcJobDescriptor.getDisruptionBudget()))
                 .withExtensions(toCoreJobExtensions(grpcJobDescriptor))
                 .build();
     }
@@ -236,6 +258,112 @@ public final class V3GrpcModelConverters {
                 .withEntryPoint(grpcContainer.getEntryPointList())
                 .withCommand(grpcContainer.getCommandList())
                 .withAttributes(grpcContainer.getAttributesMap())
+                .build();
+    }
+
+    public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget grpcDisruptionBudget) {
+        return DisruptionBudget.newBuilder()
+                .withDisruptionBudgetPolicy(toCoreDisruptionBudgetPolicy(grpcDisruptionBudget))
+                .withDisruptionBudgetRate(toCoreDisruptionBudgetRate(grpcDisruptionBudget))
+                .withTimeWindows(toCoreTimeWindows(grpcDisruptionBudget.getTimeWindowsList()))
+                .withContainerHealthProviders(toCoreContainerHealthProviders(grpcDisruptionBudget.getContainerHealthProvidersList()))
+                .build();
+    }
+
+    public static DisruptionBudgetPolicy toCoreDisruptionBudgetPolicy(JobDisruptionBudget grpcDisruptionBudget) {
+        switch (grpcDisruptionBudget.getPolicyCase()) {
+            case SELFMANAGED:
+                return SelfManagedDisruptionBudgetPolicy.newBuilder()
+                        .withRelocationTimeMs(grpcDisruptionBudget.getSelfManaged().getRelocationTimeMs())
+                        .build();
+            case AVAILABILITYPERCENTAGELIMIT:
+                return AvailabilityPercentageLimitDisruptionBudgetPolicy.newBuilder()
+                        .withPercentageOfHealthyContainers(grpcDisruptionBudget.getAvailabilityPercentageLimit().getPercentageOfHealthyContainers())
+                        .build();
+            case UNHEALTHYTASKSLIMIT:
+                return UnhealthyTasksLimitDisruptionBudgetPolicy.newBuilder()
+                        .withLimitOfUnhealthyContainers(grpcDisruptionBudget.getUnhealthyTasksLimit().getLimitOfUnhealthyContainers())
+                        .build();
+            case RELOCATIONLIMIT:
+                return RelocationLimitDisruptionBudgetPolicy.newBuilder()
+                        .withLimit(grpcDisruptionBudget.getRelocationLimit().getLimit())
+                        .build();
+            default:
+                return SelfManagedDisruptionBudgetPolicy.newBuilder()
+                    .build();
+        }
+    }
+
+    public static DisruptionBudgetRate toCoreDisruptionBudgetRate(JobDisruptionBudget grpcDisruptionBudget) {
+        switch (grpcDisruptionBudget.getRateCase()) {
+            case RATEUNLIMITED:
+                return UnlimitedDisruptionBudgetRate.newBuilder()
+                        .build();
+            case RATEPERCENTAGEPERHOUR:
+                return PercentagePerHourDisruptionBudgetRate.newBuilder()
+                        .withMaxPercentageOfContainersRelocatedInHour(grpcDisruptionBudget.getRatePercentagePerHour().getMaxPercentageOfContainersRelocatedInHour())
+                        .build();
+            default:
+                return UnlimitedDisruptionBudgetRate.newBuilder()
+                        .build();
+        }
+    }
+
+    public static List<TimeWindow> toCoreTimeWindows(List<com.netflix.titus.grpc.protogen.TimeWindow> grpcTimeWindows) {
+        return grpcTimeWindows.stream().map(V3GrpcModelConverters::toCoreTimeWindow).collect(Collectors.toList());
+    }
+
+    public static TimeWindow toCoreTimeWindow(com.netflix.titus.grpc.protogen.TimeWindow grpcTimeWindow) {
+        return TimeWindow.newBuilder()
+                .withDays(toCoreDays(grpcTimeWindow.getDaysList()))
+                .withHourlyTimeWindows(toCoreHourlyTimeWindows(grpcTimeWindow.getHourlyTimeWindowsList()))
+                .build();
+    }
+
+    public static List<Day> toCoreDays(List<com.netflix.titus.grpc.protogen.Day> grpcDays) {
+        return grpcDays.stream().map(V3GrpcModelConverters::toCoreDay).collect(Collectors.toList());
+    }
+
+    public static Day toCoreDay(com.netflix.titus.grpc.protogen.Day grpcDay) {
+        switch (grpcDay) {
+            case Monday:
+                return Day.Monday;
+            case Tuesday:
+                return Day.Tuesday;
+            case Wednesday:
+                return Day.Wednesday;
+            case Thursday:
+                return Day.Thursday;
+            case Friday:
+                return Day.Friday;
+            case Saturday:
+                return Day.Saturday;
+            case Sunday:
+                return Day.Sunday;
+            default:
+                throw new IllegalArgumentException("Unknown day: " + grpcDay);
+        }
+    }
+
+    public static List<HourlyTimeWindow> toCoreHourlyTimeWindows(List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> grpcHourlyTimeWindows) {
+        return grpcHourlyTimeWindows.stream().map(V3GrpcModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
+    }
+
+    public static HourlyTimeWindow toCoreHourlyTimeWindow(com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow grpcHourlyTimeWindow) {
+        return HourlyTimeWindow.newBuilder()
+                .withStartHour(grpcHourlyTimeWindow.getStartHour())
+                .withEndHour(grpcHourlyTimeWindow.getEndHour())
+                .build();
+    }
+
+    public static List<ContainerHealthProvider> toCoreContainerHealthProviders(List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> grpcContainerHealthProviders) {
+        return grpcContainerHealthProviders.stream().map(V3GrpcModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
+    }
+
+    public static ContainerHealthProvider toCoreHourlyTimeWindow(com.netflix.titus.grpc.protogen.ContainerHealthProvider grpcContainerHealthProvider) {
+        return ContainerHealthProvider.newBuilder()
+                .withName(grpcContainerHealthProvider.getName())
+                .withAttributes(grpcContainerHealthProvider.getAttributesMap())
                 .build();
     }
 
@@ -504,6 +632,95 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
+    public static com.netflix.titus.grpc.protogen.JobDisruptionBudget toGrpcDisruptionBudget(DisruptionBudget coreDisruptionBudget) {
+        JobDisruptionBudget.Builder builder = JobDisruptionBudget.newBuilder();
+        DisruptionBudgetPolicy disruptionBudgetPolicy = coreDisruptionBudget.getDisruptionBudgetPolicy();
+        if (disruptionBudgetPolicy instanceof SelfManagedDisruptionBudgetPolicy) {
+            builder.setSelfManaged(JobDisruptionBudget.SelfManaged.newBuilder()
+                    .setRelocationTimeMs(((SelfManagedDisruptionBudgetPolicy) disruptionBudgetPolicy).getRelocationTimeMs()));
+        } else if (disruptionBudgetPolicy instanceof AvailabilityPercentageLimitDisruptionBudgetPolicy) {
+            builder.setAvailabilityPercentageLimit(JobDisruptionBudget.AvailabilityPercentageLimit.newBuilder()
+                    .setPercentageOfHealthyContainers(((AvailabilityPercentageLimitDisruptionBudgetPolicy) disruptionBudgetPolicy).getPercentageOfHealthyContainers()));
+        } else if (disruptionBudgetPolicy instanceof UnhealthyTasksLimitDisruptionBudgetPolicy) {
+            builder.setUnhealthyTasksLimit(JobDisruptionBudget.UnhealthyTasksLimit.newBuilder()
+                    .setLimitOfUnhealthyContainers(((UnhealthyTasksLimitDisruptionBudgetPolicy) disruptionBudgetPolicy).getLimitOfUnhealthyContainers()));
+        } else if (disruptionBudgetPolicy instanceof RelocationLimitDisruptionBudgetPolicy) {
+            builder.setRelocationLimit(JobDisruptionBudget.RelocationLimit.newBuilder()
+                    .setLimit(((RelocationLimitDisruptionBudgetPolicy) disruptionBudgetPolicy).getLimit()));
+        }
+
+        DisruptionBudgetRate disruptionBudgetRate = coreDisruptionBudget.getDisruptionBudgetRate();
+        if (disruptionBudgetRate instanceof UnlimitedDisruptionBudgetRate) {
+            builder.setRateUnlimited(JobDisruptionBudget.RateUnlimited.newBuilder().build());
+        } else if (disruptionBudgetRate instanceof PercentagePerHourDisruptionBudgetRate) {
+            builder.setRatePercentagePerHour(JobDisruptionBudget.RatePercentagePerHour.newBuilder()
+                    .setMaxPercentageOfContainersRelocatedInHour(((PercentagePerHourDisruptionBudgetRate) disruptionBudgetRate).getMaxPercentageOfContainersRelocatedInHour()));
+        }
+
+        return builder
+                .addAllTimeWindows(toGrpcTimeWindows(coreDisruptionBudget.getTimeWindows()))
+                .addAllContainerHealthProviders(toGrpcContainerHealthProviders(coreDisruptionBudget.getContainerHealthProviders()))
+                .build();
+    }
+
+    public static List<com.netflix.titus.grpc.protogen.TimeWindow> toGrpcTimeWindows(List<TimeWindow> grpcTimeWindows) {
+        return grpcTimeWindows.stream().map(V3GrpcModelConverters::toGrpcTimeWindow).collect(Collectors.toList());
+    }
+
+    public static com.netflix.titus.grpc.protogen.TimeWindow toGrpcTimeWindow(TimeWindow coreTimeWindow) {
+        return com.netflix.titus.grpc.protogen.TimeWindow.newBuilder()
+                .addAllDays(toGrpcDays(coreTimeWindow.getDays()))
+                .addAllHourlyTimeWindows(toGrpcHourlyTimeWindows(coreTimeWindow.getHourlyTimeWindows()))
+                .build();
+    }
+
+    public static List<com.netflix.titus.grpc.protogen.Day> toGrpcDays(List<Day> coreDays) {
+        return coreDays.stream().map(V3GrpcModelConverters::toGrpcDay).collect(Collectors.toList());
+    }
+
+    public static com.netflix.titus.grpc.protogen.Day toGrpcDay(Day coreDay) {
+        switch (coreDay) {
+            case Monday:
+                return Monday;
+            case Tuesday:
+                return Tuesday;
+            case Wednesday:
+                return Wednesday;
+            case Thursday:
+                return Thursday;
+            case Friday:
+                return Friday;
+            case Saturday:
+                return Saturday;
+            case Sunday:
+                return Sunday;
+            default:
+                throw new IllegalArgumentException("Unknown day: " + coreDay);
+        }
+    }
+
+    public static List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> toGrpcHourlyTimeWindows(List<HourlyTimeWindow> coreHourlyTimeWindows) {
+        return coreHourlyTimeWindows.stream().map(V3GrpcModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
+    }
+
+    public static com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow toGrpcHourlyTimeWindow(HourlyTimeWindow coreHourlyTimeWindow) {
+        return com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow.newBuilder()
+                .setStartHour(coreHourlyTimeWindow.getStartHour())
+                .setEndHour(coreHourlyTimeWindow.getEndHour())
+                .build();
+    }
+
+    public static List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> toGrpcContainerHealthProviders(List<ContainerHealthProvider> grpcContainerHealthProviders) {
+        return grpcContainerHealthProviders.stream().map(V3GrpcModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
+    }
+
+    public static com.netflix.titus.grpc.protogen.ContainerHealthProvider toGrpcHourlyTimeWindow(ContainerHealthProvider coreContainerHealthProvider) {
+        return com.netflix.titus.grpc.protogen.ContainerHealthProvider.newBuilder()
+                .setName(coreContainerHealthProvider.getName())
+                .putAllAttributes(coreContainerHealthProvider.getAttributes())
+                .build();
+    }
+
     public static com.netflix.titus.grpc.protogen.JobDescriptor toGrpcJobDescriptor(JobDescriptor<?> jobDescriptor) {
         com.netflix.titus.grpc.protogen.JobDescriptor.Builder builder = com.netflix.titus.grpc.protogen.JobDescriptor.newBuilder()
                 .setOwner(toGrpcOwner(jobDescriptor.getOwner()))
@@ -511,6 +728,7 @@ public final class V3GrpcModelConverters {
                 .setCapacityGroup(jobDescriptor.getCapacityGroup())
                 .setContainer(toGrpcContainer(jobDescriptor.getContainer()))
                 .setJobGroupInfo(toGrpcJobGroupInfo(jobDescriptor.getJobGroupInfo()))
+                .setDisruptionBudget(toGrpcDisruptionBudget(jobDescriptor.getDisruptionBudget()))
                 .putAllAttributes(jobDescriptor.getAttributes());
 
         if (jobDescriptor.getExtensions() instanceof BatchJobExt) {

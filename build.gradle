@@ -95,7 +95,7 @@ subprojects {
         awaitilityVersion = '1.7.0'
         assertjVersion = '3.8.0'
         cassandraUnitVersion = '3.1.1.0'
-        mockServerVersion = '3.10.8'
+        mockServerVersion = '3.10.4'
     }
 
     tasks.withType(JavaCompile) {
@@ -116,6 +116,7 @@ subprojects {
         // Superceded by governator-api
         exclude group: 'com.netflix.governator', module: 'governator-annotations'
         resolutionStrategy {
+            force 'org.bouncycastle:bcprov-jdk15on:1.50'
         }
     }
 

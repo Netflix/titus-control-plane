@@ -19,12 +19,15 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 
+@JsonIgnoreProperties({"disruptionBudget"})
 public abstract class JobDescriptorMixin {
     @JsonCreator
     public JobDescriptorMixin(@JsonProperty("owner") Owner owner,
@@ -33,6 +36,7 @@ public abstract class JobDescriptorMixin {
                               @JsonProperty("jobGroupInfo") JobGroupInfo jobGroupInfo,
                               @JsonProperty("labels") Map<String, String> labels,
                               @JsonProperty("container") Container container,
+                              @JsonProperty("disruptionBudget") DisruptionBudget disruptionBudget,
                               @JsonProperty("extensions") JobDescriptor.JobDescriptorExt extensions) {
     }
 }
