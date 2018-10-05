@@ -13,5 +13,6 @@ dependencies {
     compile "javax.servlet:javax.servlet-api:${servletVersion}"
 
     compile "junit:junit-dep:${junitVersion}"
+    compile "org.assertj:assertj-core:${assertjVersion}"
     compile "org.mockito:mockito-core:${mockitoVersion}"
 }

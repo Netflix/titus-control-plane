@@ -4,11 +4,11 @@ import java.util.Objects;
 
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
 
-public class ContainerHealthChangeEvent extends ContainerHealthEvent {
+public class ContainerHealthUpdateEvent extends ContainerHealthEvent {
 
     private final ContainerHealthStatus containerHealthStatus;
 
-    public ContainerHealthChangeEvent(ContainerHealthStatus containerHealthStatus) {
+    public ContainerHealthUpdateEvent(ContainerHealthStatus containerHealthStatus) {
         this.containerHealthStatus = containerHealthStatus;
     }
 
@@ -20,7 +20,7 @@ public class ContainerHealthChangeEvent extends ContainerHealthEvent {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ContainerHealthChangeEvent that = (ContainerHealthChangeEvent) o;
+        ContainerHealthUpdateEvent that = (ContainerHealthUpdateEvent) o;
         return Objects.equals(containerHealthStatus, that.containerHealthStatus);
     }
 

@@ -4,13 +4,17 @@ package com.netflix.titus.testkit.model.job;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -24,6 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -50,14 +55,24 @@ public class JobGeneratorOrchestrator {
 
     private final PublishSubject<JobManagerEvent> observeJobsSubject = PublishSubject.create();
 
+    private final ReadOnlyJobOperations readOnlyJobOperations = new ReadOnlyJobOperationsStub();
+
     public JobGeneratorOrchestrator(TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
         this.jobGenerator = new MutableDataGenerator<>(JobGenerator.jobs(titusRuntime.getClock()));
     }
 
+    public ReadOnlyJobOperations getReadOnlyJobOperations() {
+        return readOnlyJobOperations;
+    }
+
     public JobGeneratorOrchestrator addJobTemplate(String templateId, DataGenerator<JobDescriptor> jobDescriptorGenerator) {
         jobTemplates.put(templateId, new MutableDataGenerator<>(jobDescriptorGenerator));
         return this;
+    }
+
+    public JobGeneratorOrchestrator addBatchTemplate(String templateId, DataGenerator<JobDescriptor<BatchJobExt>> jobDescriptorGenerator) {
+        return addJobTemplate(templateId, (DataGenerator) jobDescriptorGenerator);
     }
 
     public Job createJob(String templateId) {
@@ -159,6 +174,11 @@ public class JobGeneratorOrchestrator {
         return updatedJob;
     }
 
+    public Task moveTaskToState(String taskId, TaskState newState) {
+        Pair<Job<?>, Task> jobTaskPair = readOnlyJobOperations.findTaskById(taskId).orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
+        return moveTaskToState(jobTaskPair.getRight(), newState);
+    }
+
     public Task moveTaskToState(Task task, TaskState newState) {
         Preconditions.checkState(jobsById.containsKey(task.getJobId()));
 
@@ -184,14 +204,24 @@ public class JobGeneratorOrchestrator {
         return updatedTask;
     }
 
+    public void forget(Task task) {
+        internalTaskRemove(task, false);
+    }
+
     public void removeTask(Task task) {
+        internalTaskRemove(task, true);
+    }
+
+    private void internalTaskRemove(Task task, boolean requireFinishedState) {
         Preconditions.checkState(jobsById.containsKey(task.getJobId()));
 
         Job job = jobsById.get(task.getJobId()).getLeft();
         Map<String, Task> tasks = tasksByJobId.get(task.getJobId());
 
         Task currentTask = tasks.get(task.getId());
-        Preconditions.checkState(currentTask != null && currentTask.getStatus().getState() == TaskState.Finished);
+        if (requireFinishedState) {
+            Preconditions.checkState(currentTask != null && currentTask.getStatus().getState() == TaskState.Finished);
+        }
 
         tasksByJobId.put(job.getId(), CollectionsExt.copyAndRemove(tasks, task.getId()));
     }
@@ -224,5 +254,99 @@ public class JobGeneratorOrchestrator {
         jobsById.values().forEach(pair -> events.add(JobUpdateEvent.newJob(pair.getLeft())));
         tasksByJobId.values().forEach(tasksById -> tasksById.values().forEach(task -> events.add(TaskUpdateEvent.newTask(jobsById.get(task.getJobId()).getLeft(), task))));
         return events;
+    }
+
+    private class ReadOnlyJobOperationsStub implements ReadOnlyJobOperations {
+
+        @Override
+        public List<Job> getJobs() {
+            return jobsById.values().stream().map(Pair::getLeft).collect(Collectors.toList());
+        }
+
+        @Override
+        public Optional<Job<?>> getJob(String jobId) {
+            return Optional.ofNullable(jobsById.get(jobId)).map(Pair::getLeft);
+        }
+
+        @Override
+        public List<Task> getTasks() {
+            return tasksByJobId.values().stream().flatMap(p -> p.values().stream()).collect(Collectors.toList());
+        }
+
+        @Override
+        public List<Task> getTasks(String jobId) {
+            return new ArrayList<>(tasksByJobId.getOrDefault(jobId, Collections.emptyMap()).values());
+        }
+
+        @Override
+        public List<Pair<Job, List<Task>>> getJobsAndTasks() {
+            return getJobs().stream().map(j -> Pair.of(j, getTasks(j.getId()))).collect(Collectors.toList());
+        }
+
+        @Override
+        public List<Job<?>> findJobs(Predicate<Pair<Job<?>, List<Task>>> queryPredicate, int offset, int limit) {
+            List<Job> allSortedJobs = getJobs();
+            allSortedJobs.sort(Comparator.comparingLong(this::getJobAcceptedTimeStamp));
+
+            List filtered = allSortedJobs.stream()
+                    .filter(j -> queryPredicate.test(Pair.of((Job<?>) j, getTasks(j.getId()))))
+                    .collect(Collectors.toList());
+            if (filtered.isEmpty() || filtered.size() <= offset) {
+                return Collections.emptyList();
+            }
+            return filtered.subList(offset, Math.min(filtered.size(), offset + limit));
+        }
+
+        @Override
+        public List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit) {
+            List<Task> allSortedTasks = getTasks();
+            allSortedTasks.sort(Comparator.comparingLong(this::getTaskAcceptedTimesStamp));
+
+            List<Pair<Job<?>, Task>> filtered = allSortedTasks.stream()
+                    .map(t -> Pair.<Job<?>, Task>of(getJob(t.getJobId()).get(), t))
+                    .filter(queryPredicate)
+                    .collect(Collectors.toList());
+
+            if (filtered.isEmpty() || filtered.size() <= offset) {
+                return Collections.emptyList();
+            }
+            return filtered.subList(offset, Math.min(filtered.size(), offset + limit));
+        }
+
+        @Override
+        public Optional<Pair<Job<?>, Task>> findTaskById(String taskId) {
+            return getTasks().stream().filter(t -> t.getId().equals(taskId)).findFirst().map(t -> Pair.of(getJob(t.getJobId()).get(), t));
+        }
+
+        @Override
+        public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate, Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+            return (Observable) JobGeneratorOrchestrator.this.observeJobs(false).filter(event -> {
+                if (event instanceof JobUpdateEvent) {
+                    Job<?> job = ((JobUpdateEvent) event).getCurrent();
+                    return jobsPredicate.test(Pair.of(job, getTasks(job.getId())));
+                }
+                return tasksPredicate.test(Pair.of(((TaskUpdateEvent) event).getCurrentJob(), ((TaskUpdateEvent) event).getCurrentTask()));
+            });
+        }
+
+        @Override
+        public Observable<JobManagerEvent<?>> observeJob(String jobId) {
+            return (Observable) JobGeneratorOrchestrator.this.observeJobs(false).filter(event -> isJobEventOf(event, jobId));
+        }
+
+        private boolean isJobEventOf(JobManagerEvent event, String jobId) {
+            if (event instanceof JobUpdateEvent) {
+                return jobId.equals(((JobUpdateEvent) event).getCurrent().getId());
+            }
+            return jobId.equals(((TaskUpdateEvent) event).getCurrentJob().getId());
+        }
+
+        private long getJobAcceptedTimeStamp(Job job) {
+            return JobFunctions.findJobStatus(job, JobState.Accepted).map(ExecutableStatus::getTimestamp).orElse(job.getStatus().getTimestamp());
+        }
+
+        private long getTaskAcceptedTimesStamp(Task task) {
+            return JobFunctions.findTaskStatus(task, TaskState.Accepted).map(ExecutableStatus::getTimestamp).orElse(task.getStatus().getTimestamp());
+        }
     }
 }
