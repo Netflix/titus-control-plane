@@ -31,7 +31,7 @@ import reactor.core.publisher.FluxSink;
 /**
  * An operator that combines snapshots state with hot updates. To prevent loss of
  * any update for a given snapshot, the hot subscriber is subscribed first, and its
- * values are buffered until the snapshot state is stream to the subscriber.
+ * values are buffered until the snapshot state is streamed to the subscriber.
  */
 class ReactorHeadTransformer<T> implements Function<Flux<T>, Publisher<T>> {
 

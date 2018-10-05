@@ -8,6 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import org.reactivestreams.Subscriber;
@@ -73,6 +74,10 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
     public Throwable getError() {
         Preconditions.checkState(hasError(), "Subscription not terminated with an error");
         return error;
+    }
+
+    public List<T> getAllItems() {
+        return (List<T>) emits.stream().filter(v -> !isMarker(v)).collect(Collectors.toList());
     }
 
     public T takeNext(Duration duration) throws InterruptedException {

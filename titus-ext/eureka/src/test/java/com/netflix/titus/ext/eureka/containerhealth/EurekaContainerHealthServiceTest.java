@@ -1,7 +1,6 @@
 package com.netflix.titus.ext.eureka.containerhealth;
 
 import java.time.Duration;
-import java.util.Collection;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
@@ -17,7 +16,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.eureka.EurekaGenerator;
 import com.netflix.titus.ext.eureka.EurekaServerStub;
 import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
-import io.reactivex.subscribers.TestSubscriber;
+import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.Disposable;
@@ -116,6 +115,43 @@ public class EurekaContainerHealthServiceTest {
     }
 
     @Test
+    public void testEurekaReRegistration() {
+        jobManagerStub.moveTaskToState(taskId1, TaskState.Started);
+
+        StepVerifier.create(healthService.events(false))
+                // Change state to UP
+                .then(() -> {
+                    eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
+                    eurekaServer.triggerCacheRefreshUpdate();
+                })
+                .assertNext(event -> {
+                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy);
+                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy);
+                })
+                // Unregister in Eureka
+                .then(() -> {
+                    eurekaServer.unregister(taskId1);
+                    eurekaServer.triggerCacheRefreshUpdate();
+                })
+                .assertNext(event -> {
+                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unknown);
+                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Unknown);
+                })
+                // Register again
+                .then(() -> {
+                    eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
+                    eurekaServer.triggerCacheRefreshUpdate();
+                })
+                .assertNext(event -> {
+                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy);
+                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy);
+                })
+
+                .thenCancel()
+                .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
     public void testEurekaStaleDataCleanup() {
         jobManagerStub.moveTaskToState(taskId1, TaskState.Started);
 
@@ -147,7 +183,7 @@ public class EurekaContainerHealthServiceTest {
         eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
 
         // First event / one subscriber
-        TestSubscriber<ContainerHealthEvent> subscriber1 = new TestSubscriber<>();
+        TitusRxSubscriber<ContainerHealthEvent> subscriber1 = new TitusRxSubscriber<>();
         healthService.events(false).subscribe(subscriber1);
 
         eurekaServer.triggerCacheRefreshUpdate();
@@ -176,7 +212,7 @@ public class EurekaContainerHealthServiceTest {
         eurekaServer.triggerCacheRefreshUpdate();
 
         assertThat(subscriber1.isDisposed()).isFalse();
-        assertThat(subscriber1.getEvents().stream().flatMap(Collection::stream)).hasSize(3);
+        assertThat(subscriber1.getAllItems()).hasSize(3);
     }
 
     private InstanceInfo newInstanceInfo(String taskId, InstanceStatus instanceStatus) {

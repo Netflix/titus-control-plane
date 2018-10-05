@@ -87,8 +87,7 @@ public class ReactorHeadTransformerTest {
         while (!terminateFlag.get()) {
         }
 
-        assertThat(terminateFlag.get()).isTrue();
-        assertThat(subscription.isDisposed()).isTrue();
+        await().timeout(5, TimeUnit.SECONDS).until(subscription::isDisposed);
         assertThat(errorCounter.get()).isEqualTo(1);
     }
 

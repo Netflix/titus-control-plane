@@ -15,8 +15,10 @@ import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
+import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
 import org.junit.Test;
+import reactor.core.Disposable;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -111,40 +113,46 @@ public class AggregatingContainerHealthServiceTest {
     }
 
     @Test
-    public void testBadHealthDownstreamSourceIsIsolated() {
+    public void testBadHealthDownstreamSourceTerminatesClientSubscription() {
         StepVerifier.create(healthService.events(false))
+                // Break downstream health provider
                 .then(() -> {
                     downstream2.breakSubscriptionsWithError(new RuntimeException("Simulated error"));
                 })
 
-                // Check snapshot
-                .assertNext(event -> {
-                    assertThat(healthService.findHealthStatus(taskId1).get().getState()).isEqualTo(ContainerHealthState.Unhealthy);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Unhealthy);
-                })
-
-                .then(() -> {
-                    downstream1.makeHealthy(taskId1);
-                })
-
-                .assertNext(event -> {
-                    assertThat(healthService.findHealthStatus(taskId1).get().getState()).isEqualTo(ContainerHealthState.Healthy);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy);
-                })
-
-                .thenCancel()
-                .verify(Duration.ofSeconds(5));
+                .verifyError(RuntimeException.class);
     }
 
     @Test
     public void testBadSubscriberIsIsolated() {
+        // First event / one subscriber
+        TitusRxSubscriber<ContainerHealthEvent> goodSubscriber = new TitusRxSubscriber<>();
+        healthService.events(false).subscribe(goodSubscriber);
+
+        // Add bad subscriber
+        Disposable badSubscriber = healthService.events(false).subscribe(
+                next -> {
+                    throw new RuntimeException("simulated error");
+                },
+                e -> {
+                    throw new RuntimeException("simulated error");
+                },
+                () -> {
+                    throw new RuntimeException("simulated error");
+                }
+        );
+
+        downstream1.makeHealthy(taskId1);
+        assertThat(goodSubscriber.isOpen()).isTrue();
+        assertThat(badSubscriber.isDisposed()).isTrue();
     }
 
     private class DownstreamHealthService implements ContainerHealthService {
 
         private final String name;
         private final Map<String, ContainerHealthStatus> healthStatuses = new HashMap<>();
-        private final DirectProcessor<ContainerHealthEvent> eventSubject = DirectProcessor.create();
+
+        private volatile DirectProcessor<ContainerHealthEvent> eventSubject = DirectProcessor.create();
 
         private DownstreamHealthService(String name) {
             this.name = name;
@@ -162,7 +170,7 @@ public class AggregatingContainerHealthServiceTest {
 
         @Override
         public Flux<ContainerHealthEvent> events(boolean snapshot) {
-            return eventSubject;
+            return Flux.defer(() -> eventSubject);
         }
 
         private void makeHealthy(String taskId) {
@@ -179,7 +187,9 @@ public class AggregatingContainerHealthServiceTest {
         }
 
         private void breakSubscriptionsWithError(RuntimeException error) {
-            eventSubject.onError(error);
+            DirectProcessor<ContainerHealthEvent> current = eventSubject;
+            this.eventSubject = DirectProcessor.create();
+            current.onError(error);
         }
     }
 }

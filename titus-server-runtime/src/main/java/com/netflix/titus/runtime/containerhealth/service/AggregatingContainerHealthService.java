@@ -1,6 +1,5 @@
 package com.netflix.titus.runtime.containerhealth.service;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +13,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthFunctions;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
@@ -42,8 +42,6 @@ public class AggregatingContainerHealthService implements ContainerHealthService
 
     public static final String NAME = "aggregating";
 
-    private static final long RETRY_INTERVAL_MS = 5_000;
-
     private final Map<String, ContainerHealthService> healthServices;
     private final ReadOnlyJobOperations jobOperations;
     private final Set<String> defaultProviders;
@@ -55,8 +53,15 @@ public class AggregatingContainerHealthService implements ContainerHealthService
     @Inject
     public AggregatingContainerHealthService(Set<ContainerHealthService> healthServices,
                                              ReadOnlyJobOperations jobOperations,
-                                             Set<String> defaultProviders,
                                              TitusRuntime titusRuntime) {
+        this(healthServices, jobOperations, Collections.emptySet(), titusRuntime);
+    }
+
+    @VisibleForTesting
+    AggregatingContainerHealthService(Set<ContainerHealthService> healthServices,
+                                      ReadOnlyJobOperations jobOperations,
+                                      Set<String> defaultProviders,
+                                      TitusRuntime titusRuntime) {
         this.healthServices = healthServices.stream().collect(Collectors.toMap(ContainerHealthService::getName, Function.identity()));
         this.jobOperations = jobOperations;
         this.defaultProviders = defaultProviders;
@@ -68,21 +73,9 @@ public class AggregatingContainerHealthService implements ContainerHealthService
                     ConcurrentMap<String, ContainerHealthState> emittedStates = new ConcurrentHashMap<>();
 
                     return Flux
-                            .merge(transformSet(healthServices, this::buildRetryableStream))
+                            .merge(transformSet(healthServices, h -> h.events(false)))
                             .flatMap(event -> handleContainerHealthUpdateEvent(event, emittedStates));
                 }).share().compose(ReactorExt.badSubscriberHandler(logger));
-    }
-
-    private Flux<ContainerHealthEvent> buildRetryableStream(ContainerHealthService h) {
-        return h.events(false)
-                .retryWhen(errors -> errors.flatMap(e -> {
-                    logger.warn(
-                            "Downstream container health provider terminated with an error, retrying in {}ms: provider={}, error={}",
-                            h.getName(), e.getMessage(), RETRY_INTERVAL_MS
-                    );
-                    logger.debug("Stack trace", e);
-                    return Flux.interval(Duration.ofMillis(RETRY_INTERVAL_MS)).take(1);
-                }));
     }
 
     @Override
