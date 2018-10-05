@@ -18,7 +18,7 @@ import com.netflix.discovery.EurekaEvent;
 import com.netflix.discovery.EurekaEventListener;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
-import com.netflix.titus.api.containerhealth.model.event.ContainerHealthChangeEvent;
+import com.netflix.titus.api.containerhealth.model.event.ContainerHealthUpdateEvent;
 import com.netflix.titus.api.containerhealth.model.event.ContainerHealthEvent;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -152,14 +152,14 @@ public class EurekaContainerHealthService implements ContainerHealthService {
                     .withTimestamp(titusRuntime.getClock().wallTime())
                     .withState(ContainerHealthState.Terminated).build();
 
-            events.add(ContainerHealthChangeEvent.healthChanged(terminatedStatus));
+            events.add(ContainerHealthUpdateEvent.healthChanged(terminatedStatus));
         });
 
         return Flux.fromIterable(events);
     }
 
     private Optional<ContainerHealthEvent> handleTaskStateUpdate(Task task, ConcurrentMap<String, ContainerHealthEvent> state) {
-        ContainerHealthChangeEvent lastEvent = (ContainerHealthChangeEvent) state.get(task.getId());
+        ContainerHealthUpdateEvent lastEvent = (ContainerHealthUpdateEvent) state.get(task.getId());
         if (lastEvent == null) {
             return Optional.of(recordNewState(state, task, ContainerHealthEvent.healthChanged(buildHealthStatus(task))));
         }
@@ -171,7 +171,7 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         return Optional.of(recordNewState(state, task, ContainerHealthEvent.healthChanged(buildHealthStatus(task, newTaskState))));
     }
 
-    private ContainerHealthChangeEvent recordNewState(ConcurrentMap<String, ContainerHealthEvent> state, Task task, ContainerHealthChangeEvent newEvent) {
+    private ContainerHealthUpdateEvent recordNewState(ConcurrentMap<String, ContainerHealthEvent> state, Task task, ContainerHealthUpdateEvent newEvent) {
         if (task.getStatus().getState() != TaskState.Finished) {
             state.put(task.getId(), newEvent);
         } else {

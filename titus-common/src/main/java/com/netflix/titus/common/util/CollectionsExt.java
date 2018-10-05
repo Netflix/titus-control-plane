@@ -327,6 +327,18 @@ public final class CollectionsExt {
         return Pair.of(matching, notMatching);
     }
 
+    public static <T, R> Set<R> transformSet(Set<T> source, Function<T, R> transformer) {
+        if (isNullOrEmpty(source)) {
+            return Collections.emptySet();
+        }
+
+        Set<R> result = new HashSet<>(source.size());
+        for (T item : source) {
+            result.add(transformer.apply(item));
+        }
+        return result;
+    }
+
     @SafeVarargs
     public static <T> Set<T> asSet(T... values) {
         Set<T> newSet = new HashSet<>();

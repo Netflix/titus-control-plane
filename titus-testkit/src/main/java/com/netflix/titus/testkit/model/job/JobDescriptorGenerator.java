@@ -75,6 +75,7 @@ public final class JobDescriptorGenerator {
         );
     }
 
+    @SafeVarargs
     public static DataGenerator<JobDescriptor<BatchJobExt>> batchJobDescriptors(Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>>... modifiers) {
         DataGenerator<JobDescriptor.Builder<BatchJobExt>> withOwner = union(
                 items(JobModel.<BatchJobExt>newJobDescriptor()),

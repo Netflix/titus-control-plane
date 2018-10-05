@@ -6,8 +6,6 @@ import java.util.Collection;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
-import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
-import com.netflix.titus.api.containerhealth.model.event.ContainerHealthChangeEvent;
 import com.netflix.titus.api.containerhealth.model.event.ContainerHealthEvent;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -25,6 +23,8 @@ import org.junit.Test;
 import reactor.core.Disposable;
 import reactor.test.StepVerifier;
 
+import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealth;
+import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthEvent;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.ofBatchSize;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -177,16 +177,6 @@ public class EurekaContainerHealthServiceTest {
 
         assertThat(subscriber1.isDisposed()).isFalse();
         assertThat(subscriber1.getEvents().stream().flatMap(Collection::stream)).hasSize(3);
-    }
-
-    private void assertContainerHealth(ContainerHealthStatus healthStatus, String expectedTaskId, ContainerHealthState expectedHealthState) {
-        assertThat(healthStatus.getTaskId()).isEqualTo(expectedTaskId);
-        assertThat(healthStatus.getState()).isEqualTo(expectedHealthState);
-    }
-
-    private void assertContainerHealthEvent(ContainerHealthEvent event, String expectedTaskId, ContainerHealthState expectedHealthState) {
-        assertThat(event).isInstanceOf(ContainerHealthChangeEvent.class);
-        assertContainerHealth(((ContainerHealthChangeEvent) event).getContainerHealthStatus(), expectedTaskId, expectedHealthState);
     }
 
     private InstanceInfo newInstanceInfo(String taskId, InstanceStatus instanceStatus) {

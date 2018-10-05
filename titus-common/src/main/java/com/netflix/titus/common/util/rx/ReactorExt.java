@@ -16,9 +16,11 @@
 
 package com.netflix.titus.common.util.rx;
 
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import org.reactivestreams.Publisher;
@@ -79,6 +81,15 @@ public final class ReactorExt {
             );
             emitter.onDispose(() -> safeDispose(subscription));
         });
+    }
+
+    /**
+     * An operator that combines snapshots state with hot updates. To prevent loss of
+     * any update for a given snapshot, the hot subscriber is subscribed first, and its
+     * values are buffered until the snapshot state is streamed to the subscriber.
+     */
+    public static <T> Function<Flux<T>, Publisher<T>> head(Supplier<Collection<T>> headSupplier) {
+        return new ReactorHeadTransformer<>(headSupplier);
     }
 
     /**

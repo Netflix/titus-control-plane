@@ -31,8 +31,12 @@ public class ContainerHealthStatus {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ContainerHealthStatus that = (ContainerHealthStatus) o;
         return timestamp == that.timestamp &&
                 Objects.equals(taskId, that.taskId) &&
@@ -51,6 +55,30 @@ public class ContainerHealthStatus {
                 ", state=" + state +
                 ", timestamp=" + timestamp +
                 '}';
+    }
+
+    public static ContainerHealthStatus healthy(String taskId, long timestamp) {
+        return newStatus(taskId, timestamp, ContainerHealthState.Healthy);
+    }
+
+    public static ContainerHealthStatus unhealthy(String taskId, long timestamp) {
+        return newStatus(taskId, timestamp, ContainerHealthState.Unhealthy);
+    }
+
+    public static ContainerHealthStatus unknown(String taskId, long timestamp) {
+        return newStatus(taskId, timestamp, ContainerHealthState.Unhealthy);
+    }
+
+    public static ContainerHealthStatus terminated(String taskId, long timestamp) {
+        return newStatus(taskId, timestamp, ContainerHealthState.Terminated);
+    }
+
+    private static ContainerHealthStatus newStatus(String taskId, long timestamp, ContainerHealthState state) {
+        return ContainerHealthStatus.newBuilder()
+                .withTaskId(taskId)
+                .withTimestamp(timestamp)
+                .withState(state)
+                .build();
     }
 
     public static Builder newBuilder() {
