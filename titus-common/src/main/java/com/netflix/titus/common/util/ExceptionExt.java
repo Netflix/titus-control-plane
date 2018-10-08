@@ -102,7 +102,8 @@ public class ExceptionExt {
         StringBuilder sb = new StringBuilder();
         Throwable current = error;
         while (current != null) {
-            sb.append('(').append(current.getClass().getSimpleName()).append(')').append(' ').append(current.getMessage());
+            String message = current.getMessage() != null ? current.getMessage() : "<no_message>";
+            sb.append('(').append(current.getClass().getSimpleName()).append(')').append(' ').append(message);
             if (current.getCause() != null) {
                 sb.append(" -CAUSED BY-> ");
             }

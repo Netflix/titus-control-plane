@@ -24,6 +24,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
@@ -143,12 +144,12 @@ class TaskPlacementRecorder {
                     } else {
                         logger.info("Not launching task due to model update failure: {}", v3Task.getId(), error);
                     }
-                    killBrokenV3Task(fenzoTask, "model update error: " + recordTaskError.getMessage());
+                    killBrokenV3Task(fenzoTask, "model update error: " + ExceptionExt.toMessageChain(recordTaskError));
                 }
                 return Observable.empty();
             }).map(taskInfo -> Pair.of(assignment, taskInfo));
         } catch (Exception e) {
-            killBrokenV3Task(fenzoTask, e.toString());
+            killBrokenV3Task(fenzoTask, ExceptionExt.toMessageChain(e));
             logger.error("Fatal error when creating Mesos#TaskInfo for task: {}", fenzoTask.getId(), e);
             return Observable.empty();
         }
