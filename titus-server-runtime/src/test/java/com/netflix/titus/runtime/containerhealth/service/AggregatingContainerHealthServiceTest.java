@@ -27,6 +27,7 @@ import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthEvent;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthSnapshot;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.havingProvider;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.ofBatchSize;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,7 +45,6 @@ public class AggregatingContainerHealthServiceTest {
     private final AggregatingContainerHealthService healthService = new AggregatingContainerHealthService(
             asSet(downstream1, downstream2),
             jobOperations,
-            asSet("downstream1", "downstream2"),
             titusRuntime
     );
 
@@ -54,8 +54,14 @@ public class AggregatingContainerHealthServiceTest {
 
     @Before
     public void setUp() {
-        this.job1 = jobManagerStub.addBatchTemplate("testJob", batchJobDescriptors(ofBatchSize(1)))
-                .createJobAndTasks("testJob").getLeft();
+        this.job1 = jobManagerStub.addBatchTemplate(
+                "testJob",
+                batchJobDescriptors(
+                        ofBatchSize(1),
+                        havingProvider("downstream1"),
+                        havingProvider("downstream2")
+                )
+        ).createJobAndTasks("testJob").getLeft();
 
         this.task1 = jobOperations.getTasks(job1.getId()).get(0);
         this.taskId1 = task1.getId();

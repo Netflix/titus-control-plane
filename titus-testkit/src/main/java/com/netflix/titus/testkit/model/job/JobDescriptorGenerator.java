@@ -16,17 +16,22 @@
 
 package com.netflix.titus.testkit.model.job;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
@@ -125,6 +130,29 @@ public final class JobDescriptorGenerator {
 
     public static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> ofBatchSize(int size) {
         return jd -> JobFunctions.changeBatchJobSize(jd, size);
+    }
+
+    public static <E extends JobDescriptorExt> Function<JobDescriptor<E>, JobDescriptor<E>> havingProvider(String name, String... attributes) {
+        ContainerHealthProvider newProvider = ContainerHealthProvider.newBuilder()
+                .withName(name)
+                .withAttributes(CollectionsExt.asMap(attributes))
+                .build();
+
+        return jd -> {
+            List<ContainerHealthProvider> existing = jd.getDisruptionBudget().getContainerHealthProviders().stream()
+                    .filter(p -> !p.getName().equals(name))
+                    .collect(Collectors.toList());
+
+            List<ContainerHealthProvider> providers = new ArrayList<>(existing);
+            providers.add(newProvider);
+
+            return jd.toBuilder()
+                    .withDisruptionBudget(
+                            jd.getDisruptionBudget().toBuilder()
+                                    .withContainerHealthProviders(providers)
+                                    .build()
+                    ).build();
+        };
     }
 
     public static DataGenerator<JobDescriptor<ServiceJobExt>> serviceJobDescriptors() {

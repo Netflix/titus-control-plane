@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthFunctions;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
@@ -24,11 +23,11 @@ import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -44,7 +43,6 @@ public class AggregatingContainerHealthService implements ContainerHealthService
 
     private final Map<String, ContainerHealthService> healthServices;
     private final ReadOnlyJobOperations jobOperations;
-    private final Set<String> defaultProviders;
     private final TitusRuntime titusRuntime;
     private final Clock clock;
 
@@ -54,17 +52,8 @@ public class AggregatingContainerHealthService implements ContainerHealthService
     public AggregatingContainerHealthService(Set<ContainerHealthService> healthServices,
                                              ReadOnlyJobOperations jobOperations,
                                              TitusRuntime titusRuntime) {
-        this(healthServices, jobOperations, Collections.emptySet(), titusRuntime);
-    }
-
-    @VisibleForTesting
-    AggregatingContainerHealthService(Set<ContainerHealthService> healthServices,
-                                      ReadOnlyJobOperations jobOperations,
-                                      Set<String> defaultProviders,
-                                      TitusRuntime titusRuntime) {
         this.healthServices = healthServices.stream().collect(Collectors.toMap(ContainerHealthService::getName, Function.identity()));
         this.jobOperations = jobOperations;
-        this.defaultProviders = defaultProviders;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
 
@@ -85,7 +74,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
 
     @Override
     public Optional<ContainerHealthStatus> findHealthStatus(String taskId) {
-        return findJob(taskId).flatMap(job -> takeStatusOf(job, taskId));
+        return jobOperations.findTaskById(taskId).flatMap(jobTaskPair -> takeStatusOf(jobTaskPair.getLeft(), jobTaskPair.getRight()));
     }
 
     @Override
@@ -93,10 +82,6 @@ public class AggregatingContainerHealthService implements ContainerHealthService
         return snapshot
                 ? healthStatuses.compose(ReactorExt.head(() -> Collections.singletonList(buildCurrentSnapshot())))
                 : healthStatuses;
-    }
-
-    private Optional<Job<?>> findJob(String taskId) {
-        return jobOperations.findTaskById(taskId).map(Pair::getLeft);
     }
 
     private ContainerHealthSnapshotEvent buildCurrentSnapshot() {
@@ -107,7 +92,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
                 if (task.getStatus().getState() == TaskState.Finished) {
                     snapshot.add(ContainerHealthStatus.terminated(task.getId(), titusRuntime.getClock().wallTime()));
                 } else {
-                    snapshot.add(takeStatusOf(job, task.getId()).orElseGet(() -> ContainerHealthStatus.unknown(task.getId(), clock.wallTime())));
+                    snapshot.add(takeStatusOf(job, task).orElseGet(() -> ContainerHealthStatus.unknown(task.getId(), clock.wallTime())));
                 }
             });
         });
@@ -127,7 +112,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
     }
 
     private Flux<ContainerHealthEvent> handleNewState(Job<?> job, Task task, ConcurrentMap<String, ContainerHealthState> emittedStates) {
-        return takeStatusOf(job, task.getId())
+        return takeStatusOf(job, task)
                 .map(newStatus -> {
 
                     ContainerHealthState previousState = emittedStates.get(task.getId());
@@ -153,20 +138,60 @@ public class AggregatingContainerHealthService implements ContainerHealthService
         return Flux.empty();
     }
 
-    private Optional<ContainerHealthStatus> takeStatusOf(Job<?> job, String taskId) {
-        // TODO Read it from the job descriptor
-        Set<String> enabledServices = defaultProviders;
+    private Optional<ContainerHealthStatus> takeStatusOf(Job<?> job, Task task) {
+        Set<String> healthProviders = job.getJobDescriptor().getDisruptionBudget().getContainerHealthProviders().stream()
+                .map(ContainerHealthProvider::getName)
+                .filter(healthServices::containsKey)
+                .collect(Collectors.toSet());
 
+        return healthProviders.isEmpty()
+                ? taskStatusOfTaskWithNoHealthProviders(task)
+                : takeStatusOfTaskWithHealthProviders(task, healthProviders);
+    }
+
+    private Optional<ContainerHealthStatus> taskStatusOfTaskWithNoHealthProviders(Task task) {
+        ContainerHealthState healthState;
+        switch (task.getStatus().getState()) {
+            case Accepted:
+            case Launched:
+            case StartInitiated:
+            case KillInitiated:
+                healthState = ContainerHealthState.Unhealthy;
+                break;
+            case Started:
+                healthState = ContainerHealthState.Healthy;
+                break;
+            case Disconnected:
+                healthState = ContainerHealthState.Unknown;
+                break;
+            case Finished:
+                healthState = ContainerHealthState.Terminated;
+                break;
+            default:
+                healthState = ContainerHealthState.Unknown;
+        }
+        return Optional.of(ContainerHealthStatus.newBuilder()
+                .withTaskId(task.getId())
+                .withState(healthState)
+                .withTimestamp(clock.wallTime())
+                .build()
+        );
+    }
+
+    private Optional<ContainerHealthStatus> takeStatusOfTaskWithHealthProviders(Task task, Set<String> enabledServices) {
         ContainerHealthStatus current = null;
         for (String name : enabledServices) {
             ContainerHealthService healthService = healthServices.get(name);
             if (healthService != null) {
-                Optional<ContainerHealthStatus> result = healthService.findHealthStatus(taskId);
+                Optional<ContainerHealthStatus> result = healthService.findHealthStatus(task.getId());
                 if (result.isPresent()) {
                     current = current == null ? result.get() : ContainerHealthFunctions.merge(current, result.get());
                 }
             }
         }
-        return Optional.ofNullable(current);
+
+        return current == null
+                ? Optional.of(ContainerHealthStatus.unknown(task.getId(), clock.wallTime()))
+                : Optional.of(current);
     }
 }
