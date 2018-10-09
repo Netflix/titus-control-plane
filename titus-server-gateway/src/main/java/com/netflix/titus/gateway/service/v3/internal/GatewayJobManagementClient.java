@@ -107,9 +107,8 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                 client,
                 callMetadataResolver,
                 new ExtendedJobSanitizer(jobManagerConfiguration, entitySanitizer),
-                validator,
-                configuration,
-                registry));
+                configuration
+        ));
         this.configuration = configuration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
