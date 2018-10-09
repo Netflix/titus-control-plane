@@ -11,16 +11,12 @@ import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 import com.netflix.titus.supplementary.relocation.evacuation.AgentInstanceEvacuator;
 
-public class TaskRelocationModule extends AbstractModule {
+public class MasterDataReplicationModule extends AbstractModule {
 
     @Override
     protected void configure() {
         bind(AgentDataReplicator.class).toProvider(AgentDataReplicatorProvider.class);
         bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
         bind(EvictionDataReplicator.class).toProvider(EvictionDataReplicatorProvider.class);
-
-        bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
-
-        bind(AgentInstanceEvacuator.class).asEagerSingleton();
     }
 }

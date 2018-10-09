@@ -169,6 +169,12 @@ public class DefaultEvictionOperations implements EvictionOperations {
     }
 
     @Override
+    public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
+        // TODO
+        throw new IllegalStateException("Method not implemented yet");
+    }
+
+    @Override
     public Completable terminateTask(String taskId, String reason) {
         return Observable
                 .fromCallable(() -> {

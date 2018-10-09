@@ -339,6 +339,16 @@ public final class CollectionsExt {
         return result;
     }
 
+    public static <K, V, R> Map<K, R> transformValues(Map<K, V> source, Function<V, R> transformer) {
+        if (isNullOrEmpty(source)) {
+            return Collections.emptyMap();
+        }
+
+        Map<K, R> result = new HashMap<>();
+        source.forEach((k, v) -> result.put(k, transformer.apply(v)));
+        return result;
+    }
+
     @SafeVarargs
     public static <T> Set<T> asSet(T... values) {
         Set<T> newSet = new HashSet<>();

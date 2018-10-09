@@ -19,8 +19,10 @@ import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerModule;
 import com.netflix.titus.supplementary.relocation.endpoint.TaskRelocationEndpointModule;
-import com.netflix.titus.supplementary.relocation.evacuation.AgentInstanceEvacuator;
+import com.netflix.titus.supplementary.relocation.store.memory.InMemoryRelocationStoreModule;
+import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowModule;
 
 public class TaskRelocationMainModule extends AbstractModule {
 
@@ -34,11 +36,12 @@ public class TaskRelocationMainModule extends AbstractModule {
         install(new TitusEntitySanitizerModule());
         bind(EntityValidator.class).to(PassJobValidator.class);
 
+        install(new InMemoryRelocationStoreModule());
         install(new MasterConnectorModule());
-        install(new TaskRelocationModule());
+        install(new MasterDataReplicationModule());
+        install(new DeschedulerModule());
+        install(new RelocationWorkflowModule());
         install(new TaskRelocationEndpointModule());
-
-        bind(AgentInstanceEvacuator.class).asEagerSingleton();
     }
 
     @Provides
