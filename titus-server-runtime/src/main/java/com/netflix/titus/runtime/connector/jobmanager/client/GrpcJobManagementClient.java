@@ -23,11 +23,9 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -50,8 +48,6 @@ import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
@@ -67,28 +63,20 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrap
 @Singleton
 public class GrpcJobManagementClient implements JobManagementClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(GrpcJobManagementClient.class);
-
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
     private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
-    private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
-    private final Registry registry;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
                                    @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                   EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
-                                   GrpcClientConfiguration configuration,
-                                   Registry registry) {
+                                   GrpcClientConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.entitySanitizer = entitySanitizer;
-        this.validator = validator;
         this.configuration = configuration;
-        this.registry = registry;
     }
 
     @Override
