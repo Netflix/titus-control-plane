@@ -4,16 +4,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.netflix.archaius.api.Config;
 import com.netflix.titus.common.util.PropertiesExt;
 
+@Singleton
 public class SupplementaryServiceLocationConfiguration {
 
     private static final String PREFIX = "titusGateway.supplementary.services";
 
     private final Map<String, ServiceAddress> serviceMap;
 
+    @Inject
     public SupplementaryServiceLocationConfiguration(Config config) {
         Config serviceConfig = config.getPrefixedView(PREFIX);
 

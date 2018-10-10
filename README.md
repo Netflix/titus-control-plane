@@ -33,7 +33,7 @@ scheduling containers on agents.
 ## Extensions
 There are several extensions in the `titus-ext` folder for integrations with various systems. In order to use
 these extensions, a wrapper project that reconfigures the guice bindings is needed. A tutorial project for binding
-the different implementations is coming soon. 
+the different implementations is coming soon.
 
 ## Local testing with docker-compose
 [`docker-compose`](https://docs.docker.com/compose/install/) together with [`docker-engine`](https://docs.docker.com/engine/)
@@ -43,8 +43,8 @@ containers will be launched as nested containers (docker-in-docker) inside the `
 
 The last versions known to work:
 
-* docker-engine `18.03.0-ce`
-* docker-compose `1.21.0`
+* docker-engine `18.06.0-ce`
+* docker-compose `1.22.0`
 
 To build and launch all components:
 
