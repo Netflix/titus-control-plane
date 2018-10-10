@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util.rx;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -107,6 +108,34 @@ public final class ReactorExt {
             } catch (Exception ignore) {
             }
         }
+    }
+
+    /**
+     * Runs an action on the provided worker.
+     */
+    public static <T> Mono<T> onWorker(Supplier<T> action, Scheduler.Worker worker) {
+        return TimerWithWorker.timer(action, worker, Duration.ZERO);
+    }
+
+    /**
+     * Runs an action on the provided worker with the provided delay.
+     */
+    public static <T> Mono<T> onWorker(Supplier<T> action, Scheduler.Worker worker, Duration delay) {
+        return TimerWithWorker.timer(action, worker, delay);
+    }
+
+    /**
+     * Runs an action on the provided worker.
+     */
+    public static Mono<Void> onWorker(Runnable action, Scheduler.Worker worker) {
+        return TimerWithWorker.timer(action, worker, Duration.ZERO);
+    }
+
+    /**
+     * Runs an action on the provided worker with the provided delay.
+     */
+    public static Mono<Void> onWorker(Runnable action, Scheduler.Worker worker, Duration delay) {
+        return TimerWithWorker.timer(action, worker, delay);
     }
 
     /**

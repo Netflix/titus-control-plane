@@ -8,9 +8,9 @@ import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
 /**
  * In this step, all tasks that were selected for termination, are terminated.
  */
-class TaskEvictionStep {
+public class TaskEvictionStep {
 
-    Map<String, TaskRelocationStatus> evict(Map<String, TaskRelocationPlan> taskToEvict) {
+    public Map<String, TaskRelocationStatus> evict(Map<String, TaskRelocationPlan> taskToEvict) {
         return null;
     }
 }

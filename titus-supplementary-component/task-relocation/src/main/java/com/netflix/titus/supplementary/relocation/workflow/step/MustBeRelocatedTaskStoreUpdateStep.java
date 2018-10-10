@@ -7,8 +7,8 @@ import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 /**
  * Step at which information about task that must be relocated is persisted in the database.
  */
-class MustBeRelocatedTaskStoreUpdateStep {
+public class MustBeRelocatedTaskStoreUpdateStep {
 
-    void peristChangesInStore(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
+    public void peristChangesInStore(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
     }
 }

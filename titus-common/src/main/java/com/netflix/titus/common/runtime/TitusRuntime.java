@@ -18,6 +18,7 @@ package com.netflix.titus.common.runtime;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.framework.fit.FitFramework;
+import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CodePointTracker;
 import com.netflix.titus.common.util.time.Clock;
@@ -63,6 +64,11 @@ public interface TitusRuntime {
      * Returns FIT framework.
      */
     FitFramework getFitFramework();
+
+    /**
+     * Simple in JVM task scheduler.
+     */
+    LocalScheduler getLocalScheduler();
 
     /**
      * In a few places in TitusMaster a component may decide to break the bootstrap process or terminate the JVM process

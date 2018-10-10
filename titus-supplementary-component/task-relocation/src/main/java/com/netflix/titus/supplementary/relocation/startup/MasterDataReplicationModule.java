@@ -7,9 +7,6 @@ import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.replicator.EvictionDataReplicatorProvider;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
-import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
-import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
-import com.netflix.titus.supplementary.relocation.evacuation.AgentInstanceEvacuator;
 
 public class MasterDataReplicationModule extends AbstractModule {
 

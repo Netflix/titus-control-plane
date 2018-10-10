@@ -7,9 +7,13 @@ import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 /**
  * Step at which all containers that are requested to terminate are identified, and their relocation timestamps are set.
  */
-class MustBeRelocatedTaskCollectorStep {
+public class MustBeRelocatedTaskCollectorStep {
 
-    Map<String, TaskRelocationPlan> collectTasksThatMustBeRelocated() {
+    public MustBeRelocatedTaskCollectorStep() {
+
+    }
+
+    public Map<String, TaskRelocationPlan> collectTasksThatMustBeRelocated() {
         return null;
     }
 }

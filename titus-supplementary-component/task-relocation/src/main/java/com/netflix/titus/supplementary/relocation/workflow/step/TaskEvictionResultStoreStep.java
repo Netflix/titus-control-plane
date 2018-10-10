@@ -10,6 +10,6 @@ import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
  */
 public class TaskEvictionResultStoreStep {
 
-    void storeTaskEvictionResults(Map<String, TaskRelocationPlan> taskEvictionPlans, Map<String, TaskRelocationStatus> taskEvictionResults) {
+    public void storeTaskEvictionResults(Map<String, TaskRelocationPlan> taskEvictionPlans, Map<String, TaskRelocationStatus> taskEvictionResults) {
     }
 }
