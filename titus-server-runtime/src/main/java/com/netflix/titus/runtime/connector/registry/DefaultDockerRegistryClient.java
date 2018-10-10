@@ -109,21 +109,20 @@ public class DefaultDockerRegistryClient implements RegistryClient {
     }
 
     /**
-     * Wraps an observable registry request with timeouts and error handling.
+     * Wraps an observable registry request with error handling.
      */
     private <T> Observable<T> registryRequestWithErrorHandling(Observable<T> obs, String repository, String reference) {
-        return obs.timeout(titusRegistryClientConfiguration.getRegistryTimeoutMs(), TimeUnit.MILLISECONDS)
-                .onErrorResumeNext(throwable -> {
-                    if (throwable instanceof RxRestClientException) {
-                        if (((RxRestClientException)throwable).getStatusCode() == HttpResponseStatus.NOT_FOUND.code()) {
-                            return Observable.error(
-                                    new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
+        return obs.onErrorResumeNext(throwable -> {
+            if (throwable instanceof RxRestClientException) {
+                if (((RxRestClientException)throwable).getStatusCode() == HttpResponseStatus.NOT_FOUND.code()) {
+                    return Observable.error(
+                            new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
                                     String.format("Image %s:%s does not exist in registry", repository, reference)));
-                        }
-                    }
-                    return  Observable.error(
-                            new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL,
-                                    throwable.getMessage()));
-                });
+                }
+            }
+            return  Observable.error(
+                    new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL,
+                            throwable.getMessage()));
+        });
     }
 }

@@ -26,6 +26,9 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 public final class RxClientMetric {
 
+    private static final String statusCodeTag = "statusCode";
+    private static final String errorTypeTag = "errorType";
+
     private final Registry registry;
     private final Id getId;
     private final Id postId;
@@ -58,7 +61,7 @@ public final class RxClientMetric {
     }
 
     void increment(Id requestId, HttpResponseStatus statusCode) {
-        registry.counter(requestId.withTag("statusCode", Integer.toString(statusCode.code()))).increment();
+        registry.counter(requestId.withTag(statusCodeTag, Integer.toString(statusCode.code()))).increment();
     }
 
     void increment(Id requestId, Throwable error) {
@@ -70,16 +73,20 @@ public final class RxClientMetric {
         registry.timer(delayId).record(latency, TimeUnit.MILLISECONDS);
     }
 
+    void incrementRetriesExhausted(Id id) {
+        registry.counter(id.withTag(errorTypeTag, "retriesExhausted"));
+    }
+
     private Id createErrorIdBasedOnExceptionContent(Id id, Throwable error) {
         Id errorId = id;
         if (error instanceof RxRestClientException) {
             RxRestClientException ce = (RxRestClientException) error;
             if (ce.getStatusCode() > 0) {
                 errorId = errorId
-                        .withTag("errorType", "http")
-                        .withTag("status", Integer.toString(ce.getStatusCode()));
+                        .withTag(errorTypeTag, "http")
+                        .withTag(statusCodeTag, Integer.toString(ce.getStatusCode()));
             } else {
-                errorId = errorId.withTag("errorType", "connectivity");
+                errorId = errorId.withTag(errorTypeTag, "connectivity");
             }
         }
         return errorId;
