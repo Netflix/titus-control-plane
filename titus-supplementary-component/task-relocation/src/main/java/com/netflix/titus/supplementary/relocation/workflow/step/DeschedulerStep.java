@@ -1,7 +1,11 @@
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 
 /**
@@ -9,6 +13,12 @@ import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
  * disruption budget constraints (unless explicitly requested).
  */
 public class DeschedulerStep {
+
+    private final DeschedulerService deschedulerService;
+
+    public DeschedulerStep(DeschedulerService deschedulerService) {
+        this.deschedulerService = deschedulerService;
+    }
 
     /**
      * Accepts collection of tasks that must be relocated, and their relocation was planned ahead of time.
@@ -20,6 +30,9 @@ public class DeschedulerStep {
      * for relocation.
      */
     public Map<String, TaskRelocationPlan> deschedule(Map<String, TaskRelocationPlan> tasksToEvict) {
-        return null;
+        List<DeschedulingResult> deschedulingResult = deschedulerService.deschedule(tasksToEvict);
+
+        return deschedulingResult.stream()
+                .collect(Collectors.toMap(d -> d.getTask().getId(), DeschedulingResult::getTaskRelocationPlan));
     }
 }

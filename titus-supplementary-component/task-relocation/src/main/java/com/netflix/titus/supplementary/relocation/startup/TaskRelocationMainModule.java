@@ -4,6 +4,7 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
@@ -19,6 +20,7 @@ import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerModule;
 import com.netflix.titus.supplementary.relocation.endpoint.TaskRelocationEndpointModule;
 import com.netflix.titus.supplementary.relocation.store.memory.InMemoryRelocationStoreModule;
@@ -52,5 +54,11 @@ public class TaskRelocationMainModule extends AbstractModule {
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
         return new DefaultTitusRuntime(codeInvariants, LoggingSystemLogService.getInstance(), LoggingSystemAbortListener.getDefault(), registry);
+    }
+
+    @Provides
+    @Singleton
+    public RelocationConfiguration getRelocationConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(RelocationConfiguration.class);
     }
 }

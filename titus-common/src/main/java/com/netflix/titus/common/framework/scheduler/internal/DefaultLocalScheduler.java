@@ -277,25 +277,4 @@ public class DefaultLocalScheduler implements LocalScheduler {
             return result;
         }
     }
-
-    public static void main(String[] args) {
-        Scheduler scheduler = Schedulers.newSingle("test");
-        Mono.<Void>defer(() -> {
-            try {
-                return Mono.empty();
-            } catch (Exception e) {
-                return Mono.error(e);
-            }
-        }).subscribeOn(scheduler)
-                .timeout(Duration.ofSeconds(1), scheduler)
-                .doOnError(e -> e.printStackTrace())
-                .doOnSuccess(value -> System.out.println("Completed"))
-                .subscribe();
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 }

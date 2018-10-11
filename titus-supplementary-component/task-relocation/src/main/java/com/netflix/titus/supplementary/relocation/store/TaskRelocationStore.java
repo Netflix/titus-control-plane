@@ -1,9 +1,11 @@
 package com.netflix.titus.supplementary.relocation.store;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
 import reactor.core.publisher.Mono;
 
 /**
@@ -13,14 +15,9 @@ import reactor.core.publisher.Mono;
 public interface TaskRelocationStore {
 
     /**
-     * Creates or updates a record in the database.
+     * Creates or updates task relocation plans in the database.
      */
-    Mono<Void> createOrUpdateTaskRelocationPlan(TaskRelocationPlan taskRelocationPlan);
-
-    /**
-     * Creates or updates a record in the database.
-     */
-    Mono<Void> createTaskRelocationStatus(TaskRelocationStatus taskRelocationStatus);
+    Mono<Map<String, Optional<Throwable>>> createOrUpdateTaskRelocationPlans(List<TaskRelocationPlan> taskRelocationPlans);
 
     /**
      * Returns all task relocation plans stored in the database.
@@ -28,9 +25,7 @@ public interface TaskRelocationStore {
     Mono<Map<String, TaskRelocationPlan>> getAllTaskRelocationPlans();
 
     /**
-     * Returns all task relocation statuses. Each task relocation status is associated with exactly one
-     * task relocation plan. Only the latest relocation status is stored in this store. Previous states (failed) are
-     * stored in the archive store (see {@link TaskRelocationArchiveStore}).
+     * Remove task relocation plans from the store.
      */
-    Mono<Map<String, TaskRelocationStatus>> getAllTaskRelocationStatuses();
+    Mono<Map<String, Optional<Throwable>>> removeTaskRelocationPlans(Set<String> toRemove);
 }

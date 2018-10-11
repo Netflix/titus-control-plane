@@ -8,6 +8,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.base.Stopwatch;
+import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -15,10 +17,14 @@ import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
+import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
+import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.step.DeschedulerStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedTaskCollectorStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedTaskStoreUpdateStep;
@@ -26,6 +32,7 @@ import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionResu
 import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.scheduler.Schedulers;
 
 @Singleton
 public class RelocationWorkflowExecutor {
@@ -36,6 +43,7 @@ public class RelocationWorkflowExecutor {
 
     private final AgentDataReplicator agentDataReplicator;
     private final JobDataReplicator jobDataReplicator;
+
     private final EvictionDataReplicator evictionDataReplicator;
 
     private final EvacuationMetrics metrics;
@@ -50,8 +58,14 @@ public class RelocationWorkflowExecutor {
     @Inject
     public RelocationWorkflowExecutor(RelocationConfiguration configuration,
                                       AgentDataReplicator agentDataReplicator,
+                                      ReadOnlyAgentOperations agentOperations,
                                       JobDataReplicator jobDataReplicator,
+                                      ReadOnlyJobOperations jobOperations,
                                       EvictionDataReplicator evictionDataReplicator,
+                                      EvictionServiceClient evictionServiceClient,
+                                      DeschedulerService deschedulerService,
+                                      TaskRelocationStore activeStore,
+                                      TaskRelocationArchiveStore archiveStore,
                                       TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.agentDataReplicator = agentDataReplicator;
@@ -59,11 +73,11 @@ public class RelocationWorkflowExecutor {
         this.evictionDataReplicator = evictionDataReplicator;
         this.metrics = new EvacuationMetrics(titusRuntime);
 
-        this.mustBeRelocatedTaskCollectorStep = new MustBeRelocatedTaskCollectorStep();
-        this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep();
-        this.deschedulerStep = new DeschedulerStep();
-        this.taskEvictionStep = new TaskEvictionStep();
-        this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep();
+        this.mustBeRelocatedTaskCollectorStep = new MustBeRelocatedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
+        this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep(activeStore);
+        this.deschedulerStep = new DeschedulerStep(deschedulerService);
+        this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, Schedulers.parallel());
+        this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep(archiveStore);
 
         ScheduleDescriptor relocationScheduleDescriptor = ScheduleDescriptor.newBuilder()
                 .withName("relocationWorkflow")
@@ -96,10 +110,11 @@ public class RelocationWorkflowExecutor {
     private void doWork() {
         if (!checkNotStale()) {
             logger.info("Stale data. Skipping the task relocation iteration");
+            return;
         }
 
         Map<String, TaskRelocationPlan> mustBeRelocatedTasks = mustBeRelocatedTaskCollectorStep.collectTasksThatMustBeRelocated();
-        mustBeRelocatedTaskStoreUpdateStep.peristChangesInStore(mustBeRelocatedTasks);
+        mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(mustBeRelocatedTasks);
         Map<String, TaskRelocationPlan> evictionPlan = deschedulerStep.deschedule(mustBeRelocatedTasks);
         Map<String, TaskRelocationStatus> evictionResult = taskEvictionStep.evict(evictionPlan);
         taskEvictionResultStoreStep.storeTaskEvictionResults(evictionPlan, evictionResult);

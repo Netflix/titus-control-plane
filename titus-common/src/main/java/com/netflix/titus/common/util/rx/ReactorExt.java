@@ -18,6 +18,8 @@ package com.netflix.titus.common.util.rx;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,7 +31,9 @@ import org.slf4j.Logger;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
+import rx.Completable;
 import rx.Observable;
 import rx.Single;
 
@@ -39,6 +43,18 @@ import rx.Single;
 public final class ReactorExt {
 
     private ReactorExt() {
+    }
+
+    /**
+     * Ignore all elements, and emit empty {@link Optional} if stream completes normally or {@link Optional} with
+     * the exception.
+     */
+    public static Mono<Optional<Throwable>> emitError(Mono<?> source) {
+        return source.ignoreElement().materialize().map(result ->
+                result.getType() == SignalType.ON_ERROR
+                        ? Optional.of(result.getThrowable())
+                        : Optional.empty()
+        );
     }
 
     public static <L, T> Flux<T> fromListener(Class<L> listener, Consumer<L> register, Consumer<L> unregister) {
@@ -91,6 +107,14 @@ public final class ReactorExt {
      */
     public static <T> Function<Flux<T>, Publisher<T>> head(Supplier<Collection<T>> headSupplier) {
         return new ReactorHeadTransformer<>(headSupplier);
+    }
+
+    /**
+     * Merge a map of {@link Mono}s, and return the combined result as a map. If a mono with a given key succeeded, the
+     * returned map will contain value {@link Optional#empty()} for that key. Otherwise it will contain an error entry.
+     */
+    public static <K> Mono<Map<K, Optional<Throwable>>> merge(Map<K, Mono<Void>> monos, int concurrencyLimit, Scheduler scheduler) {
+        return ReactorMergeOperations.merge(monos, concurrencyLimit, scheduler);
     }
 
     /**
@@ -150,6 +174,13 @@ public final class ReactorExt {
      */
     public static <T> Mono<T> toMono(Single<T> single) {
         return toFlux(single.toObservable()).next();
+    }
+
+    /**
+     * RxJava {@link rx.Completable} to {@link Mono} bridge.
+     */
+    public static Mono<Void> toMono(Completable completable) {
+        return toFlux(completable.<Void>toObservable()).next();
     }
 
     /**

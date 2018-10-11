@@ -19,7 +19,9 @@ public interface ReadOnlyAgentOperations {
      *
      * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the instance group is not found
      */
-    AgentInstanceGroup getInstanceGroup(String instanceGroupId);
+    default AgentInstanceGroup getInstanceGroup(String instanceGroupId) {
+        return findInstanceGroup(instanceGroupId).orElseThrow(() -> AgentManagementException.agentGroupNotFound(instanceGroupId));
+    }
 
     /**
      * Find an instance group by id.
@@ -38,7 +40,9 @@ public interface ReadOnlyAgentOperations {
      *
      * @throws AgentManagementException {@link AgentManagementException.ErrorCode#AgentNotFound} if the agent instance is not found
      */
-    AgentInstance getAgentInstance(String instanceId);
+    default AgentInstance getAgentInstance(String instanceId) {
+        return findAgentInstance(instanceId).orElseThrow(() -> AgentManagementException.agentNotFound(instanceId));
+    }
 
     /**
      * Find an instance by id.
