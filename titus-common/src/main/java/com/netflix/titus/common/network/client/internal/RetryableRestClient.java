@@ -124,6 +124,7 @@ public class RetryableRestClient implements RxRestClient {
                                 "Retry limit reached for %s REST call. Last error: %s. Returning an error to the caller",
                                 reqSignature, retryItem.cause.getMessage()
                         );
+                        rxClientMetric.incrementRetriesExhausted(retryId);
                         return Observable.error(new IOException(errorMessage, retryItem.cause));
                     }
                     long expDelay = Math.min(MAX_DELAY_MS, (2 << retryItem.retry) * retryDelayMs);
