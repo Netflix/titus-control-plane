@@ -168,6 +168,20 @@ public final class JobFunctions {
         return taskStatusChangeBuilder(task, newStatus).build();
     }
 
+    public static Task fixArchivedTaskStatus(Task task, Clock clock) {
+        Task fixed = task.toBuilder()
+                .withStatus(TaskStatus.newBuilder()
+                        .withState(TaskState.Finished)
+                        .withReasonCode("inconsistent")
+                        .withReasonMessage("Expecting task in Finished state, but is " + task.getStatus().getState())
+                        .withTimestamp(clock.wallTime())
+                        .build()
+                )
+                .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), task.getStatus()))
+                .build();
+        return fixed;
+    }
+
     public static Task addAllocatedResourcesToTask(Task task, TaskStatus status, TwoLevelResource twoLevelResource, Map<String, String> taskContext) {
         return taskStatusChangeBuilder(task, status)
                 .withTwoLevelResources(twoLevelResource)

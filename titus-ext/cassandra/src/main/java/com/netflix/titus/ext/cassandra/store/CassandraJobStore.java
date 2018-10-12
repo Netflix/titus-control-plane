@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.QueryTrace;
 import com.datastax.driver.core.ResultSet;
@@ -41,7 +42,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -64,6 +67,7 @@ import rx.exceptions.Exceptions;
 
 import static com.netflix.titus.common.util.guice.ProxyType.Logging;
 import static com.netflix.titus.common.util.guice.ProxyType.Spectator;
+import static com.netflix.titus.ext.cassandra.store.StoreTransactionLoggers.transactionLogger;
 
 @Singleton
 @ProxyConfiguration(types = {Logging, Spectator})
@@ -168,27 +172,27 @@ public class CassandraJobStore implements JobStore {
         this.mapper = mapper;
         this.activeJobIdsBucketManager = new BalancedBucketManager<>(initialBucketCount, maxBucketSize, METRIC_NAME_ROOT, titusRuntime.getRegistry());
 
-        retrieveActiveJobIdBucketsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING);
-        retrieveActiveJobIdsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_IDS_STRING);
-        retrieveActiveJobStatement = session.prepare(RETRIEVE_ACTIVE_JOB_STRING);
-        retrieveArchivedJobStatement = session.prepare(RETRIEVE_ARCHIVED_JOB_STRING);
-        retrieveActiveTaskIdsForJobStatement = session.prepare(RETRIEVE_ACTIVE_TASK_IDS_FOR_JOB_STRING);
-        retrieveArchivedTaskIdsForJobStatement = session.prepare(RETRIEVE_ARCHIVED_TASK_IDS_FOR_JOB_STRING);
-        retrieveActiveTaskStatement = session.prepare(RETRIEVE_ACTIVE_TASK_STRING);
-        retrieveArchivedTaskStatement = session.prepare(RETRIEVE_ARCHIVED_TASK_STRING);
+        retrieveActiveJobIdBucketsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_ID_BUCKETS_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveActiveJobIdsStatement = session.prepare(RETRIEVE_ACTIVE_JOB_IDS_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveActiveJobStatement = session.prepare(RETRIEVE_ACTIVE_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveArchivedJobStatement = session.prepare(RETRIEVE_ARCHIVED_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveActiveTaskIdsForJobStatement = session.prepare(RETRIEVE_ACTIVE_TASK_IDS_FOR_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveArchivedTaskIdsForJobStatement = session.prepare(RETRIEVE_ARCHIVED_TASK_IDS_FOR_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveActiveTaskStatement = session.prepare(RETRIEVE_ACTIVE_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        retrieveArchivedTaskStatement = session.prepare(RETRIEVE_ARCHIVED_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
 
-        insertActiveJobStatement = session.prepare(INSERT_ACTIVE_JOB_STRING);
-        insertActiveJobIdStatement = session.prepare(INSERT_ACTIVE_JOB_ID_STRING);
-        insertArchivedJobStatement = session.prepare(INSERT_ARCHIVED_JOB_STRING);
-        insertActiveTaskStatement = session.prepare(INSERT_ACTIVE_TASK_STRING);
-        insertActiveTaskIdStatement = session.prepare(INSERT_ACTIVE_TASK_ID_STRING);
-        insertArchivedTaskIdStatement = session.prepare(INSERT_ARCHIVED_TASK_ID_STRING);
-        insertArchivedTaskStatement = session.prepare(INSERT_ARCHIVED_TASK_STRING);
+        insertActiveJobStatement = session.prepare(INSERT_ACTIVE_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        insertActiveJobIdStatement = session.prepare(INSERT_ACTIVE_JOB_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        insertArchivedJobStatement = session.prepare(INSERT_ARCHIVED_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        insertActiveTaskStatement = session.prepare(INSERT_ACTIVE_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        insertActiveTaskIdStatement = session.prepare(INSERT_ACTIVE_TASK_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        insertArchivedTaskIdStatement = session.prepare(INSERT_ARCHIVED_TASK_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        insertArchivedTaskStatement = session.prepare(INSERT_ARCHIVED_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
 
-        deleteActiveJobIdStatement = session.prepare(DELETE_ACTIVE_JOB_ID_STRING);
-        deleteActiveJobStatement = session.prepare(DELETE_ACTIVE_JOB_STRING);
-        deleteActiveTaskIdStatement = session.prepare(DELETE_ACTIVE_TASK_ID_STRING);
-        deleteActiveTaskStatement = session.prepare(DELETE_ACTIVE_TASK_STRING);
+        deleteActiveJobIdStatement = session.prepare(DELETE_ACTIVE_JOB_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        deleteActiveJobStatement = session.prepare(DELETE_ACTIVE_JOB_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        deleteActiveTaskIdStatement = session.prepare(DELETE_ACTIVE_TASK_ID_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        deleteActiveTaskStatement = session.prepare(DELETE_ACTIVE_TASK_STRING).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
 
     @Override
@@ -304,31 +308,46 @@ public class CassandraJobStore implements JobStore {
 
     @Override
     public Completable storeJob(Job job) {
-        return Observable.fromCallable((Callable<Statement>) () -> {
-            String jobId = job.getId();
-            checkIfJobAlreadyExists(jobId);
-            String jobJsonString = ObjectMappers.writeValueAsString(mapper, job);
-            int bucket = activeJobIdsBucketManager.getNextBucket();
-            activeJobIdsBucketManager.addItem(bucket, jobId);
-            Statement jobStatement = insertActiveJobStatement.bind(jobId, jobJsonString);
-            Statement jobIdStatement = insertActiveJobIdStatement.bind(bucket, jobId);
+        return Observable
+                .fromCallable((Callable<Statement>) () -> {
+                    String jobId = job.getId();
+                    checkIfJobAlreadyExists(jobId);
+                    String jobJsonString = ObjectMappers.writeValueAsString(mapper, job);
+                    int bucket = activeJobIdsBucketManager.getNextBucket();
+                    activeJobIdsBucketManager.addItem(bucket, jobId);
+                    Statement jobStatement = insertActiveJobStatement.bind(jobId, jobJsonString);
+                    Statement jobIdStatement = insertActiveJobIdStatement.bind(bucket, jobId);
 
-            BatchStatement batchStatement = new BatchStatement();
-            batchStatement.add(jobStatement);
-            batchStatement.add(jobIdStatement);
-            return batchStatement;
-        }).flatMap(statement -> execute(statement).doOnError(throwable -> activeJobIdsBucketManager.deleteItem(job.getId())))
+                    BatchStatement batchStatement = new BatchStatement();
+                    batchStatement.add(jobStatement);
+                    batchStatement.add(jobIdStatement);
+
+                    transactionLogger().logBeforeCreate(insertActiveJobStatement, "storeJob", job);
+
+                    return batchStatement;
+                })
+                .flatMap(statement -> execute(statement)
+                        .doOnNext(rs -> transactionLogger().logAfterCreate(insertActiveJobStatement, "storeJob", job))
+                        .doOnError(throwable -> activeJobIdsBucketManager.deleteItem(job.getId()))
+                )
                 .toCompletable();
     }
 
     @Override
     public Completable updateJob(Job job) {
-        return Observable.fromCallable((Callable<Statement>) () -> {
-            String jobId = job.getId();
-            checkIfJobIsActive(jobId);
-            String jobJsonString = ObjectMappers.writeValueAsString(mapper, job);
-            return insertActiveJobStatement.bind(jobId, jobJsonString);
-        }).flatMap(this::execute).toCompletable();
+        return Observable
+                .fromCallable((Callable<Statement>) () -> {
+                    String jobId = job.getId();
+                    checkIfJobIsActive(jobId);
+                    String jobJsonString = ObjectMappers.writeValueAsString(mapper, job);
+
+                    transactionLogger().logBeforeUpdate(insertActiveJobStatement, "updateJob", job);
+                    return insertActiveJobStatement.bind(jobId, jobJsonString);
+                })
+                .flatMap(statement ->
+                        execute(statement).doOnNext(rs -> transactionLogger().logAfterUpdate(insertActiveJobStatement, "updateJob", job))
+                )
+                .toCompletable();
     }
 
     @Override
@@ -344,16 +363,35 @@ public class CassandraJobStore implements JobStore {
             if (errors > 0) {
                 logger.warn("Some tasks records could not be loaded during the job delete operation. Ignoring them: {}", errors);
             }
+            List<Task> fixedTasks = checkTaskConsistency(tasks);
 
-            List<Completable> completables = tasks.stream().map(this::deleteTask).collect(Collectors.toList());
+            List<Completable> completables = fixedTasks.stream().map(this::deleteTask).collect(Collectors.toList());
             return Completable.merge(Observable.from(completables), getConcurrencyLimit()).toObservable();
         })).toList().flatMap(ignored -> {
             BatchStatement statement = getArchiveJobBatchStatement(job);
-            return execute(statement);
+
+            transactionLogger().logBeforeDelete(deleteActiveJobStatement, "deleteJob", job);
+
+            return execute(statement).doOnNext(rs -> transactionLogger().logAfterDelete(deleteActiveJobStatement, "deleteJob", job));
         }).flatMap(ignored -> {
             activeJobIdsBucketManager.deleteItem(job.getId());
             return Observable.empty();
         }).toCompletable();
+    }
+
+    private List<Task> checkTaskConsistency(List<Task> tasks) {
+        List<Task> checkedTasks = new ArrayList<>();
+
+        for (Task task : tasks) {
+            if (task.getStatus().getState() == TaskState.Finished) {
+                checkedTasks.add(task);
+            } else {
+                titusRuntime.getCodeInvariants().inconsistent("Archiving task that is not in Finished state: task={}", task);
+                Task fixed = JobFunctions.fixArchivedTaskStatus(task, titusRuntime.getClock());
+                checkedTasks.add(fixed);
+            }
+        }
+        return checkedTasks;
     }
 
     @Override
@@ -407,6 +445,8 @@ public class CassandraJobStore implements JobStore {
                             effectiveTask = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.CorruptedTaskPlacementData.name(), effectiveTask);
                             tasks.add(Either.ofValue(effectiveTask));
                         }
+
+                        transactionLogger().logAfterRead(retrieveActiveTaskStatement, "retrieveTasksForJob", task);
                     } catch (Exception e) {
                         logger.error("Cannot map serialized task data to Task class: {}", effectiveValue, e);
                         tasks.add(Either.ofError(e));
@@ -423,12 +463,19 @@ public class CassandraJobStore implements JobStore {
 
     @Override
     public Observable<Task> retrieveTask(String taskId) {
-        return Observable.fromCallable((Callable<Statement>) () -> retrieveActiveTaskStatement.bind(taskId))
+        return Observable
+                .fromCallable((Callable<Statement>) () -> {
+                    transactionLogger().logBeforeRead(retrieveActiveTaskStatement, "retrieveTask", taskId);
+                    return retrieveActiveTaskStatement.bind(taskId);
+                })
                 .flatMap(statement -> execute(statement).flatMap(resultSet -> {
                     Row row = resultSet.one();
                     if (row != null) {
                         String value = row.getString(0);
                         Task task = ObjectMappers.readValue(mapper, value, Task.class);
+
+                        transactionLogger().logAfterRead(retrieveActiveTaskStatement, "retrieveTask", task);
+
                         return Observable.just(task);
                     } else {
                         return Observable.error(JobStoreException.taskDoesNotExist(taskId));
@@ -450,8 +497,12 @@ public class CassandraJobStore implements JobStore {
             batchStatement.add(taskStatement);
             batchStatement.add(taskIdStatement);
 
+            transactionLogger().logBeforeCreate(insertActiveTaskStatement, "storeTask", task);
+
             return batchStatement;
-        }).flatMap(this::execute).toCompletable();
+        }).flatMap(statement ->
+                execute(statement).doOnNext(rs -> transactionLogger().logAfterCreate(insertActiveTaskStatement, "storeTask", task))
+        ).toCompletable();
     }
 
     @Override
@@ -461,8 +512,15 @@ public class CassandraJobStore implements JobStore {
             String taskId = task.getId();
             checkIfJobIsActive(jobId);
             String taskJsonString = ObjectMappers.writeValueAsString(mapper, task);
+
+            transactionLogger().logBeforeUpdate(insertActiveTaskStatement, "updateTask", task);
+
             return insertActiveTaskStatement.bind(taskId, taskJsonString);
-        }).flatMap(this::execute).toCompletable();
+        }).flatMap(statement -> {
+                    transactionLogger().logAfterUpdate(insertActiveTaskStatement, "updateTask", task);
+                    return execute(statement);
+                }
+        ).toCompletable();
     }
 
     @Override
@@ -490,8 +548,15 @@ public class CassandraJobStore implements JobStore {
         return Observable.fromCallable((Callable<Statement>) () -> {
             String jobId = task.getJobId();
             checkIfJobIsActive(jobId);
+
+            transactionLogger().logBeforeDelete(deleteActiveTaskStatement, "deleteTask", task);
+
             return getArchiveTaskBatchStatement(task);
-        }).flatMap(this::execute).toCompletable();
+        }).flatMap(statement -> {
+                    transactionLogger().logAfterDelete(deleteActiveTaskStatement, "deleteTask", task);
+                    return execute(statement);
+                }
+        ).toCompletable();
     }
 
     @Override

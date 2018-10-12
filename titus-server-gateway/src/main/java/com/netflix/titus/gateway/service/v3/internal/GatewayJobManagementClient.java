@@ -31,6 +31,7 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
@@ -40,9 +41,11 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
@@ -92,6 +95,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
     private final Registry spectatorRegistry;
+    private final Clock clock;
 
     @Inject
     public GatewayJobManagementClient(GrpcClientConfiguration configuration,
@@ -102,7 +106,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                       LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                       EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
-                                      Registry registry) {
+                                      TitusRuntime titusRuntime) {
         super(new GrpcJobManagementClient(
                 client,
                 callMetadataResolver,
@@ -115,7 +119,8 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
         this.store = store;
         this.logStorageInfo = logStorageInfo;
         this.validator = validator;
-        this.spectatorRegistry = registry;
+        this.spectatorRegistry = titusRuntime.getRegistry();
+        this.clock = titusRuntime.getClock();
     }
 
     @Override
@@ -247,7 +252,12 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
         return Observable.fromCallable(() -> jobIds.stream().map(store::retrieveArchivedTasksForJob).collect(Collectors.toList()))
                 .flatMap(observables -> Observable.merge(observables, MAX_CONCURRENT_JOBS_TO_RETRIEVE))
                 //TODO add filtering here but need to decide how to do this because most criteria is based on the job and not the task
-                .map(task -> V3GrpcModelConverters.toGrpcTask(task, logStorageInfo))
+                .map(task -> {
+                    com.netflix.titus.api.jobmanager.model.job.Task fixedTask = task.getStatus().getState() == TaskState.Finished
+                            ? task
+                            : JobFunctions.fixArchivedTaskStatus(task, clock);
+                    return V3GrpcModelConverters.toGrpcTask(fixedTask, logStorageInfo);
+                })
                 .toSortedList((first, second) -> Long.compare(first.getStatus().getTimestamp(), second.getStatus().getTimestamp()));
     }
 
@@ -261,7 +271,13 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                         }
                     }
                     return Observable.error(TitusServiceException.unexpected("Not able to retrieve the task: %s (%s)", taskId, ExceptionExt.toMessageChain(e)));
-                }).map(task -> V3GrpcModelConverters.toGrpcTask(task, logStorageInfo));
+                })
+                .map(task -> {
+                    com.netflix.titus.api.jobmanager.model.job.Task fixedTask = task.getStatus().getState() == TaskState.Finished
+                            ? task
+                            : JobFunctions.fixArchivedTaskStatus(task, clock);
+                    return V3GrpcModelConverters.toGrpcTask(fixedTask, logStorageInfo);
+                });
     }
 
     @VisibleForTesting
