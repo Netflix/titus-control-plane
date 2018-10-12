@@ -51,7 +51,7 @@ public final class ExecutionScenarioCatalog {
     public static ExecutionScenario batchJob(int jobSize, double sizeFactor) {
         return ExecutionScenario.newBuilder()
                 .constantLoad(
-                        JobCatalog.batchJob(JobCatalog.JobSize.Small, jobSize, 120, TimeUnit.SECONDS),
+                        JobCatalog.batchJob(JobCatalog.JobSize.Small, jobSize, 60, TimeUnit.SECONDS),
                         ExecutionPlanCatalog.uninterruptedJob(),
                         (int) sizeFactor
                 )

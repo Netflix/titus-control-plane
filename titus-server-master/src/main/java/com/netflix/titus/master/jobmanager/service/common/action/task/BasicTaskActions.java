@@ -116,8 +116,10 @@ public class BasicTaskActions {
                                     schedulingService.removeTask(referenceTask.getId(), qAttributes, hostName);
                                 }
                                 TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
-                                        .taskMaybeUpdate(storeRoot -> engine.getReferenceView().findById(taskId).map(current ->
-                                                Pair.of(storeRoot.addChild(current), current))
+                                        .taskUpdate(storeRoot -> {
+                                                    EntityHolder storedHolder = EntityHolder.newRoot(referenceTask.getId(), referenceTask);
+                                                    return Pair.of(storeRoot.addChild(storedHolder), storedHolder);
+                                                }
                                         );
                                 return ModelActionHolder.store(modelUpdateAction);
                             }));
