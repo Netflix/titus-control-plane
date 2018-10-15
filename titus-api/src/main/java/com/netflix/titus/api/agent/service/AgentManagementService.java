@@ -32,48 +32,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
-public interface AgentManagementService {
-
-    /**
-     * Return all known agent instance groups.
-     */
-    List<AgentInstanceGroup> getInstanceGroups();
-
-    /**
-     * Get an agent instance group by id.
-     *
-     * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the instance group is not found
-     */
-    AgentInstanceGroup getInstanceGroup(String instanceGroupId);
-
-    /**
-     * Find an instance group by id.
-     */
-    Optional<AgentInstanceGroup> findInstanceGroup(String instanceGroupId);
-
-    /**
-     * Get all agents belonging to the given instance group.
-     *
-     * @throws AgentManagementException {@link AgentManagementException.ErrorCode#InstanceGroupNotFound} if the instance group is not found
-     */
-    List<AgentInstance> getAgentInstances(String instanceGroupId);
-
-    /**
-     * Get an agent instance by id.
-     *
-     * @throws AgentManagementException {@link AgentManagementException.ErrorCode#AgentNotFound} if the agent instance is not found
-     */
-    AgentInstance getAgentInstance(String instanceId);
-
-    /**
-     * Find an instance by id.
-     */
-    Optional<AgentInstance> findAgentInstance(String instanceId);
-
-    /**
-     * Find all agent instances matching a given filter.
-     */
-    List<Pair<AgentInstanceGroup, List<AgentInstance>>> findAgentInstances(Predicate<Pair<AgentInstanceGroup, AgentInstance>> filter);
+public interface AgentManagementService extends ReadOnlyAgentOperations {
 
     /**
      * For a given instance type, return the maximum amount of resources that can be allocated to a container.

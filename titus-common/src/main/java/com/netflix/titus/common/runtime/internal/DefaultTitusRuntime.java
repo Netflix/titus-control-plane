@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.runtime.internal;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,8 @@ import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import com.netflix.titus.common.framework.fit.FitFramework;
+import com.netflix.titus.common.framework.scheduler.LocalScheduler;
+import com.netflix.titus.common.framework.scheduler.internal.DefaultLocalScheduler;
 import com.netflix.titus.common.runtime.SystemAbortEvent;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
@@ -41,6 +44,7 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.time.Clocks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.scheduler.Schedulers;
 import rx.Observable;
 
 @Singleton
@@ -58,6 +62,8 @@ public class DefaultTitusRuntime implements TitusRuntime {
     private static final long INITIAL_RETRY_DELAY_MS = 10;
     private static final long MAX_RETRY_DELAY_MS = 10_000;
 
+    private static final int LOCAL_SCHEDULER_LOOP_INTERVAL_MS = 100;
+
     private final CodePointTracker codePointTracker;
     private final CodeInvariants codeInvariants;
     private final SystemLogService systemLogService;
@@ -65,6 +71,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
     private final Registry registry;
     private final Clock clock;
     private final FitFramework fitFramework;
+    private final DefaultLocalScheduler localScheduler;
 
     @Inject
     public DefaultTitusRuntime(CodeInvariants codeInvariants,
@@ -95,6 +102,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
         this.registry = registry;
         this.clock = clock;
         this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
+        this.localScheduler = new DefaultLocalScheduler(Duration.ofMillis(LOCAL_SCHEDULER_LOOP_INTERVAL_MS), Schedulers.parallel(), clock);
     }
 
     @Override
@@ -157,6 +165,11 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Override
     public FitFramework getFitFramework() {
         return fitFramework;
+    }
+
+    @Override
+    public LocalScheduler getLocalScheduler() {
+        return localScheduler;
     }
 
     @Override

@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.Disposable;
@@ -82,6 +83,24 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
 
     public T takeNext(Duration duration) throws InterruptedException {
         return afterTakeNext(items.poll(duration.toMillis(), TimeUnit.MILLISECONDS));
+    }
+
+    public T takeUntil(Predicate<T> predicate, Duration duration) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + duration.toMillis();
+        while (deadline > System.currentTimeMillis()) {
+            long leftTime = deadline - System.currentTimeMillis();
+            if (leftTime <= 0) {
+                return null;
+            }
+            T next = afterTakeNext(items.poll(leftTime, TimeUnit.MILLISECONDS));
+            if (next == null) {
+                return null;
+            }
+            if (predicate.apply(next)) {
+                return next;
+            }
+        }
+        return null;
     }
 
     public List<T> takeNext(int n, Duration timeout) throws InterruptedException, IllegalStateException {

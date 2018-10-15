@@ -86,6 +86,14 @@ public class DisruptionBudget {
                 '}';
     }
 
+    public Builder toBuilder() {
+        return newBuilder()
+                .withContainerHealthProviders(containerHealthProviders)
+                .withDisruptionBudgetPolicy(disruptionBudgetPolicy)
+                .withDisruptionBudgetRate(disruptionBudgetRate)
+                .withTimeWindows(timeWindows);
+    }
+
     public static final class Builder {
         private DisruptionBudgetPolicy disruptionBudgetPolicy;
         private DisruptionBudgetRate disruptionBudgetRate;
