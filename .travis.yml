@@ -19,7 +19,7 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: TITUS_INTEGRATION_TEST=true
-    - name: "Docker compose integration"
+    - env: TITUS_DOCKER_COMPOSE=true
   include:
     - name: "Unit Tests"
       env: TITUS_INTEGRATION_TEST=false
@@ -31,6 +31,7 @@ matrix:
       services:
         - docker
       env:
+        - TITUS_DOCKER_COMPOSE=true
         - DOCKER_COMPOSE_VERSION=1.22.0
       before_install:
         - sudo rm /usr/local/bin/docker-compose
@@ -38,6 +39,3 @@ matrix:
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
         - docker-compose config
-      script:
-        - docker-compose build
-        - docker-compose up -d
