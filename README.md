@@ -1,32 +1,41 @@
 # Titus Control Plane
+
 [![Build Status](https://travis-ci.org/Netflix/titus-control-plane.svg?branch=master)](https://travis-ci.org/Netflix/titus-control-plane)
 [![Apache 2.0](https://img.shields.io/github/license/nebula-plugins/gradle-lint-plugin.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 ## Overview
+
 Titus is the Netflix Container Management Platform that manages containers and provides integrations to the infrastructure
 ecosystem. This repository contains the control plane components which are responsible for accepting job requests and
 scheduling containers on agents.
 
 ## Documentation & Getting Started
+
 [netflix.github.io/titus](http://netflix.github.io/titus/)
 
 ## Building and Testing
-**Building**
-```
+
+### Building
+
+```sh-session
 ./gradlew build
 ```
-**Run Tests**
-```
+
+### Run Tests
+
+```sh-session
 ./gradlew test
 ```
 
-**Run Integration Tests**
-```
+### Run Integration Tests
+
+```sh-session
 ./gradlew integrationTest
 ```
 
-**Run All Tests**
-```
+### Run All Tests
+
+```sh-session
 ./gradlew testAll
 ```
 
@@ -36,6 +45,7 @@ these extensions, a wrapper project that reconfigures the guice bindings is need
 the different implementations is coming soon.
 
 ## Local testing with docker-compose
+
 [`docker-compose`](https://docs.docker.com/compose/install/) together with [`docker-engine`](https://docs.docker.com/engine/)
 can be used to stand up a local cluster with all components necessary to run titus containers. Each component
 (titus-master, titus-gateway, mesos-master, zookeeper, titus-agent) will run as a separate docker container, and Titus
@@ -79,7 +89,7 @@ Before any tasks can be scheduled, that cluster needs to be activated. Note that
 this is necessary *every time the Titus master is restarted*, since `instanceGroup`
 state is not being persisted:
 
-```
+```sh-session
 curl localhost:7001/api/v3/agent/instanceGroups/unknown-instanceGroup/lifecycle \
   -X PUT -H "Content-type: application/json" -d \
   '{"instanceGroupId": "unknown-instanceGroup", "lifecycleState": "Active"}'
@@ -142,7 +152,7 @@ Note that it can take ~10s for a new titus-agent to be detected and registered w
 
 After you are done:
 
-```
+```sh-session
 # tear everything down
 docker-compose down
 
