@@ -21,6 +21,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.common.framework.scheduler.ExecutionContext;
+import com.netflix.titus.common.framework.scheduler.LocalSchedulerException;
+import com.netflix.titus.common.framework.scheduler.model.Schedule;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
@@ -35,47 +38,84 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
+/**
+ * {@link ScheduledActionExecutor} handles lifecycle of a single action, which transitions trough
+ * waiting -> running -> cancelling (optionally) -> succeeded | failed states.
+ */
 class ScheduledActionExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(ScheduledActionExecutor.class);
 
-    private final String id;
+    private static final int SCHEDULE_HISTORY_LIMIT = 20;
+
     private final ScheduleDescriptor descriptor;
-    private final Function<Long, Mono<Void>> actionProducer;
+    private final Function<ExecutionContext, Mono<Void>> actionProducer;
     private final Scheduler scheduler;
     private final Clock clock;
 
-    private volatile long index = 0;
+    private volatile Schedule schedule;
+    private final ScheduleMetrics scheduleMetrics;
+    private volatile long index;
     private volatile ScheduledAction action;
     private volatile Retryer retryer;
     private volatile Disposable actionDisposable;
     private volatile Throwable error;
 
-    ScheduledActionExecutor(String id,
-                            ScheduleDescriptor descriptor,
-                            Function<Long, Mono<Void>> actionProducer,
+    ScheduledActionExecutor(Schedule schedule,
+                            ScheduleMetrics scheduleMetrics,
+                            long index,
+                            Function<ExecutionContext, Mono<Void>> actionProducer,
                             Scheduler scheduler,
                             Clock clock) {
-        this.id = id;
-        this.descriptor = descriptor;
+        this.schedule = schedule;
+        this.descriptor = schedule.getDescriptor();
+        this.scheduleMetrics = scheduleMetrics;
+        this.index = index;
         this.actionProducer = actionProducer;
         this.scheduler = scheduler;
         this.clock = clock;
 
-        this.action = newScheduledAction();
+        this.action = schedule.getCurrentAction();
+
+        scheduleMetrics.onNewScheduledActionExecutor(this.getSchedule());
     }
 
-    public ScheduledAction getAction() {
+    Schedule getSchedule() {
+        return schedule;
+    }
+
+    ScheduledAction getAction() {
         return action;
     }
 
+    long getIndex() {
+        return index;
+    }
+
+    /**
+     * Invocations serialized with cancel.
+     */
     boolean handleExecution() {
         SchedulingState state = action.getStatus().getState();
         switch (state) {
             case Waiting:
-                return handleWaitingState();
+                boolean changed = handleWaitingState();
+                if (changed) {
+                    scheduleMetrics.onSchedulingStateUpdate(this.getSchedule());
+                }
+                return changed;
             case Running:
-                return handleRunningState();
+                boolean runningChanged = handleRunningState();
+                if (runningChanged) {
+                    scheduleMetrics.onSchedulingStateUpdate(this.getSchedule());
+                }
+                return runningChanged;
+            case Cancelling:
+                boolean cancellingChanged = handleCancellingState();
+                if (cancellingChanged) {
+                    scheduleMetrics.onScheduleRemoved(this.getSchedule());
+                }
+                return cancellingChanged;
             case Succeeded:
             case Failed:
                 Preconditions.checkState(false, "Invocation of the terminated action executor: state={}", state);
@@ -84,10 +124,38 @@ class ScheduledActionExecutor {
         return false;
     }
 
-    public void cancel() {
+    ScheduledActionExecutor nextScheduledActionExecutor() {
+        Schedule newSchedule = schedule.toBuilder()
+                .withCurrentAction(newScheduledAction())
+                .withCompletedActions(appendToCompletedActions())
+                .build();
+
+        return new ScheduledActionExecutor(
+                newSchedule,
+                scheduleMetrics,
+                index,
+                actionProducer,
+                scheduler,
+                clock
+        );
+    }
+
+    /**
+     * Invocations serialized with handleExecution.
+     */
+    boolean cancel() {
+        if (action.getStatus().getState().isFinal()) {
+            return false;
+        }
+
+        this.action = changeState(builder -> builder.withState(SchedulingState.Cancelling));
+        this.schedule = schedule.toBuilder().withCurrentAction(action).build();
+
         if (actionDisposable != null) {
             actionDisposable.dispose();
         }
+
+        return true;
     }
 
     private ScheduledAction newScheduledAction() {
@@ -98,7 +166,7 @@ class ScheduledActionExecutor {
                 : retryer.getDelayMs().orElse(descriptor.getInterval().toMillis());
 
         return ScheduledAction.newBuilder()
-                .withId(id)
+                .withId(schedule.getId())
                 .withStatus(SchedulingStatus.newBuilder()
                         .withState(SchedulingState.Waiting)
                         .withExpectedStartTime(now + delayMs)
@@ -106,6 +174,14 @@ class ScheduledActionExecutor {
                         .build()
                 )
                 .build();
+    }
+
+    private List<ScheduledAction> appendToCompletedActions() {
+        List<ScheduledAction> completedActions = CollectionsExt.copyAndAdd(schedule.getCompletedActions(), action);
+        if (completedActions.size() > SCHEDULE_HISTORY_LIMIT) {
+            completedActions = completedActions.subList(completedActions.size() - SCHEDULE_HISTORY_LIMIT, completedActions.size());
+        }
+        return completedActions;
     }
 
     private boolean handleWaitingState() {
@@ -122,14 +198,23 @@ class ScheduledActionExecutor {
                 )
                 .withStatusHistory(CollectionsExt.copyAndAdd(action.getStatusHistory(), oldStatus))
                 .build();
+        this.schedule = schedule.toBuilder().withCurrentAction(action).build();
 
         try {
             this.retryer = descriptor.getRetryerSupplier().get();
             this.error = null;
-            this.actionDisposable = actionProducer.apply(index++)
+            this.actionDisposable = actionProducer
+                    .apply(
+                            ExecutionContext.newBuilder()
+                                    .withId(schedule.getId())
+                                    .withCycle(index++)
+                                    .build()
+                    )
                     .timeout(descriptor.getTimeout())
                     .doOnError(e -> {
-                        logger.warn("Action execution error: name={}", descriptor.getName(), e);
+                        if (logger.isDebugEnabled()) {
+                            logger.warn("Action execution error: name={}", descriptor.getName(), e);
+                        }
                         ExceptionExt.silent(() -> descriptor.getOnErrorHandler().accept(action, e));
                         this.error = e;
                     })
@@ -152,6 +237,19 @@ class ScheduledActionExecutor {
         this.action = error == null
                 ? changeState(builder -> builder.withState(SchedulingState.Succeeded))
                 : newFailedStatus();
+        this.schedule = schedule.toBuilder().withCurrentAction(action).build();
+
+        return true;
+    }
+
+    private boolean handleCancellingState() {
+        if (actionDisposable != null && !actionDisposable.isDisposed()) {
+            return false;
+        }
+
+        this.error = LocalSchedulerException.cancelled();
+        this.action = newFailedStatus();
+        this.schedule = schedule.toBuilder().withCurrentAction(action).build();
 
         return true;
     }

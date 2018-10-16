@@ -31,12 +31,10 @@ import reactor.core.scheduler.Scheduler;
 
 /**
  * Simple scheduler for running tasks periodically within a JVM process.
- *
+ * <p>
  * TODO Missing features:
- * - metrics
  * - logging & transaction log
  * - schedule state dump (similar to Fenzo scheduler)
- * - watchdog
  * - REST API
  */
 @Experimental(deadline = "12/30/2018")
@@ -75,7 +73,7 @@ public interface LocalScheduler {
      * Schedule {@link Mono} action.
      */
     ScheduleReference scheduleMono(ScheduleDescriptor scheduleDescriptor,
-                                   Function<Long, Mono<Void>> actionProducer,
+                                   Function<ExecutionContext, Mono<Void>> actionProducer,
                                    Scheduler scheduler);
 
     /**
@@ -94,7 +92,7 @@ public interface LocalScheduler {
      * Schedule an action which is executed synchronously. If the action execution time is long (>1ms), set
      * isolated flag to true. Isolated actions run on their own thread.
      */
-    ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<Long> action, boolean isolated);
+    ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<ExecutionContext> action, boolean isolated);
 
     /**
      * Cancel a schedule with the given id.

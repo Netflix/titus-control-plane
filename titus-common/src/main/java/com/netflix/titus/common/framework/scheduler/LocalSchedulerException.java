@@ -19,6 +19,7 @@ package com.netflix.titus.common.framework.scheduler;
 public class LocalSchedulerException extends RuntimeException {
 
     public enum ErrorCode {
+        Cancelled,
         NotFound
     }
 
@@ -31,6 +32,10 @@ public class LocalSchedulerException extends RuntimeException {
 
     public ErrorCode getErrorCode() {
         return errorCode;
+    }
+
+    public static LocalSchedulerException cancelled() {
+        return new LocalSchedulerException(ErrorCode.Cancelled, "Cancelled");
     }
 
     public static LocalSchedulerException scheduleNotFound(String scheduleId) {
