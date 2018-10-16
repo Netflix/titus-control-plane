@@ -6,6 +6,10 @@ if [ "$TITUS_DOCKER_COMPOSE" == "true" ]; then
   set -eux
   docker-compose build
   docker-compose -d up
+  curl --fail \
+    --max-time 10 --connect-timeout 5 \
+    --retry 100 --retry-max-time 600 --retry-connrefused \
+    localhost:7001/api/v2/status
 
 elif [ "$TITUS_INTEGRATION_TEST" == "true" ]; then
   echo -e "Running integration tests (PR $TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
