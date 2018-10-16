@@ -43,6 +43,6 @@ matrix:
         - docker-compose build
       script:
         - docker-compose up -d
-        - curl --fail --max-time 10 --connect-timeout 5 --retry 100 --retry-max-time 600 localhost:7001/api/v2/status
+        - for i in {1..150}; do curl --fail --max-time 10 --connect-timeout 5 http://127.0.0.1:7001/api/v2/status && break || echo Retrying...; sleep 2; done
       after_script:
         - docker-compose down
