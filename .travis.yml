@@ -19,7 +19,7 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: TITUS_INTEGRATION_TEST=true
-    - env: TITUS_DOCKER_COMPOSE=true
+    - language: generic
   include:
     - name: "Unit Tests"
       env: TITUS_INTEGRATION_TEST=false
@@ -31,11 +31,15 @@ matrix:
       services:
         - docker
       env:
-        - TITUS_DOCKER_COMPOSE=true
         - DOCKER_COMPOSE_VERSION=1.22.0
       before_install:
         - sudo rm /usr/local/bin/docker-compose
         - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
+      install:
         - docker-compose config
+        - docker-compose build
+      script:
+        - docker-compose up -d
+        - curl --fail --max-time 10 --connect-timeout 5 --retry 100 --retry-max-time 600 --retry-connrefused localhost:7001/api/v2/status
