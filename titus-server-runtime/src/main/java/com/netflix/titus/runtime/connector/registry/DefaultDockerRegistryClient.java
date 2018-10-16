@@ -101,7 +101,7 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                         return Observable.from(stringListMap.get(dockerDigestHeaderKey));
                     }
                     return Observable.error(new TitusRegistryException(TitusRegistryException.ErrorCode.MISSING_HEADER, "Missing required header " + dockerDigestHeaderKey));
-                }).first().toSingle();
+                }).toSingle();
     }
 
     private String buildRegistryUri(String repository, String reference) {
