@@ -43,6 +43,9 @@ public class JobAssertions {
     public static final int MAX_ENVIRONMENT_VARIABLE_SIZE_MB = 32;
     public static final int MAX_ENVIRONMENT_VARIABLE_SIZE_BYTES = MAX_ENVIRONMENT_VARIABLE_SIZE_MB * 1024 * 1024;
 
+    public static final int MAX_ENTRY_POINT_SIZE_SIZE_KB = 16;
+    public static final int MAX_ENTRY_POINT_SIZE_SIZE_BYTES = MAX_ENTRY_POINT_SIZE_SIZE_KB * 1024;
+
     private static final Pattern SG_PATTERN = Pattern.compile("sg-.*");
     private static final Pattern IMAGE_NAME_PATTERN = Pattern.compile("[a-zA-Z0-9\\.\\\\/_-]+");
     private static final Pattern IMAGE_TAG_PATTERN = Pattern.compile("[a-zA-Z0-9\\._-]+");
@@ -56,9 +59,11 @@ public class JobAssertions {
 
     private static final Pattern IMAGE_DIGEST_PATTERN = Pattern.compile(DIGEST);
 
+    private final JobConfiguration configuration;
     private final Function<String, ResourceDimension> maxContainerSizeResolver;
 
-    public JobAssertions(Function<String, ResourceDimension> maxContainerSizeResolver) {
+    public JobAssertions(JobConfiguration configuration, Function<String, ResourceDimension> maxContainerSizeResolver) {
+        this.configuration = configuration;
         this.maxContainerSizeResolver = maxContainerSizeResolver;
     }
 
@@ -69,6 +74,19 @@ public class JobAssertions {
     public boolean isValidIamRole(String iamRole) {
         // TODO We should make full ARN validation
         return !StringExt.safeTrim(iamRole).isEmpty();
+    }
+
+    public boolean isEntryPointNotTooLarge(List<String> entryPoint) {
+        if (!configuration.isEntryPointSizeLimitEnabled()) {
+            return true;
+        }
+        if (CollectionsExt.isNullOrEmpty(entryPoint)) {
+            return true;
+        }
+
+        int totalSize = entryPoint.stream().mapToInt(e -> StringExt.isEmpty(e) ? 0 : e.getBytes(UTF_8).length).sum();
+
+        return totalSize <= MAX_ENTRY_POINT_SIZE_SIZE_BYTES;
     }
 
     public boolean areEnvironmentVariablesNotTooLarge(Map<String, String> environment) {

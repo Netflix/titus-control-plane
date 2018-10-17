@@ -24,7 +24,7 @@ import javax.validation.Valid;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
-import com.netflix.titus.api.jobmanager.model.job.sanitizer.SchedulingConstraintSetValidator;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.SchedulingConstraintSetValidator.SchedulingConstraintSet;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.SchedulingConstraintValidator;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
@@ -37,7 +37,7 @@ import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 /**
  */
 @ClassFieldsNotNull
-@SchedulingConstraintSetValidator.SchedulingConstraintSet
+@SchedulingConstraintSet
 public class Container {
 
     public static String RESOURCE_CPU = "cpu";
@@ -61,6 +61,10 @@ public class Container {
     private final Map<String, String> attributes;
 
     @CollectionInvariants
+    @FieldInvariant(
+            value = "@asserts.isEntryPointNotTooLarge(value)",
+            message = "Entry point size exceeds the limit " + JobAssertions.MAX_ENTRY_POINT_SIZE_SIZE_KB + "KB"
+    )
     private final List<String> entryPoint;
 
     @CollectionInvariants

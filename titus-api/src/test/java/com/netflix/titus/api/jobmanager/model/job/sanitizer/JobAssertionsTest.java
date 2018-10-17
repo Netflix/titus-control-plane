@@ -23,8 +23,11 @@ import com.netflix.titus.api.model.ResourceDimension;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class JobAssertionsTest {
+
+    private final JobConfiguration configuration = mock(JobConfiguration.class);
 
     @Test
     public void testImageDigestValidation() {
@@ -32,7 +35,7 @@ public class JobAssertionsTest {
                 .withName("imageName")
                 .withDigest("sha256:abcdef0123456789abcdef0123456789abcdef0123456789")
                 .build();
-        Map<String, String> violations = new JobAssertions(id -> ResourceDimension.empty()).validateImage(image);
+        Map<String, String> violations = new JobAssertions(configuration, id -> ResourceDimension.empty()).validateImage(image);
         assertThat(violations).isEmpty();
     }
 
@@ -42,7 +45,7 @@ public class JobAssertionsTest {
                 .withName("imageName")
                 .withDigest("sha256:XYZ")
                 .build();
-        Map<String, String> violations = new JobAssertions(id -> ResourceDimension.empty()).validateImage(image);
+        Map<String, String> violations = new JobAssertions(configuration, id -> ResourceDimension.empty()).validateImage(image);
         assertThat(violations).hasSize(1);
     }
 }
