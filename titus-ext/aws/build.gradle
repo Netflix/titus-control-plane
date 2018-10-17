@@ -18,7 +18,7 @@ dependencies {
     compile project(':titus-common')
     compile project(':titus-api')
 
-    compile "io.javaslang:javaslang:2.0.6"
+    compile "io.javaslang:javaslang:${javaslangVersion}"
     compile "com.amazonaws:aws-java-sdk-ec2:${awsSdkVersion}"
     compile "com.amazonaws:aws-java-sdk-autoscaling:${awsSdkVersion}"
     compile "com.amazonaws:aws-java-sdk-elasticloadbalancingv2:${awsSdkVersion}"

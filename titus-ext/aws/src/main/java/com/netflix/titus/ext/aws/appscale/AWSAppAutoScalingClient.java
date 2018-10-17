@@ -78,7 +78,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
     private final Counter deleteTargetErrorCounter;
     private final Counter deletePolicyErrorCounter;
     private final Counter getPolicyErrorCounter;
-    private AWSAppScalingConfig awsAppScalingConfig;
+    private final AWSAppScalingConfig awsAppScalingConfig;
 
 
     private static final String METRIC_APP_SCALE_GET_POLICY_ERROR = "titus.appscale.getPolicy.error";
@@ -133,7 +133,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                 Observable.create(emitter -> awsAppAutoScalingClientAsync.registerScalableTargetAsync(registerScalableTargetRequest, new AsyncHandler<RegisterScalableTargetRequest, RegisterScalableTargetResult>() {
                     @Override
                     public void onError(Exception exception) {
-                        log.info("RegisterScalableTarget exception {}", exception.getMessage());
+                        log.error("RegisterScalableTarget exception {}", exception.getMessage());
                         createTargetErrorCounter.increment();
                         emitter.onError(exception);
                     }
