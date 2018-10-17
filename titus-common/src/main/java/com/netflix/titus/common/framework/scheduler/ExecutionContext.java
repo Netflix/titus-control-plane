@@ -2,19 +2,19 @@ package com.netflix.titus.common.framework.scheduler;
 
 import java.util.Optional;
 
+import com.netflix.titus.common.framework.scheduler.model.Iteration;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
-import com.netflix.titus.common.framework.scheduler.model.TransactionId;
 
 public class ExecutionContext {
 
     private final String id;
-    private final TransactionId transactionId;
+    private final Iteration iteration;
     private final ScheduledAction currentAction;
     private final Optional<ScheduledAction> previousAction;
 
-    private ExecutionContext(String id, TransactionId transactionId, ScheduledAction currentAction, Optional<ScheduledAction> previousAction) {
+    private ExecutionContext(String id, Iteration iteration, ScheduledAction currentAction, Optional<ScheduledAction> previousAction) {
         this.id = id;
-        this.transactionId = transactionId;
+        this.iteration = iteration;
         this.currentAction = currentAction;
         this.previousAction = previousAction;
     }
@@ -23,8 +23,8 @@ public class ExecutionContext {
         return id;
     }
 
-    public TransactionId getTransactionId() {
-        return transactionId;
+    public Iteration getIteration() {
+        return iteration;
     }
 
     public ScheduledAction getCurrentAction() {
@@ -36,7 +36,7 @@ public class ExecutionContext {
     }
 
     public Builder toBuilder() {
-        return newBuilder().withId(id).withTransactionId(transactionId);
+        return newBuilder().withId(id).withIteration(iteration);
     }
 
     public static Builder newBuilder() {
@@ -47,7 +47,7 @@ public class ExecutionContext {
         private String id;
         private ScheduledAction currentAction;
         private ScheduledAction previousAction;
-        private TransactionId transactionId;
+        private Iteration iteration;
 
         private Builder() {
         }
@@ -57,8 +57,8 @@ public class ExecutionContext {
             return this;
         }
 
-        public Builder withTransactionId(TransactionId transactionId) {
-            this.transactionId = transactionId;
+        public Builder withIteration(Iteration iteration) {
+            this.iteration = iteration;
             return this;
         }
 
@@ -73,7 +73,7 @@ public class ExecutionContext {
         }
 
         public ExecutionContext build() {
-            return new ExecutionContext(id, transactionId, currentAction, Optional.ofNullable(previousAction));
+            return new ExecutionContext(id, iteration, currentAction, Optional.ofNullable(previousAction));
         }
     }
 }

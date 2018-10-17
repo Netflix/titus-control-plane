@@ -70,7 +70,7 @@ class LocalSchedulerTransactionLogger {
                 summary = "Running...";
                 break;
             case Cancelling:
-                summary = "Schedule canceled by a user";
+                summary = "Schedule cancelled by a user";
                 break;
             case Succeeded:
                 summary = "Scheduled action completed";
@@ -90,10 +90,10 @@ class LocalSchedulerTransactionLogger {
                                    String summary) {
         ScheduledAction action = schedule.getCurrentAction();
         return String.format(
-                "name=%-20s eventKind=%-15s transaction=%-6s state=%-10s %-15s summary=%s",
+                "name=%-20s eventKind=%-15s iteration=%-6s state=%-10s %-15s summary=%s",
                 schedule.getDescriptor().getName(),
                 eventKind,
-                action.getTransactionId().getMajor() + "." + action.getTransactionId().getRetry(),
+                action.getIteration().getId() + "." + action.getIteration().getAttempt(),
                 action.getStatus().getState(),
                 "elapsed=" + toElapsedMs(schedule) + "ms",
                 summary

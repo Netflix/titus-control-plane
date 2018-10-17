@@ -8,7 +8,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
-import com.netflix.titus.common.framework.scheduler.model.TransactionId;
+import com.netflix.titus.common.framework.scheduler.model.Iteration;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleAddedEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleRemovedEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleUpdateEvent;
@@ -37,7 +37,7 @@ public class LocalSchedulerTransactionLoggerTest {
             .withCurrentAction(ScheduledAction.newBuilder()
                     .withId("reference")
                     .withStatus(newSchedulingStatus(SchedulingState.Waiting))
-                    .withTransactionId(TransactionId.initial())
+                    .withIteration(Iteration.initial())
                     .build()
             )
             .build();
@@ -77,7 +77,7 @@ public class LocalSchedulerTransactionLoggerTest {
                 .withCurrentAction(ScheduledAction.newBuilder()
                         .withId("reference")
                         .withStatus(newSchedulingStatus(SchedulingState.Waiting))
-                        .withTransactionId(TransactionId.initial())
+                        .withIteration(Iteration.initial())
                         .build()
                 )
                 .withCompletedActions(Collections.singletonList(firstCompleted.getCurrentAction()))

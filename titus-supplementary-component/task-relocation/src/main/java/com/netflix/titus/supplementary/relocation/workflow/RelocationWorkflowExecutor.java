@@ -113,7 +113,7 @@ public class RelocationWorkflowExecutor {
     }
 
     private void nextRelocationStep(ExecutionContext executionContext) {
-        long count = executionContext.getTransactionId().getTotal();
+        long count = executionContext.getIteration().getTotal();
         logger.info("Starting task relocation iteration {}...", count);
 
         Stopwatch stopwatch = Stopwatch.createStarted();

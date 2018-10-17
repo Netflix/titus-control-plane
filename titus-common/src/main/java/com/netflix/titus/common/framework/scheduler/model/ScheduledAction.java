@@ -27,13 +27,13 @@ public class ScheduledAction {
     private final String id;
     private final SchedulingStatus status;
     private final List<SchedulingStatus> statusHistory;
-    private final TransactionId transactionId;
+    private final Iteration iteration;
 
-    private ScheduledAction(String id, SchedulingStatus status, List<SchedulingStatus> statusHistory, TransactionId transactionId) {
+    private ScheduledAction(String id, SchedulingStatus status, List<SchedulingStatus> statusHistory, Iteration iteration) {
         this.id = id;
         this.status = status;
         this.statusHistory = statusHistory;
-        this.transactionId = transactionId;
+        this.iteration = iteration;
     }
 
     public String getId() {
@@ -44,8 +44,8 @@ public class ScheduledAction {
         return status;
     }
 
-    public TransactionId getTransactionId() {
-        return transactionId;
+    public Iteration getIteration() {
+        return iteration;
     }
 
     public List<SchedulingStatus> getStatusHistory() {
@@ -64,16 +64,16 @@ public class ScheduledAction {
         return Objects.equals(id, that.id) &&
                 Objects.equals(status, that.status) &&
                 Objects.equals(statusHistory, that.statusHistory) &&
-                Objects.equals(transactionId, that.transactionId);
+                Objects.equals(iteration, that.iteration);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, status, statusHistory, transactionId);
+        return Objects.hash(id, status, statusHistory, iteration);
     }
 
     public Builder toBuilder() {
-        return newBuilder().withId(id).withStatus(status).withStatusHistory(statusHistory).withTransactionId(transactionId);
+        return newBuilder().withId(id).withStatus(status).withStatusHistory(statusHistory).withIteration(iteration);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class ScheduledAction {
                 "id='" + id + '\'' +
                 ", status=" + status +
                 ", statusHistory=" + statusHistory +
-                ", transactionId=" + transactionId +
+                ", iteration=" + iteration +
                 '}';
     }
 
@@ -94,7 +94,7 @@ public class ScheduledAction {
         private String id;
         private SchedulingStatus status;
         private List<SchedulingStatus> statusHistory = Collections.emptyList();
-        private TransactionId transactionId;
+        private Iteration iteration;
 
         private Builder() {
         }
@@ -114,8 +114,8 @@ public class ScheduledAction {
             return this;
         }
 
-        public Builder withTransactionId(TransactionId transactionId) {
-            this.transactionId = transactionId;
+        public Builder withIteration(Iteration iteration) {
+            this.iteration = iteration;
             return this;
         }
 
@@ -123,9 +123,9 @@ public class ScheduledAction {
             Preconditions.checkNotNull(id, "Id cannot be null");
             Preconditions.checkNotNull(status, "Status cannot be null");
             Preconditions.checkNotNull(statusHistory, "Status history cannot be null");
-            Preconditions.checkNotNull(transactionId, "Transaction id cannot be null");
+            Preconditions.checkNotNull(iteration, "Iteration cannot be null");
 
-            return new ScheduledAction(id, status, statusHistory, transactionId);
+            return new ScheduledAction(id, status, statusHistory, iteration);
         }
     }
 }

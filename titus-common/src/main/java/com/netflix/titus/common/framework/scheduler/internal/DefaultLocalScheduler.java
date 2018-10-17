@@ -46,7 +46,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
-import com.netflix.titus.common.framework.scheduler.model.TransactionId;
+import com.netflix.titus.common.framework.scheduler.model.Iteration;
 import com.netflix.titus.common.framework.scheduler.model.event.LocalSchedulerEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleAddedEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleRemovedEvent;
@@ -222,7 +222,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
                             .withTimestamp(clock.wallTime())
                             .build()
                     )
-                    .withTransactionId(TransactionId.initial())
+                    .withIteration(Iteration.initial())
                     .build();
             Schedule schedule = Schedule.newBuilder()
                     .withId(scheduleId)
