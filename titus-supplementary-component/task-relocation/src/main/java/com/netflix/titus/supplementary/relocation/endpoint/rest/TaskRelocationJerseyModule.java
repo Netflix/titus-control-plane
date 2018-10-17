@@ -24,6 +24,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
+import com.netflix.titus.common.framework.scheduler.endpoint.LocalSchedulerResource;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
@@ -63,6 +64,7 @@ public class TaskRelocationJerseyModule extends JerseyServletModule {
             config.getClasses().add(InstrumentedResourceMethodDispatchAdapter.class);
 
             // Runtime resources
+            config.getClasses().add(LocalSchedulerResource.class);
             config.getClasses().add(TaskRelocationResource.class);
 
             return config;

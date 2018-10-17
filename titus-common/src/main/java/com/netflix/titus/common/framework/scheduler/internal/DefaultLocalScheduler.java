@@ -46,6 +46,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
+import com.netflix.titus.common.framework.scheduler.model.TransactionId;
 import com.netflix.titus.common.framework.scheduler.model.event.LocalSchedulerEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleAddedEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleRemovedEvent;
@@ -54,6 +55,7 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -80,6 +82,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
     private final ConcurrentMap<String, Schedule> archivedSchedulesById = new ConcurrentHashMap<>();
     private final DirectProcessor<LocalSchedulerEvent> eventProcessor = DirectProcessor.create();
     private final SchedulerMetrics metrics;
+    private final Disposable transactionLoggerDisposable;
 
     public DefaultLocalScheduler(Duration internalLoopInterval, Scheduler scheduler, Clock clock, Registry registry) {
         this.internalLoopIntervalMs = internalLoopInterval.toMillis();
@@ -88,6 +91,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
         this.registry = registry;
         this.worker = scheduler.createWorker();
         this.metrics = new SchedulerMetrics(this, clock, registry);
+        this.transactionLoggerDisposable = LocalSchedulerTransactionLogger.logEvents(this);
 
         scheduleNextIteration();
     }
@@ -95,6 +99,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
     public void shutdown() {
         worker.dispose();
         metrics.shutdown();
+        ReactorExt.safeDispose(transactionLoggerDisposable);
     }
 
     @Override
@@ -217,6 +222,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
                             .withTimestamp(clock.wallTime())
                             .build()
                     )
+                    .withTransactionId(TransactionId.initial())
                     .build();
             Schedule schedule = Schedule.newBuilder()
                     .withId(scheduleId)
@@ -224,7 +230,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
                     .withCurrentAction(firstAction)
                     .withCompletedActions(Collections.emptyList())
                     .build();
-            this.executor = new ScheduledActionExecutor(schedule, new ScheduleMetrics(schedule, clock, registry), 0, actionProducer, scheduler, clock);
+            this.executor = new ScheduledActionExecutor(schedule, new ScheduleMetrics(schedule, clock, registry), actionProducer, scheduler, clock);
 
             this.cleanup = cleanup;
             this.reference = new ScheduleReference() {
@@ -271,11 +277,12 @@ public class DefaultLocalScheduler implements LocalScheduler {
             Schedule currentSchedule = executor.getSchedule();
             eventProcessor.onNext(new ScheduleUpdateEvent(currentSchedule));
 
-            if (executor.getAction().getStatus().getState().isFinal()) {
+            SchedulingState currentState = executor.getAction().getStatus().getState();
+            if (currentState.isFinal()) {
                 if (closed) {
                     doCleanup();
                 } else {
-                    this.executor = executor.nextScheduledActionExecutor();
+                    this.executor = executor.nextScheduledActionExecutor(currentState == SchedulingState.Failed);
                     eventProcessor.onNext(new ScheduleUpdateEvent(executor.getSchedule()));
                 }
             }

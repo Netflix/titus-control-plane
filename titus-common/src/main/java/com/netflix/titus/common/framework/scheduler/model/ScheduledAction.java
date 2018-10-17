@@ -27,13 +27,13 @@ public class ScheduledAction {
     private final String id;
     private final SchedulingStatus status;
     private final List<SchedulingStatus> statusHistory;
-    private final long counter;
+    private final TransactionId transactionId;
 
-    private ScheduledAction(String id, SchedulingStatus status, List<SchedulingStatus> statusHistory, long counter) {
+    private ScheduledAction(String id, SchedulingStatus status, List<SchedulingStatus> statusHistory, TransactionId transactionId) {
         this.id = id;
         this.status = status;
         this.statusHistory = statusHistory;
-        this.counter = counter;
+        this.transactionId = transactionId;
     }
 
     public String getId() {
@@ -44,8 +44,8 @@ public class ScheduledAction {
         return status;
     }
 
-    public long getCounter() {
-        return counter;
+    public TransactionId getTransactionId() {
+        return transactionId;
     }
 
     public List<SchedulingStatus> getStatusHistory() {
@@ -61,19 +61,19 @@ public class ScheduledAction {
             return false;
         }
         ScheduledAction that = (ScheduledAction) o;
-        return counter == that.counter &&
-                Objects.equals(id, that.id) &&
+        return Objects.equals(id, that.id) &&
                 Objects.equals(status, that.status) &&
-                Objects.equals(statusHistory, that.statusHistory);
+                Objects.equals(statusHistory, that.statusHistory) &&
+                Objects.equals(transactionId, that.transactionId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, status, statusHistory, counter);
+        return Objects.hash(id, status, statusHistory, transactionId);
     }
 
     public Builder toBuilder() {
-        return newBuilder().withId(id).withStatus(status).withStatusHistory(statusHistory).withCounter(counter);
+        return newBuilder().withId(id).withStatus(status).withStatusHistory(statusHistory).withTransactionId(transactionId);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class ScheduledAction {
                 "id='" + id + '\'' +
                 ", status=" + status +
                 ", statusHistory=" + statusHistory +
-                ", counter=" + counter +
+                ", transactionId=" + transactionId +
                 '}';
     }
 
@@ -94,7 +94,7 @@ public class ScheduledAction {
         private String id;
         private SchedulingStatus status;
         private List<SchedulingStatus> statusHistory = Collections.emptyList();
-        private long counter;
+        private TransactionId transactionId;
 
         private Builder() {
         }
@@ -114,8 +114,8 @@ public class ScheduledAction {
             return this;
         }
 
-        public Builder withCounter(long counter) {
-            this.counter = counter;
+        public Builder withTransactionId(TransactionId transactionId) {
+            this.transactionId = transactionId;
             return this;
         }
 
@@ -123,8 +123,9 @@ public class ScheduledAction {
             Preconditions.checkNotNull(id, "Id cannot be null");
             Preconditions.checkNotNull(status, "Status cannot be null");
             Preconditions.checkNotNull(statusHistory, "Status history cannot be null");
+            Preconditions.checkNotNull(transactionId, "Transaction id cannot be null");
 
-            return new ScheduledAction(id, status, statusHistory, counter);
+            return new ScheduledAction(id, status, statusHistory, transactionId);
         }
     }
 }

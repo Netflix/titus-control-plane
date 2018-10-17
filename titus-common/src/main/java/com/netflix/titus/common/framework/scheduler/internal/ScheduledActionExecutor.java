@@ -17,6 +17,7 @@
 package com.netflix.titus.common.framework.scheduler.internal;
 
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -28,6 +29,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
+import com.netflix.titus.common.framework.scheduler.model.TransactionId;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.retry.Retryer;
@@ -55,22 +57,23 @@ class ScheduledActionExecutor {
 
     private volatile Schedule schedule;
     private final ScheduleMetrics scheduleMetrics;
-    private volatile long index;
     private volatile ScheduledAction action;
     private volatile Retryer retryer;
     private volatile Disposable actionDisposable;
+
+    // We need this extra coordination, as disposable may become disposed before onError/onCompleted callbacks complete.
+    private volatile boolean actionCompleted;
+
     private volatile Throwable error;
 
     ScheduledActionExecutor(Schedule schedule,
                             ScheduleMetrics scheduleMetrics,
-                            long index,
                             Function<ExecutionContext, Mono<Void>> actionProducer,
                             Scheduler scheduler,
                             Clock clock) {
         this.schedule = schedule;
         this.descriptor = schedule.getDescriptor();
         this.scheduleMetrics = scheduleMetrics;
-        this.index = index;
         this.actionProducer = actionProducer;
         this.scheduler = scheduler;
         this.clock = clock;
@@ -86,10 +89,6 @@ class ScheduledActionExecutor {
 
     ScheduledAction getAction() {
         return action;
-    }
-
-    long getIndex() {
-        return index;
     }
 
     /**
@@ -124,16 +123,15 @@ class ScheduledActionExecutor {
         return false;
     }
 
-    ScheduledActionExecutor nextScheduledActionExecutor() {
+    ScheduledActionExecutor nextScheduledActionExecutor(boolean retried) {
         Schedule newSchedule = schedule.toBuilder()
-                .withCurrentAction(newScheduledAction())
+                .withCurrentAction(newScheduledAction(retried))
                 .withCompletedActions(appendToCompletedActions())
                 .build();
 
         return new ScheduledActionExecutor(
                 newSchedule,
                 scheduleMetrics,
-                index,
                 actionProducer,
                 scheduler,
                 clock
@@ -158,10 +156,10 @@ class ScheduledActionExecutor {
         return true;
     }
 
-    private ScheduledAction newScheduledAction() {
+    private ScheduledAction newScheduledAction(boolean retried) {
         long now = clock.wallTime();
 
-        long delayMs = retryer == null
+        long delayMs = (!retried || retryer == null)
                 ? descriptor.getInterval().toMillis()
                 : retryer.getDelayMs().orElse(descriptor.getInterval().toMillis());
 
@@ -172,6 +170,10 @@ class ScheduledActionExecutor {
                         .withExpectedStartTime(now + delayMs)
                         .withTimestamp(now)
                         .build()
+                )
+                .withTransactionId(retried
+                        ? TransactionId.nextRetried(action.getTransactionId())
+                        : TransactionId.nextMajor(action.getTransactionId())
                 )
                 .build();
     }
@@ -202,25 +204,41 @@ class ScheduledActionExecutor {
 
         try {
             this.retryer = descriptor.getRetryerSupplier().get();
+            this.actionCompleted = false;
             this.error = null;
             this.actionDisposable = actionProducer
                     .apply(
                             ExecutionContext.newBuilder()
                                     .withId(schedule.getId())
-                                    .withCycle(index++)
+                                    .withTransactionId(action.getTransactionId())
                                     .build()
                     )
                     .timeout(descriptor.getTimeout())
-                    .doOnError(e -> {
-                        if (logger.isDebugEnabled()) {
-                            logger.warn("Action execution error: name={}", descriptor.getName(), e);
-                        }
-                        ExceptionExt.silent(() -> descriptor.getOnErrorHandler().accept(action, e));
-                        this.error = e;
-                    })
-                    .doOnSuccess(nothing -> ExceptionExt.silent(() -> descriptor.getOnSuccessHandler().accept(action)))
                     .subscribeOn(scheduler)
-                    .subscribe();
+                    .doOnCancel(() -> actionCompleted = true)
+                    .subscribe(
+                            next -> {
+                                // Never
+                            },
+                            e -> {
+                                if (logger.isDebugEnabled()) {
+                                    logger.warn("Action execution error: name={}", descriptor.getName(), e);
+                                }
+                                Throwable effectiveError = e;
+                                if (e instanceof TimeoutException) {
+                                    effectiveError = new TimeoutException(String.format("Action did not complete in time: timeout=%sms", descriptor.getTimeout().toMillis()));
+                                }
+
+                                ExceptionExt.silent(() -> descriptor.getOnErrorHandler().accept(action, error));
+                                this.error = effectiveError;
+                                this.actionCompleted = true;
+                            },
+                            () -> {
+                                ExceptionExt.silent(() -> descriptor.getOnSuccessHandler().accept(action));
+                                this.actionCompleted = true;
+                            }
+
+                    );
         } catch (Exception e) {
             logger.warn("Could not produce action: name={}", descriptor.getName(), e);
             this.action = newFailedStatus();
@@ -230,7 +248,7 @@ class ScheduledActionExecutor {
     }
 
     private boolean handleRunningState() {
-        if (!actionDisposable.isDisposed()) {
+        if (!actionDisposable.isDisposed() || !actionCompleted) {
             return false;
         }
 

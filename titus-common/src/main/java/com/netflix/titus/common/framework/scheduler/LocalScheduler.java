@@ -31,11 +31,6 @@ import reactor.core.scheduler.Scheduler;
 
 /**
  * Simple scheduler for running tasks periodically within a JVM process.
- * <p>
- * TODO Missing features:
- * - logging & transaction log
- * - schedule state dump (similar to Fenzo scheduler)
- * - REST API
  */
 @Experimental(deadline = "12/30/2018")
 public interface LocalScheduler {
