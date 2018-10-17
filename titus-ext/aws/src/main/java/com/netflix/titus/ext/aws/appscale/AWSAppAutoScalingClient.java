@@ -1,0 +1,372 @@
+/*
+ * Copyright 2018 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.netflix.titus.ext.aws.appscale;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.handlers.AsyncHandler;
+import com.amazonaws.services.applicationautoscaling.AWSApplicationAutoScalingAsync;
+import com.amazonaws.services.applicationautoscaling.AWSApplicationAutoScalingAsyncClientBuilder;
+import com.amazonaws.services.applicationautoscaling.model.CustomizedMetricSpecification;
+import com.amazonaws.services.applicationautoscaling.model.DeleteScalingPolicyRequest;
+import com.amazonaws.services.applicationautoscaling.model.DeleteScalingPolicyResult;
+import com.amazonaws.services.applicationautoscaling.model.DeregisterScalableTargetRequest;
+import com.amazonaws.services.applicationautoscaling.model.DeregisterScalableTargetResult;
+import com.amazonaws.services.applicationautoscaling.model.DescribeScalableTargetsRequest;
+import com.amazonaws.services.applicationautoscaling.model.DescribeScalableTargetsResult;
+import com.amazonaws.services.applicationautoscaling.model.MetricDimension;
+import com.amazonaws.services.applicationautoscaling.model.ObjectNotFoundException;
+import com.amazonaws.services.applicationautoscaling.model.PutScalingPolicyRequest;
+import com.amazonaws.services.applicationautoscaling.model.PutScalingPolicyResult;
+import com.amazonaws.services.applicationautoscaling.model.RegisterScalableTargetRequest;
+import com.amazonaws.services.applicationautoscaling.model.RegisterScalableTargetResult;
+import com.amazonaws.services.applicationautoscaling.model.ScalableTarget;
+import com.amazonaws.services.applicationautoscaling.model.StepAdjustment;
+import com.amazonaws.services.applicationautoscaling.model.StepScalingPolicyConfiguration;
+import com.amazonaws.services.applicationautoscaling.model.TargetTrackingScalingPolicyConfiguration;
+import com.amazonaws.services.applicationautoscaling.model.ValidationException;
+import com.google.common.annotations.VisibleForTesting;
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.appscale.model.AutoScalableTarget;
+import com.netflix.titus.api.appscale.model.PolicyConfiguration;
+import com.netflix.titus.api.appscale.model.PolicyType;
+import com.netflix.titus.api.appscale.model.TargetTrackingPolicy;
+import com.netflix.titus.api.appscale.service.AutoScalePolicyException;
+import com.netflix.titus.api.connector.cloud.AppAutoScalingClient;
+import com.netflix.titus.ext.aws.RetryWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Completable;
+import rx.Emitter;
+import rx.Observable;
+
+
+@Singleton
+public class AWSAppAutoScalingClient implements AppAutoScalingClient {
+    private static Logger log = LoggerFactory.getLogger(AWSAppAutoScalingClient.class);
+    private static final String SERVICE_NAMESPACE = "custom-resource";
+    // AWS requires this field be set to this specific value for all application-autoscaling calls.
+    private static final String SCALABLE_DIMENSION = "custom-resource:ResourceType:Property";
+
+    private final AWSApplicationAutoScalingAsync awsAppAutoScalingClientAsync;
+    private final Counter createTargetCounter;
+    private final Counter createPolicyCounter;
+    private final Counter deleteTargetCounter;
+    private final Counter deletePolicyCounter;
+    private final Counter createTargetErrorCounter;
+    private final Counter createPolicyErrorCounter;
+    private final Counter deleteTargetErrorCounter;
+    private final Counter deletePolicyErrorCounter;
+    private final Counter getPolicyErrorCounter;
+    private final AWSAppScalingConfig awsAppScalingConfig;
+
+
+    private static final String METRIC_APP_SCALE_GET_POLICY_ERROR = "titus.appscale.getPolicy.error";
+    private static final String METRIC_APP_SCALE_CREATE_TARGET = "titus.appscale.create.target";
+    private static final String METRIC_APP_SCALE_CREATE_POLICY = "titus.appscale.create.policy";
+    private static final String METRIC_APP_SCALE_DELETE_TARGET = "titus.appscale.delete.target";
+    private static final String METRIC_APP_SCALE_DELETE_POLICY = "titus.appscale.delete.policy";
+    private static final String METRIC_APP_SCALE_CREATE_TARGET_ERROR = "titus.appscale.create.target.error";
+    private static final String METRIC_APP_SCALE_CREATE_POLICY_ERROR = "titus.appscale.create.policy.error";
+    private static final String METRIC_APP_SCALE_DELETE_TARGET_ERROR = "titus.appscale.delete.target.error";
+    private static final String METRIC_APP_SCALE_DELETE_POLICY_ERROR = "titus.appscale.delete.policy.error";
+
+
+    @Inject
+    public AWSAppAutoScalingClient(AWSCredentialsProvider awsCredentialsProvider,
+                                   AWSAppScalingConfig awsAppScalingConfig,
+                                   Registry registry) {
+        this(AWSApplicationAutoScalingAsyncClientBuilder.standard()
+                        .withCredentials(awsCredentialsProvider)
+                        .withRegion(awsAppScalingConfig.getRegion()).build(),
+                awsAppScalingConfig, registry);
+    }
+
+    @VisibleForTesting
+    AWSAppAutoScalingClient(AWSApplicationAutoScalingAsync awsAppAutoScalingClientAsync, AWSAppScalingConfig awsAppScalingConfig, Registry registry) {
+        this.awsAppAutoScalingClientAsync = awsAppAutoScalingClientAsync;
+        this.awsAppScalingConfig = awsAppScalingConfig;
+
+        createTargetCounter = registry.counter(METRIC_APP_SCALE_CREATE_TARGET);
+        createPolicyCounter = registry.counter(METRIC_APP_SCALE_CREATE_POLICY);
+        deleteTargetCounter = registry.counter(METRIC_APP_SCALE_DELETE_TARGET);
+        deletePolicyCounter = registry.counter(METRIC_APP_SCALE_DELETE_POLICY);
+        createTargetErrorCounter = registry.counter(METRIC_APP_SCALE_CREATE_TARGET_ERROR);
+        createPolicyErrorCounter = registry.counter(METRIC_APP_SCALE_CREATE_POLICY_ERROR);
+        deleteTargetErrorCounter = registry.counter(METRIC_APP_SCALE_DELETE_TARGET_ERROR);
+        deletePolicyErrorCounter = registry.counter(METRIC_APP_SCALE_DELETE_POLICY_ERROR);
+        getPolicyErrorCounter = registry.counter(METRIC_APP_SCALE_GET_POLICY_ERROR);
+    }
+
+    @Override
+    public Completable createScalableTarget(String jobId, int minCapacity, int maxCapacity) {
+        RegisterScalableTargetRequest registerScalableTargetRequest = new RegisterScalableTargetRequest();
+        registerScalableTargetRequest.setMinCapacity(minCapacity);
+        registerScalableTargetRequest.setMaxCapacity(maxCapacity);
+        registerScalableTargetRequest.setResourceId(buildAPIGatewayResource(jobId));
+        registerScalableTargetRequest.setRoleARN(buildRoleARN());
+        registerScalableTargetRequest.setServiceNamespace(SERVICE_NAMESPACE);
+        registerScalableTargetRequest.setScalableDimension(SCALABLE_DIMENSION);
+        log.info("RegisterScalableTargetRequest {}", registerScalableTargetRequest);
+
+        return RetryWrapper.wrapWithExponentialRetry(String.format("createScalableTarget for job %s", jobId),
+                Observable.create(emitter -> awsAppAutoScalingClientAsync.registerScalableTargetAsync(registerScalableTargetRequest, new AsyncHandler<RegisterScalableTargetRequest, RegisterScalableTargetResult>() {
+                    @Override
+                    public void onError(Exception exception) {
+                        log.error("RegisterScalableTarget exception {}", exception.getMessage());
+                        createTargetErrorCounter.increment();
+                        emitter.onError(exception);
+                    }
+
+                    @Override
+                    public void onSuccess(RegisterScalableTargetRequest request, RegisterScalableTargetResult registerScalableTargetResult) {
+                        int httpStatusCode = registerScalableTargetResult.getSdkHttpMetadata().getHttpStatusCode();
+                        log.info("Registered scalable target for {} - status {}", jobId, httpStatusCode);
+                        createTargetCounter.increment();
+                        emitter.onCompleted();
+                    }
+                }), Emitter.BackpressureMode.NONE)).toCompletable();
+    }
+
+    @Override
+    public Observable<AutoScalableTarget> getScalableTargetsForJob(String jobId) {
+        DescribeScalableTargetsRequest describeScalableTargetsRequest = new DescribeScalableTargetsRequest();
+        describeScalableTargetsRequest.setServiceNamespace(SERVICE_NAMESPACE);
+        describeScalableTargetsRequest.setScalableDimension(SCALABLE_DIMENSION);
+        describeScalableTargetsRequest.setResourceIds(Arrays.asList(buildAPIGatewayResource(jobId)));
+
+        return RetryWrapper.wrapWithExponentialRetry(String.format("getScalableTargetsForJob for job %s", jobId),
+                Observable.create(emitter -> awsAppAutoScalingClientAsync.describeScalableTargetsAsync(describeScalableTargetsRequest,
+                        new AsyncHandler<DescribeScalableTargetsRequest, DescribeScalableTargetsResult>() {
+                            @Override
+                            public void onError(Exception exception) {
+                                getPolicyErrorCounter.increment();
+                                emitter.onError(exception);
+                            }
+
+                            @Override
+                            public void onSuccess(DescribeScalableTargetsRequest request, DescribeScalableTargetsResult describeScalableTargetsResult) {
+                                List<ScalableTarget> scalableTargets = describeScalableTargetsResult.getScalableTargets();
+                                scalableTargets.stream()
+                                        .map(scalableTarget -> toAutoScalableTarget(scalableTarget))
+                                        .forEach(autoScalableTarget -> emitter.onNext(autoScalableTarget));
+                                emitter.onCompleted();
+                            }
+                        }), Emitter.BackpressureMode.NONE));
+    }
+
+    @Override
+    public Observable<String> createOrUpdateScalingPolicy(String policyRefId, String jobId, PolicyConfiguration policyConfiguration) {
+        PutScalingPolicyRequest putScalingPolicyRequest = new PutScalingPolicyRequest();
+
+        putScalingPolicyRequest.setPolicyName(buildScalingPolicyName(policyRefId, jobId));
+
+        putScalingPolicyRequest.setPolicyType(policyConfiguration.getPolicyType().name());
+        putScalingPolicyRequest.setResourceId(buildAPIGatewayResource(jobId));
+        putScalingPolicyRequest.setServiceNamespace(SERVICE_NAMESPACE);
+        putScalingPolicyRequest.setScalableDimension(SCALABLE_DIMENSION);
+
+        if (policyConfiguration.getPolicyType() == PolicyType.StepScaling) {
+            StepScalingPolicyConfiguration stepScalingPolicyConfiguration = new StepScalingPolicyConfiguration();
+            if (policyConfiguration.getStepScalingPolicyConfiguration().getMetricAggregationType().isPresent()) {
+                stepScalingPolicyConfiguration.setMetricAggregationType(policyConfiguration.getStepScalingPolicyConfiguration().getMetricAggregationType().get().name());
+            }
+
+            if (policyConfiguration.getStepScalingPolicyConfiguration().getCoolDownSec().isPresent()) {
+                stepScalingPolicyConfiguration.setCooldown(policyConfiguration.getStepScalingPolicyConfiguration().getCoolDownSec().get());
+            }
+
+            List<com.netflix.titus.api.appscale.model.StepAdjustment> steps = policyConfiguration.getStepScalingPolicyConfiguration().getSteps();
+            List<StepAdjustment> stepAdjustments = steps.stream()
+                    .map(step -> {
+                        StepAdjustment stepAdjustment = new StepAdjustment();
+                        if (step.getMetricIntervalUpperBound() != null && step.getMetricIntervalUpperBound().isPresent()) {
+                            stepAdjustment.setMetricIntervalUpperBound(step.getMetricIntervalUpperBound().get());
+                        }
+                        if (step.getMetricIntervalLowerBound() != null && step.getMetricIntervalLowerBound().isPresent()) {
+                            stepAdjustment.setMetricIntervalLowerBound(step.getMetricIntervalLowerBound().get());
+                        }
+                        stepAdjustment.setScalingAdjustment(step.getScalingAdjustment());
+                        return stepAdjustment;
+                    })
+                    .collect(Collectors.toList());
+
+            stepScalingPolicyConfiguration.setStepAdjustments(stepAdjustments);
+            if (policyConfiguration.getStepScalingPolicyConfiguration().getAdjustmentType().isPresent()) {
+                stepScalingPolicyConfiguration.setAdjustmentType(policyConfiguration.getStepScalingPolicyConfiguration().getAdjustmentType().get().name());
+            }
+
+            putScalingPolicyRequest.setStepScalingPolicyConfiguration(stepScalingPolicyConfiguration);
+        } else if (policyConfiguration.getPolicyType() == PolicyType.TargetTrackingScaling) {
+            TargetTrackingScalingPolicyConfiguration targetTrackingConfigAws = new TargetTrackingScalingPolicyConfiguration();
+            TargetTrackingPolicy targetTrackingPolicyInt = policyConfiguration.getTargetTrackingPolicy();
+
+            targetTrackingConfigAws.setTargetValue(targetTrackingPolicyInt.getTargetValue());
+            if (targetTrackingPolicyInt.getDisableScaleIn().isPresent()) {
+                targetTrackingConfigAws.setDisableScaleIn(targetTrackingPolicyInt.getDisableScaleIn().get());
+            }
+            if (targetTrackingPolicyInt.getScaleInCooldownSec().isPresent()) {
+                targetTrackingConfigAws.setScaleInCooldown(targetTrackingPolicyInt.getScaleInCooldownSec().get());
+            }
+            if (targetTrackingPolicyInt.getScaleOutCooldownSec().isPresent()) {
+                targetTrackingConfigAws.setScaleOutCooldown(targetTrackingPolicyInt.getScaleOutCooldownSec().get());
+            }
+            if (targetTrackingPolicyInt.getCustomizedMetricSpecification().isPresent()) {
+                com.netflix.titus.api.appscale.model.CustomizedMetricSpecification customizedMetricSpecInt =
+                        targetTrackingPolicyInt.getCustomizedMetricSpecification().get();
+                CustomizedMetricSpecification customizedMetricSpecAws = new CustomizedMetricSpecification();
+
+                customizedMetricSpecAws.setDimensions(customizedMetricSpecInt.getMetricDimensionList()
+                        .stream()
+                        .map(metricDimensionInt -> {
+                            MetricDimension metricDimensionAws = new MetricDimension()
+                                    .withName(metricDimensionInt.getName())
+                                    .withValue(metricDimensionInt.getValue());
+                            return metricDimensionAws;
+                        })
+                        .collect(Collectors.toList()));
+                customizedMetricSpecAws.setMetricName(customizedMetricSpecInt.getMetricName());
+                customizedMetricSpecAws.setNamespace(customizedMetricSpecInt.getNamespace());
+                customizedMetricSpecAws.setStatistic(customizedMetricSpecInt.getStatistic().name());
+                if (customizedMetricSpecInt.getUnit().isPresent()) {
+                    customizedMetricSpecAws.setUnit(customizedMetricSpecInt.getUnit().get());
+                }
+
+                targetTrackingConfigAws.setCustomizedMetricSpecification(customizedMetricSpecAws);
+            }
+
+            putScalingPolicyRequest.setTargetTrackingScalingPolicyConfiguration(targetTrackingConfigAws);
+        } else {
+            return Observable.error(new UnsupportedOperationException("Scaling policy type " + policyConfiguration.getPolicyType().name() + " is not supported."));
+        }
+
+        return RetryWrapper.wrapWithExponentialRetry(String.format("createOrUpdateScalingPolicy %s for job %s", policyRefId, jobId),
+                Observable.create(emitter -> awsAppAutoScalingClientAsync.putScalingPolicyAsync(putScalingPolicyRequest, new AsyncHandler<PutScalingPolicyRequest, PutScalingPolicyResult>() {
+                    @Override
+                    public void onError(Exception exception) {
+                        createPolicyErrorCounter.increment();
+                        log.error("Exception creating scaling policy ", exception);
+                        if (exception instanceof ValidationException) {
+                            emitter.onError(AutoScalePolicyException.invalidScalingPolicy(policyRefId, exception.getMessage()));
+                        } else {
+                            emitter.onError(AutoScalePolicyException.errorCreatingPolicy(policyRefId, exception.getMessage()));
+                        }
+                    }
+
+                    @Override
+                    public void onSuccess(PutScalingPolicyRequest request, PutScalingPolicyResult putScalingPolicyResult) {
+                        createPolicyCounter.increment();
+                        String policyARN = putScalingPolicyResult.getPolicyARN();
+                        log.info("New Scaling policy {} created {} for Job {}", request, policyARN, jobId);
+                        emitter.onNext(policyARN);
+                        emitter.onCompleted();
+                    }
+                }), Emitter.BackpressureMode.NONE));
+    }
+
+    @Override
+    public Completable deleteScalableTarget(String jobId) {
+        DeregisterScalableTargetRequest deRegisterRequest = new DeregisterScalableTargetRequest();
+        deRegisterRequest.setResourceId(buildAPIGatewayResource(jobId));
+        deRegisterRequest.setServiceNamespace(SERVICE_NAMESPACE);
+        deRegisterRequest.setScalableDimension(SCALABLE_DIMENSION);
+
+        return RetryWrapper.wrapWithExponentialRetry(String.format("deleteScalableTarget for job %s", jobId),
+                Observable.create(emitter -> awsAppAutoScalingClientAsync.deregisterScalableTargetAsync(deRegisterRequest, new AsyncHandler<DeregisterScalableTargetRequest, DeregisterScalableTargetResult>() {
+                    @Override
+                    public void onError(Exception exception) {
+                        if (exception instanceof ObjectNotFoundException) {
+                            log.info("Scalable target does not exist anymore for job {}", jobId);
+                            emitter.onCompleted();
+                        } else {
+                            deleteTargetErrorCounter.increment();
+                            emitter.onError(exception);
+                        }
+                    }
+
+                    @Override
+                    public void onSuccess(DeregisterScalableTargetRequest request, DeregisterScalableTargetResult deregisterScalableTargetResult) {
+                        deleteTargetCounter.increment();
+                        int httpStatusCode = deregisterScalableTargetResult.getSdkHttpMetadata().getHttpStatusCode();
+                        log.info("De-registered scalable target for {}, status {}", jobId, httpStatusCode);
+                        emitter.onCompleted();
+                    }
+                }), Emitter.BackpressureMode.NONE)).toCompletable();
+    }
+
+    @Override
+    public Completable deleteScalingPolicy(String policyRefId, String jobId) {
+        DeleteScalingPolicyRequest deleteScalingPolicyRequest = new DeleteScalingPolicyRequest();
+        deleteScalingPolicyRequest.setResourceId(buildAPIGatewayResource(jobId));
+        deleteScalingPolicyRequest.setServiceNamespace(SERVICE_NAMESPACE);
+        deleteScalingPolicyRequest.setScalableDimension(SCALABLE_DIMENSION);
+        deleteScalingPolicyRequest.setPolicyName(buildScalingPolicyName(policyRefId, jobId));
+
+        return RetryWrapper.wrapWithExponentialRetry(String.format("deleteScalingPolicy %s for job %s", policyRefId, jobId),
+                Observable.create(emitter -> awsAppAutoScalingClientAsync.deleteScalingPolicyAsync(deleteScalingPolicyRequest, new AsyncHandler<DeleteScalingPolicyRequest, DeleteScalingPolicyResult>() {
+                    @Override
+                    public void onError(Exception exception) {
+                        if (exception instanceof ObjectNotFoundException) {
+                            log.info("Scaling policy does not exist anymore for job/policyRefId {}/{}", jobId, policyRefId);
+                            emitter.onCompleted();
+                        } else {
+                            deletePolicyErrorCounter.increment();
+                            emitter.onError(AutoScalePolicyException.errorDeletingPolicy(policyRefId, exception.getMessage()));
+                        }
+                    }
+
+                    @Override
+                    public void onSuccess(DeleteScalingPolicyRequest request, DeleteScalingPolicyResult deleteScalingPolicyResult) {
+                        deletePolicyCounter.increment();
+                        int httpStatusCode = deleteScalingPolicyResult.getSdkHttpMetadata().getHttpStatusCode();
+                        log.info("Deleted scaling policy for job/policyRefId {}/{}, status - {}", jobId, policyRefId, httpStatusCode);
+                        emitter.onCompleted();
+
+                    }
+                }), Emitter.BackpressureMode.NONE)).toCompletable();
+    }
+
+    private String buildRoleARN() {
+        return String.format("arn:aws:iam::%s:role/%s", awsAppScalingConfig.getAccountId(), awsAppScalingConfig.getAWSAPIGatewayRole());
+    }
+
+    private String buildAPIGatewayResource(String jobId) {
+        return String.format("https://%s.execute-api.%s.amazonaws.com/%s/scalableTargetDimensions/%s",
+                awsAppScalingConfig.getAWSGatewayEndpointPrefix(),
+                awsAppScalingConfig.getRegion(),
+                awsAppScalingConfig.getStack(),
+                jobId);
+    }
+
+    private String buildScalingPolicyName(String policyRefId, String jobId) {
+        return String.format("%s/%s", jobId, policyRefId);
+    }
+
+    private AutoScalableTarget toAutoScalableTarget(ScalableTarget scalableTarget) {
+        return AutoScalableTarget.newBuilder()
+                .withResourceId(scalableTarget.getResourceId())
+                .withMinCapacity(scalableTarget.getMinCapacity())
+                .withMaxCapacity(scalableTarget.getMaxCapacity())
+                .build();
+    }
+}

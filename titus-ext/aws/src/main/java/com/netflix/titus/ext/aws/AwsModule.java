@@ -18,6 +18,7 @@ package com.netflix.titus.ext.aws;
 
 import javax.inject.Singleton;
 
+import com.amazonaws.services.autoscaling.AmazonAutoScaling;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
 import com.amazonaws.services.ec2.AmazonEC2Async;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
@@ -25,6 +26,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import com.netflix.titus.ext.aws.appscale.AWSAppScalingConfig;
 
 public class AwsModule extends AbstractModule {
     @Override
@@ -32,6 +34,7 @@ public class AwsModule extends AbstractModule {
         bind(AmazonEC2Async.class).toProvider(AmazonEC2AsyncProvider.class);
         bind(AmazonAutoScalingAsync.class).toProvider(AmazonAutoScalingAsyncProvider.class);
         bind(AmazonElasticLoadBalancingAsync.class).toProvider(AmazonElasticLoadBalancingAsyncProvider.class);
+        bind(AmazonAutoScaling.class).toProvider(AmazonAutoScalingProvider.class);
         bind(InstanceCloudConnector.class).to(AwsInstanceCloudConnector.class);
         bind(InstanceReaper.class).asEagerSingleton();
     }
@@ -40,5 +43,11 @@ public class AwsModule extends AbstractModule {
     @Singleton
     public AwsConfiguration getAwsConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(AwsConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public AWSAppScalingConfig getAWSAppScalingConfig(ConfigProxyFactory factory) {
+        return factory.newProxy(AWSAppScalingConfig.class);
     }
 }
