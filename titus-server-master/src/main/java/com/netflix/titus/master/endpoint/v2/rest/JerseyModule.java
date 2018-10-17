@@ -26,6 +26,7 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
 import com.netflix.titus.api.store.v2.V2WorkerMetadata;
+import com.netflix.titus.common.framework.scheduler.endpoint.LocalSchedulerResource;
 import com.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
 import com.netflix.titus.master.supervisor.endpoint.http.SupervisorResource;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
@@ -80,6 +81,7 @@ public class JerseyModule extends JerseyServletModule {
             config.getClasses().add(HealthCheckResource.class);
             config.getClasses().add(LeaderResource.class);
             config.getClasses().add(FitResource.class);
+            config.getClasses().add(LocalSchedulerResource.class);
             config.getClasses().add(ServerStatusResource.class);
             config.getClasses().add(SupervisorResource.class);
 

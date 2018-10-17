@@ -35,22 +35,27 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import com.google.common.base.Stopwatch;
+import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.LocalSchedulerException;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.Schedule;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
+import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
+import com.netflix.titus.common.framework.scheduler.model.Iteration;
 import com.netflix.titus.common.framework.scheduler.model.event.LocalSchedulerEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleAddedEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleRemovedEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleUpdateEvent;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -66,10 +71,9 @@ public class DefaultLocalScheduler implements LocalScheduler {
     private static final Runnable DO_NOTHING = () -> {
     };
 
-    private static final int SCHEDULE_HISTORY_LIMIT = 20;
-
     private final long internalLoopIntervalMs;
     private final Clock clock;
+    private final Registry registry;
     private final Scheduler scheduler;
     private final Scheduler.Worker worker;
 
@@ -77,17 +81,25 @@ public class DefaultLocalScheduler implements LocalScheduler {
     private final ConcurrentMap<String, ScheduleHolder> activeHoldersById = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Schedule> archivedSchedulesById = new ConcurrentHashMap<>();
     private final DirectProcessor<LocalSchedulerEvent> eventProcessor = DirectProcessor.create();
+    private final SchedulerMetrics metrics;
+    private final Disposable transactionLoggerDisposable;
 
-    public DefaultLocalScheduler(Duration internalLoopInterval, Scheduler scheduler, Clock clock) {
+    public DefaultLocalScheduler(Duration internalLoopInterval, Scheduler scheduler, Clock clock, Registry registry) {
         this.internalLoopIntervalMs = internalLoopInterval.toMillis();
         this.scheduler = scheduler;
         this.clock = clock;
+        this.registry = registry;
         this.worker = scheduler.createWorker();
+        this.metrics = new SchedulerMetrics(this, clock, registry);
+        this.transactionLoggerDisposable = LocalSchedulerTransactionLogger.logEvents(this);
+
         scheduleNextIteration();
     }
 
     public void shutdown() {
         worker.dispose();
+        metrics.shutdown();
+        ReactorExt.safeDispose(transactionLoggerDisposable);
     }
 
     @Override
@@ -118,12 +130,12 @@ public class DefaultLocalScheduler implements LocalScheduler {
     }
 
     @Override
-    public ScheduleReference scheduleMono(ScheduleDescriptor scheduleDescriptor, Function<Long, Mono<Void>> actionProducer, Scheduler scheduler) {
+    public ScheduleReference scheduleMono(ScheduleDescriptor scheduleDescriptor, Function<ExecutionContext, Mono<Void>> actionProducer, Scheduler scheduler) {
         return scheduleInternal(scheduleDescriptor, actionProducer, scheduler, DO_NOTHING);
     }
 
     @Override
-    public ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<Long> action, boolean isolated) {
+    public ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<ExecutionContext> action, boolean isolated) {
         Scheduler actionScheduler;
         Runnable cleanup;
         if (isolated) {
@@ -135,9 +147,9 @@ public class DefaultLocalScheduler implements LocalScheduler {
             cleanup = DO_NOTHING;
         }
 
-        return scheduleInternal(scheduleDescriptor, tick -> Mono.defer(() -> {
+        return scheduleInternal(scheduleDescriptor, executionContext -> Mono.defer(() -> {
             try {
-                action.accept(tick);
+                action.accept(executionContext);
                 return Mono.empty();
             } catch (Exception e) {
                 return Mono.error(e);
@@ -145,19 +157,10 @@ public class DefaultLocalScheduler implements LocalScheduler {
         }), actionScheduler, cleanup);
     }
 
-    private ScheduleReference scheduleInternal(ScheduleDescriptor descriptor, Function<Long, Mono<Void>> actionProducer, Scheduler scheduler, Runnable cleanup) {
+    private ScheduleReference scheduleInternal(ScheduleDescriptor descriptor, Function<ExecutionContext, Mono<Void>> actionProducer, Scheduler scheduler, Runnable cleanup) {
         String scheduleId = UUID.randomUUID().toString();
 
-        ScheduledActionExecutor executor = new ScheduledActionExecutor(scheduleId, descriptor, actionProducer, scheduler, clock);
-
-        Schedule schedule = Schedule.newBuilder()
-                .withId(scheduleId)
-                .withDescriptor(descriptor)
-                .withCurrentAction(Optional.of(executor.getAction()))
-                .withCompletedActions(Collections.emptyList())
-                .build();
-
-        ScheduleHolder scheduleHolder = new ScheduleHolder(schedule, actionProducer, scheduler, executor, cleanup);
+        ScheduleHolder scheduleHolder = new ScheduleHolder(scheduleId, descriptor, actionProducer, scheduler, cleanup);
         newHolders.add(scheduleHolder);
 
         return scheduleHolder.getReference();
@@ -179,6 +182,8 @@ public class DefaultLocalScheduler implements LocalScheduler {
     }
 
     private void doRun() {
+        Stopwatch timer = Stopwatch.createStarted();
+
         List<ScheduleHolder> holders = new ArrayList<>();
         newHolders.drainTo(holders);
         holders.forEach(h -> {
@@ -192,39 +197,52 @@ public class DefaultLocalScheduler implements LocalScheduler {
             logger.warn("Unexpected error in the internal scheduler loop", e);
         } finally {
             scheduleNextIteration();
+            metrics.recordEvaluationTime(timer.elapsed(TimeUnit.MILLISECONDS));
         }
     }
 
     private class ScheduleHolder {
 
-        private final Function<Long, Mono<Void>> actionProducer;
-        private final Scheduler scheduler;
         private final Runnable cleanup;
         private final ScheduleReference reference;
 
-        private volatile Schedule schedule;
         private volatile ScheduledActionExecutor executor;
         private volatile boolean closed;
 
-        private ScheduleHolder(Schedule schedule,
-                               Function<Long, Mono<Void>> actionProducer,
+        private ScheduleHolder(String scheduleId,
+                               ScheduleDescriptor descriptor,
+                               Function<ExecutionContext, Mono<Void>> actionProducer,
                                Scheduler scheduler,
-                               ScheduledActionExecutor executor, Runnable cleanup) {
-            this.schedule = schedule;
-            this.actionProducer = actionProducer;
-            this.scheduler = scheduler;
-            this.executor = executor;
+                               Runnable cleanup) {
+            ScheduledAction firstAction = ScheduledAction.newBuilder()
+                    .withId(scheduleId)
+                    .withStatus(SchedulingStatus.newBuilder()
+                            .withState(SchedulingState.Waiting)
+                            .withExpectedStartTime(clock.wallTime() + descriptor.getInterval().toMillis())
+                            .withTimestamp(clock.wallTime())
+                            .build()
+                    )
+                    .withIteration(Iteration.initial())
+                    .build();
+            Schedule schedule = Schedule.newBuilder()
+                    .withId(scheduleId)
+                    .withDescriptor(descriptor)
+                    .withCurrentAction(firstAction)
+                    .withCompletedActions(Collections.emptyList())
+                    .build();
+            this.executor = new ScheduledActionExecutor(schedule, new ScheduleMetrics(schedule, clock, registry), actionProducer, scheduler, clock);
+
             this.cleanup = cleanup;
             this.reference = new ScheduleReference() {
 
                 @Override
                 public Schedule getSchedule() {
-                    return ScheduleHolder.this.schedule;
+                    return executor.getSchedule();
                 }
 
                 @Override
                 public boolean isClosed() {
-                    return closed;
+                    return closed && executor.getAction().getStatus().getState().isFinal();
                 }
 
                 @Override
@@ -235,7 +253,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
         }
 
         private Schedule getSchedule() {
-            return schedule;
+            return executor.getSchedule();
         }
 
         private ScheduleReference getReference() {
@@ -247,22 +265,8 @@ public class DefaultLocalScheduler implements LocalScheduler {
                 return;
             }
             closed = true;
-
-            // TODO Make it reactive
-            executor.cancel();
-
-            try {
-                cleanup.run();
-            } catch (Exception e) {
-                logger.warn("Cleanup action failed for schedule: name={}", schedule.getDescriptor().getName(), e);
-            } finally {
-                activeHoldersById.remove(schedule.getId());
-                Schedule updatedSchedule = schedule.toBuilder()
-                        .withCurrentAction(Optional.empty())
-                        .withCompletedActions(newCompletedActions(executor.getAction()))
-                        .build();
-                archivedSchedulesById.put(schedule.getId(), updatedSchedule);
-                eventProcessor.onNext(new ScheduleRemovedEvent(updatedSchedule));
+            if (executor.cancel()) {
+                eventProcessor.onNext(new ScheduleUpdateEvent(executor.getSchedule()));
             }
         }
 
@@ -270,27 +274,31 @@ public class DefaultLocalScheduler implements LocalScheduler {
             if (!executor.handleExecution()) {
                 return;
             }
+            Schedule currentSchedule = executor.getSchedule();
+            eventProcessor.onNext(new ScheduleUpdateEvent(currentSchedule));
 
-            if (SchedulingState.isFinal(executor.getAction().getStatus().getState())) {
-                ScheduledAction lastAction = executor.getAction();
-                this.executor = new ScheduledActionExecutor(schedule.getId(), schedule.getDescriptor(), actionProducer, scheduler, clock);
-                this.schedule = schedule.toBuilder()
-                        .withCurrentAction(Optional.of(executor.getAction()))
-                        .withCompletedActions(newCompletedActions(lastAction))
-                        .build();
-            } else {
-                this.schedule = schedule.toBuilder().withCurrentAction(Optional.of(executor.getAction())).build();
+            SchedulingState currentState = executor.getAction().getStatus().getState();
+            if (currentState.isFinal()) {
+                if (closed) {
+                    doCleanup();
+                } else {
+                    this.executor = executor.nextScheduledActionExecutor(currentState == SchedulingState.Failed);
+                    eventProcessor.onNext(new ScheduleUpdateEvent(executor.getSchedule()));
+                }
             }
-
-            eventProcessor.onNext(new ScheduleUpdateEvent(schedule));
         }
 
-        private List<ScheduledAction> newCompletedActions(ScheduledAction action) {
-            List<ScheduledAction> result = CollectionsExt.copyAndAdd(schedule.getCompletedActions(), action);
-            if (result.size() > SCHEDULE_HISTORY_LIMIT) {
-                result = result.subList(result.size() - SCHEDULE_HISTORY_LIMIT, result.size());
+        private void doCleanup() {
+            Schedule schedule = executor.getSchedule();
+            try {
+                cleanup.run();
+            } catch (Exception e) {
+                logger.warn("Cleanup action failed for schedule: name={}", schedule.getDescriptor().getName(), e);
+            } finally {
+                activeHoldersById.remove(schedule.getId());
+                archivedSchedulesById.put(schedule.getId(), schedule);
+                eventProcessor.onNext(new ScheduleRemovedEvent(schedule));
             }
-            return result;
         }
     }
 }

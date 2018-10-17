@@ -26,6 +26,7 @@ import javax.inject.Singleton;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -111,7 +112,8 @@ public class RelocationWorkflowExecutor {
         IOExt.closeSilently(disposable::close);
     }
 
-    private void nextRelocationStep(long count) {
+    private void nextRelocationStep(ExecutionContext executionContext) {
+        long count = executionContext.getIteration().getTotal();
         logger.info("Starting task relocation iteration {}...", count);
 
         Stopwatch stopwatch = Stopwatch.createStarted();

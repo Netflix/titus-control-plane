@@ -19,9 +19,11 @@ package com.netflix.titus.common.framework.scheduler.internal;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.Schedule;
@@ -58,7 +60,7 @@ public class DefaultLocalSchedulerTest {
             .withOnErrorHandler((action, error) -> lastFailedAction.set(action))
             .build();
 
-    private final LocalScheduler localScheduler = new DefaultLocalScheduler(Duration.ofMillis(1), Schedulers.parallel(), Clocks.system());
+    private final LocalScheduler localScheduler = new DefaultLocalScheduler(Duration.ofMillis(1), Schedulers.parallel(), Clocks.system(), new DefaultRegistry());
 
     private final TitusRxSubscriber<LocalSchedulerEvent> eventSubscriber = new TitusRxSubscriber<>();
 
@@ -71,7 +73,7 @@ public class DefaultLocalSchedulerTest {
     public void testScheduleMono() throws Exception {
         AtomicLong tickCounter = new AtomicLong();
         ScheduleReference reference = localScheduler.scheduleMono(
-                scheduleDescriptor,
+                scheduleDescriptor.toBuilder().withName("testScheduleMono").build(),
                 tick -> Mono.delay(Duration.ofMillis(1)).flatMap(t -> {
                     tickCounter.incrementAndGet();
                     return Mono.empty();
@@ -84,45 +86,54 @@ public class DefaultLocalSchedulerTest {
     @Test
     public void testScheduleAction() throws Exception {
         AtomicLong tickCounter = new AtomicLong();
-        ScheduleReference reference = localScheduler.schedule(scheduleDescriptor, t -> tickCounter.incrementAndGet(), true);
+        ScheduleReference reference = localScheduler.schedule(
+                scheduleDescriptor.toBuilder().withName("testScheduleAction").build(),
+                t -> tickCounter.incrementAndGet(),
+                true
+        );
         testExecutionLifecycle(reference, tickCounter);
     }
 
     private void testExecutionLifecycle(ScheduleReference reference, AtomicLong tickCounter) throws InterruptedException {
-        // Schedule added
+        // Schedule, and first iteration
         expectScheduleAdded(reference);
 
-        // Running
         expectScheduleUpdateEvent(SchedulingState.Running);
-
-        // First schedule completed, and the second one prepared
-        ScheduleUpdateEvent succeededEvent = expectScheduleUpdateEvent(SchedulingState.Waiting);
+        expectScheduleUpdateEvent(SchedulingState.Succeeded);
         assertThat(tickCounter.get()).isGreaterThan(0);
 
-        assertThat(succeededEvent.getSchedule().getCompletedActions()).hasSize(1);
-        ScheduledAction completedAction = succeededEvent.getSchedule().getCompletedActions().get(0);
-        assertThat(completedAction.getStatus().getState()).isEqualTo(SchedulingState.Succeeded);
-
         // Next running
+        expectScheduleUpdateEvent(SchedulingState.Waiting);
         expectScheduleUpdateEvent(SchedulingState.Running);
+        ScheduleUpdateEvent succeededEvent2 = expectScheduleUpdateEvent(SchedulingState.Succeeded);
+        assertThat(succeededEvent2.getSchedule().getCompletedActions()).hasSize(1);
 
         // Now cancel it
         assertThat(reference.isClosed()).isFalse();
         reference.close();
         await().timeout(5, TimeUnit.SECONDS).until(reference::isClosed);
+
+        assertThat(reference.isClosed()).isTrue();
+        assertThat(reference.getSchedule().getCurrentAction().getStatus().getState().isFinal()).isTrue();
         assertThat(localScheduler.getActiveSchedules()).isEmpty();
+        assertThat(localScheduler.getArchivedSchedules()).hasSize(1);
 
         expectScheduleRemoved(reference);
     }
 
     @Test
     public void testTimeout() throws Exception {
-        ScheduleReference reference = localScheduler.scheduleMono(scheduleDescriptor, tick -> Mono.never(), Schedulers.parallel());
+        ScheduleReference reference = localScheduler.scheduleMono(
+                scheduleDescriptor.toBuilder().withName("testTimeout").build(),
+                tick -> Mono.never(),
+                Schedulers.parallel()
+        );
 
         expectScheduleAdded(reference);
         expectScheduleUpdateEvent(SchedulingState.Running);
+        expectScheduleUpdateEvent(SchedulingState.Failed);
 
-        // This means the first iteration timed-out, and we have a replacement
+        // Replacement
         expectScheduleUpdateEvent(SchedulingState.Waiting);
 
         assertThat(reference.getSchedule().getCompletedActions()).hasSize(1);
@@ -131,12 +142,33 @@ public class DefaultLocalSchedulerTest {
         assertThat(failedAction.getStatus().getError().get()).isInstanceOf(TimeoutException.class);
     }
 
+    @Test
+    public void testRetries() throws InterruptedException {
+        AtomicInteger counter = new AtomicInteger();
+        ScheduleReference reference = localScheduler.scheduleMono(
+                scheduleDescriptor.toBuilder().withName("testRetries").build(),
+                tick -> Mono.defer(() ->
+                        counter.incrementAndGet() % 2 == 0
+                                ? Mono.empty()
+                                : Mono.error(new RuntimeException("Simulated error at iteration " + counter.get()))),
+                Schedulers.parallel()
+        );
+
+        expectScheduleAdded(reference);
+        expectScheduleUpdateEvent(SchedulingState.Running);
+        expectScheduleUpdateEvent(SchedulingState.Failed);
+
+        expectScheduleUpdateEvent(SchedulingState.Waiting);
+        expectScheduleUpdateEvent(SchedulingState.Running);
+        expectScheduleUpdateEvent(SchedulingState.Succeeded);
+    }
+
     private void expectScheduleAdded(ScheduleReference reference) throws InterruptedException {
         assertThat(reference.isClosed()).isFalse();
 
         LocalSchedulerEvent addedEvent = eventSubscriber.takeNext(Duration.ofSeconds(5));
         assertThat(addedEvent).isInstanceOf(ScheduleAddedEvent.class);
-        assertThat(addedEvent.getSchedule().getCurrentAction().get().getStatus().getState()).isEqualTo(SchedulingState.Waiting);
+        assertThat(addedEvent.getSchedule().getCurrentAction().getStatus().getState()).isEqualTo(SchedulingState.Waiting);
 
         assertThat(localScheduler.findSchedule(reference.getSchedule().getId())).isPresent();
     }
@@ -146,7 +178,7 @@ public class DefaultLocalSchedulerTest {
         LocalSchedulerEvent removedEvent = eventSubscriber.takeUntil(e -> e instanceof ScheduleRemovedEvent, Duration.ofSeconds(5));
 
         Schedule schedule = removedEvent.getSchedule();
-        assertThat(schedule.getCurrentAction()).isEmpty();
+        assertThat(schedule.getCurrentAction().getStatus().getState().isFinal()).isTrue();
 
         assertThat(localScheduler.getArchivedSchedules()).hasSize(1);
         assertThat(localScheduler.getArchivedSchedules().get(0).getId()).isEqualTo(reference.getSchedule().getId());
@@ -155,7 +187,7 @@ public class DefaultLocalSchedulerTest {
     private ScheduleUpdateEvent expectScheduleUpdateEvent(SchedulingState expectedState) throws InterruptedException {
         LocalSchedulerEvent event = eventSubscriber.takeNext(Duration.ofSeconds(5));
         assertThat(event).isInstanceOf(ScheduleUpdateEvent.class);
-        assertThat(event.getSchedule().getCurrentAction().get().getStatus().getState()).isEqualTo(expectedState);
+        assertThat(event.getSchedule().getCurrentAction().getStatus().getState()).isEqualTo(expectedState);
         return (ScheduleUpdateEvent) event;
     }
 }

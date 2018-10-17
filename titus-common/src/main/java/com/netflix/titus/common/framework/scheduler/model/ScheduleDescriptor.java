@@ -117,6 +117,17 @@ public class ScheduleDescriptor {
                 '}';
     }
 
+    public Builder toBuilder() {
+        return newBuilder()
+                .withName(name)
+                .withDescription(description)
+                .withInterval(interval)
+                .withRetryerSupplier(retryerSupplier)
+                .withTimeout(timeout)
+                .withOnSuccessHandler(onSuccessHandler)
+                .withOnErrorHandler(onErrorHandler);
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }

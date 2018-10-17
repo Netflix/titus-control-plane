@@ -93,7 +93,8 @@ public class DefaultTitusRuntime implements TitusRuntime {
                                CodeInvariants codeInvariants,
                                SystemLogService systemLogService,
                                SystemAbortListener systemAbortListener,
-                               Registry registry, Clock clock,
+                               Registry registry,
+                               Clock clock,
                                boolean isFitEnabled) {
         this.codePointTracker = codePointTracker;
         this.codeInvariants = codeInvariants;
@@ -102,7 +103,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
         this.registry = registry;
         this.clock = clock;
         this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
-        this.localScheduler = new DefaultLocalScheduler(Duration.ofMillis(LOCAL_SCHEDULER_LOOP_INTERVAL_MS), Schedulers.parallel(), clock);
+        this.localScheduler = new DefaultLocalScheduler(Duration.ofMillis(LOCAL_SCHEDULER_LOOP_INTERVAL_MS), Schedulers.parallel(), clock, registry);
     }
 
     @Override

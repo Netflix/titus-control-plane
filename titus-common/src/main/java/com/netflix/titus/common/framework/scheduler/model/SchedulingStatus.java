@@ -26,11 +26,12 @@ public class SchedulingStatus {
     public enum SchedulingState {
         Waiting,
         Running,
+        Cancelling,
         Succeeded,
         Failed;
 
-        public static boolean isFinal(SchedulingState state) {
-            return state == Succeeded || state == Failed;
+        public boolean isFinal() {
+            return this == Succeeded || this == Failed;
         }
     }
 
