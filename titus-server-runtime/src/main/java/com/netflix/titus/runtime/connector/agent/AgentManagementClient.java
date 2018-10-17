@@ -24,7 +24,6 @@ import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import rx.Completable;
 import rx.Observable;
@@ -44,8 +43,6 @@ public interface AgentManagementClient {
     Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate);
 
     Completable updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate);
-
-    Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate);
 
     Observable<AgentChangeEvent> observeAgents();
 }

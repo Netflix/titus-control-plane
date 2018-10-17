@@ -41,7 +41,6 @@ import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
@@ -130,12 +129,5 @@ public class AgentManagementResource {
         }
 
         return Responses.fromCompletable(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
-    }
-
-    @PUT
-    @ApiOperation("Update agent instance override status")
-    @Path("/instances/{id}/override")
-    public Response updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate) {
-        return Responses.fromCompletable(agentManagementService.updateInstanceOverride(overrideStateUpdate));
     }
 }

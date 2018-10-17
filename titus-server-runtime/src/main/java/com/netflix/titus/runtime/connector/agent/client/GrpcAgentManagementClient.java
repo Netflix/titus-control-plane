@@ -17,11 +17,9 @@
 package com.netflix.titus.runtime.connector.agent.client;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
@@ -32,7 +30,6 @@ import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
@@ -42,7 +39,6 @@ import io.grpc.stub.StreamObserver;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
@@ -54,17 +50,14 @@ public class GrpcAgentManagementClient implements AgentManagementClient {
     private final GrpcClientConfiguration configuration;
     private final AgentManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
-    private final EntitySanitizer entitySanitizer;
 
     @Inject
     public GrpcAgentManagementClient(GrpcClientConfiguration configuration,
                                      AgentManagementServiceStub client,
-                                     CallMetadataResolver callMetadataResolver,
-                                     @Named(AGENT_SANITIZER) EntitySanitizer entitySanitizer) {
+                                     CallMetadataResolver callMetadataResolver) {
         this.configuration = configuration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
-        this.entitySanitizer = entitySanitizer;
     }
 
     @Override
@@ -123,13 +116,6 @@ public class GrpcAgentManagementClient implements AgentManagementClient {
         }, configuration.getRequestTimeout());
     }
 
-    @Override
-    public Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate) {
-        return createRequestCompletable(emitter -> {
-            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateInstanceOverrideState(overrideStateUpdate, streamObserver);
-        }, configuration.getRequestTimeout());
-    }
 
     @Override
     public Observable<AgentChangeEvent> observeAgents() {

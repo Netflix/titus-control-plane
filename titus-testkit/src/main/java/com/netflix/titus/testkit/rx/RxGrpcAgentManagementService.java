@@ -24,10 +24,8 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentQuery;
-import com.netflix.titus.grpc.protogen.AutoScalingRuleUpdate;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.InstanceOverrideStateUpdate;
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
 import rx.Completable;
@@ -77,29 +75,11 @@ public class RxGrpcAgentManagementService {
         });
     }
 
-    public Completable updateAutoScalingRule(AutoScalingRuleUpdate autoScalingRuleUpdate) {
-        return Observable.unsafeCreate(subscriber -> {
-            ObservableClientCall.create(
-                    channel.newCall(AgentManagementServiceGrpc.METHOD_UPDATE_AUTO_SCALING_RULE, CallOptions.DEFAULT),
-                    autoScalingRuleUpdate
-            ).subscribe(subscriber);
-        }).toCompletable();
-    }
-
     public Completable updateLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
                     channel.newCall(AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_GROUP_LIFECYCLE_STATE, CallOptions.DEFAULT),
                     lifecycleStateUpdate
-            ).subscribe(subscriber);
-        }).toCompletable();
-    }
-
-    public Completable updateInstanceOverride(InstanceOverrideStateUpdate overrideStateUpdate) {
-        return Observable.unsafeCreate(subscriber -> {
-            ObservableClientCall.create(
-                    channel.newCall(AgentManagementServiceGrpc.METHOD_UPDATE_INSTANCE_OVERRIDE_STATE, CallOptions.DEFAULT),
-                    overrideStateUpdate
             ).subscribe(subscriber);
         }).toCompletable();
     }
