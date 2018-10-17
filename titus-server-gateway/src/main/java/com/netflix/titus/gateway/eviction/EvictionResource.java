@@ -28,11 +28,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.eviction.service.EvictionException;
-import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
-import com.netflix.titus.grpc.protogen.SystemDisruptionBudget;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
@@ -53,39 +52,6 @@ public class EvictionResource {
     @Inject
     public EvictionResource(EvictionServiceClient evictionServiceClient) {
         this.evictionServiceClient = evictionServiceClient;
-    }
-
-    @ApiOperation("Return the global disruption budget")
-    @Path("budgets/global")
-    @GET
-    public SystemDisruptionBudget getGlobalDisruptionBudget() {
-        return Responses.fromSingleValueObservable(
-                evictionServiceClient
-                        .getDisruptionBudget(Reference.global())
-                        .map(GrpcEvictionModelConverters::toGrpcSystemDisruptionBudget)
-        );
-    }
-
-    @ApiOperation("Return a tier disruption budget")
-    @Path("budgets/tiers/{tier}")
-    @GET
-    public SystemDisruptionBudget getTierDisruptionBudget(@PathParam("tier") String tier) {
-        return Responses.fromSingleValueObservable(
-                evictionServiceClient
-                        .getDisruptionBudget(Reference.tier(StringExt.parseEnumIgnoreCase(tier, Tier.class)))
-                        .map(GrpcEvictionModelConverters::toGrpcSystemDisruptionBudget)
-        );
-    }
-
-    @ApiOperation("Return a capacity group disruption budget")
-    @Path("budgets/capacityGroups/{name}")
-    @GET
-    public Observable<SystemDisruptionBudget> getCapacityGroupDisruptionBudget(@PathParam("name") String capacityGroupName) {
-        return Responses.fromSingleValueObservable(
-                evictionServiceClient
-                        .getDisruptionBudget(Reference.capacityGroup(capacityGroupName))
-                        .map(GrpcEvictionModelConverters::toGrpcSystemDisruptionBudget)
-        );
     }
 
     @ApiOperation("Return the global eviction quota")

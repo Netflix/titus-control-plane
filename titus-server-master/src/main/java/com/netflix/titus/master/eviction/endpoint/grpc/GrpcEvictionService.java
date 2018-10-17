@@ -25,7 +25,6 @@ import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.Reference;
-import com.netflix.titus.grpc.protogen.SystemDisruptionBudget;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
 import com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters;
@@ -37,7 +36,6 @@ import rx.Subscription;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvictionQuota;
-import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcSystemDisruptionBudget;
 
 @Singleton
 public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImplBase {
@@ -47,30 +45,6 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
     @Inject
     public GrpcEvictionService(EvictionOperations evictionOperations) {
         this.evictionOperations = evictionOperations;
-    }
-
-    @Override
-    public void getDisruptionBudget(Reference request, StreamObserver<SystemDisruptionBudget> responseObserver) {
-        com.netflix.titus.api.eviction.model.SystemDisruptionBudget budget;
-        switch (request.getReferenceCase()) {
-            case GLOBAL:
-                budget = evictionOperations.getGlobalDisruptionBudget();
-                break;
-            case TIER:
-                budget = evictionOperations.getTierDisruptionBudget(toCoreTier(request.getTier()));
-                break;
-            case CAPACITYGROUP:
-                budget = evictionOperations.getCapacityGroupDisruptionBudget(request.getCapacityGroup());
-                break;
-            case JOBID:
-            case TASKID:
-            default:
-                responseObserver.onError(new IllegalArgumentException("Reference type not supported: " + request.getReferenceCase()));
-                return;
-        }
-
-        responseObserver.onNext(toGrpcSystemDisruptionBudget(budget));
-        responseObserver.onCompleted();
     }
 
     @Override

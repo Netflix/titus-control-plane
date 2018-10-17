@@ -29,7 +29,6 @@ import com.netflix.titus.testkit.cli.command.HealthCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentInstanceGetCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentLifecycleUpdateCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentObserveCommand;
-import com.netflix.titus.testkit.cli.command.agent.AgentOverrideCommand;
 import com.netflix.titus.testkit.cli.command.agent.AgentServerGroupGetCommand;
 import com.netflix.titus.testkit.cli.command.job.JobGetCommand;
 import com.netflix.titus.testkit.cli.command.job.JobInServiceCommand;
@@ -78,7 +77,6 @@ public class CLI {
             // Agent management
             .put("agentServerGroups", new AgentServerGroupGetCommand())
             .put("agentInstances", new AgentInstanceGetCommand())
-            .put("agentOverride", new AgentOverrideCommand())
             .put("agentLifecycle", new AgentLifecycleUpdateCommand())
             .put("agentObserve", new AgentObserveCommand())
             // Job management

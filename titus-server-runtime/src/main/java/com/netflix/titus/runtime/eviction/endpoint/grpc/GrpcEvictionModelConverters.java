@@ -23,7 +23,6 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
-import com.netflix.titus.api.eviction.model.event.SystemDisruptionBudgetUpdateEvent;
 import com.netflix.titus.api.eviction.model.event.TaskTerminationEvent;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
 import com.netflix.titus.api.model.TokenBucketRefillPolicy;
@@ -31,7 +30,6 @@ import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.Reference;
-import com.netflix.titus.grpc.protogen.SystemDisruptionBudget;
 import com.netflix.titus.grpc.protogen.TokenBucketPolicy;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
@@ -57,20 +55,6 @@ public final class GrpcEvictionModelConverters {
             });
 
     private GrpcEvictionModelConverters() {
-    }
-
-    public static com.netflix.titus.api.eviction.model.SystemDisruptionBudget toCoreSystemDisruptionBudget(SystemDisruptionBudget grpcEntity) {
-        return com.netflix.titus.api.eviction.model.SystemDisruptionBudget.newBuilder()
-                .withReference(toCoreReference(grpcEntity.getTarget()))
-                .withTokenBucketDescriptor(toCoreTokenBucketDescriptor(grpcEntity.getAdmissionControlPolicy()))
-                .build();
-    }
-
-    public static SystemDisruptionBudget toGrpcSystemDisruptionBudget(com.netflix.titus.api.eviction.model.SystemDisruptionBudget coreEntity) {
-        return SystemDisruptionBudget.newBuilder()
-                .setTarget(toGrpcReference(coreEntity.getReference()))
-                .setAdmissionControlPolicy(toGrpcTokenBucketPolicy(coreEntity.getTokenBucketPolicy()))
-                .build();
     }
 
     public static com.netflix.titus.api.model.reference.Reference toCoreReference(Reference grpcEntity) {
@@ -144,8 +128,6 @@ public final class GrpcEvictionModelConverters {
         switch (grpcEvent.getEventCase()) {
             case SNAPSHOTEND:
                 return EvictionEvent.newSnapshotEndEvent();
-            case SYSTEMDISRUPTIONBUDGETUPDATEEVENT:
-                return EvictionEvent.newSystemDisruptionBudgetEvent(toCoreSystemDisruptionBudget(grpcEvent.getSystemDisruptionBudgetUpdateEvent().getCurrent()));
             case EVICTIONQUOTAEVENT:
                 return EvictionEvent.newQuotaEvent(toCoreEvictionQuota(grpcEvent.getEvictionQuotaEvent().getQuota()));
             case TASKTERMINATIONEVENT:
@@ -159,15 +141,6 @@ public final class GrpcEvictionModelConverters {
         if (coreEvent instanceof EvictionSnapshotEndEvent) {
             return EvictionServiceEvent.newBuilder()
                     .setSnapshotEnd(EvictionServiceEvent.SnapshotEnd.getDefaultInstance())
-                    .build();
-        }
-        if (coreEvent instanceof SystemDisruptionBudgetUpdateEvent) {
-            SystemDisruptionBudgetUpdateEvent actualEvent = (SystemDisruptionBudgetUpdateEvent) coreEvent;
-            return EvictionServiceEvent.newBuilder()
-                    .setSystemDisruptionBudgetUpdateEvent(EvictionServiceEvent.SystemDisruptionBudgetUpdateEvent.newBuilder()
-                            .setCurrent(toGrpcSystemDisruptionBudget(actualEvent.getSystemDisruptionBudget()))
-                            .build()
-                    )
                     .build();
         }
         if (coreEvent instanceof EvictionQuotaEvent) {

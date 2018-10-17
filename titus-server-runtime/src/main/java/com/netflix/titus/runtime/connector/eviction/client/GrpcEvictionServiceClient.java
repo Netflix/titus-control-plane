@@ -20,7 +20,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
-import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
@@ -54,16 +53,6 @@ public class GrpcEvictionServiceClient implements EvictionServiceClient {
         this.configuration = configuration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
-    }
-
-    @Override
-    public Observable<SystemDisruptionBudget> getDisruptionBudget(Reference reference) {
-        return GrpcUtil.<com.netflix.titus.grpc.protogen.SystemDisruptionBudget>createRequestObservable(emitter -> {
-                    StreamObserver<com.netflix.titus.grpc.protogen.SystemDisruptionBudget> streamObserver = createSimpleClientResponseObserver(emitter);
-                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getDisruptionBudget(toGrpcReference(reference), streamObserver);
-                },
-                configuration.getRequestTimeout()
-        ).map(GrpcEvictionModelConverters::toCoreSystemDisruptionBudget);
     }
 
     @Override

@@ -45,7 +45,6 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.grpc.protogen.InstanceOverrideState;
 import com.netflix.titus.master.agent.AgentAttributes;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;

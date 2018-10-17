@@ -25,7 +25,6 @@ import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.Reference;
-import com.netflix.titus.grpc.protogen.SystemDisruptionBudget;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
@@ -39,7 +38,6 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnErro
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toCoreReference;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvent;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvictionQuota;
-import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcSystemDisruptionBudget;
 
 @Singleton
 public class GatewayGrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImplBase {
@@ -51,16 +49,6 @@ public class GatewayGrpcEvictionService extends EvictionServiceGrpc.EvictionServ
     @Inject
     public GatewayGrpcEvictionService(EvictionServiceClient evictionServiceClient) {
         this.evictionServiceClient = evictionServiceClient;
-    }
-
-    @Override
-    public void getDisruptionBudget(Reference request, StreamObserver<SystemDisruptionBudget> responseObserver) {
-        Subscription subscription = evictionServiceClient.getDisruptionBudget(toCoreReference(request)).subscribe(
-                next -> responseObserver.onNext(toGrpcSystemDisruptionBudget(next)),
-                e -> safeOnError(logger, e, responseObserver),
-                responseObserver::onCompleted
-        );
-        attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
