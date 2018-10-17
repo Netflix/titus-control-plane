@@ -16,9 +16,11 @@
 
 package com.netflix.titus.api.jobmanager.model.job.sanitizer;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -231,6 +233,25 @@ public class JobModelSanitizationTest {
         // Now do cleanup
         Job<BatchJobExt> sanitized = entitySanitizer.sanitize(job).get();
         assertThat(entitySanitizer.validate(sanitized)).isEmpty();
+    }
+
+    @Test
+    public void testJobWithTooLargeEntryPoint() {
+        // Make key/value pair size 1MB
+        char[] manyChars = new char[1025];
+        Arrays.fill(manyChars, '0');
+        String bigString = new String(manyChars);
+
+        List<String> entryPoint = new ArrayList<>();
+        for (int i = 0; i < JobAssertions.MAX_ENTRY_POINT_SIZE_SIZE_KB; i++) {
+            entryPoint.add(bigString);
+        }
+
+        JobDescriptor<BatchJobExt> badJobDescriptor = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().toBuilder().withEntryPoint(entryPoint).build());
+
+        Set<ValidationError> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getDescription()).contains("Entry point size exceeds the limit 16KB");
     }
 
     @Test

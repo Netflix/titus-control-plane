@@ -99,4 +99,7 @@ public interface JobConfiguration {
      */
     @DefaultValue("")
     String getDefaultIamRole();
+
+    @DefaultValue("true")
+    boolean isEntryPointSizeLimitEnabled();
 }

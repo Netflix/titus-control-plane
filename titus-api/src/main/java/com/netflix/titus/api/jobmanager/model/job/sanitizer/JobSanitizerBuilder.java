@@ -82,7 +82,7 @@ public class JobSanitizerBuilder {
                     return Optional.empty();
                 })
                 .registerBean("constraints", jobConfiguration)
-                .registerBean("asserts", new JobAssertions(maxContainerSizeResolver));
+                .registerBean("asserts", new JobAssertions(jobConfiguration, maxContainerSizeResolver));
 
         return sanitizerBuilder.build();
     }
