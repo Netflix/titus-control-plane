@@ -27,47 +27,46 @@ import com.netflix.titus.api.agent.model.monitor.AgentStatus.AgentStatusCode;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.aws.AwsInstanceType;
-import com.netflix.titus.testkit.model.agent.AgentDeployment;
+import com.netflix.titus.testkit.model.agent.AgentComponentStub;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.netflix.titus.testkit.model.agent.AgentDeployment.instrumentMock;
+import static com.netflix.titus.testkit.model.agent.AgentComponentStub.newAgentComponent;
+import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroup;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 public class EurekaAgentStatusMonitorTest {
 
     private final EurekaClient eurekaClient = mock(EurekaClient.class);
 
-    private final AgentDeployment agentDeployment = AgentDeployment.newDeployment()
-            .withActiveInstanceGroup(Tier.Flex, "f1", AwsInstanceType.M4_4XLarge, 1)
-            .build();
+    private final AgentComponentStub agentComponentStub = newAgentComponent()
+            .addInstanceGroup(agentServerGroup("f1", Tier.Flex, 1, AwsInstanceType.M4_4XLarge));
 
-    private final AgentInstance instance = agentDeployment.getFirstInstance();
+    private final AgentInstance instance = agentComponentStub.getFirstInstance();
 
-    private final AgentManagementService agentManagementService = instrumentMock(agentDeployment, mock(AgentManagementService.class));
+    private final AgentManagementService agentManagementService = agentComponentStub.getAgentManagementService();
 
     private final EurekaAgentStatusMonitor monitor = new EurekaAgentStatusMonitor(eurekaClient, agentManagementService, new DefaultRegistry());
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         monitor.enterActiveMode();
     }
 
     @Test
-    public void testInstanceUpInEurekaIsHealthy() throws Exception {
+    public void testInstanceUpInEurekaIsHealthy() {
         mockStatusInEureka(instance, InstanceStatus.UP);
         AgentStatus status = monitor.getStatus(instance.getId());
         assertThat(status.getStatusCode()).isEqualTo(AgentStatusCode.Healthy);
     }
 
     @Test
-    public void testInstanceNotUpInEurekaIsUnhealthy() throws Exception {
+    public void testInstanceNotUpInEurekaIsUnhealthy() {
         for (InstanceStatus status : asList(InstanceStatus.DOWN, InstanceStatus.STARTING, InstanceStatus.OUT_OF_SERVICE, InstanceStatus.UNKNOWN)) {
             mockStatusInEureka(instance, status);
             AgentStatus agentStatus = monitor.getStatus(instance.getId());
@@ -76,13 +75,13 @@ public class EurekaAgentStatusMonitorTest {
     }
 
     @Test
-    public void testInstanceNotRegisteredWithEurekaIsUnhealthy() throws Exception {
+    public void testInstanceNotRegisteredWithEurekaIsUnhealthy() {
         AgentStatus status = monitor.getStatus(instance.getId());
         assertThat(status.getStatusCode()).isEqualTo(AgentStatusCode.Unhealthy);
     }
 
     @Test
-    public void testTerminatedInstanceEvent() throws Exception {
+    public void testTerminatedInstanceEvent() {
         ExtTestSubscriber<AgentStatus> testSubscriber = new ExtTestSubscriber<>();
         monitor.monitor().subscribe(testSubscriber);
 
@@ -91,13 +90,13 @@ public class EurekaAgentStatusMonitorTest {
         assertThat(testSubscriber.takeNext().getStatusCode()).isEqualTo(AgentStatusCode.Healthy);
 
         // Simulate termination of an agent instance.
-        reset(agentManagementService);
+        agentComponentStub.terminateInstance(agentComponentStub.getFirstInstance().getId(), true);
         monitor.onEvent(new CacheRefreshedEvent());
         assertThat(testSubscriber.takeNext().getStatusCode()).isEqualTo(AgentStatusCode.Terminated);
     }
 
     @Test
-    public void testEurekaRegistrationChangesTriggerStatusUpdateInEventStream() throws Exception {
+    public void testEurekaRegistrationChangesTriggerStatusUpdateInEventStream() {
         ExtTestSubscriber<AgentStatus> testSubscriber = new ExtTestSubscriber<>();
         monitor.monitor().subscribe(testSubscriber);
 

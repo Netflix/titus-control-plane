@@ -31,17 +31,17 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.eureka.EurekaGenerator;
 import com.netflix.titus.ext.eureka.EurekaServerStub;
-import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
+import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.Disposable;
 import reactor.test.StepVerifier;
 
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofBatchSize;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealth;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthEvent;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
-import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.ofBatchSize;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EurekaContainerHealthServiceTest {
@@ -50,9 +50,9 @@ public class EurekaContainerHealthServiceTest {
 
     private final EurekaServerStub eurekaServer = new EurekaServerStub();
 
-    private final JobGeneratorOrchestrator jobManagerStub = new JobGeneratorOrchestrator(titusRuntime);
+    private final JobComponentStub jobManagerStub = new JobComponentStub(titusRuntime);
 
-    private final ReadOnlyJobOperations jobOperations = jobManagerStub.getReadOnlyJobOperations();
+    private final ReadOnlyJobOperations jobOperations = jobManagerStub.getJobOperations();
 
     private final EurekaContainerHealthService healthService = new EurekaContainerHealthService(
             jobOperations, eurekaServer.getEurekaClient(), titusRuntime

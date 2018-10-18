@@ -22,14 +22,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
@@ -70,12 +74,40 @@ public final class JobFunctions {
         return jobDescriptor.getExtensions() instanceof BatchJobExt;
     }
 
+    public static Job<BatchJobExt> asBatchJob(Job<?> job) {
+        if (isBatchJob(job)) {
+            return (Job<BatchJobExt>) job;
+        }
+        throw JobManagerException.notBatchJob(job.getId());
+    }
+
+    public static JobDescriptor<BatchJobExt> asBatchJob(JobDescriptor<?> jobDescriptor) {
+        if (isBatchJob(jobDescriptor)) {
+            return (JobDescriptor<BatchJobExt>) jobDescriptor;
+        }
+        throw JobManagerException.notBatchJobDescriptor(jobDescriptor);
+    }
+
     public static boolean isServiceJob(Job<?> job) {
         return job.getJobDescriptor().getExtensions() instanceof ServiceJobExt;
     }
 
     public static boolean isServiceJob(JobDescriptor<?> jobDescriptor) {
         return jobDescriptor.getExtensions() instanceof ServiceJobExt;
+    }
+
+    public static Job<ServiceJobExt> asServiceJob(Job<?> job) {
+        if (isServiceJob(job)) {
+            return (Job<ServiceJobExt>) job;
+        }
+        throw JobManagerException.notServiceJob(job.getId());
+    }
+
+    public static JobDescriptor<ServiceJobExt> asServiceJob(JobDescriptor<?> jobDescriptor) {
+        if (isBatchJob(jobDescriptor)) {
+            return (JobDescriptor<ServiceJobExt>) jobDescriptor;
+        }
+        throw JobManagerException.notServiceJobDescriptor(jobDescriptor);
     }
 
     public static int getJobDesiredSize(Job<?> job) {
@@ -120,6 +152,10 @@ public final class JobFunctions {
     public static JobDescriptor<BatchJobExt> changeBatchJobSize(JobDescriptor<BatchJobExt> jobDescriptor, int size) {
         BatchJobExt ext = jobDescriptor.getExtensions().toBuilder().withSize(size).build();
         return jobDescriptor.toBuilder().withExtensions(ext).build();
+    }
+
+    public static Job<BatchJobExt> changeBatchJobSize(Job<BatchJobExt> job, int size) {
+        return job.toBuilder().withJobDescriptor(changeBatchJobSize(job.getJobDescriptor(), size)).build();
     }
 
     public static JobDescriptor<ServiceJobExt> changeServiceJobCapacity(JobDescriptor<ServiceJobExt> jobDescriptor, int size) {
@@ -189,6 +225,41 @@ public final class JobFunctions {
                 .build();
     }
 
+    public static <E extends JobDescriptorExt> Function<Job<E>, Job<E>> withJobId(String jobId) {
+        return job -> job.toBuilder().withId(jobId).build();
+    }
+
+    public static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> ofBatchSize(int size) {
+        return jd -> JobFunctions.changeBatchJobSize(jd, size);
+    }
+
+    public static Function<JobDescriptor<ServiceJobExt>, JobDescriptor<ServiceJobExt>> ofServiceSize(int size) {
+        return jd -> JobFunctions.changeServiceJobCapacity(jd, size);
+    }
+
+    public static <E extends JobDescriptorExt> Function<JobDescriptor<E>, JobDescriptor<E>> havingProvider(String name, String... attributes) {
+        ContainerHealthProvider newProvider = ContainerHealthProvider.newBuilder()
+                .withName(name)
+                .withAttributes(CollectionsExt.asMap(attributes))
+                .build();
+
+        return jd -> {
+            List<ContainerHealthProvider> existing = jd.getDisruptionBudget().getContainerHealthProviders().stream()
+                    .filter(p -> !p.getName().equals(name))
+                    .collect(Collectors.toList());
+
+            List<ContainerHealthProvider> providers = new ArrayList<>(existing);
+            providers.add(newProvider);
+
+            return jd.toBuilder()
+                    .withDisruptionBudget(
+                            jd.getDisruptionBudget().toBuilder()
+                                    .withContainerHealthProviders(providers)
+                                    .build()
+                    ).build();
+        };
+    }
+
     private static Task.TaskBuilder taskStatusChangeBuilder(Task task, TaskStatus status) {
         TaskStatus currentStatus = task.getStatus();
         List<TaskStatus> statusHistory = new ArrayList<>(task.getStatusHistory());
@@ -218,11 +289,11 @@ public final class JobFunctions {
     }
 
     public static RetryPolicy getRetryPolicy(Job<?> job) {
-        JobDescriptor.JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
+        JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
         return ext instanceof BatchJobExt ? ((BatchJobExt) ext).getRetryPolicy() : ((ServiceJobExt) ext).getRetryPolicy();
     }
 
-    public static <E extends JobDescriptor.JobDescriptorExt> JobDescriptor<E> changeRetryPolicy(JobDescriptor<E> input, RetryPolicy retryPolicy) {
+    public static <E extends JobDescriptorExt> JobDescriptor<E> changeRetryPolicy(JobDescriptor<E> input, RetryPolicy retryPolicy) {
         if (input.getExtensions() instanceof BatchJobExt) {
             JobDescriptor<BatchJobExt> batchJob = (JobDescriptor<BatchJobExt>) input;
             return (JobDescriptor<E>) batchJob.but(jd -> batchJob.getExtensions().toBuilder().withRetryPolicy(retryPolicy).build());

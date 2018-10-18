@@ -18,10 +18,10 @@ package com.netflix.titus.testkit.embedded.cloud.connector.remote;
 
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.connector.AbstractSimulatedInstanceCloudConnectorTest;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
-import com.netflix.titus.testkit.util.NetworkExt;
 import org.junit.After;
 import org.junit.experimental.categories.Category;
 
@@ -32,7 +32,7 @@ public class SimulatedRemoteInstanceCloudConnectorTest extends AbstractSimulated
 
     @Override
     protected InstanceCloudConnector setup(SimulatedCloud cloud) {
-        int grpcPort = NetworkExt.findUnusedPort();
+        int grpcPort = UnusedSocketPortAllocator.global().allocate();
         this.injector = RemoteConnectorUtil.createSimulatedCloudGrpcServer(cloud, grpcPort);
         return new SimulatedRemoteInstanceCloudConnector(RemoteConnectorUtil.newConnectorConfiguration(grpcPort));
     }

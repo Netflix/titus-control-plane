@@ -63,4 +63,8 @@ public abstract class Reference {
     public static Reference capacityGroup(String capacityGroupName) {
         return CapacityGroupReference.getInstance(capacityGroupName);
     }
+
+    public static Reference job(String jobId) {
+        return new JobReference(jobId);
+    }
 }

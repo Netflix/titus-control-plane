@@ -42,7 +42,8 @@ public class EmbeddedTitusCell {
     }
 
     public EmbeddedTitusCell toMaster(Function<EmbeddedTitusMaster.Builder, EmbeddedTitusMaster.Builder> masterTransformer) {
-        return new EmbeddedTitusCell(masterTransformer.apply(master.toBuilder()).build(), gateway);
+        EmbeddedTitusMaster newMaster = masterTransformer.apply(master.toBuilder()).build();
+        return new EmbeddedTitusCell(newMaster, gateway.toBuilder().withMaster(newMaster).build());
     }
 
     public EmbeddedTitusCell boot() {
@@ -110,14 +111,14 @@ public class EmbeddedTitusCell {
 
             if (defaultGateway) {
                 gateway = EmbeddedTitusGateway.aDefaultTitusGateway()
-                        .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
+                        .withMaster(master)
                         .withStore(master.getJobStore())
                         .withEnableREST(enableREST)
                         .withJobValidator(validator)
                         .build();
             } else {
                 gateway = gateway.toBuilder()
-                        .withMasterEndpoint("localhost", master.getGrpcPort(), master.getApiPort())
+                        .withMaster(master)
                         .withStore(master.getJobStore())
                         .withEnableREST(enableREST)
                         .build();

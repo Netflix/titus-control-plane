@@ -41,9 +41,6 @@ public final class AgentGenerator {
 
     public static final String ATTR_SUBNET = "subnet";
 
-    public static final int MAX_SERVER_GROUP_SIZE = 100;
-    public static final int MAX_IDLE_TO_KEEP = 20;
-
     private AgentGenerator() {
     }
 
@@ -74,6 +71,10 @@ public final class AgentGenerator {
                                                 .build()
                                 )
                                 .build());
+    }
+
+    public static AgentInstanceGroup agentServerGroup(String id, Tier tier, int desiredSize, AwsInstanceType instanceType) {
+        return agentServerGroups(tier, desiredSize, instanceType).getValue().toBuilder().withId(id).build();
     }
 
     public static DataGenerator<AgentInstanceGroup> agentServerGroups(Tier tier, int desiredSize, List<String> instanceTypes) {

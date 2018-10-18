@@ -30,7 +30,7 @@ import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
 import javax.ws.rs.core.Application;
 
-import com.netflix.titus.testkit.util.NetworkExt;
+import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.FilterHolder;
@@ -76,7 +76,7 @@ public class JaxRsServerResource<S> extends ExternalResource {
         ));
         context.addServlet(new ServletHolder(new ServletContainer(application)), "/*");
 
-        this.port = NetworkExt.findUnusedPort();
+        this.port = UnusedSocketPortAllocator.global().allocate();
         server = new Server(port);
         server.setHandler(context);
 

@@ -33,7 +33,7 @@ import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStre
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
-import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
+import com.netflix.titus.testkit.model.job.JobComponentStub;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.scheduler.Schedulers;
@@ -54,7 +54,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final JobGeneratorOrchestrator dataGenerator = new JobGeneratorOrchestrator(titusRuntime);
+    private final JobComponentStub dataGenerator = new JobComponentStub(titusRuntime);
 
     private final JobManagementClient client = mock(JobManagementClient.class);
 

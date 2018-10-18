@@ -19,6 +19,7 @@ package com.netflix.titus.api.jobmanager.service;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -33,7 +34,10 @@ public class JobManagerException extends RuntimeException {
     public enum ErrorCode {
         JobCreateLimited,
         JobNotFound,
+        NotServiceJobDescriptor,
         NotServiceJob,
+        NotBatchJobDescriptor,
+        NotBatchJob,
         UnexpectedJobState,
         UnexpectedTaskState,
         TaskNotFound,
@@ -89,10 +93,6 @@ public class JobManagerException extends RuntimeException {
         return (error instanceof JobManagerException) && ((JobManagerException) error).getErrorCode() == errorCode;
     }
 
-    public static JobManagerException v2EngineOff() {
-        return new JobManagerException(ErrorCode.V2EngineTurnedOff, "V2 engine is turned off. Please, use V3 engine only.");
-    }
-
     public static JobManagerException jobCreateLimited(String violation) {
         return new JobManagerException(ErrorCode.JobCreateLimited, violation);
     }
@@ -116,8 +116,20 @@ public class JobManagerException extends RuntimeException {
         return new JobManagerException(ErrorCode.TaskNotFound, format("Task with id %s does not exist", taskId));
     }
 
+    public static JobManagerException notServiceJobDescriptor(JobDescriptor<?> jobDescriptor) {
+        return new JobManagerException(ErrorCode.NotServiceJob, format("Operation restricted to service job descriptors, but got: %s", jobDescriptor));
+    }
+
     public static JobManagerException notServiceJob(String jobId) {
-        return new JobManagerException(ErrorCode.NotServiceJob, format("Operation restricted to service jobs, and %s is not the service job", jobId));
+        return new JobManagerException(ErrorCode.NotServiceJob, format("Operation restricted to service jobs, and %s is not a service job", jobId));
+    }
+
+    public static JobManagerException notBatchJobDescriptor(JobDescriptor<?> jobDescriptor) {
+        return new JobManagerException(ErrorCode.NotBatchJob, format("Operation restricted to batch job descriptors, but got: %s", jobDescriptor));
+    }
+
+    public static JobManagerException notBatchJob(String jobId) {
+        return new JobManagerException(ErrorCode.NotBatchJob, format("Operation restricted to batch jobs, and %s is not a batch job", jobId));
     }
 
     public static JobManagerException unexpectedTaskState(Task task, TaskState expectedState) {

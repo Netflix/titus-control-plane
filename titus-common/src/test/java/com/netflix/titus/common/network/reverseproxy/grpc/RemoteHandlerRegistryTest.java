@@ -21,10 +21,10 @@ import java.util.Iterator;
 import java.util.Optional;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.testing.SampleGrpcService.SampleContainer;
 import com.netflix.titus.testing.SampleServiceGrpc;
-import com.netflix.titus.testkit.util.NetworkExt;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
@@ -43,8 +43,8 @@ public class RemoteHandlerRegistryTest {
     private static final int ITEMS_IN_STREAM = 3;
     private static final String HELLO = "HELLO";
 
-    private final int serverPort = NetworkExt.findUnusedPort();
-    private final int proxyPort = NetworkExt.findUnusedPort();
+    private final int serverPort = UnusedSocketPortAllocator.global().allocate();
+    private final int proxyPort = UnusedSocketPortAllocator.global().allocate();
 
     private Server server;
     private Server proxy;

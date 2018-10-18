@@ -19,6 +19,7 @@ package com.netflix.titus.api.agent.model;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.agent.service.AgentManagementException;
@@ -46,5 +47,19 @@ public final class AgentFunctions {
         } catch (AgentManagementException e) {
             return Optional.empty();
         }
+    }
+
+    public static Function<AgentInstanceGroup, AgentInstanceGroup> withId(String newId) {
+        return ig -> ig.toBuilder().withId(newId).build();
+    }
+
+    public static Function<AgentInstanceGroup, AgentInstanceGroup> inState(InstanceGroupLifecycleState state) {
+        return ig -> ig.toBuilder().withLifecycleStatus(
+                InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(state)
+                        .withTimestamp(System.currentTimeMillis())
+                        .withDetail("No reason given")
+                        .build()
+        ).build();
     }
 }

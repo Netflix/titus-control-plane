@@ -72,6 +72,7 @@ public class TitusMasterGrpcServer {
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
+    private int port;
 
     @Inject
     public TitusMasterGrpcServer(
@@ -95,6 +96,10 @@ public class TitusMasterGrpcServer {
         this.schedulerService = schedulerService;
         this.config = config;
         this.leaderServerInterceptor = leaderServerInterceptor;
+    }
+
+    public int getGrpcPort() {
+        return port;
     }
 
     @PostConstruct
@@ -131,15 +136,16 @@ public class TitusMasterGrpcServer {
             }
             this.server = serverBuilder.build();
 
-            LOG.info("Starting gRPC server on port {}.", config.getPort());
+            LOG.info("Starting gRPC server on port {}.", port);
             try {
                 this.server.start();
+                this.port = server.getPort();
             } catch (final IOException e) {
-                String errorMessage = "Cannot start TitusMaster GRPC server on port " + config.getPort();
+                String errorMessage = "Cannot start TitusMaster GRPC server on port " + port;
                 LOG.error(errorMessage, e);
                 throw new RuntimeException(errorMessage, e);
             }
-            LOG.info("Started gRPC server on port {}.", config.getPort());
+            LOG.info("Started gRPC server on port {}.", port);
         }
     }
 

@@ -198,6 +198,15 @@ public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
                 '}';
     }
 
+    @SafeVarargs
+    public final JobDescriptor<E> but(Function<JobDescriptor<E>, JobDescriptor<E>>... modifiers) {
+        JobDescriptor<E> result = this;
+        for (Function<JobDescriptor<E>, JobDescriptor<E>> modifier : modifiers) {
+            result = modifier.apply(result);
+        }
+        return result;
+    }
+
     public JobDescriptor<E> but(Function<JobDescriptor<E>, Object> mapperFun) {
         Object result = mapperFun.apply(this);
         if (result instanceof JobDescriptor) {

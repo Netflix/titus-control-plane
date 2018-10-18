@@ -59,6 +59,6 @@ class EvacuatedAgentsAllocationTracker {
                 instancesAndTasksById.get(instanceId),
                 "Agent instance not found: instanceId=%s", instanceId
         );
-        return copyAndRemove(pair.getRight(), t -> !descheduledTasks.contains(t.getId()));
+        return copyAndRemove(pair.getRight(), t -> descheduledTasks.contains(t.getId()));
     }
 }

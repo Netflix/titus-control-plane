@@ -16,6 +16,8 @@
 
 package com.netflix.titus.supplementary.relocation.endpoint.grpc;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -24,45 +26,47 @@ import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import io.grpc.stub.StreamObserver;
-
-import static com.netflix.titus.supplementary.relocation.endpoint.StubRequestReplies.STUB_RELOCATION_PLAN;
-import static com.netflix.titus.supplementary.relocation.endpoint.StubRequestReplies.STUB_RELOCATION_PLANS;
-import static com.netflix.titus.supplementary.relocation.endpoint.StubRequestReplies.STUB_RELOCATION_EXECUTIONS;
 
 @Singleton
 public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRelocationServiceImplBase {
 
+    private final RelocationWorkflowExecutor relocationWorkflowExecutor;
+
     @Inject
-    public TaskRelocationGrpcService() {
+    public TaskRelocationGrpcService(RelocationWorkflowExecutor relocationWorkflowExecutor) {
+        this.relocationWorkflowExecutor = relocationWorkflowExecutor;
     }
 
-    /**
-     * TODO Stub implementation
-     */
     @Override
     public void getCurrentTaskRelocationPlans(TaskRelocationQuery request, StreamObserver<TaskRelocationPlans> responseObserver) {
-        responseObserver.onNext(STUB_RELOCATION_PLANS);
+        List<TaskRelocationPlan> corePlans = new ArrayList<>(relocationWorkflowExecutor.getPlannedRelocations().values());
+        TaskRelocationPlans grpcPlans = RelocationGrpcModelConverters.toGrpcTaskRelocationPlans(corePlans);
+
+        responseObserver.onNext(grpcPlans);
         responseObserver.onCompleted();
     }
 
     /**
-     * TODO Stub implementation
+     * TODO Implement filtering.
      */
     @Override
     public void getTaskRelocationResult(TaskRelocationQuery request, StreamObserver<TaskRelocationExecutions> responseObserver) {
-        responseObserver.onNext(STUB_RELOCATION_EXECUTIONS);
+        List<TaskRelocationStatus> coreResults = new ArrayList<>(relocationWorkflowExecutor.getLastEvictionResults().values());
+        TaskRelocationExecutions grpcResults = RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions(coreResults);
+
+        responseObserver.onNext(grpcResults);
         responseObserver.onCompleted();
     }
 
     /**
-     * TODO Stub implementation
+     * TODO Implement
      */
     @Override
     public void observeRelocationEvents(TaskRelocationQuery request, StreamObserver<RelocationEvent> responseObserver) {
-        responseObserver.onNext(RelocationEvent.newBuilder()
-                .setTaskRelocationPlanEvent(RelocationEvent.TaskRelocationPlanEvent.newBuilder().setPlan(STUB_RELOCATION_PLAN))
-                .build()
-        );
+        responseObserver.onError(new RuntimeException("not implemented yet"));
     }
 }

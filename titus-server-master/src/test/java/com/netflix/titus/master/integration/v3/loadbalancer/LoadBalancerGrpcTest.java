@@ -57,7 +57,7 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
     private final Logger logger = LoggerFactory.getLogger(LoadBalancerGrpcTest.class);
     private LoadBalancerServiceGrpc.LoadBalancerServiceStub client;
 
-    public static final TitusStackResource titusStackResource = new TitusStackResource(
+    public final TitusStackResource titusStackResource = new TitusStackResource(
             EmbeddedTitusCell.aTitusCell()
                     .withMaster(basicMaster(new SimulatedCloud()))
                     .withDefaultGateway()

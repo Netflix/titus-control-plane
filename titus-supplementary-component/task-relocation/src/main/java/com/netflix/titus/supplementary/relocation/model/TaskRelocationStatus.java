@@ -33,11 +33,13 @@ public class TaskRelocationStatus {
     private final String taskId;
     private final TaskRelocationState state;
     private final String reasonCode;
+    private final TaskRelocationPlan taskRelocationPlan;
 
-    public TaskRelocationStatus(String taskId, TaskRelocationState state, String reasonCode) {
+    public TaskRelocationStatus(String taskId, TaskRelocationState state, String reasonCode, TaskRelocationPlan taskRelocationPlan) {
         this.taskId = taskId;
         this.state = state;
         this.reasonCode = reasonCode;
+        this.taskRelocationPlan = taskRelocationPlan;
     }
 
     public String getTaskId() {
@@ -52,6 +54,10 @@ public class TaskRelocationStatus {
         return reasonCode;
     }
 
+    public TaskRelocationPlan getTaskRelocationPlan() {
+        return taskRelocationPlan;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -63,12 +69,13 @@ public class TaskRelocationStatus {
         TaskRelocationStatus that = (TaskRelocationStatus) o;
         return Objects.equals(taskId, that.taskId) &&
                 state == that.state &&
-                Objects.equals(reasonCode, that.reasonCode);
+                Objects.equals(reasonCode, that.reasonCode) &&
+                Objects.equals(taskRelocationPlan, that.taskRelocationPlan);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, state, reasonCode);
+        return Objects.hash(taskId, state, reasonCode, taskRelocationPlan);
     }
 
     @Override
@@ -77,11 +84,12 @@ public class TaskRelocationStatus {
                 "taskId='" + taskId + '\'' +
                 ", state=" + state +
                 ", reasonCode='" + reasonCode + '\'' +
+                ", taskRelocationPlan=" + taskRelocationPlan +
                 '}';
     }
 
     public Builder toBuilder() {
-        return newBuilder().withTaskId(taskId).withState(state).withReasonCode(reasonCode);
+        return newBuilder().withTaskId(taskId).withState(state).withReasonCode(reasonCode).withTaskRelocationPlan(taskRelocationPlan);
     }
 
     public static Builder newBuilder() {
@@ -92,6 +100,7 @@ public class TaskRelocationStatus {
         private String taskId;
         private TaskRelocationState state;
         private String reasonCode;
+        private TaskRelocationPlan taskRelocationPlan;
 
         private Builder() {
         }
@@ -111,8 +120,13 @@ public class TaskRelocationStatus {
             return this;
         }
 
+        public Builder withTaskRelocationPlan(TaskRelocationPlan taskRelocationPlan) {
+            this.taskRelocationPlan = taskRelocationPlan;
+            return this;
+        }
+
         public TaskRelocationStatus build() {
-            return new TaskRelocationStatus(taskId, state, reasonCode);
+            return new TaskRelocationStatus(taskId, state, reasonCode, taskRelocationPlan);
         }
     }
 }

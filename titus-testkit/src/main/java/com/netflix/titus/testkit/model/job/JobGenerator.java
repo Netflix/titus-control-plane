@@ -61,7 +61,7 @@ public class JobGenerator {
      * Generates task UUID like strings, with readable job/task numbers (for example "40df-8de3-Job#00000001-Task#000000001").
      */
     public static DataGenerator<String> taskIds(String jobId, DataGenerator<Long> numbers) {
-        return numbers.map(n -> String.format("%s-Task#%09d", jobId.substring(14), n));
+        return numbers.map(n -> String.format("%s-Task#%09d", jobId, n));
     }
 
     /**

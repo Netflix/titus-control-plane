@@ -30,7 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
+import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,21 +39,21 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.havingProvider;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofBatchSize;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthEvent;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthSnapshot;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
-import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.havingProvider;
-import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.ofBatchSize;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AggregatingContainerHealthServiceTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final JobGeneratorOrchestrator jobManagerStub = new JobGeneratorOrchestrator(titusRuntime);
+    private final JobComponentStub jobManagerStub = new JobComponentStub(titusRuntime);
 
-    private final ReadOnlyJobOperations jobOperations = jobManagerStub.getReadOnlyJobOperations();
+    private final ReadOnlyJobOperations jobOperations = jobManagerStub.getJobOperations();
 
     private final DownstreamHealthService downstream1 = new DownstreamHealthService("downstream1");
     private final DownstreamHealthService downstream2 = new DownstreamHealthService("downstream2");
@@ -72,11 +72,7 @@ public class AggregatingContainerHealthServiceTest {
     public void setUp() {
         this.job1 = jobManagerStub.addBatchTemplate(
                 "testJob",
-                batchJobDescriptors(
-                        ofBatchSize(1),
-                        havingProvider("downstream1"),
-                        havingProvider("downstream2")
-                )
+                batchJobDescriptors(ofBatchSize(1), havingProvider("downstream1"), havingProvider("downstream2"))
         ).createJobAndTasks("testJob").getLeft();
 
         this.task1 = jobOperations.getTasks(job1.getId()).get(0);
