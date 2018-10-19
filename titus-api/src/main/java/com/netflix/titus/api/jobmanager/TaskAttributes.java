@@ -23,8 +23,10 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_AGENT_ID = "agent.id";
     public static final String TASK_ATTRIBUTES_AGENT_REGION = "agent.region";
     public static final String TASK_ATTRIBUTES_AGENT_ZONE = "agent.zone";
+    public static final String TASK_ATTRIBUTES_AGENT_ASG = "agent.asg";
     public static final String TASK_ATTRIBUTES_AGENT_HOST = "agent.host";
     public static final String TASK_ATTRIBUTES_AGENT_INSTANCE_ID = "agent.instanceId";
+    public static final String TASK_ATTRIBUTES_AGENT_ITYPE = "agent.itype";
 
     /*
      * Task attributes.
@@ -32,8 +34,6 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_TASK_INDEX = "task.index";
     public static final String TASK_ATTRIBUTES_TASK_RESUBMIT_OF = "task.resubmitOf";
     public static final String TASK_ATTRIBUTES_TASK_ORIGINAL_ID = "task.originalId";
-    public static final String TASK_ATTRIBUTES_V2_TASK_ID = "v2.taskId";
-    public static final String TASK_ATTRIBUTES_V2_TASK_INSTANCE_ID = "v2.taskInstanceId";
     public static final String TASK_ATTRIBUTES_RESUBMIT_NUMBER = "task.resubmitNumber";
     public static final String TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER = "task.systemResubmitNumber";
     public static final String TASK_ATTRIBUTES_RETRY_DELAY = "task.retryDelay";
@@ -41,6 +41,7 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_ID = "task.networkInterfaceId";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX = "task.networkInterfaceIndex";
     public static final String TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE = "task.executorUriOverride";
+    public static final String TASK_ATTRIBUTES_TIER = "task.tier";
 
     /*
      * Cell info.

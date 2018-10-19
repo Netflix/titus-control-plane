@@ -39,6 +39,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.time.Clock;
@@ -141,7 +142,7 @@ class TaskPlacementRecorder {
                     fenzoTask.getId(),
                     oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
-                            executorUriOverrideOpt, attributesMap
+                            executorUriOverrideOpt, attributesMap, getTierName(fenzoTask)
                     ).apply(oldTask)
             ).toObservable().cast(Protos.TaskInfo.class).concatWith(Observable.fromCallable(() ->
                     v3TaskInfoFactory.newTaskInfo(
@@ -199,6 +200,18 @@ class TaskPlacementRecorder {
             schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
         } catch (Exception e) {
             logger.warn("Unexpected error when removing task from the Fenzo queue", e);
+        }
+    }
+
+    private String getTierName(TitusQueuableTask task) {
+        int tierNumber = task.getQAttributes().getTierNumber();
+        switch (tierNumber) {
+            case 0:
+                return Tier.Critical.name();
+            case 1:
+                return Tier.Flex.name();
+            default:
+                return "Unknown";
         }
     }
 

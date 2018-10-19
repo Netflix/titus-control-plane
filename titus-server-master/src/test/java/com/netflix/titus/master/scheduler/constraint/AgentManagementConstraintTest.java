@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.scheduler.constraint;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.master.agent.AgentAttributes;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
@@ -81,6 +83,16 @@ public class AgentManagementConstraintTest {
                 createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Instance group is not active or phased out");
+    }
+
+    @Test
+    public void instanceGroupNoPlacement() {
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, Collections.singletonMap(AgentAttributes.NO_PLACEMENT, "true"));
+        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        Result result = agentManagementConstraint.evaluate(createTaskRequest(),
+                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+        assertThat(result.isSuccessful()).isFalse();
+        assertThat(result.getFailureReason()).isEqualToIgnoringCase("Cannot place on instance group due to noPlacement attribute");
     }
 
     @Test
@@ -140,10 +152,18 @@ public class AgentManagementConstraintTest {
     }
 
     private AgentInstanceGroup createAgentInstanceGroup(InstanceGroupLifecycleState state, Tier tier) {
-        return createAgentInstanceGroup(state, tier, 0);
+        return createAgentInstanceGroup(state, tier, 0, Collections.emptyMap());
+    }
+
+    private AgentInstanceGroup createAgentInstanceGroup(InstanceGroupLifecycleState state, Tier tier, Map<String, String> attributes) {
+        return createAgentInstanceGroup(state, tier, 0, attributes);
     }
 
     private AgentInstanceGroup createAgentInstanceGroup(InstanceGroupLifecycleState state, Tier tier, int gpus) {
+        return createAgentInstanceGroup(state, tier, gpus, Collections.emptyMap());
+    }
+
+    private AgentInstanceGroup createAgentInstanceGroup(InstanceGroupLifecycleState state, Tier tier, int gpus, Map<String, String> attributes) {
         ResourceDimension resourceDimension = ResourceDimension.newBuilder()
                 .withCpus(1)
                 .withMemoryMB(4096)
@@ -157,6 +177,7 @@ public class AgentManagementConstraintTest {
                 .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(state).build())
                 .withTier(tier)
                 .withTimestamp(System.currentTimeMillis())
+                .withAttributes(attributes)
                 .build();
     }
 }
