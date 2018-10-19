@@ -415,7 +415,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 vmService.buildLease(task.getId()),
                 vmService.buildConsumeResult(task.getId()),
                 Optional.empty(),
-                vmService.buildAttributesMap(task.getId())
+                vmService.buildAttributesMap(task.getId()),
+                "Flex"
         );
 
         AtomicBoolean done = new AtomicBoolean();
@@ -438,7 +439,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 vmService.buildLease(task.getId()),
                 vmService.buildConsumeResult(task.getId()),
                 Optional.empty(),
-                vmService.buildAttributesMap(task.getId())
+                vmService.buildAttributesMap(task.getId()),
+                "Flex"
         );
 
         AtomicReference<Throwable> failed = new AtomicReference<>();

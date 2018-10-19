@@ -309,9 +309,6 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withPreSchedulingLoopHook(this::preSchedulingHook)
                 .withSchedulingResultCallback(this::schedulingResultsHandler)
                 .withTaskScheduler(taskScheduler);
-        if (schedulerConfiguration.isOptimizingShortfallEvaluatorEnabled()) {
-            builder.withOptimizingShortfallEvaluator();
-        }
         return builder.build();
     }
 

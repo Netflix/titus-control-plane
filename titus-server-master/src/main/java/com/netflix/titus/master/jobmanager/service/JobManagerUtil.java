@@ -145,11 +145,13 @@ public final class JobManagerUtil {
                                                                          VirtualMachineLease lease,
                                                                          PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
                                                                          Optional<String> executorUriOverrideOpt,
-                                                                         Map<String, String> attributesMap) {
+                                                                         Map<String, String> attributesMap,
+                                                                         String tier) {
         return oldTask -> {
             Map<String, String> taskContext = new HashMap<>();
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, lease.hostname());
             executorUriOverrideOpt.ifPresent(v -> taskContext.put(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE, v));
+            taskContext.put(TaskAttributes.TASK_ATTRIBUTES_TIER, tier);
 
             Map<String, Protos.Attribute> attributes = lease.getAttributeMap();
             if (!isNullOrEmpty(attributes)) {

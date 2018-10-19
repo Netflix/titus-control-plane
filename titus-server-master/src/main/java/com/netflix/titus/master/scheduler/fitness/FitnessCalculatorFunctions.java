@@ -38,14 +38,12 @@ import org.apache.mesos.Protos;
 public class FitnessCalculatorFunctions {
 
     public static boolean isBatchJob(TaskRequest taskRequest) {
-        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-        Job job = v3QueueableTask.getJob();
+        Job job = getJob(taskRequest);
         return JobFunctions.isBatchJob(job);
     }
 
     public static boolean isServiceJob(TaskRequest taskRequest) {
-        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-        Job job = v3QueueableTask.getJob();
+        Job job = getJob(taskRequest);
         return JobFunctions.isServiceJob(job);
     }
 
@@ -64,10 +62,14 @@ public class FitnessCalculatorFunctions {
     }
 
     public static String getJoinedSecurityGroupIds(TaskRequest taskRequest) {
-        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
-        Job job = v3QueueableTask.getJob();
+        Job job = getJob(taskRequest);
         Container container = job.getJobDescriptor().getContainer();
         return StringExt.concatenate(container.getSecurityProfile().getSecurityGroups(), AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
+    }
+
+    public static Job<?> getJob(TaskRequest taskRequest) {
+        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
+        return v3QueueableTask.getJob();
     }
 
     public static List<TaskRequest> getAllTasksOnAgent(VirtualMachineCurrentState targetVm) {

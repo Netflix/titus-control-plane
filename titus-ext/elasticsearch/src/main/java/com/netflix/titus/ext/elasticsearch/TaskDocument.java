@@ -26,7 +26,6 @@ import java.util.Optional;
 import com.google.common.base.Strings;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusTaskState;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
@@ -41,9 +40,17 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.mesos.TitusExecutorDetails;
 
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ID;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ITYPE;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TIER;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_SCALED_DOWN;
@@ -102,6 +109,7 @@ public class TaskDocument {
     private String jobGroupDetail;
     private String jobGroupSequence;
     private String capacityGroup;
+    private String tier;
 
     // Network configuration
     private String containerIp;
@@ -136,7 +144,9 @@ public class TaskDocument {
         return version;
     }
 
-    public String getDigest() { return digest; }
+    public String getDigest() {
+        return digest;
+    }
 
     public String getEntryPoint() {
         return entryPoint;
@@ -318,6 +328,10 @@ public class TaskDocument {
         return networkInterfaceIndex;
     }
 
+    public String getTier() {
+        return tier;
+    }
+
     public static class ComputedFields {
         Long msFromSubmittedToLaunched;
         Long msFromLaunchedToStarting;
@@ -416,32 +430,33 @@ public class TaskDocument {
 
         Map<String, String> taskContext = task.getTaskContext();
         taskDocument.id = task.getId();
-        taskDocument.instanceId = taskContext.getOrDefault("v2.taskInstanceId", task.getId());
+        taskDocument.instanceId = task.getId();
         taskDocument.jobId = task.getJobId();
         taskDocument.state = toV2TaskState(task.getStatus()).name();
-        taskDocument.host = taskContext.get("agent.host");
+        taskDocument.host = taskContext.get(TASK_ATTRIBUTES_AGENT_HOST);
+        taskDocument.tier = taskContext.getOrDefault(TASK_ATTRIBUTES_TIER, "Unknown");
         taskDocument.computedFields = new ComputedFields();
 
-        final String region = taskContext.get("agent.region");
+        final String region = taskContext.get(TASK_ATTRIBUTES_AGENT_REGION);
         if (region != null) {
             taskDocument.region = region;
         }
-        final String zone = taskContext.get("agent.zone");
+        final String zone = taskContext.get(TASK_ATTRIBUTES_AGENT_ZONE);
         if (zone != null) {
             taskDocument.zone = zone;
         }
 
-        final String asg = taskContext.get("agent.asg");
+        final String asg = taskContext.get(TASK_ATTRIBUTES_AGENT_ASG);
         if (asg != null) {
             taskDocument.asg = asg;
         }
 
-        final String instanceType = taskContext.get("agent.itype");
+        final String instanceType = taskContext.get(TASK_ATTRIBUTES_AGENT_ITYPE);
         if (instanceType != null) {
             taskDocument.instanceType = instanceType;
         }
 
-        final String instanceId = taskContext.get("agent.id");
+        final String instanceId = taskContext.get(TASK_ATTRIBUTES_AGENT_ID);
         if (instanceId != null) {
             taskDocument.hostInstanceId = instanceId;
         }
@@ -524,16 +539,9 @@ public class TaskDocument {
         }
     }
 
-    private static void extractNetworkConfigurationData(TitusExecutorDetails titusExecutorDetails, TaskDocument taskDocument) {
-        TitusExecutorDetails.NetworkConfiguration networkConfiguration = titusExecutorDetails.getNetworkConfiguration();
-        taskDocument.networkInterfaceId = Strings.nullToEmpty(networkConfiguration.getEniID());
-        taskDocument.networkInterfaceIndex = JobManagerUtil.parseEniResourceId(networkConfiguration.getResourceID()).orElse("");
-        taskDocument.containerIp = Strings.nullToEmpty(networkConfiguration.getIpAddress());
-    }
-
     private static void extractNetworkConfigurationData(Map<String, String> taskContext, TaskDocument taskDocument) {
-        taskDocument.networkInterfaceId = Strings.nullToEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID));
-        taskDocument.containerIp = Strings.nullToEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP));
-        taskDocument.networkInterfaceIndex = Strings.nullToEmpty(taskContext.get(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX));
+        taskDocument.networkInterfaceId = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_ID));
+        taskDocument.containerIp = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_CONTAINER_IP));
+        taskDocument.networkInterfaceIndex = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX));
     }
 }
