@@ -16,6 +16,8 @@
 
 package com.netflix.titus.supplementary.relocation.endpoint.rest;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -28,7 +30,10 @@ import javax.ws.rs.core.UriInfo;
 
 import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
-import com.netflix.titus.supplementary.relocation.endpoint.StubRequestReplies;
+import com.netflix.titus.supplementary.relocation.endpoint.grpc.RelocationGrpcModelConverters;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -39,21 +44,26 @@ import io.swagger.annotations.ApiOperation;
 @Path("/api/v3/relocation")
 public class TaskRelocationResource {
 
+    private final RelocationWorkflowExecutor relocationWorkflowExecutor;
+
     @Inject
-    public TaskRelocationResource() {
+    public TaskRelocationResource(RelocationWorkflowExecutor relocationWorkflowExecutor) {
+        this.relocationWorkflowExecutor = relocationWorkflowExecutor;
     }
 
     @GET
     @Path("/plans")
     @ApiOperation("Get all active relocation plans")
     public TaskRelocationPlans getCurrentTaskRelocationPlans(@Context UriInfo info) {
-        return StubRequestReplies.STUB_RELOCATION_PLANS;
+        List<TaskRelocationPlan> corePlans = new ArrayList<>(relocationWorkflowExecutor.getPlannedRelocations().values());
+        return RelocationGrpcModelConverters.toGrpcTaskRelocationPlans(corePlans);
     }
 
     @GET
     @Path("/executions")
     @ApiOperation("Get task relocation execution results")
     public TaskRelocationExecutions getTaskRelocationResult(@Context UriInfo info) {
-        return StubRequestReplies.STUB_RELOCATION_EXECUTIONS;
+        List<TaskRelocationStatus> coreResults = new ArrayList<>(relocationWorkflowExecutor.getLastEvictionResults().values());
+        return RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions(coreResults);
     }
 }

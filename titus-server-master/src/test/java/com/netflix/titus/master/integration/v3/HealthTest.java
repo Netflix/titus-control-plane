@@ -37,7 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class HealthTest extends BaseIntegrationTest {
-    public static final TitusStackResource titusStackResource = new TitusStackResource(
+
+    private final TitusStackResource titusStackResource = new TitusStackResource(
             EmbeddedTitusCell.aTitusCell()
                     .withMaster(basicMaster(new SimulatedCloud()))
                     .withDefaultGateway()

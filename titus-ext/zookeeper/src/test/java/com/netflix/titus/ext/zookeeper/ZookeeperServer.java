@@ -23,7 +23,7 @@ import java.util.Arrays;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import com.netflix.titus.testkit.util.NetworkExt;
+import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.NetworkUtil;
 import org.I0Itec.zkclient.ZkClient;
@@ -75,7 +75,7 @@ public class ZookeeperServer {
         _dataDir = dataDir;
         _logDir = logDir;
         _defaultNameSpace = defaultNameSpace;
-        _port = port == 0 ? NetworkExt.findUnusedPort() : port;
+        _port = port == 0 ? UnusedSocketPortAllocator.global().allocate() : port;
         _tickTime = tickTime;
         _minSessionTimeout = minSessionTimeout;
     }

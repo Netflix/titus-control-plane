@@ -19,10 +19,12 @@ package com.netflix.titus.api.agent.model;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.common.util.time.Clock;
 
 /**
  * Collection of functions for agent entity transformations.
@@ -46,5 +48,19 @@ public final class AgentFunctions {
         } catch (AgentManagementException e) {
             return Optional.empty();
         }
+    }
+
+    public static Function<AgentInstanceGroup, AgentInstanceGroup> withId(String newId) {
+        return ig -> ig.toBuilder().withId(newId).build();
+    }
+
+    public static Function<AgentInstanceGroup, AgentInstanceGroup> inState(InstanceGroupLifecycleState state, String detail, Clock clock) {
+        return ig -> ig.toBuilder().withLifecycleStatus(
+                InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(state)
+                        .withTimestamp(clock.wallTime())
+                        .withDetail(detail)
+                        .build()
+        ).build();
     }
 }

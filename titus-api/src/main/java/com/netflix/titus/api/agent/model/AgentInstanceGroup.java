@@ -17,6 +17,7 @@
 package com.netflix.titus.api.agent.model;
 
 import java.util.Map;
+import java.util.function.Function;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
@@ -248,6 +249,15 @@ public class AgentInstanceGroup {
                 .withLifecycleStatus(lifecycleStatus)
                 .withLaunchTimestamp(launchTimestamp)
                 .withAttributes(attributes);
+    }
+
+    @SafeVarargs
+    public final AgentInstanceGroup but(Function<AgentInstanceGroup, AgentInstanceGroup>... modifiers) {
+        AgentInstanceGroup result = this;
+        for (Function<AgentInstanceGroup, AgentInstanceGroup> modifier : modifiers) {
+            result = modifier.apply(result);
+        }
+        return result;
     }
 
     public static Builder newBuilder() {

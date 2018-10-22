@@ -14,28 +14,24 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.util;
+package com.netflix.titus.common.network.socket;
 
-import java.io.IOException;
-import java.net.ServerSocket;
+import java.util.function.Supplier;
 
-/**
- * A collection of network-level helper functions.
- */
-public final class NetworkExt {
+import com.google.common.base.Preconditions;
 
-    private NetworkExt() {
+public class DirectSocketPortAllocator implements SocketPortAllocator {
+
+    private final Supplier<Integer> portSupplier;
+
+    public DirectSocketPortAllocator(Supplier<Integer> portSupplier) {
+        this.portSupplier = portSupplier;
     }
 
-    public static int findUnusedPort() {
-        int port;
-        try {
-            ServerSocket serverSocket = new ServerSocket(0);
-            port = serverSocket.getLocalPort();
-            serverSocket.close();
-        } catch (IOException e) {
-            throw new IllegalStateException("Unused port allocation failure", e);
-        }
+    @Override
+    public int allocate() {
+        int port = portSupplier.get();
+        Preconditions.checkState(port > 0, "Allocated server socket port is <= 0: %s", port);
         return port;
     }
 }

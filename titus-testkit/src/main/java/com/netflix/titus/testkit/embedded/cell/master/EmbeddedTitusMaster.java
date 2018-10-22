@@ -35,7 +35,7 @@ import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
-import com.netflix.governator.guice.jetty.Archaius2JettyModule;
+import com.netflix.governator.guice.jetty.JettyModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.store.AgentStore;
@@ -54,7 +54,6 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.guice.ContainerEventBus;
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.cassandra.testkit.store.EmbeddedCassandraStoreFactory;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
@@ -72,13 +71,14 @@ import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
+import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.store.V2StorageProvider;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
@@ -95,7 +95,6 @@ import com.netflix.titus.testkit.embedded.cloud.connector.remote.CloudSimulatorR
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteMesosSchedulerDriverFactory;
 import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
-import com.netflix.titus.testkit.util.NetworkExt;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
@@ -111,12 +110,10 @@ public class EmbeddedTitusMaster {
 
     public static final String CELL_NAME = "embeddedCell";
 
-    private static final CallMetadata CALL_METADATA = CallMetadata.newBuilder().withCallerId("directMasterClient").build();
-
     private final Properties properties;
     private final DefaultSettableConfig config;
-    private final int apiPort;
-    private final int grpcPort;
+    private int apiPort;
+    private int grpcPort;
     private final boolean enableREST;
     private final String cellName;
     private final MasterDescription masterDescription;
@@ -157,7 +154,6 @@ public class EmbeddedTitusMaster {
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
 
         Properties embeddedProperties = new Properties();
-        embeddedProperties.put("governator.jetty.embedded.port", apiPort);
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         embeddedProperties.put("titus.master.cellName", cellName);
         embeddedProperties.put("titusMaster.v2Enabled", "false");
@@ -202,7 +198,6 @@ public class EmbeddedTitusMaster {
 
                                       bind(MasterDescription.class).toInstance(masterDescription);
                                       bind(MasterMonitor.class).to(LocalMasterMonitor.class);
-                                      bind(V2StorageProvider.class).toInstance(storageProvider);
                                       bind(AgentStore.class).toInstance(agentStore);
 
                                       bind(VirtualMachineMasterService.class).to(EmbeddedVirtualMachineMasterService.class);
@@ -247,6 +242,11 @@ public class EmbeddedTitusMaster {
                     }
                 }).createInjector();
 
+        if (grpcPort <= 0) {
+            grpcPort = getGrpcPort();
+            config.setProperty("titus.master.grpcServer.port", "" + grpcPort);
+        }
+
         injector.getInstance(ContainerEventBus.class).submitInOrder(new ContainerEventBus.ContainerStartedEvent());
 
         injector.getInstance(LeaderActivator.class).becomeLeader();
@@ -269,7 +269,10 @@ public class EmbeddedTitusMaster {
     }
 
     private Module newJettyModule() {
-        return enableREST ? new Archaius2JettyModule() : Modules.EMPTY_MODULE;
+        if (!enableREST) {
+            return Modules.EMPTY_MODULE;
+        }
+        return new EmbeddedJettyModule(apiPort);
     }
 
     public void shutdown() {
@@ -290,16 +293,13 @@ public class EmbeddedTitusMaster {
         return simulatedCloud;
     }
 
-    public V2StorageProvider getStorageProvider() {
-        return storageProvider;
-    }
-
     public DefaultSettableConfig getConfig() {
         return config;
     }
 
     public TitusMasterClient getClient() {
-        return new DefaultTitusMasterClient("127.0.0.1", apiPort);
+        int jettyPort = injector.getInstance(JettyModule.JettyRunner.class).getLocalPort();
+        return new DefaultTitusMasterClient("127.0.0.1", jettyPort);
     }
 
     public HealthStub getHealthClient() {
@@ -344,15 +344,11 @@ public class EmbeddedTitusMaster {
 
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
-            this.grpcChannel = ManagedChannelBuilder.forAddress("127.0.0.1", grpcPort)
+            this.grpcChannel = ManagedChannelBuilder.forAddress("127.0.0.1", getGrpcPort())
                     .usePlaintext(true)
                     .build();
         }
         return grpcChannel;
-    }
-
-    public RxEventBus getEventBus() {
-        return injector.getInstance(RxEventBus.class);
     }
 
     public JobStore getJobStore() {
@@ -398,12 +394,9 @@ public class EmbeddedTitusMaster {
         return cellName;
     }
 
-    public int getApiPort() {
-        return apiPort;
-    }
-
     public int getGrpcPort() {
-        return grpcPort;
+        Preconditions.checkNotNull(injector, "TitusMaster not started yet");
+        return injector.getInstance(TitusMasterGrpcServer.class).getGrpcPort();
     }
 
     public Builder toBuilder() {
@@ -525,18 +518,9 @@ public class EmbeddedTitusMaster {
         }
 
         public EmbeddedTitusMaster build() {
-            if (apiPort == 0) {
-                apiPort = NetworkExt.findUnusedPort();
-            }
-            grpcPort = grpcPort == 0 ? NetworkExt.findUnusedPort() : grpcPort;
-
             props.put("titus.master.audit.auditLogFolder", "build/auditLogs");
             props.put("titus.master.apiport", Integer.toString(apiPort));
             props.put("titus.master.grpcServer.port", Integer.toString(grpcPort));
-
-            if (v2JobStore == null) {
-                v2JobStore = new EmbeddedStorageProvider();
-            }
 
             return new EmbeddedTitusMaster(this);
         }

@@ -18,7 +18,11 @@ package com.netflix.titus.api.jobmanager.model.job.event;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.model.job.Job;
+
 public abstract class JobManagerEvent<TYPE> {
+
+    private static final SnapshotMarkerEvent SNAPSHOT_MARKER = new SnapshotMarkerEvent();
 
     private final TYPE current;
     private final Optional<TYPE> previous;
@@ -58,5 +62,16 @@ public abstract class JobManagerEvent<TYPE> {
         int result = current != null ? current.hashCode() : 0;
         result = 31 * result + (previous != null ? previous.hashCode() : 0);
         return result;
+    }
+
+    public static JobManagerEvent<Job> snapshotMarker() {
+        return SNAPSHOT_MARKER;
+    }
+
+    private static class SnapshotMarkerEvent extends JobManagerEvent<Job> {
+
+        private SnapshotMarkerEvent() {
+            super(Job.newBuilder().build(), Optional.empty());
+        }
     }
 }

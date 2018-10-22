@@ -23,11 +23,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
-import com.netflix.governator.guice.jetty.Archaius2JettyModule;
+import com.netflix.titus.federation.endpoint.grpc.TitusFederationGrpcServer;
 import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -35,10 +36,10 @@ import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
+import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
-import com.netflix.titus.testkit.util.NetworkExt;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -56,7 +57,7 @@ public class EmbeddedTitusFederation {
 
     private final Map<String, CellInfo> cells;
 
-    private final int httpPort;
+    private int httpPort;
     private final int grpcPort;
     private final Properties properties;
 
@@ -80,13 +81,16 @@ public class EmbeddedTitusFederation {
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
         props.put("titus.federation.endpoint.grpcPort", grpcPort);
-        props.put("titus.federation.cells", buildCellString());
         props.put("titus.federation.routingRules", buildRoutingRules());
-        props.put("governator.jetty.embedded.port", httpPort);
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         config.setProperties(props);
 
         this.titusOperations = new EmbeddedFederationTitusOperations(this);
+    }
+
+    public int getGrpcPort() {
+        Preconditions.checkNotNull(injector);
+        return injector.getInstance(TitusFederationGrpcServer.class).getGrpcPort();
     }
 
     private String buildCellString() {
@@ -109,10 +113,13 @@ public class EmbeddedTitusFederation {
         logger.info("Starting Titus Federation");
 
         injector = InjectorBuilder.fromModules(
-                new Archaius2JettyModule(),
+                new EmbeddedJettyModule(httpPort),
                 new ArchaiusModule() {
                     @Override
                     protected void configureArchaius() {
+                        // We can set some properties only after the gateway is started.ł
+                        config.setProperty("titus.federation.cells", buildCellString());
+
                         bindApplicationConfigurationOverride().toInstance(config);
                     }
                 },
@@ -177,7 +184,7 @@ public class EmbeddedTitusFederation {
 
     private ManagedChannel getOrCreateGrpcChannel() {
         if (grpcChannel == null) {
-            this.grpcChannel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
+            this.grpcChannel = ManagedChannelBuilder.forAddress("localhost", getGrpcPort())
                     .usePlaintext(true)
                     .build();
         }
@@ -242,9 +249,6 @@ public class EmbeddedTitusFederation {
         }
 
         public EmbeddedTitusFederation build() {
-            httpPort = httpPort == 0 ? NetworkExt.findUnusedPort() : httpPort;
-            grpcPort = grpcPort == 0 ? NetworkExt.findUnusedPort() : grpcPort;
-
             return new EmbeddedTitusFederation(this);
         }
     }

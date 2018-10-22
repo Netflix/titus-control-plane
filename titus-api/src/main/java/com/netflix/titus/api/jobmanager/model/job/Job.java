@@ -18,6 +18,7 @@ package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import javax.validation.Valid;
 
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
@@ -119,6 +120,15 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
                 ", status=" + status +
                 ", statusHistory=" + statusHistory +
                 '}';
+    }
+
+    @SafeVarargs
+    public final Job<E> but(Function<Job<E>, Job<E>>... modifiers) {
+        Job<E> result = this;
+        for (Function<Job<E>, Job<E>> modifier : modifiers) {
+            result = modifier.apply(result);
+        }
+        return result;
     }
 
     public Builder<E> toBuilder() {

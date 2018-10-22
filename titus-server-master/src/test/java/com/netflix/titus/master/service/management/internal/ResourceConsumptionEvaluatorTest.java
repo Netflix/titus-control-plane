@@ -33,8 +33,8 @@ import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
 import com.netflix.titus.master.service.management.ResourceConsumption;
+import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
-import com.netflix.titus.testkit.model.job.JobGeneratorOrchestrator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,11 +60,13 @@ public class ResourceConsumptionEvaluatorTest {
 
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
-    private final JobGeneratorOrchestrator dataGenerator = new JobGeneratorOrchestrator(titusRuntime);
+    private final JobComponentStub jobComponentStub = new JobComponentStub(titusRuntime);
+
+    private final V3JobOperations jobOperations = jobComponentStub.getJobOperations();
 
     @Before
     public void setUp() throws Exception {
-        when(v3JobOperations.getJobsAndTasks()).then(invocation -> dataGenerator.getJobsAndTasks());
+        when(v3JobOperations.getJobsAndTasks()).then(invocation -> jobOperations.getJobsAndTasks());
     }
 
     @Test
@@ -132,13 +134,13 @@ public class ResourceConsumptionEvaluatorTest {
     }
 
     private Job newJob(String name, Function<JobDescriptor, JobDescriptor> transformer) {
-        dataGenerator.addJobTemplate(name, JobDescriptorGenerator.serviceJobDescriptors()
+        jobComponentStub.addJobTemplate(name, JobDescriptorGenerator.serviceJobDescriptors()
                 .map(jd -> jd.but(self -> self.getContainer().but(c -> CONTAINER_RESOURCES)))
                 .map(transformer::apply)
         );
-        return dataGenerator.createJobAndTasks(
+        return jobComponentStub.createJobAndTasks(
                 name,
-                (job, tasks) -> dataGenerator.moveTaskToState(tasks.get(0), TaskState.Started)
+                (job, tasks) -> jobComponentStub.moveTaskToState(tasks.get(0), TaskState.Started)
         );
     }
 }

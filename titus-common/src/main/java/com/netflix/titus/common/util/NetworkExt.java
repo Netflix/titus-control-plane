@@ -16,9 +16,11 @@
 
 package com.netflix.titus.common.util;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.ServerSocket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -49,6 +51,18 @@ public class NetworkExt {
 
     private static final AtomicReference<Optional<String>> resolvedHostNameRef = new AtomicReference<>();
     private static final AtomicReference<Optional<List<String>>> resolvedLocalIPsRef = new AtomicReference<>();
+
+    public static int findUnusedPort() {
+        int port;
+        try {
+            ServerSocket serverSocket = new ServerSocket(0);
+            port = serverSocket.getLocalPort();
+            serverSocket.close();
+        } catch (IOException e) {
+            throw new IllegalStateException("Unused port allocation failure", e);
+        }
+        return port;
+    }
 
     /**
      * Return resolved local host name. The value is cached, so actual resolution happens only during the first call.

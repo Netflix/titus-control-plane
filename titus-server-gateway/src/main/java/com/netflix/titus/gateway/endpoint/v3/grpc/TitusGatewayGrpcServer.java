@@ -26,6 +26,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -63,6 +64,7 @@ public class TitusGatewayGrpcServer {
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
+    private int port;
 
     @Inject
     public TitusGatewayGrpcServer(
@@ -82,10 +84,14 @@ public class TitusGatewayGrpcServer {
         this.config = config;
     }
 
+    public int getPort() {
+        return port;
+    }
+
     @PostConstruct
     public void start() {
         if (!started.getAndSet(true)) {
-            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(config.getPort()));
+            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port));
             serverBuilder.addService(ServerInterceptors.intercept(
                     healthService,
                     createInterceptors(HealthGrpc.getServiceDescriptor())
@@ -110,13 +116,14 @@ public class TitusGatewayGrpcServer {
             }
             this.server = serverBuilder.build();
 
-            LOG.info("Starting gRPC server on port {}.", config.getPort());
+            LOG.info("Starting gRPC server on port {}.", port);
             try {
                 this.server.start();
+                this.port = server.getPort();
             } catch (final IOException e) {
                 throw new RuntimeException(e);
             }
-            LOG.info("Started gRPC server on port {}.", config.getPort());
+            LOG.info("Started gRPC server on port {}.", port);
         }
     }
 
