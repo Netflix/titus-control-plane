@@ -34,6 +34,9 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.util.tuple.Pair;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
+import static com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
+import static com.netflix.titus.api.jobmanager.model.job.TaskState.StartInitiated;
+import static com.netflix.titus.api.jobmanager.model.job.TaskState.Started;
 
 public class V3TaskMigrationDetails implements TaskMigrationDetails {
 
@@ -111,7 +114,12 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
 
     @Override
     public boolean isActive() {
-        return getTask().getStatus().getState() != TaskState.Finished;
+        Optional<Pair<Job<?>, Task>> jobTaskPair = v3JobOperations.findTaskById(taskId);
+        if (jobTaskPair.isPresent()) {
+            TaskState state = jobTaskPair.get().getRight().getStatus().getState();
+            return state == Launched || state == StartInitiated || state == Started;
+        }
+        return false;
     }
 
     @Override
