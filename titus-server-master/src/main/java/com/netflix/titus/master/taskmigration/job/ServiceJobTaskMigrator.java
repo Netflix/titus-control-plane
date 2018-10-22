@@ -185,12 +185,6 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
                         logger.debug("Updating migration manager for jobId: {} with task size: {}", jobId, taskMigrationDetailsList.size());
                         updateMigrationManager(taskMigrationManager, taskMigrationDetailsList);
                     });
-                } catch (JobManagerException e) {
-                    if (e.getErrorCode() == JobManagerException.ErrorCode.JobNotFound || e.getErrorCode() == JobManagerException.ErrorCode.TaskNotFound) {
-                        logger.info("Job/task already terminated. Migration not needed: {}", e.getMessage());
-                    } else {
-                        logger.error("Unable to execute the run iteration with error: ", e);
-                    }
                 } catch (Exception e) {
                     logger.error("Unable to execute the run iteration with error: ", e);
                 } finally {
