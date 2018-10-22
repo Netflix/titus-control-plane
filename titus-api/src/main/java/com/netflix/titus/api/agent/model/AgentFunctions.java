@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.common.util.time.Clock;
 
 /**
  * Collection of functions for agent entity transformations.
@@ -53,12 +54,12 @@ public final class AgentFunctions {
         return ig -> ig.toBuilder().withId(newId).build();
     }
 
-    public static Function<AgentInstanceGroup, AgentInstanceGroup> inState(InstanceGroupLifecycleState state) {
+    public static Function<AgentInstanceGroup, AgentInstanceGroup> inState(InstanceGroupLifecycleState state, String detail, Clock clock) {
         return ig -> ig.toBuilder().withLifecycleStatus(
                 InstanceGroupLifecycleStatus.newBuilder()
                         .withState(state)
-                        .withTimestamp(System.currentTimeMillis())
-                        .withDetail("No reason given")
+                        .withTimestamp(clock.wallTime())
+                        .withDetail(detail)
                         .build()
         ).build();
     }

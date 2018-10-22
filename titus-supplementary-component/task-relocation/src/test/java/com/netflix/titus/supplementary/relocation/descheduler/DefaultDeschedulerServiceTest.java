@@ -31,11 +31,11 @@ import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 
-import static com.netflix.titus.api.agent.model.AgentFunctions.inState;
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobId;
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
+import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
