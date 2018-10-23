@@ -91,6 +91,7 @@ public class TitusGatewayGrpcServer {
     @PostConstruct
     public void start() {
         if (!started.getAndSet(true)) {
+            this.port = config.getPort();
             ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port));
             serverBuilder.addService(ServerInterceptors.intercept(
                     healthService,
