@@ -105,7 +105,8 @@ public class TitusMasterGrpcServer {
     @PostConstruct
     public void start() {
         if (!started.getAndSet(true)) {
-            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(config.getPort()));
+            this.port = config.getPort();
+            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port));
             serverBuilder.addService(ServerInterceptors.intercept(
                     healthService,
                     createInterceptors(HealthGrpc.getServiceDescriptor())

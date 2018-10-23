@@ -81,6 +81,7 @@ public class TitusFederationGrpcServer {
     @PostConstruct
     public void start() {
         if (!started.getAndSet(true)) {
+            this.port = config.getGrpcPort();
             ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port));
             serverBuilder.addService(ServerInterceptors.intercept(
                     healthService,
