@@ -18,9 +18,14 @@ package com.netflix.titus.supplementary.relocation.descheduler;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
@@ -29,10 +34,12 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
-import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.testkit.model.job.JobGenerator;
+import com.netflix.titus.testkit.model.job.JobTestFunctions;
 import org.junit.Test;
 
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
@@ -41,9 +48,10 @@ import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobId;
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
 import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
+import static com.netflix.titus.testkit.model.job.JobTestFunctions.toTaskMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DefaultDeschedulerServiceTest {
+public class TaskMigrationDeschedulerTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
@@ -60,31 +68,57 @@ public class DefaultDeschedulerServiceTest {
             .addJob(jobGenerator.getValue().but(withJobId("job2")));
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
-
-    private final DefaultDeschedulerService deschedulerService = new DefaultDeschedulerService(
-            dataGenerator.getJobOperations(),
-            dataGenerator.getEvictionOperations(),
-            dataGenerator.getAgentOperations(),
-            titusRuntime
-    );
+    private final ReadOnlyAgentOperations agentOperations = dataGenerator.getAgentOperations();
 
     @Test
-    public void testAllExpectedJobMigrationsAreFound() {
+    public void testDelayedMigrations() {
+        Task job1Task0 = jobOperations.getTasks("job1").get(0);
+
+        dataGenerator.place("removable1", job1Task0);
+        dataGenerator.setQuota("job1", 1);
+
+        TaskRelocationPlan job1Task0Plan = TaskRelocationPlan.newBuilder()
+                .withTaskId(job1Task0.getId())
+                .withRelocationTime(Long.MAX_VALUE / 2)
+                .build();
+
+        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    public void testFitness() {
+        List<AgentInstance> removableAgents = agentOperations.getAgentInstances("removable1");
+        String agent1 = removableAgents.get(0).getId();
+        String agent2 = removableAgents.get(1).getId();
         List<Task> tasksOfJob1 = jobOperations.getTasks("job1");
-        dataGenerator.place("active1", tasksOfJob1.get(0), tasksOfJob1.get(1));
-        dataGenerator.place("removable1", tasksOfJob1.get(2), tasksOfJob1.get(3));
-        dataGenerator.setQuota("job1", 2);
+        dataGenerator.placeOnAgent(agent1, tasksOfJob1.get(0), tasksOfJob1.get(1));
+        dataGenerator.placeOnAgent(agent2, tasksOfJob1.get(2));
+        dataGenerator.setQuota("job1", 1);
 
-        List<Task> tasksOfJob2 = jobOperations.getTasks("job2");
-        dataGenerator.place("active1", tasksOfJob2.get(0), tasksOfJob2.get(1));
-        dataGenerator.place("removable1", tasksOfJob2.get(2), tasksOfJob2.get(3));
-        dataGenerator.setQuota("job2", 2);
+        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
+        assertThat(results).isPresent();
+        assertThat(results.get().getLeft().getId()).isEqualTo(agent2);
+    }
 
-        List<DeschedulingResult> results = deschedulerService.deschedule(Collections.emptyMap());
-        assertThat(results).hasSize(4);
-        for (DeschedulingResult result : results) {
-            assertThat(result.getAgentInstance().getInstanceGroupId()).isEqualTo("removable1");
-            assertThat(result.getTaskRelocationPlan().getReason()).isEqualTo(TaskRelocationReason.TaskMigration);
-        }
+    @Test
+    public void testFailures() {
+        Task job1Task0 = jobOperations.getTasks("job1").get(0);
+
+        dataGenerator.place("removable1", job1Task0);
+        dataGenerator.setQuota("job1", 0);
+
+        DeschedulingFailure failure = newDescheduler(Collections.emptyMap()).getDeschedulingFailure(job1Task0);
+        assertThat(failure.getReasonMessage()).contains("job quota");
+    }
+
+    private TaskMigrationDescheduler newDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
+        return new TaskMigrationDescheduler(
+                plannedAheadTaskRelocationPlans,
+                new EvacuatedAgentsAllocationTracker(dataGenerator.getAgentOperations(), toTaskMap(jobOperations.getTasks())),
+                new EvictionQuotaTracker(dataGenerator.getEvictionOperations(), JobTestFunctions.toJobMap(jobOperations.getJobs())),
+                jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> j)),
+                titusRuntime
+        );
     }
 }

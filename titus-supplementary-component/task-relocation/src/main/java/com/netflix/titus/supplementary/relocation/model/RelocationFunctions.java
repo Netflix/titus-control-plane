@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation;
+package com.netflix.titus.supplementary.relocation.model;
 
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
+import java.util.Objects;
 
-@Configuration(prefix = "titus.relocation")
-public interface RelocationConfiguration {
+public final class RelocationFunctions {
 
-    @DefaultValue("" + 5 * 60_000)
-    long getRelocationScheduleIntervalMs();
-
-    @DefaultValue("" + 5 * 60_000)
-    long getRelocationTimeoutMs();
-
-    @DefaultValue("" + 30_000)
-    long getDataStalenessThresholdMs();
+    /**
+     * Compares to plans, except the task relocation time.
+     */
+    public static boolean areEqualExceptRelocationTime(TaskRelocationPlan first, TaskRelocationPlan second) {
+        return Objects.equals(first.getTaskId(), second.getTaskId()) &&
+                Objects.equals(first.getReason(), second.getReason()) &&
+                Objects.equals(first.getReasonMessage(), second.getReasonMessage());
+    }
 }

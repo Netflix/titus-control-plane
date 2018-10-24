@@ -72,6 +72,16 @@ public class TaskRelocationPlan {
         return Objects.hash(taskId, reason, reasonMessage, relocationTime);
     }
 
+    @Override
+    public String toString() {
+        return "TaskRelocationPlan{" +
+                "taskId='" + taskId + '\'' +
+                ", reason=" + reason +
+                ", reasonMessage='" + reasonMessage + '\'' +
+                ", relocationTime=" + relocationTime +
+                '}';
+    }
+
     public Builder toBuilder() {
         return newBuilder().withTaskId(taskId).withReason(reason).withReasonMessage(reasonMessage).withRelocationTime(relocationTime);
     }

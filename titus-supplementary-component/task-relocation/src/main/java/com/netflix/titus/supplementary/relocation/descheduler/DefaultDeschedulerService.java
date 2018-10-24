@@ -17,6 +17,7 @@
 package com.netflix.titus.supplementary.relocation.descheduler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,11 +29,13 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
@@ -74,10 +77,10 @@ public class DefaultDeschedulerService implements DeschedulerService {
         EvictionQuotaTracker evictionQuotaTracker = new EvictionQuotaTracker(evictionOperations, jobs);
 
         TaskMigrationDescheduler taskMigrationDescheduler = new TaskMigrationDescheduler(
-                plannedAheadTaskRelocationPlans, evacuatedAgentsAllocationTracker, evictionQuotaTracker, titusRuntime
+                plannedAheadTaskRelocationPlans, evacuatedAgentsAllocationTracker, evictionQuotaTracker, jobs, titusRuntime
         );
 
-        List<DeschedulingResult> result = new ArrayList<>();
+        Map<String, DeschedulingResult> result = new HashMap<>();
 
         Optional<Pair<AgentInstance, List<Task>>> bestMatch;
         while ((bestMatch = taskMigrationDescheduler.nextBestMatch()).isPresent()) {
@@ -88,16 +91,56 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 if (relocationPlan == null) {
                     relocationPlan = newImmediateRelocationPlan(task);
                 }
-                result.add(DeschedulingResult.newBuilder()
-                        .withTask(task)
-                        .withAgentInstance(agent)
-                        .withTaskRelocationPlan(relocationPlan)
-                        .build()
+                result.put(
+                        task.getId(),
+                        DeschedulingResult.newBuilder()
+                                .withTask(task)
+                                .withAgentInstance(agent)
+                                .withTaskRelocationPlan(relocationPlan)
+                                .build()
                 );
             });
         }
 
-        return result;
+        // Find eviction which could not be scheduled now.
+        for (Task task : tasksById.values()) {
+            if (result.containsKey(task.getId())) {
+                continue;
+            }
+            if (evacuatedAgentsAllocationTracker.isEvacuated(task)) {
+
+                TaskRelocationPlan relocationPlan;
+                DeschedulingFailure failure;
+
+                if (isMangedByTaskRelocationService(task)) {
+                    failure = taskMigrationDescheduler.getDeschedulingFailure(task);
+                    relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
+                    if (relocationPlan == null) {
+                        relocationPlan = newImmediateRelocationPlan(task);
+                    }
+                } else {
+                    failure = null;
+                    relocationPlan = newImmediateRelocationPlan(task);
+                }
+
+                AgentInstance agent = evacuatedAgentsAllocationTracker.getAgent(task);
+                result.put(
+                        task.getId(),
+                        DeschedulingResult.newBuilder()
+                                .withTask(task)
+                                .withAgentInstance(agent)
+                                .withTaskRelocationPlan(relocationPlan)
+                                .withFailure(failure)
+                                .build()
+                );
+            }
+        }
+
+        return new ArrayList<>(result.values());
+    }
+
+    private boolean isMangedByTaskRelocationService(Task task) {
+        return jobOperations.getJob(task.getJobId()).map(JobFunctions::hasDisruptionBudget).orElse(false);
     }
 
     private TaskRelocationPlan newImmediateRelocationPlan(Task task) {

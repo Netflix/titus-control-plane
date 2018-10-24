@@ -20,8 +20,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.google.common.base.Stopwatch;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
 import org.slf4j.Logger;
@@ -36,14 +38,31 @@ public class TaskEvictionResultStoreStep {
 
     private static final Duration STORE_UPDATE_TIMEOUT = Duration.ofSeconds(30);
 
-    private final TaskRelocationArchiveStore store;
+    private static final String STEP_NAME = "taskEvictionResultStoreStep";
 
-    public TaskEvictionResultStoreStep(TaskRelocationArchiveStore store) {
+    private final TaskRelocationArchiveStore store;
+    private final RelocationTransactionLogger transactionLog;
+    private final StepMetrics metrics;
+
+    public TaskEvictionResultStoreStep(TaskRelocationArchiveStore store, RelocationTransactionLogger transactionLog, TitusRuntime titusRuntime) {
         this.store = store;
+        this.transactionLog = transactionLog;
+        this.metrics = new StepMetrics(STEP_NAME, titusRuntime);
     }
 
-    public void storeTaskEvictionResults(Map<String, TaskRelocationPlan> taskEvictionPlans,
-                                         Map<String, TaskRelocationStatus> taskEvictionResults) {
+    public void storeTaskEvictionResults(Map<String, TaskRelocationStatus> taskEvictionResults) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        try {
+            int updates = execute(taskEvictionResults);
+            metrics.onSuccess(updates, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        } catch (Exception e) {
+            logger.error("Step processing error", e);
+            metrics.onError(stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            throw e;
+        }
+    }
+
+    private int execute(Map<String, TaskRelocationStatus> taskEvictionResults) {
         Map<String, Optional<Throwable>> result;
         try {
             result = store.createTaskRelocationStatuses(new ArrayList<>(taskEvictionResults.values()))
@@ -51,15 +70,18 @@ public class TaskEvictionResultStoreStep {
                     .block();
         } catch (Exception e) {
             logger.warn("Could not remove task relocation plans from the database: {}", taskEvictionResults.keySet(), e);
-            return;
+            taskEvictionResults.forEach((taskId, status) -> transactionLog.logTaskRelocationStatusStoreFailure(STEP_NAME, status, e));
+            return 0;
         }
 
         result.forEach((taskId, errorOpt) -> {
             if (errorOpt.isPresent()) {
-                logger.warn("Failed to store the task relocation result in the archive store: taskId={}, error={}", taskId, errorOpt.get().getMessage());
+                transactionLog.logTaskRelocationStatusStoreFailure(STEP_NAME, taskEvictionResults.get(taskId), errorOpt.get());
             } else {
-                logger.info("Stored the task relocation plan in the archive store: taskId={}", taskId);
+                transactionLog.logTaskRelocationStatus(STEP_NAME, "storeUpdate", taskEvictionResults.get(taskId));
             }
         });
+
+        return result.size();
     }
 }

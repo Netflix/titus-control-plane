@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.descheduler;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,20 +35,25 @@ import static com.netflix.titus.common.util.CollectionsExt.transformValues;
 
 class EvacuatedAgentsAllocationTracker {
 
-    private final Map<String, AgentInstance> instancesById;
-    private final Map<String, Pair<AgentInstance, List<Task>>> instancesAndTasksById;
+    private final Map<String, AgentInstance> removableAgentsById;
+    private final Map<String, Pair<AgentInstance, List<Task>>> removableAgentsAndTasksByAgentId;
     private final Set<String> descheduledTasks = new HashSet<>();
+    private final Map<String, AgentInstance> removableAgentsByTaskId = new HashMap<>();
 
     EvacuatedAgentsAllocationTracker(ReadOnlyAgentOperations agentOperations, Map<String, Task> tasksById) {
-        this.instancesById = agentOperations.getInstanceGroups().stream()
+        this.removableAgentsById = agentOperations.getInstanceGroups().stream()
                 .filter(RelocationUtil::isRemovable)
                 .flatMap(ig -> agentOperations.getAgentInstances(ig.getId()).stream())
                 .collect(Collectors.toMap(AgentInstance::getId, i -> i));
-        this.instancesAndTasksById = transformValues(instancesById, i -> Pair.of(i, RelocationUtil.findTasksOnInstance(i, tasksById.values())));
+        this.removableAgentsAndTasksByAgentId = transformValues(removableAgentsById, i -> Pair.of(i, RelocationUtil.findTasksOnInstance(i, tasksById.values())));
+
+        for (Pair<AgentInstance, List<Task>> agentTasksPair : removableAgentsAndTasksByAgentId.values()) {
+            agentTasksPair.getRight().forEach(task -> removableAgentsByTaskId.put(task.getId(), agentTasksPair.getLeft()));
+        }
     }
 
-    Map<String, AgentInstance> getInstances() {
-        return instancesById;
+    Map<String, AgentInstance> getRemovableAgentsById() {
+        return removableAgentsById;
     }
 
     void descheduled(Task task) {
@@ -56,9 +62,17 @@ class EvacuatedAgentsAllocationTracker {
 
     List<Task> getTasksOnAgent(String instanceId) {
         Pair<AgentInstance, List<Task>> pair = Preconditions.checkNotNull(
-                instancesAndTasksById.get(instanceId),
+                removableAgentsAndTasksByAgentId.get(instanceId),
                 "Agent instance not found: instanceId=%s", instanceId
         );
         return copyAndRemove(pair.getRight(), t -> descheduledTasks.contains(t.getId()));
+    }
+
+    boolean isEvacuated(Task task) {
+        return removableAgentsByTaskId.containsKey(task.getId());
+    }
+
+    AgentInstance getAgent(Task task) {
+        return removableAgentsByTaskId.get(task.getId());
     }
 }

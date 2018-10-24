@@ -18,11 +18,14 @@ package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
 public class UnlimitedDisruptionBudgetRate extends DisruptionBudgetRate {
 
+    private static final Builder BUILDER = new Builder();
+    private static final UnlimitedDisruptionBudgetRate INSTANCE = new UnlimitedDisruptionBudgetRate();
+
     public UnlimitedDisruptionBudgetRate() {
     }
 
     public static Builder newBuilder() {
-        return new Builder();
+        return BUILDER;
     }
 
     @Override
@@ -36,7 +39,7 @@ public class UnlimitedDisruptionBudgetRate extends DisruptionBudgetRate {
         }
 
         public UnlimitedDisruptionBudgetRate build() {
-            return new UnlimitedDisruptionBudgetRate();
+            return INSTANCE;
         }
     }
 }

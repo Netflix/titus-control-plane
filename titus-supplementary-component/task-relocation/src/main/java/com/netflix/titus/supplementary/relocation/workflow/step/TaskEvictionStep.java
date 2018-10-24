@@ -20,10 +20,13 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.DateTimeExt;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
@@ -46,17 +49,40 @@ public class TaskEvictionStep {
 
     private static final Duration EVICTION_TIMEOUT = Duration.ofSeconds(5);
 
+    private static final String STEP_NAME = "taskEvictionStep";
+
     private final EvictionServiceClient evictionServiceClient;
     private final CodeInvariants invariants;
+    private final RelocationTransactionLogger transactionLog;
     private final Scheduler scheduler;
+    private final StepMetrics metrics;
 
-    public TaskEvictionStep(EvictionServiceClient evictionServiceClient, TitusRuntime titusRuntime, Scheduler scheduler) {
+    public TaskEvictionStep(EvictionServiceClient evictionServiceClient,
+                            TitusRuntime titusRuntime,
+                            RelocationTransactionLogger transactionLog,
+                            Scheduler scheduler) {
         this.evictionServiceClient = evictionServiceClient;
+        this.transactionLog = transactionLog;
         this.scheduler = scheduler;
         this.invariants = titusRuntime.getCodeInvariants();
+        this.metrics = new StepMetrics(STEP_NAME, titusRuntime);
     }
 
     public Map<String, TaskRelocationStatus> evict(Map<String, TaskRelocationPlan> taskToEvict) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        try {
+            Map<String, TaskRelocationStatus> result = execute(taskToEvict);
+            metrics.onSuccess(result.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            logger.debug("Eviction result: {}", result);
+            return result;
+        } catch (Exception e) {
+            logger.error("Step processing error", e);
+            metrics.onError(stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            throw e;
+        }
+    }
+
+    private Map<String, TaskRelocationStatus> execute(Map<String, TaskRelocationPlan> taskToEvict) {
         Map<String, Mono<Void>> actions = taskToEvict.values().stream()
                 .collect(Collectors.toMap(
                         TaskRelocationPlan::getTaskId,
@@ -75,7 +101,8 @@ public class TaskEvictionStep {
             return taskToEvict.values().stream()
                     .map(p -> TaskRelocationStatus.newBuilder()
                             .withState(TaskRelocationState.Failure)
-                            .withReasonCode("storeError")
+                            .withReasonCode(TaskRelocationStatus.REASON_SYSTEM_ERROR)
+                            .withReasonMessage("Unexpected error: " + ExceptionExt.toMessageChain(e))
                             .build()
                     )
                     .collect(Collectors.toMap(TaskRelocationStatus::getTaskId, s -> s));
@@ -89,25 +116,35 @@ public class TaskEvictionStep {
             if (evictionResult != null) {
                 if (!evictionResult.isPresent()) {
                     status = TaskRelocationStatus.newBuilder()
+                            .withTaskId(taskId)
                             .withState(TaskRelocationState.Success)
-                            .withReasonCode("terminated")
+                            .withReasonCode(TaskRelocationStatus.REASON_CODE_TERMINATED)
+                            .withReasonMessage("Task terminated successfully")
+                            .withTaskRelocationPlan(plan)
                             .build();
                 } else {
                     status = TaskRelocationStatus.newBuilder()
+                            .withTaskId(taskId)
                             .withState(TaskRelocationState.Failure)
-                            .withReasonCode(evictionResult.get().getMessage())
+                            .withReasonCode(TaskRelocationStatus.REASON_EVICTION_ERROR)
+                            .withReasonMessage(evictionResult.get().getMessage())
+                            .withTaskRelocationPlan(plan)
                             .build();
                 }
             } else {
                 // This should never happen
                 invariants.inconsistent("Eviction result missing: taskId=%s", plan.getTaskId());
                 status = TaskRelocationStatus.newBuilder()
+                        .withTaskId(taskId)
                         .withState(TaskRelocationState.Failure)
-                        .withReasonCode("unknownEvictionStatus")
+                        .withReasonCode(TaskRelocationStatus.REASON_SYSTEM_ERROR)
+                        .withReasonMessage("Eviction result missing")
+                        .withTaskRelocationPlan(plan)
                         .build();
             }
             results.put(taskId, status);
 
+            transactionLog.logTaskRelocationStatus(STEP_NAME, "eviction", status);
         });
 
         return results;

@@ -27,7 +27,6 @@ import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.Reference;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
-import com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -35,6 +34,7 @@ import io.grpc.stub.StreamObserver;
 import rx.Subscription;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
+import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvent;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvictionQuota;
 
 @Singleton
@@ -90,7 +90,7 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
     @Override
     public void observeEvents(ObserverEventRequest request, StreamObserver<EvictionServiceEvent> responseObserver) {
         Subscription subscription = evictionOperations.events(request.getIncludeSnapshot()).subscribe(
-                next -> responseObserver.onNext(GrpcEvictionModelConverters.toGrpcEvent(next)),
+                next -> toGrpcEvent(next).ifPresent(responseObserver::onNext),
                 e -> responseObserver.onError(
                         new StatusRuntimeException(Status.INTERNAL
                                 .withDescription("Eviction event stream terminated with an error")

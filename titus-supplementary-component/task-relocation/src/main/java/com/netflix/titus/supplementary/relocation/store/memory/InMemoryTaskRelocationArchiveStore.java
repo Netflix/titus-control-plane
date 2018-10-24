@@ -17,6 +17,7 @@
 package com.netflix.titus.supplementary.relocation.store.memory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,17 @@ public class InMemoryTaskRelocationArchiveStore implements TaskRelocationArchive
                 );
             }
             return Mono.just(result);
+        });
+    }
+
+    @Override
+    public Mono<List<TaskRelocationStatus>> getTaskRelocationStatusList(String taskId) {
+        return Mono.defer(() -> {
+            List<TaskRelocationStatus> status = taskRelocationStatusesByTaskId.get(taskId);
+            if(status == null) {
+                return Mono.just(Collections.emptyList());
+            }
+            return Mono.just(status);
         });
     }
 }

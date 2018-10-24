@@ -16,20 +16,33 @@
 
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
+import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;
+import static com.netflix.titus.supplementary.relocation.model.RelocationFunctions.areEqualExceptRelocationTime;
 import static com.netflix.titus.supplementary.relocation.util.RelocationUtil.getAgentInstances;
 import static com.netflix.titus.supplementary.relocation.util.RelocationUtil.getRemovableGroups;
 
@@ -38,9 +51,14 @@ import static com.netflix.titus.supplementary.relocation.util.RelocationUtil.get
  */
 public class MustBeRelocatedTaskCollectorStep {
 
+    private static final Logger logger = LoggerFactory.getLogger(MustBeRelocatedTaskCollectorStep.class);
+
     private final ReadOnlyAgentOperations agentOperations;
     private final ReadOnlyJobOperations jobOperations;
+    private final StepMetrics metrics;
     private final Clock clock;
+
+    private Map<String, TaskRelocationPlan> lastResult = Collections.emptyMap();
 
     public MustBeRelocatedTaskCollectorStep(ReadOnlyAgentOperations agentOperations,
                                             ReadOnlyJobOperations jobOperations,
@@ -48,32 +66,72 @@ public class MustBeRelocatedTaskCollectorStep {
         this.agentOperations = agentOperations;
         this.jobOperations = jobOperations;
         this.clock = titusRuntime.getClock();
+        this.metrics = new StepMetrics("mustBeRelocatedTaskCollectorStep", titusRuntime);
     }
 
     public Map<String, TaskRelocationPlan> collectTasksThatMustBeRelocated() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        try {
+            Map<String, TaskRelocationPlan> result = execute();
+            metrics.onSuccess(result.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            logger.debug("Step results: {}", result);
+            return result;
+        } catch (Exception e) {
+            logger.error("Step processing error", e);
+            metrics.onError(stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            throw e;
+        }
+    }
+
+    private Map<String, TaskRelocationPlan> execute() {
         List<Task> tasks = jobOperations.getTasks();
 
-        List<AgentInstance> phasedOutAgents = getAgentInstances(agentOperations, getRemovableGroups(agentOperations));
+        List<AgentInstance> removableAgents = getAgentInstances(agentOperations, getRemovableGroups(agentOperations));
 
-        List<Pair<AgentInstance, Task>> tasksOnPhasedOutAgents = phasedOutAgents.stream()
+        List<Pair<AgentInstance, Task>> tasksOnRemovableAgents = removableAgents.stream()
                 .flatMap(agent -> RelocationUtil.findTasksOnInstance(agent, tasks).stream().map(t -> Pair.of(agent, t)))
                 .collect(Collectors.toList());
 
         long now = clock.wallTime();
 
-        return tasksOnPhasedOutAgents.stream()
-                .map(agentTaskPair -> {
+        Map<String, TaskRelocationPlan> result = new HashMap<>();
+        tasksOnRemovableAgents.forEach(agentTaskPair -> {
+            AgentInstance agent = agentTaskPair.getLeft();
+            Task task = agentTaskPair.getRight();
+            Optional<Job<?>> jobOpt = jobOperations.getJob(task.getJobId());
 
-                    AgentInstance agent = agentTaskPair.getLeft();
-                    Task task = agentTaskPair.getRight();
+            if (jobOpt == null) {
+                logger.info("Found task with no job record. Ignoring it: jobId={}, taskId={}", task.getJobId(), task.getId());
+                return;
+            }
 
-                    return TaskRelocationPlan.newBuilder()
-                            .withTaskId(task.getId())
-                            .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
-                            .withReasonMessage("Agent instance in PhasedOutState: instanceId=" + agent.getId())
-                            .withRelocationTime(now)
-                            .build();
-                })
-                .collect(Collectors.toMap(TaskRelocationPlan::getTaskId, p -> p));
+            Job<?> job = jobOpt.get();
+
+            if (hasDisruptionBudget(job) && isSelfManaged(job)) {
+                SelfManagedDisruptionBudgetPolicy selfManaged = (SelfManagedDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+
+                TaskRelocationPlan relocationPlan = TaskRelocationPlan.newBuilder()
+                        .withTaskId(task.getId())
+                        .withReason(TaskRelocationReason.TaskMigration)
+                        .withReasonMessage("Agent instance scheduled to remove: instanceId=" + agent.getId())
+                        .withRelocationTime(now + selfManaged.getRelocationTimeMs())
+                        .build();
+
+                TaskRelocationPlan previous = lastResult.get(task.getId());
+                boolean keepPrevious = previous != null &&
+                        (areEqualExceptRelocationTime(previous, relocationPlan) || previous.getRelocationTime() < relocationPlan.getRelocationTime());
+
+                result.put(task.getId(), keepPrevious ? previous : relocationPlan);
+            }
+        });
+
+        this.lastResult = result;
+
+        return result;
+    }
+
+    private boolean isSelfManaged(Job<?> job) {
+        DisruptionBudgetPolicy disruptionBudgetPolicy = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+        return disruptionBudgetPolicy instanceof SelfManagedDisruptionBudgetPolicy;
     }
 }

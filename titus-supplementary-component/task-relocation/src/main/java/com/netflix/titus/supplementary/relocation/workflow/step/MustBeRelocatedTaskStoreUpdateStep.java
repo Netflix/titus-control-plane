@@ -17,13 +17,19 @@
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Stopwatch;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.supplementary.relocation.model.RelocationFunctions;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowException;
@@ -39,16 +45,34 @@ public class MustBeRelocatedTaskStoreUpdateStep {
 
     private static final Duration STORE_UPDATE_TIMEOUT = Duration.ofSeconds(30);
 
+    private static final String STEP_NAME = "mustBeRelocatedTaskStoreUpdateStep";
+
     private final TaskRelocationStore store;
+    private final RelocationTransactionLogger transactionLog;
+    private final StepMetrics metrics;
 
     private Map<String, TaskRelocationPlan> relocationsPlanInStore;
 
-    public MustBeRelocatedTaskStoreUpdateStep(TaskRelocationStore store) {
+    public MustBeRelocatedTaskStoreUpdateStep(TaskRelocationStore store, RelocationTransactionLogger transactionLog, TitusRuntime titusRuntime) {
         this.store = store;
-        this.relocationsPlanInStore = loadPlanFromStore();
+        this.transactionLog = transactionLog;
+        this.relocationsPlanInStore = new HashMap<>(loadPlanFromStore());
+        this.metrics = new StepMetrics(STEP_NAME, titusRuntime);
     }
 
     public void persistChangesInStore(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        try {
+            int updates = execute(mustBeRelocatedTasks);
+            metrics.onSuccess(updates, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        } catch (Exception e) {
+            logger.error("Step processing error", e);
+            metrics.onError(stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            throw e;
+        }
+    }
+
+    private int execute(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
         Set<String> toRemove = CollectionsExt.copyAndRemove(relocationsPlanInStore.keySet(), mustBeRelocatedTasks.keySet());
 
         List<TaskRelocationPlan> toUpdate = mustBeRelocatedTasks.values().stream()
@@ -57,21 +81,37 @@ public class MustBeRelocatedTaskStoreUpdateStep {
 
         removeFromStore(toRemove);
         updateInStore(toUpdate);
+
+        logger.debug("Plans removed from store: {}", toRemove);
+        logger.debug("Plans added to store: {}", toUpdate.stream().map(TaskRelocationPlan::getTaskId).collect(Collectors.toList()));
+
+        relocationsPlanInStore.keySet().removeAll(toRemove);
+        toUpdate.forEach(plan -> relocationsPlanInStore.put(plan.getTaskId(), plan));
+
+        return toRemove.size() + toUpdate.size();
     }
 
     private Map<String, TaskRelocationPlan> loadPlanFromStore() {
         try {
-            return store.getAllTaskRelocationPlans().block();
+            Map<String, TaskRelocationPlan> allPlans = store.getAllTaskRelocationPlans().block();
+            allPlans.forEach((taskId, plan) -> transactionLog.logRelocationReadFromStore(STEP_NAME, plan));
+            return allPlans;
         } catch (Exception e) {
             throw RelocationWorkflowException.storeError("Cannot load task relocation plan from store on startup", e);
         }
     }
 
     private boolean areDifferent(TaskRelocationPlan previous, TaskRelocationPlan current) {
-        return previous == null || !previous.equals(current);
+        return previous == null || !RelocationFunctions.areEqualExceptRelocationTime(previous, current);
     }
 
     private void updateInStore(List<TaskRelocationPlan> toUpdate) {
+        if (toUpdate.isEmpty()) {
+            return;
+        }
+
+        Map<String, TaskRelocationPlan> byTaskId = toUpdate.stream().collect(Collectors.toMap(TaskRelocationPlan::getTaskId, p -> p));
+
         Map<String, Optional<Throwable>> result;
         try {
             result = store.createOrUpdateTaskRelocationPlans(toUpdate)
@@ -85,14 +125,18 @@ public class MustBeRelocatedTaskStoreUpdateStep {
 
         result.forEach((taskId, errorOpt) -> {
             if (errorOpt.isPresent()) {
-                logger.warn("Failed to store task relocation plan in store: taskId={}, error={}", taskId, errorOpt.get().getMessage());
+                transactionLog.logRelocationPlanUpdateInStoreError(STEP_NAME, byTaskId.get(taskId), errorOpt.get());
             } else {
-                logger.info("Stored task relocation plan in store: taskId={}", taskId);
+                transactionLog.logRelocationPlanUpdatedInStore(STEP_NAME, byTaskId.get(taskId));
             }
         });
     }
 
     private void removeFromStore(Set<String> toRemove) {
+        if (toRemove.isEmpty()) {
+            return;
+        }
+
         Map<String, Optional<Throwable>> result;
         try {
             result = store.removeTaskRelocationPlans(toRemove)
@@ -105,9 +149,9 @@ public class MustBeRelocatedTaskStoreUpdateStep {
 
         result.forEach((taskId, errorOpt) -> {
             if (errorOpt.isPresent()) {
-                logger.warn("Failed to remove outdated task relocation plan from store: taskId={}, error={}", taskId, errorOpt.get().getMessage());
+                transactionLog.logRelocationPlanRemoveFromStoreError(STEP_NAME, taskId, errorOpt.get());
             } else {
-                logger.info("Removed outdated task relocation plan from store: taskId={}", taskId);
+                transactionLog.logRelocationPlanRemovedFromStore(STEP_NAME, taskId);
             }
         });
     }

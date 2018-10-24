@@ -29,4 +29,9 @@ public interface TaskRelocationArchiveStore {
      * Creates or updates a record in the database.
      */
     Mono<Map<String, Optional<Throwable>>> createTaskRelocationStatuses(List<TaskRelocationStatus> taskRelocationStatuses);
+
+    /**
+     * Returns all archived task relocation statuses, or an empty list if non is found.
+     */
+    Mono<List<TaskRelocationStatus>> getTaskRelocationStatusList(String taskId);
 }

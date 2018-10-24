@@ -17,53 +17,99 @@
 package com.netflix.titus.supplementary.relocation.endpoint.rest;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.Response;
 
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.grpc.protogen.TaskRelocationExecution;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.RelocationGrpcModelConverters;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@Api(tags = "Job Management")
+@Api(tags = "Task relocation")
 @Singleton
 @Path("/api/v3/relocation")
 public class TaskRelocationResource {
 
     private final RelocationWorkflowExecutor relocationWorkflowExecutor;
+    private final TaskRelocationArchiveStore archiveStore;
 
     @Inject
-    public TaskRelocationResource(RelocationWorkflowExecutor relocationWorkflowExecutor) {
+    public TaskRelocationResource(RelocationWorkflowExecutor relocationWorkflowExecutor,
+                                  TaskRelocationArchiveStore archiveStore) {
         this.relocationWorkflowExecutor = relocationWorkflowExecutor;
+        this.archiveStore = archiveStore;
     }
 
     @GET
     @Path("/plans")
     @ApiOperation("Get all active relocation plans")
-    public TaskRelocationPlans getCurrentTaskRelocationPlans(@Context UriInfo info) {
+    public TaskRelocationPlans getCurrentTaskRelocationPlans() {
         List<TaskRelocationPlan> corePlans = new ArrayList<>(relocationWorkflowExecutor.getPlannedRelocations().values());
         return RelocationGrpcModelConverters.toGrpcTaskRelocationPlans(corePlans);
     }
 
     @GET
+    @Path("/plans/{taskId}")
+    @ApiOperation("Get all active relocation plans")
+    public com.netflix.titus.grpc.protogen.TaskRelocationPlan getTaskRelocationPlan(@PathParam("taskId") String taskId) {
+        TaskRelocationPlan plan = relocationWorkflowExecutor.getPlannedRelocations().get(taskId);
+        if (plan != null) {
+            return RelocationGrpcModelConverters.toGrpcTaskRelocationPlan(plan);
+        }
+        throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).build());
+    }
+
+    @GET
     @Path("/executions")
     @ApiOperation("Get task relocation execution results")
-    public TaskRelocationExecutions getTaskRelocationResult(@Context UriInfo info) {
+    public TaskRelocationExecutions getTaskRelocationResults() {
         List<TaskRelocationStatus> coreResults = new ArrayList<>(relocationWorkflowExecutor.getLastEvictionResults().values());
         return RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions(coreResults);
+    }
+
+    @GET
+    @Path("/executions/{taskId}")
+    @ApiOperation("Get task relocation execution results")
+    public TaskRelocationExecution getTaskRelocationResult(@PathParam("taskId") String taskId) {
+        TaskRelocationStatus latest = relocationWorkflowExecutor.getLastEvictionResults().get(taskId);
+        List<TaskRelocationStatus> archived = archiveStore.getTaskRelocationStatusList(taskId).block();
+
+        if (latest == null && archived.isEmpty()) {
+            throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).build());
+        }
+
+        List<TaskRelocationStatus> combined;
+        if (latest == null) {
+            combined = archived;
+        } else if (archived.isEmpty()) {
+            combined = Collections.singletonList(latest);
+        } else {
+            if (CollectionsExt.last(archived).equals(latest)) {
+                combined = archived;
+            } else {
+                combined = CollectionsExt.copyAndAdd(archived, latest);
+            }
+        }
+
+        return RelocationGrpcModelConverters.toGrpcTaskRelocationExecution(combined);
     }
 }
