@@ -94,7 +94,6 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
         registerScalableTargetRequest.setMinCapacity(minCapacity);
         registerScalableTargetRequest.setMaxCapacity(maxCapacity);
         registerScalableTargetRequest.setResourceId(buildAPIGatewayResource(jobId));
-        registerScalableTargetRequest.setRoleARN(buildRoleARN());
         registerScalableTargetRequest.setServiceNamespace(SERVICE_NAMESPACE);
         registerScalableTargetRequest.setScalableDimension(SCALABLE_DIMENSION);
         logger.info("RegisterScalableTargetRequest {}", registerScalableTargetRequest);
@@ -318,10 +317,6 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
 
                     }
                 }), Emitter.BackpressureMode.NONE)).toCompletable();
-    }
-
-    private String buildRoleARN() {
-        return String.format("arn:aws:iam::%s:role/%s", awsAppScalingConfig.getAccountId(), awsAppScalingConfig.getAWSAPIGatewayRole());
     }
 
     private String buildAPIGatewayResource(String jobId) {
