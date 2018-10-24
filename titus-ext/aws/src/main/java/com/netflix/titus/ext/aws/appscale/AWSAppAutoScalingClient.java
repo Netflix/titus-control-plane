@@ -45,7 +45,6 @@ import com.amazonaws.services.applicationautoscaling.model.StepScalingPolicyConf
 import com.amazonaws.services.applicationautoscaling.model.TargetTrackingScalingPolicyConfiguration;
 import com.amazonaws.services.applicationautoscaling.model.ValidationException;
 import com.google.common.annotations.VisibleForTesting;
-import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.PolicyConfiguration;
@@ -63,34 +62,14 @@ import rx.Observable;
 
 @Singleton
 public class AWSAppAutoScalingClient implements AppAutoScalingClient {
-    private static Logger log = LoggerFactory.getLogger(AWSAppAutoScalingClient.class);
+    private static Logger logger = LoggerFactory.getLogger(AWSAppAutoScalingClient.class);
     private static final String SERVICE_NAMESPACE = "custom-resource";
     // AWS requires this field be set to this specific value for all application-autoscaling calls.
     private static final String SCALABLE_DIMENSION = "custom-resource:ResourceType:Property";
 
     private final AWSApplicationAutoScalingAsync awsAppAutoScalingClientAsync;
-    private final Counter createTargetCounter;
-    private final Counter createPolicyCounter;
-    private final Counter deleteTargetCounter;
-    private final Counter deletePolicyCounter;
-    private final Counter createTargetErrorCounter;
-    private final Counter createPolicyErrorCounter;
-    private final Counter deleteTargetErrorCounter;
-    private final Counter deletePolicyErrorCounter;
-    private final Counter getPolicyErrorCounter;
     private final AWSAppScalingConfig awsAppScalingConfig;
-
-
-    private static final String METRIC_APP_SCALE_GET_POLICY_ERROR = "titus.appscale.getPolicy.error";
-    private static final String METRIC_APP_SCALE_CREATE_TARGET = "titus.appscale.create.target";
-    private static final String METRIC_APP_SCALE_CREATE_POLICY = "titus.appscale.create.policy";
-    private static final String METRIC_APP_SCALE_DELETE_TARGET = "titus.appscale.delete.target";
-    private static final String METRIC_APP_SCALE_DELETE_POLICY = "titus.appscale.delete.policy";
-    private static final String METRIC_APP_SCALE_CREATE_TARGET_ERROR = "titus.appscale.create.target.error";
-    private static final String METRIC_APP_SCALE_CREATE_POLICY_ERROR = "titus.appscale.create.policy.error";
-    private static final String METRIC_APP_SCALE_DELETE_TARGET_ERROR = "titus.appscale.delete.target.error";
-    private static final String METRIC_APP_SCALE_DELETE_POLICY_ERROR = "titus.appscale.delete.policy.error";
-
+    private final AWSAppAutoScalingMetrics awsAppAutoScalingMetrics;
 
     @Inject
     public AWSAppAutoScalingClient(AWSCredentialsProvider awsCredentialsProvider,
@@ -106,16 +85,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
     AWSAppAutoScalingClient(AWSApplicationAutoScalingAsync awsAppAutoScalingClientAsync, AWSAppScalingConfig awsAppScalingConfig, Registry registry) {
         this.awsAppAutoScalingClientAsync = awsAppAutoScalingClientAsync;
         this.awsAppScalingConfig = awsAppScalingConfig;
-
-        createTargetCounter = registry.counter(METRIC_APP_SCALE_CREATE_TARGET);
-        createPolicyCounter = registry.counter(METRIC_APP_SCALE_CREATE_POLICY);
-        deleteTargetCounter = registry.counter(METRIC_APP_SCALE_DELETE_TARGET);
-        deletePolicyCounter = registry.counter(METRIC_APP_SCALE_DELETE_POLICY);
-        createTargetErrorCounter = registry.counter(METRIC_APP_SCALE_CREATE_TARGET_ERROR);
-        createPolicyErrorCounter = registry.counter(METRIC_APP_SCALE_CREATE_POLICY_ERROR);
-        deleteTargetErrorCounter = registry.counter(METRIC_APP_SCALE_DELETE_TARGET_ERROR);
-        deletePolicyErrorCounter = registry.counter(METRIC_APP_SCALE_DELETE_POLICY_ERROR);
-        getPolicyErrorCounter = registry.counter(METRIC_APP_SCALE_GET_POLICY_ERROR);
+        this.awsAppAutoScalingMetrics = new AWSAppAutoScalingMetrics(registry);
     }
 
     @Override
@@ -127,22 +97,22 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
         registerScalableTargetRequest.setRoleARN(buildRoleARN());
         registerScalableTargetRequest.setServiceNamespace(SERVICE_NAMESPACE);
         registerScalableTargetRequest.setScalableDimension(SCALABLE_DIMENSION);
-        log.info("RegisterScalableTargetRequest {}", registerScalableTargetRequest);
+        logger.info("RegisterScalableTargetRequest {}", registerScalableTargetRequest);
 
         return RetryWrapper.wrapWithExponentialRetry(String.format("createScalableTarget for job %s", jobId),
                 Observable.create(emitter -> awsAppAutoScalingClientAsync.registerScalableTargetAsync(registerScalableTargetRequest, new AsyncHandler<RegisterScalableTargetRequest, RegisterScalableTargetResult>() {
                     @Override
                     public void onError(Exception exception) {
-                        log.error("RegisterScalableTarget exception {}", exception.getMessage());
-                        createTargetErrorCounter.increment();
+                        logger.error("Register scalable target exception for {} - {}", jobId, exception.getMessage());
+                        awsAppAutoScalingMetrics.registerAwsCreateTargetError(exception);
                         emitter.onError(exception);
                     }
 
                     @Override
                     public void onSuccess(RegisterScalableTargetRequest request, RegisterScalableTargetResult registerScalableTargetResult) {
                         int httpStatusCode = registerScalableTargetResult.getSdkHttpMetadata().getHttpStatusCode();
-                        log.info("Registered scalable target for {} - status {}", jobId, httpStatusCode);
-                        createTargetCounter.increment();
+                        logger.info("Registered scalable target for success {} - status {}", jobId, httpStatusCode);
+                        awsAppAutoScalingMetrics.registerAwsCreateTargetSuccess();
                         emitter.onCompleted();
                     }
                 }), Emitter.BackpressureMode.NONE)).toCompletable();
@@ -160,12 +130,14 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                         new AsyncHandler<DescribeScalableTargetsRequest, DescribeScalableTargetsResult>() {
                             @Override
                             public void onError(Exception exception) {
-                                getPolicyErrorCounter.increment();
+                                logger.error("Get scalable target exception for {} - {}", jobId, exception.getMessage());
+                                awsAppAutoScalingMetrics.registerAwsGetTargetError(exception);
                                 emitter.onError(exception);
                             }
 
                             @Override
                             public void onSuccess(DescribeScalableTargetsRequest request, DescribeScalableTargetsResult describeScalableTargetsResult) {
+                                awsAppAutoScalingMetrics.registerAwsGetTargetSuccess();
                                 List<ScalableTarget> scalableTargets = describeScalableTargetsResult.getScalableTargets();
                                 scalableTargets.stream()
                                         .map(scalableTarget -> toAutoScalableTarget(scalableTarget))
@@ -264,8 +236,8 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                 Observable.create(emitter -> awsAppAutoScalingClientAsync.putScalingPolicyAsync(putScalingPolicyRequest, new AsyncHandler<PutScalingPolicyRequest, PutScalingPolicyResult>() {
                     @Override
                     public void onError(Exception exception) {
-                        createPolicyErrorCounter.increment();
-                        log.error("Exception creating scaling policy ", exception);
+                        logger.error("Exception creating scaling policy ", exception);
+                        awsAppAutoScalingMetrics.registerAwsCreatePolicyError(exception);
                         if (exception instanceof ValidationException) {
                             emitter.onError(AutoScalePolicyException.invalidScalingPolicy(policyRefId, exception.getMessage()));
                         } else {
@@ -275,9 +247,9 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
 
                     @Override
                     public void onSuccess(PutScalingPolicyRequest request, PutScalingPolicyResult putScalingPolicyResult) {
-                        createPolicyCounter.increment();
                         String policyARN = putScalingPolicyResult.getPolicyARN();
-                        log.info("New Scaling policy {} created {} for Job {}", request, policyARN, jobId);
+                        logger.info("New Scaling policy {} created {} for Job {}", request, policyARN, jobId);
+                        awsAppAutoScalingMetrics.registerAwsCreatePolicySuccess();
                         emitter.onNext(policyARN);
                         emitter.onCompleted();
                     }
@@ -296,19 +268,20 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                     @Override
                     public void onError(Exception exception) {
                         if (exception instanceof ObjectNotFoundException) {
-                            log.info("Scalable target does not exist anymore for job {}", jobId);
+                            logger.info("Scalable target does not exist anymore for job {}", jobId);
                             emitter.onCompleted();
                         } else {
-                            deleteTargetErrorCounter.increment();
+                            logger.error("Deregister scalable target exception {} - {}", jobId, exception.getMessage());
+                            awsAppAutoScalingMetrics.registerAwsDeleteTargetError(exception);
                             emitter.onError(exception);
                         }
                     }
 
                     @Override
                     public void onSuccess(DeregisterScalableTargetRequest request, DeregisterScalableTargetResult deregisterScalableTargetResult) {
-                        deleteTargetCounter.increment();
                         int httpStatusCode = deregisterScalableTargetResult.getSdkHttpMetadata().getHttpStatusCode();
-                        log.info("De-registered scalable target for {}, status {}", jobId, httpStatusCode);
+                        logger.info("De-registered scalable target for {}, status {}", jobId, httpStatusCode);
+                        awsAppAutoScalingMetrics.registerAwsDeleteTargetSuccess();
                         emitter.onCompleted();
                     }
                 }), Emitter.BackpressureMode.NONE)).toCompletable();
@@ -327,19 +300,20 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                     @Override
                     public void onError(Exception exception) {
                         if (exception instanceof ObjectNotFoundException) {
-                            log.info("Scaling policy does not exist anymore for job/policyRefId {}/{}", jobId, policyRefId);
+                            logger.info("Scaling policy does not exist anymore for job/policyRefId {}/{}", jobId, policyRefId);
                             emitter.onCompleted();
                         } else {
-                            deletePolicyErrorCounter.increment();
+                            logger.error("Delete scaling policy exception {} - {}", jobId, exception.getMessage());
+                            awsAppAutoScalingMetrics.registerAwsDeletePolicyError(exception);
                             emitter.onError(AutoScalePolicyException.errorDeletingPolicy(policyRefId, exception.getMessage()));
                         }
                     }
 
                     @Override
                     public void onSuccess(DeleteScalingPolicyRequest request, DeleteScalingPolicyResult deleteScalingPolicyResult) {
-                        deletePolicyCounter.increment();
                         int httpStatusCode = deleteScalingPolicyResult.getSdkHttpMetadata().getHttpStatusCode();
-                        log.info("Deleted scaling policy for job/policyRefId {}/{}, status - {}", jobId, policyRefId, httpStatusCode);
+                        logger.info("Deleted scaling policy for job/policyRefId {}/{}, status - {}", jobId, policyRefId, httpStatusCode);
+                        awsAppAutoScalingMetrics.registerAwsDeletePolicySuccess();
                         emitter.onCompleted();
 
                     }
