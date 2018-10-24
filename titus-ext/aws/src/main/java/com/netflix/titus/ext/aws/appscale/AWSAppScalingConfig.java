@@ -26,14 +26,7 @@ public interface AWSAppScalingConfig {
     @PropertyName(name = "netflix.stack")
     String getStack();
 
-    @PropertyName(name = "netflix.accountId")
-    String getAccountId();
-
     @PropertyName(name = "aws.gateway.api.prefix")
     String getAWSGatewayEndpointPrefix();
-
-    // TODO(Andrew L): Remove this or change the value
-    @PropertyName(name = "aws.gateway.api.role")
-    String getAWSAPIGatewayRole();
 }
 
