@@ -40,24 +40,26 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
-import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.TokenBucketPolicies;
 import com.netflix.titus.api.model.TokenBucketPolicy;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
-import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
-import rx.subjects.Subject;
 
 @Singleton
 public class DefaultEvictionOperations implements EvictionOperations {
@@ -122,8 +124,8 @@ public class DefaultEvictionOperations implements EvictionOperations {
 
     private final Object quotaLock = new Object();
 
-    private final Subject<EvictionEvent, EvictionEvent> eventSubject = new SerializedSubject<>(PublishSubject.create());
-    private final Observable<EvictionEvent> eventObservable = ObservableExt.protectFromMissingExceptionHandlers(eventSubject, logger);
+    private final FluxProcessor<EvictionEvent, EvictionEvent> eventSubject = EmitterProcessor.create();
+    private final Flux<EvictionEvent> eventObservable = ReactorExt.protectFromMissingExceptionHandlers(eventSubject, logger);
 
     private final ConcurrentMap<Reference, Long> latestQuotaUpdates = new ConcurrentHashMap<>();
     private Subscription eventEmitterSubscription;
@@ -176,8 +178,8 @@ public class DefaultEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public Completable terminateTask(String taskId, String reason) {
-        return Observable
+    public Mono<Void> terminateTask(String taskId, String reason) {
+        return Mono
                 .fromCallable(() -> {
                     EvictionContext context = resolveContext(taskId);
                     try {
@@ -188,17 +190,21 @@ public class DefaultEvictionOperations implements EvictionOperations {
                     }
                     return context;
                 })
-                .flatMap(context -> jobOperations
-                        .killTask(context.getTask().getId(), false, reason)
-                        .doOnCompleted(() -> eventSubject.onNext(EvictionEvent.newTaskTerminationEvent(context.getTask().getId(), true)))
-                )
-                .toCompletable();
+                .flatMap(context -> {
+                            Completable jobKillAction = jobOperations
+                                    .killTask(context.getTask().getId(), false, reason)
+                                    .doOnCompleted(() -> eventSubject.onNext(EvictionEvent.newTaskTerminationEvent(context.getTask().getId(), true)))
+                                    .toCompletable();
+
+                            return ReactorExt.toMono(jobKillAction);
+                        }
+                );
     }
 
     @Override
-    public Observable<EvictionEvent> events(boolean includeSnapshot) {
+    public Flux<EvictionEvent> events(boolean includeSnapshot) {
         return includeSnapshot
-                ? eventObservable.compose(ObservableExt.head(this::buildSnapshot))
+                ? eventObservable.compose(ReactorExt.head(this::buildSnapshot))
                 : eventObservable;
     }
 

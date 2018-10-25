@@ -29,8 +29,8 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.tuple.Pair;
-import rx.Completable;
-import rx.Observable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 class StubbedEvictionOperations implements EvictionOperations {
 
@@ -48,8 +48,8 @@ class StubbedEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public Completable terminateTask(String taskId, String reason) {
-        return deferCompletable(() -> {
+    public Mono<Void> terminateTask(String taskId, String reason) {
+        return deferMono(() -> {
             Pair<Job<?>, Task> jobTaskPair = jobOperations.findTaskById(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
             Job<?> job = jobTaskPair.getLeft();
 
@@ -89,14 +89,14 @@ class StubbedEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public Observable<EvictionEvent> events(boolean includeSnapshot) {
-        return Observable.error(new RuntimeException("Not implemented yet"));
+    public Flux<EvictionEvent> events(boolean includeSnapshot) {
+        return Flux.error(new RuntimeException("Not implemented yet"));
     }
 
-    private Completable deferCompletable(Runnable action) {
-        return Completable.defer(() -> {
+    private Mono<Void> deferMono(Runnable action) {
+        return Mono.defer(() -> {
             action.run();
-            return Completable.complete();
+            return Mono.empty();
         });
     }
 }

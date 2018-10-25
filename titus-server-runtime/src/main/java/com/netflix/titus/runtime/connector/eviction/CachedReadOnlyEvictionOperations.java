@@ -25,7 +25,7 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.model.Tier;
-import rx.Observable;
+import reactor.core.publisher.Flux;
 
 @Singleton
 public class CachedReadOnlyEvictionOperations implements ReadOnlyEvictionOperations {
@@ -60,7 +60,7 @@ public class CachedReadOnlyEvictionOperations implements ReadOnlyEvictionOperati
     }
 
     @Override
-    public Observable<EvictionEvent> events(boolean includeSnapshot) {
+    public Flux<EvictionEvent> events(boolean includeSnapshot) {
         throw new IllegalStateException("method not implemented yet");
     }
 }

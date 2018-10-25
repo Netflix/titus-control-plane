@@ -49,6 +49,8 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServi
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
+import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
+import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import okhttp3.Interceptor;
@@ -67,6 +69,8 @@ public class TitusMasterConnectorModule extends AbstractModule {
         bind(LeaderResolver.class).to(ConfigurationLeaderResolver.class);
         bind(LoadBalancerResourceValidator.class).to(DefaultLoadBalancerResourceValidator.class);
         bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
+
+        bind(ReactorGrpcClientAdapterFactory.class).to(DefaultReactorGrpcClientAdapterFactory.class);
     }
 
     @Provides

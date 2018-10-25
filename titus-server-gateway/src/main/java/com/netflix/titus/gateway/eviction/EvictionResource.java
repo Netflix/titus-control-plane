@@ -38,7 +38,7 @@ import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import rx.Observable;
+import reactor.core.publisher.Mono;
 
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -58,7 +58,7 @@ public class EvictionResource {
     @Path("quotas/global")
     @GET
     public EvictionQuota getGlobalEvictionQuota() {
-        return Responses.fromSingleValueObservable(
+        return Responses.fromMono(
                 evictionServiceClient
                         .getEvictionQuota(Reference.global())
                         .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
@@ -69,7 +69,7 @@ public class EvictionResource {
     @Path("quotas/tiers/{tier}")
     @GET
     public EvictionQuota getTierEvictionQuota(@PathParam("tier") String tier) {
-        return Responses.fromSingleValueObservable(
+        return Responses.fromMono(
                 evictionServiceClient
                         .getEvictionQuota(Reference.tier(StringExt.parseEnumIgnoreCase(tier, Tier.class)))
                         .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
@@ -80,7 +80,7 @@ public class EvictionResource {
     @Path("quotas/capacityGroups/{name}")
     @GET
     public EvictionQuota getCapacityGroupEvictionQuota(@PathParam("name") String capacityGroupName) {
-        return Responses.fromSingleValueObservable(
+        return Responses.fromMono(
                 evictionServiceClient
                         .getEvictionQuota(Reference.capacityGroup(capacityGroupName))
                         .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
@@ -92,32 +92,31 @@ public class EvictionResource {
     @DELETE
     public TaskTerminateResponse terminateTask(@PathParam("id") String taskId,
                                                @QueryParam("reason") String reason) {
-        return Responses.fromSingleValueObservable(
+        return Responses.fromMono(
                 evictionServiceClient
                         .terminateTask(taskId, reason)
-                        .toObservable()
                         .materialize()
                         .flatMap(event -> {
-                            switch (event.getKind()) {
-                                case OnError:
+                            switch (event.getType()) {
+                                case ON_ERROR:
                                     if (event.getThrowable() instanceof EvictionException) {
-                                        return Observable.just(TaskTerminateResponse.newBuilder()
+                                        return Mono.just(TaskTerminateResponse.newBuilder()
                                                 .setAllowed(false)
                                                 .setReasonCode("failure")
                                                 .setReasonMessage(event.getThrowable().getMessage())
                                                 .build()
                                         );
                                     }
-                                    return Observable.error(event.getThrowable());
-                                case OnCompleted:
-                                    return Observable.just(TaskTerminateResponse.newBuilder()
+                                    return Mono.error(event.getThrowable());
+                                case ON_COMPLETE:
+                                    return Mono.just(TaskTerminateResponse.newBuilder()
                                             .setAllowed(true)
                                             .setReasonCode("normal")
                                             .setReasonMessage("Terminated")
                                             .build()
                                     );
                             }
-                            return Observable.error(new IllegalStateException("Unexpected event kind: " + event.getKind()));
+                            return Mono.empty();
                         })
         );
     }

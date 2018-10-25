@@ -21,7 +21,7 @@ import java.util.Optional;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.model.Tier;
-import rx.Observable;
+import reactor.core.publisher.Flux;
 
 public interface ReadOnlyEvictionOperations {
 
@@ -33,5 +33,5 @@ public interface ReadOnlyEvictionOperations {
 
     Optional<EvictionQuota> findJobEvictionQuota(String jobId);
 
-    Observable<EvictionEvent> events(boolean includeSnapshot);
+    Flux<EvictionEvent> events(boolean includeSnapshot);
 }

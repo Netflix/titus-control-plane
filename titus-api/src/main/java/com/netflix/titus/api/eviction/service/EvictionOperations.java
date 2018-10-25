@@ -16,10 +16,9 @@
 
 package com.netflix.titus.api.eviction.service;
 
-import rx.Completable;
+import reactor.core.publisher.Mono;
 
 public interface EvictionOperations extends ReadOnlyEvictionOperations {
 
-    Completable terminateTask(String taskId, String reason);
-
+    Mono<Void> terminateTask(String taskId, String reason);
 }
