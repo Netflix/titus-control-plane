@@ -163,6 +163,45 @@ public final class ReactorExt {
     }
 
     /**
+     * In case subscriber does not provide exception handler, the error is propagated back to source, and the stream is broken.
+     * In some scenarios it is undesirable behavior. This method wraps the unprotected flux, and logs all unhandled
+     * exceptions using the provided logger.
+     */
+    public static <T> Flux<T> protectFromMissingExceptionHandlers(Flux<T> unprotectedStream, Logger logger) {
+        return Flux.create(sink -> {
+            Disposable disposable = unprotectedStream.subscribe(
+                    event -> {
+                        try {
+                            sink.next(event);
+                        } catch (Exception e) {
+                            try {
+                                sink.error(e);
+                            } catch (Exception e2) {
+                                logger.warn("Subscriber threw an exception from onNext handler", e);
+                                logger.warn("Subscriber threw an exception from onError handler", e2);
+                            }
+                        }
+                    },
+                    e -> {
+                        try {
+                            sink.error(e);
+                        } catch (Exception e2) {
+                            logger.warn("Subscriber threw an exception from onError handler", e2);
+                        }
+                    },
+                    () -> {
+                        try {
+                            sink.complete();
+                        } catch (Exception e) {
+                            logger.warn("Subscriber threw an exception from onCompleted handler", e);
+                        }
+                    }
+            );
+            sink.onDispose(disposable);
+        });
+    }
+
+    /**
      * RxJava {@link Observable} to {@link Flux} bridge.
      */
     public static <T> Flux<T> toFlux(Observable<T> observable) {

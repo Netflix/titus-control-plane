@@ -14,19 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.eviction;
+package com.netflix.titus.runtime.endpoint.common.grpc;
 
-import com.netflix.titus.api.eviction.model.EvictionQuota;
-import com.netflix.titus.api.eviction.model.event.EvictionEvent;
-import com.netflix.titus.api.model.reference.Reference;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import io.grpc.stub.AbstractStub;
 
-public interface EvictionServiceClient {
+/**
+ * Factory for {@link ReactorGrpcClientAdapter}.
+ */
+public interface ReactorGrpcClientAdapterFactory {
 
-    Mono<EvictionQuota> getEvictionQuota(Reference reference);
-
-    Mono<Void> terminateTask(String taskId, String reason);
-
-    Flux<EvictionEvent> observeEvents(boolean includeSnapshot);
+    <CLIENT extends AbstractStub<CLIENT>> ReactorGrpcClientAdapter<CLIENT> newAdapter(CLIENT client);
 }

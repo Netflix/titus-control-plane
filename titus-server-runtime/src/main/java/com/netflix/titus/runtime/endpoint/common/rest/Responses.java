@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.common.rest;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.validation.ConstraintViolationException;
@@ -23,14 +24,26 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.netflix.titus.api.service.TitusServiceException;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
 
 public class Responses {
+
+    private static final Duration REST_TIMEOUT_DURATION = Duration.ofMinutes(1);
+
     public static <T> List<T> fromObservable(Observable<?> observable) {
         try {
             return (List<T>) observable.timeout(1, TimeUnit.MINUTES).toList().toBlocking().firstOrDefault(null);
+        } catch (Exception e) {
+            throw fromException(e);
+        }
+    }
+
+    public static <T> T fromMono(Mono<T> mono) {
+        try {
+            return  mono.timeout(REST_TIMEOUT_DURATION).block();
         } catch (Exception e) {
             throw fromException(e);
         }

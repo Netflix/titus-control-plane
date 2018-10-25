@@ -62,7 +62,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
             logger.info("Connecting to the eviction event stream...");
-            return ReactorExt.toFlux(client.observeEvents(true)).flatMap(cacheUpdater::onEvent);
+            return client.observeEvents(true).flatMap(cacheUpdater::onEvent);
         });
     }
 

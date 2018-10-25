@@ -31,7 +31,7 @@ import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Subscription;
+import reactor.core.Disposable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
@@ -53,19 +53,20 @@ public class GatewayGrpcEvictionService extends EvictionServiceGrpc.EvictionServ
 
     @Override
     public void getEvictionQuota(Reference request, StreamObserver<EvictionQuota> responseObserver) {
-        Subscription subscription = evictionServiceClient.getEvictionQuota(toCoreReference(request)).subscribe(
+        Disposable disposable = evictionServiceClient.getEvictionQuota(toCoreReference(request)).subscribe(
                 next -> responseObserver.onNext(toGrpcEvictionQuota(next)),
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );
-        attachCancellingCallback(responseObserver, subscription);
+        attachCancellingCallback(responseObserver, disposable);
     }
 
     @Override
     public void terminateTask(TaskTerminateRequest request, StreamObserver<TaskTerminateResponse> responseObserver) {
-        Subscription subscription = evictionServiceClient.terminateTask(request.getTaskId(), request.getReason())
+        Disposable disposable = evictionServiceClient.terminateTask(request.getTaskId(), request.getReason())
                 .subscribe(
-                        () -> responseObserver.onNext(TaskTerminateResponse.newBuilder().setAllowed(true).build()),
+                        next -> {
+                        },
                         e -> {
                             if (e instanceof EvictionException) {
                                 // TODO Improve error reporting
@@ -78,18 +79,19 @@ public class GatewayGrpcEvictionService extends EvictionServiceGrpc.EvictionServ
                             } else {
                                 safeOnError(logger, e, responseObserver);
                             }
-                        }
+                        },
+                        () -> responseObserver.onNext(TaskTerminateResponse.newBuilder().setAllowed(true).build())
                 );
-        attachCancellingCallback(responseObserver, subscription);
+        attachCancellingCallback(responseObserver, disposable);
     }
 
     @Override
     public void observeEvents(ObserverEventRequest request, StreamObserver<EvictionServiceEvent> responseObserver) {
-        Subscription subscription = evictionServiceClient.observeEvents(request.getIncludeSnapshot()).subscribe(
+        Disposable disposable = evictionServiceClient.observeEvents(request.getIncludeSnapshot()).subscribe(
                 event -> toGrpcEvent(event).ifPresent(responseObserver::onNext),
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );
-        attachCancellingCallback(responseObserver, subscription);
+        attachCancellingCallback(responseObserver, disposable);
     }
 }

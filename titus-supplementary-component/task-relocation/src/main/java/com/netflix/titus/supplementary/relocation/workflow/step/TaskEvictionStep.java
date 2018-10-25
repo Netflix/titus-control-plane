@@ -90,7 +90,7 @@ public class TaskEvictionStep {
                             String message = String.format("%s: reasonCode=%s, plannedRelocationTime=%s",
                                     p.getReasonMessage(), p.getReason(), DateTimeExt.toUtcDateTimeString(p.getRelocationTime())
                             );
-                            return ReactorExt.toMono(evictionServiceClient.terminateTask(p.getTaskId(), message)).timeout(EVICTION_TIMEOUT);
+                            return evictionServiceClient.terminateTask(p.getTaskId(), message).timeout(EVICTION_TIMEOUT);
                         }));
 
         Map<String, Optional<Throwable>> evictionResults;

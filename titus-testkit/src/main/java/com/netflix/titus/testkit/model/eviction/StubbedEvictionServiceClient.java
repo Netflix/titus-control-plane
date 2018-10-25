@@ -22,8 +22,8 @@ import com.netflix.titus.api.eviction.service.EvictionOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import rx.Completable;
-import rx.Observable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 class StubbedEvictionServiceClient implements EvictionServiceClient {
 
@@ -34,7 +34,7 @@ class StubbedEvictionServiceClient implements EvictionServiceClient {
     }
 
     @Override
-    public Observable<EvictionQuota> getEvictionQuota(Reference reference) {
+    public Mono<EvictionQuota> getEvictionQuota(Reference reference) {
         EvictionQuota quota;
         switch (reference.getLevel()) {
             case Global:
@@ -53,16 +53,16 @@ class StubbedEvictionServiceClient implements EvictionServiceClient {
             default:
                 quota = EvictionQuota.emptyQuota(reference);
         }
-        return Observable.just(quota);
+        return Mono.just(quota);
     }
 
     @Override
-    public Completable terminateTask(String taskId, String reason) {
+    public Mono<Void> terminateTask(String taskId, String reason) {
         return evictionOperations.terminateTask(taskId, reason);
     }
 
     @Override
-    public Observable<EvictionEvent> observeEvents(boolean includeSnapshot) {
+    public Flux<EvictionEvent> observeEvents(boolean includeSnapshot) {
         return evictionOperations.events(includeSnapshot);
     }
 }

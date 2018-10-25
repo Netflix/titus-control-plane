@@ -31,7 +31,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-import rx.Subscription;
+import reactor.core.Disposable;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvent;
@@ -74,6 +74,9 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
     @Override
     public void terminateTask(TaskTerminateRequest request, StreamObserver<TaskTerminateResponse> responseObserver) {
         evictionOperations.terminateTask(request.getTaskId(), request.getReason()).subscribe(
+                next -> {
+                },
+                responseObserver::onError,
                 () -> {
                     responseObserver.onNext(TaskTerminateResponse.newBuilder()
                             .setAllowed(true)
@@ -82,14 +85,13 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
                             .build()
                     );
                     responseObserver.onCompleted();
-                },
-                responseObserver::onError
+                }
         );
     }
 
     @Override
     public void observeEvents(ObserverEventRequest request, StreamObserver<EvictionServiceEvent> responseObserver) {
-        Subscription subscription = evictionOperations.events(request.getIncludeSnapshot()).subscribe(
+        Disposable subscription = evictionOperations.events(request.getIncludeSnapshot()).subscribe(
                 next -> toGrpcEvent(next).ifPresent(responseObserver::onNext),
                 e -> responseObserver.onError(
                         new StatusRuntimeException(Status.INTERNAL
@@ -99,6 +101,6 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
                 responseObserver::onCompleted
         );
         ServerCallStreamObserver<EvictionServiceEvent> serverObserver = (ServerCallStreamObserver<EvictionServiceEvent>) responseObserver;
-        serverObserver.setOnCancelHandler(subscription::unsubscribe);
+        serverObserver.setOnCancelHandler(subscription::dispose);
     }
 }

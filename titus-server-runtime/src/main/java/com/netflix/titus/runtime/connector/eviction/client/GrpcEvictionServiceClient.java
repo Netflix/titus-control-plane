@@ -26,73 +26,61 @@ import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceStub;
 import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapter;
+import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters;
-import io.grpc.stub.StreamObserver;
-import rx.Completable;
-import rx.Observable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcReference;
 
 @Singleton
 public class GrpcEvictionServiceClient implements EvictionServiceClient {
 
-    private final GrpcClientConfiguration configuration;
-    private final EvictionServiceStub client;
-    private final CallMetadataResolver callMetadataResolver;
+    private final ReactorGrpcClientAdapter<EvictionServiceStub> grpcClientAdapter;
 
     @Inject
-    public GrpcEvictionServiceClient(GrpcClientConfiguration configuration,
-                                     EvictionServiceStub client,
-                                     CallMetadataResolver callMetadataResolver) {
-        this.configuration = configuration;
-        this.client = client;
-        this.callMetadataResolver = callMetadataResolver;
+    public GrpcEvictionServiceClient(ReactorGrpcClientAdapterFactory grpcClientAdapterFactory,
+                                     EvictionServiceStub client) {
+        this.grpcClientAdapter = grpcClientAdapterFactory.newAdapter(client);
     }
 
     @Override
-    public Observable<EvictionQuota> getEvictionQuota(Reference reference) {
-        return GrpcUtil.<com.netflix.titus.grpc.protogen.EvictionQuota>createRequestObservable(emitter -> {
-                    StreamObserver<com.netflix.titus.grpc.protogen.EvictionQuota> streamObserver = createSimpleClientResponseObserver(emitter);
-                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getEvictionQuota(toGrpcReference(reference), streamObserver);
-                },
-                configuration.getRequestTimeout()
+    public Mono<EvictionQuota> getEvictionQuota(Reference reference) {
+        return grpcClientAdapter.<com.netflix.titus.grpc.protogen.EvictionQuota>asMono((client, streamObserver) ->
+                client.getEvictionQuota(toGrpcReference(reference), streamObserver)
         ).map(GrpcEvictionModelConverters::toCoreEvictionQuota);
     }
 
     @Override
-    public Completable terminateTask(String taskId, String reason) {
-        return GrpcUtil.<com.netflix.titus.grpc.protogen.TaskTerminateResponse>createRequestObservable(emitter -> {
-                    StreamObserver<com.netflix.titus.grpc.protogen.TaskTerminateResponse> streamObserver = createSimpleClientResponseObserver(emitter);
-                    TaskTerminateRequest request = TaskTerminateRequest.newBuilder()
-                            .setTaskId(taskId)
-                            .setReason(reason)
-                            .build();
-                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).terminateTask(request, streamObserver);
-                },
-                configuration.getRequestTimeout()
+    public Mono<Void> terminateTask(String taskId, String reason) {
+        TaskTerminateRequest request = TaskTerminateRequest.newBuilder()
+                .setTaskId(taskId)
+                .setReason(reason)
+                .build();
+
+        return grpcClientAdapter.<TaskTerminateResponse>asMono((client, streamObserver) ->
+                client.terminateTask(request, streamObserver)
         ).flatMap(response -> {
             if (!response.getAllowed()) {
                 // TODO Better error handling
-                return Observable.error(new IllegalStateException(response.getReasonCode() + ": " + response.getReasonMessage()));
+                return Mono.error(new IllegalStateException(response.getReasonCode() + ": " + response.getReasonMessage()));
             }
-            return Observable.empty();
-        }).toCompletable();
+            return Mono.empty();
+        });
     }
 
     @Override
-    public Observable<EvictionEvent> observeEvents(boolean includeSnapshot) {
-        return GrpcUtil.<EvictionServiceEvent>createRequestObservable(emitter -> {
-            StreamObserver<EvictionServiceEvent> streamObserver = createSimpleClientResponseObserver(emitter);
-            ObserverEventRequest request = ObserverEventRequest.newBuilder()
-                    .setIncludeSnapshot(includeSnapshot)
-                    .build();
-            createWrappedStub(client, callMetadataResolver).observeEvents(request, streamObserver);
+    public Flux<EvictionEvent> observeEvents(boolean includeSnapshot) {
+
+        ObserverEventRequest request = ObserverEventRequest.newBuilder()
+                .setIncludeSnapshot(includeSnapshot)
+                .build();
+
+        return grpcClientAdapter.<EvictionServiceEvent>asFlux((client, streamObserver) -> {
+            client.observeEvents(request, streamObserver);
         }).map(GrpcEvictionModelConverters::toCoreEvent);
     }
 }
