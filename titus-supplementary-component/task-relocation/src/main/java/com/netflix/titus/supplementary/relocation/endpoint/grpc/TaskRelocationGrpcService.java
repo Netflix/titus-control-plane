@@ -37,12 +37,19 @@ import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExe
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.supplementary.relocation.endpoint.grpc.RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions;
 import static com.netflix.titus.supplementary.relocation.endpoint.grpc.RelocationGrpcModelConverters.toGrpcTaskRelocationPlans;
 
 @Singleton
 public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRelocationServiceImplBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(TaskRelocationGrpcService.class);
 
     private final RelocationWorkflowExecutor relocationWorkflowExecutor;
     private final TaskRelocationArchiveStore archiveStore;
@@ -80,27 +87,33 @@ public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRel
         String taskId = request.getId();
 
         TaskRelocationStatus latest = relocationWorkflowExecutor.getLastEvictionResults().get(taskId);
-        List<TaskRelocationStatus> archived = archiveStore.getTaskRelocationStatusList(taskId).block();
 
-        if(latest == null && archived.isEmpty()) {
-            responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
-            return;
-        }
+        Disposable disposable = archiveStore.getTaskRelocationStatusList(taskId).subscribe(
+                archived -> {
+                    if (latest == null && archived.isEmpty()) {
+                        responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
+                        return;
+                    }
 
-        List<TaskRelocationStatus> combined;
-        if(latest == null) {
-            combined = archived;
-        } else if(archived.isEmpty()) {
-            combined = Collections.singletonList(latest);
-        } else {
-            if(CollectionsExt.last(archived).equals(latest)) {
-                combined = archived;
-            } else {
-                combined = CollectionsExt.copyAndAdd(archived, latest);
-            }
-        }
-        responseObserver.onNext(RelocationGrpcModelConverters.toGrpcTaskRelocationExecution(combined));
-        responseObserver.onCompleted();
+                    List<TaskRelocationStatus> combined;
+                    if (latest == null) {
+                        combined = archived;
+                    } else if (archived.isEmpty()) {
+                        combined = Collections.singletonList(latest);
+                    } else {
+                        if (CollectionsExt.last(archived).equals(latest)) {
+                            combined = archived;
+                        } else {
+                            combined = CollectionsExt.copyAndAdd(archived, latest);
+                        }
+                    }
+
+                    responseObserver.onNext(RelocationGrpcModelConverters.toGrpcTaskRelocationExecution(combined));
+                },
+                e -> safeOnError(logger, e, responseObserver),
+                responseObserver::onCompleted
+        );
+        attachCancellingCallback(responseObserver, disposable);
     }
 
     /**

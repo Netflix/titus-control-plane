@@ -29,7 +29,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
-import com.netflix.titus.common.framework.scheduler.model.Iteration;
+import com.netflix.titus.common.framework.scheduler.model.ExecutionId;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.retry.Retryer;
@@ -172,8 +172,8 @@ class ScheduledActionExecutor {
                         .build()
                 )
                 .withIteration(retried
-                        ? Iteration.nextAttempt(action.getIteration())
-                        : Iteration.nextIteration(action.getIteration())
+                        ? ExecutionId.nextAttempt(action.getExecutionId())
+                        : ExecutionId.nextIteration(action.getExecutionId())
                 )
                 .build();
     }
@@ -210,7 +210,7 @@ class ScheduledActionExecutor {
                     .apply(
                             ExecutionContext.newBuilder()
                                     .withId(schedule.getId())
-                                    .withIteration(action.getIteration())
+                                    .withIteration(action.getExecutionId())
                                     .build()
                     )
                     .timeout(descriptor.getTimeout())

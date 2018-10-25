@@ -112,7 +112,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 TaskRelocationPlan relocationPlan;
                 DeschedulingFailure failure;
 
-                if (isMangedByTaskRelocationService(task)) {
+                if (isManagedByTaskRelocationService(task)) {
                     failure = taskMigrationDescheduler.getDeschedulingFailure(task);
                     relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
                     if (relocationPlan == null) {
@@ -139,7 +139,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
         return new ArrayList<>(result.values());
     }
 
-    private boolean isMangedByTaskRelocationService(Task task) {
+    private boolean isManagedByTaskRelocationService(Task task) {
         return jobOperations.getJob(task.getJobId()).map(JobFunctions::hasDisruptionBudget).orElse(false);
     }
 

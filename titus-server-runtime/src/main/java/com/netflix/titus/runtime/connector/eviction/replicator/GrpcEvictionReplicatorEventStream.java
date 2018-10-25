@@ -24,11 +24,9 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
-import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
-import com.netflix.titus.api.eviction.model.event.SystemDisruptionBudgetUpdateEvent;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -90,28 +88,12 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
         }
 
         private Flux<ReplicatorEvent<EvictionDataSnapshot>> buildInitialCache() {
-            SystemDisruptionBudget globalDisruptionBudget = null;
             EvictionQuota globalEvictionQuota = null;
-            Map<Tier, SystemDisruptionBudget> tierSystemDisruptionBudgets = new HashMap<>();
             Map<Tier, EvictionQuota> tierEvictionQuotas = new HashMap<>();
-            Map<String, SystemDisruptionBudget> capacityGroupSystemDisruptionBudgets = new HashMap<>();
             Map<String, EvictionQuota> capacityGroupEvictionQuotas = new HashMap<>();
 
             for (EvictionEvent event : snapshotEvents) {
-                if (event instanceof SystemDisruptionBudgetUpdateEvent) {
-                    SystemDisruptionBudget budget = ((SystemDisruptionBudgetUpdateEvent) event).getSystemDisruptionBudget();
-                    switch (budget.getReference().getLevel()) {
-                        case Global:
-                            globalDisruptionBudget = budget;
-                            break;
-                        case Tier:
-                            tierSystemDisruptionBudgets.put(((TierReference) budget.getReference()).getTier(), budget);
-                            break;
-                        case CapacityGroup:
-                            capacityGroupSystemDisruptionBudgets.put(budget.getReference().getName(), budget);
-                            break;
-                    }
-                } else if (event instanceof EvictionQuotaEvent) {
+                if (event instanceof EvictionQuotaEvent) {
                     EvictionQuota quota = ((EvictionQuotaEvent) event).getQuota();
                     switch (quota.getReference().getLevel()) {
                         case Global:
@@ -130,16 +112,10 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             // Clear so the garbage collector can reclaim the memory (we no longer need this data).
             snapshotEvents.clear();
 
-            checkNotNull(globalDisruptionBudget, "Global disruption budget missing");
             checkNotNull(globalEvictionQuota, "Global eviction quota missing");
-            checkState(tierSystemDisruptionBudgets.size() == Tier.values().length, "Tier disruption budgets missing: found=%s", tierSystemDisruptionBudgets);
             checkState(tierEvictionQuotas.size() == Tier.values().length, "Tier eviction quotas missing: found=%s", tierEvictionQuotas);
 
-
             EvictionDataSnapshot initialSnapshot = new EvictionDataSnapshot(
-                    globalDisruptionBudget,
-                    tierSystemDisruptionBudgets,
-                    capacityGroupSystemDisruptionBudgets,
                     globalEvictionQuota,
                     tierEvictionQuotas,
                     capacityGroupEvictionQuotas
@@ -153,9 +129,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             EvictionDataSnapshot snapshot = lastSnapshotRef.get();
             Optional<EvictionDataSnapshot> newSnapshot = Optional.empty();
 
-            if (event instanceof SystemDisruptionBudgetUpdateEvent) {
-                newSnapshot = snapshot.updateSystemDisruptionBudget(((SystemDisruptionBudgetUpdateEvent) event).getSystemDisruptionBudget());
-            } else if (event instanceof EvictionQuotaEvent) {
+            if (event instanceof EvictionQuotaEvent) {
                 newSnapshot = snapshot.updateEvictionQuota(((EvictionQuotaEvent) event).getQuota());
             } // Ignore all other events, as they are not relevant for snapshot
 

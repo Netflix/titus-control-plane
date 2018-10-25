@@ -91,12 +91,12 @@ public class DefaultLocalSchedulerPerf {
                 context -> {
                     checkSchedulingLatency(intervalMs, context);
 
-                    if (context.getIteration().getTotal() > EXECUTIONS) {
+                    if (context.getExecutionId().getTotal() > EXECUTIONS) {
                         localScheduler.cancel(context.getId()).subscribe();
                         return Mono.empty();
                     }
 
-                    if (failSometimes && context.getIteration().getTotal() % 2 == 0) {
+                    if (failSometimes && context.getExecutionId().getTotal() % 2 == 0) {
                         expectedFailures.incrementAndGet();
                         return Mono.error(new RuntimeException("Simulated error"));
                     }
@@ -125,12 +125,12 @@ public class DefaultLocalSchedulerPerf {
                 context -> {
                     checkSchedulingLatency(intervalMs, context);
 
-                    if (context.getIteration().getTotal() > EXECUTIONS) {
+                    if (context.getExecutionId().getTotal() > EXECUTIONS) {
                         localScheduler.cancel(context.getId()).subscribe();
                         return;
                     }
 
-                    if (failSometimes && context.getIteration().getTotal() % 2 == 0) {
+                    if (failSometimes && context.getExecutionId().getTotal() % 2 == 0) {
                         expectedFailures.incrementAndGet();
                         throw new RuntimeException("Simulated error");
                     }

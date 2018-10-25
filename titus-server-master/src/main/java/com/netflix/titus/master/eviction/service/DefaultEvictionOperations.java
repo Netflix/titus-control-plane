@@ -152,21 +152,6 @@ public class DefaultEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public SystemDisruptionBudget getGlobalDisruptionBudget() {
-        return GLOBAL_DISRUPTION_BUDGET;
-    }
-
-    @Override
-    public SystemDisruptionBudget getTierDisruptionBudget(Tier tier) {
-        return TIER_DISRUPTION_BUDGET;
-    }
-
-    @Override
-    public SystemDisruptionBudget getCapacityGroupDisruptionBudget(String capacityGroupName) {
-        return DEFAULT_CAPACITY_GROUP_DISRUPTION_BUDGET;
-    }
-
-    @Override
     public EvictionQuota getGlobalEvictionQuota() {
         return toEvictionQuota(Reference.global(), globalTokenBucket);
     }

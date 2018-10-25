@@ -18,19 +18,19 @@ package com.netflix.titus.common.framework.scheduler;
 
 import java.util.Optional;
 
-import com.netflix.titus.common.framework.scheduler.model.Iteration;
+import com.netflix.titus.common.framework.scheduler.model.ExecutionId;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 
 public class ExecutionContext {
 
     private final String id;
-    private final Iteration iteration;
+    private final ExecutionId executionId;
     private final ScheduledAction currentAction;
     private final Optional<ScheduledAction> previousAction;
 
-    private ExecutionContext(String id, Iteration iteration, ScheduledAction currentAction, Optional<ScheduledAction> previousAction) {
+    private ExecutionContext(String id, ExecutionId executionId, ScheduledAction currentAction, Optional<ScheduledAction> previousAction) {
         this.id = id;
-        this.iteration = iteration;
+        this.executionId = executionId;
         this.currentAction = currentAction;
         this.previousAction = previousAction;
     }
@@ -39,8 +39,8 @@ public class ExecutionContext {
         return id;
     }
 
-    public Iteration getIteration() {
-        return iteration;
+    public ExecutionId getExecutionId() {
+        return executionId;
     }
 
     public ScheduledAction getCurrentAction() {
@@ -52,7 +52,7 @@ public class ExecutionContext {
     }
 
     public Builder toBuilder() {
-        return newBuilder().withId(id).withIteration(iteration);
+        return newBuilder().withId(id).withIteration(executionId);
     }
 
     public static Builder newBuilder() {
@@ -63,7 +63,7 @@ public class ExecutionContext {
         private String id;
         private ScheduledAction currentAction;
         private ScheduledAction previousAction;
-        private Iteration iteration;
+        private ExecutionId executionId;
 
         private Builder() {
         }
@@ -73,8 +73,8 @@ public class ExecutionContext {
             return this;
         }
 
-        public Builder withIteration(Iteration iteration) {
-            this.iteration = iteration;
+        public Builder withIteration(ExecutionId executionId) {
+            this.executionId = executionId;
             return this;
         }
 
@@ -89,7 +89,7 @@ public class ExecutionContext {
         }
 
         public ExecutionContext build() {
-            return new ExecutionContext(id, iteration, currentAction, Optional.ofNullable(previousAction));
+            return new ExecutionContext(id, executionId, currentAction, Optional.ofNullable(previousAction));
         }
     }
 }

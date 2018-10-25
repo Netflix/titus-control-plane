@@ -140,7 +140,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     }
 
     private void nextRelocationStep(ExecutionContext executionContext) {
-        long count = executionContext.getIteration().getTotal();
+        long count = executionContext.getExecutionId().getTotal();
         logger.info("Starting task relocation iteration {}...", count);
 
         Stopwatch stopwatch = Stopwatch.createStarted();

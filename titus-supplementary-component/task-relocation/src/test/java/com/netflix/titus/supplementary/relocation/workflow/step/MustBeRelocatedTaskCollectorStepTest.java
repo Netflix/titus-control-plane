@@ -52,7 +52,7 @@ public class MustBeRelocatedTaskCollectorStepTest extends AbstractTaskRelocation
     }
 
     @Test
-    public void testTaskWithNoDisruptionBudgetAreNotMigrated() {
+    public void testTaskWithNoDisruptionBudgetIsNotMigrated() {
         Job<BatchJobExt> job = TestDataFactory.newBatchJob("job1", 1, JobFunctions.getNoDisruptionBudgetMarker());
         relocationConnectorStubs.addJob(job);
         relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP, jobOperations.getTasks().get(0));

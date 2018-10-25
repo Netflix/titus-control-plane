@@ -82,7 +82,7 @@ class DeschedulingResultLogger {
         if (failureCount > 0) {
             logger.info("    Not evictable tasks (failures):");
             byAgentNotEvictable.forEach((agentId, results) -> {
-                logger.info("        Agent(%s):", agentId);
+                logger.info("        Agent({}):", agentId);
                 results.forEach(result ->
                         logger.info("           task({}): failure={}, plan={}",
                                 result.getTask().getId(), result.getFailure().get().getReasonMessage(),
