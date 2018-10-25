@@ -19,7 +19,6 @@ package com.netflix.titus.testkit.model.eviction;
 import java.util.Optional;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
-import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.EvictionOperations;
@@ -62,21 +61,6 @@ class StubbedEvictionOperations implements EvictionOperations {
             jobOperations.killTask(taskId, false, "Eviction");
             stubbedEvictionData.setQuota(job.getId(), quota - 1);
         });
-    }
-
-    @Override
-    public SystemDisruptionBudget getGlobalDisruptionBudget() {
-        return null;
-    }
-
-    @Override
-    public SystemDisruptionBudget getTierDisruptionBudget(Tier tier) {
-        return null;
-    }
-
-    @Override
-    public SystemDisruptionBudget getCapacityGroupDisruptionBudget(String capacityGroupName) {
-        return null;
     }
 
     @Override

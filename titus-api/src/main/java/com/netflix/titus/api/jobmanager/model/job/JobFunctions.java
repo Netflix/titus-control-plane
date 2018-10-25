@@ -17,6 +17,7 @@
 package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +28,9 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
@@ -45,7 +49,18 @@ import com.netflix.titus.common.util.time.Clock;
  */
 public final class JobFunctions {
 
+    private static final DisruptionBudget NO_DISRUPTION_BUDGET_MARKER = DisruptionBudget.newBuilder()
+            .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
+            .withDisruptionBudgetRate(UnlimitedDisruptionBudgetRate.newBuilder().build())
+            .withContainerHealthProviders(Collections.emptyList())
+            .withTimeWindows(Collections.emptyList())
+            .build();
+
     private JobFunctions() {
+    }
+
+    public static DisruptionBudget getNoDisruptionBudgetMarker() {
+        return NO_DISRUPTION_BUDGET_MARKER;
     }
 
     @Deprecated
@@ -122,6 +137,14 @@ public final class JobFunctions {
 
     public static boolean isServiceTask(Task task) {
         return task instanceof ServiceJobTask;
+    }
+
+    public static boolean hasDisruptionBudget(JobDescriptor<?> jobDescriptor) {
+        return !NO_DISRUPTION_BUDGET_MARKER.equals(jobDescriptor.getDisruptionBudget());
+    }
+
+    public static boolean hasDisruptionBudget(Job<?> job) {
+        return !NO_DISRUPTION_BUDGET_MARKER.equals(job.getJobDescriptor().getDisruptionBudget());
     }
 
     /**

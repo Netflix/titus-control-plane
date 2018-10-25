@@ -18,16 +18,19 @@ package com.netflix.titus.testkit.model.eviction;
 
 import com.netflix.titus.api.eviction.service.EvictionOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
 
 public class EvictionComponentStub {
 
     private final StubbedEvictionData stubbedEvictionData;
     private final EvictionOperations evictionOperations;
+    private final StubbedEvictionServiceClient evictionServiceClient;
 
     public EvictionComponentStub(JobComponentStub jobComponentStub, TitusRuntime titusRuntime) {
         this.stubbedEvictionData = new StubbedEvictionData();
         this.evictionOperations = new StubbedEvictionOperations(stubbedEvictionData, jobComponentStub.getJobOperations());
+        this.evictionServiceClient = new StubbedEvictionServiceClient(evictionOperations);
     }
 
     public EvictionOperations getEvictionOperations() {
@@ -36,5 +39,9 @@ public class EvictionComponentStub {
 
     public void setQuota(String jobId, int quota) {
         stubbedEvictionData.setQuota(jobId, quota);
+    }
+
+    public EvictionServiceClient getEvictionServiceClient() {
+        return evictionServiceClient;
     }
 }

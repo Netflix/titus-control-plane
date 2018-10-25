@@ -109,7 +109,7 @@ class LocalSchedulerTransactionLogger {
                 "name=%-20s eventKind=%-15s iteration=%-6s state=%-10s %-15s summary=%s",
                 schedule.getDescriptor().getName(),
                 eventKind,
-                action.getIteration().getId() + "." + action.getIteration().getAttempt(),
+                action.getExecutionId().getId() + "." + action.getExecutionId().getAttempt(),
                 action.getStatus().getState(),
                 "elapsed=" + toElapsedMs(schedule) + "ms",
                 summary

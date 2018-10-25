@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.endpoint;
+package com.netflix.titus.runtime.endpoint.common.grpc;
 
-import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-@Configuration(prefix = "titus.relocation.endpoint")
-public interface TaskRelocationEndpointConfiguration {
+public interface GrpcEndpointConfiguration {
 
     @DefaultValue("7104")
-    int getGrpcPort();
+    int getPort();
 
     /**
      * Graceful shutdown time for GRPC server. If zero, shutdown happens immediately, and all client connections are
@@ -32,6 +30,10 @@ public interface TaskRelocationEndpointConfiguration {
     @DefaultValue("30000")
     long getShutdownTimeoutMs();
 
+    /**
+     * Maximum amount of time a client connection may last. Connections not disconnected by client after this time
+     * passes, are closed by server. The clients are expected to reconnect if that happens.
+     */
     @DefaultValue("1800000")
     long getMaxConnectionAgeMs();
 }

@@ -19,11 +19,15 @@ package com.netflix.titus.supplementary.relocation.endpoint.grpc;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecution;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus.TaskRelocationState;
+
+import static com.netflix.titus.common.util.CollectionsExt.last;
 
 public class RelocationGrpcModelConverters {
 
@@ -42,22 +46,43 @@ public class RelocationGrpcModelConverters {
                 .build();
     }
 
-    public static TaskRelocationExecutions toGrpcTaskRelocationExecutions(List<TaskRelocationStatus> coreResults) {
-        return TaskRelocationExecutions.newBuilder()
-                .addAllResults(coreResults.stream().map(RelocationGrpcModelConverters::toTaskRelocationExecution).collect(Collectors.toList()))
+    public static TaskRelocationExecution toGrpcTaskRelocationExecution(List<TaskRelocationStatus> attempts) {
+        Preconditions.checkArgument(!attempts.isEmpty(), "Empty list of TaskRelocationStatus objects");
+
+        return TaskRelocationExecution.newBuilder()
+                .setTaskRelocationPlan(toGrpcTaskRelocationPlan(last(attempts).getTaskRelocationPlan()))
+                .addAllRelocationAttempts(attempts.stream().map(RelocationGrpcModelConverters::toGrpcTaskRelocationStatus).collect(Collectors.toList()))
                 .build();
     }
 
-    private static TaskRelocationExecution toTaskRelocationExecution(TaskRelocationStatus coreResult) {
+    public static TaskRelocationExecution toGrpcTaskRelocationExecution(TaskRelocationStatus coreResult) {
         return TaskRelocationExecution.newBuilder()
                 .addRelocationAttempts(toGrpcTaskRelocationStatus(coreResult))
                 .setTaskRelocationPlan(toGrpcTaskRelocationPlan(coreResult.getTaskRelocationPlan()))
                 .build();
     }
 
+    public static TaskRelocationExecutions toGrpcTaskRelocationExecutions(List<TaskRelocationStatus> coreResults) {
+        return TaskRelocationExecutions.newBuilder()
+                .addAllResults(coreResults.stream().map(RelocationGrpcModelConverters::toGrpcTaskRelocationExecution).collect(Collectors.toList()))
+                .build();
+    }
+
     public static com.netflix.titus.grpc.protogen.TaskRelocationStatus toGrpcTaskRelocationStatus(TaskRelocationStatus coreResult) {
         return com.netflix.titus.grpc.protogen.TaskRelocationStatus.newBuilder()
+                .setState(toGrpcRelocationState(coreResult.getState()))
                 .setReasonCode(coreResult.getReasonCode())
+                .setReasonMessage(coreResult.getReasonMessage())
                 .build();
+    }
+
+    public static com.netflix.titus.grpc.protogen.TaskRelocationStatus.TaskRelocationState toGrpcRelocationState(TaskRelocationState coreState) {
+        switch (coreState) {
+            case Success:
+                return com.netflix.titus.grpc.protogen.TaskRelocationStatus.TaskRelocationState.Success;
+            case Failure:
+                return com.netflix.titus.grpc.protogen.TaskRelocationStatus.TaskRelocationState.Failure;
+        }
+        throw new IllegalStateException("Unrecognized state: " + coreState);
     }
 }

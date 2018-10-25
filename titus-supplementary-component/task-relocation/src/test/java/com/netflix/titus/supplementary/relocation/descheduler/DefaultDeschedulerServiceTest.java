@@ -22,12 +22,16 @@ import java.util.List;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 
@@ -49,11 +53,13 @@ public class DefaultDeschedulerServiceTest {
             JobGenerator.serviceJobs(oneTaskServiceJobDescriptor().but(ofServiceSize(4)))
     );
 
-    private final ReschedulerDataGenerator dataGenerator = new ReschedulerDataGenerator(titusRuntime)
+    private final RelocationConnectorStubs dataGenerator = new RelocationConnectorStubs()
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("active1"), inState(InstanceGroupLifecycleState.Active)))
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("removable1"), inState(InstanceGroupLifecycleState.Removable)))
             .addJob(jobGenerator.getValue().but(withJobId("job1")))
             .addJob(jobGenerator.getValue().but(withJobId("job2")));
+
+    private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
 
     private final DefaultDeschedulerService deschedulerService = new DefaultDeschedulerService(
             dataGenerator.getJobOperations(),
@@ -64,15 +70,21 @@ public class DefaultDeschedulerServiceTest {
 
     @Test
     public void testAllExpectedJobMigrationsAreFound() {
-        dataGenerator.place("job1", "active1", 0, 1);
-        dataGenerator.place("job1", "removable1", 2, 3);
+        List<Task> tasksOfJob1 = jobOperations.getTasks("job1");
+        dataGenerator.place("active1", tasksOfJob1.get(0), tasksOfJob1.get(1));
+        dataGenerator.place("removable1", tasksOfJob1.get(2), tasksOfJob1.get(3));
         dataGenerator.setQuota("job1", 2);
 
-        dataGenerator.place("job2", "active1", 0, 1);
-        dataGenerator.place("job2", "removable1", 2, 3);
+        List<Task> tasksOfJob2 = jobOperations.getTasks("job2");
+        dataGenerator.place("active1", tasksOfJob2.get(0), tasksOfJob2.get(1));
+        dataGenerator.place("removable1", tasksOfJob2.get(2), tasksOfJob2.get(3));
         dataGenerator.setQuota("job2", 2);
 
-        List<DeschedulingResult> result = deschedulerService.deschedule(Collections.emptyMap());
-        assertThat(result).hasSize(4);
+        List<DeschedulingResult> results = deschedulerService.deschedule(Collections.emptyMap());
+        assertThat(results).hasSize(4);
+        for (DeschedulingResult result : results) {
+            assertThat(result.getAgentInstance().getInstanceGroupId()).isEqualTo("removable1");
+            assertThat(result.getTaskRelocationPlan().getReason()).isEqualTo(TaskRelocationReason.TaskMigration);
+        }
     }
 }

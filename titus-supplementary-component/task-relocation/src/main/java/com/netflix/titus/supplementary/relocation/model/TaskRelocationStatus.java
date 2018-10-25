@@ -18,11 +18,28 @@ package com.netflix.titus.supplementary.relocation.model;
 
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 public class TaskRelocationStatus {
+
+    /**
+     * Reason code set when an operation completed successfully.
+     */
+    public static final String REASON_CODE_TERMINATED = "terminated";
+
+    /**
+     * Reason code set when a task eviction was rejected by the eviction service.
+     */
+    public static final String REASON_EVICTION_ERROR = "evictionError";
+
+    /**
+     * Reason code set when a task could not be terminated due to a system error (for example connectivity issue).
+     */
+    public static final String REASON_SYSTEM_ERROR = "systemError";
 
     public enum TaskRelocationState {
         /// Reason codes:
-        //  * 'normal'
+        //  * 'terminated'
         Success,
 
         /// Reason codes:
@@ -33,12 +50,14 @@ public class TaskRelocationStatus {
     private final String taskId;
     private final TaskRelocationState state;
     private final String reasonCode;
+    private final String reasonMessage;
     private final TaskRelocationPlan taskRelocationPlan;
 
-    public TaskRelocationStatus(String taskId, TaskRelocationState state, String reasonCode, TaskRelocationPlan taskRelocationPlan) {
+    public TaskRelocationStatus(String taskId, TaskRelocationState state, String reasonCode, String reasonMessage, TaskRelocationPlan taskRelocationPlan) {
         this.taskId = taskId;
         this.state = state;
         this.reasonCode = reasonCode;
+        this.reasonMessage = reasonMessage;
         this.taskRelocationPlan = taskRelocationPlan;
     }
 
@@ -52,6 +71,10 @@ public class TaskRelocationStatus {
 
     public String getReasonCode() {
         return reasonCode;
+    }
+
+    public String getReasonMessage() {
+        return reasonMessage;
     }
 
     public TaskRelocationPlan getTaskRelocationPlan() {
@@ -70,12 +93,13 @@ public class TaskRelocationStatus {
         return Objects.equals(taskId, that.taskId) &&
                 state == that.state &&
                 Objects.equals(reasonCode, that.reasonCode) &&
+                Objects.equals(reasonMessage, that.reasonMessage) &&
                 Objects.equals(taskRelocationPlan, that.taskRelocationPlan);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, state, reasonCode, taskRelocationPlan);
+        return Objects.hash(taskId, state, reasonCode, reasonMessage, taskRelocationPlan);
     }
 
     @Override
@@ -84,12 +108,13 @@ public class TaskRelocationStatus {
                 "taskId='" + taskId + '\'' +
                 ", state=" + state +
                 ", reasonCode='" + reasonCode + '\'' +
+                ", reasonMessage='" + reasonMessage + '\'' +
                 ", taskRelocationPlan=" + taskRelocationPlan +
                 '}';
     }
 
     public Builder toBuilder() {
-        return newBuilder().withTaskId(taskId).withState(state).withReasonCode(reasonCode).withTaskRelocationPlan(taskRelocationPlan);
+        return newBuilder().withTaskId(taskId).withState(state).withReasonCode(reasonCode).withReasonMessage(reasonMessage).withTaskRelocationPlan(taskRelocationPlan);
     }
 
     public static Builder newBuilder() {
@@ -101,6 +126,7 @@ public class TaskRelocationStatus {
         private TaskRelocationState state;
         private String reasonCode;
         private TaskRelocationPlan taskRelocationPlan;
+        private String reasonMessage;
 
         private Builder() {
         }
@@ -120,13 +146,23 @@ public class TaskRelocationStatus {
             return this;
         }
 
+        public Builder withReasonMessage(String reasonMessage) {
+            this.reasonMessage = reasonMessage;
+            return this;
+        }
+
         public Builder withTaskRelocationPlan(TaskRelocationPlan taskRelocationPlan) {
             this.taskRelocationPlan = taskRelocationPlan;
             return this;
         }
 
         public TaskRelocationStatus build() {
-            return new TaskRelocationStatus(taskId, state, reasonCode, taskRelocationPlan);
+            Preconditions.checkNotNull(taskId, "Task id cannot be null");
+            Preconditions.checkNotNull(state, "Task state cannot be null");
+            Preconditions.checkNotNull(reasonCode, "Reason code cannot be null");
+            Preconditions.checkNotNull(reasonMessage, "Reason message cannot be null");
+            Preconditions.checkNotNull(taskRelocationPlan, "Task relocation plan cannot be null");
+            return new TaskRelocationStatus(taskId, state, reasonCode, reasonMessage, taskRelocationPlan);
         }
     }
 }

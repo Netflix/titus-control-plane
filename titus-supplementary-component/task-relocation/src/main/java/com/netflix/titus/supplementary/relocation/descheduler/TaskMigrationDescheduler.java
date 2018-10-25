@@ -25,10 +25,12 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
+import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 
 class TaskMigrationDescheduler {
@@ -52,15 +54,18 @@ class TaskMigrationDescheduler {
 
     private final EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker;
     private final EvictionQuotaTracker evictionQuotaTracker;
+    private final Map<String, Job<?>> jobsById;
     private final Clock clock;
 
     TaskMigrationDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans,
                              EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker,
                              EvictionQuotaTracker evictionQuotaTracker,
+                             Map<String, Job<?>> jobsById,
                              TitusRuntime titusRuntime) {
         this.plannedAheadTaskRelocationPlans = plannedAheadTaskRelocationPlans;
         this.evacuatedAgentsAllocationTracker = evacuatedAgentsAllocationTracker;
         this.evictionQuotaTracker = evictionQuotaTracker;
+        this.jobsById = jobsById;
         this.clock = titusRuntime.getClock();
     }
 
@@ -69,7 +74,7 @@ class TaskMigrationDescheduler {
             return Optional.empty();
         }
 
-        return evacuatedAgentsAllocationTracker.getInstances().values().stream()
+        return evacuatedAgentsAllocationTracker.getRemovableAgentsById().values().stream()
                 .map(i -> Pair.of(i, computeFitness(i)))
                 .filter(p -> p.getRight().getLeft() > 0)
                 .max(Comparator.comparingDouble(p -> p.getRight().getLeft()))
@@ -84,6 +89,23 @@ class TaskMigrationDescheduler {
 
                     return Pair.of(agent, tasks);
                 });
+    }
+
+    DeschedulingFailure getDeschedulingFailure(Task task) {
+        Job<?> job = jobsById.get(task.getJobId());
+
+        String message;
+        if (job == null) {
+            message = "No job record found";
+        } else if (!canTerminate(task)) {
+            message = "Migration deadline not reached yet";
+        } else if (evictionQuotaTracker.getJobEvictionQuota(job.getId()) <= 0) {
+            message = "Not enough job quota";
+        } else {
+            message = "Unknown";
+        }
+
+        return DeschedulingFailure.newBuilder().withReasonMessage(message).build();
     }
 
     private Pair<Double, List<Task>> computeFitness(AgentInstance agent) {

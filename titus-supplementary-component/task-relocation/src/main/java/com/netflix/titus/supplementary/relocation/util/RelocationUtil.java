@@ -27,6 +27,8 @@ import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.common.util.DateTimeExt;
+import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 
 public final class RelocationUtil {
 
@@ -61,5 +63,9 @@ public final class RelocationUtil {
     public static boolean isOnInstance(AgentInstance instance, Task task) {
         String taskAgentId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID);
         return taskAgentId != null && taskAgentId.equals(instance.getId());
+    }
+
+    public static String doFormat(TaskRelocationPlan plan) {
+        return String.format("{reason=%s, reasonMessage='%s', relocationAfter=%s}", plan.getReason(), plan.getReasonMessage(), DateTimeExt.toUtcDateTimeString(plan.getRelocationTime()));
     }
 }

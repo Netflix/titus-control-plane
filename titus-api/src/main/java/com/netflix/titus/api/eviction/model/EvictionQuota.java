@@ -65,6 +65,13 @@ public class EvictionQuota {
                 '}';
     }
 
+    public static EvictionQuota emptyQuota(Reference reference) {
+        return newBuilder()
+                .withReference(reference)
+                .withQuota(0L)
+                .build();
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }

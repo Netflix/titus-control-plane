@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.eviction.endpoint.grpc;
 
 import java.time.Duration;
+import java.util.Optional;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -137,31 +138,34 @@ public final class GrpcEvictionModelConverters {
         throw new IllegalArgumentException("No mapping for: " + grpcEvent);
     }
 
-    public static EvictionServiceEvent toGrpcEvent(EvictionEvent coreEvent) {
+    public static Optional<EvictionServiceEvent> toGrpcEvent(EvictionEvent coreEvent) {
         if (coreEvent instanceof EvictionSnapshotEndEvent) {
-            return EvictionServiceEvent.newBuilder()
+            EvictionServiceEvent grpcEvent = EvictionServiceEvent.newBuilder()
                     .setSnapshotEnd(EvictionServiceEvent.SnapshotEnd.getDefaultInstance())
                     .build();
+            return Optional.of(grpcEvent);
         }
         if (coreEvent instanceof EvictionQuotaEvent) {
             EvictionQuotaEvent actualEvent = (EvictionQuotaEvent) coreEvent;
-            return EvictionServiceEvent.newBuilder()
+            EvictionServiceEvent grpcEvent = EvictionServiceEvent.newBuilder()
                     .setEvictionQuotaEvent(EvictionServiceEvent.EvictionQuotaEvent.newBuilder()
                             .setQuota(toGrpcEvictionQuota(actualEvent.getQuota()))
                             .build()
                     )
                     .build();
+            return Optional.of(grpcEvent);
         }
         if (coreEvent instanceof TaskTerminationEvent) {
             TaskTerminationEvent actualEvent = (TaskTerminationEvent) coreEvent;
-            return EvictionServiceEvent.newBuilder()
+            EvictionServiceEvent grpcEvent = EvictionServiceEvent.newBuilder()
                     .setTaskTerminationEvent(EvictionServiceEvent.TaskTerminationEvent.newBuilder()
                             .setTaskId(actualEvent.getTaskId())
                             .setApproved(actualEvent.isApproved())
                             .build()
                     )
                     .build();
+            return Optional.of(grpcEvent);
         }
-        throw new IllegalArgumentException("No GRPC mapping for: " + coreEvent);
+        return Optional.empty();
     }
 }

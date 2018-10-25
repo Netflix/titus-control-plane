@@ -22,6 +22,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
@@ -42,7 +43,7 @@ public class TaskRelocationEndpointModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TaskRelocationEndpointConfiguration getTaskRelocationEndpointConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(TaskRelocationEndpointConfiguration.class);
+    public GrpcEndpointConfiguration getTaskRelocationEndpointConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(GrpcEndpointConfiguration.class, "titus.relocation.endpoint");
     }
 }

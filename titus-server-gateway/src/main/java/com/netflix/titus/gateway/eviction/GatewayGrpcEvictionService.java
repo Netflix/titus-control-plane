@@ -86,7 +86,7 @@ public class GatewayGrpcEvictionService extends EvictionServiceGrpc.EvictionServ
     @Override
     public void observeEvents(ObserverEventRequest request, StreamObserver<EvictionServiceEvent> responseObserver) {
         Subscription subscription = evictionServiceClient.observeEvents(request.getIncludeSnapshot()).subscribe(
-                event -> responseObserver.onNext(toGrpcEvent(event)),
+                event -> toGrpcEvent(event).ifPresent(responseObserver::onNext),
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );

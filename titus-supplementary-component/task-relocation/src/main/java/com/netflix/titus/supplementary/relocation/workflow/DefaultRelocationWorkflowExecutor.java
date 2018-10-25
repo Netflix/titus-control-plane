@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,6 +40,7 @@ import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
@@ -46,6 +48,7 @@ import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.step.DeschedulerStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedTaskCollectorStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedTaskStoreUpdateStep;
+import com.netflix.titus.supplementary.relocation.workflow.step.RelocationTransactionLogger;
 import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionResultStoreStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionStep;
 import org.slf4j.Logger;
@@ -64,7 +67,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private final EvictionDataReplicator evictionDataReplicator;
 
-    private final EvacuationMetrics metrics;
+    private final WorkflowMetrics metrics;
     private final ScheduleReference disposable;
 
     private final MustBeRelocatedTaskCollectorStep mustBeRelocatedTaskCollectorStep;
@@ -72,10 +75,11 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     private final MustBeRelocatedTaskStoreUpdateStep mustBeRelocatedTaskStoreUpdateStep;
     private final TaskEvictionResultStoreStep taskEvictionResultStoreStep;
     private final TaskEvictionStep taskEvictionStep;
+    private final DeschedulingResultLogger deschedulingResultLogger;
 
     private volatile Map<String, TaskRelocationPlan> lastRelocationPlan = Collections.emptyMap();
-    private volatile Map<String, TaskRelocationPlan> lastEvictionPlan;
-    private volatile Map<String, TaskRelocationStatus> lastEvictionResult;
+    private volatile Map<String, TaskRelocationPlan> lastEvictionPlan = Collections.emptyMap();
+    private volatile Map<String, TaskRelocationStatus> lastEvictionResult = Collections.emptyMap();
 
     @Inject
     public DefaultRelocationWorkflowExecutor(RelocationConfiguration configuration,
@@ -93,13 +97,16 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         this.agentDataReplicator = agentDataReplicator;
         this.jobDataReplicator = jobDataReplicator;
         this.evictionDataReplicator = evictionDataReplicator;
-        this.metrics = new EvacuationMetrics(titusRuntime);
+        this.metrics = new WorkflowMetrics(titusRuntime);
 
+        RelocationTransactionLogger transactionLog = new RelocationTransactionLogger(jobOperations);
         this.mustBeRelocatedTaskCollectorStep = new MustBeRelocatedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
-        this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep(activeStore);
-        this.deschedulerStep = new DeschedulerStep(deschedulerService);
-        this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, Schedulers.parallel());
-        this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep(archiveStore);
+        this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep(activeStore, transactionLog, titusRuntime);
+        this.deschedulerStep = new DeschedulerStep(deschedulerService, transactionLog, titusRuntime);
+        this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, transactionLog, Schedulers.parallel());
+        this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep(archiveStore, transactionLog, titusRuntime);
+
+        this.deschedulingResultLogger = new DeschedulingResultLogger();
 
         ScheduleDescriptor relocationScheduleDescriptor = ScheduleDescriptor.newBuilder()
                 .withName("relocationWorkflow")
@@ -114,7 +121,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     @PreDestroy
     public void shutdown() {
-        IOExt.closeSilently(disposable::close);
+        IOExt.closeSilently(disposable);
     }
 
     @Override
@@ -124,16 +131,16 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     @Override
     public Map<String, TaskRelocationPlan> getLastEvictionPlan() {
-        return null;
+        return Collections.unmodifiableMap(lastEvictionPlan);
     }
 
     @Override
     public Map<String, TaskRelocationStatus> getLastEvictionResults() {
-        return null;
+        return Collections.unmodifiableMap(lastEvictionResult);
     }
 
     private void nextRelocationStep(ExecutionContext executionContext) {
-        long count = executionContext.getIteration().getTotal();
+        long count = executionContext.getExecutionId().getTotal();
         logger.info("Starting task relocation iteration {}...", count);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -146,7 +153,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     }
 
     private void doWork() {
-        if (!checkNotStale()) {
+        if (hasStaleData()) {
             logger.info("Stale data. Skipping the task relocation iteration");
             return;
         }
@@ -156,18 +163,22 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(lastRelocationPlan);
 
         // Descheduling
-        this.lastEvictionPlan = deschedulerStep.deschedule(lastRelocationPlan);
+        Map<String, DeschedulingResult> deschedulingResult = deschedulerStep.deschedule(lastRelocationPlan);
+        this.lastEvictionPlan = deschedulingResult.values().stream()
+                .filter(DeschedulingResult::canEvict)
+                .collect(Collectors.toMap(d -> d.getTask().getId(), DeschedulingResult::getTaskRelocationPlan));
+        deschedulingResultLogger.doLog(deschedulingResult);
 
         // Eviction
         this.lastEvictionResult = taskEvictionStep.evict(lastEvictionPlan);
-        taskEvictionResultStoreStep.storeTaskEvictionResults(lastEvictionPlan, lastEvictionResult);
+        taskEvictionResultStoreStep.storeTaskEvictionResults(lastEvictionResult);
     }
 
-    private boolean checkNotStale() {
+    private boolean hasStaleData() {
         long dataStaleness = getDataStalenessMs();
-        boolean staleness = dataStaleness > configuration.getDataStalenessThresholdMs();
-        metrics.setStaleness(staleness, dataStaleness);
-        return staleness;
+        boolean stale = dataStaleness > configuration.getDataStalenessThresholdMs();
+        metrics.setStaleness(stale, dataStaleness);
+        return stale;
     }
 
     private long getDataStalenessMs() {

@@ -21,7 +21,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
-import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
@@ -36,23 +35,6 @@ public class CachedReadOnlyEvictionOperations implements ReadOnlyEvictionOperati
     @Inject
     public CachedReadOnlyEvictionOperations(EvictionDataReplicator replicator) {
         this.replicator = replicator;
-    }
-
-    @Override
-    public SystemDisruptionBudget getGlobalDisruptionBudget() {
-        return replicator.getCurrent().getGlobalDisruptionBudget();
-    }
-
-    @Override
-    public SystemDisruptionBudget getTierDisruptionBudget(Tier tier) {
-        return replicator.getCurrent().getTierDisruptionBudget(tier);
-    }
-
-    @Override
-    public SystemDisruptionBudget getCapacityGroupDisruptionBudget(String capacityGroupName) {
-        return replicator.getCurrent()
-                .findCapacityGroupDisruptionBudget(capacityGroupName)
-                .orElseThrow(() -> EvictionException.capacityGroupNotFound(capacityGroupName));
     }
 
     @Override

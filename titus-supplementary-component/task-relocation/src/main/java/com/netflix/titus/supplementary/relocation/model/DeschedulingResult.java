@@ -17,6 +17,7 @@
 package com.netflix.titus.supplementary.relocation.model;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -26,13 +27,16 @@ public class DeschedulingResult {
     private final TaskRelocationPlan taskRelocationPlan;
     private final Task task;
     private final AgentInstance agentInstance;
+    private final Optional<DeschedulingFailure> failure;
 
     public DeschedulingResult(TaskRelocationPlan taskRelocationPlan,
                               Task task,
-                              AgentInstance agentInstance) {
+                              AgentInstance agentInstance,
+                              Optional<DeschedulingFailure> failure) {
         this.taskRelocationPlan = taskRelocationPlan;
         this.task = task;
         this.agentInstance = agentInstance;
+        this.failure = failure;
     }
 
     public TaskRelocationPlan getTaskRelocationPlan() {
@@ -47,6 +51,14 @@ public class DeschedulingResult {
         return agentInstance;
     }
 
+    public boolean canEvict() {
+        return !failure.isPresent();
+    }
+
+    public Optional<DeschedulingFailure> getFailure() {
+        return failure;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -55,15 +67,16 @@ public class DeschedulingResult {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DeschedulingResult that = (DeschedulingResult) o;
-        return Objects.equals(taskRelocationPlan, that.taskRelocationPlan) &&
-                Objects.equals(task, that.task) &&
-                Objects.equals(agentInstance, that.agentInstance);
+        DeschedulingResult result = (DeschedulingResult) o;
+        return Objects.equals(taskRelocationPlan, result.taskRelocationPlan) &&
+                Objects.equals(task, result.task) &&
+                Objects.equals(agentInstance, result.agentInstance) &&
+                Objects.equals(failure, result.failure);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskRelocationPlan, task, agentInstance);
+        return Objects.hash(taskRelocationPlan, task, agentInstance, failure);
     }
 
     @Override
@@ -72,11 +85,12 @@ public class DeschedulingResult {
                 "taskRelocationPlan=" + taskRelocationPlan +
                 ", task=" + task +
                 ", agentInstance=" + agentInstance +
+                ", failure=" + failure +
                 '}';
     }
 
     public Builder toBuilder() {
-        return newBuilder().withTaskRelocationPlan(taskRelocationPlan).withTask(task).withAgentInstance(agentInstance);
+        return newBuilder().withTaskRelocationPlan(taskRelocationPlan).withTask(task).withAgentInstance(agentInstance).withFailure(failure.orElse(null));
     }
 
     public static Builder newBuilder() {
@@ -87,6 +101,7 @@ public class DeschedulingResult {
         private TaskRelocationPlan taskRelocationPlan;
         private Task task;
         private AgentInstance agentInstance;
+        private Optional<DeschedulingFailure> failure = Optional.empty();
 
         private Builder() {
         }
@@ -106,8 +121,13 @@ public class DeschedulingResult {
             return this;
         }
 
+        public Builder withFailure(DeschedulingFailure failure) {
+            this.failure = Optional.ofNullable(failure);
+            return this;
+        }
+
         public DeschedulingResult build() {
-            return new DeschedulingResult(taskRelocationPlan, task, agentInstance);
+            return new DeschedulingResult(taskRelocationPlan, task, agentInstance, failure);
         }
     }
 }

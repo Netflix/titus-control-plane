@@ -16,8 +16,10 @@
 
 package com.netflix.titus.supplementary.relocation;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
+@Configuration(prefix = "titus.relocation")
 public interface RelocationConfiguration {
 
     @DefaultValue("" + 5 * 60_000)

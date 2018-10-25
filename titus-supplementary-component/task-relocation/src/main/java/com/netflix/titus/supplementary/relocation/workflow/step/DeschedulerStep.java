@@ -16,13 +16,18 @@
 
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Stopwatch;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tasks to be relocated now are identified in this step. Termination of the selected tasks should not violate the
@@ -30,10 +35,18 @@ import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
  */
 public class DeschedulerStep {
 
-    private final DeschedulerService deschedulerService;
+    private static final Logger logger = LoggerFactory.getLogger(DeschedulerStep.class);
 
-    public DeschedulerStep(DeschedulerService deschedulerService) {
+    private static final String STEP_NAME = "deschedulerStep";
+
+    private final DeschedulerService deschedulerService;
+    private final RelocationTransactionLogger transactionLogger;
+    private final StepMetrics metrics;
+
+    public DeschedulerStep(DeschedulerService deschedulerService, RelocationTransactionLogger transactionLogger, TitusRuntime titusRuntime) {
         this.deschedulerService = deschedulerService;
+        this.transactionLogger = transactionLogger;
+        this.metrics = new StepMetrics(STEP_NAME, titusRuntime);
     }
 
     /**
@@ -45,10 +58,29 @@ public class DeschedulerStep {
      * collection if their deadline has passed. It may also include tasks that were not planned ahead of time
      * for relocation.
      */
-    public Map<String, TaskRelocationPlan> deschedule(Map<String, TaskRelocationPlan> tasksToEvict) {
+    public Map<String, DeschedulingResult> deschedule(Map<String, TaskRelocationPlan> tasksToEvict) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        try {
+            Map<String, DeschedulingResult> result = execute(tasksToEvict);
+            metrics.onSuccess(result.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            logger.debug("Descheduling result: {}", result);
+            return result;
+        } catch (Exception e) {
+            logger.error("Step processing error", e);
+            metrics.onError(stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            throw e;
+        }
+    }
+
+    private Map<String, DeschedulingResult> execute(Map<String, TaskRelocationPlan> tasksToEvict) {
         List<DeschedulingResult> deschedulingResult = deschedulerService.deschedule(tasksToEvict);
 
-        return deschedulingResult.stream()
-                .collect(Collectors.toMap(d -> d.getTask().getId(), DeschedulingResult::getTaskRelocationPlan));
+        Map<String, DeschedulingResult> resultByTaskId = new HashMap<>();
+        deschedulingResult.forEach(result -> {
+            resultByTaskId.put(result.getTask().getId(), result);
+            transactionLogger.logTaskRelocationDeschedulingResult(STEP_NAME, result);
+        });
+
+        return resultByTaskId;
     }
 }
