@@ -65,9 +65,9 @@ import static com.netflix.titus.ext.aws.appscale.AWSAppAutoScalingUtil.buildScal
 @Singleton
 public class AWSAppAutoScalingClient implements AppAutoScalingClient {
     private static Logger logger = LoggerFactory.getLogger(AWSAppAutoScalingClient.class);
-    public static String SERVICE_NAMESPACE = "custom-resource";
+    public final static String SERVICE_NAMESPACE = "custom-resource";
     // AWS requires this field be set to this specific value for all application-autoscaling calls.
-    public static String SCALABLE_DIMENSION = "custom-resource:ResourceType:Property";
+    public final static String SCALABLE_DIMENSION = "custom-resource:ResourceType:Property";
 
     private final AWSApplicationAutoScalingAsync awsAppAutoScalingClientAsync;
     private final AWSAppScalingConfig awsAppScalingConfig;
