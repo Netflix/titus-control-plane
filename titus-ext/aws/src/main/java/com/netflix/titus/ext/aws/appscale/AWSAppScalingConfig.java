@@ -19,10 +19,6 @@ package com.netflix.titus.ext.aws.appscale;
 import com.netflix.archaius.api.annotations.PropertyName;
 
 public interface AWSAppScalingConfig {
-    String SERVICE_NAMESPACE = "custom-resource";
-    // AWS requires this field be set to this specific value for all application-autoscaling calls.
-    String SCALABLE_DIMENSION = "custom-resource:ResourceType:Property";
-
     @PropertyName(name = "region")
     String getRegion();
 
