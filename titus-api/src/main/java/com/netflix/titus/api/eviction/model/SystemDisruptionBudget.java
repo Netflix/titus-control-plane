@@ -16,8 +16,11 @@
 
 package com.netflix.titus.api.eviction.model;
 
-import com.netflix.titus.api.model.reference.Reference;
+import java.util.Objects;
+
+import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
 import com.netflix.titus.api.model.TokenBucketPolicy;
+import com.netflix.titus.api.model.reference.Reference;
 
 public class SystemDisruptionBudget {
 
@@ -37,8 +40,50 @@ public class SystemDisruptionBudget {
         return tokenBucketPolicy;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        SystemDisruptionBudget that = (SystemDisruptionBudget) o;
+        return Objects.equals(reference, that.reference) &&
+                Objects.equals(tokenBucketPolicy, that.tokenBucketPolicy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(reference, tokenBucketPolicy);
+    }
+
+    @Override
+    public String toString() {
+        return "SystemDisruptionBudget{" +
+                "reference=" + reference +
+                ", tokenBucketPolicy=" + tokenBucketPolicy +
+                '}';
+    }
+
     public Builder toBuilder() {
         return newBuilder().withReference(reference).withTokenBucketDescriptor(tokenBucketPolicy);
+    }
+
+    public static SystemDisruptionBudget newBasicSystemDisruptionBudget(long refillRatePerSecond, long capacity) {
+        return newBuilder()
+                .withReference(Reference.global())
+                .withTokenBucketDescriptor(TokenBucketPolicy.newBuilder()
+                        .withInitialNumberOfTokens(0)
+                        .withCapacity(capacity)
+                        .withRefillPolicy(FixedIntervalTokenBucketRefillPolicy.newBuilder()
+                                .withNumberOfTokensPerInterval(refillRatePerSecond)
+                                .withIntervalMs(1_000)
+                                .build()
+                        )
+                        .build()
+                )
+                .build();
     }
 
     public static Builder newBuilder() {

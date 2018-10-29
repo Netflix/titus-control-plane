@@ -24,6 +24,7 @@ import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodePointTracker;
 import com.netflix.titus.common.util.code.RecordingCodeInvariants;
 import com.netflix.titus.common.util.time.Clocks;
+import com.netflix.titus.common.util.time.TestClock;
 import rx.schedulers.TestScheduler;
 
 public final class TitusRuntimes {
@@ -51,6 +52,18 @@ public final class TitusRuntimes {
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 Clocks.test(),
+                false
+        );
+    }
+
+    public static TitusRuntime test(TestClock clock) {
+        return new DefaultTitusRuntime(
+                new LoggingCodePointTracker(),
+                new RecordingCodeInvariants(),
+                LoggingSystemLogService.getInstance(),
+                LoggingSystemAbortListener.getDefault(),
+                new DefaultRegistry(),
+                clock,
                 false
         );
     }

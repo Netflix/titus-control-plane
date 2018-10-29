@@ -16,10 +16,18 @@
 
 package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 public class TimeWindow {
+
+    private static final TimeWindow EMPTY = new TimeWindow(Collections.emptyList(), Collections.emptyList());
 
     private final List<Day> days;
     private final List<HourlyTimeWindow> hourlyTimeWindows;
@@ -35,10 +43,6 @@ public class TimeWindow {
 
     public List<HourlyTimeWindow> getHourlyTimeWindows() {
         return hourlyTimeWindows;
-    }
-
-    public static Builder newBuilder() {
-        return new Builder();
     }
 
     @Override
@@ -67,6 +71,14 @@ public class TimeWindow {
                 '}';
     }
 
+    public static TimeWindow empty() {
+        return EMPTY;
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
     public static final class Builder {
         private List<Day> days;
         private List<HourlyTimeWindow> hourlyTimeWindows;
@@ -74,13 +86,29 @@ public class TimeWindow {
         private Builder() {
         }
 
-        public Builder withDays(List<Day> days) {
-            this.days = days;
+        public Builder withDays(Day... days) {
+            getOrCreateMutableDaysList().addAll(Arrays.asList(days));
+            return this;
+        }
+
+        public Builder withDays(Collection<Day> days) {
+            this.days = new ArrayList<>(days);
             return this;
         }
 
         public Builder withHourlyTimeWindows(List<HourlyTimeWindow> hourlyTimeWindows) {
             this.hourlyTimeWindows = hourlyTimeWindows;
+            return this;
+        }
+
+        public Builder withwithHourlyTimeWindows(int... startEndHours) {
+            Preconditions.checkArgument(startEndHours.length % 2 == 0, "Expected pairs of start/end hours");
+            getOrCreateMutableHoursList();
+
+            for (int i = 0; i < startEndHours.length; i += 2) {
+                this.hourlyTimeWindows.add(HourlyTimeWindow.newRange(startEndHours[i], startEndHours[i + 1]));
+            }
+
             return this;
         }
 
@@ -90,6 +118,24 @@ public class TimeWindow {
 
         public TimeWindow build() {
             return new TimeWindow(days, hourlyTimeWindows);
+        }
+
+        private List<Day> getOrCreateMutableDaysList() {
+            if (this.days == null) {
+                this.days = new ArrayList<>();
+            } else if (!(this.days instanceof ArrayList)) {
+                this.days = new ArrayList<>(this.days);
+            }
+            return days;
+        }
+
+        private List<HourlyTimeWindow> getOrCreateMutableHoursList() {
+            if (this.hourlyTimeWindows == null) {
+                this.hourlyTimeWindows = new ArrayList<>();
+            } else if (!(this.hourlyTimeWindows instanceof ArrayList)) {
+                this.hourlyTimeWindows = new ArrayList<>(this.hourlyTimeWindows);
+            }
+            return hourlyTimeWindows;
         }
     }
 }

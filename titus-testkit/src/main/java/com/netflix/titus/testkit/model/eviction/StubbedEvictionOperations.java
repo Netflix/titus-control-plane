@@ -55,7 +55,7 @@ class StubbedEvictionOperations implements EvictionOperations {
 
             long quota = stubbedEvictionData.findJobQuota(job.getId()).orElse(0L);
             if (quota <= 0) {
-                throw EvictionException.noAvailableJobQuota(job, -1, -1);
+                throw EvictionException.noAvailableJobQuota(job, "No quota");
             }
 
             jobOperations.killTask(taskId, false, "Eviction");

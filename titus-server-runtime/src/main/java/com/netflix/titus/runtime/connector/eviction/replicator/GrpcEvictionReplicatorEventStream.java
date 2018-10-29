@@ -30,7 +30,6 @@ import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataSnapshot;

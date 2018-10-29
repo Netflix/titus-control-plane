@@ -19,7 +19,8 @@ package com.netflix.titus.api.model.reference;
 import com.netflix.titus.api.model.Level;
 
 public class GlobalReference extends Reference {
-    private static final com.netflix.titus.api.model.reference.GlobalReference INSTANCE = new com.netflix.titus.api.model.reference.GlobalReference();
+
+    private static final GlobalReference INSTANCE = new GlobalReference();
 
     private GlobalReference() {
         super(Level.Global);
@@ -28,6 +29,11 @@ public class GlobalReference extends Reference {
     @Override
     public String getName() {
         return "global";
+    }
+
+    @Override
+    public String toString() {
+        return "GlobalReference{}";
     }
 
     public static GlobalReference getInstance() {

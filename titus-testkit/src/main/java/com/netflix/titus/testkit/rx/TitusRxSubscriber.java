@@ -97,6 +97,10 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
         return (List<T>) emits.stream().filter(v -> !isMarker(v)).collect(Collectors.toList());
     }
 
+    public T takeNext() {
+        return afterTakeNext(items.poll());
+    }
+
     public T takeNext(Duration duration) throws InterruptedException {
         return afterTakeNext(items.poll(duration.toMillis(), TimeUnit.MILLISECONDS));
     }

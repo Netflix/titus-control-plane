@@ -23,7 +23,9 @@ import java.util.function.Predicate;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import reactor.core.publisher.Flux;
 import rx.Observable;
 
 import static com.netflix.titus.common.util.FunctionExt.alwaysTrue;
@@ -57,4 +59,17 @@ public interface ReadOnlyJobOperations {
                                                Predicate<Pair<Job<?>, Task>> tasksPredicate);
 
     Observable<JobManagerEvent<?>> observeJob(String jobId);
+
+    default Flux<JobManagerEvent<?>> observeJobsReactor() {
+        return ReactorExt.toFlux(observeJobs(alwaysTrue(), alwaysTrue()));
+    }
+
+    default Flux<JobManagerEvent<?>> observeJobsReactor(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
+                                                        Predicate<Pair<Job<?>, Task>> tasksPredicate) {
+        return ReactorExt.toFlux(observeJobs(jobsPredicate, tasksPredicate));
+    }
+
+    default Flux<JobManagerEvent<?>> observeJobReactor(String jobId) {
+        return ReactorExt.toFlux(observeJob(jobId));
+    }
 }

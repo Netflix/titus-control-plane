@@ -141,6 +141,7 @@ import rx.exceptions.Exceptions;
  */
 public class ObjectMappers {
 
+    private static final ObjectMapper JACKSON_DEFAULT = new ObjectMapper();
     private static final ObjectMapper DEFAULT = createDefaultMapper();
     private static final ObjectMapper COMPACT = createCompactMapper();
     private static final ObjectMapper STORE = createStoreMapper();
@@ -153,6 +154,10 @@ public class ObjectMappers {
     }
 
     public static final class DebugView {
+    }
+
+    public static ObjectMapper jacksonDefaultMapper() {
+        return JACKSON_DEFAULT;
     }
 
     public static ObjectMapper defaultMapper() {

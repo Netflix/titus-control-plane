@@ -25,6 +25,11 @@ import reactor.core.publisher.Flux;
 
 public interface ReadOnlyEvictionOperations {
 
+    /**
+     * For tiers and capacity groups we do not enforce quota yet, so we set it to a very high value.
+     */
+    int VERY_HIGH_QUOTA = 1_000;
+
     EvictionQuota getGlobalEvictionQuota();
 
     EvictionQuota getTierEvictionQuota(Tier tier);

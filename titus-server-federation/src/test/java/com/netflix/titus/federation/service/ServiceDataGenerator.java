@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
@@ -94,6 +95,7 @@ class ServiceDataGenerator {
         List<Task> generatedTasks = new ArrayList<>();
         batchJobs = batchJobs.apply(job -> {
             List<Task> tasks = JobGenerator.batchTasks(job)
+                    .limit(JobFunctions.getJobDesiredSize(job))
                     .map(t -> V3GrpcModelConverters.toGrpcTask(t, new EmptyLogStorageInfo<>()))
                     .toList();
             generatedTasks.addAll(tasks);
@@ -105,6 +107,7 @@ class ServiceDataGenerator {
         List<Task> generatedTasks = new ArrayList<>();
         serviceJobs = serviceJobs.apply(job -> {
             List<Task> tasks = JobGenerator.serviceTasks(job)
+                    .limit(JobFunctions.getJobDesiredSize(job))
                     .map(t -> V3GrpcModelConverters.toGrpcTask(t, new EmptyLogStorageInfo<>()))
                     .toList();
             generatedTasks.addAll(tasks);

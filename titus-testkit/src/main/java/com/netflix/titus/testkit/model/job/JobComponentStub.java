@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
+import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
+import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -51,21 +53,27 @@ public class JobComponentStub {
 
     private final Clock clock;
 
-    private final StubbedJobData stubJobData;
+    private final StubbedJobData stubbedJobData;
     private final StubbedJobOperations stubbedJobOperations;
+    private final ContainerHealthService stubbedContainerHealthService;
 
     private final MutableDataGenerator<Job> jobGenerator;
     private final Map<String, MutableDataGenerator<JobDescriptor>> jobTemplates = new HashMap<>();
 
     public JobComponentStub(TitusRuntime titusRuntime) {
-        this.stubJobData = new StubbedJobData(titusRuntime);
-        this.stubbedJobOperations = new StubbedJobOperations(stubJobData);
+        this.stubbedJobData = new StubbedJobData(titusRuntime);
+        this.stubbedJobOperations = new StubbedJobOperations(stubbedJobData);
+        this.stubbedContainerHealthService = new StubbedContainerHealthService(stubbedJobData);
         this.jobGenerator = new MutableDataGenerator<>(JobGenerator.jobs(titusRuntime.getClock()));
         this.clock = titusRuntime.getClock();
     }
 
     public V3JobOperations getJobOperations() {
         return stubbedJobOperations;
+    }
+
+    public ContainerHealthService getContainerHealthService() {
+        return stubbedContainerHealthService;
     }
 
     public JobComponentStub addJobTemplate(String templateId, DataGenerator<JobDescriptor> jobDescriptorGenerator) {
@@ -83,12 +91,12 @@ public class JobComponentStub {
     }
 
     public Job createJob(Job<?> job) {
-        stubJobData.addJob(job);
+        stubbedJobData.addJob(job);
         return job;
     }
 
     public List<Task> createDesiredTasks(Job<?> job) {
-        return stubJobData.createDesiredTasks(job);
+        return stubbedJobData.createDesiredTasks(job);
     }
 
     public Pair<Job, List<Task>> createJobAndTasks(String templateId) {
@@ -118,11 +126,16 @@ public class JobComponentStub {
     }
 
     public Job moveJobToKillInitiatedState(Job job) {
-        return stubJobData.moveJobToKillInitiatedState(job);
+        return stubbedJobData.moveJobToKillInitiatedState(job);
+    }
+
+    public <E extends JobDescriptor.JobDescriptorExt> Job<E> changeJob(Job<E> updatedJob) {
+        stubbedJobData.changeJob(updatedJob.getId(), j -> updatedJob);
+        return updatedJob;
     }
 
     public Job finishJob(Job job) {
-        return stubJobData.finishJob(job);
+        return stubbedJobData.finishJob(job);
     }
 
     public Task moveTaskToState(String taskId, TaskState newState) {
@@ -131,11 +144,15 @@ public class JobComponentStub {
     }
 
     public Task moveTaskToState(Task task, TaskState newState) {
-        return stubJobData.moveTaskToState(task, newState);
+        return stubbedJobData.moveTaskToState(task, newState);
+    }
+
+    public void changeContainerHealth(String taskId, ContainerHealthState healthState) {
+        stubbedJobData.changeContainerHealth(taskId, healthState);
     }
 
     public void place(String taskId, AgentInstance agentInstance) {
-        stubJobData.changeTask(taskId, task ->
+        stubbedJobData.changeTask(taskId, task ->
                 task.toBuilder()
                         .withStatus(TaskStatus.newBuilder()
                                 .withState(TaskState.Started)
@@ -151,11 +168,11 @@ public class JobComponentStub {
     }
 
     public void forget(Task task) {
-        stubJobData.removeTask(task, false);
+        stubbedJobData.removeTask(task, false);
     }
 
     public Observable<JobManagerEvent<?>> observeJobs(boolean snapshot) {
-        return stubJobData.events(snapshot);
+        return stubbedJobData.events(snapshot);
     }
 
     public Observable<JobChangeNotification> grpcObserveJobs(boolean snapshot) {

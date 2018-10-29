@@ -27,7 +27,9 @@ import java.util.function.Supplier;
 
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
+import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -176,8 +178,8 @@ public final class ReactorExt {
                         } catch (Exception e) {
                             try {
                                 sink.error(e);
-                            } catch (Exception e2) {
                                 logger.warn("Subscriber threw an exception from onNext handler", e);
+                            } catch (Exception e2) {
                                 logger.warn("Subscriber threw an exception from onError handler", e2);
                             }
                         }
@@ -216,6 +218,13 @@ public final class ReactorExt {
     }
 
     /**
+     * RxJava {@link Single} to {@link Mono} bridge.
+     */
+    public static Mono<Void> toMono(Observable<Void> observable) {
+        return toFlux(observable).next();
+    }
+
+    /**
      * RxJava {@link rx.Completable} to {@link Mono} bridge.
      */
     public static Mono<Void> toMono(Completable completable) {
@@ -234,5 +243,28 @@ public final class ReactorExt {
      */
     public static <T> Single<T> toSingle(Mono<T> mono) {
         return toObservable(mono).toSingle();
+    }
+
+    /**
+     * Subscriber that does not do anything with the callback requests.
+     */
+    public static <T> CoreSubscriber<T> silentSubscriber() {
+        return new CoreSubscriber<T>() {
+            @Override
+            public void onSubscribe(Subscription s) {
+            }
+
+            @Override
+            public void onNext(T t) {
+            }
+
+            @Override
+            public void onError(Throwable t) {
+            }
+
+            @Override
+            public void onComplete() {
+            }
+        };
     }
 }

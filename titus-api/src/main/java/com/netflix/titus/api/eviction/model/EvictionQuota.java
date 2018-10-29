@@ -72,6 +72,20 @@ public class EvictionQuota {
                 .build();
     }
 
+    public static EvictionQuota systemQuota(long quota) {
+        return newBuilder()
+                .withReference(Reference.global())
+                .withQuota(quota)
+                .build();
+    }
+
+    public static EvictionQuota jobQuota(String jobId, long quota) {
+        return newBuilder()
+                .withReference(Reference.job(jobId))
+                .withQuota(quota)
+                .build();
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }

@@ -17,7 +17,9 @@
 package com.netflix.titus.common.util;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 import com.google.protobuf.Duration;
@@ -42,6 +44,13 @@ public final class DateTimeExt {
             return null;
         }
         return ISO_UTC_DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(msSinceEpoch)) + 'Z';
+    }
+
+    /**
+     * Returns current day of week in UTC.
+     */
+    public static OffsetDateTime toDateTimeUTC(long msSinceEpoch) {
+        return Instant.ofEpochMilli(msSinceEpoch).atOffset(ZoneOffset.UTC);
     }
 
     /**

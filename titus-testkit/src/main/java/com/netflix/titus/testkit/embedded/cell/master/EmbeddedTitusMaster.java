@@ -46,11 +46,13 @@ import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
 import com.netflix.titus.common.util.guice.ContainerEventBus;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -72,6 +74,7 @@ import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
+import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.store.V2StorageProvider;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
@@ -100,6 +103,8 @@ import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
+
+import static com.netflix.titus.api.json.ObjectMappers.jacksonDefaultMapper;
 
 /**
  * Run TitusMaster server with mocked external integrations (mesos, storage).
@@ -156,7 +161,10 @@ public class EmbeddedTitusMaster {
         Properties embeddedProperties = new Properties();
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         embeddedProperties.put("titus.master.cellName", cellName);
-        embeddedProperties.put("titusMaster.v2Enabled", "false");
+        embeddedProperties.put(
+                "titusMaster.eviction.systemDisruptionBudget",
+                ExceptionExt.rethrow(() -> jacksonDefaultMapper().writeValueAsString(new SystemDisruptionBudgetDescriptor(100, 100)))
+        );
         config.setProperties(embeddedProperties);
 
         if (builder.remoteCloud == null) {

@@ -16,8 +16,10 @@
 
 package com.netflix.titus.testkit.model.job;
 
+import java.util.Collections;
 import java.util.UUID;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -128,7 +130,7 @@ public class JobGenerator {
      */
     public static DataGenerator<BatchJobTask> batchTasks(Job<BatchJobExt> batchJob) {
         int size = batchJob.getJobDescriptor().getExtensions().getSize();
-        return zip(taskIds(batchJob.getId(), range(1, size + 1)), range(0, size)).map(p -> {
+        return zip(taskIds(batchJob.getId(), range(1)), range(0, size).loop()).map(p -> {
             String taskId = p.getLeft();
             int taskIndex = p.getRight().intValue();
             return BatchJobTask.newBuilder()
@@ -137,6 +139,7 @@ public class JobGenerator {
                     .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).build())
                     .withJobId(batchJob.getId())
                     .withIndex(taskIndex)
+                    .withTaskContext(Collections.singletonMap(TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX, "" + taskIndex))
                     .build();
         });
     }

@@ -132,7 +132,7 @@ public final class GrpcEvictionModelConverters {
             case EVICTIONQUOTAEVENT:
                 return EvictionEvent.newQuotaEvent(toCoreEvictionQuota(grpcEvent.getEvictionQuotaEvent().getQuota()));
             case TASKTERMINATIONEVENT:
-                return EvictionEvent.newTaskTerminationEvent(grpcEvent.getTaskTerminationEvent().getTaskId(), grpcEvent.getTaskTerminationEvent().getApproved());
+                return EvictionEvent.newTaskTerminationEvent(grpcEvent.getTaskTerminationEvent().getTaskId(), "", grpcEvent.getTaskTerminationEvent().getApproved());
             case EVENT_NOT_SET:
         }
         throw new IllegalArgumentException("No mapping for: " + grpcEvent);
