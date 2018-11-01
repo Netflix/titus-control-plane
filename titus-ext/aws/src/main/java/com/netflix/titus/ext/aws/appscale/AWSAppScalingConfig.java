@@ -19,7 +19,6 @@ package com.netflix.titus.ext.aws.appscale;
 import com.netflix.archaius.api.annotations.PropertyName;
 
 public interface AWSAppScalingConfig {
-
     @PropertyName(name = "region")
     String getRegion();
 
