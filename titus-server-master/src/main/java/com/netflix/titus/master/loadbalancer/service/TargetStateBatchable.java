@@ -74,4 +74,13 @@ class TargetStateBatchable implements Batchable<LoadBalancerTarget> {
         TargetStateBatchable o = (TargetStateBatchable) other;
         return targetState.equals(o.targetState);
     }
+
+    @Override
+    public String toString() {
+        return "TargetStateBatchable{" +
+                "priority=" + priority +
+                ", timestamp=" + timestamp +
+                ", targetState=" + targetState +
+                '}';
+    }
 }
