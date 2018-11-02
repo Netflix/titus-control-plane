@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.eviction.endpoint.grpc;
 
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -28,6 +29,7 @@ import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.Reference;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
+import com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -59,6 +61,13 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
                 evictionQuota = toVeryHighQuota(request);
                 break;
             case JOBID:
+                Optional<EvictionQuota> quotaOpt = evictionOperations.findJobEvictionQuota(request.getJobId()).map(GrpcEvictionModelConverters::toGrpcEvictionQuota);
+                if (!quotaOpt.isPresent()) {
+                    responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND.withDescription("Job not found or no eviction quota associated with the job")));
+                    return;
+                }
+                evictionQuota = quotaOpt.get();
+                break;
             case TASKID:
             default:
                 responseObserver.onError(new IllegalArgumentException("Reference type not supported: " + request.getReferenceCase()));

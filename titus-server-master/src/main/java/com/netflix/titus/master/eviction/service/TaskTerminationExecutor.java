@@ -28,7 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.common.util.rx.queue.ReactorSerializedInvoker;
+import com.netflix.titus.common.util.rx.invoker.ReactorSerializedInvoker;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.TitusQuotasManager;
 import reactor.core.publisher.EmitterProcessor;

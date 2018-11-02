@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.util.rx.queue;
+package com.netflix.titus.common.util.rx.invoker;
 
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
@@ -75,7 +75,7 @@ public class ReactorSerializedInvoker<T> {
 
         this.shutdownFlag = true;
         MonoProcessor<Void> marker = MonoProcessor.create();
-        worker.schedule(this::drain);
+        worker.schedule(this::drainOnShutdown);
         worker.schedule(marker::onComplete);
         try {
             marker.block(timeout);
@@ -100,7 +100,12 @@ public class ReactorSerializedInvoker<T> {
                 return;
             }
             metrics.setQueueSize(actionHandlers.size());
-            worker.schedule(this::drain);
+
+            if (shutdownFlag) {
+                actionHandler.terminate();
+            } else {
+                worker.schedule(this::drain);
+            }
         });
     }
 
@@ -109,13 +114,9 @@ public class ReactorSerializedInvoker<T> {
      */
     private void drain() {
         if (shutdownFlag) {
-            handleShutdown();
-        } else {
-            handleActions();
+            return;
         }
-    }
 
-    private void handleActions() {
         if (pendingAction != null && !pendingAction.isTerminated()) {
             return;
         }
@@ -132,7 +133,7 @@ public class ReactorSerializedInvoker<T> {
         pendingAction = null;
     }
 
-    private void handleShutdown() {
+    private void drainOnShutdown() {
         if (pendingAction != null) {
             pendingAction.terminate();
         }

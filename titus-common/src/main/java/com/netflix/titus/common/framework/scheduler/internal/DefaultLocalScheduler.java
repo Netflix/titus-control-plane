@@ -41,12 +41,12 @@ import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.LocalSchedulerException;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
+import com.netflix.titus.common.framework.scheduler.model.ExecutionId;
 import com.netflix.titus.common.framework.scheduler.model.Schedule;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
-import com.netflix.titus.common.framework.scheduler.model.ExecutionId;
 import com.netflix.titus.common.framework.scheduler.model.event.LocalSchedulerEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleAddedEvent;
 import com.netflix.titus.common.framework.scheduler.model.event.ScheduleRemovedEvent;
@@ -56,6 +56,7 @@ import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
+import reactor.core.Disposables;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -84,14 +85,14 @@ public class DefaultLocalScheduler implements LocalScheduler {
     private final SchedulerMetrics metrics;
     private final Disposable transactionLoggerDisposable;
 
-    public DefaultLocalScheduler(Duration internalLoopInterval, Scheduler scheduler, Clock clock, Registry registry) {
+    public DefaultLocalScheduler(Duration internalLoopInterval, Scheduler scheduler, Clock clock, boolean localSchedulerLogDisabled, Registry registry) {
         this.internalLoopIntervalMs = internalLoopInterval.toMillis();
         this.scheduler = scheduler;
         this.clock = clock;
         this.registry = registry;
         this.worker = scheduler.createWorker();
         this.metrics = new SchedulerMetrics(this, clock, registry);
-        this.transactionLoggerDisposable = LocalSchedulerTransactionLogger.logEvents(this);
+        this.transactionLoggerDisposable = localSchedulerLogDisabled ? Disposables.disposed() : LocalSchedulerTransactionLogger.logEvents(this);
 
         scheduleNextIteration();
     }

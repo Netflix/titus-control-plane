@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.util.rx.queue;
+package com.netflix.titus.common.util.rx.invoker;
 
 import java.time.Duration;
 import java.util.ArrayList;

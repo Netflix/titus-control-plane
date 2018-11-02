@@ -17,6 +17,7 @@
 package com.netflix.titus.common.framework.scheduler.endpoint;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -29,7 +30,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
-import com.netflix.titus.common.framework.scheduler.model.Schedule;
+import com.netflix.titus.common.framework.scheduler.endpoint.representation.EvictionRepresentations;
+import com.netflix.titus.common.framework.scheduler.endpoint.representation.ScheduleRepresentation;
 import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Path("/api/diagnostic/localScheduler")
@@ -47,31 +49,35 @@ public class LocalSchedulerResource {
 
     @GET
     @Path("/schedules")
-    public List<Schedule> getActiveSchedules() {
-        return localScheduler.getActiveSchedules();
+    public List<ScheduleRepresentation> getActiveSchedules() {
+        return localScheduler.getActiveSchedules().stream().map(EvictionRepresentations::toRepresentation).collect(Collectors.toList());
     }
 
     @GET
     @Path("/schedules/{name}")
-    public Schedule getActiveSchedule(@PathParam("name") String name) {
+    public ScheduleRepresentation getActiveSchedule(@PathParam("name") String name) {
         return localScheduler.getActiveSchedules().stream()
                 .filter(s -> s.getDescriptor().getName().equals(name))
                 .findFirst()
+                .map(EvictionRepresentations::toRepresentation)
                 .orElseThrow(() -> new WebApplicationException(Response.status(404).build()));
     }
 
     @GET
     @Path("/archived")
-    public List<Schedule> getArchivedSchedules() {
-        return localScheduler.getArchivedSchedules();
+    public List<ScheduleRepresentation> getArchivedSchedules() {
+        return localScheduler.getArchivedSchedules().stream()
+                .map(EvictionRepresentations::toRepresentation)
+                .collect(Collectors.toList());
     }
 
     @GET
     @Path("/archived/{name}")
-    public Schedule getArchivedSchedule(@PathParam("name") String name) {
+    public ScheduleRepresentation getArchivedSchedule(@PathParam("name") String name) {
         return localScheduler.getArchivedSchedules().stream()
                 .filter(s -> s.getDescriptor().getName().equals(name))
                 .findFirst()
+                .map(EvictionRepresentations::toRepresentation)
                 .orElseThrow(() -> new WebApplicationException(Response.status(404).build()));
     }
 }

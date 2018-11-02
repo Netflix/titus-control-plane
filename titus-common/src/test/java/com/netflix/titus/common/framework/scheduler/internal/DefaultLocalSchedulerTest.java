@@ -60,7 +60,7 @@ public class DefaultLocalSchedulerTest {
             .withOnErrorHandler((action, error) -> lastFailedAction.set(action))
             .build();
 
-    private final LocalScheduler localScheduler = new DefaultLocalScheduler(Duration.ofMillis(1), Schedulers.parallel(), Clocks.system(), new DefaultRegistry());
+    private final LocalScheduler localScheduler = new DefaultLocalScheduler(Duration.ofMillis(1), Schedulers.parallel(), Clocks.system(), false, new DefaultRegistry());
 
     private final TitusRxSubscriber<LocalSchedulerEvent> eventSubscriber = new TitusRxSubscriber<>();
 

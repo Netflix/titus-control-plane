@@ -91,23 +91,34 @@ public final class DisruptionBudgetGenerator {
                 .build();
     }
 
-    public static Job<BatchJobExt> newBatchJob(int desired, DisruptionBudget budget) {
-        JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.batchJobDescriptor(desired).toBuilder()
+    public static JobDescriptor<BatchJobExt> newBatchJobDescriptor(int desired, DisruptionBudget budget) {
+        return JobDescriptorGenerator.batchJobDescriptor(desired).toBuilder()
                 .withDisruptionBudget(budget)
                 .build();
-        return JobGenerator.batchJobs(jobDescriptor).getValue();
+    }
+
+    public static Job<BatchJobExt> newBatchJob(int desired, DisruptionBudget budget) {
+        return JobGenerator.batchJobs(newBatchJobDescriptor(desired, budget)).getValue();
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> exceptBudget(JobDescriptor<E> jobDescriptor, DisruptionBudget budget) {
+        return jobDescriptor.toBuilder().withDisruptionBudget(budget).build();
     }
 
     public static <E extends JobDescriptorExt> Job<E> exceptBudget(Job<E> job, DisruptionBudget budget) {
-        return job.toBuilder()
-                .withJobDescriptor(
-                        job.getJobDescriptor().toBuilder().withDisruptionBudget(budget).build()
-                )
-                .build();
+        return job.toBuilder().withJobDescriptor(exceptBudget(job.getJobDescriptor(), budget)).build();
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> exceptPolicy(JobDescriptor<E> jobDescriptor, DisruptionBudgetPolicy policy) {
+        return exceptBudget(jobDescriptor, jobDescriptor.getDisruptionBudget().toBuilder().withDisruptionBudgetPolicy(policy).build());
     }
 
     public static <E extends JobDescriptorExt> Job<E> exceptPolicy(Job<E> job, DisruptionBudgetPolicy policy) {
         return exceptBudget(job, job.getJobDescriptor().getDisruptionBudget().toBuilder().withDisruptionBudgetPolicy(policy).build());
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> exceptRate(JobDescriptor<E> jobDescriptor, DisruptionBudgetRate rate) {
+        return exceptBudget(jobDescriptor, jobDescriptor.getDisruptionBudget().toBuilder().withDisruptionBudgetRate(rate).build());
     }
 
     public static <E extends JobDescriptorExt> Job<E> exceptRate(Job<E> job, DisruptionBudgetRate rate) {

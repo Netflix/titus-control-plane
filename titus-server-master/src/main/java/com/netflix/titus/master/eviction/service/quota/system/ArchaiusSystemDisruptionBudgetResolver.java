@@ -29,10 +29,13 @@ import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
 import com.netflix.titus.api.model.TokenBucketPolicy;
 import com.netflix.titus.api.model.reference.Reference;
+import com.netflix.titus.common.util.StringExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
+
+import static com.netflix.titus.api.eviction.model.SystemDisruptionBudget.newBasicSystemDisruptionBudget;
 
 @Singleton
 public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionBudgetResolver {
@@ -44,6 +47,8 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
 
     @VisibleForTesting
     static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final SystemDisruptionBudget DEFAULT_SYSTEM_DISRUPTION_BUDGET = newBasicSystemDisruptionBudget(10, 100);
 
     private final Property.Subscription subscription;
 
@@ -67,8 +72,8 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
 
     private SystemDisruptionBudget initialBudget(PropertyRepository repository) {
         Property<String> property = repository.get(PROPERTY_KEY, String.class);
-        if (property == null) {
-            throw EvictionException.badConfiguration("system disruption budget not configured");
+        if (property == null || StringExt.isEmpty(property.get())) {
+            return DEFAULT_SYSTEM_DISRUPTION_BUDGET;
         }
         try {
             return parse(property.get());

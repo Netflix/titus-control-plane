@@ -35,6 +35,7 @@ import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -50,6 +51,7 @@ import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.common.runtime.internal.DefaultTitusRuntime.LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY;
 import static com.netflix.titus.common.util.Evaluators.getOrDefault;
 
 /**
@@ -100,6 +102,7 @@ public class EmbeddedTitusGateway {
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
+        props.put(LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY, "true");
         props.put("titusGateway.endpoint.grpc.port", grpcPort);
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
@@ -142,7 +145,8 @@ public class EmbeddedTitusGateway {
                             bind(JobStore.class).toInstance(store);
                         }
 
-                        bind(new TypeLiteral<EntityValidator<JobDescriptor>>() {}).toInstance(validator);
+                        bind(new TypeLiteral<EntityValidator<JobDescriptor>>() {
+                        }).toInstance(validator);
                     }
                 })
         ).createInjector();
@@ -196,6 +200,10 @@ public class EmbeddedTitusGateway {
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
         return attachCallHeaders(client);
+    }
+
+    public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
+        return EvictionServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
     }
 
     public <I> I getInstance(Class<I> instanceType) {

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -84,6 +85,11 @@ class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
     @Override
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         return federation.getLoadBalancerGrpcClient();
+    }
+
+    @Override
+    public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
+        return federation.getBlockingGrpcEvictionClient();
     }
 
     @Override

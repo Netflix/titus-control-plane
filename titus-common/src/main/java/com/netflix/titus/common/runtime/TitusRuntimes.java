@@ -40,6 +40,7 @@ public final class TitusRuntimes {
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 Clocks.system(),
+                false,
                 false
         );
     }
@@ -52,7 +53,8 @@ public final class TitusRuntimes {
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 Clocks.test(),
-                false
+                false,
+                true
         );
     }
 
@@ -64,7 +66,8 @@ public final class TitusRuntimes {
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 clock,
-                false
+                false,
+                true
         );
     }
 
@@ -76,7 +79,8 @@ public final class TitusRuntimes {
                 LoggingSystemAbortListener.getDefault(),
                 new DefaultRegistry(),
                 Clocks.testScheduler(testScheduler),
-                false
+                false,
+                true
         );
     }
 }

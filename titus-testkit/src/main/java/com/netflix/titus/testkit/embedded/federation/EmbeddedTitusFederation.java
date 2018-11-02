@@ -32,6 +32,7 @@ import com.netflix.titus.federation.endpoint.grpc.TitusFederationGrpcServer;
 import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
@@ -47,6 +48,8 @@ import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.netflix.titus.common.runtime.internal.DefaultTitusRuntime.LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY;
 
 /**
  * Run embedded version of TitusFederation.
@@ -80,6 +83,7 @@ public class EmbeddedTitusFederation {
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
+        props.put(LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY, "true");
         props.put("titus.federation.endpoint.grpcPort", grpcPort);
         props.put("titus.federation.routingRules", buildRoutingRules());
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
@@ -180,6 +184,10 @@ public class EmbeddedTitusFederation {
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
         return attachCallHeaders(client);
+    }
+
+    public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
+        return EvictionServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {
