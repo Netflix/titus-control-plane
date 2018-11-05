@@ -74,7 +74,7 @@ public class EvictionQuota {
 
     public static EvictionQuota systemQuota(long quota) {
         return newBuilder()
-                .withReference(Reference.global())
+                .withReference(Reference.system())
                 .withQuota(quota)
                 .build();
     }

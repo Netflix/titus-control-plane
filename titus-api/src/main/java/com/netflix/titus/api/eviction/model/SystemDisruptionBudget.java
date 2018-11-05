@@ -16,8 +16,13 @@
 
 package com.netflix.titus.api.eviction.model;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
 import com.netflix.titus.api.model.TokenBucketPolicy;
 import com.netflix.titus.api.model.reference.Reference;
@@ -26,10 +31,12 @@ public class SystemDisruptionBudget {
 
     private final Reference reference;
     private final TokenBucketPolicy tokenBucketPolicy;
+    private final List<TimeWindow> timeWindows;
 
-    public SystemDisruptionBudget(Reference reference, TokenBucketPolicy tokenBucketPolicy) {
+    public SystemDisruptionBudget(Reference reference, TokenBucketPolicy tokenBucketPolicy, List<TimeWindow> timeWindows) {
         this.reference = reference;
         this.tokenBucketPolicy = tokenBucketPolicy;
+        this.timeWindows = timeWindows;
     }
 
     public Reference getReference() {
@@ -38,6 +45,10 @@ public class SystemDisruptionBudget {
 
     public TokenBucketPolicy getTokenBucketPolicy() {
         return tokenBucketPolicy;
+    }
+
+    public List<TimeWindow> getTimeWindows() {
+        return timeWindows;
     }
 
     @Override
@@ -50,12 +61,13 @@ public class SystemDisruptionBudget {
         }
         SystemDisruptionBudget that = (SystemDisruptionBudget) o;
         return Objects.equals(reference, that.reference) &&
-                Objects.equals(tokenBucketPolicy, that.tokenBucketPolicy);
+                Objects.equals(tokenBucketPolicy, that.tokenBucketPolicy) &&
+                Objects.equals(timeWindows, that.timeWindows);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(reference, tokenBucketPolicy);
+        return Objects.hash(reference, tokenBucketPolicy, timeWindows);
     }
 
     @Override
@@ -63,6 +75,7 @@ public class SystemDisruptionBudget {
         return "SystemDisruptionBudget{" +
                 "reference=" + reference +
                 ", tokenBucketPolicy=" + tokenBucketPolicy +
+                ", timeWindows=" + timeWindows +
                 '}';
     }
 
@@ -70,9 +83,9 @@ public class SystemDisruptionBudget {
         return newBuilder().withReference(reference).withTokenBucketDescriptor(tokenBucketPolicy);
     }
 
-    public static SystemDisruptionBudget newBasicSystemDisruptionBudget(long refillRatePerSecond, long capacity) {
+    public static SystemDisruptionBudget newBasicSystemDisruptionBudget(long refillRatePerSecond, long capacity, TimeWindow... timeWindows) {
         return newBuilder()
-                .withReference(Reference.global())
+                .withReference(Reference.system())
                 .withTokenBucketDescriptor(TokenBucketPolicy.newBuilder()
                         .withInitialNumberOfTokens(0)
                         .withCapacity(capacity)
@@ -83,6 +96,7 @@ public class SystemDisruptionBudget {
                         )
                         .build()
                 )
+                .withTimeWindows(timeWindows.length == 0 ? Collections.emptyList() : Arrays.asList(timeWindows))
                 .build();
     }
 
@@ -93,6 +107,7 @@ public class SystemDisruptionBudget {
     public static final class Builder {
         private Reference reference;
         private TokenBucketPolicy tokenBucketPolicy;
+        private List<TimeWindow> timeWindows;
 
         private Builder() {
         }
@@ -107,8 +122,17 @@ public class SystemDisruptionBudget {
             return this;
         }
 
+        public Builder withTimeWindows(List<TimeWindow> timeWindows) {
+            this.timeWindows = timeWindows;
+            return this;
+        }
+
         public SystemDisruptionBudget build() {
-            return new SystemDisruptionBudget(reference, tokenBucketPolicy);
+            Preconditions.checkNotNull(reference, "Reference is null");
+            Preconditions.checkNotNull(tokenBucketPolicy, "Token bucket is null");
+            Preconditions.checkNotNull(timeWindows, "Time windows collection is null");
+
+            return new SystemDisruptionBudget(reference, tokenBucketPolicy, timeWindows);
         }
     }
 }

@@ -27,20 +27,20 @@ import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
 
 public class EvictionDataSnapshot {
 
-    private final EvictionQuota globalEvictionQuota;
+    private final EvictionQuota systemEvictionQuota;
     private final Map<Tier, EvictionQuota> tierEvictionQuotas;
     private final Map<String, EvictionQuota> capacityGroupEvictionQuotas;
 
-    public EvictionDataSnapshot(EvictionQuota globalEvictionQuota,
+    public EvictionDataSnapshot(EvictionQuota systemEvictionQuota,
                                 Map<Tier, EvictionQuota> tierEvictionQuotas,
                                 Map<String, EvictionQuota> capacityGroupEvictionQuotas) {
-        this.globalEvictionQuota = globalEvictionQuota;
+        this.systemEvictionQuota = systemEvictionQuota;
         this.tierEvictionQuotas = tierEvictionQuotas;
         this.capacityGroupEvictionQuotas = capacityGroupEvictionQuotas;
     }
 
-    public EvictionQuota getGlobalEvictionQuota() {
-        return globalEvictionQuota;
+    public EvictionQuota getSystemEvictionQuota() {
+        return systemEvictionQuota;
     }
 
     public EvictionQuota getTierEvictionQuota(Tier tier) {
@@ -53,7 +53,7 @@ public class EvictionDataSnapshot {
 
     public Optional<EvictionDataSnapshot> updateEvictionQuota(EvictionQuota quota) {
         switch (quota.getReference().getLevel()) {
-            case Global:
+            case System:
                 return Optional.of(new EvictionDataSnapshot(
                         quota,
                         this.tierEvictionQuotas,
@@ -61,13 +61,13 @@ public class EvictionDataSnapshot {
                 ));
             case Tier:
                 return Optional.of(new EvictionDataSnapshot(
-                        this.globalEvictionQuota,
+                        this.systemEvictionQuota,
                         copyAndAdd(this.tierEvictionQuotas, ((TierReference) quota.getReference()).getTier(), quota),
                         this.capacityGroupEvictionQuotas
                 ));
             case CapacityGroup:
                 return Optional.of(new EvictionDataSnapshot(
-                        this.globalEvictionQuota,
+                        this.systemEvictionQuota,
                         this.tierEvictionQuotas,
                         copyAndAdd(this.capacityGroupEvictionQuotas, quota.getReference().getName(), quota)
                 ));

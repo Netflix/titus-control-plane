@@ -54,13 +54,13 @@ public class EvictionResource {
         this.evictionServiceClient = evictionServiceClient;
     }
 
-    @ApiOperation("Return the global eviction quota")
-    @Path("quotas/global")
+    @ApiOperation("Return the system eviction quota")
+    @Path("quotas/system")
     @GET
-    public EvictionQuota getGlobalEvictionQuota() {
+    public EvictionQuota getSystemEvictionQuota() {
         return Responses.fromMono(
                 evictionServiceClient
-                        .getEvictionQuota(Reference.global())
+                        .getEvictionQuota(Reference.system())
                         .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
         );
     }

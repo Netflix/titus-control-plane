@@ -53,7 +53,7 @@ public class ReactorGrpcClientAdapter<CLIENT extends AbstractStub<CLIENT>> {
                                     GrpcClientConfiguration configuration) {
         this.callMetadataResolver = callMetadataResolver;
         this.configuration = configuration;
-        this.baseClient = client.withDeadlineAfter(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        this.baseClient = client;
     }
 
     public Mono<Void> asVoidMono(BiConsumer<CLIENT, StreamObserver<Void>> invocationHandler) {
@@ -62,7 +62,7 @@ public class ReactorGrpcClientAdapter<CLIENT extends AbstractStub<CLIENT>> {
 
     public <RESP> Mono<RESP> asMono(BiConsumer<CLIENT, StreamObserver<RESP>> invocationHandler) {
         // Fetch scope eagerly, as it is part of the thread context.
-        CLIENT client = newRequestScopeClient();
+        CLIENT client = newRequestScopeClient(newClientWithTimeout());
 
         Mono<RESP> mono = Mono.create(sink -> {
 
@@ -104,12 +104,12 @@ public class ReactorGrpcClientAdapter<CLIENT extends AbstractStub<CLIENT>> {
             invocationHandler.accept(client, responseStream);
         });
 
-        return applyTimeout(mono);
+        return applyRxTimeout(mono);
     }
 
     public <RESP> Flux<RESP> asFlux(BiConsumer<CLIENT, StreamObserver<RESP>> invocationHandler) {
         // Fetch scope eagerly, as it is part of the thread context.
-        CLIENT client = newRequestScopeClient();
+        CLIENT client = newRequestScopeClient(baseClient);
 
         Flux<RESP> flux = Flux.create(sink -> {
             ClientResponseObserver<Object, RESP> responseStream = new ClientResponseObserver<Object, RESP>() {
@@ -154,14 +154,18 @@ public class ReactorGrpcClientAdapter<CLIENT extends AbstractStub<CLIENT>> {
         return flux;
     }
 
-    private <RESP> Mono<RESP> applyTimeout(Mono<RESP> mono) {
-        return mono.timeout(Duration.ofMillis(getRxJavaAdjustedTimeout()));
+    private CLIENT newClientWithTimeout() {
+        return baseClient.withDeadlineAfter(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
-    private CLIENT newRequestScopeClient() {
+    private CLIENT newRequestScopeClient(CLIENT client) {
         return callMetadataResolver.resolve()
-                .map(caller -> V3HeaderInterceptor.attachCallMetadata(baseClient, caller))
+                .map(caller -> V3HeaderInterceptor.attachCallMetadata(client, caller))
                 .orElse(baseClient);
+    }
+
+    private <RESP> Mono<RESP> applyRxTimeout(Mono<RESP> mono) {
+        return mono.timeout(Duration.ofMillis(getRxJavaAdjustedTimeout()));
     }
 
     private long getRxJavaAdjustedTimeout() {

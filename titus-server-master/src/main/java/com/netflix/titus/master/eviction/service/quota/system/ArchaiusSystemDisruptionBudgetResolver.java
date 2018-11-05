@@ -16,16 +16,19 @@
 
 package com.netflix.titus.master.eviction.service.quota.system;
 
+import java.util.Collections;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.PropertyRepository;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.eviction.service.EvictionException;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
+import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
 import com.netflix.titus.api.model.TokenBucketPolicy;
 import com.netflix.titus.api.model.reference.Reference;
@@ -45,10 +48,15 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
     @VisibleForTesting
     static final String PROPERTY_KEY = "titusMaster.eviction.systemDisruptionBudget";
 
-    @VisibleForTesting
-    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    private static final SystemDisruptionBudget DEFAULT_SYSTEM_DISRUPTION_BUDGET = newBasicSystemDisruptionBudget(10, 100);
+    private static final SystemDisruptionBudget DEFAULT_SYSTEM_DISRUPTION_BUDGET = newBasicSystemDisruptionBudget(
+            50,
+            500,
+            TimeWindow.newBuilder()
+                    .withDays(Day.weekdays())
+                    .withwithHourlyTimeWindows(8, 16)
+                    .withTimeZone("PST")
+                    .build()
+    );
 
     private final Property.Subscription subscription;
 
@@ -91,7 +99,7 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
     }
 
     private SystemDisruptionBudget parse(String newValue) throws Exception {
-        SystemDisruptionBudgetDescriptor descriptor = OBJECT_MAPPER.readValue(newValue, SystemDisruptionBudgetDescriptor.class);
+        SystemDisruptionBudgetDescriptor descriptor = ObjectMappers.storeMapper().readValue(newValue, SystemDisruptionBudgetDescriptor.class);
 
         if (descriptor.getRefillRatePerSecond() < 0) {
             throw EvictionException.badConfiguration("system disruption budget refills < 0");
@@ -106,7 +114,7 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
     @VisibleForTesting
     static SystemDisruptionBudget toDisruptionBudget(SystemDisruptionBudgetDescriptor descriptor) {
         return SystemDisruptionBudget.newBuilder()
-                .withReference(Reference.global())
+                .withReference(Reference.system())
                 .withTokenBucketDescriptor(TokenBucketPolicy.newBuilder()
                         .withCapacity(descriptor.getCapacity())
                         .withInitialNumberOfTokens(0)
@@ -117,6 +125,7 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
                         )
                         .build()
                 )
+                .withTimeWindows(descriptor.getTimeWindows() != null ? descriptor.getTimeWindows() : Collections.emptyList())
                 .build();
     }
 }

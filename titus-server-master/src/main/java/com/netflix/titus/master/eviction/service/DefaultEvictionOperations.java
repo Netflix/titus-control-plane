@@ -17,11 +17,12 @@
 package com.netflix.titus.master.eviction.service;
 
 import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
@@ -65,22 +66,18 @@ public class DefaultEvictionOperations implements EvictionOperations {
                                      TitusQuotasManager quotaManager,
                                      TitusRuntime titusRuntime,
                                      ManagementSubsystemInitializer capacityGroupServiceInitializer) { // To enforce correct initialization order
-        this(configuration, jobOperations, capacityGroupService, quotaManager, titusRuntime, Schedulers.parallel());
-    }
-
-    @VisibleForTesting
-    DefaultEvictionOperations(EvictionServiceConfiguration configuration,
-                              V3JobOperations jobOperations,
-                              ApplicationSlaManagementService capacityGroupService,
-                              TitusQuotasManager quotaManager,
-                              TitusRuntime titusRuntime,
-                              Scheduler scheduler) {
         this.configuration = configuration;
         this.jobOperations = jobOperations;
         this.capacityGroupService = capacityGroupService;
         this.quotaManager = quotaManager;
         this.titusRuntime = titusRuntime;
-        this.scheduler = scheduler;
+
+        Executor executor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(r, DefaultEvictionOperations.class.getSimpleName());
+            thread.setDaemon(true);
+            return thread;
+        });
+        this.scheduler = Schedulers.fromExecutor(executor);
     }
 
     @Activator
@@ -100,10 +97,11 @@ public class DefaultEvictionOperations implements EvictionOperations {
         if (taskTerminationExecutor != null) {
             taskTerminationExecutor.shutdown();
         }
+        scheduler.dispose();
     }
 
     @Override
-    public EvictionQuota getGlobalEvictionQuota() {
+    public EvictionQuota getSystemEvictionQuota() {
         return quotaManager.getSystemEvictionQuota();
     }
 

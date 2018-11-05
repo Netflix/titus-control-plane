@@ -39,8 +39,8 @@ public final class GrpcEvictionModelConverters {
             .expireAfterWrite(Duration.ofHours(1))
             .build(coreReference -> {
                 switch (coreReference.getLevel()) {
-                    case Global:
-                        return Reference.newBuilder().setGlobal(Reference.Global.getDefaultInstance()).build();
+                    case System:
+                        return Reference.newBuilder().setSystem(Reference.System.getDefaultInstance()).build();
                     case Tier:
                         return Reference.newBuilder().setTier(toGrpcTier(((TierReference) coreReference).getTier())).build();
                     case CapacityGroup:
@@ -57,8 +57,8 @@ public final class GrpcEvictionModelConverters {
 
     public static com.netflix.titus.api.model.reference.Reference toCoreReference(Reference grpcEntity) {
         switch (grpcEntity.getReferenceCase()) {
-            case GLOBAL:
-                return com.netflix.titus.api.model.reference.Reference.global();
+            case SYSTEM:
+                return com.netflix.titus.api.model.reference.Reference.system();
             case TIER:
                 return com.netflix.titus.api.model.reference.Reference.tier(toCoreTier(grpcEntity.getTier()));
             case CAPACITYGROUP:
@@ -73,7 +73,7 @@ public final class GrpcEvictionModelConverters {
 
     public static Reference toGrpcReference(com.netflix.titus.api.model.reference.Reference coreReference) {
         switch (coreReference.getLevel()) {
-            case Global:
+            case System:
             case Tier:
             case CapacityGroup:
                 return CORE_TO_GRPC_REFERENCE_CACHE.get(coreReference);

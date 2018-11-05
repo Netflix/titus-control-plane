@@ -27,14 +27,18 @@ import com.google.common.base.Preconditions;
 
 public class TimeWindow {
 
-    private static final TimeWindow EMPTY = new TimeWindow(Collections.emptyList(), Collections.emptyList());
+    public static String DEFAULT_TIME_ZONE = "UTC";
+
+    private static final TimeWindow EMPTY = new TimeWindow(Collections.emptyList(), Collections.emptyList(), DEFAULT_TIME_ZONE);
 
     private final List<Day> days;
     private final List<HourlyTimeWindow> hourlyTimeWindows;
+    private final String timeZone;
 
-    public TimeWindow(List<Day> days, List<HourlyTimeWindow> hourlyTimeWindows) {
+    public TimeWindow(List<Day> days, List<HourlyTimeWindow> hourlyTimeWindows, String timeZone) {
         this.days = days;
         this.hourlyTimeWindows = hourlyTimeWindows;
+        this.timeZone = timeZone;
     }
 
     public List<Day> getDays() {
@@ -43,6 +47,10 @@ public class TimeWindow {
 
     public List<HourlyTimeWindow> getHourlyTimeWindows() {
         return hourlyTimeWindows;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
     }
 
     @Override
@@ -55,12 +63,13 @@ public class TimeWindow {
         }
         TimeWindow that = (TimeWindow) o;
         return Objects.equals(days, that.days) &&
-                Objects.equals(hourlyTimeWindows, that.hourlyTimeWindows);
+                Objects.equals(hourlyTimeWindows, that.hourlyTimeWindows) &&
+                Objects.equals(timeZone, that.timeZone);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(days, hourlyTimeWindows);
+        return Objects.hash(days, hourlyTimeWindows, timeZone);
     }
 
     @Override
@@ -68,6 +77,7 @@ public class TimeWindow {
         return "TimeWindow{" +
                 "days=" + days +
                 ", hourlyTimeWindows=" + hourlyTimeWindows +
+                ", timeZone='" + timeZone + '\'' +
                 '}';
     }
 
@@ -82,6 +92,7 @@ public class TimeWindow {
     public static final class Builder {
         private List<Day> days;
         private List<HourlyTimeWindow> hourlyTimeWindows;
+        private String timeZone;
 
         private Builder() {
         }
@@ -112,12 +123,17 @@ public class TimeWindow {
             return this;
         }
 
+        public Builder withTimeZone(String timeZone) {
+            this.timeZone = timeZone;
+            return this;
+        }
+
         public Builder but() {
             return newBuilder().withDays(days).withHourlyTimeWindows(hourlyTimeWindows);
         }
 
         public TimeWindow build() {
-            return new TimeWindow(days, hourlyTimeWindows);
+            return new TimeWindow(days, hourlyTimeWindows, timeZone == null ? DEFAULT_TIME_ZONE : timeZone);
         }
 
         private List<Day> getOrCreateMutableDaysList() {

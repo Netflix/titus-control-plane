@@ -30,7 +30,7 @@ public interface ReadOnlyEvictionOperations {
      */
     int VERY_HIGH_QUOTA = 1_000;
 
-    EvictionQuota getGlobalEvictionQuota();
+    EvictionQuota getSystemEvictionQuota();
 
     EvictionQuota getTierEvictionQuota(Tier tier);
 

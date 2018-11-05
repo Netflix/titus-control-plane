@@ -140,7 +140,11 @@ public class DefaultLocalScheduler implements LocalScheduler {
         Scheduler actionScheduler;
         Runnable cleanup;
         if (isolated) {
-            Executor executor = Executors.newFixedThreadPool(1, r -> new Thread(SCHEDULER_THREAD_GROUP, r, scheduleDescriptor.getName()));
+            Executor executor = Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread thread = new Thread(SCHEDULER_THREAD_GROUP, r, scheduleDescriptor.getName());
+                thread.setDaemon(true);
+                return thread;
+            });
             actionScheduler = Schedulers.fromExecutor(executor);
             cleanup = ((ExecutorService) executor)::shutdown;
         } else {

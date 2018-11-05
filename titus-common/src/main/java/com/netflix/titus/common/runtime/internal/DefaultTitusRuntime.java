@@ -86,7 +86,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
                 systemAbortListener,
                 registry,
                 Clocks.system(),
-                "true" .equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false")),
+                "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false")),
                 "true".equals(System.getProperty(LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY, "false"))
         );
     }

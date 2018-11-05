@@ -20,6 +20,8 @@ import java.time.DayOfWeek;
 import java.time.Month;
 import java.util.function.Supplier;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
 import org.junit.Test;
@@ -31,19 +33,21 @@ public class TimeWindowFunctionsTest {
 
     private final TestClock clock = Clocks.testWorldClock(2000, Month.JANUARY, 1);
 
+    private final TitusRuntime titusRuntime = TitusRuntimes.test(clock);
+
     @Test
     public void testEmptyTimeWindowPredicate() {
-        Supplier<Boolean> predicate = TimeWindowFunctions.isInTimeWindowPredicate(clock, TimeWindow.empty());
+        Supplier<Boolean> predicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, TimeWindow.empty());
         assertThat(predicate.get()).isTrue();
     }
 
     @Test
-    public void testTimeWindowPredicate() {
+    public void testTimeWindowPredicateInUtc() {
         TimeWindow timeWindow = TimeWindow.newBuilder()
                 .withDays(Day.Monday)
                 .withwithHourlyTimeWindows(8, 16)
                 .build();
-        Supplier<Boolean> predicate = TimeWindowFunctions.isInTimeWindowPredicate(clock, timeWindow);
+        Supplier<Boolean> predicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, timeWindow);
 
         // Before 8
         clock.jumpForwardTo(DayOfWeek.MONDAY).resetTime(7, 0, 0);
@@ -59,6 +63,27 @@ public class TimeWindowFunctionsTest {
     }
 
     @Test
+    public void testTimeWindowPredicateInPst() {
+        TimeWindow timeWindow = TimeWindow.newBuilder()
+                .withDays(Day.Monday)
+                .withwithHourlyTimeWindows(8, 16)
+                .withTimeZone("PST")
+                .build();
+        Supplier<Boolean> predicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, timeWindow);
+
+        // 8am UTC (== 0am PST)
+        clock.jumpForwardTo(DayOfWeek.MONDAY).resetTime(10, 0, 0);
+        assertThat(predicate.get()).isFalse();
+
+        // 4pm UTC (== 8am PST)
+        clock.resetTime(16, 0, 0);
+        assertThat(predicate.get()).isTrue();
+
+        // 8pm UTC (== 12pm PST)
+        clock.resetTime(20, 0, 0);
+    }
+
+    @Test
     public void testMultipleTimeWindowsPredicate() {
         TimeWindow timeWindow1 = TimeWindow.newBuilder()
                 .withDays(Day.Monday, Day.Tuesday, Day.Wednesday, Day.Thursday)
@@ -68,7 +93,7 @@ public class TimeWindowFunctionsTest {
                 .withDays(Day.Friday)
                 .withwithHourlyTimeWindows(8, 13)
                 .build();
-        Supplier<Boolean> predicate = TimeWindowFunctions.isInTimeWindowPredicate(clock, asList(timeWindow1, timeWindow2));
+        Supplier<Boolean> predicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, asList(timeWindow1, timeWindow2));
 
         // Wednesday
         clock.jumpForwardTo(DayOfWeek.WEDNESDAY).resetTime(7, 0, 0);

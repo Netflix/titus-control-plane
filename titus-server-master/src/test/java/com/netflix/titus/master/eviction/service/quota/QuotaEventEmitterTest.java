@@ -141,7 +141,7 @@ public class QuotaEventEmitterTest {
 
     private void expectSystemQuota(TitusRxSubscriber<EvictionEvent> eventSubscriber) throws InterruptedException {
         EvictionQuotaEvent event = (EvictionQuotaEvent) eventSubscriber.takeNext(EVENT_TIMEOUT);
-        assertThat(event.getQuota().getReference()).isEqualTo(Reference.global());
+        assertThat(event.getQuota().getReference()).isEqualTo(Reference.system());
     }
 
     private void cancelSubscriptionAndCheckIfSucceeded(TitusRxSubscriber<EvictionEvent> eventSubscriber) {

@@ -121,7 +121,7 @@ class TaskTerminationExecutor {
     }
 
     private EvictionException newEvictionRejectionEvent(String taskId, String reason, Job<?> job) {
-        String constraintReason = quotasManager.explainJobQuotaConstraints(job.getId()).orElse("Job no longer around");
+        String constraintReason = quotasManager.explainJobQuotaConstraints(job.getId()).orElse("Job does not exist");
         eventProcessor.onNext(EvictionEvent.newTaskTerminationEvent(
                 taskId,
                 String.format("Eviction request rejected: constraint=%s, evictionReason=%s", constraintReason, reason),

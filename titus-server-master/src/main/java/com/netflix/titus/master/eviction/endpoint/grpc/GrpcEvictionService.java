@@ -53,8 +53,8 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
     public void getEvictionQuota(Reference request, StreamObserver<EvictionQuota> responseObserver) {
         EvictionQuota evictionQuota;
         switch (request.getReferenceCase()) {
-            case GLOBAL:
-                evictionQuota = toGrpcEvictionQuota(evictionOperations.getGlobalEvictionQuota());
+            case SYSTEM:
+                evictionQuota = toGrpcEvictionQuota(evictionOperations.getSystemEvictionQuota());
                 break;
             case TIER:
             case CAPACITYGROUP:

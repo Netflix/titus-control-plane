@@ -16,21 +16,26 @@
 
 package com.netflix.titus.master.eviction.service.quota.system;
 
+import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
 
 public class SystemDisruptionBudgetDescriptor {
 
     private final long refillRatePerSecond;
     private final long capacity;
+    private final List<TimeWindow> timeWindows;
 
     @JsonCreator
     public SystemDisruptionBudgetDescriptor(@JsonProperty("refillRatePerSecond") long refillRatePerSecond,
-                                            @JsonProperty("capacity") long capacity) {
+                                            @JsonProperty("capacity") long capacity,
+                                            @JsonProperty("timeWindows") List<TimeWindow> timeWindows) {
         this.refillRatePerSecond = refillRatePerSecond;
         this.capacity = capacity;
+        this.timeWindows = timeWindows;
     }
 
     public long getRefillRatePerSecond() {
@@ -39,6 +44,10 @@ public class SystemDisruptionBudgetDescriptor {
 
     public long getCapacity() {
         return capacity;
+    }
+
+    public List<TimeWindow> getTimeWindows() {
+        return timeWindows;
     }
 
     @Override
@@ -51,12 +60,13 @@ public class SystemDisruptionBudgetDescriptor {
         }
         SystemDisruptionBudgetDescriptor that = (SystemDisruptionBudgetDescriptor) o;
         return refillRatePerSecond == that.refillRatePerSecond &&
-                capacity == that.capacity;
+                capacity == that.capacity &&
+                Objects.equals(timeWindows, that.timeWindows);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(refillRatePerSecond, capacity);
+        return Objects.hash(refillRatePerSecond, capacity, timeWindows);
     }
 
     @Override
@@ -64,6 +74,7 @@ public class SystemDisruptionBudgetDescriptor {
         return "SystemDisruptionBudgetDescriptor{" +
                 "refillRatePerSecond=" + refillRatePerSecond +
                 ", capacity=" + capacity +
+                ", timeWindows=" + timeWindows +
                 '}';
     }
 }

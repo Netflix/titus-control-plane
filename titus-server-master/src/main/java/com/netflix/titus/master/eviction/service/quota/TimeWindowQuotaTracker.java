@@ -32,7 +32,7 @@ public class TimeWindowQuotaTracker implements QuotaTracker {
     private final Supplier<Boolean> predicate;
 
     public TimeWindowQuotaTracker(List<TimeWindow> timeWindows, TitusRuntime titusRuntime) {
-        this.predicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime.getClock(), timeWindows);
+        this.predicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, timeWindows);
     }
 
     @Override

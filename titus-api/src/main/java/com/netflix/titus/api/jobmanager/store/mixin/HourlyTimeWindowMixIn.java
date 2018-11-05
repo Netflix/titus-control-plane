@@ -14,29 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.model.reference;
+package com.netflix.titus.api.jobmanager.store.mixin;
 
-import com.netflix.titus.api.model.Level;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class GlobalReference extends Reference {
-
-    private static final GlobalReference INSTANCE = new GlobalReference();
-
-    private GlobalReference() {
-        super(Level.Global);
-    }
-
-    @Override
-    public String getName() {
-        return "global";
-    }
-
-    @Override
-    public String toString() {
-        return "GlobalReference{}";
-    }
-
-    public static GlobalReference getInstance() {
-        return INSTANCE;
+public abstract class HourlyTimeWindowMixIn {
+    @JsonCreator
+    protected HourlyTimeWindowMixIn(@JsonProperty("startHour") int startHour,
+                                    @JsonProperty("endHour") int endHour) {
     }
 }

@@ -29,7 +29,7 @@ class EvictionQuotaTracker {
     private long systemEvictionQuota;
 
     EvictionQuotaTracker(ReadOnlyEvictionOperations evictionOperations, Map<String, Job<?>> jobs) {
-        this.systemEvictionQuota = evictionOperations.getGlobalEvictionQuota().getQuota();
+        this.systemEvictionQuota = evictionOperations.getSystemEvictionQuota().getQuota();
         jobs.forEach((id, job) ->
                 jobEvictionQuotas.put(id, evictionOperations.findJobEvictionQuota(id).map(EvictionQuota::getQuota).orElse(0L))
         );

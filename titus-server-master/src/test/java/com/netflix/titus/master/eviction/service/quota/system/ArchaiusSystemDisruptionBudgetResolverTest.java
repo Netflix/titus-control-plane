@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.eviction.service.quota.system;
 
+import java.util.Collections;
 import java.util.function.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,11 +24,13 @@ import com.netflix.archaius.api.PropertyRepository;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.EvictionException.ErrorCode;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
+import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver.OBJECT_MAPPER;
 import static com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver.PROPERTY_KEY;
 import static com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver.toDisruptionBudget;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,8 +40,17 @@ import static org.mockito.Mockito.when;
 
 public class ArchaiusSystemDisruptionBudgetResolverTest {
 
-    private static final SystemDisruptionBudgetDescriptor DESCRIPTOR_1_1 = new SystemDisruptionBudgetDescriptor(1, 1);
-    private static final SystemDisruptionBudgetDescriptor DESCRIPTOR_2_2 = new SystemDisruptionBudgetDescriptor(2, 2);
+    private static final SystemDisruptionBudgetDescriptor DESCRIPTOR_1_1 = new SystemDisruptionBudgetDescriptor(
+            1,
+            1,
+            Collections.singletonList(TimeWindow.newBuilder()
+                    .withDays(Day.weekdays())
+                    .withwithHourlyTimeWindows(8, 16)
+                    .withTimeZone("PST")
+                    .build()
+            )
+    );
+    private static final SystemDisruptionBudgetDescriptor DESCRIPTOR_2_2 = new SystemDisruptionBudgetDescriptor(2, 2, Collections.emptyList());
 
     private final PropertyRepository repository = mock(PropertyRepository.class);
     private final StubbedProperty property = new StubbedProperty();
@@ -52,7 +64,7 @@ public class ArchaiusSystemDisruptionBudgetResolverTest {
 
     @Test
     public void testResolve() throws Exception {
-        property.set(toJSON(DESCRIPTOR_1_1));
+        property.set(toJson(DESCRIPTOR_1_1));
 
         ArchaiusSystemDisruptionBudgetResolver resolver = new ArchaiusSystemDisruptionBudgetResolver(repository);
         resolver.resolve().subscribe(testSubscriber);
@@ -61,7 +73,7 @@ public class ArchaiusSystemDisruptionBudgetResolverTest {
         assertThat(testSubscriber.takeNext()).isEqualTo(toDisruptionBudget(DESCRIPTOR_1_1));
 
         // Now refresh
-        property.set(toJSON(DESCRIPTOR_2_2));
+        property.set(toJson(DESCRIPTOR_2_2));
         assertThat(testSubscriber.takeNext()).isEqualTo(toDisruptionBudget(DESCRIPTOR_2_2));
     }
 
@@ -78,7 +90,7 @@ public class ArchaiusSystemDisruptionBudgetResolverTest {
 
     @Test
     public void testLaterExceptionsAreReportedAndSwallowed() throws Exception {
-        property.set(toJSON(DESCRIPTOR_1_1));
+        property.set(toJson(DESCRIPTOR_1_1));
 
         ArchaiusSystemDisruptionBudgetResolver resolver = new ArchaiusSystemDisruptionBudgetResolver(repository);
         resolver.resolve().subscribe(testSubscriber);
@@ -91,12 +103,12 @@ public class ArchaiusSystemDisruptionBudgetResolverTest {
         assertThat(testSubscriber.takeNext()).isNull();
 
         // Now good again
-        property.set(toJSON(DESCRIPTOR_2_2));
+        property.set(toJson(DESCRIPTOR_2_2));
         assertThat(testSubscriber.takeNext()).isEqualTo(toDisruptionBudget(DESCRIPTOR_2_2));
     }
 
-    private String toJSON(SystemDisruptionBudgetDescriptor systemDisruptionBudgetDescriptor) throws JsonProcessingException {
-        return OBJECT_MAPPER.writeValueAsString(systemDisruptionBudgetDescriptor);
+    private String toJson(SystemDisruptionBudgetDescriptor systemDisruptionBudgetDescriptor) throws JsonProcessingException {
+        return ObjectMappers.storeMapper().writeValueAsString(systemDisruptionBudgetDescriptor);
     }
 
     private class StubbedProperty implements com.netflix.archaius.api.Property<String> {

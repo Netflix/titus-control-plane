@@ -16,13 +16,19 @@
 
 package com.netflix.titus.master.eviction.service.quota.system;
 
+import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.Month;
 import java.util.concurrent.TimeUnit;
 
 import com.jayway.awaitility.Awaitility;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.time.Clocks;
+import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.testkit.rx.ReactorTestExt;
 import com.netflix.titus.testkit.rx.internal.DirectedProcessor;
 import org.junit.Before;
@@ -35,7 +41,9 @@ import static org.mockito.Mockito.when;
 
 public class SystemQuotaControllerTest {
 
-    private final TitusRuntime titusRuntime = TitusRuntimes.test();
+    private static TestClock clock = Clocks.testWorldClock(2000, Month.JANUARY, 1).jumpForwardTo(DayOfWeek.MONDAY);
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.test(clock);
 
     private final DirectedProcessor<SystemDisruptionBudget> budgetEmitter = ReactorTestExt.newDirectedProcessor(() -> EmitterProcessor.create(1));
 
@@ -53,6 +61,28 @@ public class SystemQuotaControllerTest {
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(1, 1));
         quotaController = newSystemQuotaController();
 
+        assertThat(quotaController.getQuota()).isEqualTo(1);
+        assertThat(quotaController.consume("someTaskId")).isTrue();
+    }
+
+    @Test
+    public void testOutsideTimeWindow() {
+        budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(
+                1,
+                1,
+                TimeWindow.newBuilder()
+                        .withDays(Day.weekdays())
+                        .withwithHourlyTimeWindows(8, 16)
+                        .build()
+        ));
+
+        // Outside time window
+        quotaController = newSystemQuotaController();
+        assertThat(quotaController.getQuota()).isEqualTo(0);
+        assertThat(quotaController.consume("someTaskId")).isFalse();
+
+        // In time window
+        clock.resetTime(10, 0, 0);
         assertThat(quotaController.getQuota()).isEqualTo(1);
         assertThat(quotaController.consume("someTaskId")).isTrue();
     }

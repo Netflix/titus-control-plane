@@ -18,12 +18,14 @@ package com.netflix.titus.master.eviction.service.quota.system;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.function.Supplier;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindowFunctions;
 import com.netflix.titus.api.model.TokenBucketPolicies;
 import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -50,6 +52,7 @@ public class SystemQuotaController implements QuotaController<Void> {
 
     private final Disposable resolverDisposable;
 
+    private volatile Supplier<Boolean> inTimeWindowPredicate;
     private volatile TokenBucket systemTokenBucket;
 
     @Inject
@@ -64,12 +67,20 @@ public class SystemQuotaController implements QuotaController<Void> {
                           TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
 
-        this.systemTokenBucket = newTokenBucket(systemDisruptionBudgetResolver.resolve()
-                .timeout(BOOTSTRAP_TIMEOUT)
-                .blockFirst());
+        SystemDisruptionBudget disruptionBudget = systemDisruptionBudgetResolver.resolve().timeout(BOOTSTRAP_TIMEOUT).blockFirst();
+        this.inTimeWindowPredicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, disruptionBudget.getTimeWindows());
+        this.systemTokenBucket = newTokenBucket(disruptionBudget);
+
         this.resolverDisposable = systemDisruptionBudgetResolver.resolve()
                 .compose(instrumentedRetryer("systemDisruptionBudgetResolver", retryInterval, logger))
-                .subscribe(next -> this.systemTokenBucket = newTokenBucket(next));
+                .subscribe(next -> {
+                    try {
+                        this.systemTokenBucket = newTokenBucket(next);
+                        this.inTimeWindowPredicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, disruptionBudget.getTimeWindows());
+                    } catch (Exception e) {
+                        logger.warn("Invalid system disruption budget configuration: ", e);
+                    }
+                });
     }
 
     @PreDestroy
@@ -80,6 +91,9 @@ public class SystemQuotaController implements QuotaController<Void> {
     @Override
     public boolean consume(String taskId) {
         try {
+            if (!inTimeWindowPredicate.get()) {
+                return false;
+            }
             return systemTokenBucket.tryTake(1);
         } catch (IllegalArgumentException e) {
             return false;
@@ -88,6 +102,9 @@ public class SystemQuotaController implements QuotaController<Void> {
 
     @Override
     public long getQuota() {
+        if (!inTimeWindowPredicate.get()) {
+            return 0;
+        }
         return systemTokenBucket.getNumberOfTokens();
     }
 

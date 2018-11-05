@@ -87,7 +87,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
         }
 
         private Flux<ReplicatorEvent<EvictionDataSnapshot>> buildInitialCache() {
-            EvictionQuota globalEvictionQuota = null;
+            EvictionQuota systemEvictionQuota = null;
             Map<Tier, EvictionQuota> tierEvictionQuotas = new HashMap<>();
             Map<String, EvictionQuota> capacityGroupEvictionQuotas = new HashMap<>();
 
@@ -95,8 +95,8 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
                 if (event instanceof EvictionQuotaEvent) {
                     EvictionQuota quota = ((EvictionQuotaEvent) event).getQuota();
                     switch (quota.getReference().getLevel()) {
-                        case Global:
-                            globalEvictionQuota = quota;
+                        case System:
+                            systemEvictionQuota = quota;
                             break;
                         case Tier:
                             tierEvictionQuotas.put(((TierReference) quota.getReference()).getTier(), quota);
@@ -111,11 +111,11 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             // Clear so the garbage collector can reclaim the memory (we no longer need this data).
             snapshotEvents.clear();
 
-            checkNotNull(globalEvictionQuota, "Global eviction quota missing");
+            checkNotNull(systemEvictionQuota, "System eviction quota missing");
             checkState(tierEvictionQuotas.size() == Tier.values().length, "Tier eviction quotas missing: found=%s", tierEvictionQuotas);
 
             EvictionDataSnapshot initialSnapshot = new EvictionDataSnapshot(
-                    globalEvictionQuota,
+                    systemEvictionQuota,
                     tierEvictionQuotas,
                     capacityGroupEvictionQuotas
             );

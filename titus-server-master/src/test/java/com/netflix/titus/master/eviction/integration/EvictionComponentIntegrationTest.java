@@ -75,8 +75,8 @@ public class EvictionComponentIntegrationTest extends BaseIntegrationTest {
 
     @Test
     public void testGlobalQuotaAccess() {
-        EvictionQuota quota = client.getEvictionQuota(Reference.newBuilder().setGlobal(Reference.Global.getDefaultInstance()).build());
-        assertThat(quota.getTarget().getReferenceCase()).isEqualTo(Reference.ReferenceCase.GLOBAL);
+        EvictionQuota quota = client.getEvictionQuota(Reference.newBuilder().setSystem(Reference.System.getDefaultInstance()).build());
+        assertThat(quota.getTarget().getReferenceCase()).isEqualTo(Reference.ReferenceCase.SYSTEM);
         assertThat(quota.getQuota()).isGreaterThan(0);
     }
 
