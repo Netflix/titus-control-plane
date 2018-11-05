@@ -78,7 +78,7 @@ public class ElasticsearchTaskDocumentPublisher {
     private final AtomicInteger errorJsonConversion = new AtomicInteger(0);
     private final AtomicInteger errorEsClient = new AtomicInteger(0);
     private final AtomicInteger errorInPublishing = new AtomicInteger(0);
-    private final AtomicLong lastPublishedTimestamp;
+    private final AtomicLong timeSinceLastPublished;
 
     @Inject
     public ElasticsearchTaskDocumentPublisher(ElasticsearchConfiguration configuration,
@@ -106,7 +106,7 @@ public class ElasticsearchTaskDocumentPublisher {
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion").monitorValue(errorJsonConversion);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient").monitorValue(errorEsClient);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing").monitorValue(errorInPublishing);
-        lastPublishedTimestamp = PolledMeter.using(registry)
+        timeSinceLastPublished = PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_ES_PUBLISHER + "timeSinceLastPublished")
                 .monitorValue(new AtomicLong(registry.clock().wallTime()), Functions.AGE);
     }
@@ -145,7 +145,7 @@ public class ElasticsearchTaskDocumentPublisher {
     }
 
     private void publishTaskDocuments(List<TaskDocument> taskDocuments) {
-        lastPublishedTimestamp.set(registry.clock().wallTime());
+        timeSinceLastPublished.set(registry.clock().wallTime());
         try {
             if (configuration.isEnabled() && !taskDocuments.isEmpty()) {
                 Map<String, String> documentsToIndex = new HashMap<>();
