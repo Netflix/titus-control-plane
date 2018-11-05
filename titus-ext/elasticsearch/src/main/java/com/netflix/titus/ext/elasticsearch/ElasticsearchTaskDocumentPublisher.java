@@ -32,6 +32,7 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -77,7 +78,7 @@ public class ElasticsearchTaskDocumentPublisher {
     private final AtomicInteger errorJsonConversion = new AtomicInteger(0);
     private final AtomicInteger errorEsClient = new AtomicInteger(0);
     private final AtomicInteger errorInPublishing = new AtomicInteger(0);
-    private final AtomicLong lastPublishedTimestamp = new AtomicLong(0);
+    private final AtomicLong lastPublishedTimestamp;
 
     @Inject
     public ElasticsearchTaskDocumentPublisher(ElasticsearchConfiguration configuration,
@@ -105,9 +106,9 @@ public class ElasticsearchTaskDocumentPublisher {
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion").monitorValue(errorJsonConversion);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient").monitorValue(errorEsClient);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing").monitorValue(errorInPublishing);
-        PolledMeter.using(registry)
+        lastPublishedTimestamp = PolledMeter.using(registry)
                 .withName(MetricConstants.METRIC_ES_PUBLISHER + "timeSinceLastPublished")
-                .monitorValue(this, ElasticsearchTaskDocumentPublisher::getTimeSinceLastPublished);
+                .monitorValue(new AtomicLong(registry.clock().wallTime()), Functions.AGE);
     }
 
 
@@ -213,9 +214,5 @@ public class ElasticsearchTaskDocumentPublisher {
 
     private String getEsIndexName() {
         return configuration.getTaskDocumentEsIndexName() + indexDateFormat.format(new Date());
-    }
-
-    private long getTimeSinceLastPublished() {
-        return registry.clock().wallTime() - lastPublishedTimestamp.get();
     }
 }
