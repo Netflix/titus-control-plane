@@ -80,9 +80,6 @@ public class ReactorSerializedInvoker<T> {
 
         try {
             marker.block(timeout);
-        } catch (Exception unexpected) {
-            // TODO This should not be needed
-            throw new RuntimeException("Unexpected error", unexpected);
         } finally {
             worker.dispose();
         }
