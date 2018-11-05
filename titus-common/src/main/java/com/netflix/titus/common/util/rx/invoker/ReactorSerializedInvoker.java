@@ -80,6 +80,7 @@ public class ReactorSerializedInvoker<T> {
 
         try {
             marker.block(timeout);
+        } catch (Exception ignoreTimeout) {
         } finally {
             worker.dispose();
         }

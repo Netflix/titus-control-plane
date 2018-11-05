@@ -52,7 +52,7 @@ public class ReactorSerializedInvokerTest {
 
     @After
     public void tearDown() {
-        reactorSerializedInvoker.shutdown(Duration.ofMillis(1));
+        reactorSerializedInvoker.shutdown(Duration.ofSeconds(1));
     }
 
     @Test(timeout = 5_000)
