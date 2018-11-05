@@ -81,6 +81,11 @@ public class ElasticsearchTaskDocumentPublisher {
     private final AtomicInteger errorEsClient = new AtomicInteger(0);
     private final AtomicInteger errorInPublishing = new AtomicInteger(0);
     private final Id timeSinceLastPublishedMeterId;
+    private final Id docsToBePublishedMeterId;
+    private final Id docsPublishedMeterId;
+    private final Id errorJsonConversionMeterId;
+    private final Id errorEsClientMeterId;
+    private final Id errorInPublishingMeterId;
     private AtomicLong lastPublishedTimestamp;
 
     @Inject
@@ -109,12 +114,23 @@ public class ElasticsearchTaskDocumentPublisher {
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion").monitorValue(errorJsonConversion);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient").monitorValue(errorEsClient);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing").monitorValue(errorInPublishing);
+
         timeSinceLastPublishedMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "timeSinceLastPublished");
+        docsToBePublishedMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "docsToBePublished");
+        docsPublishedMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "docsPublished");
+        errorJsonConversionMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion");
+        errorEsClientMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient");
+        errorInPublishingMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing");
     }
 
 
     @Activator
     public void enterActiveMode() {
+        PolledMeter.using(registry).withId(docsToBePublishedMeterId).monitorValue(docsToBePublished);
+        PolledMeter.using(registry).withId(docsPublishedMeterId).monitorValue(docsPublished);
+        PolledMeter.using(registry).withId(errorJsonConversionMeterId).monitorValue(errorJsonConversion);
+        PolledMeter.using(registry).withId(errorEsClientMeterId).monitorValue(errorEsClient);
+        PolledMeter.using(registry).withId(errorInPublishingMeterId).monitorValue(errorInPublishing);
         lastPublishedTimestamp = PolledMeter.using(registry)
                 .withId(timeSinceLastPublishedMeterId)
                 .monitorValue(new AtomicLong(registry.clock().wallTime()), Functions.AGE);
@@ -136,6 +152,11 @@ public class ElasticsearchTaskDocumentPublisher {
     @PreDestroy
     public void shutdown() {
         PolledMeter.remove(registry, timeSinceLastPublishedMeterId);
+        PolledMeter.remove(registry, docsToBePublishedMeterId);
+        PolledMeter.remove(registry, docsPublishedMeterId);
+        PolledMeter.remove(registry, errorJsonConversionMeterId);
+        PolledMeter.remove(registry, errorEsClientMeterId);
+        PolledMeter.remove(registry, errorInPublishingMeterId);
     }
 
     private Observable<List<TaskDocument>> v3TasksStream() {
