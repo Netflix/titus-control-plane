@@ -26,12 +26,15 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.spectator.api.Functions;
+import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -77,7 +80,13 @@ public class ElasticsearchTaskDocumentPublisher {
     private final AtomicInteger errorJsonConversion = new AtomicInteger(0);
     private final AtomicInteger errorEsClient = new AtomicInteger(0);
     private final AtomicInteger errorInPublishing = new AtomicInteger(0);
-    private final AtomicLong lastPublishedTimestamp = new AtomicLong(0);
+    private final Id timeSinceLastPublishedMeterId;
+    private final Id docsToBePublishedMeterId;
+    private final Id docsPublishedMeterId;
+    private final Id errorJsonConversionMeterId;
+    private final Id errorEsClientMeterId;
+    private final Id errorInPublishingMeterId;
+    private AtomicLong lastPublishedTimestamp;
 
     @Inject
     public ElasticsearchTaskDocumentPublisher(ElasticsearchConfiguration configuration,
@@ -105,14 +114,27 @@ public class ElasticsearchTaskDocumentPublisher {
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion").monitorValue(errorJsonConversion);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient").monitorValue(errorEsClient);
         PolledMeter.using(registry).withName(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing").monitorValue(errorInPublishing);
-        PolledMeter.using(registry)
-                .withName(MetricConstants.METRIC_ES_PUBLISHER + "timeSinceLastPublished")
-                .monitorValue(this, ElasticsearchTaskDocumentPublisher::getTimeSinceLastPublished);
+
+        timeSinceLastPublishedMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "timeSinceLastPublished");
+        docsToBePublishedMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "docsToBePublished");
+        docsPublishedMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "docsPublished");
+        errorJsonConversionMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "errorJsonConversion");
+        errorEsClientMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "errorEsClient");
+        errorInPublishingMeterId = registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "errorInPublishing");
     }
 
 
     @Activator
     public void enterActiveMode() {
+        PolledMeter.using(registry).withId(docsToBePublishedMeterId).monitorValue(docsToBePublished);
+        PolledMeter.using(registry).withId(docsPublishedMeterId).monitorValue(docsPublished);
+        PolledMeter.using(registry).withId(errorJsonConversionMeterId).monitorValue(errorJsonConversion);
+        PolledMeter.using(registry).withId(errorEsClientMeterId).monitorValue(errorEsClient);
+        PolledMeter.using(registry).withId(errorInPublishingMeterId).monitorValue(errorInPublishing);
+        lastPublishedTimestamp = PolledMeter.using(registry)
+                .withId(timeSinceLastPublishedMeterId)
+                .monitorValue(new AtomicLong(registry.clock().wallTime()), Functions.AGE);
+
         logger.info("Starting the task streams to publish task documents to elasticsearch");
         v3TasksStream()
                 .subscribe(
@@ -125,6 +147,16 @@ public class ElasticsearchTaskDocumentPublisher {
                             logger.info("Finished publishing task documents to elasticsearch");
                         }
                 );
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        PolledMeter.remove(registry, timeSinceLastPublishedMeterId);
+        PolledMeter.remove(registry, docsToBePublishedMeterId);
+        PolledMeter.remove(registry, docsPublishedMeterId);
+        PolledMeter.remove(registry, errorJsonConversionMeterId);
+        PolledMeter.remove(registry, errorEsClientMeterId);
+        PolledMeter.remove(registry, errorInPublishingMeterId);
     }
 
     private Observable<List<TaskDocument>> v3TasksStream() {
@@ -213,9 +245,5 @@ public class ElasticsearchTaskDocumentPublisher {
 
     private String getEsIndexName() {
         return configuration.getTaskDocumentEsIndexName() + indexDateFormat.format(new Date());
-    }
-
-    private long getTimeSinceLastPublished() {
-        return registry.clock().wallTime() - lastPublishedTimestamp.get();
     }
 }
