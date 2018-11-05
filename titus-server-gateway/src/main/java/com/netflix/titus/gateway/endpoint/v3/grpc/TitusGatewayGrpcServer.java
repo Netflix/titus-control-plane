@@ -26,11 +26,12 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceImplBase;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthImplBase;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -56,6 +57,7 @@ public class TitusGatewayGrpcServer {
 
     private final HealthImplBase healthService;
     private final JobManagementServiceImplBase jobManagementService;
+    private final EvictionServiceImplBase evictionService;
     private final AgentManagementServiceImplBase agentManagementService;
     private final AutoScalingServiceImplBase appAutoScalingService;
     private final LoadBalancerServiceImplBase loadBalancerService;
@@ -69,6 +71,7 @@ public class TitusGatewayGrpcServer {
     @Inject
     public TitusGatewayGrpcServer(
             HealthImplBase healthService,
+            EvictionServiceImplBase evictionService,
             JobManagementServiceImplBase jobManagementService,
             AgentManagementServiceImplBase agentManagementService,
             AutoScalingServiceImplBase appAutoScalingService,
@@ -76,6 +79,7 @@ public class TitusGatewayGrpcServer {
             SchedulerServiceImplBase schedulerService,
             GrpcEndpointConfiguration config) {
         this.healthService = healthService;
+        this.evictionService = evictionService;
         this.jobManagementService = jobManagementService;
         this.agentManagementService = agentManagementService;
         this.appAutoScalingService = appAutoScalingService;
@@ -99,6 +103,9 @@ public class TitusGatewayGrpcServer {
             )).addService(ServerInterceptors.intercept(
                     jobManagementService,
                     createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
+            )).addService(ServerInterceptors.intercept(
+                    evictionService,
+                    createInterceptors(EvictionServiceGrpc.getServiceDescriptor())
             )).addService(ServerInterceptors.intercept(
                     agentManagementService,
                     createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())

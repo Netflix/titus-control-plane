@@ -25,13 +25,10 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.eviction.model.event.TaskTerminationEvent;
-import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
-import com.netflix.titus.api.model.TokenBucketRefillPolicy;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.Reference;
-import com.netflix.titus.grpc.protogen.TokenBucketPolicy;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcTier;
@@ -42,8 +39,8 @@ public final class GrpcEvictionModelConverters {
             .expireAfterWrite(Duration.ofHours(1))
             .build(coreReference -> {
                 switch (coreReference.getLevel()) {
-                    case Global:
-                        return Reference.newBuilder().setGlobal(Reference.Global.getDefaultInstance()).build();
+                    case System:
+                        return Reference.newBuilder().setSystem(Reference.System.getDefaultInstance()).build();
                     case Tier:
                         return Reference.newBuilder().setTier(toGrpcTier(((TierReference) coreReference).getTier())).build();
                     case CapacityGroup:
@@ -60,13 +57,14 @@ public final class GrpcEvictionModelConverters {
 
     public static com.netflix.titus.api.model.reference.Reference toCoreReference(Reference grpcEntity) {
         switch (grpcEntity.getReferenceCase()) {
-            case GLOBAL:
-                return com.netflix.titus.api.model.reference.Reference.global();
+            case SYSTEM:
+                return com.netflix.titus.api.model.reference.Reference.system();
             case TIER:
                 return com.netflix.titus.api.model.reference.Reference.tier(toCoreTier(grpcEntity.getTier()));
             case CAPACITYGROUP:
                 return com.netflix.titus.api.model.reference.Reference.capacityGroup(grpcEntity.getCapacityGroup());
             case JOBID:
+                return com.netflix.titus.api.model.reference.Reference.job(grpcEntity.getJobId());
             case TASKID:
             case REFERENCE_NOT_SET:
         }
@@ -75,40 +73,15 @@ public final class GrpcEvictionModelConverters {
 
     public static Reference toGrpcReference(com.netflix.titus.api.model.reference.Reference coreReference) {
         switch (coreReference.getLevel()) {
-            case Global:
+            case System:
             case Tier:
             case CapacityGroup:
                 return CORE_TO_GRPC_REFERENCE_CACHE.get(coreReference);
             case Job:
+                return Reference.newBuilder().setJobId(coreReference.getName()).build();
             case Task:
         }
         throw new IllegalArgumentException("No GRPC mapping for: " + coreReference);
-    }
-
-    public static com.netflix.titus.api.model.TokenBucketPolicy toCoreTokenBucketDescriptor(TokenBucketPolicy grpcEntity) {
-        TokenBucketPolicy.FixedIntervalRefillStrategy grpcRefillPolicy = grpcEntity.getFixedIntervalRefillStrategy();
-        TokenBucketRefillPolicy coreRefillPolicy = FixedIntervalTokenBucketRefillPolicy.newBuilder()
-                .withIntervalMs(grpcRefillPolicy.getIntervalMs())
-                .withNumberOfTokensPerInterval(grpcRefillPolicy.getRefillRate())
-                .build();
-        return com.netflix.titus.api.model.TokenBucketPolicy.newBuilder()
-                .withCapacity(grpcEntity.getCapacity())
-                .withInitialNumberOfTokens(grpcEntity.getInitialNumberOfTokens())
-                .withRefillPolicy(coreRefillPolicy)
-                .build();
-    }
-
-    public static TokenBucketPolicy toGrpcTokenBucketPolicy(com.netflix.titus.api.model.TokenBucketPolicy coreTokenBucketPolicy) {
-        FixedIntervalTokenBucketRefillPolicy refillPolicy = (FixedIntervalTokenBucketRefillPolicy) coreTokenBucketPolicy.getRefillPolicy();
-        return TokenBucketPolicy.newBuilder()
-                .setCapacity(coreTokenBucketPolicy.getCapacity())
-                .setInitialNumberOfTokens(coreTokenBucketPolicy.getInitialNumberOfTokens())
-                .setFixedIntervalRefillStrategy(TokenBucketPolicy.FixedIntervalRefillStrategy.newBuilder()
-                        .setIntervalMs(refillPolicy.getIntervalMs())
-                        .setRefillRate(refillPolicy.getNumberOfTokensPerInterval())
-                        .build()
-                )
-                .build();
     }
 
     public static com.netflix.titus.api.eviction.model.EvictionQuota toCoreEvictionQuota(EvictionQuota grpcEntity) {
@@ -132,7 +105,7 @@ public final class GrpcEvictionModelConverters {
             case EVICTIONQUOTAEVENT:
                 return EvictionEvent.newQuotaEvent(toCoreEvictionQuota(grpcEvent.getEvictionQuotaEvent().getQuota()));
             case TASKTERMINATIONEVENT:
-                return EvictionEvent.newTaskTerminationEvent(grpcEvent.getTaskTerminationEvent().getTaskId(), grpcEvent.getTaskTerminationEvent().getApproved());
+                return EvictionEvent.newTaskTerminationEvent(grpcEvent.getTaskTerminationEvent().getTaskId(), "", grpcEvent.getTaskTerminationEvent().getApproved());
             case EVENT_NOT_SET:
         }
         throw new IllegalArgumentException("No mapping for: " + grpcEvent);

@@ -54,13 +54,13 @@ public class EvictionResource {
         this.evictionServiceClient = evictionServiceClient;
     }
 
-    @ApiOperation("Return the global eviction quota")
-    @Path("quotas/global")
+    @ApiOperation("Return the system eviction quota")
+    @Path("quotas/system")
     @GET
-    public EvictionQuota getGlobalEvictionQuota() {
+    public EvictionQuota getSystemEvictionQuota() {
         return Responses.fromMono(
                 evictionServiceClient
-                        .getEvictionQuota(Reference.global())
+                        .getEvictionQuota(Reference.system())
                         .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
         );
     }
@@ -83,6 +83,17 @@ public class EvictionResource {
         return Responses.fromMono(
                 evictionServiceClient
                         .getEvictionQuota(Reference.capacityGroup(capacityGroupName))
+                        .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
+        );
+    }
+
+    @ApiOperation("Return a job eviction quota")
+    @Path("quotas/jobs/{id}")
+    @GET
+    public EvictionQuota getJobEvictionQuota(@PathParam("id") String jobId) {
+        return Responses.fromMono(
+                evictionServiceClient
+                        .getEvictionQuota(Reference.job(jobId))
                         .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
         );
     }

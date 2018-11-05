@@ -105,7 +105,7 @@ public class SchedulingStatus {
         private SchedulingState state;
         private long timestamp;
         private long expectedStartTime;
-        private Optional<Throwable> error;
+        private Throwable error;
 
         private Builder() {
         }
@@ -126,14 +126,14 @@ public class SchedulingStatus {
         }
 
         public Builder withError(Throwable error) {
-            this.error = Optional.ofNullable(error);
+            this.error = error;
             return this;
         }
 
         public SchedulingStatus build() {
             Preconditions.checkNotNull(state, "state cannot be null");
 
-            return new SchedulingStatus(state, timestamp, expectedStartTime, error);
+            return new SchedulingStatus(state, timestamp, expectedStartTime, Optional.ofNullable(error));
         }
     }
 }

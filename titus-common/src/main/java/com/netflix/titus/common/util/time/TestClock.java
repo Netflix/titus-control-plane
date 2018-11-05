@@ -16,6 +16,9 @@
 
 package com.netflix.titus.common.util.time;
 
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.Month;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,4 +26,20 @@ import java.util.concurrent.TimeUnit;
 public interface TestClock extends Clock {
 
     long advanceTime(long interval, TimeUnit timeUnit);
+
+    default long advanceTime(Duration duration) {
+        return advanceTime(duration.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    default TestClock resetDate(int year, Month month, int day) {
+        throw new IllegalStateException("method not supported");
+    }
+
+    default TestClock resetTime(int hour, int minute, int second) {
+        throw new IllegalStateException("method not supported");
+    }
+
+    default TestClock jumpForwardTo(DayOfWeek dayOfWeek) {
+        throw new IllegalStateException("method not supported");
+    }
 }

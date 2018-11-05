@@ -16,10 +16,12 @@
 
 package com.netflix.titus.master.eviction.endpoint.grpc;
 
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.eviction.service.EvictionOperations;
+import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
@@ -27,13 +29,13 @@ import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.Reference;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
+import com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import reactor.core.Disposable;
 
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreTier;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvent;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvictionQuota;
 
@@ -49,25 +51,30 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
 
     @Override
     public void getEvictionQuota(Reference request, StreamObserver<EvictionQuota> responseObserver) {
-        com.netflix.titus.api.eviction.model.EvictionQuota evictionQuota;
+        EvictionQuota evictionQuota;
         switch (request.getReferenceCase()) {
-            case GLOBAL:
-                evictionQuota = evictionOperations.getGlobalEvictionQuota();
+            case SYSTEM:
+                evictionQuota = toGrpcEvictionQuota(evictionOperations.getSystemEvictionQuota());
                 break;
             case TIER:
-                evictionQuota = evictionOperations.getTierEvictionQuota(toCoreTier(request.getTier()));
-                break;
             case CAPACITYGROUP:
-                evictionQuota = evictionOperations.getCapacityGroupEvictionQuota(request.getCapacityGroup());
+                evictionQuota = toVeryHighQuota(request);
                 break;
             case JOBID:
+                Optional<EvictionQuota> quotaOpt = evictionOperations.findJobEvictionQuota(request.getJobId()).map(GrpcEvictionModelConverters::toGrpcEvictionQuota);
+                if (!quotaOpt.isPresent()) {
+                    responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND.withDescription("Job not found or no eviction quota associated with the job")));
+                    return;
+                }
+                evictionQuota = quotaOpt.get();
+                break;
             case TASKID:
             default:
                 responseObserver.onError(new IllegalArgumentException("Reference type not supported: " + request.getReferenceCase()));
                 return;
         }
 
-        responseObserver.onNext(toGrpcEvictionQuota(evictionQuota));
+        responseObserver.onNext(evictionQuota);
         responseObserver.onCompleted();
     }
 
@@ -102,5 +109,12 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
         );
         ServerCallStreamObserver<EvictionServiceEvent> serverObserver = (ServerCallStreamObserver<EvictionServiceEvent>) responseObserver;
         serverObserver.setOnCancelHandler(subscription::dispose);
+    }
+
+    private EvictionQuota toVeryHighQuota(Reference reference) {
+        return EvictionQuota.newBuilder()
+                .setTarget(reference)
+                .setQuota(ReadOnlyEvictionOperations.VERY_HIGH_QUOTA)
+                .build();
     }
 }

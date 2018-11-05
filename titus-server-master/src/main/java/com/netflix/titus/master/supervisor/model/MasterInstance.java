@@ -16,8 +16,12 @@
 
 package com.netflix.titus.master.supervisor.model;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.Evaluators;
 
 public class MasterInstance {
 
@@ -121,6 +125,11 @@ public class MasterInstance {
         }
 
         public MasterInstance build() {
+            Preconditions.checkNotNull(instanceId, "Instance id not set");
+            Preconditions.checkNotNull(ipAddress, "ip address not set");
+            Preconditions.checkNotNull(status, "status not set");
+
+            this.statusHistory = Evaluators.getOrDefault(statusHistory, Collections.emptyList());
             return new MasterInstance(instanceId, ipAddress, status, statusHistory);
         }
     }

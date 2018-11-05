@@ -52,8 +52,8 @@ public abstract class Reference {
         return Objects.hash(level);
     }
 
-    public static Reference global() {
-        return GlobalReference.getInstance();
+    public static Reference system() {
+        return SystemReference.getInstance();
     }
 
     public static Reference tier(Tier tier) {

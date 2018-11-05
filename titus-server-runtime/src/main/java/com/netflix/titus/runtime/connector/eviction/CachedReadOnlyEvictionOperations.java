@@ -38,8 +38,8 @@ public class CachedReadOnlyEvictionOperations implements ReadOnlyEvictionOperati
     }
 
     @Override
-    public EvictionQuota getGlobalEvictionQuota() {
-        return replicator.getCurrent().getGlobalEvictionQuota();
+    public EvictionQuota getSystemEvictionQuota() {
+        return replicator.getCurrent().getSystemEvictionQuota();
     }
 
     @Override

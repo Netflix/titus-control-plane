@@ -36,6 +36,10 @@ public class HourlyTimeWindow {
         return endHour;
     }
 
+    public static HourlyTimeWindow newRange(int start, int end) {
+        return new HourlyTimeWindow(start, end);
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }

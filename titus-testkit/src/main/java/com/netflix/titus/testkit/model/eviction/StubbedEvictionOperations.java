@@ -34,9 +34,9 @@ import reactor.core.publisher.Mono;
 
 class StubbedEvictionOperations implements EvictionOperations {
 
-    private static final EvictionQuota GLOBAL_EVICTION_QUOTA = EvictionQuota.newBuilder()
+    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.newBuilder()
             .withQuota(Long.MAX_VALUE / 2)
-            .withReference(Reference.global())
+            .withReference(Reference.system())
             .build();
 
     private final StubbedEvictionData stubbedEvictionData;
@@ -55,7 +55,7 @@ class StubbedEvictionOperations implements EvictionOperations {
 
             long quota = stubbedEvictionData.findJobQuota(job.getId()).orElse(0L);
             if (quota <= 0) {
-                throw EvictionException.noAvailableJobQuota(job, -1, -1);
+                throw EvictionException.noAvailableJobQuota(job, "No quota");
             }
 
             jobOperations.killTask(taskId, false, "Eviction");
@@ -64,18 +64,18 @@ class StubbedEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public EvictionQuota getGlobalEvictionQuota() {
-        return GLOBAL_EVICTION_QUOTA;
+    public EvictionQuota getSystemEvictionQuota() {
+        return SYSTEM_EVICTION_QUOTA;
     }
 
     @Override
     public EvictionQuota getTierEvictionQuota(Tier tier) {
-        return GLOBAL_EVICTION_QUOTA;
+        return SYSTEM_EVICTION_QUOTA;
     }
 
     @Override
     public EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
-        return GLOBAL_EVICTION_QUOTA;
+        return SYSTEM_EVICTION_QUOTA;
     }
 
     @Override

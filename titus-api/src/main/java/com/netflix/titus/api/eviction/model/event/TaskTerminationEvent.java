@@ -21,15 +21,21 @@ import java.util.Objects;
 public class TaskTerminationEvent extends EvictionEvent {
 
     private final String taskId;
+    private final String reason;
     private final boolean approved;
 
-    public TaskTerminationEvent(String taskId, boolean approved) {
+    public TaskTerminationEvent(String taskId, String reason, boolean approved) {
         this.taskId = taskId;
+        this.reason = reason;
         this.approved = approved;
     }
 
     public String getTaskId() {
         return taskId;
+    }
+
+    public String getReason() {
+        return reason;
     }
 
     public boolean isApproved() {
@@ -46,19 +52,21 @@ public class TaskTerminationEvent extends EvictionEvent {
         }
         TaskTerminationEvent that = (TaskTerminationEvent) o;
         return approved == that.approved &&
-                Objects.equals(taskId, that.taskId);
+                Objects.equals(taskId, that.taskId) &&
+                Objects.equals(reason, that.reason);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, approved);
+        return Objects.hash(taskId, reason, approved);
     }
 
     @Override
     public String toString() {
         return "TaskTerminationEvent{" +
                 "taskId='" + taskId + '\'' +
+                ", reason='" + reason + '\'' +
                 ", approved=" + approved +
-                "} " + super.toString();
+                '}';
     }
 }

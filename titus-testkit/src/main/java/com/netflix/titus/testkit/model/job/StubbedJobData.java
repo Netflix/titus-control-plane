@@ -30,6 +30,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
+import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -94,6 +96,13 @@ class StubbedJobData {
                 .findFirst();
     }
 
+    Optional<ContainerHealthStatus> getTaskHealthStatus(String taskId) {
+        return jobHoldersById.values().stream()
+                .filter(h -> h.getTasksById().containsKey(taskId))
+                .map(h -> h.getTaskHealthStatus(taskId))
+                .findFirst();
+    }
+
     void addJob(Job<?> job) {
         jobHoldersById.put(job.getId(), new JobHolder(job));
         observeJobsSubject.onNext(JobUpdateEvent.newJob(job));
@@ -139,6 +148,10 @@ class StubbedJobData {
 
     Task changeTask(String taskId, Function<Task, Task> transformer) {
         return getJobHolderByTaskId(taskId).changeTask(taskId, transformer);
+    }
+
+    void changeContainerHealth(String taskId, ContainerHealthState healthState) {
+        getJobHolderByTaskId(taskId).changeContainerHealth(taskId, healthState);
     }
 
     Task moveTaskToState(Task task, TaskState newState) {
@@ -188,6 +201,7 @@ class StubbedJobData {
 
         private Job<?> job;
         private final Map<String, Task> tasksById = new HashMap<>();
+        private final Map<String, ContainerHealthStatus> tasksHealthById = new HashMap<>();
         private final MutableDataGenerator<Task> taskGenerator;
 
         JobHolder(Job<?> job) {
@@ -205,6 +219,17 @@ class StubbedJobData {
 
         Map<String, Task> getTasksById() {
             return tasksById;
+        }
+
+        ContainerHealthStatus getTaskHealthStatus(String taskId) {
+            Task task = tasksById.get(taskId);
+            if (task == null) {
+                return ContainerHealthStatus.unknown(taskId, titusRuntime.getClock().wallTime());
+            }
+            if (task.getStatus().getState() != TaskState.Started) {
+                return ContainerHealthStatus.unhealthy(taskId, titusRuntime.getClock().wallTime());
+            }
+            return tasksHealthById.computeIfAbsent(taskId, tid -> ContainerHealthStatus.healthy(taskId, titusRuntime.getClock().wallTime()));
         }
 
         Job<?> changeJob(Function<Job<?>, Job<?>> transformer) {
@@ -275,6 +300,15 @@ class StubbedJobData {
             Task updatedTask = transformer.apply(tasksById.get(taskId));
             tasksById.put(updatedTask.getId(), updatedTask);
             return updatedTask;
+        }
+
+        void changeContainerHealth(String taskId, ContainerHealthState healthState) {
+            tasksHealthById.put(taskId, ContainerHealthStatus.newBuilder()
+                    .withTaskId(taskId)
+                    .withState(healthState)
+                    .withTimestamp(titusRuntime.getClock().wallTime())
+                    .build()
+            );
         }
 
         Task moveTaskToState(Task task, TaskState newState) {

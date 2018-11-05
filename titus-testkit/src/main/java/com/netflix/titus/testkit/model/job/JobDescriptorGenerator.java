@@ -23,6 +23,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -158,6 +159,10 @@ public final class JobDescriptorGenerator {
                 .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_CELL_NAME)
                 .entry("labelA", "valueA")
                 .toMap()).build());
+    }
+
+    public static JobDescriptor<BatchJobExt> batchJobDescriptor(int desired) {
+        return JobFunctions.changeBatchJobSize(oneTaskBatchJobDescriptor(), desired);
     }
 
     public static JobDescriptor<BatchJobExt> oneTaskBatchJobDescriptor() {

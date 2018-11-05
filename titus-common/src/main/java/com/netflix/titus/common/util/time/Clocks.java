@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util.time;
 
+import java.time.Month;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.common.util.time.internal.DefaultTestClock;
@@ -47,6 +48,14 @@ public class Clocks {
 
     public static TestClock test() {
         return new DefaultTestClock();
+    }
+
+    public static TestClock testWorldClock() {
+        return new TestWorldClock();
+    }
+
+    public static TestClock testWorldClock(int year, Month month, int day) {
+        return new TestWorldClock(year, month, day);
     }
 
     public static TestClock testScheduler(TestScheduler testScheduler) {

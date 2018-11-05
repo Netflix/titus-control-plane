@@ -24,12 +24,12 @@ import java.util.function.Function;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.LocalSchedulerException;
+import com.netflix.titus.common.framework.scheduler.model.ExecutionId;
 import com.netflix.titus.common.framework.scheduler.model.Schedule;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.ScheduledAction;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus;
 import com.netflix.titus.common.framework.scheduler.model.SchedulingStatus.SchedulingState;
-import com.netflix.titus.common.framework.scheduler.model.ExecutionId;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.retry.Retryer;
@@ -48,7 +48,7 @@ class ScheduledActionExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(ScheduledActionExecutor.class);
 
-    private static final int SCHEDULE_HISTORY_LIMIT = 20;
+    private static final int SCHEDULE_HISTORY_LIMIT = 5;
 
     private final ScheduleDescriptor descriptor;
     private final Function<ExecutionContext, Mono<Void>> actionProducer;

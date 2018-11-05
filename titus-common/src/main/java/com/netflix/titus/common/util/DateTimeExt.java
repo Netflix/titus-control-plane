@@ -33,6 +33,14 @@ public final class DateTimeExt {
     private DateTimeExt() {
     }
 
+    public static ZoneId toZoneId(String timeZoneName) {
+        String full = ZoneId.SHORT_IDS.get(timeZoneName);
+        if (full == null) {
+            full = timeZoneName;
+        }
+        return ZoneId.of(full);
+    }
+
     /**
      * The time given in the argument is scoped to a local (system default) time zone. The result
      * is adjusted to UTC time zone.

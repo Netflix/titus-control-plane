@@ -59,7 +59,7 @@ public class FixedIntervalTokenBucketRefillPolicy extends TokenBucketRefillPolic
         return "FixedIntervalTokenBucketRefillPolicy{" +
                 "numberOfTokensPerInterval=" + numberOfTokensPerInterval +
                 ", intervalMs=" + intervalMs +
-                "} " + super.toString();
+                "}";
     }
 
     public static Builder newBuilder() {

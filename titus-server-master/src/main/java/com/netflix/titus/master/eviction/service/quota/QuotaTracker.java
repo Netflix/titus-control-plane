@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.model.reference;
+package com.netflix.titus.master.eviction.service.quota;
 
-import com.netflix.titus.api.model.Level;
+/**
+ * {@link QuotaTracker} provides information about the available quota. If the quota counter is managed explicitly,
+ * the {@link QuotaController} provides an additional method to consume the quota. For other cases, the quota is computed from
+ * other information and cannot be changed directly. For example, the quota for tasks that can be terminated is a function
+ * of tasks being in healthy and unhealthy state. Terminating a task means the quota will be decreased by one.
+ */
+public interface QuotaTracker {
 
-public class GlobalReference extends Reference {
-    private static final com.netflix.titus.api.model.reference.GlobalReference INSTANCE = new com.netflix.titus.api.model.reference.GlobalReference();
-
-    private GlobalReference() {
-        super(Level.Global);
-    }
-
-    @Override
-    public String getName() {
-        return "global";
-    }
-
-    public static GlobalReference getInstance() {
-        return INSTANCE;
-    }
+    long getQuota();
 }

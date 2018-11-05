@@ -58,6 +58,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.cassandra.testkit.store.EmbeddedCassandraStoreFactory;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -156,7 +157,6 @@ public class EmbeddedTitusMaster {
         Properties embeddedProperties = new Properties();
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         embeddedProperties.put("titus.master.cellName", cellName);
-        embeddedProperties.put("titusMaster.v2Enabled", "false");
         config.setProperties(embeddedProperties);
 
         if (builder.remoteCloud == null) {
@@ -340,6 +340,10 @@ public class EmbeddedTitusMaster {
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
         return GrpcClientErrorUtils.attachCallHeaders(client);
+    }
+
+    public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
+        return EvictionServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {

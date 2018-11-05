@@ -37,8 +37,8 @@ class StubbedEvictionServiceClient implements EvictionServiceClient {
     public Mono<EvictionQuota> getEvictionQuota(Reference reference) {
         EvictionQuota quota;
         switch (reference.getLevel()) {
-            case Global:
-                quota = evictionOperations.getGlobalEvictionQuota();
+            case System:
+                quota = evictionOperations.getSystemEvictionQuota();
                 break;
             case Tier:
                 quota = evictionOperations.getTierEvictionQuota(Tier.valueOf(reference.getName()));
