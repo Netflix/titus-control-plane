@@ -86,8 +86,7 @@ subprojects {
         elasticsearchVersion = '2.4.2'
         caffeineVersion = '2.6.+'
         rxJavaInteropVersion = '0.13.2'
-
-
+        
         // Test
         junitVersion = '4.10'
         mockitoVersion = '2.+'
@@ -146,21 +145,9 @@ subprojects {
             html.enabled = true
         }
 
-        def stdout = new LinkedList<String>()
-        beforeTest {
-            stdout.clear()
-        }
-
-        onOutput { td, toe ->
-            stdout.addAll(toe.getMessage().split('(?m)$'))
-        }
-
-        afterTest { td, tr ->
-            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
-                println()
-                println("${td.className}.${td.name} failed, output:")
-                stdout.each { print(it) }
-            }
+        testLogging {
+            events "failed"
+            exceptionFormat "full"
         }
     }
 
@@ -176,21 +163,9 @@ subprojects {
             html.enabled = true
         }
 
-        def stdout = new LinkedList<String>()
-        beforeTest {
-            stdout.clear()
-        }
-
-        onOutput { td, toe ->
-            stdout.addAll(toe.getMessage().split('(?m)$'))
-        }
-
-        afterTest { td, tr ->
-            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
-                println()
-                println("${td.className}.${td.name} failed, output:")
-                stdout.each { print(it) }
-            }
+        testLogging {
+            events "failed"
+            exceptionFormat "full"
         }
     }
 
@@ -204,21 +179,9 @@ subprojects {
             html.enabled = true
         }
 
-        def stdout = new LinkedList<String>()
-        beforeTest {
-            stdout.clear()
-        }
-
-        onOutput { td, toe ->
-            stdout.addAll(toe.getMessage().split('(?m)$'))
-        }
-
-        afterTest { td, tr ->
-            if (tr.resultType == TestResult.ResultType.FAILURE && stdout.size() > 0) {
-                println()
-                println("${td.className}.${td.name} failed, output:")
-                stdout.each { print(it) }
-            }
+        testLogging {
+            events "failed"
+            exceptionFormat "full"
         }
     }
 

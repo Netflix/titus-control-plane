@@ -77,8 +77,10 @@ public class ReactorSerializedInvoker<T> {
         MonoProcessor<Void> marker = MonoProcessor.create();
         worker.schedule(this::drainOnShutdown);
         worker.schedule(marker::onComplete);
+
         try {
             marker.block(timeout);
+        } catch (Exception ignoreTimeout) {
         } finally {
             worker.dispose();
         }
