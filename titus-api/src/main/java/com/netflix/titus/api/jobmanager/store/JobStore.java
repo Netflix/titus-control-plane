@@ -110,6 +110,11 @@ public interface JobStore {
     Completable replaceTask(Task oldTask, Task newTask);
 
     /**
+     *
+     */
+    Completable moveTask(Job jobFrom, Job jobTo, Task taskAfter);
+
+    /**
      * Delete an existing task.
      *
      * @param task

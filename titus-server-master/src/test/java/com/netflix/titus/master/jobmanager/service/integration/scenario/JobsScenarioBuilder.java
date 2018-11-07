@@ -54,6 +54,7 @@ import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -259,6 +260,13 @@ public class JobsScenarioBuilder {
 
         trigger();
 
+        await().timeout(5, TimeUnit.SECONDS).until(() -> {
+            if (jobIdRef.get() != null) {
+                return true;
+            }
+            advance();
+            return false;
+        });
         String jobId = jobIdRef.get();
         assertThat(jobId).describedAs("Job not created").isNotNull();
 

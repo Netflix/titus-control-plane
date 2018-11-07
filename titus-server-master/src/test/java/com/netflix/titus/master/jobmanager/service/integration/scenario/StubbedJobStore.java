@@ -312,6 +312,24 @@ class StubbedJobStore implements JobStore {
     }
 
     @Override
+    public Completable moveTask(Job jobFrom, Job jobTo, Task taskAfter) {
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    Preconditions.checkArgument(jobs.containsKey(jobFrom.getId()), "jobFrom=%s not found", jobFrom.getId());
+                    Preconditions.checkArgument(jobs.containsKey(jobTo.getId()), "jobTo=%s not found", jobTo.getId());
+                    Preconditions.checkArgument(tasks.containsKey(taskAfter.getId()), "task=%s not found", taskAfter.getId());
+
+                    jobs.put(jobFrom.getId(), jobFrom);
+                    jobs.put(jobTo.getId(), jobTo);
+                    tasks.put(taskAfter.getId(), taskAfter);
+                    eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobFrom));
+                    eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobTo));
+                    eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, taskAfter));
+                })
+        );
+    }
+
+    @Override
     public Completable deleteTask(Task task) {
         return beforeCompletable(() ->
                 Completable.fromAction(() -> {

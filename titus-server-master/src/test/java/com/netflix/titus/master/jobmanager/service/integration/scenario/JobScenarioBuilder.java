@@ -101,6 +101,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         vmService.events().filter(pair -> jobOperations.findTaskById(pair.getRight()).isPresent()).subscribe(mesosEventsSubscriber);
     }
 
+    public String getJobId() {
+        return jobId;
+    }
+
     public JobScenarioBuilder<E> advance() {
         testScheduler.advanceTimeBy(RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
@@ -235,6 +239,17 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> killTaskAndShrink(int taskIdx, int resubmit) {
         return killTaskAndShrink(findTaskInActiveState(taskIdx, resubmit));
+    }
+
+    public JobScenarioBuilder<E> moveTask(int taskIdx, int resubmit, String targetJobId) {
+        Task task = findTaskInActiveState(taskIdx, resubmit);
+
+        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
+        jobOperations.moveServiceTask(task.getId(), targetJobId).subscribe(subscriber);
+
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
+
+        return this;
     }
 
     public JobScenarioBuilder<E> assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
@@ -577,10 +592,6 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
             advance();
         }
         action.run();
-    }
-
-    String getJobId() {
-        return jobId;
     }
 
     /**

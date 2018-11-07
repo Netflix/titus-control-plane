@@ -543,6 +543,36 @@ public class CassandraJobStore implements JobStore {
         }).flatMap(this::execute).toCompletable();
     }
 
+    /**
+     * Moving task between jobs requires the following Cassandra updates:
+     * <ul>
+     * <li>Update the active_jobs table with the new jobFrom record</li>
+     * <li>Update the active_jobs table with the new jobTo record</li>
+     * <li>Update task record in the active_tasks table (to include the new job id)</li>
+     * <li>Remove a record from the active_task_ids table for the jobFrom/taskId pair</li>
+     * <li>Add a new record in the active_task_ids for the jobTo/taskId pair</li>
+     * </ul>
+     */
+    @Override
+    public Completable moveTask(Job jobFrom, Job jobTo, Task taskAfter) {
+        return Observable.fromCallable((Callable<Statement>) () -> {
+            checkIfJobIsActive(jobFrom.getId());
+            checkIfJobIsActive(jobTo.getId());
+
+            String taskJsonString = ObjectMappers.writeValueAsString(mapper, taskAfter);
+            transactionLogger().logBeforeUpdate(insertActiveTaskStatement, "moveTask", taskJsonString);
+
+            BatchStatement batchStatement = new BatchStatement();
+            batchStatement.add(insertActiveJobStatement.bind(jobFrom.getId(), ObjectMappers.writeValueAsString(mapper, jobFrom)));
+            batchStatement.add(insertActiveJobStatement.bind(jobTo.getId(), ObjectMappers.writeValueAsString(mapper, jobTo)));
+            batchStatement.add(insertActiveTaskStatement.bind(taskAfter.getId(), taskJsonString));
+            batchStatement.add(deleteActiveTaskIdStatement.bind(jobFrom.getId(), taskAfter.getId()));
+            batchStatement.add(insertActiveTaskIdStatement.bind(jobTo.getId(), taskAfter.getId()));
+
+            return batchStatement;
+        }).flatMap(this::execute).toCompletable().doOnCompleted(() -> transactionLogger().logAfterUpdate(insertActiveTaskStatement, "moveTask", taskAfter));
+    }
+
     @Override
     public Completable deleteTask(Task task) {
         return Observable.fromCallable((Callable<Statement>) () -> {

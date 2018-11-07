@@ -45,8 +45,7 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
 
     private static final Logger logger = LoggerFactory.getLogger(ArchaiusSystemDisruptionBudgetResolver.class);
 
-    @VisibleForTesting
-    static final String PROPERTY_KEY = "titusMaster.eviction.systemDisruptionBudget";
+    public static final String PROPERTY_KEY = "titusMaster.eviction.systemDisruptionBudget";
 
     private static final SystemDisruptionBudget DEFAULT_SYSTEM_DISRUPTION_BUDGET = newBasicSystemDisruptionBudget(
             50,

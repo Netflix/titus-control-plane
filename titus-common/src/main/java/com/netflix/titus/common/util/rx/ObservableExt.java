@@ -394,4 +394,17 @@ public class ObservableExt {
     public static <T> Observable.Transformer<T, T> reemiter(Function<T, T> transformer, long interval, TimeUnit timeUnit, Scheduler scheduler) {
         return new ReEmitterTransformer<>(transformer, interval, timeUnit, scheduler);
     }
+
+    /**
+     * Creates multiple {@link Observable} instances (outputs) backed by the same source observable, with the following properties:
+     * <ul>
+     * <li>the source observable is subscribed to only when the all outputs are subscribed to</li>
+     * <li>the source observable is subscribed to only once, and the same result is propagated to the all outputs</li>
+     * <li>if one of the output observables is cancelled, all the remaining observables are cancelled as well</li>
+     * <li>if an output is subscribed to multiple times, all the subscriptions except the first one are terminated with an error</li>
+     * </ul>
+     */
+    public static <T> List<Observable<T>> demultiplex(Observable<T> source, int outputs) {
+        return Demultipex.create(source, outputs);
+    }
 }

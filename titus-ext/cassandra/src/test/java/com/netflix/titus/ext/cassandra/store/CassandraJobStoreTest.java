@@ -25,9 +25,11 @@ import com.datastax.driver.core.Session;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -364,6 +366,41 @@ public class CassandraJobStoreTest {
         assertThat(archivedTask).isEqualTo(task);
     }
 
+    @Test
+    public void testMoveTask() {
+        JobStore store = getJobStore();
+        store.init().await();
+
+        Job<ServiceJobExt> jobFrom = createServiceJobObject();
+        store.storeJob(jobFrom).await();
+
+        Job<ServiceJobExt> jobTo = createServiceJobObject();
+        store.storeJob(jobTo).await();
+
+        Task task = createServiceTaskObject(jobFrom);
+        store.storeTask(task).await();
+
+        Job<ServiceJobExt> updatedFromJob = JobFunctions.incrementJobSize(jobFrom, -1);
+        Job<ServiceJobExt> updatedToJob = JobFunctions.incrementJobSize(jobTo, 1);
+        Task updatedTask = task.toBuilder().withJobId(updatedToJob.getId()).build();
+        store.moveTask(updatedFromJob, updatedToJob, updatedTask).await();
+
+        // Load jobFrom from store
+        Job<?> jobFromLoaded = store.retrieveJob(jobFrom.getId()).toBlocking().first();
+        assertThat(JobFunctions.getJobDesiredSize(jobFromLoaded)).isEqualTo(0);
+
+        Pair<List<Task>, Integer> jobFromTasksLoaded = store.retrieveTasksForJob(jobFrom.getId()).toBlocking().first();
+        assertThat(jobFromTasksLoaded.getLeft()).hasSize(0);
+
+        // Load jobTo from store
+        Job<?> jobToLoaded = store.retrieveJob(jobTo.getId()).toBlocking().first();
+        assertThat(JobFunctions.getJobDesiredSize(jobToLoaded)).isEqualTo(2);
+
+        Pair<List<Task>, Integer> jobToTasksLoaded = store.retrieveTasksForJob(jobTo.getId()).toBlocking().first();
+        assertThat(jobToTasksLoaded.getLeft()).hasSize(1);
+        jobToTasksLoaded.getLeft().forEach(t -> assertThat(t.getJobId()).isEqualTo(jobTo.getId()));
+    }
+
     private JobStore getJobStore() {
         return getJobStore(null);
     }
@@ -395,6 +432,14 @@ public class CassandraJobStoreTest {
     private Task createTaskObject(Job<BatchJobExt> job) {
         String taskId = UUID.randomUUID().toString();
         return BatchJobTask.newBuilder()
+                .withId(taskId)
+                .withJobId(job.getId())
+                .build();
+    }
+
+    private Task createServiceTaskObject(Job<ServiceJobExt> job) {
+        String taskId = UUID.randomUUID().toString();
+        return ServiceJobTask.newBuilder()
                 .withId(taskId)
                 .withJobId(job.getId())
                 .build();

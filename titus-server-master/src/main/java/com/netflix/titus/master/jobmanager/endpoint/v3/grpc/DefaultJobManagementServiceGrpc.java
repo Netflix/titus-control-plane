@@ -59,6 +59,7 @@ import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
@@ -372,6 +373,21 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             String reason = String.format("User initiated task kill: %s", toReasonString(callMetadata));
             jobOperations.killTask(request.getTaskId(), request.getShrink(), reason).subscribe(
+                    nothing -> {
+                    },
+                    e -> safeOnError(logger, e, responseObserver),
+                    () -> {
+                        responseObserver.onNext(Empty.getDefaultInstance());
+                        responseObserver.onCompleted();
+                    }
+            );
+        });
+    }
+
+    @Override
+    public void moveTask(TaskMoveRequest request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            jobOperations.moveServiceTask(request.getTaskId(), request.getTargetJobId()).subscribe(
                     nothing -> {
                     },
                     e -> safeOnError(logger, e, responseObserver),

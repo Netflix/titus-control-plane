@@ -85,14 +85,14 @@ public class DefaultLocalScheduler implements LocalScheduler {
     private final SchedulerMetrics metrics;
     private final Disposable transactionLoggerDisposable;
 
-    public DefaultLocalScheduler(Duration internalLoopInterval, Scheduler scheduler, Clock clock, boolean localSchedulerLogDisabled, Registry registry) {
+    public DefaultLocalScheduler(Duration internalLoopInterval, Scheduler scheduler, Clock clock, Registry registry) {
         this.internalLoopIntervalMs = internalLoopInterval.toMillis();
         this.scheduler = scheduler;
         this.clock = clock;
         this.registry = registry;
         this.worker = scheduler.createWorker();
         this.metrics = new SchedulerMetrics(this, clock, registry);
-        this.transactionLoggerDisposable = localSchedulerLogDisabled ? Disposables.disposed() : LocalSchedulerTransactionLogger.logEvents(this);
+        this.transactionLoggerDisposable = LocalSchedulerTransactionLogger.logEvents(this);
 
         scheduleNextIteration();
     }

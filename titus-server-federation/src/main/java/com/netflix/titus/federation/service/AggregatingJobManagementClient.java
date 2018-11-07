@@ -57,6 +57,7 @@ import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
@@ -364,6 +365,11 @@ public class AggregatingJobManagementClient implements JobManagementClient {
                         (client, streamObserver) -> client.killTask(request, streamObserver))
                 );
         return result.toCompletable();
+    }
+
+    @Override
+    public Completable moveTask(TaskMoveRequest taskMoveRequest) {
+        return Completable.error(new IllegalStateException("not implemented"));
     }
 
     private JobQueryResult addStackName(JobQueryResult result) {

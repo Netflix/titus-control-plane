@@ -18,12 +18,14 @@ package com.netflix.titus.api.jobmanager.service;
 
 import java.util.List;
 
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 
@@ -46,6 +48,9 @@ public class JobManagerException extends RuntimeException {
         InvalidContainerResources,
         InvalidDesiredCapacity,
         V2EngineTurnedOff,
+        BelowMinCapacity,
+        AboveMaxCapacity,
+        SameJobIds,
     }
 
     private final ErrorCode errorCode;
@@ -74,13 +79,21 @@ public class JobManagerException extends RuntimeException {
         switch (((JobManagerException) error).getErrorCode()) {
             case JobCreateLimited:
             case JobNotFound:
+            case NotServiceJobDescriptor:
             case NotServiceJob:
             case TaskNotFound:
             case JobTerminating:
             case TaskTerminating:
             case InvalidContainerResources:
             case InvalidDesiredCapacity:
+            case BelowMinCapacity:
+            case AboveMaxCapacity:
+            case SameJobIds:
                 return true;
+            case NotBatchJobDescriptor:
+                break;
+            case NotBatchJob:
+                break;
             case UnexpectedJobState:
             case UnexpectedTaskState:
             case V2EngineTurnedOff:
@@ -165,6 +178,33 @@ public class JobManagerException extends RuntimeException {
                 ErrorCode.InvalidDesiredCapacity,
                 format("Job %s can not be updated to desired capacity of %s, disableIncreaseDesired %s, disableDecreaseDesired %s",
                         jobId, targetDesired, serviceJobProcesses.isDisableIncreaseDesired(), serviceJobProcesses.isDisableDecreaseDesired())
+        );
+    }
+
+    public static JobManagerException belowMinCapacity(Job<ServiceJobExt> job, int decrement) {
+        Capacity capacity = job.getJobDescriptor().getExtensions().getCapacity();
+        return new JobManagerException(
+                ErrorCode.BelowMinCapacity,
+                format("Cannot decrement job %s desired size by %s, as it violates the minimum job size constraint: min=%s, desired=%d, max=%d",
+                        job.getId(), decrement, capacity.getMin(), capacity.getDesired(), capacity.getMax()
+                )
+        );
+    }
+
+    public static JobManagerException aboveMaxCapacity(Job<ServiceJobExt> job, int decrement) {
+        Capacity capacity = job.getJobDescriptor().getExtensions().getCapacity();
+        return new JobManagerException(
+                ErrorCode.AboveMaxCapacity,
+                format("Cannot increment job %s desired size by %s, as it violates the maximum job size constraint: min=%s, desired=%d, max=%d",
+                        job.getId(), decrement, capacity.getMin(), capacity.getDesired(), capacity.getMax()
+                )
+        );
+    }
+
+    public static JobManagerException sameJobs(String jobId) {
+        return new JobManagerException(
+                ErrorCode.SameJobIds,
+                format("Operation requires two different job, but the same job provided as the source and target: %s", jobId)
         );
     }
 }

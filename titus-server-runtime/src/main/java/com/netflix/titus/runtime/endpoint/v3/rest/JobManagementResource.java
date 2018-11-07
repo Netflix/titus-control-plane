@@ -48,6 +48,7 @@ import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
@@ -190,5 +191,12 @@ public class JobManagementResource {
     ) {
         TaskKillRequest taskKillRequest = TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(shrink).build();
         return Responses.fromCompletable(jobManagementClient.killTask(taskKillRequest));
+    }
+
+    @POST
+    @ApiOperation("Move task to another job")
+    @Path("/tasks/move")
+    public Response moveTask(TaskMoveRequest taskMoveRequest) {
+        return Responses.fromCompletable(jobManagementClient.moveTask(taskMoveRequest));
     }
 }

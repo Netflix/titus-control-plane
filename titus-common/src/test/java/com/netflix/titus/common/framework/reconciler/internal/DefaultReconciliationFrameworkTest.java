@@ -18,6 +18,8 @@ package com.netflix.titus.common.framework.reconciler.internal;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -25,13 +27,17 @@ import java.util.function.Function;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
+import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
+import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import rx.Observable;
 import rx.observers.AssertableSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
@@ -82,9 +88,17 @@ public class DefaultReconciliationFrameworkTest {
         when(engine1.triggerActions()).thenReturn(true);
         when(engine1.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot1", "myEntity1"));
         when(engine1.events()).thenReturn(engine1Events.asObservable());
+        when(engine1.changeReferenceModel(any())).thenAnswer(invocation -> {
+            ChangeAction changeAction = invocation.getArgument(0);
+            return changeAction.apply().ignoreElements().cast(Void.class);
+        });
         when(engine2.triggerActions()).thenReturn(true);
         when(engine2.getReferenceView()).thenReturn(EntityHolder.newRoot("myRoot2", "myEntity2"));
         when(engine2.events()).thenReturn(engine2Events.asObservable());
+        when(engine2.changeReferenceModel(any())).thenAnswer(invocation -> {
+            ChangeAction changeAction = invocation.getArgument(0);
+            return changeAction.apply().ignoreElements().cast(Void.class);
+        });
     }
 
     @After
@@ -151,6 +165,57 @@ public class DefaultReconciliationFrameworkTest {
         );
         testScheduler.advanceTimeBy(IDLE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         verify(engine, times(1)).triggerActions();
+    }
+
+    @Test
+    public void testMultiEngineChangeAction() {
+        EntityHolder root1 = EntityHolder.newRoot("myRoot1", "myEntity1");
+        EntityHolder root2 = EntityHolder.newRoot("myRoot2", "myEntity2");
+
+        framework.newEngine(root1).subscribe();
+        framework.newEngine(root2).subscribe();
+        testScheduler.triggerActions();
+
+        Map<String, List<ModelActionHolder>> holders = new HashMap<>();
+        Observable<Void> multiChangeObservable = framework.changeReferenceModel(
+                // Keep anonymous class instead of lambda for readability
+                new MultiEngineChangeAction() {
+                    @Override
+                    public Observable<Map<String, List<ModelActionHolder>>> apply() {
+                        return Observable.just(ImmutableMap.of(
+                                "myRoot1", ModelActionHolder.allModels(new SimpleModelUpdateAction(EntityHolder.newRoot("myRoot1", "myEntity1#v2"), true)),
+                                "myRoot2", ModelActionHolder.allModels(new SimpleModelUpdateAction(EntityHolder.newRoot("myRoot2", "myEntity2#v2"), true))
+                        ));
+                    }
+                },
+                // Keep anonymous class instead of lambda for readability
+                (id, modelUpdates) -> new ChangeAction() {
+                    @Override
+                    public Observable<List<ModelActionHolder>> apply() {
+                        return modelUpdates.doOnNext(next -> holders.put(id, next));
+                    }
+                },
+                "myRoot1",
+                "myRoot2"
+        );
+
+        verify(engine1, times(0)).changeReferenceModel(any());
+        verify(engine2, times(0)).changeReferenceModel(any());
+
+        ExtTestSubscriber<Void> multiChangeSubscriber = new ExtTestSubscriber<>();
+        multiChangeObservable.subscribe(multiChangeSubscriber);
+        assertThat(multiChangeSubscriber.isUnsubscribed()).isTrue();
+
+        verify(engine1, times(1)).changeReferenceModel(any());
+        verify(engine2, times(1)).changeReferenceModel(any());
+
+        assertThat(holders.get("myRoot1")).hasSize(3);
+        SimpleModelUpdateAction modelAction1 = (SimpleModelUpdateAction) holders.get("myRoot1").get(0).getAction();
+        assertThat((String) modelAction1.getEntityHolder().getEntity()).isEqualTo("myEntity1#v2");
+
+        assertThat(holders.get("myRoot2")).hasSize(3);
+        SimpleModelUpdateAction modelAction2 = (SimpleModelUpdateAction) holders.get("myRoot2").get(0).getAction();
+        assertThat((String) modelAction2.getEntityHolder().getEntity()).isEqualTo("myEntity2#v2");
     }
 
     @Test

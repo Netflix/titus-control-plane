@@ -30,6 +30,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -67,6 +68,7 @@ import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent
 import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent.JobNewModelReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
+import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -384,6 +386,54 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })
                 .orElse(Observable.error(JobManagerException.taskNotFound(taskId)));
+    }
+
+    @Override
+    public Observable<Void> moveServiceTask(String taskId, String targetJobId) {
+        return Observable.defer(() -> {
+            Pair<ReconciliationEngine<JobManagerReconcilerEvent>, EntityHolder> fromEngineTaskPair =
+                    reconciliationFramework.findEngineByChildId(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
+
+            ReconciliationEngine<JobManagerReconcilerEvent> engineFrom = fromEngineTaskPair.getLeft();
+            Job jobFrom = engineFrom.getReferenceView().getEntity();
+            if(jobFrom.getId().equals(targetJobId)) {
+                throw JobManagerException.sameJobs(jobFrom.getId());
+            }
+            if (!JobFunctions.isServiceJob(jobFrom)) {
+                throw JobManagerException.notServiceJob(jobFrom.getId());
+            }
+
+            ReconciliationEngine<JobManagerReconcilerEvent> engineTo =
+                    reconciliationFramework.findEngineByRootId(targetJobId).orElseThrow(() -> JobManagerException.jobNotFound(targetJobId));
+
+            Job jobTo = engineTo.getReferenceView().getEntity();
+            if (!JobFunctions.isServiceJob(jobTo)) {
+                throw JobManagerException.notServiceJob(jobTo.getId());
+            }
+
+            return reconciliationFramework.changeReferenceModel(
+                    new MoveTaskBetweenJobsAction(engineFrom, engineTo, taskId, store),
+                    (rootId, modelUpdatesObservable) -> {
+                        String name;
+                        String summary;
+                        if (targetJobId.equals(rootId)) {
+                            name = "moveTask(to)";
+                            summary = "Moving a task to this job from job " + jobFrom.getId();
+                        } else {
+                            name = "moveTask(from)";
+                            summary = "Moving a task out of this job to job " + jobTo.getId();
+                        }
+                        return new TitusChangeAction(Trigger.API, rootId, name, summary) {
+                            @Override
+                            public Observable<List<ModelActionHolder>> apply() {
+                                return modelUpdatesObservable;
+                            }
+                        };
+                    },
+                    jobFrom.getId(),
+                    jobTo.getId()
+            );
+        });
     }
 
     @Override

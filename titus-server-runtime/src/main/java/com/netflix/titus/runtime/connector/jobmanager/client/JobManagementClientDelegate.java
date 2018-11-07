@@ -27,6 +27,7 @@ import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
@@ -99,5 +100,10 @@ public class JobManagementClientDelegate implements JobManagementClient {
     @Override
     public Completable killTask(TaskKillRequest taskKillRequest) {
         return delegate.killTask(taskKillRequest);
+    }
+
+    @Override
+    public Completable moveTask(TaskMoveRequest taskMoveRequest) {
+        return delegate.moveTask(taskMoveRequest);
     }
 }

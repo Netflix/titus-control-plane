@@ -89,7 +89,7 @@ class StubbedJobOperations implements V3JobOperations {
     @Override
     public List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit) {
         List<Pair<Job<?>, List<Task>>> jobsAndTasks = (List) getJobsAndTasks();
-        return (List)jobsAndTasks.stream()
+        return (List) jobsAndTasks.stream()
                 .flatMap(p -> p.getRight().stream().map(t -> (Pair) Pair.of(p.getLeft(), t)))
                 .filter(queryPredicate::test)
                 .skip(offset)
@@ -170,6 +170,11 @@ class StubbedJobOperations implements V3JobOperations {
     @Override
     public Observable<Void> killTask(String taskId, boolean shrink, String reason) {
         return defer(() -> stubbedJobData.killTask(taskId, shrink, reason));
+    }
+
+    @Override
+    public Observable<Void> moveServiceTask(String taskId, String targetJobId) {
+        throw new IllegalStateException("method not implemented");
     }
 
     @Override
