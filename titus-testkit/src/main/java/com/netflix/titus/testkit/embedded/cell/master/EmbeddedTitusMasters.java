@@ -34,7 +34,6 @@ public final class EmbeddedTitusMasters {
                 .withProperty(LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY, "true")
                 .withProperty("titus.agent.cacheRefreshIntervalMs", "500")
                 .withProperty("titus.agent.fullCacheRefreshIntervalMs", "500")
-                .withProperty("titus.master.grpcServer.v3EnabledApps", ".*")
                 .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
                 .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
                 .withProperty("titus.master.grpcServer.shutdownTimeoutMs", "0")

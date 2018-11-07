@@ -32,7 +32,6 @@ public class EmbeddedTitusRunner {
         EmbeddedTitusMaster.Builder builder = EmbeddedTitusMaster.aTitusMaster()
                 .withSimulatedCloud(cloud)
                 .withCassadraV3JobStore()
-                .withProperty("titus.master.grpcServer.v3EnabledApps", ".*")
                 .withApiPort(8080)
                 .withGrpcPort(8090);
 
