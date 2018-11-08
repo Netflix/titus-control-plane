@@ -299,7 +299,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     }
 
     @Test
-    public void testSubmitJobsWithIdenticalJobGroupIdentityOnV3Engine() throws Exception {
+    public void testSubmitJobsWithIdenticalJobGroupIdentity() throws Exception {
         JobDescriptor jobDescriptor = toGrpcJobDescriptor(JobDescriptorGenerator.oneTaskServiceJobDescriptor()
                 .but(jd -> jd.toBuilder().withApplicationName("v3App").build())
         );

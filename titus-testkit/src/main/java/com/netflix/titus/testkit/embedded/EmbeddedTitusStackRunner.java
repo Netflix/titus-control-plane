@@ -31,7 +31,6 @@ public class EmbeddedTitusStackRunner {
 
     public static void main(String[] args) throws InterruptedException {
         EmbeddedTitusMaster.Builder masterBuilder = EmbeddedTitusMaster.aTitusMaster()
-                .withProperty("titus.master.grpcServer.v3EnabledApps", ".*")
                 .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
                 .withApiPort(8080)
                 .withGrpcPort(8090);
