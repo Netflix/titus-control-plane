@@ -28,7 +28,11 @@ public abstract class EvictionEvent {
         return new EvictionQuotaEvent(evictionQuota);
     }
 
-    public static TaskTerminationEvent newTaskTerminationEvent(String taskId, String reason, boolean approved) {
-        return new TaskTerminationEvent(taskId, reason, approved);
+    public static TaskTerminationEvent newSuccessfulTaskTerminationEvent(String taskId, String reason) {
+        return new TaskTerminationEvent(taskId, reason);
+    }
+
+    public static TaskTerminationEvent newFailedTaskTerminationEvent(String taskId, String reason, Throwable error) {
+        return new TaskTerminationEvent(taskId, reason, error);
     }
 }

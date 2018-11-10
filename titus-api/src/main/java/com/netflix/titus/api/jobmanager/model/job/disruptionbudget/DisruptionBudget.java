@@ -16,14 +16,34 @@
 
 package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import javax.validation.Valid;
+
+import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+
+@ClassFieldsNotNull
 public class DisruptionBudget {
 
+    private static final DisruptionBudget NONE = DisruptionBudget.newBuilder()
+            .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
+            .withDisruptionBudgetRate(UnlimitedDisruptionBudgetRate.newBuilder().build())
+            .withContainerHealthProviders(Collections.emptyList())
+            .withTimeWindows(Collections.emptyList())
+            .build();
+
+    @Valid
     private final DisruptionBudgetPolicy disruptionBudgetPolicy;
+
+    @Valid
     private final DisruptionBudgetRate disruptionBudgetRate;
+
+    @Valid
     private final List<TimeWindow> timeWindows;
+
+    @Valid
     private final List<ContainerHealthProvider> containerHealthProviders;
 
     public DisruptionBudget(DisruptionBudgetPolicy disruptionBudgetPolicy,
@@ -50,10 +70,6 @@ public class DisruptionBudget {
 
     public List<ContainerHealthProvider> getContainerHealthProviders() {
         return containerHealthProviders;
-    }
-
-    public static Builder newBuilder() {
-        return new Builder();
     }
 
     @Override
@@ -92,6 +108,20 @@ public class DisruptionBudget {
                 .withDisruptionBudgetPolicy(disruptionBudgetPolicy)
                 .withDisruptionBudgetRate(disruptionBudgetRate)
                 .withTimeWindows(timeWindows);
+    }
+
+    /**
+     * For the migration time from the old to the new task migration mechanism, we will have to work with jobs
+     * without the disruption budgets. The legacy jobs will be assigned a special disruption budget configuration
+     * which will include the {@link SelfManagedDisruptionBudgetPolicy} policy with relocation time equal zero.
+     * This method provide the legacy default value.
+     */
+    public static DisruptionBudget none() {
+        return NONE;
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     public static final class Builder {

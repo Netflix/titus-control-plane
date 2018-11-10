@@ -30,6 +30,7 @@ import javax.ws.rs.ext.Provider;
 
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -64,6 +65,9 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
         }
         if (exception instanceof JobManagerException) {
             return fromJobManagerException((JobManagerException) exception);
+        }
+        if (exception instanceof EvictionException) {
+            return fromEvictionException((EvictionException) exception);
         }
         if (exception instanceof SchedulerException) {
             return fromSchedulerException((SchedulerException) exception);
@@ -225,6 +229,34 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
             case NotServiceJob:
             case UnexpectedTaskState:
                 errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
+            default:
+                errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+        ErrorResponse errorResponse = errorBuilder.build();
+        return Response.status(errorResponse.getStatusCode()).entity(errorResponse).build();
+    }
+
+    private Response fromEvictionException(EvictionException e) {
+        ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
+                .clientRequest(httpServletRequest)
+                .serverContext()
+                .exceptionContext(e);
+
+        switch (e.getErrorCode()) {
+            case BadConfiguration:
+                errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
+                break;
+            case CapacityGroupNotFound:
+                errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
+                break;
+            case TaskNotFound:
+                errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
+                break;
+            case TaskNotScheduledYet:
+            case TaskAlreadyStopped:
+            case NoQuota:
+                errorBuilder.status(HttpServletResponse.SC_FORBIDDEN);
+                break;
             default:
                 errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }

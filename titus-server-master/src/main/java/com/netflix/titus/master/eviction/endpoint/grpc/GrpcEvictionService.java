@@ -29,6 +29,8 @@ import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.Reference;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -36,6 +38,7 @@ import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import reactor.core.Disposable;
 
+import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvent;
 import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModelConverters.toGrpcEvictionQuota;
 
@@ -43,10 +46,13 @@ import static com.netflix.titus.runtime.eviction.endpoint.grpc.GrpcEvictionModel
 public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImplBase {
 
     private final EvictionOperations evictionOperations;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public GrpcEvictionService(EvictionOperations evictionOperations) {
+    public GrpcEvictionService(EvictionOperations evictionOperations,
+                               CallMetadataResolver callMetadataResolver) {
         this.evictionOperations = evictionOperations;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
@@ -80,20 +86,23 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
 
     @Override
     public void terminateTask(TaskTerminateRequest request, StreamObserver<TaskTerminateResponse> responseObserver) {
-        evictionOperations.terminateTask(request.getTaskId(), request.getReason()).subscribe(
-                next -> {
-                },
-                responseObserver::onError,
-                () -> {
-                    responseObserver.onNext(TaskTerminateResponse.newBuilder()
-                            .setAllowed(true)
-                            .setReasonCode("normal")
-                            .setReasonMessage("Terminating")
-                            .build()
-                    );
-                    responseObserver.onCompleted();
-                }
-        );
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            evictionOperations.terminateTask(request.getTaskId(), request.getReason(), CallMetadataUtils.toCallerId(callMetadata)).subscribe(
+                    next -> {
+                    },
+                    responseObserver::onError,
+                    () -> {
+                        responseObserver.onNext(TaskTerminateResponse.newBuilder()
+                                .setAllowed(true)
+                                .setReasonCode("normal")
+                                .setReasonMessage("Terminating")
+                                .build()
+                        );
+                        responseObserver.onCompleted();
+                    }
+            );
+
+        });
     }
 
     @Override

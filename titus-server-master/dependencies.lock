@@ -346,19 +346,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+"
         },
         "com.netflix.spectator:spectator-api": {
@@ -1562,19 +1562,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+"
         },
         "com.netflix.spectator:spectator-api": {
@@ -2778,19 +2778,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+"
         },
         "com.netflix.spectator:spectator-api": {
@@ -4058,19 +4058,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+"
         },
         "com.netflix.spectator:spectator-api": {
@@ -5275,19 +5275,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+"
         },
         "com.netflix.spectator:spectator-api": {
@@ -6642,19 +6642,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
@@ -8365,19 +8365,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
@@ -10088,19 +10088,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
@@ -11812,19 +11812,19 @@
             ]
         },
         "com.netflix.runtime:health-api": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-core"
             ]
         },
         "com.netflix.runtime:health-core": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "transitive": [
                 "com.netflix.runtime:health-guice"
             ]
         },
         "com.netflix.runtime:health-guice": {
-            "locked": "1.1.3",
+            "locked": "1.1.4",
             "requested": "1.1.+",
             "transitive": [
                 "com.netflix.titus:titus-server-master"

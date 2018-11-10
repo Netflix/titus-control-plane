@@ -21,6 +21,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.histogram.RollingCount;
+import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.QuotaController;
 
 public class JobPercentagePerHourRelocationRateController implements QuotaController<Job<?>> {
@@ -30,6 +31,7 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
 
     private final RollingCount rollingCount;
     private final int limitPerHour;
+    private final ConsumptionResult rejectionResult;
 
     private final TitusRuntime titusRuntime;
 
@@ -38,6 +40,7 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
 
         this.rollingCount = new RollingCount(STEP_TIME_MS, STEPS, titusRuntime.getClock().wallTime());
         this.limitPerHour = computeLimitPerHour(job);
+        this.rejectionResult = buildRejectionResult();
     }
 
     private JobPercentagePerHourRelocationRateController(Job<?> newJob,
@@ -45,17 +48,7 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
         this.titusRuntime = previous.titusRuntime;
         this.rollingCount = previous.rollingCount;
         this.limitPerHour = computeLimitPerHour(newJob);
-    }
-
-    @Override
-    public boolean consume(String taskId) {
-        long now = titusRuntime.getClock().wallTime();
-
-        if (getQuota(now) >= 1) {
-            rollingCount.addOne(now);
-            return true;
-        }
-        return false;
+        this.rejectionResult = buildRejectionResult();
     }
 
     @Override
@@ -64,8 +57,28 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
     }
 
     @Override
+    public ConsumptionResult consume(String taskId) {
+        long now = titusRuntime.getClock().wallTime();
+
+        if (getQuota(now) >= 1) {
+            rollingCount.addOne(now);
+            return ConsumptionResult.approved();
+        }
+        return rejectionResult;
+    }
+
+    @Override
+    public void giveBackConsumedQuota(String taskId) {
+        rollingCount.add(-1, titusRuntime.getClock().wallTime());
+    }
+
+    @Override
     public JobPercentagePerHourRelocationRateController update(Job<?> newJob) {
         return new JobPercentagePerHourRelocationRateController(newJob, this);
+    }
+
+    private ConsumptionResult buildRejectionResult() {
+        return ConsumptionResult.rejected("Exceeded the number of tasks that can be evicted in an hour (limit=" + limitPerHour + ')');
     }
 
     private int computeLimitPerHour(Job<?> job) {

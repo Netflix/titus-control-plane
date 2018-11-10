@@ -124,8 +124,8 @@ public class DefaultEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public Mono<Void> terminateTask(String taskId, String reason) {
-        return taskTerminationExecutor.terminateTask(taskId, reason);
+    public Mono<Void> terminateTask(String taskId, String reason, String callerId) {
+        return taskTerminationExecutor.terminateTask(taskId, reason, callerId);
     }
 
     @Override

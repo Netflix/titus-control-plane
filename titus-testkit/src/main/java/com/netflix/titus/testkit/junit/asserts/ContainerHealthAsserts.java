@@ -48,6 +48,7 @@ public final class ContainerHealthAsserts {
     public static void assertContainerHealth(ContainerHealthStatus healthStatus, String expectedTaskId, ContainerHealthState expectedHealthState) {
         assertThat(healthStatus.getTaskId()).isEqualTo(expectedTaskId);
         assertThat(healthStatus.getState()).isEqualTo(expectedHealthState);
+        assertThat(healthStatus.getReason()).isNotEmpty();
     }
 
     public static void assertContainerHealthEvent(ContainerHealthEvent event, String expectedTaskId, ContainerHealthState expectedHealthState) {

@@ -196,7 +196,7 @@ public class AggregatingContainerHealthServiceTest {
         }
 
         private void makeUnhealthy(String taskId) {
-            updateHealth(ContainerHealthStatus.unhealthy(taskId, 0));
+            updateHealth(ContainerHealthStatus.unhealthy(taskId, "simulated failure",0));
         }
 
         private void updateHealth(ContainerHealthStatus newStatus) {

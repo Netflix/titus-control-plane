@@ -330,6 +330,14 @@ public final class JobFunctions {
         return input.but(jd -> input.getExtensions().toBuilder().withRetryPolicy(newRetryPolicy).build());
     }
 
+    public static <E extends JobDescriptorExt> JobDescriptor<E> changeDisruptionBudget(JobDescriptor<E> input, DisruptionBudget disruptionBudget) {
+        return input.toBuilder().withDisruptionBudget(disruptionBudget).build();
+    }
+
+    public static <E extends JobDescriptorExt> Job<E> changeDisruptionBudget(Job<E> input, DisruptionBudget disruptionBudget) {
+        return input.toBuilder().withJobDescriptor(changeDisruptionBudget(input.getJobDescriptor(), disruptionBudget)).build();
+    }
+
     public static Optional<Long> getTimeInState(Task task, TaskState checkedState, Clock clock) {
         return findTaskStatus(task, checkedState).map(checkedStatus -> {
             TaskState currentState = task.getStatus().getState();

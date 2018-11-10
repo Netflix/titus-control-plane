@@ -17,9 +17,11 @@
 package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
 import java.util.Objects;
+import javax.validation.constraints.Min;
 
 public class UnhealthyTasksLimitDisruptionBudgetPolicy extends DisruptionBudgetPolicy {
 
+    @Min(1)
     private final int limitOfUnhealthyContainers;
 
     public UnhealthyTasksLimitDisruptionBudgetPolicy(int limitOfUnhealthyContainers) {

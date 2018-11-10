@@ -20,8 +20,10 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.multibindings.Multibinder;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
+import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.master.agent.AgentModule;
 import com.netflix.titus.master.agent.endpoint.AgentEndpointModule;
 import com.netflix.titus.master.appscale.endpoint.v3.AutoScalingModule;
@@ -49,6 +51,7 @@ import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.SupervisorServiceModule;
 import com.netflix.titus.master.taskmigration.TaskMigratorModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.runtime.containerhealth.service.AlwaysHealthyContainerHealthService;
 import com.netflix.titus.runtime.containerhealth.service.ContainerHealthServiceModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.resolver.ByRemoteAddressHttpCallerIdResolver;
@@ -95,7 +98,10 @@ public class TitusMasterModule extends AbstractModule {
         install(new ClusterOperationsModule());
         install(new SchedulerModule());
         install(new V3JobManagerModule());
+
         install(new ContainerHealthServiceModule());
+        Multibinder.newSetBinder(binder(), ContainerHealthService.class).addBinding().to(AlwaysHealthyContainerHealthService.class);
+
         install(new ManagementModule());
 
         // REST/GRPC

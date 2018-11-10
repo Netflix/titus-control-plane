@@ -33,6 +33,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -200,7 +201,7 @@ class StubbedJobData {
     private class JobHolder {
 
         private Job<?> job;
-        private final Map<String, Task> tasksById = new HashMap<>();
+        private final ConcurrentMap<String, Task> tasksById = new ConcurrentHashMap<>();
         private final Map<String, ContainerHealthStatus> tasksHealthById = new HashMap<>();
         private final MutableDataGenerator<Task> taskGenerator;
 
@@ -224,10 +225,10 @@ class StubbedJobData {
         ContainerHealthStatus getTaskHealthStatus(String taskId) {
             Task task = tasksById.get(taskId);
             if (task == null) {
-                return ContainerHealthStatus.unknown(taskId, titusRuntime.getClock().wallTime());
+                return ContainerHealthStatus.unknown(taskId, "not found", titusRuntime.getClock().wallTime());
             }
             if (task.getStatus().getState() != TaskState.Started) {
-                return ContainerHealthStatus.unhealthy(taskId, titusRuntime.getClock().wallTime());
+                return ContainerHealthStatus.unhealthy(taskId, "not started", titusRuntime.getClock().wallTime());
             }
             return tasksHealthById.computeIfAbsent(taskId, tid -> ContainerHealthStatus.healthy(taskId, titusRuntime.getClock().wallTime()));
         }
@@ -293,6 +294,29 @@ class StubbedJobData {
                 observeJobsSubject.onNext(TaskUpdateEvent.newTask(job, task));
             });
 
+            // Now replace finished tasks with new tasks
+            tasksById.values().forEach(task -> {
+                if (task.getStatus().getState() == TaskState.Finished) {
+                    tasksById.remove(task.getId());
+
+                    Task.TaskBuilder<?, ?> taskBuilder = taskGenerator.getValue().toBuilder()
+                            .withResubmitNumber(task.getResubmitNumber() + 1)
+                            .withOriginalId(task.getOriginalId())
+                            .withResubmitOf(task.getId());
+
+                    if (JobFunctions.isBatchJob(job)) {
+                        BatchJobTask.Builder batchTaskBuilder = (BatchJobTask.Builder) taskBuilder;
+                        batchTaskBuilder.withIndex(((BatchJobTask) task).getIndex());
+                    }
+
+                    Task newTask = taskBuilder.build();
+
+                    tasksById.put(newTask.getId(), newTask);
+
+                    newTasks.add(newTask);
+                }
+            });
+
             return newTasks;
         }
 
@@ -306,6 +330,7 @@ class StubbedJobData {
             tasksHealthById.put(taskId, ContainerHealthStatus.newBuilder()
                     .withTaskId(taskId)
                     .withState(healthState)
+                    .withReason("On demand change")
                     .withTimestamp(titusRuntime.getClock().wallTime())
                     .build()
             );

@@ -19,7 +19,6 @@ package com.netflix.titus.master.eviction.service;
 import java.time.Duration;
 import java.util.Optional;
 
-import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -30,11 +29,11 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.invoker.ReactorSerializedInvoker;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.TitusQuotasManager;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
 
 class TaskTerminationExecutor {
@@ -50,6 +49,8 @@ class TaskTerminationExecutor {
     private final ReactorSerializedInvoker<Void> serializedInvoker;
 
     private final EmitterProcessor<EvictionEvent> eventProcessor = EmitterProcessor.create();
+    private final EvictionTransactionLog transactionLog;
+    private final TaskTerminationExecutorMetrics metrics;
 
     TaskTerminationExecutor(V3JobOperations jobOperations,
                             TitusQuotasManager quotasManager,
@@ -65,6 +66,8 @@ class TaskTerminationExecutor {
                 .withClock(titusRuntime.getClock())
                 .withRegistry(titusRuntime.getRegistry())
                 .build();
+        this.metrics = new TaskTerminationExecutorMetrics(titusRuntime);
+        this.transactionLog = new EvictionTransactionLog();
     }
 
     void shutdown() {
@@ -75,29 +78,33 @@ class TaskTerminationExecutor {
         return eventProcessor;
     }
 
-    public Mono<Void> terminateTask(String taskId, String reason) {
-        return Mono
-                .defer(() -> {
-                    Pair<Job<?>, Task> jobTaskPair = checkTaskIsRunningOrThrowAnException(taskId);
+    public Mono<Void> terminateTask(String taskId, String reason, String callerId) {
+        return findAndVerifyJobAndTask(taskId, reason, callerId)
+                .flatMap(jobTaskPair -> {
                     Job<?> job = jobTaskPair.getLeft();
                     Task task = jobTaskPair.getRight();
 
-                    if (getQuota(job) <= 0) {
-                        return Mono.error(newEvictionRejectionEvent(taskId, reason, job));
-                    }
-
-                    return serializedInvoker.submit(Mono.defer(() -> {
-                        if (!quotasManager.tryConsumeQuota(job, task)) {
-                            return Mono.error(newEvictionRejectionEvent(taskId, reason, job));
-                        }
-                        return ReactorExt.toMono(jobOperations.killTask(taskId, false, reason)).timeout(TASK_TERMINATE_TIMEOUT);
-                    }));
-                })
-                .doFinally(signalType -> {
-                    if (signalType == SignalType.ON_COMPLETE) {
-                        eventProcessor.onNext(EvictionEvent.newTaskTerminationEvent(taskId, reason, true));
-                    }
+                    return serializedInvoker
+                            .submit(doTerminateTask(taskId, reason, job, task))
+                            .doOnSuccess(next -> onSuccessfulTermination(job, taskId, reason, callerId))
+                            .doOnError(error -> onTerminationError(job, taskId, reason, callerId, error));
                 });
+    }
+
+    private Mono<Pair<Job<?>, Task>> findAndVerifyJobAndTask(String taskId, String reason, String callerId) {
+        return Mono
+                .defer(() -> Mono.just(checkTaskIsRunningOrThrowAnException(taskId)))
+                .doOnError(error -> onValidationError(taskId, reason, callerId, error));
+    }
+
+    private Mono<Void> doTerminateTask(String taskId, String reason, Job<?> job, Task task) {
+        return Mono.defer(() -> {
+            ConsumptionResult consumptionResult = quotasManager.tryConsumeQuota(job, task);
+
+            return consumptionResult.isApproved()
+                    ? ReactorExt.toMono(jobOperations.killTask(taskId, false, reason)).timeout(TASK_TERMINATE_TIMEOUT)
+                    : Mono.error(EvictionException.noAvailableJobQuota(job, consumptionResult.getRejectionReason().get()));
+        });
     }
 
     private Pair<Job<?>, Task> checkTaskIsRunningOrThrowAnException(String taskId) {
@@ -116,17 +123,23 @@ class TaskTerminationExecutor {
         return jobAndTask.get();
     }
 
-    private Long getQuota(Job<?> job) {
-        return quotasManager.findJobEvictionQuota(job.getId()).map(EvictionQuota::getQuota).orElse(0L);
+    /**
+     * When validation error happens, we do not emit any event.
+     */
+    private void onValidationError(String taskId, String reason, String callerId, Throwable error) {
+        metrics.error(error);
+        transactionLog.logTaskTerminationUnexpectedError(taskId, reason, callerId, error);
     }
 
-    private EvictionException newEvictionRejectionEvent(String taskId, String reason, Job<?> job) {
-        String constraintReason = quotasManager.explainJobQuotaConstraints(job.getId()).orElse("Job does not exist");
-        eventProcessor.onNext(EvictionEvent.newTaskTerminationEvent(
-                taskId,
-                String.format("Eviction request rejected: constraint=%s, evictionReason=%s", constraintReason, reason),
-                false
-        ));
-        return EvictionException.noAvailableJobQuota(job, constraintReason);
+    private void onSuccessfulTermination(Job<?> job, String taskId, String reason, String callerContext) {
+        metrics.terminated();
+        transactionLog.logTaskTermination(job, taskId, reason, callerContext);
+        eventProcessor.onNext(EvictionEvent.newSuccessfulTaskTerminationEvent(taskId, reason));
+    }
+
+    private void onTerminationError(Job<?> job, String taskId, String reason, String callerId, Throwable error) {
+        metrics.error(error);
+        transactionLog.logTaskTerminationError(job, taskId, reason, callerId, error);
+        eventProcessor.onNext(EvictionEvent.newFailedTaskTerminationEvent(taskId, reason, error));
     }
 }

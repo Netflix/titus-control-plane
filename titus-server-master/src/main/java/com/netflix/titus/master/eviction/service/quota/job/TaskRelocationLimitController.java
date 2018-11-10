@@ -17,16 +17,17 @@
 package com.netflix.titus.master.eviction.service.quota.job;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.QuotaController;
 
 /**
@@ -38,13 +39,17 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
     private final V3JobOperations jobOperations;
     private final int perTaskLimit;
 
+    private static final ConsumptionResult TASK_NOT_FOUND = ConsumptionResult.rejected("Task not found");
+
     private final Map<String, Integer> relocationCountersById;
+    private final ConsumptionResult taskLimitExceeded;
 
     public TaskRelocationLimitController(Job<?> job, V3JobOperations jobOperations) {
         this.job = job;
         this.jobOperations = jobOperations;
         this.perTaskLimit = computePerTaskLimit(job);
         this.relocationCountersById = new HashMap<>();
+        this.taskLimitExceeded = buildTaskRelocationLimitExceeded();
     }
 
     private TaskRelocationLimitController(Job<?> updatedJob,
@@ -54,6 +59,7 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
         this.jobOperations = previous.jobOperations;
         this.perTaskLimit = perTaskLimit;
         this.relocationCountersById = previous.relocationCountersById;
+        this.taskLimitExceeded = buildTaskRelocationLimitExceeded();
     }
 
     @Override
@@ -66,27 +72,43 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
         }
 
         int quota = 0;
-        Set<String> taskIds = new HashSet<>();
         for (Task task : tasks) {
-            taskIds.add(task.getId());
-            Integer counter = relocationCountersById.get(task.getId());
+            Integer counter = relocationCountersById.get(task.getOriginalId());
             if (counter == null || counter < perTaskLimit) {
                 quota++;
             }
         }
-        relocationCountersById.keySet().removeIf(tid -> !taskIds.contains(tid));
 
         return quota;
     }
 
     @Override
-    public boolean consume(String taskId) {
-        int counter = relocationCountersById.getOrDefault(taskId, 0);
-        if (counter >= perTaskLimit) {
-            return false;
+    public ConsumptionResult consume(String taskId) {
+        Optional<Pair<Job<?>, Task>> jobTaskPair = jobOperations.findTaskById(taskId);
+        if (!jobTaskPair.isPresent()) {
+            return TASK_NOT_FOUND;
         }
-        relocationCountersById.put(taskId, counter + 1);
-        return true;
+        Task task = jobTaskPair.get().getRight();
+
+        int counter = relocationCountersById.getOrDefault(task.getOriginalId(), 0);
+        if (counter >= perTaskLimit) {
+            return taskLimitExceeded;
+        }
+        relocationCountersById.put(task.getOriginalId(), counter + 1);
+        return ConsumptionResult.approved();
+    }
+
+    @Override
+    public void giveBackConsumedQuota(String taskId) {
+        Optional<Pair<Job<?>, Task>> jobTaskPair = jobOperations.findTaskById(taskId);
+        if (!jobTaskPair.isPresent()) {
+            return;
+        }
+        Task task = jobTaskPair.get().getRight();
+        Integer counter = relocationCountersById.get(task.getOriginalId());
+        if (counter != null && counter > 0) {
+            relocationCountersById.put(task.getOriginalId(), counter - 1);
+        }
     }
 
     @Override
@@ -102,5 +124,9 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
         RelocationLimitDisruptionBudgetPolicy policy = (RelocationLimitDisruptionBudgetPolicy)
                 job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
         return policy.getLimit();
+    }
+
+    private ConsumptionResult buildTaskRelocationLimitExceeded() {
+        return ConsumptionResult.rejected("Task relocation limit exceeded (limit=" + perTaskLimit + ')');
     }
 }

@@ -105,6 +105,19 @@ public class JobAssertions {
         return totalSize <= MAX_ENVIRONMENT_VARIABLE_SIZE_BYTES;
     }
 
+    public boolean isValidContainerHealthServiceName(String name) {
+        String[] validNames = configuration.getContainerHealthProviders().split(",");
+        if (CollectionsExt.isNullOrEmpty(validNames)) {
+            return false;
+        }
+        for (String validName : validNames) {
+            if (validName.equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Map<String, String> validateImage(Image image) {
         // As class-level constraints are evaluated after field-level constraints we have to check for null value here.
         if (image == null) {

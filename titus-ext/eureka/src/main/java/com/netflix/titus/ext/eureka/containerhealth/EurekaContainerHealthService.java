@@ -34,8 +34,8 @@ import com.netflix.discovery.EurekaEvent;
 import com.netflix.discovery.EurekaEventListener;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
-import com.netflix.titus.api.containerhealth.model.event.ContainerHealthUpdateEvent;
 import com.netflix.titus.api.containerhealth.model.event.ContainerHealthEvent;
+import com.netflix.titus.api.containerhealth.model.event.ContainerHealthUpdateEvent;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -101,14 +101,18 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         return ContainerHealthStatus.newBuilder()
                 .withTaskId(task.getId())
                 .withTimestamp(titusRuntime.getClock().wallTime())
-                .withState(takeStateOf(task)).build();
+                .withState(takeStateOf(task))
+                .withReason(takeStateReasonOf(task))
+                .build();
     }
 
-    private ContainerHealthStatus buildHealthStatus(Task task, ContainerHealthState state) {
+    private ContainerHealthStatus buildHealthStatus(Task task, ContainerHealthState state, String reason) {
         return ContainerHealthStatus.newBuilder()
                 .withTaskId(task.getId())
                 .withTimestamp(titusRuntime.getClock().wallTime())
-                .withState(state).build();
+                .withState(state)
+                .withReason(reason)
+                .build();
     }
 
     private ContainerHealthState takeStateOf(Task task) {
@@ -116,19 +120,33 @@ public class EurekaContainerHealthService implements ContainerHealthService {
 
         ContainerHealthState state;
         if (CollectionsExt.isNullOrEmpty(instances)) {
-            state = ContainerHealthState.Unknown;
-        } else {
-            // If it is finished, ignore Eureka status
-            if (task.getStatus().getState() == TaskState.Finished) {
-                return ContainerHealthState.Terminated;
-            }
-
-            InstanceInfo instance = instances.get(0);
-            state = instance.getStatus() == InstanceInfo.InstanceStatus.UP
-                    ? ContainerHealthState.Healthy
-                    : ContainerHealthState.Unhealthy;
+            return ContainerHealthState.Unknown;
         }
+        // If it is finished, ignore Eureka status
+        if (task.getStatus().getState() == TaskState.Finished) {
+            return ContainerHealthState.Terminated;
+        }
+
+        InstanceInfo instance = instances.get(0);
+        state = instance.getStatus() == InstanceInfo.InstanceStatus.UP
+                ? ContainerHealthState.Healthy
+                : ContainerHealthState.Unhealthy;
         return state;
+    }
+
+    private String takeStateReasonOf(Task task) {
+        List<InstanceInfo> instances = eurekaClient.getInstancesById(task.getId());
+
+        if (CollectionsExt.isNullOrEmpty(instances)) {
+            return "not registered";
+        }
+
+        // If it is finished, ignore Eureka status
+        if (task.getStatus().getState() == TaskState.Finished) {
+            return "terminated";
+        }
+
+        return instances.get(0).getStatus().name();
     }
 
     private Flux<ContainerHealthEvent> handleJobManagerOrEurekaStatusUpdate(Object event, ConcurrentMap<String, ContainerHealthEvent> state) {
@@ -166,7 +184,9 @@ public class EurekaContainerHealthService implements ContainerHealthService {
             ContainerHealthStatus terminatedStatus = ContainerHealthStatus.newBuilder()
                     .withTaskId(taskId)
                     .withTimestamp(titusRuntime.getClock().wallTime())
-                    .withState(ContainerHealthState.Terminated).build();
+                    .withState(ContainerHealthState.Terminated)
+                    .withReason("terminated")
+                    .build();
 
             events.add(ContainerHealthUpdateEvent.healthChanged(terminatedStatus));
         });
@@ -181,10 +201,11 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         }
 
         ContainerHealthState newTaskState = takeStateOf(task);
-        if (lastEvent.getContainerHealthStatus().getState() == newTaskState) {
+        String newReason = takeStateReasonOf(task);
+        if (lastEvent.getContainerHealthStatus().getState() == newTaskState && lastEvent.getContainerHealthStatus().getReason().equals(newReason)) {
             return Optional.empty();
         }
-        return Optional.of(recordNewState(state, task, ContainerHealthEvent.healthChanged(buildHealthStatus(task, newTaskState))));
+        return Optional.of(recordNewState(state, task, ContainerHealthEvent.healthChanged(buildHealthStatus(task, newTaskState, newReason))));
     }
 
     private ContainerHealthUpdateEvent recordNewState(ConcurrentMap<String, ContainerHealthEvent> state, Task task, ContainerHealthUpdateEvent newEvent) {

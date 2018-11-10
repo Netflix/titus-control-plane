@@ -46,9 +46,19 @@ public final class ContainerHealthFunctions {
                 effectiveState = ContainerHealthState.Unknown;
         }
 
+        String reason;
+        if (first.getState() == ContainerHealthState.Healthy) {
+            reason = second.getReason();
+        } else if (second.getState() == ContainerHealthState.Healthy) {
+            reason = first.getReason();
+        } else {
+            reason = first.getReason() + ", " + second.getReason();
+        }
+
         return ContainerHealthStatus.newBuilder()
                 .withTaskId(first.getTaskId())
                 .withState(effectiveState)
+                .withReason(reason)
                 .withTimestamp(Math.max(first.getTimestamp(), second.getTimestamp()))
                 .build();
     }

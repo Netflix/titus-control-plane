@@ -48,7 +48,7 @@ class StubbedEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public Mono<Void> terminateTask(String taskId, String reason) {
+    public Mono<Void> terminateTask(String taskId, String reason, String callerId) {
         return deferMono(() -> {
             Pair<Job<?>, Task> jobTaskPair = jobOperations.findTaskById(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
             Job<?> job = jobTaskPair.getLeft();

@@ -62,7 +62,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
         // Now shift time and consume again
         clock.advanceTime(TEN_MINUTES);
         clock.advanceTime(TEN_MINUTES);
-        assertThat(quotaController.consume("someTaskId")).isTrue();
+        assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
 
         // Now move long into the future
         clock.advanceTime(Duration.ofHours(2));
@@ -88,7 +88,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
     private void consumeAtInterval(JobPercentagePerHourRelocationRateController quotaController, int count, Duration interval) {
         for (int i = 0; i < count; i++) {
             clock.advanceTime(interval);
-            assertThat(quotaController.consume("someTaskId")).isTrue();
+            assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
         }
     }
 

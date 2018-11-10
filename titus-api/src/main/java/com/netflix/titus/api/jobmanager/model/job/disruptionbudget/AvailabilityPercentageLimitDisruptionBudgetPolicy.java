@@ -17,9 +17,13 @@
 package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
 import java.util.Objects;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 
 public class AvailabilityPercentageLimitDisruptionBudgetPolicy extends DisruptionBudgetPolicy {
 
+    @Min(0)
+    @Max(100)
     private final double percentageOfHealthyContainers;
 
     public AvailabilityPercentageLimitDisruptionBudgetPolicy(double percentageOfHealthyContainers) {

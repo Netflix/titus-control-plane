@@ -17,6 +17,7 @@
 package com.netflix.titus.api.jobmanager.model.job.sanitizer;
 
 import java.util.List;
+import java.util.Set;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
@@ -102,4 +103,10 @@ public interface JobConfiguration {
 
     @DefaultValue("true")
     boolean isEntryPointSizeLimitEnabled();
+
+    /**
+     * Container health provider names.
+     */
+    @DefaultValue("alwaysHealthy")
+    String getContainerHealthProviders();
 }
