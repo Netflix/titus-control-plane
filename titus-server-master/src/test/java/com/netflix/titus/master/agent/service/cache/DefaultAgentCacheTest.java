@@ -18,6 +18,7 @@ package com.netflix.titus.master.agent.service.cache;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
@@ -84,6 +85,7 @@ public class DefaultAgentCacheTest {
         when(agentStore.retrieveAgentInstances()).thenReturn(Observable.empty());
         when(agentStore.storeAgentInstanceGroup(any())).thenReturn(Completable.complete());
         when(agentStore.storeAgentInstance(any())).thenReturn(Completable.complete());
+        when(agentStore.removeAgentInstances(any())).thenReturn(Completable.complete());
 
         cache = new DefaultAgentCache(configuration, agentStore, testConnector, registry, testScheduler);
         cache.enterActiveMode();
@@ -93,7 +95,7 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testDiscoverNewInstanceGroup() throws Exception {
+    public void testDiscoverNewInstanceGroup() {
         int initialCount = cache.getInstanceGroups().size();
         instanceGroupsGenerator = instanceGroupsGenerator.apply(testConnector::addInstanceGroup);
 
@@ -107,7 +109,7 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testInstanceGroupCloudUpdate() throws Exception {
+    public void testInstanceGroupCloudUpdate() {
         InstanceGroup updated = testConnector.takeInstanceGroup(0).toBuilder().withMax(100).build();
         testConnector.addInstanceGroup(updated);
 
@@ -116,12 +118,12 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testInstanceGroupStoreUpdate() throws Exception {
+    public void testInstanceGroupStoreUpdate() {
         testInstanceGroupUpdate(false);
     }
 
     @Test
-    public void testInstanceGroupStoreUpdateAndCloudSync() throws Exception {
+    public void testInstanceGroupStoreUpdateAndCloudSync() {
         testInstanceGroupUpdate(true);
     }
 
@@ -149,7 +151,7 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testCleanupOfRemovedInstanceGroups() throws Exception {
+    public void testCleanupOfRemovedInstanceGroups() {
         AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
         testConnector.removeInstanceGroup(instanceGroup.getId());
 
@@ -160,7 +162,7 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testDiscoverNewAgentInstance() throws Exception {
+    public void testDiscoverNewAgentInstance() {
         String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
         int initialCount = cache.getAgentInstances(instanceGroupId).size();
 
@@ -172,7 +174,7 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testAgentInstanceCloudUpdate() throws Exception {
+    public void testAgentInstanceCloudUpdate() {
         Instance updatedInstance = testConnector.takeInstance(0, 0).toBuilder()
                 .withInstanceState(Instance.InstanceState.Terminated)
                 .build();
@@ -199,14 +201,13 @@ public class DefaultAgentCacheTest {
         expectInstanceUpdateEvent(eventSubscriber, instanceId);
 
         // Check data
-        AgentInstance storedInstance = cache.getAgentInstance(instanceId);
         Set<AgentInstance> storedInstances = cache.getAgentInstances(agentInstance.getInstanceGroupId());
 
         assertThat(storedInstances).hasSize(instances.size());
     }
 
     @Test
-    public void testCleanupOfRemovedAgentInstance() throws Exception {
+    public void testCleanupOfRemovedAgentInstance() {
         String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
         int initialCount = cache.getAgentInstances(instanceGroupId).size();
 
@@ -215,5 +216,18 @@ public class DefaultAgentCacheTest {
 
         assertThat(cache.getAgentInstances(instanceGroupId).size()).isEqualTo(initialCount - 1);
         expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupId);
+    }
+
+    @Test
+    public void testRemoveInstancesRemovesFromStore() {
+        String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
+        Set<AgentInstance> instances = cache.getAgentInstances(instanceGroupId);
+        Set<String> instanceIds = instances.stream().map(AgentInstance::getId).collect(Collectors.toSet());
+
+        testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
+
+        cache.removeInstances(instanceGroupId, instanceIds);
+
+        verify(agentStore, times(1)).removeAgentInstances(any());
     }
 }
