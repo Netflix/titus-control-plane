@@ -20,5 +20,5 @@ import reactor.core.publisher.Mono;
 
 public interface EvictionOperations extends ReadOnlyEvictionOperations {
 
-    Mono<Void> terminateTask(String taskId, String reason);
+    Mono<Void> terminateTask(String taskId, String reason, String callerId);
 }

@@ -66,6 +66,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
@@ -749,6 +750,7 @@ public class DefaultSchedulingService implements SchedulingService {
         // get all running tasks on the inactive vms
         Collection<TaskRequest> tasksToBeMigrated = inactiveVmStates.stream()
                 .flatMap(ivm -> ivm.getRunningTasks().stream())
+                .filter(this::isLegacyJob)
                 .collect(Collectors.toList());
 
         // schedule the inactive tasks for migration
@@ -761,6 +763,12 @@ public class DefaultSchedulingService implements SchedulingService {
             logger.debug("expiring all leases of inactive vm {}", vmHost);
             taskScheduler.expireAllLeases(vmHost);
         }
+    }
+
+    private boolean isLegacyJob(TaskRequest taskRequest) {
+        return v3JobOperations.findTaskById(taskRequest.getId())
+                .filter(p -> DisruptionBudgetFunctions.isLegacyJob(p.getLeft()))
+                .isPresent();
     }
 
     @PreDestroy

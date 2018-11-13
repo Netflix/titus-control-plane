@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.TitusQuotasManager;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -43,7 +44,6 @@ import reactor.test.StepVerifier;
 
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,14 +67,13 @@ public class TaskTerminationExecutorTest {
         Task task = jobAndTask.getRight().get(0);
 
         when(quotasManager.findJobEvictionQuota(job.getId())).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 1)));
-        when(quotasManager.tryConsumeQuota(job, task)).thenReturn(true);
+        when(quotasManager.tryConsumeQuota(job, task)).thenReturn(ConsumptionResult.approved());
 
         StepVerifier.withVirtualTime(
-                () -> newTerminationExecutor().terminateTask(task.getId(), EVICTION_REASON)
+                () -> newTerminationExecutor().terminateTask(task.getId(), EVICTION_REASON, "callerContext")
         ).verifyComplete();
 
         expectTaskTerminationEvent(task, true);
-        verify(quotasManager, times(1)).findJobEvictionQuota(job.getId());
         verify(quotasManager, times(1)).tryConsumeQuota(job, task);
     }
 
@@ -84,17 +83,15 @@ public class TaskTerminationExecutorTest {
         Job<?> job = jobAndTask.getLeft();
         Task task = jobAndTask.getRight().get(0);
 
-        when(quotasManager.findJobEvictionQuota(task.getJobId())).thenReturn(Optional.of(EvictionQuota.jobQuota(task.getJobId(), 0)));
-        when(quotasManager.explainJobQuotaConstraints(task.getJobId())).thenReturn(Optional.of("No container can be terminated"));
+        when(quotasManager.tryConsumeQuota(job, task)).thenReturn(ConsumptionResult.rejected("no quota"));
 
         StepVerifier
-                .withVirtualTime(() -> newTerminationExecutor().terminateTask(task.getId(), EVICTION_REASON))
-                .consumeErrorWith(e -> expectEvictionError(e, ErrorCode.NoJobQuota))
+                .withVirtualTime(() -> newTerminationExecutor().terminateTask(task.getId(), EVICTION_REASON, "callerContext"))
+                .consumeErrorWith(e -> expectEvictionError(e, ErrorCode.NoQuota))
                 .verify();
 
         expectTaskTerminationEvent(task, false);
-        verify(quotasManager, times(1)).findJobEvictionQuota(task.getJobId());
-        verify(quotasManager, times(0)).tryConsumeQuota(job, task);
+        verify(quotasManager, times(1)).tryConsumeQuota(job, task);
     }
 
     @Test
@@ -103,9 +100,8 @@ public class TaskTerminationExecutorTest {
         Job<?> job = jobAndTasks.getLeft();
         List<Task> tasks = jobAndTasks.getRight();
 
-        when(quotasManager.findJobEvictionQuota(job.getId())).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 1)));
-        when(quotasManager.tryConsumeQuota(job, tasks.get(0))).thenReturn(true).thenReturn(false);
-        when(quotasManager.explainJobQuotaConstraints(anyString())).thenReturn(Optional.of("No container can be terminated"));
+        when(quotasManager.tryConsumeQuota(job, tasks.get(0))).thenReturn(ConsumptionResult.approved());
+        when(quotasManager.tryConsumeQuota(job, tasks.get(1))).thenReturn(ConsumptionResult.rejected("no quota"));
 
         StepVerifier
                 .withVirtualTime(() -> {
@@ -118,14 +114,14 @@ public class TaskTerminationExecutorTest {
 
                     assertThat(succeededCount).isEqualTo(1);
                     assertThat(failed).isPresent();
-                    expectEvictionError(failed.get(), ErrorCode.NoJobQuota);
+                    expectEvictionError(failed.get(), ErrorCode.NoQuota);
                 })
                 .verifyComplete();
 
     }
 
     private Flux<Optional<Throwable>> terminate(TaskTerminationExecutor executor, Task task) {
-        return executor.terminateTask(task.getId(), EVICTION_REASON)
+        return executor.terminateTask(task.getId(), EVICTION_REASON, "callerContext")
                 .materialize()
                 .map(signal -> (Optional<Throwable>) (signal.isOnError() ? Optional.of(signal.getThrowable()) : Optional.empty()))
                 .flux();
@@ -160,7 +156,9 @@ public class TaskTerminationExecutorTest {
 
         TaskTerminationEvent terminationEvent = (TaskTerminationEvent) event;
         assertThat(terminationEvent.getTaskId()).isEqualTo(task.getId());
-        assertThat(terminationEvent.getReason()).contains(EVICTION_REASON);
         assertThat(terminationEvent.isApproved()).isEqualTo(approved);
+        if (!approved) {
+            assertThat(terminationEvent.getError().get().getMessage()).contains("no quota");
+        }
     }
 }

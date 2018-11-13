@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.TaskTerminateResponse;
@@ -105,7 +106,7 @@ public class EvictionResource {
                                                @QueryParam("reason") String reason) {
         return Responses.fromMono(
                 evictionServiceClient
-                        .terminateTask(taskId, reason)
+                        .terminateTask(taskId, Evaluators.getOrDefault(reason, "Reason not provided"))
                         .materialize()
                         .flatMap(event -> {
                             switch (event.getType()) {

@@ -68,6 +68,8 @@ public class AggregatingContainerHealthService implements ContainerHealthService
     public AggregatingContainerHealthService(Set<ContainerHealthService> healthServices,
                                              ReadOnlyJobOperations jobOperations,
                                              TitusRuntime titusRuntime) {
+        logger.info("Registered container health services: {}", healthServices.stream().map(ContainerHealthService::getName).collect(Collectors.toList()));
+
         this.healthServices = healthServices.stream().collect(Collectors.toMap(ContainerHealthService::getName, Function.identity()));
         this.jobOperations = jobOperations;
         this.titusRuntime = titusRuntime;
@@ -90,7 +92,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
 
     @Override
     public Optional<ContainerHealthStatus> findHealthStatus(String taskId) {
-        return jobOperations.findTaskById(taskId).flatMap(jobTaskPair -> takeStatusOf(jobTaskPair.getLeft(), jobTaskPair.getRight()));
+        return jobOperations.findTaskById(taskId).map(jobTaskPair -> takeStatusOf(jobTaskPair.getLeft(), jobTaskPair.getRight()));
     }
 
     @Override
@@ -108,7 +110,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
                 if (task.getStatus().getState() == TaskState.Finished) {
                     snapshot.add(ContainerHealthStatus.terminated(task.getId(), titusRuntime.getClock().wallTime()));
                 } else {
-                    snapshot.add(takeStatusOf(job, task).orElseGet(() -> ContainerHealthStatus.unknown(task.getId(), clock.wallTime())));
+                    snapshot.add(takeStatusOf(job, task));
                 }
             });
         });
@@ -128,24 +130,20 @@ public class AggregatingContainerHealthService implements ContainerHealthService
     }
 
     private Flux<ContainerHealthEvent> handleNewState(Job<?> job, Task task, ConcurrentMap<String, ContainerHealthState> emittedStates) {
-        return takeStatusOf(job, task)
-                .map(newStatus -> {
+        ContainerHealthStatus newStatus = takeStatusOf(job, task);
+        ContainerHealthState previousState = emittedStates.get(task.getId());
+        ContainerHealthState newState = newStatus.getState();
 
-                    ContainerHealthState previousState = emittedStates.get(task.getId());
-                    ContainerHealthState newState = newStatus.getState();
+        if (newState == previousState) {
+            return Flux.empty();
+        }
 
-                    if (newState == previousState) {
-                        return Flux.<ContainerHealthEvent>empty();
-                    }
-
-                    if (newState == ContainerHealthState.Terminated) {
-                        emittedStates.remove(task.getId());
-                    } else {
-                        emittedStates.put(task.getId(), newState);
-                    }
-                    return Flux.<ContainerHealthEvent>just(ContainerHealthEvent.healthChanged(newStatus));
-                })
-                .orElse(Flux.empty());
+        if (newState == ContainerHealthState.Terminated) {
+            emittedStates.remove(task.getId());
+        } else {
+            emittedStates.put(task.getId(), newState);
+        }
+        return Flux.just(ContainerHealthEvent.healthChanged(newStatus));
     }
 
     private Flux<ContainerHealthEvent> handleContainerHealthEventForUnknownTask(String taskId, ContainerHealthEvent event, ConcurrentMap<String, ContainerHealthState> emittedStates) {
@@ -154,7 +152,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
         return Flux.empty();
     }
 
-    private Optional<ContainerHealthStatus> takeStatusOf(Job<?> job, Task task) {
+    private ContainerHealthStatus takeStatusOf(Job<?> job, Task task) {
         Set<String> healthProviders = job.getJobDescriptor().getDisruptionBudget().getContainerHealthProviders().stream()
                 .map(ContainerHealthProvider::getName)
                 .filter(healthServices::containsKey)
@@ -165,7 +163,7 @@ public class AggregatingContainerHealthService implements ContainerHealthService
                 : takeStatusOfTaskWithHealthProviders(task, healthProviders);
     }
 
-    private Optional<ContainerHealthStatus> taskStatusOfTaskWithNoHealthProviders(Task task) {
+    private ContainerHealthStatus taskStatusOfTaskWithNoHealthProviders(Task task) {
         ContainerHealthState healthState;
         switch (task.getStatus().getState()) {
             case Accepted:
@@ -186,28 +184,41 @@ public class AggregatingContainerHealthService implements ContainerHealthService
             default:
                 healthState = ContainerHealthState.Unknown;
         }
-        return Optional.of(ContainerHealthStatus.newBuilder()
+        return ContainerHealthStatus.newBuilder()
                 .withTaskId(task.getId())
                 .withState(healthState)
+                .withReason(task.getStatus().getState() + " != Started")
                 .withTimestamp(clock.wallTime())
-                .build()
-        );
+                .build();
     }
 
-    private Optional<ContainerHealthStatus> takeStatusOfTaskWithHealthProviders(Task task, Set<String> enabledServices) {
+    private ContainerHealthStatus takeStatusOfTaskWithHealthProviders(Task task, Set<String> enabledServices) {
         ContainerHealthStatus current = null;
+
         for (String name : enabledServices) {
             ContainerHealthService healthService = healthServices.get(name);
+            ContainerHealthStatus newStatus;
             if (healthService != null) {
-                Optional<ContainerHealthStatus> result = healthService.findHealthStatus(task.getId());
-                if (result.isPresent()) {
-                    current = current == null ? result.get() : ContainerHealthFunctions.merge(current, result.get());
-                }
+                newStatus = healthService
+                        .findHealthStatus(task.getId())
+                        .orElseGet(() -> ContainerHealthStatus.newBuilder()
+                                .withTaskId(task.getId())
+                                .withState(ContainerHealthState.Unknown)
+                                .withReason("not known to: " + name)
+                                .withTimestamp(clock.wallTime())
+                                .build()
+                        );
+            } else {
+                newStatus = ContainerHealthStatus.newBuilder()
+                        .withTaskId(task.getId())
+                        .withState(ContainerHealthState.Unknown)
+                        .withReason("unknown container health provider set: " + name)
+                        .withTimestamp(clock.wallTime())
+                        .build();
             }
+            current = current == null ? newStatus : ContainerHealthFunctions.merge(current, newStatus);
         }
 
-        return current == null
-                ? Optional.of(ContainerHealthStatus.unknown(task.getId(), clock.wallTime()))
-                : Optional.of(current);
+        return current;
     }
 }

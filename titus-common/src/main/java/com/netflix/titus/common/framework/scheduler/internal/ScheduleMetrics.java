@@ -52,29 +52,29 @@ class ScheduleMetrics {
         this.registry = registry;
 
         this.currentState = SpectatorExt.fsmMetrics(
-                registry.createId(ROOT_NAME + "scheduleState", "name", schedule.getDescriptor().getName()),
+                registry.createId(ROOT_NAME + "scheduleState", "scheduleName", schedule.getDescriptor().getName()),
                 SchedulingState::isFinal,
                 SchedulingState.Waiting,
                 registry
         );
         this.successes = registry.counter(ROOT_NAME + "executions",
-                "name", schedule.getDescriptor().getName(),
+                "scheduleName", schedule.getDescriptor().getName(),
                 "status", "succeeded"
         );
         this.failures = registry.counter(ROOT_NAME + "executions",
-                "name", schedule.getDescriptor().getName(),
+                "scheduleName", schedule.getDescriptor().getName(),
                 "status", "failed"
         );
 
-        this.waitingId = registry.createId(ROOT_NAME + "waitingTimeMs", "name", schedule.getDescriptor().getName());
+        this.waitingId = registry.createId(ROOT_NAME + "waitingTimeMs", "scheduleName", schedule.getDescriptor().getName());
         PolledMeter.using(registry)
                 .withId(waitingId)
                 .monitorValue(this, self -> howLongInState(SchedulingState.Waiting));
-        this.runningId = registry.createId(ROOT_NAME + "runningTimeMs", "name", schedule.getDescriptor().getName());
+        this.runningId = registry.createId(ROOT_NAME + "runningTimeMs", "scheduleName", schedule.getDescriptor().getName());
         PolledMeter.using(registry)
                 .withId(runningId)
                 .monitorValue(this, self -> howLongInState(SchedulingState.Running));
-        this.cancellingId = registry.createId(ROOT_NAME + "cancellingTimeMs", "name", schedule.getDescriptor().getName());
+        this.cancellingId = registry.createId(ROOT_NAME + "cancellingTimeMs", "scheduleName", schedule.getDescriptor().getName());
         PolledMeter.using(registry)
                 .withId(cancellingId)
                 .monitorValue(this, self -> howLongInState(SchedulingState.Cancelling));

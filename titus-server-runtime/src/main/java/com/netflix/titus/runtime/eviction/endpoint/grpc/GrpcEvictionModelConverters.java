@@ -25,6 +25,7 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.eviction.model.event.TaskTerminationEvent;
+import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
@@ -105,7 +106,15 @@ public final class GrpcEvictionModelConverters {
             case EVICTIONQUOTAEVENT:
                 return EvictionEvent.newQuotaEvent(toCoreEvictionQuota(grpcEvent.getEvictionQuotaEvent().getQuota()));
             case TASKTERMINATIONEVENT:
-                return EvictionEvent.newTaskTerminationEvent(grpcEvent.getTaskTerminationEvent().getTaskId(), "", grpcEvent.getTaskTerminationEvent().getApproved());
+                EvictionServiceEvent.TaskTerminationEvent taskTermination = grpcEvent.getTaskTerminationEvent();
+                if (taskTermination.getApproved()) {
+                    return EvictionEvent.newSuccessfulTaskTerminationEvent(taskTermination.getTaskId(), taskTermination.getReason());
+                }
+                return EvictionEvent.newFailedTaskTerminationEvent(
+                        taskTermination.getTaskId(),
+                        taskTermination.getReason(),
+                        EvictionException.deconstruct(taskTermination.getRestrictionCode(), taskTermination.getRestrictionMessage())
+                );
             case EVENT_NOT_SET:
         }
         throw new IllegalArgumentException("No mapping for: " + grpcEvent);
@@ -130,13 +139,23 @@ public final class GrpcEvictionModelConverters {
         }
         if (coreEvent instanceof TaskTerminationEvent) {
             TaskTerminationEvent actualEvent = (TaskTerminationEvent) coreEvent;
-            EvictionServiceEvent grpcEvent = EvictionServiceEvent.newBuilder()
-                    .setTaskTerminationEvent(EvictionServiceEvent.TaskTerminationEvent.newBuilder()
-                            .setTaskId(actualEvent.getTaskId())
-                            .setApproved(actualEvent.isApproved())
-                            .build()
-                    )
-                    .build();
+
+            EvictionServiceEvent.TaskTerminationEvent.Builder eventBuilder = EvictionServiceEvent.TaskTerminationEvent.newBuilder()
+                    .setTaskId(actualEvent.getTaskId())
+                    .setApproved(actualEvent.isApproved());
+
+            if (!actualEvent.isApproved()) {
+                Throwable error = actualEvent.getError().get();
+                if (error instanceof EvictionException) {
+                    EvictionException evictionException = (EvictionException) error;
+                    eventBuilder.setRestrictionCode("" + evictionException.getErrorCode());
+                } else {
+                    eventBuilder.setRestrictionCode("" + EvictionException.ErrorCode.Unknown);
+                }
+                eventBuilder.setRestrictionMessage(error.getMessage());
+            }
+
+            EvictionServiceEvent grpcEvent = EvictionServiceEvent.newBuilder().setTaskTerminationEvent(eventBuilder.build()).build();
             return Optional.of(grpcEvent);
         }
         return Optional.empty();

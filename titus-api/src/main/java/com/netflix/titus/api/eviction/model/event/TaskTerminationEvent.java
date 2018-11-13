@@ -17,17 +17,27 @@
 package com.netflix.titus.api.eviction.model.event;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class TaskTerminationEvent extends EvictionEvent {
 
     private final String taskId;
     private final String reason;
     private final boolean approved;
+    private final Optional<Throwable> error;
 
-    public TaskTerminationEvent(String taskId, String reason, boolean approved) {
+    public TaskTerminationEvent(String taskId, String reason) {
         this.taskId = taskId;
         this.reason = reason;
-        this.approved = approved;
+        this.approved = true;
+        this.error = Optional.empty();
+    }
+
+    public TaskTerminationEvent(String taskId, String reason, Throwable error) {
+        this.taskId = taskId;
+        this.reason = reason;
+        this.approved = false;
+        this.error = Optional.of(error);
     }
 
     public String getTaskId() {
@@ -42,6 +52,10 @@ public class TaskTerminationEvent extends EvictionEvent {
         return approved;
     }
 
+    public Optional<Throwable> getError() {
+        return error;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -53,12 +67,13 @@ public class TaskTerminationEvent extends EvictionEvent {
         TaskTerminationEvent that = (TaskTerminationEvent) o;
         return approved == that.approved &&
                 Objects.equals(taskId, that.taskId) &&
-                Objects.equals(reason, that.reason);
+                Objects.equals(reason, that.reason) &&
+                Objects.equals(error, that.error);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, reason, approved);
+        return Objects.hash(taskId, reason, approved, error);
     }
 
     @Override
@@ -67,6 +82,7 @@ public class TaskTerminationEvent extends EvictionEvent {
                 "taskId='" + taskId + '\'' +
                 ", reason='" + reason + '\'' +
                 ", approved=" + approved +
+                ", error=" + error +
                 '}';
     }
 }

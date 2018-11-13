@@ -17,10 +17,17 @@
 package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
 import java.util.Objects;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 
 public class HourlyTimeWindow {
 
+    @Min(0)
+    @Max(24)
     private final int startHour;
+
+    @Min(0)
+    @Max(24)
     private final int endHour;
 
     public HourlyTimeWindow(int startHour, int endHour) {

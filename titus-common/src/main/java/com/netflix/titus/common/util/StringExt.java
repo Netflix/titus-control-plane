@@ -87,17 +87,17 @@ public final class StringExt {
      * Return prefix until first occurrence of the end marker.
      */
     public static String takeUntil(String value, String endMarker) {
-        if(value == null) {
+        if (value == null) {
             return "";
         }
-        if(endMarker == null) {
+        if (endMarker == null) {
             return value;
         }
-        if(value.length() < endMarker.length()) {
+        if (value.length() < endMarker.length()) {
             return value;
         }
         int idx = value.indexOf(endMarker);
-        if(idx < 0) {
+        if (idx < 0) {
             return value;
         }
         return value.substring(0, idx);
@@ -441,5 +441,12 @@ public final class StringExt {
      */
     public static String appendToEndIfMissing(String text, String value) {
         return text.endsWith(value) ? text : text + value;
+    }
+
+    public static String startWithLowercase(String text) {
+        if (text == null || text.length() == 0 || !Character.isUpperCase(text.charAt(0))) {
+            return text;
+        }
+        return Character.toLowerCase(text.charAt(0)) + text.substring(1);
     }
 }

@@ -94,6 +94,25 @@ public class UnhealthyTasksLimitTrackerTest {
         assertThat(tracker.getQuota()).isEqualTo(1);
     }
 
+    @Test
+    public void testExplainRestrictions() {
+        UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.absoluteLimit(
+                newBatchJobWithAbsoluteLimit(10, 1),
+                jobOperations,
+                jobComponentStub.getContainerHealthService()
+        );
+
+        assertThat(tracker.explainRestrictions("notUsed").get()).contains("started=0");
+
+        // Now start all of them and make one unhealthy
+        jobOperations.getTasks().forEach(task -> jobComponentStub.moveTaskToState(task, TaskState.Started));
+
+        String taskId = jobOperations.getTasks().get(0).getId();
+        jobComponentStub.changeContainerHealth(taskId, ContainerHealthState.Unhealthy);
+
+        assertThat(tracker.explainRestrictions("notUsed").get()).contains(taskId);
+    }
+
     private Job<BatchJobExt> newBatchJobWithPercentageLimit(int desired, int percentage) {
         Job<BatchJobExt> job = newBatchJob(desired, budget(percentageOfHealthyPolicy(percentage), unlimitedRate(), Collections.emptyList()));
         jobComponentStub.createJobAndTasks(job);

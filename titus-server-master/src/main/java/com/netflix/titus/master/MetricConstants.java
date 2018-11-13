@@ -39,6 +39,8 @@ public class MetricConstants {
 
     public static final String METRIC_SCHEDULING_JOB = METRIC_ROOT + "job.";
 
+    public static final String METRIC_SCHEDULING_EVICTION = METRIC_ROOT + "eviction.";
+
     public static final String METRIC_LEADER = METRIC_ROOT + "leader.";
 
     public static final String METRIC_MESOS = METRIC_ROOT + "mesos.";

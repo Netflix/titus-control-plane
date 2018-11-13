@@ -36,6 +36,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -46,7 +47,11 @@ import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeDisruptionBudget;
 import static com.netflix.titus.common.util.CollectionsExt.first;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.percentageOfHealthyPolicy;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static java.util.Arrays.asList;
@@ -58,7 +63,8 @@ public class JobModelSanitizationTest {
 
     private static final MapConfig CONFIG = MapConfig.from(ImmutableMap.of(
             "titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567",
-            "titusMaster.job.configuration.defaultIamRole", "iam-12345"
+            "titusMaster.job.configuration.defaultIamRole", "iam-12345",
+            "titusMaster.job.configuration.containerHealthProviders", "eureka,healthCheckPoller"
     ));
 
     private final JobConfiguration constraints = new ConfigProxyFactory(CONFIG, new DefaultDecoder(), new DefaultPropertyFactory(CONFIG))
@@ -271,6 +277,28 @@ public class JobModelSanitizationTest {
         Set<ValidationError> violations = entitySanitizer.validate(badJobDescriptor);
         assertThat(violations).hasSize(1);
         assertThat(first(violations).getDescription()).contains("Container environment variables size exceeds the limit 32MB");
+    }
+
+    @Test
+    public void testJobWithValidContainerHealthProvider() {
+        Set<ValidationError> violations = entitySanitizer.validate(newJobWithContainerHealthProvider("eureka"));
+        assertThat(violations).hasSize(0);
+    }
+
+    @Test
+    public void testJobWithInvalidContainerHealthProvider() {
+        Set<ValidationError> violations = entitySanitizer.validate(newJobWithContainerHealthProvider("not_healthy"));
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getDescription()).isEqualTo("Unknown container health service: not_healthy");
+    }
+
+    private JobDescriptor<BatchJobExt> newJobWithContainerHealthProvider(String healthProviderName) {
+        return changeDisruptionBudget(
+                oneTaskBatchJobDescriptor(),
+                budget(percentageOfHealthyPolicy(50), unlimitedRate(), Collections.emptyList()).toBuilder()
+                        .withContainerHealthProviders(Collections.singletonList(ContainerHealthProvider.named(healthProviderName)))
+                        .build()
+        );
     }
 
     private EntitySanitizer newJobSanitizer(VerifierMode verifierMode) {

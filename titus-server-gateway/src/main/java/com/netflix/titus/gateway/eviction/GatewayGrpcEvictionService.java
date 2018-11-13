@@ -80,7 +80,10 @@ public class GatewayGrpcEvictionService extends EvictionServiceGrpc.EvictionServ
                                 safeOnError(logger, e, responseObserver);
                             }
                         },
-                        () -> responseObserver.onNext(TaskTerminateResponse.newBuilder().setAllowed(true).build())
+                        () -> {
+                            responseObserver.onNext(TaskTerminateResponse.newBuilder().setAllowed(true).build());
+                            responseObserver.onCompleted();
+                        }
                 );
         attachCancellingCallback(responseObserver, disposable);
     }

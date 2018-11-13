@@ -327,7 +327,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -1723,7 +1723,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -3119,7 +3119,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -4579,7 +4579,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -5976,7 +5976,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -7494,7 +7494,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -9336,7 +9336,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -11178,7 +11178,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -13021,7 +13021,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.6",
+            "locked": "1.9.7",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {

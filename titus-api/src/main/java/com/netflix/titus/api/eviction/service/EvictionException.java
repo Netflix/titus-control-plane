@@ -19,10 +19,9 @@ package com.netflix.titus.api.eviction.service;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.common.util.StringExt;
 
 public class EvictionException extends RuntimeException {
-
-    private final ErrorCode errorCode;
 
     public enum ErrorCode {
         BadConfiguration,
@@ -30,9 +29,11 @@ public class EvictionException extends RuntimeException {
         TaskNotFound,
         TaskNotScheduledYet,
         TaskAlreadyStopped,
-        NoSystemQuota,
-        NoJobQuota,
+        NoQuota,
+        Unknown,
     }
+
+    private final ErrorCode errorCode;
 
     private EvictionException(ErrorCode errorCode, String message) {
         super(message);
@@ -66,11 +67,17 @@ public class EvictionException extends RuntimeException {
         return new EvictionException(ErrorCode.TaskNotScheduledYet, "Task not scheduled yet: " + task.getId());
     }
 
-    public static EvictionException noAvailableGlobalQuota() {
-        return new EvictionException(ErrorCode.NoSystemQuota, "No global quota");
+    public static EvictionException noAvailableJobQuota(Job<?> job, String quotaRestrictions) {
+        return new EvictionException(ErrorCode.NoQuota, String.format("No job quota: jobId=%s, restrictions=%s", job.getId(), quotaRestrictions));
     }
 
-    public static EvictionException noAvailableJobQuota(Job<?> job, String reason) {
-        return new EvictionException(ErrorCode.NoJobQuota, String.format("No job quota: jobId=%s, reason=%s", job.getId(), reason));
+    public static EvictionException deconstruct(String restrictionCode, String restrictionMessage) {
+        ErrorCode errorCode;
+        try {
+            errorCode = StringExt.parseEnumIgnoreCase(restrictionCode, ErrorCode.class);
+        } catch (Exception e) {
+            return new EvictionException(ErrorCode.Unknown, StringExt.safeTrim(restrictionMessage));
+        }
+        return new EvictionException(errorCode, StringExt.safeTrim(restrictionMessage));
     }
 }
