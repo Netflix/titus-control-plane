@@ -84,7 +84,7 @@ public class ContainerHealthStatus {
     }
 
     public static ContainerHealthStatus healthy(String taskId, long timestamp) {
-        return newStatus(taskId, timestamp, "good", ContainerHealthState.Healthy);
+        return newStatus(taskId, timestamp, "healthy", ContainerHealthState.Healthy);
     }
 
     public static ContainerHealthStatus unhealthy(String taskId, String reason, long timestamp) {

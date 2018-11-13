@@ -247,8 +247,6 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
                 errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
                 break;
             case CapacityGroupNotFound:
-                errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
-                break;
             case TaskNotFound:
                 errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
