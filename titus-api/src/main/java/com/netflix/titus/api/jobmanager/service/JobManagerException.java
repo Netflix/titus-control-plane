@@ -47,7 +47,6 @@ public class JobManagerException extends RuntimeException {
         TaskTerminating,
         InvalidContainerResources,
         InvalidDesiredCapacity,
-        V2EngineTurnedOff,
         BelowMinCapacity,
         AboveMaxCapacity,
         SameJobIds,
@@ -96,7 +95,6 @@ public class JobManagerException extends RuntimeException {
                 break;
             case UnexpectedJobState:
             case UnexpectedTaskState:
-            case V2EngineTurnedOff:
                 return false;
         }
         return false;

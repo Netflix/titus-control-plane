@@ -16,7 +16,9 @@
 
 package com.netflix.titus.master.eviction.service.quota.job;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -31,9 +33,14 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityP
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.QuotaTracker;
 
+import static com.netflix.titus.common.util.StringExt.startWithLowercase;
+
 public class UnhealthyTasksLimitTracker implements QuotaTracker {
+
+    private static final int TASK_ID_REPORT_LIMIT = 20;
 
     private final Job<?> job;
     private final int minimumHealthyCount;
@@ -42,9 +49,9 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
     private final ContainerHealthService containerHealthService;
 
     private UnhealthyTasksLimitTracker(Job<?> job,
-                                      int minimumHealthyCount,
-                                      V3JobOperations jobOperations,
-                                      ContainerHealthService containerHealthService) {
+                                       int minimumHealthyCount,
+                                       V3JobOperations jobOperations,
+                                       ContainerHealthService containerHealthService) {
         this.job = job;
         this.minimumHealthyCount = minimumHealthyCount;
         this.jobOperations = jobOperations;
@@ -53,11 +60,27 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
 
     @Override
     public long getQuota() {
+        return Math.max(0, countHealthy().getLeft() - minimumHealthyCount);
+    }
+
+    @Override
+    public Optional<String> explainRestrictions(String taskId) {
+        Pair<Integer, String> healthyPair = countHealthy();
+        int healthy = healthyPair.getLeft();
+
+        if (healthy > minimumHealthyCount) {
+            return Optional.empty();
+        }
+
+        return Optional.of(healthyPair.getRight());
+    }
+
+    private Pair<Integer, String> countHealthy() {
         List<Task> tasks;
         try {
             tasks = jobOperations.getTasks(job.getId());
         } catch (JobManagerException e) {
-            return 0;
+            return Pair.of(0, "job not found");
         }
 
         // Check first how many started tasks we have
@@ -68,20 +91,54 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
             }
         }
         if (started < minimumHealthyCount) {
-            return 0;
+            return Pair.of(
+                    0,
+                    String.format("too few containers started: desired=%s, started=%s", JobFunctions.getJobDesiredSize(job), started)
+            );
         }
 
         // We have enough tasks started. Check now how many are healthy.
         int healthy = 0;
+        Map<String, String> unhealthyTasks = new HashMap<>();
         for (Task task : tasks) {
             if (task.getStatus().getState() == TaskState.Started) {
-                Optional<ContainerHealthStatus> status = containerHealthService.findHealthStatus(task.getId());
-                if (status.isPresent() && status.get().getState() == ContainerHealthState.Healthy) {
+                Optional<ContainerHealthStatus> statusOpt = containerHealthService.findHealthStatus(task.getId());
+                if (statusOpt.isPresent() && statusOpt.get().getState() == ContainerHealthState.Healthy) {
                     healthy++;
+                } else {
+                    String report = statusOpt
+                            .map(status -> startWithLowercase(status.getState().name()) + '(' + status.getReason() + ')')
+                            .orElse("health not found");
+                    unhealthyTasks.put(task.getId(), report);
                 }
             }
         }
-        return Math.max(0, healthy - minimumHealthyCount);
+        if (!unhealthyTasks.isEmpty()) {
+            StringBuilder builder = new StringBuilder("not in healthyState: ");
+            builder.append("total=").append(unhealthyTasks.size());
+            builder.append(", tasks=[");
+            int counter = 0;
+            for (Map.Entry<String, String> entry : unhealthyTasks.entrySet()) {
+                builder.append(entry.getKey()).append('=').append(entry.getValue());
+                counter++;
+                if (counter < unhealthyTasks.size()) {
+                    builder.append(", ");
+                } else {
+                    builder.append("]");
+                }
+                if (counter >= TASK_ID_REPORT_LIMIT && counter < unhealthyTasks.size()) {
+                    builder.append(",... dropped ").append(unhealthyTasks.size() - counter).append(" tasks]");
+                }
+            }
+            return Pair.of(healthy, builder.toString());
+        }
+
+        return Pair.of(
+                healthy,
+                healthy > minimumHealthyCount
+                        ? ""
+                        : String.format("not enough healthy containers: healthy=%s, minimum=%s", healthy, minimumHealthyCount)
+        );
     }
 
     public static UnhealthyTasksLimitTracker percentageLimit(Job<?> job,

@@ -28,7 +28,6 @@ import com.netflix.titus.api.scheduler.store.SchedulerStore;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.master.scheduler.store.InMemorySchedulerStore;
 import com.netflix.titus.master.store.cache.ApplicationSlaStoreCache;
-import com.netflix.titus.master.store.file.SimpleCachedFileStorageProvider;
 import com.netflix.titus.master.store.memory.InMemoryApplicationSlaStore;
 import com.netflix.titus.master.store.sanitizer.ApplicationSlaStoreSanitizer;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
@@ -40,7 +39,6 @@ import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerB
 public class StoreModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(V2StorageProvider.class).to(SimpleCachedFileStorageProvider.class);
         bind(JobStore.class).to(InMemoryJobStore.class);
         bind(AppScalePolicyStore.class).to(InMemoryPolicyStore.class);
         bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);

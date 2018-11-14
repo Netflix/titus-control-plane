@@ -58,8 +58,8 @@ import static com.netflix.titus.master.agent.store.AgentStoreReaper.tagToRemove;
  * <ul>
  * <li>merges cloud provider {@link InstanceGroup} with {@link AgentInstanceGroup}</li>
  * <li>merges cloud provider {@link Instance} with {@link AgentInstance}</li>
- * <li>for a newly discovred {@link InstanceGroup} creates a default {@link AgentInstanceGroup} instance</li>
- * <li>for a newly discovred {@link Instance} creates a default {@link AgentInstance} instance</li>
+ * <li>for a newly discovered {@link InstanceGroup} creates a default {@link AgentInstanceGroup} instance</li>
+ * <li>for a newly discovered {@link Instance} creates a default {@link AgentInstance} instance</li>
  * <li>if a {@link InstanceGroup} or {@link Instance} is destroyed, removes it from a store after a configurable time passes</li>
  * <li>handles client updates in a thread safe way (runs all update tasks on an internal event loop)</li>
  * </ul>
@@ -222,7 +222,7 @@ public class DefaultAgentCache implements AgentCache {
     public Completable removeInstances(String instanceGroupId, Set<String> agentInstanceIds) {
         return onEventLoopWithSubscription(() ->
                 setDataSnapshot(dataSnapshot.removeInstances(instanceGroupId, agentInstanceIds))
-        ).concatWith(agentStore.storeAgentInstanceGroup(dataSnapshot.getInstanceGroup(instanceGroupId)));
+        ).concatWith(agentStore.removeAgentInstances(new ArrayList<>(agentInstanceIds)));
     }
 
     @Override

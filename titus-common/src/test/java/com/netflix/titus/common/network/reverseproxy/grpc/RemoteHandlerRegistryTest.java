@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Optional;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.testing.SampleGrpcService.SampleContainer;
 import com.netflix.titus.testing.SampleServiceGrpc;
@@ -43,8 +42,8 @@ public class RemoteHandlerRegistryTest {
     private static final int ITEMS_IN_STREAM = 3;
     private static final String HELLO = "HELLO";
 
-    private final int serverPort = UnusedSocketPortAllocator.global().allocate();
-    private final int proxyPort = UnusedSocketPortAllocator.global().allocate();
+    private int serverPort;
+    private int proxyPort;
 
     private Server server;
     private Server proxy;
@@ -87,7 +86,7 @@ public class RemoteHandlerRegistryTest {
     }
 
     private Server newServer() throws IOException {
-        return NettyServerBuilder.forPort(serverPort)
+        Server server = NettyServerBuilder.forPort(0)
                 .addService(ServerInterceptors.intercept(
                         new SampleServiceGrpc.SampleServiceImplBase() {
                             @Override
@@ -113,6 +112,8 @@ public class RemoteHandlerRegistryTest {
                 ))
                 .build()
                 .start();
+        this.serverPort = server.getPort();
+        return server;
     }
 
     private ManagedChannel newServerClient() {
@@ -124,10 +125,14 @@ public class RemoteHandlerRegistryTest {
     private Server newProxy() throws IOException {
         RemoteHandlerRegistry registry = new RemoteHandlerRegistry(n -> Optional.of(serverChannel));
 
-        return NettyServerBuilder.forPort(proxyPort)
+        Server server = NettyServerBuilder.forPort(0)
                 .fallbackHandlerRegistry(registry)
                 .build()
                 .start();
+
+        this.proxyPort = server.getPort();
+
+        return server;
     }
 
     private ManagedChannel newProxyClient() {

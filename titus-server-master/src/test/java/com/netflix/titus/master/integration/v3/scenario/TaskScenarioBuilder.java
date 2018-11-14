@@ -28,10 +28,12 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.aws.AwsInstanceType;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
@@ -60,7 +62,9 @@ public class TaskScenarioBuilder {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskScenarioBuilder.class);
 
-    private final JobManagementServiceGrpc.JobManagementServiceStub client;
+    private final JobManagementServiceGrpc.JobManagementServiceStub jobClient;
+    private final EvictionServiceGrpc.EvictionServiceBlockingStub evictionClient;
+
     private final JobScenarioBuilder jobScenarioBuilder;
 
     private final ExtTestSubscriber<Task> eventStreamSubscriber = new ExtTestSubscriber<>();
@@ -77,7 +81,8 @@ public class TaskScenarioBuilder {
                                JobScenarioBuilder jobScenarioBuilder,
                                Observable<Task> eventStream,
                                DiagnosticReporter diagnosticReporter) {
-        this.client = titusOperations.getV3GrpcClient();
+        this.jobClient = titusOperations.getV3GrpcClient();
+        this.evictionClient = titusOperations.getBlockingGrpcEvictionClient();
         this.jobScenarioBuilder = jobScenarioBuilder;
         this.eventStreamSubscription = eventStream.subscribe(eventStreamSubscriber);
         this.diagnosticReporter = diagnosticReporter;
@@ -116,7 +121,7 @@ public class TaskScenarioBuilder {
         Stopwatch stopWatch = Stopwatch.createStarted();
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
-        client.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).build(), responseObserver);
+        jobClient.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).build(), responseObserver);
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
@@ -129,10 +134,21 @@ public class TaskScenarioBuilder {
         Stopwatch stopWatch = Stopwatch.createStarted();
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
-        client.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build(), responseObserver);
+        jobClient.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build(), responseObserver);
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public TaskScenarioBuilder evictTask() {
+        String taskId = getTask().getId();
+        logger.info("[{}] Evicting task {} of job {}...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId());
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        evictionClient.terminateTask(TaskTerminateRequest.newBuilder().setTaskId(taskId).setReason("Test").build());
+
+        logger.info("[{}] Task {} evicted in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
@@ -142,7 +158,7 @@ public class TaskScenarioBuilder {
         Stopwatch stopWatch = Stopwatch.createStarted();
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
-        client.moveTask(TaskMoveRequest.newBuilder().setTaskId(taskId).setTargetJobId(targetJobId).build(), responseObserver);
+        jobClient.moveTask(TaskMoveRequest.newBuilder().setTaskId(taskId).setTargetJobId(targetJobId).build(), responseObserver);
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} moved to job {} in {}[ms]", discoverActiveTest(), taskId, targetJobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));

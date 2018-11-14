@@ -42,7 +42,6 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ProtobufCopy;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
@@ -71,8 +70,8 @@ import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
@@ -371,7 +370,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            String reason = String.format("User initiated task kill: %s", toReasonString(callMetadata));
+            String reason = String.format("User initiated task kill: %s", CallMetadataUtils.toReasonString(callMetadata));
             jobOperations.killTask(request.getTaskId(), request.getShrink(), reason).subscribe(
                     nothing -> {
                     },
@@ -482,30 +481,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .withDiskMB(containerResources.getDiskMB())
                 .withNetworkMbs(containerResources.getNetworkMbps())
                 .build();
-    }
-
-    private String toReasonString(CallMetadata callMetadata) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("calledBy=").append(callMetadata.getCallerId());
-        builder.append(", relayedVia=");
-
-        List<String> callPath = callMetadata.getCallPath();
-        if (callPath.isEmpty()) {
-            builder.append("direct to TitusMaster");
-        } else {
-            for (int i = 0; i < callPath.size(); i++) {
-                if (i > 0) {
-                    builder.append(',');
-                }
-                builder.append(callPath.get(i));
-            }
-        }
-
-        if (StringExt.isNotEmpty(callMetadata.getCallReason())) {
-            builder.append(", reason=").append(callMetadata.getCallReason());
-        }
-
-        return builder.toString();
     }
 
     private Tier findTier(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {

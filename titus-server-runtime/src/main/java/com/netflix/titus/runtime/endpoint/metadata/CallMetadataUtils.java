@@ -16,12 +16,14 @@
 
 package com.netflix.titus.runtime.endpoint.metadata;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.util.StringExt;
 import io.grpc.stub.StreamObserver;
 
 public class CallMetadataUtils {
@@ -56,5 +58,33 @@ public class CallMetadataUtils {
                 "callPath", String.join("/", callMetadata.getCallPath()),
                 "callReason", callMetadata.getCallReason()
         );
+    }
+
+    public static String toCallerId(CallMetadata callMetadata) {
+        return String.join("/", callMetadata.getCallPath());
+    }
+
+    public static String toReasonString(CallMetadata callMetadata) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("calledBy=").append(callMetadata.getCallerId());
+        builder.append(", relayedVia=");
+
+        List<String> callPath = callMetadata.getCallPath();
+        if (callPath.isEmpty()) {
+            builder.append("direct to TitusMaster");
+        } else {
+            for (int i = 0; i < callPath.size(); i++) {
+                if (i > 0) {
+                    builder.append(',');
+                }
+                builder.append(callPath.get(i));
+            }
+        }
+
+        if (StringExt.isNotEmpty(callMetadata.getCallReason())) {
+            builder.append(", reason=").append(callMetadata.getCallReason());
+        }
+
+        return builder.toString();
     }
 }

@@ -26,10 +26,7 @@ import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.store.v2.V2JobMetadata;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.scheduler.ScheduledRequest;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 
 import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getAgentAttributeValue;
@@ -55,13 +52,7 @@ public class SystemSelectorFunctions {
     }
 
     private static void setJobAndTask(Map<String, Object> context, TaskRequest taskRequest) {
-        if (taskRequest instanceof ScheduledRequest) {
-            ScheduledRequest scheduledRequest = (ScheduledRequest) taskRequest;
-            V2JobMetadata job = scheduledRequest.getJob();
-            V2WorkerMetadata task = scheduledRequest.getTask();
-            context.put(JOB, job);
-            context.put(TASK, task);
-        } else if (taskRequest instanceof V3QueueableTask) {
+        if (taskRequest instanceof V3QueueableTask) {
             V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
             Job job = v3QueueableTask.getJob();
             Task task = v3QueueableTask.getTask();

@@ -33,6 +33,12 @@ public final class Evaluators {
     }
 
     /**
+     * Do nothing consumer.
+     */
+    public static  <T> void doNothing(T value) {
+    }
+
+    /**
      * Evaluate the given function only if the value is not null.
      */
     public static <T> void acceptNotNull(T value, Consumer<T> consumer) {

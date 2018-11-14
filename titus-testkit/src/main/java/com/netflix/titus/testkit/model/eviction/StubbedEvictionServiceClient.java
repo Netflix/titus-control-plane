@@ -22,6 +22,7 @@ import com.netflix.titus.api.eviction.service.EvictionOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -58,7 +59,7 @@ class StubbedEvictionServiceClient implements EvictionServiceClient {
 
     @Override
     public Mono<Void> terminateTask(String taskId, String reason) {
-        return evictionOperations.terminateTask(taskId, reason);
+        return evictionOperations.terminateTask(taskId, reason, "<callerContext>");
     }
 
     @Override

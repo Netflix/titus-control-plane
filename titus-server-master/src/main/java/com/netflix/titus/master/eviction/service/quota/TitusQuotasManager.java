@@ -50,6 +50,8 @@ public class TitusQuotasManager {
 
     private static final Duration RETRY_INTERVAL = Duration.ofSeconds(5);
 
+    private static final ConsumptionResult UNKNOWN_JOB = ConsumptionResult.rejected("Unknown job");
+
     private final V3JobOperations jobOperations;
     private final ContainerHealthService containerHealthService;
     private final SystemQuotaController systemQuotaController;
@@ -87,18 +89,29 @@ public class TitusQuotasManager {
         ReactorExt.safeDispose(jobUpdateDisposable);
     }
 
-    public boolean tryConsumeQuota(Job<?> job, Task task) {
+    public ConsumptionResult tryConsumeQuota(Job<?> job, Task task) {
         JobQuotaController jobQuotaController = jobQuotaControllersByJobId.get(job.getId());
         if (jobQuotaController == null) {
-            return false;
-        }
-
-        if (systemQuotaController.getQuota() < 1 || jobQuotaController.getQuota() < 1) {
-            return false;
+            return UNKNOWN_JOB;
         }
 
         synchronized (lock) {
-            return systemQuotaController.consume(task.getId()) && jobQuotaController.consume(task.getId());
+            if (systemQuotaController.getQuota() < 1) {
+                ConsumptionResult systemResult = systemQuotaController.consume(task.getId());
+                return systemResult.isApproved()
+                        ? jobQuotaController.consume(task.getId())
+                        : systemResult;
+            }
+
+            if (jobQuotaController.getQuota() < 1) {
+                ConsumptionResult jobResult = jobQuotaController.consume(task.getId());
+                return jobResult.isApproved()
+                        ? systemQuotaController.consume(task.getId())
+                        : jobResult;
+            }
+
+            ConsumptionResult systemResult = systemQuotaController.consume(task.getId());
+            return systemResult.isApproved() ? jobQuotaController.consume(task.getId()) : systemResult;
         }
     }
 
@@ -109,15 +122,6 @@ public class TitusQuotasManager {
     public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
         JobQuotaController jobQuotaController = jobQuotaControllersByJobId.get(jobId);
         return jobQuotaController == null ? Optional.empty() : Optional.of(EvictionQuota.jobQuota(jobId, jobQuotaController.getQuota()));
-    }
-
-    public Optional<String> explainJobQuotaConstraints(String jobId) {
-        if (systemQuotaController.getQuota() < 1) {
-            return Optional.of("No system quota available");
-        }
-
-        JobQuotaController jobQuotaController = jobQuotaControllersByJobId.get(jobId);
-        return jobQuotaController == null ? Optional.empty() : Optional.of(jobQuotaController.explainJobQuotaConstraints());
     }
 
     private void updateJobController(Job newJob) {

@@ -77,7 +77,6 @@ import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
-import com.netflix.titus.master.store.V2StorageProvider;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.MasterMonitor;
@@ -122,7 +121,6 @@ public class EmbeddedTitusMaster {
     private final String cellName;
     private final MasterDescription masterDescription;
 
-    private final V2StorageProvider storageProvider;
     private final JobStore jobStore;
     private final boolean cassandraJobStore;
     private final AgentStore agentStore;
@@ -150,7 +148,6 @@ public class EmbeddedTitusMaster {
                 "embedded_titus_master", "192.168.0.1", builder.apiPort, "api/postjobstatus",
                 System.currentTimeMillis()
         );
-        this.storageProvider = builder.v2JobStore;
         this.jobStore = builder.v3JobStore == null ? new InMemoryJobStore() : builder.v3JobStore;
         this.cassandraJobStore = builder.cassandraJobStore;
         this.agentStore = builder.agentStore == null ? new InMemoryAgentStore() : builder.agentStore;
@@ -414,8 +411,7 @@ public class EmbeddedTitusMaster {
                 .withCellName(cellName)
                 .withSimulatedCloud(simulatedCloud)
                 .withProperties(properties)
-                .withV3JobStore(jobStore)
-                .withV2JobStore(storageProvider);
+                .withV3JobStore(jobStore);
 
         if (remoteCloud != null) {
             builder.withRemoteCloud(remoteCloud.getLeft(), remoteCloud.getRight());
@@ -433,7 +429,6 @@ public class EmbeddedTitusMaster {
         private int grpcPort;
         private boolean enableREST = true;
 
-        private V2StorageProvider v2JobStore;
         private JobStore v3JobStore;
         private boolean cassandraJobStore;
         private AgentStore agentStore;
@@ -479,11 +474,6 @@ public class EmbeddedTitusMaster {
 
         public Builder withSystemDisruptionBudgetDescriptor(SystemDisruptionBudgetDescriptor systemDisruptionBudgetDescriptor) {
             this.systemDisruptionBudgetDescriptor = systemDisruptionBudgetDescriptor;
-            return this;
-        }
-
-        public Builder withV2JobStore(V2StorageProvider storageProvider) {
-            this.v2JobStore = storageProvider;
             return this;
         }
 

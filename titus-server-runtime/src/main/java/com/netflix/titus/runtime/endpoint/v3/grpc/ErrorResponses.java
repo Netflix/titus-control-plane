@@ -24,6 +24,7 @@ import com.google.protobuf.Any;
 import com.google.rpc.BadRequest;
 import com.google.rpc.DebugInfo;
 import com.netflix.titus.api.agent.service.AgentManagementException;
+import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -159,8 +160,6 @@ public final class ErrorResponses {
         } else if (cause instanceof JobManagerException) {
             JobManagerException e = (JobManagerException) cause;
             switch (e.getErrorCode()) {
-                case V2EngineTurnedOff:
-                    return Status.PERMISSION_DENIED;
                 case JobCreateLimited:
                     return Status.INVALID_ARGUMENT;
                 case JobNotFound:
@@ -175,6 +174,21 @@ public final class ErrorResponses {
                 case InvalidContainerResources:
                 case InvalidDesiredCapacity:
                     return Status.INVALID_ARGUMENT;
+            }
+        } else if (cause instanceof EvictionException) {
+            EvictionException e = (EvictionException) cause;
+            switch (e.getErrorCode()) {
+                case BadConfiguration:
+                    return Status.INVALID_ARGUMENT;
+                case CapacityGroupNotFound:
+                case TaskNotFound:
+                    return Status.NOT_FOUND;
+                case TaskNotScheduledYet:
+                case TaskAlreadyStopped:
+                case NoQuota:
+                    return Status.FAILED_PRECONDITION;
+                case Unknown:
+                    return Status.INTERNAL;
             }
         } else if (cause instanceof SchedulerException) {
             SchedulerException e = (SchedulerException) cause;

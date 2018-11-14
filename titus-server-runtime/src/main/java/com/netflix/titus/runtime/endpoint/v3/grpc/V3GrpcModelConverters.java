@@ -262,6 +262,10 @@ public final class V3GrpcModelConverters {
     }
 
     public static DisruptionBudget toCoreDisruptionBudget(com.netflix.titus.grpc.protogen.JobDisruptionBudget grpcDisruptionBudget) {
+        if (JobDisruptionBudget.getDefaultInstance().equals(grpcDisruptionBudget)) {
+            return DisruptionBudget.none();
+        }
+
         return DisruptionBudget.newBuilder()
                 .withDisruptionBudgetPolicy(toCoreDisruptionBudgetPolicy(grpcDisruptionBudget))
                 .withDisruptionBudgetRate(toCoreDisruptionBudgetRate(grpcDisruptionBudget))
@@ -290,7 +294,7 @@ public final class V3GrpcModelConverters {
                         .build();
             default:
                 return SelfManagedDisruptionBudgetPolicy.newBuilder()
-                    .build();
+                        .build();
         }
     }
 

@@ -17,9 +17,11 @@
 package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
 import java.util.Objects;
+import javax.validation.constraints.Min;
 
 public class SelfManagedDisruptionBudgetPolicy extends DisruptionBudgetPolicy {
 
+    @Min(0)
     private final long relocationTimeMs;
 
     public SelfManagedDisruptionBudgetPolicy(long relocationTimeMs) {

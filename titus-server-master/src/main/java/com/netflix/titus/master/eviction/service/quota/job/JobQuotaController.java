@@ -17,7 +17,9 @@
 package com.netflix.titus.master.eviction.service.quota.job;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -26,17 +28,22 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.QuotaController;
 import com.netflix.titus.master.eviction.service.quota.QuotaTracker;
 import com.netflix.titus.master.eviction.service.quota.TimeWindowQuotaTracker;
 
 public class JobQuotaController implements QuotaController<Job<?>> {
+
+    private static final ConsumptionResult LEGACY = ConsumptionResult.rejected("Legacy job");
 
     private final Job<?> job;
     private final V3JobOperations jobOperations;
@@ -54,8 +61,13 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         this.containerHealthService = containerHealthService;
         this.titusRuntime = titusRuntime;
 
-        this.quotaTrackers = buildQuotaTrackers(job, jobOperations, containerHealthService, titusRuntime);
-        this.quotaControllers = buildQuotaControllers(job, jobOperations, titusRuntime);
+        if (DisruptionBudgetFunctions.isLegacyJob(job)) {
+            this.quotaTrackers = Collections.emptyList();
+            this.quotaControllers = Collections.emptyList();
+        } else {
+            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, containerHealthService, titusRuntime);
+            this.quotaControllers = buildQuotaControllers(job, jobOperations, titusRuntime);
+        }
     }
 
     private JobQuotaController(Job<?> newJob,
@@ -68,8 +80,13 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         this.containerHealthService = containerHealthService;
         this.titusRuntime = titusRuntime;
 
-        this.quotaTrackers = buildQuotaTrackers(job, jobOperations, containerHealthService, titusRuntime);
-        this.quotaControllers = mergeQuotaControllers(previousJobQuotaController.quotaControllers, newJob, jobOperations, titusRuntime);
+        if (DisruptionBudgetFunctions.isLegacyJob(newJob)) {
+            this.quotaTrackers = Collections.emptyList();
+            this.quotaControllers = Collections.emptyList();
+        } else {
+            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, containerHealthService, titusRuntime);
+            this.quotaControllers = mergeQuotaControllers(previousJobQuotaController.quotaControllers, newJob, jobOperations, titusRuntime);
+        }
     }
 
     public Job<?> getJob() {
@@ -78,26 +95,69 @@ public class JobQuotaController implements QuotaController<Job<?>> {
 
     @Override
     public long getQuota() {
+        if (isLegacy()) {
+            return 0;
+        }
         return getMinSubQuota();
     }
 
     @Override
-    public boolean consume(String taskId) {
-        if (getMinSubQuota() < 1) {
-            return false;
+    public Optional<String> explainRestrictions(String taskId) {
+        return Optional.empty();
+    }
+
+    @Override
+    public ConsumptionResult consume(String taskId) {
+        if (isLegacy()) {
+            return LEGACY;
         }
 
-        for (QuotaController quotaController : quotaControllers) {
-            if (!quotaController.consume(taskId)) {
-                return false;
+        StringBuilder rejectionResponseBuilder = new StringBuilder("MissingQuotas[");
+
+        // Check quota trackers first
+        boolean noQuota = false;
+        for (QuotaTracker tracker : quotaTrackers) {
+            if (tracker.getQuota() <= 0) {
+                noQuota = true;
+                String restrictions = tracker.explainRestrictions(taskId).orElse("no quota");
+                rejectionResponseBuilder.append(tracker.getClass().getSimpleName()).append('=').append(restrictions).append(", ");
+            }
+        }
+        if (noQuota) {
+            rejectionResponseBuilder.setLength(rejectionResponseBuilder.length() - 2);
+            return ConsumptionResult.rejected(rejectionResponseBuilder.append(']').toString());
+        }
+
+        // Now controllers
+        for (int i = 0; i < quotaControllers.size(); i++) {
+            QuotaController<Job<?>> controller = quotaControllers.get(i);
+            ConsumptionResult result = controller.consume(taskId);
+            if (!result.isApproved()) {
+                for (int j = 0; j < i; j++) {
+                    quotaControllers.get(j).giveBackConsumedQuota(taskId);
+                }
+                rejectionResponseBuilder
+                        .append(controller.getClass().getSimpleName())
+                        .append('=')
+                        .append(result.getRejectionReason().orElse("no quota"));
+                return ConsumptionResult.rejected(rejectionResponseBuilder.append(']').toString());
             }
         }
 
-        return true;
+        return ConsumptionResult.approved();
+    }
+
+    @Override
+    public void giveBackConsumedQuota(String taskId) {
+        quotaControllers.forEach(c -> c.giveBackConsumedQuota(taskId));
     }
 
     @Override
     public JobQuotaController update(Job<?> updatedJob) {
+        if (DisruptionBudgetFunctions.isLegacyJob(updatedJob) && isLegacy()) {
+            return this;
+        }
+
         int currentDesired = JobFunctions.getJobDesiredSize(job);
         int newDesired = JobFunctions.getJobDesiredSize(updatedJob);
 
@@ -116,27 +176,8 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         );
     }
 
-    public String explainJobQuotaConstraints() {
-        StringBuilder responseBuilder = new StringBuilder("QuotaStatus[");
-
-        explain(responseBuilder, quotaTrackers);
-        explain(responseBuilder, quotaControllers);
-
-        responseBuilder.setLength(responseBuilder.length() - 2);
-        responseBuilder.append(']');
-
-        return responseBuilder.toString();
-    }
-
-    private void explain(StringBuilder responseBuilder, List<? extends QuotaTracker> quotaTrackers) {
-        quotaTrackers.forEach(tracker -> {
-            long quota = tracker.getQuota();
-            if (quota < 1) {
-                responseBuilder.append(tracker.getClass().getSimpleName()).append("=missing(0), ");
-            } else {
-                responseBuilder.append(tracker.getClass().getSimpleName()).append("=ok(1), ");
-            }
-        });
+    private boolean isLegacy() {
+        return quotaTrackers.isEmpty() && quotaControllers.isEmpty();
     }
 
     private long getMinSubQuota() {
@@ -169,6 +210,8 @@ public class JobQuotaController implements QuotaController<Job<?>> {
             quotaTrackers.add(UnhealthyTasksLimitTracker.percentageLimit(job, jobOperations, containerHealthService));
         } else if (policy instanceof UnhealthyTasksLimitDisruptionBudgetPolicy) {
             quotaTrackers.add(UnhealthyTasksLimitTracker.absoluteLimit(job, jobOperations, containerHealthService));
+        } else if (policy instanceof SelfManagedDisruptionBudgetPolicy) {
+            quotaTrackers.add(SelfManagedPolicyTracker.getInstance());
         }
 
         return quotaTrackers;

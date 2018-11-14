@@ -62,7 +62,7 @@ public class SystemQuotaControllerTest {
         quotaController = newSystemQuotaController();
 
         assertThat(quotaController.getQuota()).isEqualTo(1);
-        assertThat(quotaController.consume("someTaskId")).isTrue();
+        assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
     }
 
     @Test
@@ -79,12 +79,12 @@ public class SystemQuotaControllerTest {
         // Outside time window
         quotaController = newSystemQuotaController();
         assertThat(quotaController.getQuota()).isEqualTo(0);
-        assertThat(quotaController.consume("someTaskId")).isFalse();
+        assertThat(quotaController.consume("someTaskId").isApproved()).isFalse();
 
         // In time window
         clock.resetTime(10, 0, 0);
         assertThat(quotaController.getQuota()).isEqualTo(1);
-        assertThat(quotaController.consume("someTaskId")).isTrue();
+        assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
     }
 
     @Test
@@ -97,8 +97,8 @@ public class SystemQuotaControllerTest {
         // Small quota
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(1, 1));
         assertThat(quotaController.getQuota()).isEqualTo(1);
-        assertThat(quotaController.consume("someTaskId")).isTrue();
-        assertThat(quotaController.consume("someTaskId")).isFalse();
+        assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
+        assertThat(quotaController.consume("someTaskId").isApproved()).isFalse();
     }
 
     @Test

@@ -24,15 +24,22 @@ import java.util.List;
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
 
+@ClassFieldsNotNull
 public class TimeWindow {
 
     public static String DEFAULT_TIME_ZONE = "UTC";
 
     private static final TimeWindow EMPTY = new TimeWindow(Collections.emptyList(), Collections.emptyList(), DEFAULT_TIME_ZONE);
 
+    @CollectionInvariants
     private final List<Day> days;
+
+    @CollectionInvariants
     private final List<HourlyTimeWindow> hourlyTimeWindows;
+
     private final String timeZone;
 
     public TimeWindow(List<Day> days, List<HourlyTimeWindow> hourlyTimeWindows, String timeZone) {

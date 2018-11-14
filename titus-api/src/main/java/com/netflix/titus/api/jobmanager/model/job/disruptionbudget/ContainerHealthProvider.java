@@ -16,12 +16,23 @@
 
 package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import javax.validation.constraints.Size;
 
+import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
+import com.netflix.titus.common.model.sanitizer.FieldInvariant;
+
+@ClassFieldsNotNull
 public class ContainerHealthProvider {
 
+    @Size(min = 1)
+    @FieldInvariant(value = "@asserts.isValidContainerHealthServiceName(value)", message = "Unknown container health service: #{value}")
     private final String name;
+
+    @CollectionInvariants
     private final Map<String, String> attributes;
 
     public ContainerHealthProvider(String name, Map<String, String> attributes) {
@@ -35,10 +46,6 @@ public class ContainerHealthProvider {
 
     public Map<String, String> getAttributes() {
         return attributes;
-    }
-
-    public static Builder newBuilder() {
-        return new Builder();
     }
 
     @Override
@@ -65,6 +72,14 @@ public class ContainerHealthProvider {
                 "name='" + name + '\'' +
                 ", attributes=" + attributes +
                 '}';
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static ContainerHealthProvider named(String name) {
+        return newBuilder().withName(name).withAttributes(Collections.emptyMap()).build();
     }
 
     public static final class Builder {

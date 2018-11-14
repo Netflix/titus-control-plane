@@ -96,7 +96,7 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
             return Optional.empty();
         }
 
-        return isJobSequenceInV3Engine(jobIdSequence).map(existingJobId ->
+        return isJobSequenceUsed(jobIdSequence).map(existingJobId ->
                 String.format("Constraint violation - job with group sequence %s exists (%s)", jobIdSequence, existingJobId)
         );
     }
@@ -107,7 +107,7 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
                 : Parameters.getJobIdSequence(((V2JobDefinition) jobDescriptor).getParameters());
     }
 
-    private Optional<String> isJobSequenceInV3Engine(String newJobIdSequence) {
+    private Optional<String> isJobSequenceUsed(String newJobIdSequence) {
         return v3JobOperations.getJobs().stream()
                 .filter(j -> {
                     String v3JobIdSequence = formatJobGroupName(j.getJobDescriptor());

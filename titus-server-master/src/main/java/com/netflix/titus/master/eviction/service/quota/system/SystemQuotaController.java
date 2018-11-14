@@ -31,6 +31,7 @@ import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.QuotaController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +49,15 @@ public class SystemQuotaController implements QuotaController<Void> {
 
     private static final String NAME = "system";
 
+    private static final ConsumptionResult QUOTA_LIMIT_EXCEEDED = ConsumptionResult.rejected("System eviction quota limit exceeded");
+    private static final ConsumptionResult OUTSIDE_SYSTEM_TIME_WINDOW = ConsumptionResult.rejected("Outside system time window");
+
     private final TitusRuntime titusRuntime;
 
+    private final SystemQuotaMetrics metrics;
     private final Disposable resolverDisposable;
+
+    private volatile SystemDisruptionBudget disruptionBudget;
 
     private volatile Supplier<Boolean> inTimeWindowPredicate;
     private volatile TokenBucket systemTokenBucket;
@@ -67,37 +74,51 @@ public class SystemQuotaController implements QuotaController<Void> {
                           TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
 
-        SystemDisruptionBudget disruptionBudget = systemDisruptionBudgetResolver.resolve().timeout(BOOTSTRAP_TIMEOUT).blockFirst();
-        this.inTimeWindowPredicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, disruptionBudget.getTimeWindows());
-        this.systemTokenBucket = newTokenBucket(disruptionBudget);
+        this.disruptionBudget = systemDisruptionBudgetResolver.resolve().timeout(BOOTSTRAP_TIMEOUT).blockFirst();
+        resetDisruptionBudget(disruptionBudget);
+
+        this.metrics = new SystemQuotaMetrics(this, titusRuntime);
 
         this.resolverDisposable = systemDisruptionBudgetResolver.resolve()
                 .compose(instrumentedRetryer("systemDisruptionBudgetResolver", retryInterval, logger))
                 .subscribe(next -> {
                     try {
-                        this.systemTokenBucket = newTokenBucket(next);
-                        this.inTimeWindowPredicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, disruptionBudget.getTimeWindows());
+                        resetDisruptionBudget(next);
                     } catch (Exception e) {
                         logger.warn("Invalid system disruption budget configuration: ", e);
                     }
                 });
     }
 
+    private void resetDisruptionBudget(SystemDisruptionBudget newDisruptionBudget) {
+        this.disruptionBudget = newDisruptionBudget;
+        this.systemTokenBucket = newTokenBucket(newDisruptionBudget);
+        this.inTimeWindowPredicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, disruptionBudget.getTimeWindows());
+    }
+
     @PreDestroy
     public void shutdown() {
+        metrics.shutdown();
         ReactorExt.safeDispose(resolverDisposable);
     }
 
     @Override
-    public boolean consume(String taskId) {
+    public ConsumptionResult consume(String taskId) {
         try {
             if (!inTimeWindowPredicate.get()) {
-                return false;
+                return OUTSIDE_SYSTEM_TIME_WINDOW;
             }
-            return systemTokenBucket.tryTake(1);
+            return systemTokenBucket.tryTake(1)
+                    ? ConsumptionResult.approved()
+                    : QUOTA_LIMIT_EXCEEDED;
         } catch (IllegalArgumentException e) {
-            return false;
+            return QUOTA_LIMIT_EXCEEDED;
         }
+    }
+
+    @Override
+    public void giveBackConsumedQuota(String taskId) {
+        systemTokenBucket.refill(1);
     }
 
     @Override
@@ -106,6 +127,13 @@ public class SystemQuotaController implements QuotaController<Void> {
             return 0;
         }
         return systemTokenBucket.getNumberOfTokens();
+    }
+
+    /**
+     * Exposed for metrics collection (see {@link SystemQuotaMetrics}).
+     */
+    SystemDisruptionBudget getDisruptionBudget() {
+        return disruptionBudget;
     }
 
     private TokenBucket newTokenBucket(SystemDisruptionBudget disruptionBudget) {

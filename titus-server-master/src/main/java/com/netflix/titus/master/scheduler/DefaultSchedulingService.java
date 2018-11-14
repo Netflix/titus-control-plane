@@ -66,8 +66,8 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.WorkerNaming;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -327,10 +327,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     new VMOperations.JobsOnVMStatus(currAvailableResources.hostname(),
                                             attribute.getText().getValue());
                             for (TaskRequest r : currentState.getRunningTasks()) {
-                                if (r instanceof ScheduledRequest) {
-                                    final WorkerNaming.JobWorkerIdPair j = WorkerNaming.getJobAndWorkerId(r.getId());
-                                    s.addJob(new VMOperations.JobOnVMInfo(j.jobId, r.getId()));
-                                } else if (r instanceof V3QueueableTask) {
+                                if (r instanceof V3QueueableTask) {
                                     V3QueueableTask v3Task = (V3QueueableTask) r;
                                     s.addJob(new VMOperations.JobOnVMInfo(v3Task.getJob().getId(), v3Task.getId()));
                                 }
@@ -753,6 +750,7 @@ public class DefaultSchedulingService implements SchedulingService {
         // get all running tasks on the inactive vms
         Collection<TaskRequest> tasksToBeMigrated = inactiveVmStates.stream()
                 .flatMap(ivm -> ivm.getRunningTasks().stream())
+                .filter(this::isLegacyJob)
                 .collect(Collectors.toList());
 
         // schedule the inactive tasks for migration
@@ -765,6 +763,12 @@ public class DefaultSchedulingService implements SchedulingService {
             logger.debug("expiring all leases of inactive vm {}", vmHost);
             taskScheduler.expireAllLeases(vmHost);
         }
+    }
+
+    private boolean isLegacyJob(TaskRequest taskRequest) {
+        return v3JobOperations.findTaskById(taskRequest.getId())
+                .filter(p -> DisruptionBudgetFunctions.isLegacyJob(p.getLeft()))
+                .isPresent();
     }
 
     @PreDestroy

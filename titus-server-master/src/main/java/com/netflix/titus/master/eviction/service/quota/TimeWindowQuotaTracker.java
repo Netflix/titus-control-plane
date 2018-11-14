@@ -17,6 +17,7 @@
 package com.netflix.titus.master.eviction.service.quota;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
@@ -38,5 +39,12 @@ public class TimeWindowQuotaTracker implements QuotaTracker {
     @Override
     public long getQuota() {
         return predicate.get() ? Long.MAX_VALUE / 2 : 0;
+    }
+
+    @Override
+    public Optional<String> explainRestrictions(String taskId) {
+        return predicate.get()
+                ? Optional.empty()
+                : Optional.of("outside time window");
     }
 }
