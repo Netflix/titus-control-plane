@@ -53,6 +53,7 @@ public class TaskRelocationSandbox {
                     protected void configureArchaius() {
                         bindDefaultConfig().toInstance(MapConfig.builder()
                                 .put("titus.relocation.relocationScheduleIntervalMs", "100")
+                                .put("titus.relocation.endpoint.port", "0")
                                 .build()
                         );
                     }
