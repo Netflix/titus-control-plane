@@ -51,9 +51,9 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
     Observable<Void> killTask(String taskId, boolean shrink, String reason);
 
     /**
-     * Mave a task from one service job to another.
+     * Move a task from one service job to another.
      */
-    Observable<Void> moveServiceTask(String taskId, String targetJobId);
+    Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId);
 
     /**
      * Applies the provided update function to a task before persisting it to a store. In case of system failure

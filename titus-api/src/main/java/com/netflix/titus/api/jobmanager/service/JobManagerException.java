@@ -50,6 +50,7 @@ public class JobManagerException extends RuntimeException {
         BelowMinCapacity,
         AboveMaxCapacity,
         SameJobIds,
+        TaskJobMismatch,
     }
 
     private final ErrorCode errorCode;
@@ -88,6 +89,7 @@ public class JobManagerException extends RuntimeException {
             case BelowMinCapacity:
             case AboveMaxCapacity:
             case SameJobIds:
+            case TaskJobMismatch:
                 return true;
             case NotBatchJobDescriptor:
                 break;
@@ -189,12 +191,12 @@ public class JobManagerException extends RuntimeException {
         );
     }
 
-    public static JobManagerException aboveMaxCapacity(Job<ServiceJobExt> job, int decrement) {
+    public static JobManagerException aboveMaxCapacity(Job<ServiceJobExt> job, int increment) {
         Capacity capacity = job.getJobDescriptor().getExtensions().getCapacity();
         return new JobManagerException(
                 ErrorCode.AboveMaxCapacity,
                 format("Cannot increment job %s desired size by %s, as it violates the maximum job size constraint: min=%s, desired=%d, max=%d",
-                        job.getId(), decrement, capacity.getMin(), capacity.getDesired(), capacity.getMax()
+                        job.getId(), increment, capacity.getMin(), capacity.getDesired(), capacity.getMax()
                 )
         );
     }
@@ -203,6 +205,13 @@ public class JobManagerException extends RuntimeException {
         return new JobManagerException(
                 ErrorCode.SameJobIds,
                 format("Operation requires two different job, but the same job provided as the source and target: %s", jobId)
+        );
+    }
+
+    public static JobManagerException taskJobMismatch(String jobId, String taskId) {
+        return new JobManagerException(
+                ErrorCode.TaskJobMismatch,
+                format("Operation requires task id to belong to the source job id. Task id %s does not belong to job id %s", taskId, jobId)
         );
     }
 }

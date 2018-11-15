@@ -386,7 +386,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void moveTask(TaskMoveRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            jobOperations.moveServiceTask(request.getTaskId(), request.getTargetJobId()).subscribe(
+            jobOperations.moveServiceTask(request.getSourceJobId(), request.getTargetJobId(), request.getTaskId()).subscribe(
                     nothing -> {
                     },
                     e -> safeOnError(logger, e, responseObserver),

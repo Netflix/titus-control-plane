@@ -173,7 +173,7 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> moveServiceTask(String taskId, String targetJobId) {
+    public Observable<Void> moveServiceTask(String taskId, String sourceJobId, String targetJobId) {
         throw new IllegalStateException("method not implemented");
     }
 
