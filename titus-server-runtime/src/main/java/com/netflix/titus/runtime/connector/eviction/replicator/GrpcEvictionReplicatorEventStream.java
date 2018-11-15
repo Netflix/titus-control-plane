@@ -27,6 +27,7 @@ import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
+import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -40,7 +41,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventStream<EvictionDataSnapshot> {
 
@@ -90,6 +90,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             EvictionQuota systemEvictionQuota = null;
             Map<Tier, EvictionQuota> tierEvictionQuotas = new HashMap<>();
             Map<String, EvictionQuota> capacityGroupEvictionQuotas = new HashMap<>();
+            Map<String, EvictionQuota> jobEvictionQuotas = new HashMap<>();
 
             for (EvictionEvent event : snapshotEvents) {
                 if (event instanceof EvictionQuotaEvent) {
@@ -104,6 +105,9 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
                         case CapacityGroup:
                             capacityGroupEvictionQuotas.put(quota.getReference().getName(), quota);
                             break;
+                        case Job:
+                            jobEvictionQuotas.put(quota.getReference().getName(), quota);
+                            break;
                     }
                 }
             }
@@ -112,12 +116,14 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             snapshotEvents.clear();
 
             checkNotNull(systemEvictionQuota, "System eviction quota missing");
-            checkState(tierEvictionQuotas.size() == Tier.values().length, "Tier eviction quotas missing: found=%s", tierEvictionQuotas);
+            tierEvictionQuotas.computeIfAbsent(Tier.Flex, tier -> EvictionQuota.tierQuota(tier, ReadOnlyEvictionOperations.VERY_HIGH_QUOTA));
+            tierEvictionQuotas.computeIfAbsent(Tier.Critical, tier -> EvictionQuota.tierQuota(tier, ReadOnlyEvictionOperations.VERY_HIGH_QUOTA));
 
             EvictionDataSnapshot initialSnapshot = new EvictionDataSnapshot(
                     systemEvictionQuota,
                     tierEvictionQuotas,
-                    capacityGroupEvictionQuotas
+                    capacityGroupEvictionQuotas,
+                    jobEvictionQuotas
             );
 
             lastSnapshotRef.set(initialSnapshot);

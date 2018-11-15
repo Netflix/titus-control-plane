@@ -35,8 +35,8 @@ import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.StringExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.ReplayProcessor;
 
 import static com.netflix.titus.api.eviction.model.SystemDisruptionBudget.newBasicSystemDisruptionBudget;
 
@@ -60,11 +60,11 @@ public class ArchaiusSystemDisruptionBudgetResolver implements SystemDisruptionB
 
     private final Property.Subscription subscription;
 
-    private final EmitterProcessor<SystemDisruptionBudget> budgetEmitter = EmitterProcessor.create(1);
+    private final ReplayProcessor<SystemDisruptionBudget> budgetEmitter;
 
     @Inject
     public ArchaiusSystemDisruptionBudgetResolver(PropertyRepository repository) {
-        budgetEmitter.onNext(initialBudget(repository));
+        this.budgetEmitter = ReplayProcessor.cacheLastOrDefault(initialBudget(repository));
         this.subscription = repository.get(PROPERTY_KEY, String.class).subscribe(this::processUpdate);
     }
 

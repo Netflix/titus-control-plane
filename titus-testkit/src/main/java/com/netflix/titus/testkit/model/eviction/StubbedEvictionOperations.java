@@ -34,11 +34,6 @@ import reactor.core.publisher.Mono;
 
 class StubbedEvictionOperations implements EvictionOperations {
 
-    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.newBuilder()
-            .withQuota(Long.MAX_VALUE / 2)
-            .withReference(Reference.system())
-            .build();
-
     private final StubbedEvictionData stubbedEvictionData;
     private final V3JobOperations jobOperations;
 
@@ -59,23 +54,23 @@ class StubbedEvictionOperations implements EvictionOperations {
             }
 
             jobOperations.killTask(taskId, false, "Eviction");
-            stubbedEvictionData.setQuota(job.getId(), quota - 1);
+            stubbedEvictionData.setJobQuota(job.getId(), quota - 1);
         });
     }
 
     @Override
     public EvictionQuota getSystemEvictionQuota() {
-        return SYSTEM_EVICTION_QUOTA;
+        return stubbedEvictionData.getSystemEvictionQuota();
     }
 
     @Override
     public EvictionQuota getTierEvictionQuota(Tier tier) {
-        return SYSTEM_EVICTION_QUOTA;
+        return stubbedEvictionData.getTierEvictionQuota(tier);
     }
 
     @Override
     public EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
-        return SYSTEM_EVICTION_QUOTA;
+        return stubbedEvictionData.getCapacityGroupEvictionQuota(capacityGroupName);
     }
 
     @Override
@@ -90,7 +85,7 @@ class StubbedEvictionOperations implements EvictionOperations {
 
     @Override
     public Flux<EvictionEvent> events(boolean includeSnapshot) {
-        return Flux.error(new RuntimeException("Not implemented yet"));
+        return stubbedEvictionData.events(includeSnapshot);
     }
 
     private Mono<Void> deferMono(Runnable action) {

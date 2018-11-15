@@ -18,6 +18,7 @@ package com.netflix.titus.api.eviction.model;
 
 import java.util.Objects;
 
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 
 public class EvictionQuota {
@@ -75,6 +76,13 @@ public class EvictionQuota {
     public static EvictionQuota systemQuota(long quota) {
         return newBuilder()
                 .withReference(Reference.system())
+                .withQuota(quota)
+                .build();
+    }
+
+    public static EvictionQuota tierQuota(Tier tier, int quota) {
+        return newBuilder()
+                .withReference(Reference.tier(tier))
                 .withQuota(quota)
                 .build();
     }
