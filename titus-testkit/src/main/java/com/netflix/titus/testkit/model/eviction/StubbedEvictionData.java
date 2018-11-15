@@ -19,16 +19,71 @@ package com.netflix.titus.testkit.model.eviction;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+
+import com.netflix.titus.api.eviction.model.EvictionQuota;
+import com.netflix.titus.api.eviction.model.event.EvictionEvent;
+import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.reference.Reference;
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
 
 class StubbedEvictionData {
 
+    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.newBuilder()
+            .withQuota(Long.MAX_VALUE / 2)
+            .withReference(Reference.system())
+            .build();
+
+    private EvictionQuota systemQuota = SYSTEM_EVICTION_QUOTA;
     private final ConcurrentMap<String, Long> jobQuota = new ConcurrentHashMap<>();
 
-    public Optional<Long> findJobQuota(String jobId) {
+    private final EmitterProcessor<EvictionEvent> eventProcessor = EmitterProcessor.create();
+
+    EvictionQuota getSystemEvictionQuota() {
+        return systemQuota;
+    }
+
+    EvictionQuota getTierEvictionQuota(Tier tier) {
+        return SYSTEM_EVICTION_QUOTA;
+    }
+
+    EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
+        return SYSTEM_EVICTION_QUOTA;
+    }
+
+    Optional<Long> findJobQuota(String jobId) {
         return Optional.ofNullable(jobQuota.get(jobId));
     }
 
-    void setQuota(String jobId, long quota) {
+    void setSystemQuota(int quota) {
+        systemQuota = EvictionQuota.systemQuota(quota);
+        eventProcessor.onNext(EvictionEvent.newQuotaEvent(systemQuota));
+    }
+
+    void setJobQuota(String jobId, long quota) {
         jobQuota.put(jobId, quota);
+        eventProcessor.onNext(EvictionEvent.newQuotaEvent(EvictionQuota.jobQuota(jobId, quota)));
+    }
+
+    Flux<EvictionEvent> events(boolean includeSnapshot) {
+        if (!includeSnapshot) {
+            return eventProcessor;
+        }
+        return Flux.concat(
+                Flux.just(EvictionEvent.newQuotaEvent(getSystemEvictionQuota())),
+                newJobEvictionEventSnapshot(),
+                Flux.just(EvictionEvent.newSnapshotEndEvent()),
+                eventProcessor
+        );
+    }
+
+    private Flux<EvictionEvent> newJobEvictionEventSnapshot() {
+        return Flux
+                .fromIterable(jobQuota.entrySet().stream()
+                        .map(entry -> EvictionEvent.newQuotaEvent(EvictionQuota.jobQuota(entry.getKey(), entry.getValue())))
+                        .collect(Collectors.toList())
+                )
+                .cast(EvictionEvent.class);
     }
 }

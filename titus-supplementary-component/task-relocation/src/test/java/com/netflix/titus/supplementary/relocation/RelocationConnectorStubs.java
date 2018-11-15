@@ -149,7 +149,7 @@ public class RelocationConnectorStubs {
     public RelocationConnectorStubs setQuota(String jobId, int quota) {
         Preconditions.checkArgument(jobComponentStub.getJobOperations().getJob(jobId).isPresent());
 
-        evictionComponentStub.setQuota(jobId, quota);
+        evictionComponentStub.setJobQuota(jobId, quota);
         return this;
     }
 }

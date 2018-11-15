@@ -31,7 +31,7 @@ import com.netflix.titus.common.util.rx.invoker.ReactorSerializedInvoker;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.TitusQuotasManager;
-import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -48,7 +48,7 @@ class TaskTerminationExecutor {
     private final TitusQuotasManager quotasManager;
     private final ReactorSerializedInvoker<Void> serializedInvoker;
 
-    private final EmitterProcessor<EvictionEvent> eventProcessor = EmitterProcessor.create();
+    private final DirectProcessor<EvictionEvent> eventProcessor = DirectProcessor.create();
     private final EvictionTransactionLog transactionLog;
     private final TaskTerminationExecutorMetrics metrics;
 

@@ -56,7 +56,7 @@ public class CachedReadOnlyEvictionOperations implements ReadOnlyEvictionOperati
 
     @Override
     public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
-        throw new IllegalStateException("method not implemented yet");
+        return replicator.getCurrent().findJobEvictionQuota(jobId);
     }
 
     @Override
