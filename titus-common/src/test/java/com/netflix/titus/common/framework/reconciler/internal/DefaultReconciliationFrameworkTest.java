@@ -33,6 +33,7 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.internal.SimpleReconcilerEvent.EventType;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.After;
 import org.junit.Before;
@@ -216,6 +217,73 @@ public class DefaultReconciliationFrameworkTest {
         assertThat(holders.get("myRoot2")).hasSize(3);
         SimpleModelUpdateAction modelAction2 = (SimpleModelUpdateAction) holders.get("myRoot2").get(0).getAction();
         assertThat((String) modelAction2.getEntityHolder().getEntity()).isEqualTo("myEntity2#v2");
+    }
+
+    @Test
+    public void testMultiEngineChangeActionWithInvalidEngineId() {
+        EntityHolder root1 = EntityHolder.newRoot("myRoot1", "myEntity1");
+
+        framework.newEngine(root1).subscribe();
+        testScheduler.triggerActions();
+
+        Observable<Void> multiChangeObservable = framework.changeReferenceModel(
+                // Keep anonymous class instead of lambda for readability
+                new MultiEngineChangeAction() {
+                    @Override
+                    public Observable<Map<String, List<ModelActionHolder>>> apply() {
+                        return Observable.error(new IllegalStateException("invocation not expected"));
+                    }
+                },
+                // Keep anonymous class instead of lambda for readability
+                (id, modelUpdates) -> new ChangeAction() {
+                    @Override
+                    public Observable<List<ModelActionHolder>> apply() {
+                        return Observable.error(new IllegalStateException("invocation not expected"));
+                    }
+                },
+                "myRoot1",
+                "badRootId"
+        );
+
+        ExtTestSubscriber<Void> multiChangeSubscriber = new ExtTestSubscriber<>();
+        multiChangeObservable.subscribe(multiChangeSubscriber);
+        assertThat(multiChangeSubscriber.isError()).isTrue();
+        assertThat(multiChangeSubscriber.getError().getMessage()).contains("badRootId");
+    }
+
+    @Test
+    public void testFailingMultiEngineChangeAction() {
+        EntityHolder root1 = EntityHolder.newRoot("myRoot1", "myEntity1");
+        EntityHolder root2 = EntityHolder.newRoot("myRoot2", "myEntity2");
+
+        framework.newEngine(root1).subscribe();
+        framework.newEngine(root2).subscribe();
+        testScheduler.triggerActions();
+
+        Observable<Void> multiChangeObservable = framework.changeReferenceModel(
+                // Keep anonymous class instead of lambda for readability
+                new MultiEngineChangeAction() {
+                    @Override
+                    public Observable<Map<String, List<ModelActionHolder>>> apply() {
+                        return Observable.error(new RuntimeException("simulated error"));
+                    }
+                },
+                // Keep anonymous class instead of lambda for readability
+                (id, modelUpdates) -> new ChangeAction() {
+                    @Override
+                    public Observable<List<ModelActionHolder>> apply() {
+                        return modelUpdates;
+                    }
+                },
+                "myRoot1",
+                "myRoot2"
+        );
+
+        ExtTestSubscriber<Void> multiChangeSubscriber = new ExtTestSubscriber<>();
+        multiChangeObservable.subscribe(multiChangeSubscriber);
+        assertThat(multiChangeSubscriber.isError()).isTrue();
+        String errorMessage = ExceptionExt.toMessageChain(multiChangeSubscriber.getError());
+        assertThat(errorMessage).contains("simulated error");
     }
 
     @Test

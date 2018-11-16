@@ -254,7 +254,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
             // of that we have deadlock. Please, note that we can ignore here the regular (engine scoped) change actions.
             Subscription subscription;
             synchronized (multiEngineChangeLock) {
-                subscription = Observable.merge(engineActions).subscribe(
+                subscription = Observable.mergeDelayError(engineActions).subscribe(
                         emitter::onNext,
                         emitter::onError,
                         emitter::onCompleted

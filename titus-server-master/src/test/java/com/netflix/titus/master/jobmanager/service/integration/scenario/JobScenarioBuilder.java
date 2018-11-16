@@ -152,6 +152,11 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
+    public JobScenarioBuilder<E> inTask(int taskIdx, int resubmit, Consumer<Task> consumer) {
+        consumer.accept(findTaskInActiveState(taskIdx, resubmit));
+        return this;
+    }
+
     public JobScenarioBuilder<E> allActiveTasks(Consumer<Task> consumer) {
         List<Task> activeTasks = jobOperations.getTasks(jobId);
         activeTasks.forEach(consumer);
@@ -496,12 +501,17 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> breakStore() {
-        jobStore.setBroken(true);
+        jobStore.setStoreState(StubbedJobStore.StoreState.Broken);
+        return this;
+    }
+
+    public JobScenarioBuilder<E> slowStore() {
+        jobStore.setStoreState(StubbedJobStore.StoreState.Slow);
         return this;
     }
 
     public JobScenarioBuilder<E> enableStore() {
-        jobStore.setBroken(false);
+        jobStore.setStoreState(StubbedJobStore.StoreState.Normal);
         return this;
     }
 
