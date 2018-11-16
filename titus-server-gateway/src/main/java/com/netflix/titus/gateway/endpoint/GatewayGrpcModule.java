@@ -32,14 +32,12 @@ import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.SimpleCallMetadataResolverProvider;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultHealthServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
 
-public class GrpcModule extends AbstractModule {
+public class GatewayGrpcModule extends AbstractModule {
 
     @Override
     protected void configure() {
@@ -52,7 +50,6 @@ public class GrpcModule extends AbstractModule {
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);
         bind(SchedulerServiceGrpc.SchedulerServiceImplBase.class).to(DefaultSchedulerServiceGrpc.class);
         bind(TitusGatewayGrpcServer.class).asEagerSingleton();
-        bind(CallMetadataResolver.class).toProvider(SimpleCallMetadataResolverProvider.class);
     }
 
     @Provides

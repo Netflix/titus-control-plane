@@ -21,19 +21,16 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.SimpleCallMetadataResolverProvider;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultHealthServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultLoadBalancerServiceGrpc;
 
-public class GrpcModule extends AbstractModule {
+public class FederationGrpcModule extends AbstractModule {
 
     @Override
     protected void configure() {
         bind(TitusFederationGrpcServer.class).asEagerSingleton();
-        bind(CallMetadataResolver.class).toProvider(SimpleCallMetadataResolverProvider.class);
         bind(HealthGrpc.HealthImplBase.class).to(DefaultHealthServiceGrpc.class);
         bind(JobManagementServiceGrpc.JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
         bind(AutoScalingServiceGrpc.AutoScalingServiceImplBase.class).to(DefaultAutoScalingServiceGrpc.class);

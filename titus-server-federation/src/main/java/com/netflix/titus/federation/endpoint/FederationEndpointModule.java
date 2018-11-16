@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.endpoint;
+package com.netflix.titus.federation.endpoint;
 
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
-import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.SimpleCallMetadataResolverProvider;
+import com.netflix.titus.federation.endpoint.grpc.FederationGrpcModule;
+import com.netflix.titus.federation.endpoint.rest.JerseyModule;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveModule;
 
-public class EndpointModule extends AbstractModule {
+public class FederationEndpointModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(TitusMasterGrpcServer.class).asEagerSingleton();
-        bind(CallMetadataResolver.class).toProvider(SimpleCallMetadataResolverProvider.class);
+        install(new CallMetadataResolveModule());
+        install(new FederationGrpcModule());
+        install(new JerseyModule());
     }
 
     @Provides
     @Singleton
-    public GrpcEndpointConfiguration getGrpcEndpointConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(GrpcEndpointConfiguration.class);
+    public EndpointConfiguration getGrpcEndpointConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(EndpointConfiguration.class);
     }
 }
