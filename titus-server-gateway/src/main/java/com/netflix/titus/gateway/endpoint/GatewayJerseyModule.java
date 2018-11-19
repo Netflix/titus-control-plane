@@ -45,7 +45,7 @@ import com.sun.jersey.guice.JerseyServletModule;
 /**
  * We use this module to wire up our endpoints.
  */
-public final class JerseyModule extends JerseyServletModule {
+public final class GatewayJerseyModule extends JerseyServletModule {
 
     @Override
     protected void configureServlets() {

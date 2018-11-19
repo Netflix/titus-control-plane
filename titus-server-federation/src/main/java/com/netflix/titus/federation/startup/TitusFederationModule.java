@@ -36,7 +36,7 @@ import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
-import com.netflix.titus.federation.endpoint.EndpointModule;
+import com.netflix.titus.federation.endpoint.FederationEndpointModule;
 import com.netflix.titus.federation.service.CellConnector;
 import com.netflix.titus.federation.service.CellInfoResolver;
 import com.netflix.titus.federation.service.CellRouter;
@@ -67,7 +67,7 @@ public class TitusFederationModule extends AbstractModule {
         bind(CellInfoResolver.class).to(DefaultCellInfoResolver.class);
         bind(CellRouter.class).to(DefaultCellRouter.class);
 
-        install(new EndpointModule());
+        install(new FederationEndpointModule());
         install(new ServiceModule());
     }
 
