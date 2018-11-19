@@ -16,9 +16,10 @@
 
 package com.netflix.titus.ext.cassandra.store;
 
+import javax.inject.Singleton;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.google.inject.Singleton;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
@@ -27,6 +28,7 @@ import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.api.scheduler.store.SchedulerStore;
 
 public class CassandraStoreModule extends AbstractModule {
+
     @Override
     protected void configure() {
         bind(AgentStore.class).to(CassandraAgentStore.class);
@@ -38,7 +40,7 @@ public class CassandraStoreModule extends AbstractModule {
 
     @Provides
     @Singleton
-    CassandraStoreConfiguration getCassandraStoreConfiguration(ConfigProxyFactory factory) {
+    public CassandraStoreConfiguration getCassandraStoreConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(CassandraStoreConfiguration.class);
     }
 }

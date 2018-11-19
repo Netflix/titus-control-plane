@@ -42,7 +42,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -360,11 +359,6 @@ public class JobReconciliationFrameworkFactory {
                     if (job.getStatus().getState() == JobState.Finished) {
                         logger.info("Not loading finished job: {}", job.getId());
                         continue;
-                    }
-
-                    if (job.getJobDescriptor().getDisruptionBudget() == null) {
-                        titusRuntime.getCodePointTracker().markReachable("jobWithNoDisruptionBudget");
-                        job = JobFunctions.changeDisruptionBudget(job, DisruptionBudget.none());
                     }
 
                     Optional<Job> validatedJob = validateJob(job);

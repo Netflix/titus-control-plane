@@ -133,7 +133,7 @@ public class TestStoreLoadCommand implements Command {
         }
         session.execute("USE " + keyspace);
 
-        JobStore titusStore = new CassandraJobStore(CONFIGURATION, session, TitusRuntimes.internal());
+        JobStore titusStore = new CassandraJobStore(CONFIGURATION, job -> true, session, TitusRuntimes.internal());
 
         // Create jobs and tasks
         long jobStartTime = System.currentTimeMillis();

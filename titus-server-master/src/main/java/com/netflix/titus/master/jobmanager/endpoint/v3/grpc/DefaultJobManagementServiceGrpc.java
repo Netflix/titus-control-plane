@@ -31,6 +31,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.Pagination;
@@ -84,6 +85,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
+import static com.netflix.titus.api.FeatureFlagModule.DISRUPTION_BUDGET_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.JOB_MINIMUM_FIELD_SET;
 import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.TASK_MINIMUM_FIELD_SET;
@@ -109,6 +111,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final V3JobOperations jobOperations;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
+    private final Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate;
     private final CallMetadataResolver callMetadataResolver;
     private final CellDecorator cellDecorator;
     private final TitusRuntime titusRuntime;
@@ -120,6 +123,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            V3JobOperations jobOperations,
                                            LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                            @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                           @Named(DISRUPTION_BUDGET_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate,
                                            CallMetadataResolver callMetadataResolver,
                                            CellInfoResolver cellInfoResolver,
                                            TitusRuntime titusRuntime) {
@@ -129,6 +133,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.jobOperations = jobOperations;
         this.logStorageInfo = logStorageInfo;
         this.entitySanitizer = entitySanitizer;
+        this.disruptionBudgetEnabledPredicate = disruptionBudgetEnabledPredicate;
         this.callMetadataResolver = callMetadataResolver;
         this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
         this.titusRuntime = titusRuntime;
@@ -175,6 +180,13 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         if (!violations.isEmpty()) {
             safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
             return Optional.empty();
+        }
+
+        if (!disruptionBudgetEnabledPredicate.test(sanitizedCoreJobDescriptor)) {
+            if (!DisruptionBudgetFunctions.isLegacyJobDescriptor(sanitizedCoreJobDescriptor)) {
+                safeOnError(logger, TitusServiceException.invalidArgument("Disruption budget not enabled for this application"), responseObserver);
+                return Optional.empty();
+            }
         }
 
         return Optional.of(sanitizedCoreJobDescriptor);

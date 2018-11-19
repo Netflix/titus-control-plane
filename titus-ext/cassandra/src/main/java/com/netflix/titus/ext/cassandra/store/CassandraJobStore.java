@@ -21,11 +21,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.datastax.driver.core.BatchStatement;
@@ -42,9 +44,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -65,6 +70,7 @@ import rx.Emitter;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 
+import static com.netflix.titus.api.FeatureFlagModule.DISRUPTION_BUDGET_FEATURE;
 import static com.netflix.titus.common.util.guice.ProxyType.Logging;
 import static com.netflix.titus.common.util.guice.ProxyType.Spectator;
 import static com.netflix.titus.ext.cassandra.store.StoreTransactionLoggers.transactionLogger;
@@ -134,12 +140,18 @@ public class CassandraJobStore implements JobStore {
     private final Optional<FitInjection> fitDriverInjection;
     private final Optional<FitInjection> fitBadDataInjection;
 
+    private final Predicate<Job> disruptionBudgetEnabledPredicate;
+
     @Inject
-    public CassandraJobStore(CassandraStoreConfiguration configuration, Session session, TitusRuntime titusRuntime) {
-        this(configuration, session, titusRuntime, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
+    public CassandraJobStore(CassandraStoreConfiguration configuration,
+                             @Named(DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
+                             Session session,
+                             TitusRuntime titusRuntime) {
+        this(configuration, disruptionBudgetEnabledPredicate, session, titusRuntime, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 
     CassandraJobStore(CassandraStoreConfiguration configuration,
+                      @Named(DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
                       Session session,
                       TitusRuntime titusRuntime,
                       ObjectMapper mapper,
@@ -148,6 +160,7 @@ public class CassandraJobStore implements JobStore {
         this.configuration = configuration;
         this.session = session;
         this.titusRuntime = titusRuntime;
+        this.disruptionBudgetEnabledPredicate = job -> disruptionBudgetEnabledPredicate.test(job.getJobDescriptor());
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
@@ -260,6 +273,18 @@ public class CassandraJobStore implements JobStore {
                             return Either.ofError(e);
                         }
 
+                        if (job.getJobDescriptor().getDisruptionBudget() == null) {
+                            if (disruptionBudgetEnabledPredicate.test(job)) {
+                                titusRuntime.getCodeInvariants().inconsistent("jobWithNoDisruptionBudget: jobId=%s", job.getId());
+                            }
+                            job = JobFunctions.changeDisruptionBudget(job, DisruptionBudget.none());
+                        } else if (!disruptionBudgetEnabledPredicate.test(job)) {
+                            if (!DisruptionBudgetFunctions.isLegacyJob(job)) {
+                                logger.warn("Loaded job from store with disruption budget not enabled; resetting it to none: jobId={}", job.getId());
+                            }
+                            job = JobFunctions.changeDisruptionBudget(job, DisruptionBudget.none());
+                        }
+
                         // TODO Remove this code when there are no more jobs with missing migration data (caused by a bug in ServiceJobExt builder).
                         if (job.getJobDescriptor().getExtensions() instanceof ServiceJobExt) {
                             Job<ServiceJobExt> serviceJob = (Job<ServiceJobExt>) job;
@@ -312,7 +337,9 @@ public class CassandraJobStore implements JobStore {
                 .fromCallable((Callable<Statement>) () -> {
                     String jobId = job.getId();
                     checkIfJobAlreadyExists(jobId);
-                    String jobJsonString = ObjectMappers.writeValueAsString(mapper, job);
+
+                    String jobJsonString = writeJobToString(job);
+
                     int bucket = activeJobIdsBucketManager.getNextBucket();
                     activeJobIdsBucketManager.addItem(bucket, jobId);
                     Statement jobStatement = insertActiveJobStatement.bind(jobId, jobJsonString);
@@ -333,13 +360,26 @@ public class CassandraJobStore implements JobStore {
                 .toCompletable();
     }
 
+    private String writeJobToString(Job job) {
+        if (disruptionBudgetEnabledPredicate.test(job)) {
+            return ObjectMappers.writeValueAsString(mapper, job);
+        }
+
+        if (!DisruptionBudgetFunctions.isLegacyJob(job)) {
+            logger.info("Persisting job with disruption budget not enabled; setting it to null: jobId={}", job.getId());
+        }
+
+        JobDescriptor jobWithDisruptionBudgetNull = job.getJobDescriptor().toBuilder().withDisruptionBudget(null).build();
+        return ObjectMappers.writeValueAsString(mapper, job.toBuilder().withJobDescriptor(jobWithDisruptionBudgetNull).build());
+    }
+
     @Override
     public Completable updateJob(Job job) {
         return Observable
                 .fromCallable((Callable<Statement>) () -> {
                     String jobId = job.getId();
                     checkIfJobIsActive(jobId);
-                    String jobJsonString = ObjectMappers.writeValueAsString(mapper, job);
+                    String jobJsonString = writeJobToString(job);
 
                     transactionLogger().logBeforeUpdate(insertActiveJobStatement, "updateJob", job);
                     return insertActiveJobStatement.bind(jobId, jobJsonString);
@@ -607,7 +647,7 @@ public class CassandraJobStore implements JobStore {
     private BatchStatement getArchiveJobBatchStatement(Job job) {
         String jobId = job.getId();
         int bucket = activeJobIdsBucketManager.getItemBucket(jobId);
-        String jobJsonString = ObjectMappers.writeValueAsString(mapper, job);
+        String jobJsonString = writeJobToString(job);
 
         Statement deleteJobStatement = deleteActiveJobStatement.bind(jobId);
         Statement deleteJobIdStatement = deleteActiveJobIdStatement.bind(bucket, jobId);
