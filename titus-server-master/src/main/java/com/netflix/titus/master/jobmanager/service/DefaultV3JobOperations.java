@@ -390,6 +390,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
+        if(!jobManagerConfiguration.enableMoveTaskApi()){
+            throw JobManagerException.notEnabled("Move task");
+        }
         return Observable.defer(() -> {
             Pair<ReconciliationEngine<JobManagerReconcilerEvent>, EntityHolder> fromEngineTaskPair =
                     reconciliationFramework.findEngineByChildId(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
