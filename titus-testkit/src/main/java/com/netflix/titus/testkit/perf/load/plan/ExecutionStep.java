@@ -22,6 +22,7 @@ public abstract class ExecutionStep {
 
     private static final ExecutionStep TERMINATE_STEP = new TerminateStep();
     private static final ExecutionStep KILL_RANDOM_TASK_STEP = new KillRandomTaskStep();
+    private static final ExecutionStep EVICT_RANDOM_TASK_STEP = new EvictRandomTaskStep();
     private static final ExecutionStep TERMINATE_AND_SHRINK_RANDOM_TASK_STEP = new TerminateAndShrinkRandomTaskStep();
     private static final ExecutionStep AWAIT_COMPLETION_STEP = new AwaitCompletionStep();
 
@@ -84,6 +85,9 @@ public abstract class ExecutionStep {
     }
 
     public static class KillRandomTaskStep extends ExecutionStep {
+    }
+
+    public static class EvictRandomTaskStep extends ExecutionStep {
     }
 
     public static class TerminateAndShrinkRandomTaskStep extends ExecutionStep {
@@ -216,6 +220,10 @@ public abstract class ExecutionStep {
 
     public static ExecutionStep killRandomTask() {
         return KILL_RANDOM_TASK_STEP;
+    }
+
+    public static ExecutionStep evictRandomTask() {
+        return EVICT_RANDOM_TASK_STEP;
     }
 
     public static ExecutionStep terminateAndShrinkRandomTask() {

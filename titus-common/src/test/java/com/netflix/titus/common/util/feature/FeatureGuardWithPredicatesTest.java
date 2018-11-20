@@ -74,7 +74,7 @@ public class FeatureGuardWithPredicatesTest {
     public void testConfiguration() {
         FeatureGuardWhiteListConfiguration configuration = new FeatureGuardWhiteListConfiguration() {
             @Override
-            public boolean isTurnedOn() {
+            public boolean isFeatureEnabled() {
                 return true;
             }
 

@@ -57,6 +57,11 @@ public class ExecutionPlan {
             return this;
         }
 
+        public ExecutionPlanBuilder evictRandomTask() {
+            steps.add(ExecutionStep.evictRandomTask());
+            return this;
+        }
+
         public ExecutionPlanBuilder terminateAndShrinkRandomTask() {
             steps.add(ExecutionStep.terminateAndShrinkRandomTask());
             return this;

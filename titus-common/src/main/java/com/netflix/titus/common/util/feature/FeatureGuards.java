@@ -31,7 +31,7 @@ public class FeatureGuards {
 
     public static FeatureGuardWhiteListBuilder newWhiteListFromConfiguration(FeatureGuardWhiteListConfiguration configuration) {
         return new FeatureGuardWhiteListBuilder()
-                .withTurnOnPredicate(configuration::isTurnedOn)
+                .withTurnOnPredicate(configuration::isFeatureEnabled)
                 .withWhiteListRegExpSupplier("whiteList", configuration::getWhiteList)
                 .withBlackListRegExpSupplier("blackList", configuration::getBlackList);
     }

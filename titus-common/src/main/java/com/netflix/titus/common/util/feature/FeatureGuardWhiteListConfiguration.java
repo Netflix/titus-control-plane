@@ -28,7 +28,7 @@ public interface FeatureGuardWhiteListConfiguration {
      * the remaining predicates.
      */
     @DefaultValue("true")
-    boolean isTurnedOn();
+    boolean isFeatureEnabled();
 
     /**
      * White list. If matches, the feature is enabled.

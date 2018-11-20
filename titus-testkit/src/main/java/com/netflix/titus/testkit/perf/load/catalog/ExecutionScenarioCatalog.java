@@ -58,6 +58,16 @@ public final class ExecutionScenarioCatalog {
                 .build();
     }
 
+    public static ExecutionScenario evictions(int jobSize, double sizeFactor) {
+        return ExecutionScenario.newBuilder()
+                .constantLoad(
+                        JobCatalog.serviceJob(JobCatalog.JobSize.Small, 0, jobSize, jobSize),
+                        ExecutionPlanCatalog.eviction(),
+                        (int) sizeFactor
+                )
+                .build();
+    }
+
     public static ExecutionScenario oneAutoScalingService(double sizeFactor) {
         return ExecutionScenario.newBuilder()
                 .constantLoad(
