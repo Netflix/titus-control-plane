@@ -397,6 +397,11 @@ public class DefaultV3JobOperations implements V3JobOperations {
             ReconciliationEngine<JobManagerReconcilerEvent> engineFrom = fromEngineTaskPair.getLeft();
             Job<ServiceJobExt> jobFrom = engineFrom.getReferenceView().getEntity();
 
+            // Validate the source job is a service job
+            if (!JobFunctions.isServiceJob(jobFrom)) {
+                throw JobManagerException.notServiceJob(jobFrom.getId());
+            }
+
             // Validate that the task belongs to source job id
             if(!jobFrom.getId().equals(sourceJobId)) {
                 throw JobManagerException.taskJobMismatch(taskId, sourceJobId);
@@ -407,11 +412,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 throw JobManagerException.sameJobs(jobFrom.getId());
             }
 
-            // Validate the source job is a service job
-            if (!JobFunctions.isServiceJob(jobFrom)) {
-                throw JobManagerException.notServiceJob(jobFrom.getId());
-            }
-
             ReconciliationEngine<JobManagerReconcilerEvent> engineTo =
                     reconciliationFramework.findEngineByRootId(targetJobId).orElseThrow(() -> JobManagerException.jobNotFound(targetJobId));
             Job<ServiceJobExt> jobTo = engineTo.getReferenceView().getEntity();
@@ -419,23 +419,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
             // Validate target job is a service job
             if (!JobFunctions.isServiceJob(jobTo)) {
                 throw JobManagerException.notServiceJob(jobTo.getId());
-            }
-
-            // Validate task min is not violated for source job
-            // Source job min < (current_tasks_source - 1)
-            if(jobFrom.getJobDescriptor().getExtensions().getCapacity().getMin() <
-                    ((engineFrom.getReferenceView().getChildren().stream()
-                            .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
-                            .count()) - 1)) {
-                throw JobManagerException.belowMinCapacity(jobFrom, 1);
-            }
-
-            // Validate the task max is not violated for target job
-            // (current_tasks_target + 1) > Target job max
-            if((engineTo.getReferenceView().getChildren().stream()
-                    .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
-                    .count() + 1) > jobTo.getJobDescriptor().getExtensions().getCapacity().getMax()) {
-                throw JobManagerException.aboveMaxCapacity(jobTo, 1);
             }
 
             return reconciliationFramework.changeReferenceModel(
