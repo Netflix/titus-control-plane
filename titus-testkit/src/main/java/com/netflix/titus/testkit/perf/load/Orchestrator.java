@@ -18,12 +18,14 @@ package com.netflix.titus.testkit.perf.load;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -55,6 +57,7 @@ public class Orchestrator {
     private final TextReporter textReporter;
 
     private final CountDownLatch doneLatch = new CountDownLatch(1);
+    private final AtomicInteger nextSequenceId = new AtomicInteger();
 
     @Inject
     public Orchestrator(LoadConfiguration configuration,
@@ -83,7 +86,8 @@ public class Orchestrator {
 //                ExecutionScenarioCatalog.oneAutoScalingService(configuration.getScaleFactor()),
 //                ExecutionScenarioCatalog.oneScalingServiceWihTerminateAndShrink(configuration.getScaleFactor()),
 //                ExecutionScenarioCatalog.mixedLoad(configuration.getScaleFactor()),
-        return ExecutionScenarioCatalog.batchJob(1, configuration.getScaleFactor());
+//        return ExecutionScenarioCatalog.batchJob(1, configuration.getScaleFactor());
+        return ExecutionScenarioCatalog.evictions(1, configuration.getScaleFactor());
     }
 
     public MetricsCollector getMetricsCollector() {
@@ -100,7 +104,7 @@ public class Orchestrator {
     private Completable startExecutionScenario(ExecutionScenario executionScenario, ExecutionContext context) {
         return executionScenario.executionPlans()
                 .flatMap(executable -> {
-                    JobDescriptor<?> jobSpec = tagged(executable.getJobSpec(), context);
+                    JobDescriptor<?> jobSpec = tagged(newJobDescriptor(executable), context);
                     Observable<? extends JobExecutor> executorObservable = JobFunctions.isBatchJob(jobSpec)
                             ? BatchJobExecutor.submitJob((JobDescriptor<BatchJobExt>) jobSpec, context)
                             : ServiceJobExecutor.submitJob((JobDescriptor<ServiceJobExt>) jobSpec, context);
@@ -123,6 +127,18 @@ public class Orchestrator {
                                     }
                             );
                 }).toCompletable();
+    }
+
+    private JobDescriptor<?> newJobDescriptor(ExecutionScenario.Executable executable) {
+        JobDescriptor<?> jobDescriptor = executable.getJobSpec();
+        if (JobFunctions.isBatchJob(jobDescriptor)) {
+            return jobDescriptor;
+        }
+        JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
+        String seq = jobGroupInfo.getSequence() + nextSequenceId.getAndIncrement();
+        return jobDescriptor.toBuilder().withJobGroupInfo(
+                jobGroupInfo.toBuilder().withSequence(seq).build()
+        ).build();
     }
 
     private JobDescriptor<?> tagged(JobDescriptor<?> jobSpec, ExecutionContext context) {

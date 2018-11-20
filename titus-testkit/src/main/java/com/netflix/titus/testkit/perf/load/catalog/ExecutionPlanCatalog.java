@@ -69,4 +69,13 @@ public final class ExecutionPlanCatalog {
                 .awaitCompletion()
                 .build();
     }
+
+    public static ExecutionPlan eviction() {
+        return ExecutionPlan.newBuilder()
+                .label("start")
+                .evictRandomTask()
+                .delay(30, TimeUnit.SECONDS)
+                .loop("start")
+                .build();
+    }
 }

@@ -19,6 +19,7 @@ package com.netflix.titus.testkit.perf.load.job;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -37,6 +38,8 @@ public interface JobExecutor {
     Observable<Void> killJob();
 
     Observable<Void> killTask(String taskId);
+
+    Mono<Void> evictTask(String taskId);
 
     Observable<Void> terminateAndShrink(String taskId);
 

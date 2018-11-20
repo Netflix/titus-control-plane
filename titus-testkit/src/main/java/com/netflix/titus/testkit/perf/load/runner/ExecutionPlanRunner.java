@@ -22,11 +22,13 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.testkit.perf.load.job.JobExecutor;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
@@ -78,6 +80,8 @@ public class ExecutionPlanRunner {
             action = doScaleDown((ExecutionStep.ScaleDownStep) step);
         } else if (step instanceof ExecutionStep.KillRandomTaskStep) {
             action = doKillRandomTask();
+        } else if (step instanceof ExecutionStep.EvictRandomTaskStep) {
+            action = ReactorExt.toObservable(doEvictRandomTask());
         } else if (step instanceof ExecutionStep.TerminateAndShrinkRandomTaskStep) {
             action = doTerminateAndShrinkRandomTask();
         } else if (step instanceof ExecutionStep.DelayStep) {
@@ -119,6 +123,16 @@ public class ExecutionPlanRunner {
 
         Task task = activeTasks.get(random.nextInt(activeTasks.size()));
         return executor.killTask(task.getId());
+    }
+
+    private Mono<Void> doEvictRandomTask() {
+        List<Task> activeTasks = executor.getActiveTasks();
+        if (activeTasks.isEmpty()) {
+            return Mono.empty();
+        }
+
+        Task task = activeTasks.get(random.nextInt(activeTasks.size()));
+        return executor.evictTask(task.getId());
     }
 
     private Observable<Void> doTerminateAndShrinkRandomTask() {

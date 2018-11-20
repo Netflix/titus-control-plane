@@ -20,8 +20,12 @@ import java.util.Date;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
+import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
+import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
+import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
 import io.grpc.ManagedChannel;
 
@@ -33,16 +37,26 @@ public class ExecutionContext {
     private final String sessionId;
     private final RxGrpcJobManagementService jobManagementClient;
     private final JobManagementServiceBlockingStub jobManagementClientBlocking;
+    private final GrpcEvictionServiceClient evictionServiceClient;
 
     @Inject
-    public ExecutionContext(ManagedChannel titusGrpcChannel) {
+    public ExecutionContext(ManagedChannel titusGrpcChannel,
+                            ReactorGrpcClientAdapterFactory grpcClientAdapterFactory) {
         this.jobManagementClient = new RxGrpcJobManagementService(titusGrpcChannel);
         this.jobManagementClientBlocking = JobManagementServiceGrpc.newBlockingStub(titusGrpcChannel);
+        this.evictionServiceClient = new GrpcEvictionServiceClient(
+                grpcClientAdapterFactory,
+                EvictionServiceGrpc.newStub(titusGrpcChannel)
+        );
         this.sessionId = "startedAt=" + new Date();
     }
 
     public RxGrpcJobManagementService getJobManagementClient() {
         return jobManagementClient;
+    }
+
+    public EvictionServiceClient getEvictionServiceClient() {
+        return evictionServiceClient;
     }
 
     public JobManagementServiceBlockingStub getJobManagementClientBlocking() {

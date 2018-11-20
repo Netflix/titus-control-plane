@@ -17,11 +17,13 @@
 package com.netflix.titus.testkit.perf.load.job;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -29,11 +31,13 @@ import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
 import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
@@ -106,6 +110,21 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
 
     private Subscription observeJob() {
         return Observable.defer(() -> context.getJobManagementClient().observeJob(JobId.newBuilder().setId(jobId).build()))
+                .doOnNext(event -> {
+                    if (event.getNotificationCase() == NotificationCase.TASKUPDATE) {
+                        com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
+                        String originalId = task.getTaskContextMap().get(TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID);
+
+                        List<Task> newTaskList = new ArrayList<>();
+                        activeTasks.forEach(t -> {
+                            if (!t.getOriginalId().equals(originalId)) {
+                                newTaskList.add(t);
+                            }
+                        });
+                        newTaskList.add(V3GrpcModelConverters.toCoreTask(job, task));
+                        this.activeTasks = newTaskList;
+                    }
+                })
                 .filter(event -> event.getNotificationCase() == NotificationCase.JOBUPDATE)
                 .materialize()
                 .flatMap(notification -> {
@@ -153,8 +172,19 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
 
         return context.getJobManagementClient()
                 .killTask(taskId, false)
-                .onErrorResumeNext(e -> Observable.error(new IOException("Failed to kill task " + taskId + " of job " + name, e)))
+                .onErrorResumeNext(e -> Observable.error(new IOException(String.format("Failed to kill task %s  of job %s: error=%s", taskId, name, e.getMessage()), e)))
                 .doOnCompleted(() -> logger.info("Killed task {}", taskId));
+    }
+
+    @Override
+    public Mono<Void> evictTask(String taskId) {
+        Preconditions.checkState(doRun, "Job executor shut down already");
+        Preconditions.checkNotNull(jobId);
+
+        return context.getEvictionServiceClient()
+                .terminateTask(taskId, "Simulator")
+                .onErrorResume(e -> Mono.error(new IOException(String.format("Failed to evict task %s  of job %s: error=%s", taskId, name, e.getMessage()), e)))
+                .doOnSuccess(nothing -> logger.info("Killed task {}", taskId));
     }
 
     private boolean isJobCompletedEvent(JobChangeNotification event) {

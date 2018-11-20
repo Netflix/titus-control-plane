@@ -21,10 +21,28 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
+import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 
 public class LoadModule extends AbstractModule {
     @Override
     protected void configure() {
+        bind(ReactorGrpcClientAdapterFactory.class).to(DefaultReactorGrpcClientAdapterFactory.class);
+        bind(GrpcClientConfiguration.class).toInstance(new GrpcClientConfiguration() {
+            @Override
+            public long getRequestTimeout() {
+                return 30_000;
+            }
+
+            @Override
+            public int getMaxTaskPageSize() {
+                return 1000;
+            }
+        });
+        bind(CallMetadataResolver.class).to(AnonymousCallMetadataResolver.class);
     }
 
     @Provides
