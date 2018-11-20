@@ -34,6 +34,10 @@ import com.netflix.titus.common.util.tuple.Pair;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
+/**
+ * TODO Handle moved tasks
+ * TODO Finished tasks are not handled correctly for batch jobs (they are in active data set until replaced).
+ */
 public class JobSnapshot {
 
     private static final JobSnapshot EMPTY = new JobSnapshot(Collections.emptyMap(), Collections.emptyMap());

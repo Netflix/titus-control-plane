@@ -199,6 +199,14 @@ public class JobsScenarioBuilder {
         return v3JobOperations;
     }
 
+    public DefaultV3JobOperations getJobOperations() {
+        return jobOperations;
+    }
+
+    public TestScheduler getTestScheduler() {
+        return testScheduler;
+    }
+
     public TitusRuntime getTitusRuntime() {
         return titusRuntime;
     }
@@ -235,6 +243,10 @@ public class JobsScenarioBuilder {
 
     public <E extends JobDescriptorExt> JobScenarioBuilder<E> getJobScenario(int idx) {
         return (JobScenarioBuilder<E>) jobScenarioBuilders.get(idx);
+    }
+
+    public List<JobScenarioBuilder<?>> getJobScenarios() {
+        return jobScenarioBuilders;
     }
 
     public <E extends JobDescriptorExt> JobsScenarioBuilder inJob(int idx, Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> jobScenario) {

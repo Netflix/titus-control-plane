@@ -71,6 +71,20 @@ public class DemultipexTest {
     }
 
     @Test
+    public void testSourceEmittingError() {
+        RuntimeException error = new RuntimeException("simulated error");
+        List<Observable<String>> outputs = ObservableExt.demultiplex(
+                Observable.error(error),
+                2
+        );
+        outputs.get(0).subscribe(subscriber1);
+        outputs.get(1).subscribe(subscriber2);
+
+        subscriber1.assertOnError(error);
+        subscriber2.assertOnError(error);
+    }
+
+    @Test
     public void testSourceWithTimeout() {
         List<Observable<String>> outputs = ObservableExt.demultiplex(
                 Observable.<String>never().timeout(1, TimeUnit.MILLISECONDS),
