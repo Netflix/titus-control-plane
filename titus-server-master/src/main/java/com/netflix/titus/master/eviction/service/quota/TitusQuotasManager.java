@@ -95,23 +95,30 @@ public class TitusQuotasManager {
             return UNKNOWN_JOB;
         }
 
+        String taskId = task.getId();
+
         synchronized (lock) {
-            if (systemQuotaController.getQuota() < 1) {
-                ConsumptionResult systemResult = systemQuotaController.consume(task.getId());
-                return systemResult.isApproved()
-                        ? jobQuotaController.consume(task.getId())
-                        : systemResult;
+            ConsumptionResult systemResult = systemQuotaController.consume(taskId);
+            ConsumptionResult jobResult = jobQuotaController.consume(taskId);
+
+            if (systemResult.isApproved() && jobResult.isApproved()) {
+                return jobResult;
             }
 
-            if (jobQuotaController.getQuota() < 1) {
-                ConsumptionResult jobResult = jobQuotaController.consume(task.getId());
-                return jobResult.isApproved()
-                        ? systemQuotaController.consume(task.getId())
-                        : jobResult;
+            if (!systemResult.isApproved() && !jobResult.isApproved()) {
+                return ConsumptionResult.rejected(String.format(
+                        "No job and system quota: {systemQuota=%s, jobQuota=%s}",
+                        systemResult.getRejectionReason().get(), jobResult.getRejectionReason().get()
+                ));
             }
 
-            ConsumptionResult systemResult = systemQuotaController.consume(task.getId());
-            return systemResult.isApproved() ? jobQuotaController.consume(task.getId()) : systemResult;
+            if (systemResult.isApproved()) {
+                systemQuotaController.giveBackConsumedQuota(taskId);
+                return jobResult;
+            }
+
+            jobQuotaController.giveBackConsumedQuota(taskId);
+            return systemResult;
         }
     }
 
