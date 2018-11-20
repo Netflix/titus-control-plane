@@ -24,13 +24,23 @@ public class UnlimitedDisruptionBudgetRate extends DisruptionBudgetRate {
     public UnlimitedDisruptionBudgetRate() {
     }
 
-    public static Builder newBuilder() {
-        return BUILDER;
+    @Override
+    public int hashCode() {
+        return 12345;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj != null && obj.getClass() == UnlimitedDisruptionBudgetRate.class;
     }
 
     @Override
     public String toString() {
         return "UnlimitedDisruptionBudgetRate{}";
+    }
+
+    public static Builder newBuilder() {
+        return BUILDER;
     }
 
     public static final class Builder {
