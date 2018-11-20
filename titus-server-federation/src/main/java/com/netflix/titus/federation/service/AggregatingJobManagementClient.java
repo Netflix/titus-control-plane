@@ -369,7 +369,10 @@ public class AggregatingJobManagementClient implements JobManagementClient {
 
     @Override
     public Completable moveTask(TaskMoveRequest taskMoveRequest) {
-        return Completable.error(new IllegalStateException("not implemented"));
+        Observable<Empty> result = findTaskInAllCells(taskMoveRequest.getTaskId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> client.moveTask(taskMoveRequest, streamObserver)));
+        return result.toCompletable();
     }
 
     private JobQueryResult addStackName(JobQueryResult result) {

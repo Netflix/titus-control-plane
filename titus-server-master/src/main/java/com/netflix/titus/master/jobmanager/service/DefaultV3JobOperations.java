@@ -389,24 +389,34 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> moveServiceTask(String taskId, String targetJobId) {
+    public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
         return Observable.defer(() -> {
             Pair<ReconciliationEngine<JobManagerReconcilerEvent>, EntityHolder> fromEngineTaskPair =
                     reconciliationFramework.findEngineByChildId(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
 
             ReconciliationEngine<JobManagerReconcilerEvent> engineFrom = fromEngineTaskPair.getLeft();
-            Job jobFrom = engineFrom.getReferenceView().getEntity();
-            if(jobFrom.getId().equals(targetJobId)) {
-                throw JobManagerException.sameJobs(jobFrom.getId());
-            }
+            Job<ServiceJobExt> jobFrom = engineFrom.getReferenceView().getEntity();
+
+            // Validate the source job is a service job
             if (!JobFunctions.isServiceJob(jobFrom)) {
                 throw JobManagerException.notServiceJob(jobFrom.getId());
             }
 
+            // Validate that the task belongs to source job id
+            if(!jobFrom.getId().equals(sourceJobId)) {
+                throw JobManagerException.taskJobMismatch(taskId, sourceJobId);
+            }
+
+            // Validate that we are moving across different jobs
+            if(jobFrom.getId().equals(targetJobId)) {
+                throw JobManagerException.sameJobs(jobFrom.getId());
+            }
+
             ReconciliationEngine<JobManagerReconcilerEvent> engineTo =
                     reconciliationFramework.findEngineByRootId(targetJobId).orElseThrow(() -> JobManagerException.jobNotFound(targetJobId));
+            Job<ServiceJobExt> jobTo = engineTo.getReferenceView().getEntity();
 
-            Job jobTo = engineTo.getReferenceView().getEntity();
+            // Validate target job is a service job
             if (!JobFunctions.isServiceJob(jobTo)) {
                 throw JobManagerException.notServiceJob(jobTo.getId());
             }
