@@ -390,7 +390,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
-        if(!jobManagerConfiguration.enableMoveTaskApi()){
+        if(!jobManagerConfiguration.isMoveTaskApiEnabled()){
             throw JobManagerException.notEnabled("Move task");
         }
         return Observable.defer(() -> {

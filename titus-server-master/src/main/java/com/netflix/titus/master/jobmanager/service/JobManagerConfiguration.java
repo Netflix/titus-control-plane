@@ -93,5 +93,5 @@ public interface JobManagerConfiguration {
      * Feature flag disabling movetask api
      */
     @DefaultValue("false")
-    boolean enableMoveTaskApi();
+    boolean isMoveTaskApiEnabled();
 }
