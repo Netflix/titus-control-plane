@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
@@ -48,10 +49,12 @@ import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.stub.StreamObserver;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createMonoVoidRequest;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
@@ -134,6 +137,17 @@ public class GrpcJobManagementClient implements JobManagementClient {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobStatus(statusUpdate, streamObserver);
         }, configuration.getRequestTimeout());
+    }
+
+    @Override
+    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request) {
+        return createMonoVoidRequest(
+                emitter -> {
+                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientMonoResponse(emitter);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobDisruptionBudget(request, streamObserver);
+                },
+                configuration.getRequestTimeout()
+        ).ignoreElement().cast(Void.class);
     }
 
     @Override

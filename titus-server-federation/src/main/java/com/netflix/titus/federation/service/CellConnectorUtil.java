@@ -63,6 +63,5 @@ final class CellConnectorUtil {
             fnCall.accept(targetClient, streamObserver);
         });
     }
-
 }
 

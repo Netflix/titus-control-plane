@@ -29,12 +29,15 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -89,7 +92,7 @@ class StubbedJobOperations implements V3JobOperations {
     @Override
     public List<Pair<Job<?>, Task>> findTasks(Predicate<Pair<Job<?>, Task>> queryPredicate, int offset, int limit) {
         List<Pair<Job<?>, List<Task>>> jobsAndTasks = (List) getJobsAndTasks();
-        return (List)jobsAndTasks.stream()
+        return (List) jobsAndTasks.stream()
                 .flatMap(p -> p.getRight().stream().map(t -> (Pair) Pair.of(p.getLeft(), t)))
                 .filter(queryPredicate::test)
                 .skip(offset)
@@ -154,6 +157,14 @@ class StubbedJobOperations implements V3JobOperations {
     @Override
     public Observable<Void> updateJobStatus(String serviceJobId, boolean enabled) {
         return updateServiceJob(serviceJobId, job -> JobFunctions.changeJobEnabledStatus(job, enabled));
+    }
+
+    @Override
+    public Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget) {
+        Observable<Void> observableAction = defer(() -> {
+            stubbedJobData.changeJob(jobId, job -> JobFunctions.changeDisruptionBudget(job, disruptionBudget));
+        });
+        return ReactorExt.toMono(observableAction);
     }
 
     private Observable<Void> updateServiceJob(String jobId, Function<Job<ServiceJobExt>, Job<ServiceJobExt>> transformer) {

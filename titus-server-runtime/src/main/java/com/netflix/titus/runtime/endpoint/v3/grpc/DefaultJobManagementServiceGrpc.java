@@ -25,6 +25,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
@@ -42,6 +43,8 @@ import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Subscription;
 
@@ -118,6 +121,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     }
 
     @Override
+    public void updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, StreamObserver<Empty> responseObserver) {
+        streamMonoResponse(jobManagementClient.updateJobDisruptionBudget(request), responseObserver);
+    }
+
+    @Override
     public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
         Subscription subscription = jobManagementClient.observeJobs(request).subscribe(
                 responseObserver::onNext,
@@ -180,6 +188,18 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
+    }
 
+    private static void streamMonoResponse(Mono<Void> completable, StreamObserver<Empty> responseObserver) {
+        Disposable subscription = completable.subscribe(
+                next -> {
+                },
+                e -> safeOnError(logger, e, responseObserver),
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                }
+        );
+        attachCancellingCallback(responseObserver, subscription);
     }
 }

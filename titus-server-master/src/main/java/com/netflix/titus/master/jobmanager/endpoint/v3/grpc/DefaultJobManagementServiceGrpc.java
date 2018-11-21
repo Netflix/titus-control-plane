@@ -31,6 +31,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -49,6 +50,8 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
@@ -363,6 +366,56 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                         }
                 ));
     }
+
+    @Override
+    public void updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            com.netflix.titus.api.jobmanager.model.job.Job<?> job = jobOperations.getJob(request.getJobId()).orElse(null);
+            if (job == null) {
+                responseObserver.onError(JobManagerException.jobNotFound(request.getJobId()));
+                return;
+            }
+            validateAndConvertJobDisruptionBudgetToCoreModel(job, request.getDisruptionBudget(), responseObserver).ifPresent(sanitized ->
+                    jobOperations.updateJobDisruptionBudget(request.getJobId(), sanitized).subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    )
+            );
+        });
+    }
+
+    private Optional<DisruptionBudget> validateAndConvertJobDisruptionBudgetToCoreModel(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob,
+                                                                                        JobDisruptionBudget grpcDisruptionBudget,
+                                                                                        StreamObserver<Empty> responseObserver) {
+        if (!disruptionBudgetEnabledPredicate.test(coreJob.getJobDescriptor())) {
+            safeOnError(logger, TitusServiceException.invalidArgument("Disruption budget not enabled for this application"), responseObserver);
+            return Optional.empty();
+        }
+
+        DisruptionBudget coreDisruptionBudget;
+        try {
+            coreDisruptionBudget = V3GrpcModelConverters.toCoreDisruptionBudget(grpcDisruptionBudget);
+        } catch (Exception e) {
+            safeOnError(logger, TitusServiceException.invalidArgument(e), responseObserver);
+            return Optional.empty();
+        }
+
+        DisruptionBudget sanitizedCoreDisruptionBudget = entitySanitizer.sanitize(coreDisruptionBudget).orElse(coreDisruptionBudget);
+
+        Set<ValidationError> violations = entitySanitizer.validate(sanitizedCoreDisruptionBudget);
+        if (!violations.isEmpty()) {
+            safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
+            return Optional.empty();
+        }
+
+        return Optional.of(sanitizedCoreDisruptionBudget);
+    }
+
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {

@@ -39,11 +39,13 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
@@ -66,6 +68,7 @@ import static com.netflix.titus.common.util.ExceptionExt.rethrow;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.discoverActiveTest;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreJob;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcCapacity;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcDisruptionBudget;
 
 /**
  */
@@ -245,6 +248,25 @@ public class JobScenarioBuilder {
         }, "Job status update did not complete in time");
 
         logger.info("[{}] Changing job {} enable status to {} finished in {}ms", discoverActiveTest(), jobId, enabled, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobDisruptionBudget(DisruptionBudget disruptionBudget) {
+        logger.info("[{}] Changing job {} disruption budget to {}...", discoverActiveTest(), jobId, disruptionBudget);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        client.updateJobDisruptionBudget(JobDisruptionBudgetUpdate.newBuilder()
+                        .setJobId(jobId)
+                        .setDisruptionBudget(toGrpcDisruptionBudget(disruptionBudget))
+                        .build(),
+                responseObserver
+        );
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> job.getJobDescriptor().getDisruptionBudget().equals(disruptionBudget), "Job disruption budget update did not complete in time");
+
+        logger.info("[{}] Changing job {} disruption budget to {} finished in {}ms", discoverActiveTest(), jobId, disruptionBudget, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
