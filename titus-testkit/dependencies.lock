@@ -1100,13 +1100,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1440,7 +1440,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -2755,13 +2755,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -3095,7 +3095,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -4410,13 +4410,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -4750,7 +4750,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -6129,13 +6129,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -6469,7 +6469,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -7785,13 +7785,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -8125,7 +8125,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -9456,13 +9456,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -9799,7 +9799,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -11130,13 +11130,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -11473,7 +11473,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -12804,13 +12804,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -13147,7 +13147,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -14479,13 +14479,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -14822,7 +14822,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
