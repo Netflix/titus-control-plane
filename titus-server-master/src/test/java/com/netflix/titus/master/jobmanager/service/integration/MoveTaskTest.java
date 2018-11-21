@@ -22,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -47,10 +48,8 @@ public class MoveTaskTest {
     public void testMove() {
         String targetJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
         String sourceJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
-        /**
-         * TODO fix all the tests to include source jobs
-         */
-
+        jobsScenarioBuilder.getJobScenario(1).moveTask(0, 0, sourceJobId, targetJobId)
+                .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(0));
 
         jobsScenarioBuilder.getJobScenario(0)
                 .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(2));
@@ -76,12 +75,12 @@ public class MoveTaskTest {
 
     @Test
     public void testMoveWithInvalidTargetJob() {
+        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(oneTaskServiceJobDescriptor());
+        String sourceJobId = sourceJobBuilder.getJobId();
         String targetJobId = startNewJob(oneTaskBatchJobDescriptor()).getJobId();
-        String sourceJobId = startNewJob(oneTaskBatchJobDescriptor()).getJobId();
 
         try {
-            startNewJob(oneTaskServiceJobDescriptor())
-                    .advance()
+            sourceJobBuilder.advance()
                     .moveTask(0, 0, sourceJobId, targetJobId)
                     .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(0));
         } catch (JobManagerException e) {
@@ -92,11 +91,11 @@ public class MoveTaskTest {
     @Test
     public void testMoveWithStoreUpdateFailure() {
         String targetJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
-        String sourceJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
+        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(oneTaskServiceJobDescriptor());
+        String sourceJobId = sourceJobBuilder.getJobId();
 
         try {
-            startNewJob(oneTaskServiceJobDescriptor())
-                    .advance()
+            sourceJobBuilder.advance()
                     .breakStore()
                     .allTasks(tasks -> assertThat(tasks).hasSize(1))
                     .moveTask(0, 0, sourceJobId, targetJobId);
@@ -110,12 +109,11 @@ public class MoveTaskTest {
 
     @Test
     public void testMoveTimeout() {
-        String sourceJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
-
+        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(oneTaskServiceJobDescriptor());
+        String sourceJobId = sourceJobBuilder.getJobId();
         String targetJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
 
-        startNewJob(oneTaskServiceJobDescriptor())
-                .advance()
+                sourceJobBuilder.advance()
                 .slowStore()
                 .inTask(0, 0, task -> {
                     ExtTestSubscriber<Void> testSubscriber = new ExtTestSubscriber<>();
