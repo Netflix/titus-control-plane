@@ -20,6 +20,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
@@ -30,6 +31,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -59,6 +61,11 @@ public class JobManagementClientDelegate implements JobManagementClient {
     @Override
     public Completable updateJobStatus(JobStatusUpdate statusUpdate) {
         return delegate.updateJobStatus(statusUpdate);
+    }
+
+    @Override
+    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate disruptionBudget) {
+        return delegate.updateJobDisruptionBudget(disruptionBudget);
     }
 
     @Override

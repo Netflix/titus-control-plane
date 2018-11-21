@@ -16,8 +16,10 @@
 
 package com.netflix.titus.runtime.endpoint.common.grpc;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -33,6 +35,8 @@ import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
@@ -80,6 +84,15 @@ public class GrpcUtil {
                 },
                 emitter::onError,
                 emitter::onCompleted
+        );
+    }
+
+    public static <REQ> ClientResponseObserver<REQ, Empty> createEmptyClientMonoResponse(MonoSink<Empty> monoSink) {
+        return createClientResponseObserver(
+                requestStream -> monoSink.onCancel(() -> requestStream.cancel(CANCELLING_MESSAGE, null)),
+                monoSink::success,
+                monoSink::error,
+                monoSink::success
         );
     }
 
@@ -214,8 +227,16 @@ public class GrpcUtil {
         return createRequestObservable(emitter, timeout).toCompletable();
     }
 
+    public static Mono<Empty> createMonoVoidRequest(Consumer<MonoSink<Empty>> sinkConsumer, long timeout) {
+        return Mono.create(sinkConsumer).timeout(getRxJavaAdjustedDuration(timeout));
+    }
+
     public static long getRxJavaAdjustedTimeout(long initialTimeoutMs) {
         return (long) (initialTimeoutMs * RX_CLIENT_TIMEOUT_FACTOR);
+    }
+
+    public static Duration getRxJavaAdjustedDuration(long initialTimeoutMs) {
+        return Duration.ofMillis((long) (initialTimeoutMs * RX_CLIENT_TIMEOUT_FACTOR));
     }
 
     public static boolean isNotOK(Status oneStatus) {

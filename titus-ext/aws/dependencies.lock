@@ -7,19 +7,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -29,15 +29,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -580,19 +580,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -602,15 +602,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -1153,19 +1153,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -1175,15 +1175,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -1790,19 +1790,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -1812,15 +1812,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -2364,19 +2364,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -2386,15 +2386,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -2977,19 +2977,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -2999,15 +2999,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -4127,13 +4127,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -4485,7 +4485,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -4758,19 +4758,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -4780,15 +4780,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -5908,13 +5908,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -6266,7 +6266,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -6539,19 +6539,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -6561,15 +6561,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -7689,13 +7689,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -8047,7 +8047,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -8321,19 +8321,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -8343,15 +8343,15 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.452",
+            "locked": "1.11.453",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -9471,13 +9471,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -9829,7 +9829,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"

@@ -42,6 +42,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -55,6 +56,7 @@ import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import rx.Subscriber;
 import rx.schedulers.TestScheduler;
 
@@ -196,6 +198,15 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     public JobScenarioBuilder<E> changeJobEnabledStatus(boolean enabled) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.updateJobStatus(jobId, enabled).subscribe(subscriber);
+
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
+
+        return this;
+    }
+
+    public JobScenarioBuilder<E> changeDisruptionBudget(DisruptionBudget disruptionBudget) {
+        TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
+        jobOperations.updateJobDisruptionBudget(jobId, disruptionBudget).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -710,6 +721,17 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         void ignoreAvailableEvents() {
             events.clear();
         }
+    }
+
+    private void checkOperationSubscriberAndThrowExceptionIfError(TitusRxSubscriber<Void> subscriber) {
+        if (subscriber.hasError()) {
+            Throwable error = subscriber.getError();
+            if (error instanceof RuntimeException) {
+                throw (RuntimeException) error;
+            }
+            throw new RuntimeException(error);
+        }
+        assertThat(subscriber.isOpen()).isFalse();
     }
 
     private void checkOperationSubscriberAndThrowExceptionIfError(ExtTestSubscriber<Void> subscriber) {

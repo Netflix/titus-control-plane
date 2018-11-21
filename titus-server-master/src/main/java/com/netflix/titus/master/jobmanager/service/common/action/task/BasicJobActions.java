@@ -22,8 +22,10 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
@@ -52,6 +54,22 @@ public class BasicJobActions {
                             .jobMaybeUpdate(storeJobHolder -> Optional.of(storeJobHolder.setEntity(referenceJob)));
 
                     return titusStore.updateJob(referenceJob).andThen(Observable.just(ModelActionHolder.store(modelUpdateAction)));
+                });
+    }
+
+    public static ChangeAction updateJobDisruptionBudget(ReconciliationEngine<JobManagerReconcilerEvent> engine, DisruptionBudget disruptionBudget, JobStore jobStore) {
+        return TitusChangeAction.newAction("updateDisruptionBudget")
+                .id(engine.getReferenceView().getId())
+                .trigger(V3JobOperations.Trigger.API)
+                .summary("Job disruption budget update")
+                .changeWithModelUpdates(self -> {
+
+                    Job<?> job = engine.getReferenceView().getEntity();
+                    Job<?> updatedJob = JobFunctions.changeDisruptionBudget(job, disruptionBudget);
+
+                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
+
+                    return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });
     }
 
