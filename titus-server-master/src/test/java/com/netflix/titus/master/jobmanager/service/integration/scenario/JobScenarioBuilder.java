@@ -246,11 +246,11 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return killTaskAndShrink(findTaskInActiveState(taskIdx, resubmit));
     }
 
-    public JobScenarioBuilder<E> moveTask(int taskIdx, int resubmit, String targetJobId) {
+    public JobScenarioBuilder<E> moveTask(int taskIdx, int resubmit, String sourceJobId, String targetJobId) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
 
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.moveServiceTask(task.getId(), targetJobId).subscribe(subscriber);
+        jobOperations.moveServiceTask(sourceJobId, targetJobId, task.getId()).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 

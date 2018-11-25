@@ -51,6 +51,7 @@ public class JobManagerException extends RuntimeException {
         AboveMaxCapacity,
         SameJobIds,
         TaskJobMismatch,
+        NotEnabled,
     }
 
     private final ErrorCode errorCode;
@@ -90,6 +91,7 @@ public class JobManagerException extends RuntimeException {
             case AboveMaxCapacity:
             case SameJobIds:
             case TaskJobMismatch:
+            case NotEnabled:
                 return true;
             case NotBatchJobDescriptor:
                 break;
@@ -212,6 +214,13 @@ public class JobManagerException extends RuntimeException {
         return new JobManagerException(
                 ErrorCode.TaskJobMismatch,
                 format("Operation requires task id to belong to the source job id. Task id %s does not belong to job id %s", taskId, jobId)
+        );
+    }
+
+    public static JobManagerException notEnabled(String taskAction) {
+        return new JobManagerException(
+                ErrorCode.NotEnabled,
+                format("%s not enabled", taskAction)
         );
     }
 }
