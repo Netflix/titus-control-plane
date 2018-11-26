@@ -16,9 +16,6 @@
 
 package com.netflix.titus.master.agent;
 
-import com.netflix.titus.common.annotation.Experimental;
-
-@Experimental(deadline = "11/1/2018")
 public final class AgentAttributes {
 
     /**

@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.agent;
 
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
+import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
@@ -43,6 +44,8 @@ public interface AgentManagementClient {
     Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate);
 
     Completable updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate);
+
+    Completable updateAgentInstanceAttributes(AgentInstanceAttributesUpdate attributesUpdate);
 
     Observable<AgentChangeEvent> observeAgents();
 }

@@ -168,7 +168,6 @@ public class DefaultAgentManagementService implements AgentManagementService {
                 .flatMap(instanceGroup -> {
                     AgentInstanceGroup newInstanceGroup = instanceGroup.toBuilder().withAttributes(attributes).build();
                     return agentCache.updateInstanceGroupStore(newInstanceGroup).toObservable();
-
                 }).toCompletable();
     }
 
@@ -178,7 +177,6 @@ public class DefaultAgentManagementService implements AgentManagementService {
                 .flatMap(instance -> {
                     AgentInstance newAgentInstance = instance.toBuilder().withAttributes(attributes).build();
                     return agentCache.updateAgentInstanceStore(newAgentInstance).toObservable();
-
                 }).toCompletable();
     }
 

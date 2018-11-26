@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
+import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
@@ -116,6 +117,13 @@ public class GrpcAgentManagementClient implements AgentManagementClient {
         }, configuration.getRequestTimeout());
     }
 
+    @Override
+    public Completable updateAgentInstanceAttributes(AgentInstanceAttributesUpdate attributesUpdate) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateAgentInstanceAttributes(attributesUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
+    }
 
     @Override
     public Observable<AgentChangeEvent> observeAgents() {
