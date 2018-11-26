@@ -40,6 +40,7 @@ import static com.netflix.titus.common.data.generator.DataGenerator.range;
 import static com.netflix.titus.common.data.generator.DataGenerator.zip;
 
 /**
+ *
  */
 public class JobGenerator {
 
@@ -64,6 +65,13 @@ public class JobGenerator {
      */
     public static DataGenerator<String> taskIds(String jobId, DataGenerator<Long> numbers) {
         return numbers.map(n -> String.format("%s-Task#%09d", jobId, n));
+    }
+
+    /**
+     * Generates sequence of jobs with empty job descriptor.
+     */
+    public static DataGenerator<Job> jobs() {
+        return jobs(Clocks.system());
     }
 
     /**
@@ -157,5 +165,10 @@ public class JobGenerator {
                         .withJobId(serviceJob.getId())
                         .build()
         );
+    }
+
+    public static BatchJobTask oneBatchTask() {
+        Job<BatchJobExt> job = batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue();
+        return JobGenerator.batchTasks(job).getValue();
     }
 }

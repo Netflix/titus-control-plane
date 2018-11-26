@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.endpoint.grpc;
+package com.netflix.titus.runtime.relocation.endpoint;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecution;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus.TaskRelocationState;
 
 import static com.netflix.titus.common.util.CollectionsExt.last;
 
@@ -43,6 +43,15 @@ public class RelocationGrpcModelConverters {
                 .setReasonCode(plan.getReason().name())
                 .setReasonMessage(plan.getReasonMessage())
                 .setRelocationTime(plan.getRelocationTime())
+                .build();
+    }
+
+    public static TaskRelocationPlan toCoreTaskRelocationPlan(com.netflix.titus.grpc.protogen.TaskRelocationPlan grpcPlan) {
+        return TaskRelocationPlan.newBuilder()
+                .withTaskId(grpcPlan.getTaskId())
+                .withReason(TaskRelocationPlan.TaskRelocationReason.valueOf(grpcPlan.getReasonCode()))
+                .withReasonMessage(grpcPlan.getReasonMessage())
+                .withRelocationTime(grpcPlan.getRelocationTime())
                 .build();
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.model;
+package com.netflix.titus.api.relocation.model;
 
 import java.util.Objects;
 

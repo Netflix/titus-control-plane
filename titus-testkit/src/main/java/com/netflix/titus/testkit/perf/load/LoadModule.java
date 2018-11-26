@@ -33,6 +33,16 @@ public class LoadModule extends AbstractModule {
         bind(ReactorGrpcClientAdapterFactory.class).to(DefaultReactorGrpcClientAdapterFactory.class);
         bind(GrpcClientConfiguration.class).toInstance(new GrpcClientConfiguration() {
             @Override
+            public String getHostname() {
+                return "localhost";
+            }
+
+            @Override
+            public int getGrpcPort() {
+                return 123;
+            }
+
+            @Override
             public long getRequestTimeout() {
                 return 30_000;
             }

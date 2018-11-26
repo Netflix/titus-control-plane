@@ -17,7 +17,6 @@
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +28,8 @@ import java.util.stream.Collectors;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.supplementary.relocation.model.RelocationFunctions;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.RelocationFunctions;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowException;
 import org.slf4j.Logger;

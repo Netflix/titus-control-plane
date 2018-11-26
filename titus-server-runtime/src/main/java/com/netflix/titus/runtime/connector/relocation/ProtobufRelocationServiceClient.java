@@ -14,24 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.store;
+package com.netflix.titus.runtime.connector.relocation;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
+import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
 import reactor.core.publisher.Mono;
 
-public interface TaskRelocationArchiveStore {
+/**
+ * Task relocation GRPC client with Spring/Reactor API.
+ */
+public interface ProtobufRelocationServiceClient {
 
-    /**
-     * Creates or updates a record in the database.
-     */
-    Mono<Map<String, Optional<Throwable>>> createTaskRelocationStatuses(List<TaskRelocationStatus> taskRelocationStatuses);
-
-    /**
-     * Returns all archived task relocation statuses, or an empty list if non is found.
-     */
-    Mono<List<TaskRelocationStatus>> getTaskRelocationStatusList(String taskId);
+    Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery query);
 }

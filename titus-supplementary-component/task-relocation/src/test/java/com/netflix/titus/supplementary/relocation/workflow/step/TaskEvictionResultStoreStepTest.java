@@ -22,7 +22,7 @@ import java.util.Optional;
 import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
 import com.netflix.titus.supplementary.relocation.TaskRelocationPlanGenerator;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
 import org.junit.Before;
 import org.junit.Test;

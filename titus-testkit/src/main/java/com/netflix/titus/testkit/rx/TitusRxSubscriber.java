@@ -45,6 +45,8 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
     private volatile Throwable error;
     private volatile boolean disposed;
 
+    private final Object eventWaitLock = new Object();
+
     @Override
     public void onSubscribe(Subscription s) {
         subscription = s;
@@ -54,17 +56,20 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
     @Override
     public void onNext(T value) {
         tryEmit(value);
+        notifyClients();
     }
 
     @Override
     public void onError(Throwable t) {
         tryEmit(ERROR_MARKER);
         this.error = t;
+        notifyClients();
     }
 
     @Override
     public void onComplete() {
         tryEmit(COMPLETED_MARKER);
+        notifyClients();
     }
 
     @Override
@@ -73,6 +78,7 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
             subscription.cancel();
             this.disposed = true;
         }
+        notifyClients();
     }
 
     @Override
@@ -138,6 +144,12 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
         return result;
     }
 
+    private void notifyClients() {
+        synchronized (eventWaitLock) {
+            eventWaitLock.notifyAll();
+        }
+    }
+
     public void failIfClosed() {
         if (isOpen()) {
             return;
@@ -146,6 +158,18 @@ public class TitusRxSubscriber<T> implements Subscriber<T>, Disposable {
             throw new IllegalStateException("Stream completed");
         }
         throw new IllegalStateException("Stream terminated with an error", error);
+    }
+
+    public boolean awaitClosed(Duration timeout) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeout.toMillis();
+        while (isOpen() && (deadline - System.currentTimeMillis()) > 0) {
+            synchronized (eventWaitLock) {
+                if (isOpen() && (deadline - System.currentTimeMillis()) > 0) {
+                    eventWaitLock.wait(deadline - System.currentTimeMillis());
+                }
+            }
+        }
+        return !isOpen();
     }
 
     private T afterTakeNext(T value) {

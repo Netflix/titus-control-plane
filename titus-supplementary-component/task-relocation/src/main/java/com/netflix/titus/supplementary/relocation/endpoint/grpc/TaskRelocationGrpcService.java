@@ -30,8 +30,9 @@ import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import io.grpc.Status;
@@ -43,8 +44,8 @@ import reactor.core.Disposable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
-import static com.netflix.titus.supplementary.relocation.endpoint.grpc.RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions;
-import static com.netflix.titus.supplementary.relocation.endpoint.grpc.RelocationGrpcModelConverters.toGrpcTaskRelocationPlans;
+import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions;
+import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters.toGrpcTaskRelocationPlans;
 
 @Singleton
 public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRelocationServiceImplBase {

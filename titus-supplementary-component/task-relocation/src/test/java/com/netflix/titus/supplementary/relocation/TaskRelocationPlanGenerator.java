@@ -16,10 +16,10 @@
 
 package com.netflix.titus.supplementary.relocation;
 
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus.TaskRelocationState;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 
 public class TaskRelocationPlanGenerator {
 

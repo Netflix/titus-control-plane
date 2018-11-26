@@ -31,7 +31,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 

@@ -35,14 +35,14 @@ import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;
-import static com.netflix.titus.supplementary.relocation.model.RelocationFunctions.areEqualExceptRelocationTime;
+import static com.netflix.titus.api.relocation.model.RelocationFunctions.areEqualExceptRelocationTime;
 import static com.netflix.titus.supplementary.relocation.util.RelocationUtil.getAgentInstances;
 import static com.netflix.titus.supplementary.relocation.util.RelocationUtil.getRemovableGroups;
 

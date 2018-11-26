@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.model;
+package com.netflix.titus.api;
 
-import java.util.Objects;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-public final class RelocationFunctions {
+/**
+ * This configuration interface is a centralized store for all feature flags. Putting all feature flags in one place
+ * improves project maintenance.
+ */
+@Configuration(prefix = "titus.feature")
+public interface FeatureActivationConfiguration {
 
-    /**
-     * Compares to plans, except the task relocation time.
-     */
-    public static boolean areEqualExceptRelocationTime(TaskRelocationPlan first, TaskRelocationPlan second) {
-        return Objects.equals(first.getTaskId(), second.getTaskId()) &&
-                Objects.equals(first.getReason(), second.getReason()) &&
-                Objects.equals(first.getReasonMessage(), second.getReasonMessage());
-    }
+    @DefaultValue("false")
+    boolean isMergeTaskMigrationPlanInGateway();
 }
