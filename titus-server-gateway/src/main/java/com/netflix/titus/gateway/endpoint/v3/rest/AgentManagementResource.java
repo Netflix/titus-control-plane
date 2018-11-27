@@ -35,6 +35,7 @@ import com.google.common.base.Strings;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
 import com.netflix.titus.grpc.protogen.AgentInstance;
+import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
@@ -129,5 +130,19 @@ public class AgentManagementResource {
         }
 
         return Responses.fromCompletable(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
+    }
+
+    @PUT
+    @ApiOperation("Update agent instance attributes")
+    @Path("/instances/{id}/attributes")
+    public Response updateAgentInstanceAttributes(@PathParam("id") String agentInstanceId, AgentInstanceAttributesUpdate attributesUpdate) {
+        if (Strings.isNullOrEmpty(attributesUpdate.getAgentInstanceId())) {
+            attributesUpdate = attributesUpdate.toBuilder().setAgentInstanceId(agentInstanceId).build();
+        } else if (!Objects.equals(agentInstanceId, attributesUpdate.getAgentInstanceId())) {
+            throw TitusServiceException.invalidArgument("Path parameter id: " + agentInstanceId + " must match payload agentInstanceId: "
+                    + attributesUpdate.getAgentInstanceId());
+        }
+
+        return Responses.fromCompletable(agentManagementService.updateAgentInstanceAttributes(attributesUpdate));
     }
 }

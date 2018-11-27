@@ -120,6 +120,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(0)
                 .withCurrent(0)
                 .withMax(10)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -149,6 +150,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(0)
                 .withCurrent(12)
                 .withMax(20)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -191,6 +193,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(0)
                 .withCurrent(0)
                 .withMax(20)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -224,6 +227,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(0)
                 .withCurrent(0)
                 .withMax(10)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -273,6 +277,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(0)
                 .withCurrent(0)
                 .withMax(10)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -302,6 +307,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(0)
                 .withCurrent(12)
                 .withMax(20)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -334,6 +340,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(0)
                 .withCurrent(20)
                 .withMax(20)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -374,6 +381,7 @@ public class ClusterAgentAutoScalerTest {
                 .withMin(13)
                 .withCurrent(20)
                 .withMax(20)
+                .withAttributes(Collections.emptyMap())
                 .build();
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
