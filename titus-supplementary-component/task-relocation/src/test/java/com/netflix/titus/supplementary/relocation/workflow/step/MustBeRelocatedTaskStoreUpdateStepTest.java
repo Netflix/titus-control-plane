@@ -23,7 +23,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.junit.Test;
 import reactor.core.publisher.Mono;

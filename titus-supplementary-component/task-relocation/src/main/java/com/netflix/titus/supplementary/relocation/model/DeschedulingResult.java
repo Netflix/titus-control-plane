@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 
 public class DeschedulingResult {
 

@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.descheduler;
+package com.netflix.titus.api.relocation.model;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
-import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+public final class RelocationFunctions {
 
-public interface DeschedulerService {
-
-    List<DeschedulingResult> deschedule(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans);
+    /**
+     * Compares to plans, except the task relocation time.
+     */
+    public static boolean areEqualExceptRelocationTime(TaskRelocationPlan first, TaskRelocationPlan second) {
+        return Objects.equals(first.getTaskId(), second.getTaskId()) &&
+                Objects.equals(first.getReason(), second.getReason()) &&
+                Objects.equals(first.getReasonMessage(), second.getReasonMessage());
+    }
 }

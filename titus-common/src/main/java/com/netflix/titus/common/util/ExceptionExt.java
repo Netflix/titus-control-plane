@@ -22,11 +22,23 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
+ *
  */
 public class ExceptionExt {
 
     public interface RunnableWithExceptions {
         void run() throws Exception;
+    }
+
+    public static <T> void silent(T object, Consumer<T> invocation) {
+        if (object == null) {
+            return;
+        }
+        try {
+            invocation.accept(object);
+        } catch (Throwable e) {
+            // Ignore
+        }
     }
 
     public static void silent(RunnableWithExceptions runnable) {

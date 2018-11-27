@@ -37,6 +37,12 @@ public class FeatureFlagModule extends AbstractModule {
 
     @Provides
     @Singleton
+    public FeatureActivationConfiguration getFeatureActivationConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FeatureActivationConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
     @Named(DISRUPTION_BUDGET_FEATURE)
     public Predicate<JobDescriptor> getDisruptionBudgetEnabledPredicate(@Named(DISRUPTION_BUDGET_FEATURE) FeatureGuardWhiteListConfiguration configuration) {
         return FeatureGuards.toPredicate(

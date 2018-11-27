@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.model;
+package com.netflix.titus.runtime.connector.relocation;
 
-import java.util.Objects;
+import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
+import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
+import reactor.core.publisher.Mono;
 
-public final class RelocationFunctions {
+/**
+ * Task relocation GRPC client with Spring/Reactor API.
+ */
+public interface TransportRelocationServiceClient {
 
-    /**
-     * Compares to plans, except the task relocation time.
-     */
-    public static boolean areEqualExceptRelocationTime(TaskRelocationPlan first, TaskRelocationPlan second) {
-        return Objects.equals(first.getTaskId(), second.getTaskId()) &&
-                Objects.equals(first.getReason(), second.getReason()) &&
-                Objects.equals(first.getReasonMessage(), second.getReasonMessage());
-    }
+    Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery query);
 }

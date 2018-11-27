@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

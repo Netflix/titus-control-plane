@@ -28,7 +28,7 @@ import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.util.DateTimeExt;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 
 public final class RelocationUtil {
 

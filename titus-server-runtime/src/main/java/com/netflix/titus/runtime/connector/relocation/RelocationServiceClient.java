@@ -14,24 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.store;
+package com.netflix.titus.runtime.connector.relocation;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
-import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import reactor.core.publisher.Mono;
 
-public interface TaskRelocationArchiveStore {
+public interface RelocationServiceClient {
 
-    /**
-     * Creates or updates a record in the database.
-     */
-    Mono<Map<String, Optional<Throwable>>> createTaskRelocationStatuses(List<TaskRelocationStatus> taskRelocationStatuses);
+    Mono<Optional<TaskRelocationPlan>> findTaskRelocationPlan(String taskId);
 
-    /**
-     * Returns all archived task relocation statuses, or an empty list if non is found.
-     */
-    Mono<List<TaskRelocationStatus>> getTaskRelocationStatusList(String taskId);
+    Mono<List<TaskRelocationPlan>> findTaskRelocationPlans(Set<String> taskIds);
 }

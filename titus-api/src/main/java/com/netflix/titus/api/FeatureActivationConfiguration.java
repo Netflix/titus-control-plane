@@ -14,35 +14,18 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector;
+package com.netflix.titus.api;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-@Configuration(prefix = "titus.grpcClient")
-public interface GrpcClientConfiguration {
+/**
+ * This configuration interface is a centralized store for all feature flags. Putting all feature flags in one place
+ * improves project maintenance.
+ */
+@Configuration(prefix = "titus.feature")
+public interface FeatureActivationConfiguration {
 
-    /**
-     * GRPC server hostname.
-     */
-    @DefaultValue("localhost")
-    String getHostname();
-
-    /**
-     * GRPC server port number.
-     */
-    @DefaultValue("7004")
-    int getGrpcPort();
-
-    /**
-     * GRPC operation timeout.
-     */
-    @DefaultValue("10000")
-    long getRequestTimeout();
-
-    /**
-     * Maximum number of tasks in a page. This limit exists due to the GRPC buffer limits.
-     */
-    @DefaultValue("5000")
-    int getMaxTaskPageSize();
+    @DefaultValue("false")
+    boolean isMergeTaskMigrationPlanInGateway();
 }

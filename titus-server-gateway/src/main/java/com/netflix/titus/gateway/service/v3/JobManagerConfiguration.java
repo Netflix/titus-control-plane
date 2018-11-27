@@ -37,4 +37,15 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("10000")
     int getMinDiskSizeMB();
+
+    /**
+     * The task relocation service has lower availability than TitusMaster. In case if it is down or very latent,
+     * applying the regular request timeout might result in large latency increase for all client requests.
+     * Instead we set more aggressive timeout for the task relocation service, at the cost of not including the
+     * relocation data in the client response.
+     *o
+     * @return fraction of the GRPC request timeout set for the task relocation service requests
+     */
+    @DefaultValue("0.1")
+    double getRelocationTimeoutCoefficient();
 }
