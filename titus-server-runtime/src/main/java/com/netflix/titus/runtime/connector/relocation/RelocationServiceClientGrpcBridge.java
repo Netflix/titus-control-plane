@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.relocation.client;
+package com.netflix.titus.runtime.connector.relocation;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,8 +27,6 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
-import com.netflix.titus.runtime.connector.relocation.ProtobufRelocationServiceClient;
-import com.netflix.titus.runtime.connector.relocation.RelocationServiceClient;
 import com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters;
 import reactor.core.publisher.Mono;
 
@@ -38,20 +36,20 @@ import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelC
  * {@link RelocationServiceClient} implementation that translates all invocation into underlying GRPC calls.
  */
 @Singleton
-public class GrpcAdapterRelocationServiceClient implements RelocationServiceClient {
+public class RelocationServiceClientGrpcBridge implements RelocationServiceClient {
 
     private static final Page ONE_ITEM_PAGE = Page.newBuilder().setPageSize(1).build();
 
-    private final ProtobufRelocationServiceClient protobufClient;
+    private final TransportRelocationServiceClient transportRelocationClient;
 
     @Inject
-    public GrpcAdapterRelocationServiceClient(ProtobufRelocationServiceClient protobufClient) {
-        this.protobufClient = protobufClient;
+    public RelocationServiceClientGrpcBridge(TransportRelocationServiceClient transportRelocationClient) {
+        this.transportRelocationClient = transportRelocationClient;
     }
 
     @Override
     public Mono<Optional<TaskRelocationPlan>> findTaskRelocationPlan(String taskId) {
-        return protobufClient.getCurrentTaskRelocationPlans(TaskRelocationQuery.newBuilder()
+        return transportRelocationClient.getCurrentTaskRelocationPlans(TaskRelocationQuery.newBuilder()
                 .setPage(ONE_ITEM_PAGE)
                 .putFilteringCriteria("taskIds", taskId)
                 .build()
@@ -69,7 +67,7 @@ public class GrpcAdapterRelocationServiceClient implements RelocationServiceClie
 
     @Override
     public Mono<List<TaskRelocationPlan>> findTaskRelocationPlans(Set<String> taskIds) {
-        return protobufClient.getCurrentTaskRelocationPlans(TaskRelocationQuery.newBuilder()
+        return transportRelocationClient.getCurrentTaskRelocationPlans(TaskRelocationQuery.newBuilder()
                 .setPage(ONE_ITEM_PAGE)
                 .putFilteringCriteria("taskIds", StringExt.concatenate(taskIds, ","))
                 .build()

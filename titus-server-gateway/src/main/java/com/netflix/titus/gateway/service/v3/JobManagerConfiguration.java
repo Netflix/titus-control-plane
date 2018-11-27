@@ -46,6 +46,6 @@ public interface JobManagerConfiguration {
      *o
      * @return fraction of the GRPC request timeout set for the task relocation service requests
      */
-    @DefaultValue("0.3")
+    @DefaultValue("0.1")
     double getRelocationTimeoutCoefficient();
 }

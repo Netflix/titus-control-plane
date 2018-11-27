@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.react;
+package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -27,31 +27,29 @@ import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.StreamObserver;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 
-class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Function<Object[], Publisher> {
+class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Function<Object[], Publisher> {
 
     private final Method grpcMethod;
-    private final Supplier<GRPC_STUB> grpcStubSupplier;
+    private final Supplier<GRPC_STUB> grpcStubFactory;
     private final Duration reactorTimeout;
 
-    FluxMethodBridge(Method grpcMethod,
-                     Supplier<GRPC_STUB> grpcStubSupplier,
-                     Duration reactorTimeout) {
+    MonoMethodBridge(Method grpcMethod, Supplier<GRPC_STUB> grpcStubFactory, Duration reactorTimeout) {
         this.grpcMethod = grpcMethod;
-        this.grpcStubSupplier = grpcStubSupplier;
+        this.grpcStubFactory = grpcStubFactory;
         this.reactorTimeout = reactorTimeout;
     }
 
     @Override
     public Publisher apply(Object[] args) {
-        return Flux.create(sink -> new FluxInvocation(sink, args)).timeout(reactorTimeout);
+        return Mono.create(sink -> new MonoInvocation(sink, args)).timeout(reactorTimeout);
     }
 
-    private class FluxInvocation {
+    private class MonoInvocation {
 
-        private FluxInvocation(FluxSink<Object> sink, Object[] args) {
+        private MonoInvocation(MonoSink<Object> sink, Object[] args) {
             StreamObserver<Object> grpcStreamObserver = new ClientResponseObserver<Object, Object>() {
                 @Override
                 public void beforeStart(ClientCallStreamObserver requestStream) {
@@ -60,7 +58,7 @@ class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
 
                 @Override
                 public void onNext(Object value) {
-                    sink.next(value);
+                    sink.success(value);
                 }
 
                 @Override
@@ -70,7 +68,7 @@ class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
 
                 @Override
                 public void onCompleted() {
-                    sink.complete();
+                    sink.success();
                 }
             };
 
@@ -79,7 +77,7 @@ class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
                     grpcStreamObserver
             };
             try {
-                grpcMethod.invoke(grpcStubSupplier.get(), grpcArgs);
+                grpcMethod.invoke(grpcStubFactory.get(), grpcArgs);
             } catch (Exception e) {
                 sink.error(e);
             }

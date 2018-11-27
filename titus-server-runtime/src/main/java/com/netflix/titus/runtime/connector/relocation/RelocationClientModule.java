@@ -25,8 +25,7 @@ import com.google.inject.Provides;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc.TaskRelocationServiceStub;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.connector.common.react.ReactToGrpcClientBuilder;
-import com.netflix.titus.runtime.connector.relocation.client.GrpcAdapterRelocationServiceClient;
+import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Channel;
 
@@ -36,7 +35,7 @@ public class RelocationClientModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(RelocationServiceClient.class).to(GrpcAdapterRelocationServiceClient.class);
+        bind(RelocationServiceClient.class).to(RelocationServiceClientGrpcBridge.class);
     }
 
     @Provides
@@ -47,12 +46,12 @@ public class RelocationClientModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public ProtobufRelocationServiceClient getProtobufRelocationServiceClient(TaskRelocationServiceStub stub,
-                                                                              CallMetadataResolver metadataResolver,
-                                                                              @Named(RELOCATION_CLIENT) GrpcClientConfiguration configuration) {
-        return ReactToGrpcClientBuilder
+    public TransportRelocationServiceClient getGrpcRelocationServiceClient(TaskRelocationServiceStub stub,
+                                                                           CallMetadataResolver metadataResolver,
+                                                                           @Named(RELOCATION_CLIENT) GrpcClientConfiguration configuration) {
+        return ReactorToGrpcClientBuilder
                 .newBuilder(
-                        ProtobufRelocationServiceClient.class, stub, TaskRelocationServiceGrpc.getServiceDescriptor()
+                        TransportRelocationServiceClient.class, stub, TaskRelocationServiceGrpc.getServiceDescriptor()
                 )
                 .withCallMetadataResolver(metadataResolver)
                 .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))

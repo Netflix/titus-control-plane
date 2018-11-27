@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.react;
+package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.time.Duration;
 
@@ -42,7 +42,7 @@ import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ReactToGrpcClientBuilderTest {
+public class ReactorToGrpcClientBuilderTest {
 
     private ManagedChannel channel;
     private Server server;
@@ -58,7 +58,7 @@ public class ReactToGrpcClientBuilderTest {
                 .negotiationType(NegotiationType.PLAINTEXT)
                 .build();
 
-        this.client = ReactToGrpcClientBuilder.newBuilder(SampleServiceReactApi.class, SampleServiceGrpc.newStub(channel), SampleServiceGrpc.getServiceDescriptor())
+        this.client = ReactorToGrpcClientBuilder.newBuilder(SampleServiceReactApi.class, SampleServiceGrpc.newStub(channel), SampleServiceGrpc.getServiceDescriptor())
                 .withTimeout(Duration.ofSeconds(30))
                 .withCallMetadataResolver(new AnonymousCallMetadataResolver())
                 .build();

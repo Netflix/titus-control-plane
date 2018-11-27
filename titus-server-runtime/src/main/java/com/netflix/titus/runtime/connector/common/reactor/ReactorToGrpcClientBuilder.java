@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.react;
+package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -35,9 +35,9 @@ import io.grpc.stub.AbstractStub;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.runtime.connector.common.react.GrpcToReactUtil.toMethodNameFromFullName;
+import static com.netflix.titus.runtime.connector.common.reactor.GrpcToReactUtil.toMethodNameFromFullName;
 
-public class ReactToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> {
+public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> {
 
     /**
      * For request/response GRPC calls, we set execution deadline at both Reactor and GRPC level. As we prefer the timeout
@@ -53,29 +53,29 @@ public class ReactToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<
     private Duration reactorTimeout;
     private CallMetadataResolver callMetadataResolver;
 
-    private ReactToGrpcClientBuilder(Class<REACT_API> reactApi, GRPC_STUB grpcStub, ServiceDescriptor grpcServiceDescriptor) {
+    private ReactorToGrpcClientBuilder(Class<REACT_API> reactApi, GRPC_STUB grpcStub, ServiceDescriptor grpcServiceDescriptor) {
         this.reactApi = reactApi;
         this.grpcStub = grpcStub;
         this.grpcServiceDescriptor = grpcServiceDescriptor;
     }
 
-    public ReactToGrpcClientBuilder<REACT_API, GRPC_STUB> withTimeout(Duration timeout) {
+    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withTimeout(Duration timeout) {
         this.timeout = timeout;
         this.reactorTimeout = Duration.ofMillis((long) (timeout.toMillis() * RX_CLIENT_TIMEOUT_FACTOR));
         return this;
     }
 
-    public ReactToGrpcClientBuilder<REACT_API, GRPC_STUB> withCallMetadataResolver(CallMetadataResolver callMetadataResolver) {
+    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withCallMetadataResolver(CallMetadataResolver callMetadataResolver) {
         this.callMetadataResolver = callMetadataResolver;
         return this;
     }
 
-    public static <REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> ReactToGrpcClientBuilder<REACT_API, GRPC_STUB> newBuilder(
+    public static <REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> newBuilder(
             Class<REACT_API> reactApi,
             GRPC_STUB grpcStub,
             ServiceDescriptor grpcServiceDescriptor) {
         Preconditions.checkArgument(reactApi.isInterface(), "Interface type required");
-        return new ReactToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor);
+        return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor);
     }
 
     public REACT_API build() {
@@ -83,7 +83,7 @@ public class ReactToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<
         return (REACT_API) Proxy.newProxyInstance(
                 Thread.currentThread().getContextClassLoader(),
                 new Class[]{reactApi},
-                new ReactClientInvocationHandler(reactApi, methodMap)
+                new ReactorClientInvocationHandler(reactApi, methodMap)
         );
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.react;
+package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.lang.reflect.Method;
 

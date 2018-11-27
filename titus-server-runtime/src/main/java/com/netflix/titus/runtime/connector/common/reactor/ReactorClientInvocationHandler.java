@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.react;
+package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -23,12 +23,12 @@ import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
-class ReactClientInvocationHandler<REACT_API> implements InvocationHandler {
+class ReactorClientInvocationHandler<REACT_API> implements InvocationHandler {
 
     private final Map<Method, Function<Object[], Publisher>> methodMap;
     private final String toStringValue;
 
-    ReactClientInvocationHandler(Class<REACT_API> reactApi, Map<Method, Function<Object[], Publisher>> methodMap) {
+    ReactorClientInvocationHandler(Class<REACT_API> reactApi, Map<Method, Function<Object[], Publisher>> methodMap) {
         this.methodMap = methodMap;
         this.toStringValue = reactApi.getSimpleName() + "[react to GRPC bridge]";
     }

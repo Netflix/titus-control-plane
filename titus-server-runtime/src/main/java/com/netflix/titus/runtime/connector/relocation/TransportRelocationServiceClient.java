@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 /**
  * Task relocation GRPC client with Spring/Reactor API.
  */
-public interface ProtobufRelocationServiceClient {
+public interface TransportRelocationServiceClient {
 
     Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery query);
 }
