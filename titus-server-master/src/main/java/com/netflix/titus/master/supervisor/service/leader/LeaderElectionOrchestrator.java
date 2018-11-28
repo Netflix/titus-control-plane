@@ -30,6 +30,7 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
+import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import com.netflix.titus.master.supervisor.model.MasterInstance;
 import com.netflix.titus.master.supervisor.model.MasterState;
 import com.netflix.titus.master.supervisor.model.MasterStatus;
@@ -58,15 +59,18 @@ public class LeaderElectionOrchestrator {
     private final TitusRuntime titusRuntime;
     private final Scheduler scheduler;
 
-    private final Subscription localMasterUpdateSubscription;
-    private final SpectatorExt.FsmMetrics<MasterState> stateFsmMetrics;
+    private Subscription localMasterUpdateSubscription;
+    private SpectatorExt.FsmMetrics<MasterState> stateFsmMetrics;
 
     @Inject
-    public LeaderElectionOrchestrator(LocalMasterInstanceResolver localMasterInstanceResolver,
+    public LeaderElectionOrchestrator(SupervisorConfiguration configuration,
+                                      LocalMasterInstanceResolver localMasterInstanceResolver,
                                       MasterMonitor masterMonitor,
                                       LeaderElector leaderElector,
                                       TitusRuntime titusRuntime) {
-        this(localMasterInstanceResolver,
+        this(
+                configuration,
+                localMasterInstanceResolver,
                 masterMonitor,
                 leaderElector,
                 fetchInitialMasterInstance(localMasterInstanceResolver),
@@ -76,7 +80,8 @@ public class LeaderElectionOrchestrator {
     }
 
     @VisibleForTesting
-    LeaderElectionOrchestrator(LocalMasterInstanceResolver localMasterInstanceResolver,
+    LeaderElectionOrchestrator(SupervisorConfiguration configuration,
+                               LocalMasterInstanceResolver localMasterInstanceResolver,
                                MasterMonitor masterMonitor,
                                LeaderElector leaderElector,
                                MasterInstance initial,
@@ -88,18 +93,24 @@ public class LeaderElectionOrchestrator {
         this.titusRuntime = titusRuntime;
         this.scheduler = scheduler;
 
-        // Synchronously initialize first the local MasterInstance, next subscribe to the stream to react to future changes
-        checkAndRecordInitialMasterInstance(initial);
+        if (configuration.isForceLeaderElectionEnabled()) {
+            if (leaderElector.join()) {
+                logger.info("Joined leader election process due to ForceLeaderElectionEnabled property being true");
+            }
+        } else {
+            // Synchronously initialize first the local MasterInstance, next subscribe to the stream to react to future changes
+            checkAndRecordInitialMasterInstance(initial);
 
-        Registry registry = titusRuntime.getRegistry();
-        this.stateFsmMetrics = SpectatorExt.fsmMetrics(
-                registry.createId(MetricConstants.METRIC_SUPERVISOR + "orchestrator.masterState"),
-                s -> false,
-                initial.getStatus().getState(),
-                registry
-        );
+            Registry registry = titusRuntime.getRegistry();
+            this.stateFsmMetrics = SpectatorExt.fsmMetrics(
+                    registry.createId(MetricConstants.METRIC_SUPERVISOR + "orchestrator.masterState"),
+                    s -> false,
+                    initial.getStatus().getState(),
+                    registry
+            );
 
-        this.localMasterUpdateSubscription = subscribeToLocalMasterUpdateStream();
+            this.localMasterUpdateSubscription = subscribeToLocalMasterUpdateStream();
+        }
     }
 
     @PreDestroy
@@ -194,11 +205,11 @@ public class LeaderElectionOrchestrator {
 
         if (state == MasterState.NonLeader) {
             if (leaderElector.join()) {
-                logger.info("Joined leader election process, due to MasterInstance state update: {}", newMasterInstance);
+                logger.info("Joined leader election process due to MasterInstance state update: {}", newMasterInstance);
             }
         } else if (state == MasterState.Inactive) {
             if (leaderElector.leaveIfNotLeader()) {
-                logger.info("Left leader election process, due to MasterInstance state update: {}", newMasterInstance);
+                logger.info("Left leader election process due to MasterInstance state update: {}", newMasterInstance);
             }
         }
     }
