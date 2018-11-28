@@ -37,7 +37,7 @@ import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -50,11 +50,11 @@ import io.swagger.annotations.ApiOperation;
 public class TaskRelocationResource {
 
     private final RelocationWorkflowExecutor relocationWorkflowExecutor;
-    private final TaskRelocationArchiveStore archiveStore;
+    private final TaskRelocationResultStore archiveStore;
 
     @Inject
     public TaskRelocationResource(RelocationWorkflowExecutor relocationWorkflowExecutor,
-                                  TaskRelocationArchiveStore archiveStore) {
+                                  TaskRelocationResultStore archiveStore) {
         this.relocationWorkflowExecutor = relocationWorkflowExecutor;
         this.archiveStore = archiveStore;
     }

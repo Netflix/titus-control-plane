@@ -33,7 +33,7 @@ import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -53,11 +53,11 @@ public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRel
     private static final Logger logger = LoggerFactory.getLogger(TaskRelocationGrpcService.class);
 
     private final RelocationWorkflowExecutor relocationWorkflowExecutor;
-    private final TaskRelocationArchiveStore archiveStore;
+    private final TaskRelocationResultStore archiveStore;
 
     @Inject
     public TaskRelocationGrpcService(RelocationWorkflowExecutor relocationWorkflowExecutor,
-                                     TaskRelocationArchiveStore archiveStore) {
+                                     TaskRelocationResultStore archiveStore) {
         this.relocationWorkflowExecutor = relocationWorkflowExecutor;
         this.archiveStore = archiveStore;
     }

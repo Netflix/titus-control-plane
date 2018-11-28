@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.store.memory;
+package com.netflix.titus.ext.jooq;
 
-import com.google.inject.AbstractModule;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-public class InMemoryRelocationStoreModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(TaskRelocationStore.class).to(InMemoryTaskRelocationStore.class);
-        bind(TaskRelocationResultStore.class).to(InMemoryTaskRelocationResultStore.class);
-    }
+@Configuration(prefix = "titus.ext.jooq")
+public interface JooqConfiguration {
+
+    @DefaultValue("jdbc://localhost")
+    String getDatabaseUrl();
 }

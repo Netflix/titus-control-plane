@@ -23,7 +23,11 @@ import java.util.Optional;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import reactor.core.publisher.Mono;
 
-public interface TaskRelocationArchiveStore {
+/**
+ * Store interface for persisting large amount of data, which (most of the time) are never updated. This
+ * interface may be backed by the same or different store as {@link TaskRelocationStore}.
+ */
+public interface TaskRelocationResultStore {
 
     /**
      * Creates or updates a record in the database.

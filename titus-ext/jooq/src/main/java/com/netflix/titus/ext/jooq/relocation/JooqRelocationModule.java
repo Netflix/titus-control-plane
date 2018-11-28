@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.store.memory;
+package com.netflix.titus.ext.jooq.relocation;
 
 import com.google.inject.AbstractModule;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 
-public class InMemoryRelocationStoreModule extends AbstractModule {
+public class JooqRelocationModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(TaskRelocationStore.class).to(InMemoryTaskRelocationStore.class);
-        bind(TaskRelocationResultStore.class).to(InMemoryTaskRelocationResultStore.class);
+        bind(TaskRelocationStore.class).to(JooqTaskRelocationStore.class);
+        bind(TaskRelocationResultStore.class).to(JooqTaskRelocationResultStore.class);
     }
 }

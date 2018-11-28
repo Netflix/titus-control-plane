@@ -28,6 +28,8 @@ import javax.inject.Singleton;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
@@ -41,9 +43,7 @@ import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.step.DeschedulerStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedTaskCollectorStep;
@@ -91,7 +91,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
                                              EvictionServiceClient evictionServiceClient,
                                              DeschedulerService deschedulerService,
                                              TaskRelocationStore activeStore,
-                                             TaskRelocationArchiveStore archiveStore,
+                                             TaskRelocationResultStore archiveStore,
                                              TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.agentDataReplicator = agentDataReplicator;
@@ -159,11 +159,11 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         }
 
         // Relocation plan
-        this.lastRelocationPlan = mustBeRelocatedTaskCollectorStep.collectTasksThatMustBeRelocated();
-        mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(lastRelocationPlan);
+        Map<String, TaskRelocationPlan> newRelocationPlan = mustBeRelocatedTaskCollectorStep.collectTasksThatMustBeRelocated();
+        this.lastRelocationPlan = mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(newRelocationPlan);
 
         // Descheduling
-        Map<String, DeschedulingResult> deschedulingResult = deschedulerStep.deschedule(lastRelocationPlan);
+        Map<String, DeschedulingResult> deschedulingResult = deschedulerStep.deschedule(this.lastRelocationPlan);
         this.lastEvictionPlan = deschedulingResult.values().stream()
                 .filter(DeschedulingResult::canEvict)
                 .collect(Collectors.toMap(d -> d.getTask().getId(), DeschedulingResult::getTaskRelocationPlan));

@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.connector.eviction;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,6 +31,13 @@ import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
  * TODO Removed job cleanup (not critical, as forced reconnects and the snapshot rebuild will do the work).
  */
 public class EvictionDataSnapshot {
+
+    private static final EvictionDataSnapshot EMPTY = new EvictionDataSnapshot(
+            EvictionQuota.systemQuota(0),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            Collections.emptyMap()
+    );
 
     private final EvictionQuota systemEvictionQuota;
     private final Map<Tier, EvictionQuota> tierEvictionQuotas;
@@ -101,5 +109,9 @@ public class EvictionDataSnapshot {
                 ", capacityGroupEvictionQuotas=" + capacityGroupEvictionQuotas +
                 ", jobEvictionQuotas=" + jobEvictionQuotas +
                 '}';
+    }
+
+    public static EvictionDataSnapshot empty() {
+        return EMPTY;
     }
 }
