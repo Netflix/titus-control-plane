@@ -67,7 +67,7 @@ public class JooqTaskRelocationResultStoreTest {
         assertThat(statusList.get(0)).isEqualTo(status);
 
         // Update
-        TaskRelocationStatus updatedStatus = status.toBuilder().withReasonMessage("Updated...").build();
+        TaskRelocationStatus updatedStatus = status.toBuilder().withStatusMessage("Updated...").build();
         Map<String, Optional<Throwable>> updatedResult = store.createTaskRelocationStatuses(Collections.singletonList(updatedStatus)).block();
         assertThat(updatedResult).hasSize(1);
         assertThat(store.getTaskRelocationStatusList(status.getTaskId()).block().get(0)).isEqualTo(updatedStatus);
@@ -83,8 +83,8 @@ public class JooqTaskRelocationResultStoreTest {
         return TaskRelocationStatus.newBuilder()
                 .withTaskId("task1")
                 .withState(TaskRelocationStatus.TaskRelocationState.Success)
-                .withReasonCode("reason123")
-                .withReasonMessage("reasonMessage123")
+                .withStatusCode("status123")
+                .withStatusMessage("statusMessage123")
                 .withTaskRelocationPlan(TaskRelocationPlan.newBuilder()
                         .withTaskId("task1")
                         .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)

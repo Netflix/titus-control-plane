@@ -80,8 +80,8 @@ public class RelocationGrpcModelConverters {
     public static com.netflix.titus.grpc.protogen.TaskRelocationStatus toGrpcTaskRelocationStatus(TaskRelocationStatus coreResult) {
         return com.netflix.titus.grpc.protogen.TaskRelocationStatus.newBuilder()
                 .setState(toGrpcRelocationState(coreResult.getState()))
-                .setReasonCode(coreResult.getReasonCode())
-                .setReasonMessage(coreResult.getReasonMessage())
+                .setStatusCode(coreResult.getStatusCode())
+                .setStatusMessage(coreResult.getStatusMessage())
                 .build();
     }
 

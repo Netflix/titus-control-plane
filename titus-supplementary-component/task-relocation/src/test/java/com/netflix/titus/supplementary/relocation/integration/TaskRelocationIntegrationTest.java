@@ -88,8 +88,8 @@ public class TaskRelocationIntegrationTest {
         // Wait for the relocation
         TaskRelocationStatus status = doTry(() -> findRelocationStatus(task.getId()));
         assertThat(status.getState()).isEqualTo(TaskRelocationStatus.TaskRelocationState.Success);
-        assertThat(status.getReasonCode()).isEqualTo(com.netflix.titus.api.relocation.model.TaskRelocationStatus.REASON_CODE_TERMINATED);
-        assertThat(status.getReasonMessage()).isNotEmpty();
+        assertThat(status.getStatusCode()).isEqualTo(com.netflix.titus.api.relocation.model.TaskRelocationStatus.STATUS_CODE_TERMINATED);
+        assertThat(status.getStatusMessage()).isNotEmpty();
     }
 
     private Task placeTaskOnRemovableAgent() {

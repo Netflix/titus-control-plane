@@ -154,8 +154,8 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                         TaskRelocationStatus.newBuilder()
                                 .withTaskId(record.getTaskId())
                                 .withState(TaskRelocationStatus.TaskRelocationState.valueOf(record.getRelocationState()))
-                                .withReasonCode(record.getStatusCode())
-                                .withReasonMessage(record.getStatusMessage())
+                                .withStatusCode(record.getStatusCode())
+                                .withStatusMessage(record.getStatusMessage())
                                 .withTaskRelocationPlan(TaskRelocationPlan.newBuilder()
                                         .withTaskId(record.getTaskId())
                                         .withReason(TaskRelocationPlan.TaskRelocationReason.valueOf(record.getReasonCode()))
@@ -178,8 +178,8 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
         }
 
         storeQuery.addValue(RELOCATION_STATUS.RELOCATION_STATE, relocationStatus.getState().name());
-        storeQuery.addValue(RELOCATION_STATUS.STATUS_CODE, relocationStatus.getReasonCode());
-        storeQuery.addValue(RELOCATION_STATUS.STATUS_MESSAGE, relocationStatus.getReasonMessage());
+        storeQuery.addValue(RELOCATION_STATUS.STATUS_CODE, relocationStatus.getStatusCode());
+        storeQuery.addValue(RELOCATION_STATUS.STATUS_MESSAGE, relocationStatus.getStatusMessage());
         storeQuery.addValue(RELOCATION_STATUS.REASON_CODE, relocationStatus.getTaskRelocationPlan().getReason().name());
         storeQuery.addValue(RELOCATION_STATUS.REASON_MESSAGE, relocationStatus.getTaskRelocationPlan().getReasonMessage());
         storeQuery.addValue(RELOCATION_STATUS.RELOCATION_TIME, relocationStatus.getTaskRelocationPlan().getRelocationTime());

@@ -65,7 +65,7 @@ public class TaskEvictionStepTest extends AbstractTaskRelocationTest {
 
         TaskRelocationStatus relocationStatus = result.get(task.getId());
         assertThat(relocationStatus.getTaskId()).isEqualTo(task.getId());
-        assertThat(relocationStatus.getReasonCode()).isEqualTo(TaskRelocationStatus.REASON_CODE_TERMINATED);
+        assertThat(relocationStatus.getStatusCode()).isEqualTo(TaskRelocationStatus.STATUS_CODE_TERMINATED);
         assertThat(relocationStatus.getTaskRelocationPlan()).isEqualTo(taskRelocationPlan);
     }
 
@@ -78,7 +78,7 @@ public class TaskEvictionStepTest extends AbstractTaskRelocationTest {
 
         TaskRelocationStatus relocationStatus = result.get("nonExistingTaskId");
         assertThat(relocationStatus.getTaskId()).isEqualTo("nonExistingTaskId");
-        assertThat(relocationStatus.getReasonCode()).isEqualTo(TaskRelocationStatus.REASON_EVICTION_ERROR);
+        assertThat(relocationStatus.getStatusCode()).isEqualTo(TaskRelocationStatus.STATUS_EVICTION_ERROR);
         assertThat(relocationStatus.getTaskRelocationPlan()).isEqualTo(taskRelocationPlan);
     }
 }
