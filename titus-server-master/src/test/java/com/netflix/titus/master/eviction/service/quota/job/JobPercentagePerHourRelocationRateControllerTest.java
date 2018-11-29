@@ -21,6 +21,7 @@ import java.util.Collections;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
@@ -39,6 +40,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
             10,
             budget(percentageOfHealthyPolicy(100), hourlyRatePercentage(100), Collections.emptyList())
     );
+    private static final Reference JOB_REFERENCE = Reference.job(REFERENCE_JOB.getId());
 
     private static final Duration TEN_MINUTES = Duration.ofMinutes(10);
 
@@ -53,11 +55,11 @@ public class JobPercentagePerHourRelocationRateControllerTest {
                 titusRuntime
         );
 
-        assertThat(quotaController.getQuota()).isEqualTo(5);
+        assertThat(quotaController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(5);
 
         // Consume everything
         consumeAtInterval(quotaController, 5, TEN_MINUTES);
-        assertThat(quotaController.getQuota()).isEqualTo(0);
+        assertThat(quotaController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(0);
 
         // Now shift time and consume again
         clock.advanceTime(TEN_MINUTES);
@@ -66,7 +68,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
 
         // Now move long into the future
         clock.advanceTime(Duration.ofHours(2));
-        assertThat(quotaController.getQuota()).isEqualTo(5);
+        assertThat(quotaController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(5);
     }
 
     @Test
@@ -78,11 +80,11 @@ public class JobPercentagePerHourRelocationRateControllerTest {
 
         // Take all
         consumeAtInterval(firstController, 5, TEN_MINUTES);
-        assertThat(firstController.getQuota()).isEqualTo(0);
+        assertThat(firstController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(0);
 
         // Now increase the allowance
         JobPercentagePerHourRelocationRateController updatedController = firstController.update(exceptRate(REFERENCE_JOB, hourlyRatePercentage(80)));
-        assertThat(updatedController.getQuota()).isEqualTo(3);
+        assertThat(updatedController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(3);
     }
 
     private void consumeAtInterval(JobPercentagePerHourRelocationRateController quotaController, int count, Duration interval) {

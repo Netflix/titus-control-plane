@@ -19,6 +19,7 @@ package com.netflix.titus.common.util;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
@@ -50,6 +51,26 @@ public final class DateTimeExt {
             return null;
         }
         return ISO_UTC_DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(msSinceEpoch)) + 'Z';
+    }
+
+    public static String toTimeUnitAbbreviation(TimeUnit timeUnit) {
+        switch (timeUnit) {
+            case NANOSECONDS:
+                return "ns";
+            case MICROSECONDS:
+                return "us";
+            case MILLISECONDS:
+                return "ms";
+            case SECONDS:
+                return "s";
+            case MINUTES:
+                return "min";
+            case HOURS:
+                return "h";
+            case DAYS:
+                return "d";
+        }
+        throw new IllegalArgumentException("Unknown time unit: " + timeUnit);
     }
 
     /**
@@ -92,5 +113,25 @@ public final class DateTimeExt {
             return sb.substring(1);
         }
         return sb.toString();
+    }
+
+    /**
+     * Given an interval, and a number of items generated per interval, create string representation of the
+     * corresponding rate. For example, interval=10sec, itemsPerInterval=5 gives rate="0.5 ???/sec".
+     */
+    public static String toRateString(long interval, long itemsPerInterval, TimeUnit timeUnit, String rateType) {
+        TimeUnit matchedTimeUnit = timeUnit;
+        for (TimeUnit nextTimeUnit : TimeUnit.values()) {
+            double ratio = nextTimeUnit.toNanos(1) / (double) timeUnit.toNanos(1);
+            double rate = itemsPerInterval / (double) interval * ratio;
+            if (rate >= 0.1) {
+                matchedTimeUnit = nextTimeUnit;
+                break;
+            }
+        }
+        double ratio = matchedTimeUnit.toNanos(1) / (double) timeUnit.toNanos(1);
+        double rate = itemsPerInterval / (double) interval * ratio;
+
+        return String.format("%.2f %s/%s", rate, rateType, toTimeUnitAbbreviation(matchedTimeUnit));
     }
 }

@@ -20,12 +20,14 @@ public class ScheduleDescriptorRepresentation {
 
     private final String name;
     private final String description;
+    private final String initialDelay;
     private final String interval;
     private final String timeout;
 
-    public ScheduleDescriptorRepresentation(String name, String description, String interval, String timeout) {
+    public ScheduleDescriptorRepresentation(String name, String description, String initialDelay, String interval, String timeout) {
         this.name = name;
         this.description = description;
+        this.initialDelay = initialDelay;
         this.interval = interval;
         this.timeout = timeout;
     }
@@ -36,6 +38,10 @@ public class ScheduleDescriptorRepresentation {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getInitialDelay() {
+        return initialDelay;
     }
 
     public String getInterval() {

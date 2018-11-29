@@ -56,8 +56,9 @@ public class QuotaEventEmitterTest {
 
     private static final long UPDATE_INTERVAL_MS = 10L;
 
-    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.systemQuota(100);
-    public static final Duration EVENT_TIMEOUT = Duration.ofSeconds(5);
+    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.systemQuota(100, "Test");
+
+    private static final Duration EVENT_TIMEOUT = Duration.ofSeconds(5);
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
@@ -79,7 +80,7 @@ public class QuotaEventEmitterTest {
 
     @Before
     public void setUp() throws Exception {
-        when(quotasManager.getSystemEvictionQuota()).thenReturn(SYSTEM_EVICTION_QUOTA);
+        when(quotasManager.findEvictionQuota(Reference.system())).thenReturn(Optional.of(SYSTEM_EVICTION_QUOTA));
     }
 
     @After
@@ -96,7 +97,7 @@ public class QuotaEventEmitterTest {
                 5,
                 budget(numberOfHealthyPolicy(8), hourlyRatePercentage(50), singletonList(officeHourTimeWindow()))
         );
-        when(quotasManager.findJobEvictionQuota(job.getId())).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 2)));
+        when(quotasManager.findEvictionQuota(Reference.job(job.getId()))).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 2, "Test")));
 
         jobComponentStub.createJob(job);
         jobComponentStub.createDesiredTasks(job);
@@ -104,7 +105,7 @@ public class QuotaEventEmitterTest {
         expectJobQuotaEvent(eventSubscriber, job, 2);
 
         // Now change the quota
-        when(quotasManager.findJobEvictionQuota(job.getId())).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 5)));
+        when(quotasManager.findEvictionQuota(Reference.job(job.getId()))).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 5, "Test")));
         expectJobQuotaEvent(eventSubscriber, job, 5);
 
         cancelSubscriptionAndCheckIfSucceeded(eventSubscriber);

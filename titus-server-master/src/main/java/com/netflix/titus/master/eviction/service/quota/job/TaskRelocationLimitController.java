@@ -21,11 +21,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.Level;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.QuotaController;
@@ -63,12 +66,24 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
     }
 
     @Override
-    public long getQuota() {
+    public EvictionQuota getQuota(Reference reference) {
+        if (reference.getLevel() == Level.Task) {
+            return getTaskQuota(reference);
+        }
+        return getJobQuota(reference);
+    }
+
+    private EvictionQuota getJobQuota(Reference jobReference) {
+        EvictionQuota.Builder quotaBuilder = EvictionQuota.newBuilder().withReference(jobReference);
+
         List<Task> tasks;
         try {
             tasks = jobOperations.getTasks(job.getId());
         } catch (JobManagerException e) {
-            return 0;
+            return quotaBuilder
+                    .withQuota(0)
+                    .withMessage("Internal error: %s", e.getMessage())
+                    .build();
         }
 
         int quota = 0;
@@ -79,7 +94,31 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
             }
         }
 
-        return quota;
+        return quota > 0
+                ? quotaBuilder.withQuota(quota).withMessage("Per task limit is %s", perTaskLimit).build()
+                : quotaBuilder.withQuota(0).withMessage("All tasks of the job reached its maximum eviction limit %s", perTaskLimit).build();
+    }
+
+    private EvictionQuota getTaskQuota(Reference taskReference) {
+        String taskId = taskReference.getName();
+
+        EvictionQuota.Builder quotaBuilder = EvictionQuota.newBuilder().withReference(taskReference);
+
+        Optional<Pair<Job<?>, Task>> jobTaskOpt = jobOperations.findTaskById(taskId);
+        if (!jobTaskOpt.isPresent()) {
+            return quotaBuilder.withQuota(0).withMessage("Task not found").build();
+        }
+        Task task = jobTaskOpt.get().getRight();
+
+        int counter = relocationCountersById.getOrDefault(task.getOriginalId(), 0);
+        if (counter < perTaskLimit) {
+            return quotaBuilder
+                    .withQuota(1)
+                    .withMessage("Per task limit is %s, and restart count is %s", perTaskLimit, counter)
+                    .build();
+        }
+
+        return quotaBuilder.withQuota(0).withMessage(taskLimitExceeded.getRejectionReason().get()).build();
     }
 
     @Override

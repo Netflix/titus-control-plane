@@ -171,10 +171,10 @@ public class QuotaEventEmitter {
         private List<EvictionQuotaEvent> buildSnapshot() {
             List<EvictionQuotaEvent> snapshot = new ArrayList<>();
 
-            snapshot.add(EvictionEvent.newQuotaEvent(quotasManager.getSystemEvictionQuota()));
+            snapshot.add(EvictionEvent.newQuotaEvent(quotasManager.findEvictionQuota(Reference.system()).get()));
             jobOperations.getJobs()
                     .forEach(job -> quotasManager
-                            .findJobEvictionQuota(job.getId())
+                            .findEvictionQuota(Reference.job(job.getId()))
                             .ifPresent(quota -> snapshot.add(EvictionEvent.newQuotaEvent(quota)))
                     );
 

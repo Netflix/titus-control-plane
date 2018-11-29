@@ -26,7 +26,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Flux;
@@ -48,7 +47,7 @@ class StubbedEvictionOperations implements EvictionOperations {
             Pair<Job<?>, Task> jobTaskPair = jobOperations.findTaskById(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
             Job<?> job = jobTaskPair.getLeft();
 
-            long quota = stubbedEvictionData.findJobQuota(job.getId()).orElse(0L);
+            long quota = stubbedEvictionData.findEvictionQuota(Reference.job(job.getId())).map(EvictionQuota::getQuota).orElse(0L);
             if (quota <= 0) {
                 throw EvictionException.noAvailableJobQuota(job, "No quota");
             }
@@ -59,28 +58,13 @@ class StubbedEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public EvictionQuota getSystemEvictionQuota() {
-        return stubbedEvictionData.getSystemEvictionQuota();
+    public EvictionQuota getEvictionQuota(Reference reference) {
+        return stubbedEvictionData.getEvictionQuota(reference);
     }
 
     @Override
-    public EvictionQuota getTierEvictionQuota(Tier tier) {
-        return stubbedEvictionData.getTierEvictionQuota(tier);
-    }
-
-    @Override
-    public EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
-        return stubbedEvictionData.getCapacityGroupEvictionQuota(capacityGroupName);
-    }
-
-    @Override
-    public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
-        return stubbedEvictionData.findJobQuota(jobId).map(quota ->
-                EvictionQuota.newBuilder()
-                        .withReference(Reference.job(jobId))
-                        .withQuota(quota)
-                        .build()
-        );
+    public Optional<EvictionQuota> findEvictionQuota(Reference reference) {
+        return stubbedEvictionData.findEvictionQuota(reference);
     }
 
     @Override

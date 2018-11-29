@@ -19,21 +19,20 @@ package com.netflix.titus.api.model.reference;
 import java.util.Objects;
 
 import com.netflix.titus.api.model.Level;
-import com.netflix.titus.api.model.Tier;
 
-public abstract class Reference {
+public class TaskReference extends Reference {
 
-    private final Level level;
+    private final String name;
 
-    protected Reference(Level level) {
-        this.level = level;
+    public TaskReference(String taskId) {
+        super(Level.Task);
+        this.name = taskId;
     }
 
-    public Level getLevel() {
-        return level;
+    @Override
+    public String getName() {
+        return name;
     }
-
-    public abstract String getName();
 
     @Override
     public boolean equals(Object o) {
@@ -43,32 +42,22 @@ public abstract class Reference {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Reference reference = (Reference) o;
-        return level == reference.level;
+        if (!super.equals(o)) {
+            return false;
+        }
+        TaskReference that = (TaskReference) o;
+        return Objects.equals(name, that.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(level);
+        return Objects.hash(super.hashCode(), name);
     }
 
-    public static Reference system() {
-        return SystemReference.getInstance();
-    }
-
-    public static Reference tier(Tier tier) {
-        return TierReference.getInstance(tier);
-    }
-
-    public static Reference capacityGroup(String capacityGroupName) {
-        return CapacityGroupReference.getInstance(capacityGroupName);
-    }
-
-    public static Reference job(String jobId) {
-        return new JobReference(jobId);
-    }
-
-    public static Reference task(String taskId) {
-        return new TaskReference(taskId);
+    @Override
+    public String toString() {
+        return "TaskReference{" +
+                "name='" + name + '\'' +
+                '}';
     }
 }

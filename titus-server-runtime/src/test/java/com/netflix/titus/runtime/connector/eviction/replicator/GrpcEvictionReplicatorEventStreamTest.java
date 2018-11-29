@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.eviction.replicator;
 
 import java.time.Duration;
 
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
@@ -57,7 +58,7 @@ public class GrpcEvictionReplicatorEventStreamTest {
 
                     EvictionDataSnapshot cache = initialReplicatorEvent.getData();
                     assertThat(cache.getSystemEvictionQuota().getQuota()).isEqualTo(25);
-                    assertThat(cache.findJobEvictionQuota("job1").get().getQuota()).isEqualTo(5);
+                    assertThat(cache.findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(5);
                 })
 
                 .thenCancel()
@@ -80,10 +81,10 @@ public class GrpcEvictionReplicatorEventStreamTest {
     public void testJobQuotaUpdate() {
         evictionComponentStub.setJobQuota("job1", 1);
         newConnectVerifier()
-                .assertNext(next -> assertThat(next.getData().findJobEvictionQuota("job1").get().getQuota()).isEqualTo(1))
+                .assertNext(next -> assertThat(next.getData().findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(1))
                 .then(() -> evictionComponentStub.setJobQuota("job1", 5))
                 .thenConsumeWhile(next -> !isJobQuotaUpdate(next, "job1", 5))
-                .assertNext(next -> assertThat(next.getData().findJobEvictionQuota("job1").get().getQuota()).isEqualTo(5))
+                .assertNext(next -> assertThat(next.getData().findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(5))
                 .thenCancel()
                 .verify();
     }
@@ -112,6 +113,6 @@ public class GrpcEvictionReplicatorEventStreamTest {
     }
 
     private boolean isJobQuotaUpdate(ReplicatorEvent<EvictionDataSnapshot> event, String jobId, int expectedJobQuota) {
-        return event.getData().findJobEvictionQuota(jobId).map(q -> q.getQuota() == expectedJobQuota).orElse(false);
+        return event.getData().findEvictionQuota(Reference.job(jobId)).map(q -> q.getQuota() == expectedJobQuota).orElse(false);
     }
 }

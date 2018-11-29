@@ -30,6 +30,7 @@ import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
@@ -60,6 +61,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultRelocationWorkflowExecutor.class);
 
+    private static final long STALENESS_THRESHOLD_MS = 30_000;
+
     private final RelocationConfiguration configuration;
 
     private final AgentDataReplicator agentDataReplicator;
@@ -67,6 +70,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private final EvictionDataReplicator evictionDataReplicator;
 
+    private final TitusRuntime titusRuntime;
     private final WorkflowMetrics metrics;
     private final ScheduleReference disposable;
 
@@ -77,6 +81,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     private final TaskEvictionStep taskEvictionStep;
     private final DeschedulingResultLogger deschedulingResultLogger;
 
+    private volatile long lastDeschedulingTimestamp;
     private volatile Map<String, TaskRelocationPlan> lastRelocationPlan = Collections.emptyMap();
     private volatile Map<String, TaskRelocationPlan> lastEvictionPlan = Collections.emptyMap();
     private volatile Map<String, TaskRelocationStatus> lastEvictionResult = Collections.emptyMap();
@@ -98,6 +103,9 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         this.jobDataReplicator = jobDataReplicator;
         this.evictionDataReplicator = evictionDataReplicator;
         this.metrics = new WorkflowMetrics(titusRuntime);
+        this.titusRuntime = titusRuntime;
+
+        ensureReplicatorsReady();
 
         RelocationTransactionLogger transactionLog = new RelocationTransactionLogger(jobOperations);
         this.mustBeRelocatedTaskCollectorStep = new MustBeRelocatedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
@@ -105,6 +113,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         this.deschedulerStep = new DeschedulerStep(deschedulerService, transactionLog, titusRuntime);
         this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, transactionLog, Schedulers.parallel());
         this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep(archiveStore, transactionLog, titusRuntime);
+
+        this.lastDeschedulingTimestamp = titusRuntime.getClock().wallTime();
 
         this.deschedulingResultLogger = new DeschedulingResultLogger();
 
@@ -117,6 +127,31 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
                 .build();
 
         disposable = titusRuntime.getLocalScheduler().schedule(relocationScheduleDescriptor, this::nextRelocationStep, true);
+    }
+
+    /**
+     * Replicated caches start with empty snapshots and infinitely long staleness. We cannot proceed with
+     * the workflow setup until we have the caches ready, so we block here.
+     * TODO This should be handled in more generic way, and be part of the replicated caches toolkit.
+     */
+    private void ensureReplicatorsReady() {
+        boolean agentsReady = false;
+        boolean jobsReady = false;
+        boolean evictionsReady = false;
+        while (!(agentsReady && jobsReady && evictionsReady)) {
+            agentsReady = agentsReady || agentDataReplicator.getStalenessMs() < STALENESS_THRESHOLD_MS;
+            jobsReady = jobsReady || jobDataReplicator.getStalenessMs() < STALENESS_THRESHOLD_MS;
+            evictionsReady = evictionsReady || evictionDataReplicator.getStalenessMs() < STALENESS_THRESHOLD_MS;
+
+            if (!(agentsReady && jobsReady && evictionsReady)) {
+                logger.info("Replicated caches not ready: agentsReady={}, jobsReady={}, evictionReady={}", agentsReady, jobsReady, evictionsReady);
+                try {
+                    Thread.sleep(2_000);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException("Bootstrap process terminated");
+                }
+            }
+        }
     }
 
     @PreDestroy
@@ -141,37 +176,55 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private void nextRelocationStep(ExecutionContext executionContext) {
         long count = executionContext.getExecutionId().getTotal();
-        logger.info("Starting task relocation iteration {}...", count);
+        boolean descheduling = lastDeschedulingTimestamp + configuration.getDeschedulingIntervalMs() > titusRuntime.getClock().wallTime();
+
+        logger.info("Starting task relocation iteration {} (descheduling={})...", count, descheduling);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
+        boolean executed = false;
         try {
-            doWork();
+            executed = doWork(descheduling);
             logger.info("Task relocation iteration {} finished in {}sec", count, stopwatch.elapsed(TimeUnit.SECONDS));
         } catch (Exception e) {
             logger.error("Task relocation iteration {} failed after {}sec", count, stopwatch.elapsed(TimeUnit.SECONDS), e);
         }
+
+        if (executed && descheduling) {
+            this.lastDeschedulingTimestamp = titusRuntime.getClock().wallTime();
+        }
     }
 
-    private void doWork() {
+    private boolean doWork(boolean descheduling) {
         if (hasStaleData()) {
             logger.info("Stale data. Skipping the task relocation iteration");
-            return;
+            return false;
         }
 
         // Relocation plan
         Map<String, TaskRelocationPlan> newRelocationPlan = mustBeRelocatedTaskCollectorStep.collectTasksThatMustBeRelocated();
         this.lastRelocationPlan = mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(newRelocationPlan);
 
-        // Descheduling
-        Map<String, DeschedulingResult> deschedulingResult = deschedulerStep.deschedule(this.lastRelocationPlan);
-        this.lastEvictionPlan = deschedulingResult.values().stream()
-                .filter(DeschedulingResult::canEvict)
-                .collect(Collectors.toMap(d -> d.getTask().getId(), DeschedulingResult::getTaskRelocationPlan));
-        deschedulingResultLogger.doLog(deschedulingResult);
+        if (descheduling) {
+            // Descheduling
+            Map<String, DeschedulingResult> deschedulingResult = deschedulerStep.deschedule(this.lastRelocationPlan);
+            this.lastEvictionPlan = deschedulingResult.values().stream()
+                    .filter(DeschedulingResult::canEvict)
+                    .collect(Collectors.toMap(d -> d.getTask().getId(), DeschedulingResult::getTaskRelocationPlan));
+            deschedulingResultLogger.doLog(deschedulingResult);
 
-        // Eviction
-        this.lastEvictionResult = taskEvictionStep.evict(lastEvictionPlan);
-        taskEvictionResultStoreStep.storeTaskEvictionResults(lastEvictionResult);
+            // Eviction
+            this.lastEvictionResult = taskEvictionStep.evict(lastEvictionPlan);
+            taskEvictionResultStoreStep.storeTaskEvictionResults(lastEvictionResult);
+
+            // Remove relocation plans for tasks that were successfully evicted.
+            lastEvictionResult.forEach((taskId, status) -> {
+                if (status.getState() == TaskRelocationState.Success) {
+                    lastRelocationPlan.remove(taskId);
+                }
+            });
+        }
+
+        return true;
     }
 
     private boolean hasStaleData() {
