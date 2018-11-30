@@ -18,6 +18,7 @@ package com.netflix.titus.supplementary.relocation.workflow;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -63,6 +64,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private static final long STALENESS_THRESHOLD_MS = 30_000;
 
+    private static final Map<String, TaskRelocationPlan> PLANS_NOT_READY = new HashMap<>();
+
     private final RelocationConfiguration configuration;
 
     private final AgentDataReplicator agentDataReplicator;
@@ -82,7 +85,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     private final DeschedulingResultLogger deschedulingResultLogger;
 
     private volatile long lastDeschedulingTimestamp;
-    private volatile Map<String, TaskRelocationPlan> lastRelocationPlan = Collections.emptyMap();
+    private volatile Map<String, TaskRelocationPlan> lastRelocationPlan = PLANS_NOT_READY;
     private volatile Map<String, TaskRelocationPlan> lastEvictionPlan = Collections.emptyMap();
     private volatile Map<String, TaskRelocationStatus> lastEvictionResult = Collections.emptyMap();
 
@@ -121,6 +124,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         ScheduleDescriptor relocationScheduleDescriptor = ScheduleDescriptor.newBuilder()
                 .withName("relocationWorkflow")
                 .withDescription("Task relocation scheduler")
+                .withInitialDelay(Duration.ZERO)
                 .withInterval(Duration.ofMillis(configuration.getRelocationScheduleIntervalMs()))
                 .withTimeout(Duration.ofMillis(configuration.getRelocationTimeoutMs()))
                 .withRetryerSupplier(() -> Retryers.exponentialBackoff(1, 5, TimeUnit.MINUTES))
@@ -161,6 +165,9 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     @Override
     public Map<String, TaskRelocationPlan> getPlannedRelocations() {
+        if(lastRelocationPlan == PLANS_NOT_READY) {
+            throw RelocationWorkflowException.notReady();
+        }
         return lastRelocationPlan;
     }
 

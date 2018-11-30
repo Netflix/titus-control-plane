@@ -19,7 +19,8 @@ package com.netflix.titus.supplementary.relocation.workflow;
 public class RelocationWorkflowException extends RuntimeException {
 
     public enum ErrorCode {
-        StoreError
+        NotReady,
+        StoreError,
     }
 
     private final ErrorCode errorCode;
@@ -31,6 +32,10 @@ public class RelocationWorkflowException extends RuntimeException {
 
     public ErrorCode getErrorCode() {
         return errorCode;
+    }
+
+    public static RelocationWorkflowException notReady() {
+        return new RelocationWorkflowException(ErrorCode.NotReady, "Relocation workflow not ready yet", null);
     }
 
     public static RelocationWorkflowException storeError(String message, Throwable cause) {
