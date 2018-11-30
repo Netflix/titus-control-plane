@@ -44,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ReactorToGrpcClientBuilderTest {
 
+    private static final Duration TIMEOUT_DURATION = Duration.ofSeconds(30);
+
     private ManagedChannel channel;
     private Server server;
     private SampleServiceReactApi client;
@@ -59,7 +61,7 @@ public class ReactorToGrpcClientBuilderTest {
                 .build();
 
         this.client = ReactorToGrpcClientBuilder.newBuilder(SampleServiceReactApi.class, SampleServiceGrpc.newStub(channel), SampleServiceGrpc.getServiceDescriptor())
-                .withTimeout(Duration.ofSeconds(30))
+                .withTimeout(TIMEOUT_DURATION)
                 .withCallMetadataResolver(new AnonymousCallMetadataResolver())
                 .build();
     }
@@ -80,10 +82,10 @@ public class ReactorToGrpcClientBuilderTest {
         TitusRxSubscriber<SampleContainer> subscriber = new TitusRxSubscriber<>();
         client.stream().subscribe(subscriber);
 
-        assertThat(subscriber.takeNext(Duration.ofSeconds(1)).getStringValue()).isEqualTo("Event1");
-        assertThat(subscriber.takeNext(Duration.ofSeconds(1)).getStringValue()).isEqualTo("Event2");
-        assertThat(subscriber.takeNext(Duration.ofSeconds(1)).getStringValue()).isEqualTo("Event3");
-        assertThat(subscriber.awaitClosed(Duration.ofSeconds(1))).isTrue();
+        assertThat(subscriber.takeNext(TIMEOUT_DURATION).getStringValue()).isEqualTo("Event1");
+        assertThat(subscriber.takeNext(TIMEOUT_DURATION).getStringValue()).isEqualTo("Event2");
+        assertThat(subscriber.takeNext(TIMEOUT_DURATION).getStringValue()).isEqualTo("Event3");
+        assertThat(subscriber.awaitClosed(TIMEOUT_DURATION)).isTrue();
         assertThat(subscriber.hasError()).isFalse();
     }
 

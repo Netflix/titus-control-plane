@@ -52,8 +52,8 @@ public class TaskRelocationSandbox {
                     @Override
                     protected void configureArchaius() {
                         bindDefaultConfig().toInstance(MapConfig.builder()
-                                .put("titus.relocation.relocationScheduleInitialDelayMs", "100")
                                 .put("titus.relocation.relocationScheduleIntervalMs", "100")
+                                .put("titus.relocation.deschedulingIntervalMs", "100")
                                 .put("titus.relocation.endpoint.port", "0")
                                 .build()
                         );

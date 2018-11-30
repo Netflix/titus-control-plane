@@ -183,7 +183,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private void nextRelocationStep(ExecutionContext executionContext) {
         long count = executionContext.getExecutionId().getTotal();
-        boolean descheduling = lastDeschedulingTimestamp + configuration.getDeschedulingIntervalMs() > titusRuntime.getClock().wallTime();
+        boolean descheduling = lastDeschedulingTimestamp + configuration.getDeschedulingIntervalMs() <= titusRuntime.getClock().wallTime();
 
         logger.info("Starting task relocation iteration {} (descheduling={})...", count, descheduling);
 
