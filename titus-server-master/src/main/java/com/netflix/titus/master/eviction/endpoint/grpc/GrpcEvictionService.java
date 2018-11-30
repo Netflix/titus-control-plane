@@ -21,7 +21,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.eviction.service.EvictionOperations;
-import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.grpc.protogen.EvictionQuota;
 import com.netflix.titus.grpc.protogen.EvictionServiceEvent;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
@@ -126,12 +125,5 @@ public class GrpcEvictionService extends EvictionServiceGrpc.EvictionServiceImpl
         );
         ServerCallStreamObserver<EvictionServiceEvent> serverObserver = (ServerCallStreamObserver<EvictionServiceEvent>) responseObserver;
         serverObserver.setOnCancelHandler(subscription::dispose);
-    }
-
-    private EvictionQuota toVeryHighQuota(Reference reference) {
-        return EvictionQuota.newBuilder()
-                .setTarget(reference)
-                .setQuota(ReadOnlyEvictionOperations.VERY_HIGH_QUOTA)
-                .build();
     }
 }
