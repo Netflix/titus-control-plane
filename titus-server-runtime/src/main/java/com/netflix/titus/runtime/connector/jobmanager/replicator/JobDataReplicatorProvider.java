@@ -21,6 +21,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorDelegate;
@@ -45,7 +46,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
 
     @Inject
     public JobDataReplicatorProvider(JobManagementClient client, TitusRuntime titusRuntime) {
-        StreamDataReplicator<JobSnapshot> original = StreamDataReplicator.newStreamDataReplicator(
+        StreamDataReplicator<JobSnapshot, JobManagerEvent<?>> original = StreamDataReplicator.newStreamDataReplicator(
                 newReplicatorEventStream(client, titusRuntime),
                 new DataReplicatorMetrics(JOB_REPLICATOR, titusRuntime),
                 titusRuntime
@@ -59,7 +60,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
         return replicator;
     }
 
-    private static RetryableReplicatorEventStream<JobSnapshot> newReplicatorEventStream(JobManagementClient client, TitusRuntime titusRuntime) {
+    private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobManagementClient client, TitusRuntime titusRuntime) {
         GrpcJobReplicatorEventStream grpcEventStream = new GrpcJobReplicatorEventStream(
                 client,
                 new DataReplicatorMetrics(JOB_REPLICATOR_GRPC_STREAM, titusRuntime),
@@ -74,8 +75,8 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
         );
     }
 
-    private static class JobDataReplicatorImpl extends DataReplicatorDelegate<JobSnapshot> implements JobDataReplicator {
-        JobDataReplicatorImpl(DataReplicator<JobSnapshot> delegate) {
+    private static class JobDataReplicatorImpl extends DataReplicatorDelegate<JobSnapshot, JobManagerEvent<?>> implements JobDataReplicator {
+        JobDataReplicatorImpl(DataReplicator<JobSnapshot, JobManagerEvent<?>> delegate) {
             super(delegate);
         }
     }

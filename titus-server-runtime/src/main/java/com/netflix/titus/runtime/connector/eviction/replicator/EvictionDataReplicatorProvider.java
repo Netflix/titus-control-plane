@@ -21,6 +21,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorDelegate;
@@ -45,7 +46,7 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
 
     @Inject
     public EvictionDataReplicatorProvider(EvictionServiceClient client, TitusRuntime titusRuntime) {
-        StreamDataReplicator<EvictionDataSnapshot> original = StreamDataReplicator.newStreamDataReplicator(
+        StreamDataReplicator<EvictionDataSnapshot, EvictionEvent> original = StreamDataReplicator.newStreamDataReplicator(
                 newReplicatorEventStream(client, titusRuntime),
                 new DataReplicatorMetrics(EVICTION_REPLICATOR, titusRuntime),
                 titusRuntime
@@ -59,7 +60,7 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
         return replicator;
     }
 
-    private static RetryableReplicatorEventStream<EvictionDataSnapshot> newReplicatorEventStream(EvictionServiceClient client, TitusRuntime titusRuntime) {
+    private static RetryableReplicatorEventStream<EvictionDataSnapshot, EvictionEvent> newReplicatorEventStream(EvictionServiceClient client, TitusRuntime titusRuntime) {
         GrpcEvictionReplicatorEventStream grpcEventStream = new GrpcEvictionReplicatorEventStream(
                 client,
                 new DataReplicatorMetrics(EVICTION_REPLICATOR_GRPC_STREAM, titusRuntime),
@@ -75,8 +76,8 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
         );
     }
 
-    private static class EvictionDataReplicatorImpl extends DataReplicatorDelegate<EvictionDataSnapshot> implements EvictionDataReplicator {
-        EvictionDataReplicatorImpl(DataReplicator<EvictionDataSnapshot> delegate) {
+    private static class EvictionDataReplicatorImpl extends DataReplicatorDelegate<EvictionDataSnapshot, EvictionEvent> implements EvictionDataReplicator {
+        EvictionDataReplicatorImpl(DataReplicator<EvictionDataSnapshot, EvictionEvent> delegate) {
             super(delegate);
         }
     }

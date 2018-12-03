@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.PreDestroy;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream.ReplicatorEvent;
+import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -30,7 +30,7 @@ import reactor.core.publisher.Flux;
  * {@link DataReplicator} implementation that wraps {@link ReplicatorEventStream}. The latter is provided
  * as a constructor argument by extensions of this class.
  */
-public class StreamDataReplicator<D> implements DataReplicator<D> {
+public class StreamDataReplicator<SNAPSHOT, TRIGGER> implements DataReplicator<SNAPSHOT, TRIGGER> {
     private static final Logger logger = LoggerFactory.getLogger(StreamDataReplicator.class);
 
     // Staleness threshold checked during the system initialization.
@@ -39,11 +39,14 @@ public class StreamDataReplicator<D> implements DataReplicator<D> {
     private final TitusRuntime titusRuntime;
     private final Disposable internalSubscription;
 
-    private final Flux<ReplicatorEvent<D>> eventStream;
+    private final Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream;
 
-    private final AtomicReference<ReplicatorEvent<D>> lastReplicatorEventRef;
+    private final AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> lastReplicatorEventRef;
 
-    public StreamDataReplicator(Flux<ReplicatorEvent<D>> eventStream, Disposable internalSubscription, AtomicReference<ReplicatorEvent<D>> lastReplicatorEventRef, TitusRuntime titusRuntime) {
+    public StreamDataReplicator(Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream,
+                                Disposable internalSubscription,
+                                AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> lastReplicatorEventRef,
+                                TitusRuntime titusRuntime) {
         this.eventStream = eventStream;
         this.internalSubscription = internalSubscription;
         this.lastReplicatorEventRef = lastReplicatorEventRef;
@@ -56,8 +59,8 @@ public class StreamDataReplicator<D> implements DataReplicator<D> {
     }
 
     @Override
-    public D getCurrent() {
-        return lastReplicatorEventRef.get().getData();
+    public SNAPSHOT getCurrent() {
+        return lastReplicatorEventRef.get().getSnapshot();
     }
 
     @Override
@@ -70,13 +73,19 @@ public class StreamDataReplicator<D> implements DataReplicator<D> {
         return eventStream.map(ReplicatorEvent::getLastUpdateTime);
     }
 
-    public static <D> Flux<StreamDataReplicator<D>> newStreamDataReplicator(ReplicatorEventStream<D> replicatorEventStream,
-                                                                            DataReplicatorMetrics metrics,
-                                                                            TitusRuntime titusRuntime) {
-        return Flux.defer(() -> {
-            AtomicReference<ReplicatorEvent<D>> lastReplicatorEventRef = new AtomicReference<>();
+    @Override
+    public Flux<Pair<SNAPSHOT, TRIGGER>> events() {
+        return eventStream.map(event -> Pair.of(event.getSnapshot(), event.getTrigger()));
+    }
 
-            Flux<ReplicatorEvent<D>> eventStream = replicatorEventStream.connect().publish().autoConnect(2);
+    public static <SNAPSHOT, TRIGGER> Flux<StreamDataReplicator<SNAPSHOT, TRIGGER>>
+    newStreamDataReplicator(ReplicatorEventStream<SNAPSHOT, TRIGGER> replicatorEventStream,
+                            DataReplicatorMetrics metrics,
+                            TitusRuntime titusRuntime) {
+        return Flux.defer(() -> {
+            AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> lastReplicatorEventRef = new AtomicReference<>();
+
+            Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream = replicatorEventStream.connect().publish().autoConnect(2);
 
             Disposable internalSubscription = eventStream
                     .doOnSubscribe(s -> metrics.connected())

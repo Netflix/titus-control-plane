@@ -295,4 +295,21 @@ public class GrpcAgentModelConverters {
 
         return Optional.ofNullable(event);
     }
+
+    public static Optional<AgentEvent> toCoreEvent(AgentChangeEvent grpcEvent) {
+        switch (grpcEvent.getEventCase()) {
+            case INSTANCEGROUPUPDATE:
+                return Optional.of(new AgentInstanceGroupUpdateEvent(toCoreAgentInstanceGroup(grpcEvent.getInstanceGroupUpdate().getInstanceGroup())));
+            case INSTANCEGROUPREMOVED:
+                return Optional.of(new AgentInstanceGroupRemovedEvent(grpcEvent.getInstanceGroupRemoved().getInstanceGroupId()));
+            case AGENTINSTANCEUPDATE:
+                return Optional.of(new AgentInstanceUpdateEvent(toCoreAgentInstance(grpcEvent.getAgentInstanceUpdate().getInstance())));
+            case AGENTINSTANCEREMOVED:
+                return Optional.of(new AgentInstanceRemovedEvent(grpcEvent.getAgentInstanceRemoved().getInstanceId()));
+            case SNAPSHOTEND:
+                return Optional.of(AgentSnapshotEndEvent.snapshotEnd());
+            case EVENT_NOT_SET:
+        }
+        return Optional.empty();
+    }
 }

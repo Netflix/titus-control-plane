@@ -16,16 +16,17 @@
 
 package com.netflix.titus.runtime.connector.common.replicator;
 
+import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Flux;
 
 /**
  * Data replicator from a remote service.
  */
-public interface DataReplicator<D> {
+public interface DataReplicator<SNAPSHOT, TRIGGER> {
     /**
      * Get the latest known version of the data.
      */
-    D getCurrent();
+    SNAPSHOT getCurrent();
 
     /**
      * Returns the number of milliseconds since the last data refresh time.
@@ -37,4 +38,9 @@ public interface DataReplicator<D> {
      * cache refresh process fails, and cannot resume.
      */
     Flux<Long> observeDataStalenessMs();
+
+    /**
+     * Emits events that triggered snapshot updates.
+     */
+    Flux<Pair<SNAPSHOT, TRIGGER>> events();
 }

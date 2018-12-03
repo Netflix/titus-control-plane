@@ -21,6 +21,7 @@ import java.time.Duration;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.InstanceLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
+import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -28,7 +29,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.AgentSnapshot;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream.ReplicatorEvent;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.GrpcJobReplicatorEventStream;
 import com.netflix.titus.testkit.model.agent.AgentComponentStub;
 import org.junit.Test;
@@ -59,8 +60,8 @@ public class GrpcAgentReplicatorEventStreamTest {
         newConnectVerifier().
                 assertNext(initialReplicatorEvent -> {
                     assertThat(initialReplicatorEvent).isNotNull();
-                    assertThat(initialReplicatorEvent.getData().getInstanceGroups()).hasSize(2);
-                    assertThat(initialReplicatorEvent.getData().getInstances()).hasSize(FLEX_1_DESIRED + CRITICAL_1_DESIRED);
+                    assertThat(initialReplicatorEvent.getSnapshot().getInstanceGroups()).hasSize(2);
+                    assertThat(initialReplicatorEvent.getSnapshot().getInstances()).hasSize(FLEX_1_DESIRED + CRITICAL_1_DESIRED);
                 })
 
                 .thenCancel()
@@ -70,9 +71,9 @@ public class GrpcAgentReplicatorEventStreamTest {
     @Test
     public void testCacheInstanceGroupUpdate() {
         newConnectVerifier()
-                .assertNext(next -> assertThat(next.getData().findInstanceGroup("flex-1").get().getTier()).isEqualTo(Tier.Flex))
+                .assertNext(next -> assertThat(next.getSnapshot().findInstanceGroup("flex-1").get().getTier()).isEqualTo(Tier.Flex))
                 .then(() -> agentComponentStub.changeTier("flex-1", Tier.Critical))
-                .assertNext(next -> assertThat(next.getData().findInstanceGroup("flex-1").get().getTier()).isEqualTo(Tier.Critical))
+                .assertNext(next -> assertThat(next.getSnapshot().findInstanceGroup("flex-1").get().getTier()).isEqualTo(Tier.Critical))
 
                 .thenCancel()
                 .verify();
@@ -83,8 +84,8 @@ public class GrpcAgentReplicatorEventStreamTest {
         newConnectVerifier()
                 .then(() -> agentComponentStub.removeInstanceGroup("flex-1"))
                 .expectNextCount(FLEX_1_DESIRED - 1)
-                .assertNext(next -> assertThat(next.getData().getInstances("flex-1")).hasSize(1))
-                .assertNext(next -> assertThat(next.getData().getInstances("flex-1")).isEmpty())
+                .assertNext(next -> assertThat(next.getSnapshot().getInstances("flex-1")).hasSize(1))
+                .assertNext(next -> assertThat(next.getSnapshot().getInstances("flex-1")).isEmpty())
 
                 .thenCancel()
                 .verify();
@@ -98,9 +99,9 @@ public class GrpcAgentReplicatorEventStreamTest {
                 .build();
 
         newConnectVerifier()
-                .assertNext(next -> assertThat(next.getData().findInstance(instance.getId()).get().getLifecycleStatus()).isEqualTo(instance.getLifecycleStatus()))
+                .assertNext(next -> assertThat(next.getSnapshot().findInstance(instance.getId()).get().getLifecycleStatus()).isEqualTo(instance.getLifecycleStatus()))
                 .then(() -> agentComponentStub.changeInstanceLifecycleStatus(instance.getId(), newStatus))
-                .assertNext(next -> assertThat(next.getData().findInstance(instance.getId()).get().getLifecycleStatus()).isEqualTo(newStatus))
+                .assertNext(next -> assertThat(next.getSnapshot().findInstance(instance.getId()).get().getLifecycleStatus()).isEqualTo(newStatus))
 
                 .thenCancel()
                 .verify();
@@ -111,9 +112,9 @@ public class GrpcAgentReplicatorEventStreamTest {
         AgentInstance instance = agentComponentStub.getFirstInstance();
 
         newConnectVerifier()
-                .assertNext(next -> assertThat(next.getData().findInstance(instance.getId())).isPresent())
+                .assertNext(next -> assertThat(next.getSnapshot().findInstance(instance.getId())).isPresent())
                 .then(() -> agentComponentStub.terminateInstance(instance.getId(), true))
-                .assertNext(next -> assertThat(next.getData().findInstance(instance.getId())).isNotPresent())
+                .assertNext(next -> assertThat(next.getSnapshot().findInstance(instance.getId())).isNotPresent())
 
                 .thenCancel()
                 .verify();
@@ -135,7 +136,7 @@ public class GrpcAgentReplicatorEventStreamTest {
         return new GrpcAgentReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
-    private StepVerifier.FirstStep<ReplicatorEvent<AgentSnapshot>> newConnectVerifier() {
+    private StepVerifier.FirstStep<ReplicatorEvent<AgentSnapshot, AgentEvent>> newConnectVerifier() {
         return StepVerifier.withVirtualTime(() -> newStream().connect().log());
     }
 }

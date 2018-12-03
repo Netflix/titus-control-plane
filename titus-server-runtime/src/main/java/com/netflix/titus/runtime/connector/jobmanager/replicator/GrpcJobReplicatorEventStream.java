@@ -21,10 +21,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -33,6 +37,7 @@ import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -41,7 +46,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
-public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<JobSnapshot> {
+public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
 
@@ -56,7 +61,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     }
 
     @Override
-    protected Flux<ReplicatorEvent<JobSnapshot>> newConnection() {
+    protected Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnection() {
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
             logger.info("Connecting to the job event stream...");
@@ -70,7 +75,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         private List<JobChangeNotification> snapshotEvents = new ArrayList<>();
         private AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
 
-        private Flux<ReplicatorEvent<JobSnapshot>> onEvent(JobChangeNotification event) {
+        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobChangeNotification event) {
             try {
                 if (lastJobSnapshotRef.get() != null) {
                     return processCacheUpdate(event);
@@ -98,7 +103,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             return Flux.empty();
         }
 
-        private Flux<ReplicatorEvent<JobSnapshot>> buildInitialCache() {
+        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> buildInitialCache() {
             Map<String, Job<?>> jobsById = new HashMap<>();
             Map<String, List<Task>> tasksByJobId = new HashMap<>();
 
@@ -123,27 +128,33 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             // No longer needed
             snapshotEvents.clear();
 
-            JobSnapshot initialSnapshot = new JobSnapshot(jobsById, tasksByJobId);
+            JobSnapshot initialSnapshot = new JobSnapshot(UUID.randomUUID().toString(), jobsById, tasksByJobId);
             lastJobSnapshotRef.set(initialSnapshot);
 
             logger.info("Job snapshot loaded: jobs={}, tasks={}", initialSnapshot.getJobs().size(), initialSnapshot.getTasks().size());
 
-            return Flux.just(new ReplicatorEvent<>(initialSnapshot, titusRuntime.getClock().wallTime()));
+            return Flux.just(new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime()));
         }
 
-        private Flux<ReplicatorEvent<JobSnapshot>> processCacheUpdate(JobChangeNotification event) {
+        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> processCacheUpdate(JobChangeNotification event) {
             JobSnapshot lastSnapshot = lastJobSnapshotRef.get();
+
             Optional<JobSnapshot> newSnapshot;
+            JobManagerEvent<?> coreEvent = null;
+
             switch (event.getNotificationCase()) {
                 case JOBUPDATE:
                     Job job = V3GrpcModelConverters.toCoreJob(event.getJobUpdate().getJob());
                     newSnapshot = lastSnapshot.updateJob(job);
+                    coreEvent = toJobCoreEvent(job);
                     break;
                 case TASKUPDATE:
                     com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
                     Job<?> taskJob = lastSnapshot.getJobs().stream().filter(j -> j.getId().equals(task.getJobId())).findFirst().orElse(null);
                     if (taskJob != null) {
-                        newSnapshot = lastSnapshot.updateTask(V3GrpcModelConverters.toCoreTask(taskJob, task));
+                        Task coreTask = V3GrpcModelConverters.toCoreTask(taskJob, task);
+                        newSnapshot = lastSnapshot.updateTask(coreTask);
+                        coreEvent = toTaskCoreEvent(taskJob, coreTask);
                     } else {
                         titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
                         newSnapshot = Optional.empty();
@@ -154,9 +165,21 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             }
             if (newSnapshot.isPresent()) {
                 lastJobSnapshotRef.set(newSnapshot.get());
-                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), titusRuntime.getClock().wallTime()));
+                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), coreEvent, titusRuntime.getClock().wallTime()));
             }
             return Flux.empty();
+        }
+
+        private JobManagerEvent<?> toJobCoreEvent(Job newJob) {
+            return lastJobSnapshotRef.get().findJob(newJob.getId())
+                    .map(previousJob -> JobUpdateEvent.jobChange(newJob, previousJob))
+                    .orElseGet(() -> JobUpdateEvent.newJob(newJob));
+        }
+
+        private JobManagerEvent<?> toTaskCoreEvent(Job<?> job, Task newTask) {
+            return lastJobSnapshotRef.get().findTaskById(newTask.getId())
+                    .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight()))
+                    .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask));
         }
     }
 }

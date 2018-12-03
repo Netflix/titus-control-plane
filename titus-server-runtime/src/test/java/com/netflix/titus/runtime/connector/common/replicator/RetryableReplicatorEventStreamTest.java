@@ -20,7 +20,6 @@ import java.time.Duration;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream.ReplicatorEvent;
 import org.junit.Test;
 import org.reactivestreams.Processor;
 import reactor.core.publisher.EmitterProcessor;
@@ -36,19 +35,19 @@ public class RetryableReplicatorEventStreamTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final ReplicatorEventStream<String> delegate = mock(ReplicatorEventStream.class);
+    private final ReplicatorEventStream<String, String> delegate = mock(ReplicatorEventStream.class);
 
-    private Processor<ReplicatorEvent<String>, ReplicatorEvent<String>> eventSubject;
+    private Processor<ReplicatorEvent<String, String>, ReplicatorEvent<String, String>> eventSubject;
 
     @Test
     public void testImmediateConnect() {
         newConnectVerifier()
                 // Event 1
-                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", "trigger1", 1)))
                 .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
                 // Event 2
-                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event2", 2)))
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event2", "trigger2", 2)))
                 .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(2))
 
                 .thenCancel()
@@ -63,7 +62,7 @@ public class RetryableReplicatorEventStreamTest {
                 .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS))
 
                 // Event 1
-                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", "trigger1", 1)))
                 .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
                 .thenCancel()
@@ -74,7 +73,7 @@ public class RetryableReplicatorEventStreamTest {
     public void testReconnectAfterFailure() {
         newConnectVerifier()
                 // Event 1
-                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", "trigger1", 1)))
                 .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
                 // Now fail
@@ -82,7 +81,7 @@ public class RetryableReplicatorEventStreamTest {
                 .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS))
 
                 // Recover
-                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("even2", 2)))
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("even2", "trigger2", 2)))
                 .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(2))
 
                 // Fail again
@@ -90,7 +89,7 @@ public class RetryableReplicatorEventStreamTest {
                 .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS))
 
                 // Recover again
-                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("even3", 3)))
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("even3", "trigger3", 3)))
                 .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(3))
 
                 .thenCancel()
@@ -101,7 +100,7 @@ public class RetryableReplicatorEventStreamTest {
     public void testInProlongedOutageTheLastKnownItemIsReEmitted() {
         newConnectVerifier()
                 // Event 1
-                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", 1)))
+                .then(() -> eventSubject.onNext(new ReplicatorEvent<>("event1", "trigger1", 1)))
                 .assertNext(e -> assertThat(e.getLastUpdateTime()).isEqualTo(1))
 
                 // Now fail
@@ -115,7 +114,7 @@ public class RetryableReplicatorEventStreamTest {
                 .verify();
     }
 
-    private RetryableReplicatorEventStream<String> newStream() {
+    private RetryableReplicatorEventStream<String, String> newStream() {
         when(delegate.connect()).thenAnswer(invocation -> Flux.defer(() -> {
             eventSubject = EmitterProcessor.create();
             return eventSubject;
@@ -126,7 +125,7 @@ public class RetryableReplicatorEventStreamTest {
         );
     }
 
-    private StepVerifier.FirstStep<ReplicatorEvent<String>> newConnectVerifier() {
+    private StepVerifier.FirstStep<ReplicatorEvent<String, String>> newConnectVerifier() {
         return StepVerifier.withVirtualTime(() -> newStream().connect().log());
     }
 }

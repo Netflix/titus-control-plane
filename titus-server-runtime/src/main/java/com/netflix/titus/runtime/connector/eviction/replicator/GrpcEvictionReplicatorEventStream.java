@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
@@ -33,6 +34,7 @@ import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataSnapshot;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import org.slf4j.Logger;
@@ -42,7 +44,7 @@ import reactor.core.scheduler.Scheduler;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventStream<EvictionDataSnapshot> {
+public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventStream<EvictionDataSnapshot, EvictionEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcEvictionReplicatorEventStream.class);
 
@@ -57,7 +59,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
     }
 
     @Override
-    protected Flux<ReplicatorEvent<EvictionDataSnapshot>> newConnection() {
+    protected Flux<ReplicatorEvent<EvictionDataSnapshot, EvictionEvent>> newConnection() {
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
             logger.info("Connecting to the eviction event stream...");
@@ -70,7 +72,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
         private final List<EvictionEvent> snapshotEvents = new ArrayList<>();
         private final AtomicReference<EvictionDataSnapshot> lastSnapshotRef = new AtomicReference<>();
 
-        private Flux<ReplicatorEvent<EvictionDataSnapshot>> onEvent(EvictionEvent event) {
+        private Flux<ReplicatorEvent<EvictionDataSnapshot, EvictionEvent>> onEvent(EvictionEvent event) {
             try {
                 if (lastSnapshotRef.get() != null) {
                     return processSnapshotUpdate(event);
@@ -86,7 +88,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             return Flux.empty();
         }
 
-        private Flux<ReplicatorEvent<EvictionDataSnapshot>> buildInitialCache() {
+        private Flux<ReplicatorEvent<EvictionDataSnapshot, EvictionEvent>> buildInitialCache() {
             EvictionQuota systemEvictionQuota = null;
             Map<Tier, EvictionQuota> tierEvictionQuotas = new HashMap<>();
             Map<String, EvictionQuota> capacityGroupEvictionQuotas = new HashMap<>();
@@ -120,6 +122,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             tierEvictionQuotas.computeIfAbsent(Tier.Critical, tier -> EvictionQuota.tierQuota(tier, ReadOnlyEvictionOperations.VERY_HIGH_QUOTA));
 
             EvictionDataSnapshot initialSnapshot = new EvictionDataSnapshot(
+                    UUID.randomUUID().toString(),
                     systemEvictionQuota,
                     tierEvictionQuotas,
                     capacityGroupEvictionQuotas,
@@ -127,10 +130,10 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             );
 
             lastSnapshotRef.set(initialSnapshot);
-            return Flux.just(new ReplicatorEvent<>(initialSnapshot, titusRuntime.getClock().wallTime()));
+            return Flux.just(new ReplicatorEvent<>(initialSnapshot, EvictionSnapshotEndEvent.getInstance(), titusRuntime.getClock().wallTime()));
         }
 
-        private Flux<ReplicatorEvent<EvictionDataSnapshot>> processSnapshotUpdate(EvictionEvent event) {
+        private Flux<ReplicatorEvent<EvictionDataSnapshot, EvictionEvent>> processSnapshotUpdate(EvictionEvent event) {
             EvictionDataSnapshot snapshot = lastSnapshotRef.get();
             Optional<EvictionDataSnapshot> newSnapshot = Optional.empty();
 
@@ -140,7 +143,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
 
             if (newSnapshot.isPresent()) {
                 lastSnapshotRef.set(newSnapshot.get());
-                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), titusRuntime.getClock().wallTime()));
+                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), event, titusRuntime.getClock().wallTime()));
             }
             return Flux.empty();
         }
